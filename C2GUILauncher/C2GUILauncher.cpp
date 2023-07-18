@@ -39,7 +39,6 @@ bool RunAutoDetect(HWND hwnd)
     auto installationType = AutoDetectInstallationType();
     SendMessage(GetDlgItem(hwnd, ID_INSTALLATION_TYPE_DROPDOWN), CB_SETCURSEL, installationType, 0);
 
-
     if (installationType == InstallationType::NotSet) {
         MessageBox(hwnd, "Could not detect installation type. Please manually set it in the settings tab.", "Warning", MB_OK | MB_ICONWARNING);
         return false;
@@ -96,7 +95,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
     case WM_COMMAND:
     {
-        LPSTR installTypeText = (LPSTR)""; // this is wrong
+        InstallationType currentlySelected = (InstallationType)SendMessage(GetDlgItem(hwnd, ID_INSTALLATION_TYPE_DROPDOWN), CB_GETCURSEL, 0, 0);
 
         switch (LOWORD(wp))
         {
@@ -104,10 +103,14 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             RunAutoDetect(hwnd);
             break;
         case ID_MOD_BTN:
-            // Handle the click event here
+            if(currentlySelected == InstallationType::NotSet && !RunAutoDetect(hwnd)) break;
+            InstallFiles(currentlySelected);
+
             break;
         case ID_NO_MOD_BTN:
-            // Handle the click event here
+            if (currentlySelected == InstallationType::NotSet && !RunAutoDetect(hwnd)) break;
+            RemoveFiles(currentlySelected);
+            
             break;
         default:
             break;

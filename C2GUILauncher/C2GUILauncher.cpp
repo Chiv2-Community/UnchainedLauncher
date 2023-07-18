@@ -103,6 +103,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 currentlySelected = RunAutoDetect(hwnd);
                 break;
             case ID_MOD_BTN:
+                // Kind of jank logic, but idk a better way to only run auto-detection automatically if its NotSet
                 if (currentlySelected == InstallationType::NotSet) {
                     currentlySelected = RunAutoDetect(hwnd);
                     if (currentlySelected == InstallationType::NotSet) break;
@@ -112,6 +113,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
                 break;
             case ID_NO_MOD_BTN:
+                // Kind of jank logic, but idk a better way to only run auto-detection automatically if its NotSet
                 if (currentlySelected == InstallationType::NotSet) {
                     currentlySelected = RunAutoDetect(hwnd);
                     if (currentlySelected == InstallationType::NotSet) break;

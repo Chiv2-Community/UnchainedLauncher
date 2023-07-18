@@ -55,9 +55,13 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             20, VERTICAL_TAB_MARGIN, 300, 20, hwnd, (HMENU)ID_INSTALLATION_TYPE_LABEL, NULL, NULL);
         HWND hwndDropdown = CreateWindowEx(0, "COMBOBOX", NULL, WS_CHILD | CBS_DROPDOWN,
             20, VERTICAL_TAB_MARGIN + 20, 300, 200, hwnd, (HMENU)ID_INSTALLATION_TYPE_DROPDOWN, NULL, NULL);
+        SendMessage(hwndDropdown, CB_ADDSTRING, 0, (LPARAM)"Not Set");
+        SendMessage(hwndDropdown, CB_ADDSTRING, 0, (LPARAM)"Steam");
+        SendMessage(hwndDropdown, CB_ADDSTRING, 0, (LPARAM)"Epic Games Store");
+        SendMessage(hwndDropdown, CB_SETCURSEL, 0, 0);
 
         HWND hwndDetectBtn = CreateWindowEx(0, "BUTTON", "Auto Detect", WS_CHILD,
-            20, VERTICAL_TAB_MARGIN + 100, 300, 30, hwnd, (HMENU)ID_DETECT_BTN, NULL, NULL);
+            20, VERTICAL_TAB_MARGIN + 50, 300, 30, hwnd, (HMENU)ID_DETECT_BTN, NULL, NULL);
 
         break;
     }

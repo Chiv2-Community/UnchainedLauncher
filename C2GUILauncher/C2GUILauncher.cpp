@@ -1,7 +1,10 @@
 #include <windows.h>
 #include <commctrl.h>
 #include <vector>
+#include <string>
+#include <map>
 #include "Win32Helpers.h"
+#include "C2LauncherUtils.h"
 
 #define ID_TAB_CONTROL 1
 
@@ -19,6 +22,31 @@ const std::vector<int> SETTINGS_TAB_ELEMS = {
 const std::vector<int> LAUNCHER_TAB_ELEMS = { ID_MOD_BTN, ID_NO_MOD_BTN };
 
 #define VERTICAL_TAB_MARGIN 40
+
+#define NOT_SET_INSTALL_TEXT "Not Set"
+#define STEAM_INSTALL_TEXT "Steam"
+#define EGS_INSTALL_TEXT "Epic Games Store"
+
+
+std::map<InstallationType, std::string> installationTypeTextMap = {
+	{ InstallationType::NotSet, NOT_SET_INSTALL_TEXT },
+	{ InstallationType::Steam, STEAM_INSTALL_TEXT },
+	{ InstallationType::EpicGamesStore, EGS_INSTALL_TEXT }
+};
+
+bool RunAutoDetect(HWND hwnd)
+{
+    auto installationType = AutoDetectInstallationType();
+    SendMessage(GetDlgItem(hwnd, ID_INSTALLATION_TYPE_DROPDOWN), CB_SETCURSEL, installationType, 0);
+
+
+    if (installationType == InstallationType::NotSet) {
+        MessageBox(hwnd, "Could not detect installation type. Please manually set it in the settings tab.", "Warning", MB_OK | MB_ICONWARNING);
+        return false;
+    }
+
+    return true;
+}
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 {
@@ -55,9 +83,9 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             20, VERTICAL_TAB_MARGIN, 300, 20, hwnd, (HMENU)ID_INSTALLATION_TYPE_LABEL, NULL, NULL);
         HWND hwndDropdown = CreateWindowEx(0, "COMBOBOX", NULL, WS_CHILD | CBS_DROPDOWN,
             20, VERTICAL_TAB_MARGIN + 20, 300, 200, hwnd, (HMENU)ID_INSTALLATION_TYPE_DROPDOWN, NULL, NULL);
-        SendMessage(hwndDropdown, CB_ADDSTRING, 0, (LPARAM)"Not Set");
-        SendMessage(hwndDropdown, CB_ADDSTRING, 0, (LPARAM)"Steam");
-        SendMessage(hwndDropdown, CB_ADDSTRING, 0, (LPARAM)"Epic Games Store");
+        SendMessage(hwndDropdown, CB_ADDSTRING, 0, (LPARAM)NOT_SET_INSTALL_TEXT);
+        SendMessage(hwndDropdown, CB_ADDSTRING, 0, (LPARAM)STEAM_INSTALL_TEXT);
+        SendMessage(hwndDropdown, CB_ADDSTRING, 0, (LPARAM)EGS_INSTALL_TEXT);
         SendMessage(hwndDropdown, CB_SETCURSEL, 0, 0);
 
         HWND hwndDetectBtn = CreateWindowEx(0, "BUTTON", "Auto Detect", WS_CHILD,
@@ -73,9 +101,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         switch (LOWORD(wp))
         {
         case ID_DETECT_BTN:
-            GetDlgItemText(hwnd, ID_INSTALLATION_TYPE_DROPDOWN, installTypeText, 16); // EGS option is the longest and has 16 chars
-
-            
+            RunAutoDetect(hwnd);
             break;
         case ID_MOD_BTN:
             // Handle the click event here
@@ -116,6 +142,8 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     return 0;
 }
 
+
+
 int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nCmdShow)
 {
     INITCOMMONCONTROLSEX icex;
@@ -152,3 +180,4 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nCmdShow)
 
     return 0;
 }
+

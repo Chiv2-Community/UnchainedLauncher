@@ -9,3 +9,4 @@ void ApplyShowCmd(const HWND hwnd, const std::vector<int> elementIds, const int 
         ShowWindow(GetDlgItem(hwnd, i), state);
     }
 }
+

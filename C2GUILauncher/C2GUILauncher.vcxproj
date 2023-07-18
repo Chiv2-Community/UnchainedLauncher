@@ -130,6 +130,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="C2GUILauncher.h" />
+    <ClInclude Include="C2LauncherUtils.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
@@ -137,6 +138,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="C2GUILauncher.cpp" />
+    <ClCompile Include="C2LauncherUtils.cpp" />
     <ClCompile Include="Win32Helpers.cpp" />
   </ItemGroup>
   <ItemGroup>

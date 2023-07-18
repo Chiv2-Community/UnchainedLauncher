@@ -34,17 +34,16 @@ std::map<InstallationType, std::string> installationTypeTextMap = {
 	{ InstallationType::EpicGamesStore, EGS_INSTALL_TEXT }
 };
 
-bool RunAutoDetect(HWND hwnd)
+InstallationType RunAutoDetect(HWND hwnd)
 {
     auto installationType = AutoDetectInstallationType();
     SendMessage(GetDlgItem(hwnd, ID_INSTALLATION_TYPE_DROPDOWN), CB_SETCURSEL, installationType, 0);
 
     if (installationType == InstallationType::NotSet) {
         MessageBox(hwnd, "Could not detect installation type. Please manually set it in the settings tab.", "Warning", MB_OK | MB_ICONWARNING);
-        return false;
     }
 
-    return true;
+    return installationType;
 }
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -95,28 +94,41 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
     case WM_COMMAND:
     {
-        InstallationType currentlySelected = (InstallationType)SendMessage(GetDlgItem(hwnd, ID_INSTALLATION_TYPE_DROPDOWN), CB_GETCURSEL, 0, 0);
+        try {
+            InstallationType currentlySelected = (InstallationType)SendMessage(GetDlgItem(hwnd, ID_INSTALLATION_TYPE_DROPDOWN), CB_GETCURSEL, 0, 0);
 
-        switch (LOWORD(wp))
-        {
-        case ID_DETECT_BTN:
-            RunAutoDetect(hwnd);
-            break;
-        case ID_MOD_BTN:
-            if(currentlySelected == InstallationType::NotSet && !RunAutoDetect(hwnd)) break;
-            InstallFiles(currentlySelected);
+            switch (LOWORD(wp))
+            {
+            case ID_DETECT_BTN:
+                currentlySelected = RunAutoDetect(hwnd);
+                break;
+            case ID_MOD_BTN:
+                if (currentlySelected == InstallationType::NotSet) {
+                    currentlySelected = RunAutoDetect(hwnd);
+                    if (currentlySelected == InstallationType::NotSet) break;
+                }
 
-            break;
-        case ID_NO_MOD_BTN:
-            if (currentlySelected == InstallationType::NotSet && !RunAutoDetect(hwnd)) break;
-            RemoveFiles(currentlySelected);
-            
-            break;
-        default:
+                InstallFiles(currentlySelected);
+
+                break;
+            case ID_NO_MOD_BTN:
+                if (currentlySelected == InstallationType::NotSet) {
+                    currentlySelected = RunAutoDetect(hwnd);
+                    if (currentlySelected == InstallationType::NotSet) break;
+                }
+
+                RemoveFiles(currentlySelected);
+
+                break;
+            default:
+                break;
+            }
+
             break;
         }
-
-        break;
+		catch (const std::exception& e) {
+			MessageBox(hwnd, e.what(), "Error", MB_OK | MB_ICONERROR);
+		}   
     }
 
     case WM_NOTIFY:

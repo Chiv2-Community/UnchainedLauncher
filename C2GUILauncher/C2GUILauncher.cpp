@@ -11,10 +11,14 @@
 #define ID_INSTALLATION_TYPE_LABEL 2
 #define ID_INSTALLATION_TYPE_DROPDOWN 3
 #define ID_DETECT_BTN 4
+#define ID_ARGS_LABEL 5
+#define ID_ARGS_TEXTBOX 6
 const std::vector<int> SETTINGS_TAB_ELEMS = { 
     ID_INSTALLATION_TYPE_LABEL, 
     ID_INSTALLATION_TYPE_DROPDOWN, 
-    ID_DETECT_BTN 
+    ID_DETECT_BTN ,
+    ID_ARGS_LABEL,
+    ID_ARGS_TEXTBOX
 };
 
 #define ID_MOD_BTN 7
@@ -44,6 +48,13 @@ InstallationType RunAutoDetect(HWND hwnd)
     }
 
     return installationType;
+}
+
+std::string ReadArgsFromTextbox(HWND hwnd)
+{
+	char args[256];
+	GetWindowText(GetDlgItem(hwnd, ID_ARGS_TEXTBOX), args, 256);
+	return std::string(args);
 }
 
 LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
@@ -89,6 +100,22 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         HWND hwndDetectBtn = CreateWindowEx(0, "BUTTON", "Auto Detect", WS_CHILD,
             20, VERTICAL_TAB_MARGIN + 50, 300, 30, hwnd, (HMENU)ID_DETECT_BTN, NULL, NULL);
 
+        // Create args settings
+        CreateWindowEx(0, "STATIC", "Args:", WS_CHILD,
+            20, VERTICAL_TAB_MARGIN + 90, 300, 20, hwnd, (HMENU)ID_ARGS_LABEL, NULL, NULL);
+
+        HWND hwndArgsTextbox = CreateWindowEx(0, "EDIT", NULL, WS_CHILD | WS_HSCROLL | ES_AUTOHSCROLL,
+            20, VERTICAL_TAB_MARGIN + 110, 300, 40, hwnd, (HMENU)ID_ARGS_TEXTBOX, NULL, NULL);
+
+        // Set the args textbox to the args from the command line
+        std::string args = GetCommandLine();
+        auto firstSpace = args.find(".exe\" ");
+        if(firstSpace != std::string::npos)
+		{
+			std::string argsNoExe = args.substr(firstSpace + 5);
+			SetWindowText(hwndArgsTextbox, argsNoExe.c_str());
+		}
+
         break;
     }
 
@@ -110,7 +137,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 }
 
                 InstallFiles(currentlySelected);
-
+                LaunchGame(currentlySelected, ReadArgsFromTextbox(hwnd));
                 break;
             case ID_NO_MOD_BTN:
                 // Kind of jank logic, but idk a better way to only run auto-detection automatically if its NotSet
@@ -120,7 +147,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 }
 
                 RemoveFiles(currentlySelected);
-
+                LaunchGame(currentlySelected, ReadArgsFromTextbox(hwnd));
                 break;
             default:
                 break;

@@ -10,5 +10,6 @@ enum InstallationType {
 
 InstallationType AutoDetectInstallationType();
 void DownloadFile(const std::string& url, const std::filesystem::path& outputPath);
-void InstallFiles(InstallationType installationType);
-void RemoveFiles(InstallationType installationType);
+void InstallFiles(const InstallationType installationType);
+void RemoveFiles(const InstallationType installationType);
+bool LaunchGame(const InstallationType installationType, const std::string args);

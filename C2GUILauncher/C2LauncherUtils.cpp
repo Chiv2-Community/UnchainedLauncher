@@ -14,7 +14,7 @@
 
 #define XAPOFX_PATH "TBL/Binaries/Win64/XAPOFX1_5.dll"
 
-bool LaunchGame(const std::string args, bool modded) {
+void LaunchGame(const std::string args, bool modded) {
     std::filesystem::path gamePath;
     if (modded) {
         gamePath = "TBL\\Binaries\\Win64\\Chivalry2-Win64-Shipping.exe";
@@ -53,6 +53,7 @@ bool LaunchGame(const std::string args, bool modded) {
 
 
     // Successfully created the process.  Wait for it to finish.
+
     WaitForSingleObject(processInfo.hProcess, INFINITE);
 
     // Close handles to the child process and its primary thread.
@@ -60,8 +61,6 @@ bool LaunchGame(const std::string args, bool modded) {
     // of the child process, for example. 
     CloseHandle(processInfo.hProcess);
     CloseHandle(processInfo.hThread);
-
-    return 0;
 }
 
 InstallationType AutoDetectInstallationType() {

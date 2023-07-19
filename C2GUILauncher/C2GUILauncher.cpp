@@ -141,7 +141,9 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 if (currentlySelected != Steam) { // For launching modded, steam does not need to forward params
                     args = ReadArgsFromTextbox(hwnd);
                 }
+                ShowWindow(hwnd, SW_HIDE);
                 LaunchGame(args, true);
+                PostQuitMessage(0);
                 break;
             case ID_NO_MOD_BTN:
                 // Kind of jank logic, but idk a better way to only run auto-detection automatically if its NotSet
@@ -151,7 +153,9 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 }
 
                 RemoveFiles(currentlySelected);
+                ShowWindow(hwnd, SW_HIDE);
                 LaunchGame(ReadArgsFromTextbox(hwnd), false);
+                PostQuitMessage(0);
                 break;
             default:
                 break;

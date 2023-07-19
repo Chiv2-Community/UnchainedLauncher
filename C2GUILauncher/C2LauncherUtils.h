@@ -12,4 +12,4 @@ InstallationType AutoDetectInstallationType();
 void DownloadFile(const std::string& url, const std::filesystem::path& outputPath);
 void InstallFiles(const InstallationType installationType);
 void RemoveFiles(const InstallationType installationType);
-bool LaunchGame(const InstallationType installationType, const std::string args);
+bool LaunchGame(const std::string args);

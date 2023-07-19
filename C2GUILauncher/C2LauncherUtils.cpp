@@ -14,7 +14,7 @@
 
 #define XAPOFX_PATH "TBL/Binaries/Win64/XAPOFX1_5.dll"
 
-bool LaunchGame(const InstallationType installationType, const std::string args) {
+bool LaunchGame(const std::string args) {
     std::filesystem::path gamePath = "TBL\\Binaries\\Win64\\Chivalry2-Win64-Shipping.exe";
 
     STARTUPINFO startupInfo;
@@ -24,10 +24,7 @@ bool LaunchGame(const InstallationType installationType, const std::string args)
     startupInfo.cb = sizeof(startupInfo);
     ZeroMemory(&processInfo, sizeof(processInfo));
 
-    // Steam installs do not need arg passthrough
-    auto finalArgs = installationType == Steam ? "" : args;
-
-    auto commandLine = gamePath.string() + " " + finalArgs;
+    auto commandLine = gamePath.string() + " " + args;
 
     if (!CreateProcess(NULL,   // No module name (use command line)
         LPSTR(commandLine.c_str()), // Command

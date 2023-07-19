@@ -123,6 +123,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     {
         try {
             InstallationType currentlySelected = (InstallationType)SendMessage(GetDlgItem(hwnd, ID_INSTALLATION_TYPE_DROPDOWN), CB_GETCURSEL, 0, 0);
+            std::string args = "";
 
             switch (LOWORD(wp))
             {
@@ -137,7 +138,10 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 }
 
                 InstallFiles(currentlySelected);
-                LaunchGame(currentlySelected, ReadArgsFromTextbox(hwnd));
+                if (currentlySelected != Steam) { // For launching modded, steam does not need to forward params
+                    args = ReadArgsFromTextbox(hwnd);
+                }
+                LaunchGame(args);
                 break;
             case ID_NO_MOD_BTN:
                 // Kind of jank logic, but idk a better way to only run auto-detection automatically if its NotSet
@@ -147,7 +151,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 }
 
                 RemoveFiles(currentlySelected);
-                LaunchGame(currentlySelected, ReadArgsFromTextbox(hwnd));
+                LaunchGame(ReadArgsFromTextbox(hwnd));
                 break;
             default:
                 break;

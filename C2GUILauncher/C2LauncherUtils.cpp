@@ -14,8 +14,14 @@
 
 #define XAPOFX_PATH "TBL/Binaries/Win64/XAPOFX1_5.dll"
 
-bool LaunchGame(const std::string args) {
-    std::filesystem::path gamePath = "TBL\\Binaries\\Win64\\Chivalry2-Win64-Shipping.exe";
+bool LaunchGame(const std::string args, bool modded) {
+    std::filesystem::path gamePath;
+    if (modded) {
+        gamePath = "TBL\\Binaries\\Win64\\Chivalry2-Win64-Shipping.exe";
+    } else {
+        gamePath = "Chivalry2Launcher-ORIGINAL.exe";
+    }
+    
 
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
@@ -59,7 +65,9 @@ bool LaunchGame(const std::string args) {
 }
 
 InstallationType AutoDetectInstallationType() {
-    TCHAR buffer[256];
+    //TODO: watch for buffer overflow here! 
+    //Modern windows permits paths longer than 256. I'm not sure if this specific function will permit them, though
+    TCHAR buffer[256]; 
     GetCurrentDirectory(256, buffer);
     std::string currentDir(buffer);
 

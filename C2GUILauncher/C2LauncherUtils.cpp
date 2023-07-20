@@ -8,21 +8,16 @@
 #include <vector>
 #include <numeric>
 #include "C2LauncherUtils.h"
+#include <detours.h>
 
 #define STEAM_PATH_SEARCH_STRING "Steam"
 #define EPIC_GAMES_PATH_SEARCH_STRING "Epic Games"
 
-#define XAPOFX_PATH "TBL/Binaries/Win64/XAPOFX1_5.dll"
+#define MOD_CACHE_PATH ".mod_cache"
+#define BIN_DIR "TBL\\Binaries\\Win64"
+#define PLUGIN_PATH "TBL\\Binaries\\Win64\\Plugins"
 
 void LaunchGame(const std::string args, bool modded) {
-    std::filesystem::path gamePath;
-    if (modded) {
-        gamePath = "TBL\\Binaries\\Win64\\Chivalry2-Win64-Shipping.exe";
-    } else {
-        gamePath = "Chivalry2Launcher-ORIGINAL.exe";
-    }
-    
-
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
 
@@ -30,18 +25,19 @@ void LaunchGame(const std::string args, bool modded) {
     startupInfo.cb = sizeof(startupInfo);
     ZeroMemory(&processInfo, sizeof(processInfo));
 
+    std::filesystem::path binPath = BIN_DIR;
+
+    std::filesystem::path gamePath = modded
+        ? binPath / "Chivalry2-Win64-Shipping.exe"
+        : "Chivalry2Launcher-ORIGINAL.exe";
+
     auto commandLine = gamePath.string() + " " + args;
 
-    if (!CreateProcess(NULL,   // No module name (use command line)
-        LPSTR(commandLine.c_str()), // Command
-        NULL,           // Process handle not inheritable
-        NULL,           // Thread handle not inheritable
-        FALSE,          // Set handle inheritance to FALSE
-        0,              // No creation flags
-        NULL,           // Use parent's environment block
-        NULL,           // Use parent's starting directory 
-        &startupInfo,   // Pointer to STARTUPINFO structure
-        &processInfo))   // Pointer to PROCESS_INFORMATION structure
+    auto procStartResult = modded
+        ? CreateModdedChiv2Process(commandLine, binPath, startupInfo, processInfo)
+        : CreateVanillaChiv2Process(commandLine, binPath, startupInfo, processInfo);
+
+    if (!procStartResult)
     {
         auto errorMessage = GetLastError();
         auto errorMessageString = std::to_string(errorMessage);
@@ -61,6 +57,40 @@ void LaunchGame(const std::string args, bool modded) {
     // of the child process, for example. 
     CloseHandle(processInfo.hProcess);
     CloseHandle(processInfo.hThread);
+}
+
+const BOOL& CreateModdedChiv2Process(std::string& commandLine, std::filesystem::path& binPath, STARTUPINFO& startupInfo, PROCESS_INFORMATION& processInfo)
+{
+    return DetourCreateProcessWithDllEx(
+        NULL,                       // No module name (use command line)
+        LPSTR(commandLine.c_str()), // Command
+        NULL,                       // Process handle not inheritable
+        NULL,                       // Thread handle not inheritable
+        FALSE,                      // Set handle inheritance to FALSE
+        0,                          // No creation flags
+        NULL,                       // Use parent's environment block
+        binPath.string().c_str(),   // Use the bin path as the working dir
+        &startupInfo,               // Pointer to STARTUPINFO structure
+        &processInfo,               // Pointer to PROCESS_INFORMATION structure
+        "../../../.mod_cache/XAPOFX1_5.dll", // DLL to inject
+        NULL
+    );
+}
+
+const BOOL& CreateVanillaChiv2Process(std::string& commandLine, std::filesystem::path& binPath, STARTUPINFO& startupInfo, PROCESS_INFORMATION& processInfo)
+{
+    return CreateProcess(
+        NULL,                       // No module name (use command line)
+        LPSTR(commandLine.c_str()), // Command
+        NULL,                       // Process handle not inheritable
+        NULL,                       // Thread handle not inheritable
+        FALSE,                      // Set handle inheritance to FALSE
+        0,                          // No creation flags
+        NULL,                       // Use parent's environment block
+        NULL,                       // Use the parent's working directory
+        &startupInfo,               // Pointer to STARTUPINFO structure
+        &processInfo                // Pointer to PROCESS_INFORMATION structure
+    );
 }
 
 InstallationType AutoDetectInstallationType() {
@@ -135,14 +165,19 @@ void InstallFiles(const InstallationType installationType) {
 		throw std::runtime_error("Installation type not set");
     }
 
-    DownloadFile("/C2UMP/C2PluginLoader/releases/download/latest/XAPOFX1_5.dll", XAPOFX_PATH);
+    std::filesystem::path modCachePath = MOD_CACHE_PATH;
+    if (!std::filesystem::exists(modCachePath)) {
+        std::filesystem::create_directory(modCachePath);
+    }
+    
 
-    std::filesystem::path basePath = "Plugins";
+    DownloadFile("/C2UMP/C2PluginLoader/releases/latest/download/XAPOFX1_5.dll", modCachePath / "XAPOFX1_5.dll");
 
-    DownloadFile("/C2UMP/C2AssetLoaderPlugin/releases/download/latest/C2AssetLoaderPlugin.dll", basePath / "C2AssetLoaderPlugin.dll");
-    DownloadFile("/C2UMP/C2ServerPlugin/releases/download/latest/C2ServerPlugin.dll", basePath / "C2ServerPlugin.dll");
-    DownloadFile("/Chiv2-Community/C2BrowserPlugin/releases/download/latest/C2BrowserPlugin.dll", basePath / "C2BrowserPlugin.dll");
+    std::filesystem::path basePath = PLUGIN_PATH;
 
+    DownloadFile("/C2UMP/C2AssetLoaderPlugin/releases/latest/download/C2AssetLoaderPlugin.dll", basePath / "C2AssetLoaderPlugin.dll");
+    DownloadFile("/C2UMP/C2ServerPlugin/releases/latest/download/C2ServerPlugin.dll", basePath / "C2ServerPlugin.dll");
+    DownloadFile("/Chiv2-Community/C2BrowserPlugin/releases/latest/download/C2BrowserPlugin.dll", basePath / "C2BrowserPlugin.dll");
 }
 
 bool RemoveIfExists(const std::filesystem::path filePath) {
@@ -157,9 +192,11 @@ void RemoveFiles(const InstallationType installationType) {
         throw std::runtime_error("Installation type not set");
     }
 
-    RemoveIfExists(XAPOFX_PATH);
+    std::filesystem::path modCachePath = MOD_CACHE_PATH;
 
-    std::filesystem::path basePath = "Plugins";
+    RemoveIfExists(modCachePath / "XAPOFX1_5.dll");
+
+    std::filesystem::path basePath = PLUGIN_PATH;
 
     RemoveIfExists(basePath / "C2AssetLoaderPlugin.dll");
     RemoveIfExists(basePath / "C2ServerPlugin.dll");

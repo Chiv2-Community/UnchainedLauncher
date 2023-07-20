@@ -13,3 +13,6 @@ void DownloadFile(const std::string& url, const std::filesystem::path& outputPat
 void InstallFiles(const InstallationType installationType);
 void RemoveFiles(const InstallationType installationType);
 void LaunchGame(const std::string args, bool modded);
+
+const BOOL& CreateModdedChiv2Process(std::string& commandLine, std::filesystem::path& binPath, STARTUPINFO& startupInfo, PROCESS_INFORMATION& processInfo);
+const BOOL& CreateVanillaChiv2Process(std::string& commandLine, std::filesystem::path& binPath, STARTUPINFO& startupInfo, PROCESS_INFORMATION& processInfo);

@@ -142,6 +142,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                     args = ReadArgsFromTextbox(hwnd);
                 }
                 ShowWindow(hwnd, SW_HIDE);
+                Sleep(1000);
                 LaunchGame(args, true);
                 PostQuitMessage(0);
                 break;
@@ -154,6 +155,7 @@ LRESULT CALLBACK WindowProcedure(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
                 RemoveFiles(currentlySelected);
                 ShowWindow(hwnd, SW_HIDE);
+                Sleep(1000);
                 LaunchGame(ReadArgsFromTextbox(hwnd), false);
                 PostQuitMessage(0);
                 break;

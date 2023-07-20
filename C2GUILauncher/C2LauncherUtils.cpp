@@ -135,13 +135,13 @@ void InstallFiles(const InstallationType installationType) {
 		throw std::runtime_error("Installation type not set");
     }
 
-    DownloadFile("/C2UMP/C2PluginLoader/releases/download/v0.0.1/XAPOFX1_5.dll", XAPOFX_PATH);
+    DownloadFile("/C2UMP/C2PluginLoader/releases/download/latest/XAPOFX1_5.dll", XAPOFX_PATH);
 
     std::filesystem::path basePath = "Plugins";
 
-    DownloadFile("/C2UMP/C2AssetLoaderPlugin/releases/download/v0.0.5/C2AssetLoaderPlugin.dll", basePath / "C2AssetLoaderPlugin.dll");
-    DownloadFile("/C2UMP/C2ServerPlugin/releases/download/v0.0.5/C2ServerPlugin.dll", basePath / "C2ServerPlugin.dll");
-    DownloadFile("/Chiv2-Community/C2BrowserPlugin/releases/download/0.0.1/C2BrowserPlugin.dll", basePath / "C2BrowserPlugin.dll");
+    DownloadFile("/C2UMP/C2AssetLoaderPlugin/releases/download/latest/C2AssetLoaderPlugin.dll", basePath / "C2AssetLoaderPlugin.dll");
+    DownloadFile("/C2UMP/C2ServerPlugin/releases/download/latest/C2ServerPlugin.dll", basePath / "C2ServerPlugin.dll");
+    DownloadFile("/Chiv2-Community/C2BrowserPlugin/releases/download/latest/C2BrowserPlugin.dll", basePath / "C2BrowserPlugin.dll");
 
 }
 

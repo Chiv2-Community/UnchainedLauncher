@@ -171,12 +171,12 @@ void InstallFiles(const InstallationType installationType) {
     }
     
 
-    DownloadFile("/C2UMP/C2PluginLoader/releases/latest/download/XAPOFX1_5.dll", modCachePath / "XAPOFX1_5.dll");
+    DownloadFile("/Chiv2-Community/C2PluginLoader/releases/latest/download/XAPOFX1_5.dll", modCachePath / "XAPOFX1_5.dll");
 
     std::filesystem::path basePath = PLUGIN_PATH;
 
-    DownloadFile("/C2UMP/C2AssetLoaderPlugin/releases/latest/download/C2AssetLoaderPlugin.dll", basePath / "C2AssetLoaderPlugin.dll");
-    DownloadFile("/C2UMP/C2ServerPlugin/releases/latest/download/C2ServerPlugin.dll", basePath / "C2ServerPlugin.dll");
+    DownloadFile("/Chiv2-Community/C2AssetLoaderPlugin/releases/latest/download/C2AssetLoaderPlugin.dll", basePath / "C2AssetLoaderPlugin.dll");
+    DownloadFile("/Chiv2-Community/C2ServerPlugin/releases/latest/download/C2ServerPlugin.dll", basePath / "C2ServerPlugin.dll");
     DownloadFile("/Chiv2-Community/C2BrowserPlugin/releases/latest/download/C2BrowserPlugin.dll", basePath / "C2BrowserPlugin.dll");
 }
 

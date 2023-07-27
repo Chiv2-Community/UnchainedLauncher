@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>True</UseWPF>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>True</SelfContained>
+    <PublishSingleFile>True</PublishSingleFile>
+    <PublishReadyToRun>False</PublishReadyToRun>
+    <IncludeNativeLibrariesForSelfExtract>True</IncludeNativeLibrariesForSelfExtract>
+    <SignAssembly>False</SignAssembly>
+    <RepositoryUrl>https://github.com/Chiv2-Community/C2GUILauncher</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <StartupObject>Chivalry2UnofficialServerBrowser.App</StartupObject>
+    <Title>Chivalry 2 Unofficial Server Browser</Title>
+    <ApplicationIcon>chiv2-unchained-logo.ico</ApplicationIcon>
+    <StartupObject>C2GUILauncher.App</StartupObject>
+  </PropertyGroup>
+</Project>

@@ -3,31 +3,23 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "C2GUILauncher", "C2GUILauncher\C2GUILauncher.vcxproj", "{1D6A3255-3E7C-4CEF-B4A6-71F8EF4660DB}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{94AFDF73-D9AD-4D04-BB25-94DE0F19C290}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "C2GUILauncher", "C2GUILauncher\C2GUILauncher.csproj", "{0C235765-7B68-48BB-A3E5-87E12C512540}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
 		Release|x64 = Release|x64
-		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1D6A3255-3E7C-4CEF-B4A6-71F8EF4660DB}.Debug|x64.ActiveCfg = Debug|x64
-		{1D6A3255-3E7C-4CEF-B4A6-71F8EF4660DB}.Debug|x64.Build.0 = Debug|x64
-		{1D6A3255-3E7C-4CEF-B4A6-71F8EF4660DB}.Debug|x86.ActiveCfg = Debug|Win32
-		{1D6A3255-3E7C-4CEF-B4A6-71F8EF4660DB}.Debug|x86.Build.0 = Debug|Win32
-		{1D6A3255-3E7C-4CEF-B4A6-71F8EF4660DB}.Release|x64.ActiveCfg = Release|x64
-		{1D6A3255-3E7C-4CEF-B4A6-71F8EF4660DB}.Release|x64.Build.0 = Release|x64
-		{1D6A3255-3E7C-4CEF-B4A6-71F8EF4660DB}.Release|x86.ActiveCfg = Release|Win32
-		{1D6A3255-3E7C-4CEF-B4A6-71F8EF4660DB}.Release|x86.Build.0 = Release|Win32
+		{0C235765-7B68-48BB-A3E5-87E12C512540}.Debug|x64.ActiveCfg = Debug|x64
+		{0C235765-7B68-48BB-A3E5-87E12C512540}.Debug|x64.Build.0 = Debug|x64
+		{0C235765-7B68-48BB-A3E5-87E12C512540}.Release|x64.ActiveCfg = Release|x64
+		{0C235765-7B68-48BB-A3E5-87E12C512540}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {041159A8-F7B0-47E5-8BC7-225EC4B0541D}
+		SolutionGuid = {B9632A6E-5E1C-48DB-BADB-2A64DC61425B}
 	EndGlobalSection
 EndGlobal

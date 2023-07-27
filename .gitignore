@@ -1,3 +1,7 @@
+packages
 .vs
-.vscode
-x64
+*/bin
+*/obj
+*.user
+*/Release
+*/Debug

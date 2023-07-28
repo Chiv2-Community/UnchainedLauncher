@@ -13,6 +13,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace C2GUILauncher
 {
+    /// <summary>
+    /// Launches an executable with the provided working directory and DLLs to inject.
+    /// </summary>
     class ProcessLauncher
     {
 
@@ -31,10 +34,19 @@ namespace C2GUILauncher
             this.Dlls = dlls;
         }
 
+        /// <summary>
+        /// Creates a new process with the provided arguments and injects the DLLs.
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns>
+        /// The process that was created.
+        /// </returns>
         public Process Launch(string args)
         {
+            // Initialize a process
             var proc = new Process();
 
+            // Build the process start info
             proc.StartInfo = new ProcessStartInfo()
             {
                 FileName = this.ExecutableLocation,
@@ -42,8 +54,10 @@ namespace C2GUILauncher
                 WorkingDirectory = Path.GetFullPath(this.WorkingDirectory),
             };
 
+            // Execute the process
             proc.Start();
 
+            // If dlls are present inject them
             if(this.Dlls != null)
             {
                 using (var injector = new Injector(proc))

@@ -18,8 +18,10 @@ namespace C2GUILauncher
 
         public static IEnumerable<DownloadTask> DownloadModFiles(bool debug)
         {
+            // All Chiv2-Community dll releases have an optional _dbg suffix for debug builds.
             var downloadFileSuffix = debug ? "_dbg.dll" : ".dll";
 
+            // These are the core mods necessary for asset loading, server hosting, server browser usage, and the injector itself.
             var coreMods = new List<DownloadTarget>() {
                 new DownloadTarget($"{GithubBaseURL}/Chiv2-Community/C2PluginLoader/releases/latest/download/XAPOFX1_5{downloadFileSuffix}", Path.Combine(ModCachePath, InjectorDllName)),
                 new DownloadTarget($"{GithubBaseURL}/Chiv2-Community/C2AssetLoaderPlugin/releases/latest/download/C2AssetLoaderPlugin{downloadFileSuffix}", Path.Combine(PluginPath, "C2AssetLoaderPlugin.dll")),

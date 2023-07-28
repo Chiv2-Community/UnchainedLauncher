@@ -20,9 +20,8 @@ namespace C2GUILauncher
         public static ProcessLauncher VanillaLauncher { get; } = new ProcessLauncher(OriginalLauncherPath, Directory.GetCurrentDirectory());
 
         /// <summary>
-        /// The modded launcher is used to launch the game with mods. The DLLs here are the relative paths to the DLLs that are to be injected. Just a stub right now.
+        /// The modded launcher is used to launch the game with mods. The DLLs here are the relative paths to the DLLs that are to be injected.
         /// </summary>
-        public static ProcessLauncher ModdedLauncher { get; } = 
-            new ProcessLauncher(GameBinPath, BinDir, Directory.EnumerateFiles(PluginDir,"*.dll").ToArray());
+        public static ProcessLauncher ModdedLauncher { get; } = new ProcessLauncher(GameBinPath, BinDir);
     }
 }

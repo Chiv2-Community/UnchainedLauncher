@@ -7,7 +7,7 @@ using System.Text;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace C2GUILauncher.src
+namespace C2GUILauncher
 {
     //Code modified/adapted from https://codingvision.net/c-inject-a-dll-into-a-process-w-createremotethread
     internal class Inject

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace C2GUILauncher.src
+namespace C2GUILauncher
 {
     enum InstallationType { NotSet, Steam, EpicGamesStore }
 

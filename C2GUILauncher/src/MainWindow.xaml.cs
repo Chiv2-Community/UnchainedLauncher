@@ -1,5 +1,4 @@
-﻿using C2GUILauncher.src;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using C2GUILauncher.Mods;
+using System.IO;
 
 namespace C2GUILauncher
 {
@@ -57,7 +57,7 @@ namespace C2GUILauncher
             }
         }
 
-        private void LaunchModdedButton_Click(object sender, RoutedEventArgs e)
+        private async void LaunchModdedButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -74,28 +74,12 @@ namespace C2GUILauncher
                 var args = isSteam ? "" : string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
 
                 // Download the mod files, potentially using debug dlls
-                /*List<DownloadTask> downloadTasks = ModDownloader.DownloadModFiles(EnableDebugDLLs.IsChecked ?? false).ToList();
+                List<DownloadTask> downloadTasks = ModDownloader.DownloadModFiles(EnableDebugDLLs.IsChecked ?? false).ToList();
 
-                // while downloads are still running
-                while (downloadTasks.Count() > 0)
-                {
-                    // Get some debug strings representing the download
-                    var downloadingOutput = downloadTasks.Select(dl => dl.Target.Url + " -> " + dl.Target.OutputPath).Aggregate((a, b) => a + "\n" + b);
+                await Task.WhenAll(downloadTasks.Select(s => s.Task));
 
-                    // Insert the debug strings in to the log box, overwriting what was there previously
-                    LogOutput.Text = "Waiting for " + downloadTasks.Count() + " downloads to finish...\n";
-                    LogOutput.Text += downloadingOutput + "\n";
-
-                    // Extract the Tasks from the DownloadTasks
-                    Task[] taskList = downloadTasks.Select(dl => dl.Task).ToArray();
-
-                    //Wait for any of the tasks to finish
-                    var idx = Task.WaitAny(taskList);
-
-                    // Remove the task that completed.
-                    downloadTasks.RemoveAt(idx);
-                }*/
-
+                var dlls = Directory.EnumerateFiles(Chivalry2Launchers.PluginDir, "*.dll").ToArray();
+                Chivalry2Launchers.ModdedLauncher.Dlls = dlls;
                 Chivalry2Launchers.ModdedLauncher.Launch(args);  
             }
             catch (Exception ex)

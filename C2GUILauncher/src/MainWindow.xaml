@@ -43,5 +43,9 @@
                 <CheckBox x:Name="EnableDebugDLLs" Grid.Row="3" Grid.ColumnSpan="3" Content="Enable plugin logging" VerticalAlignment="Center" Margin="5,10,5,0"/>
             </Grid>
         </TabItem>
+
+        <TabItem Header="Log">
+            <TextBlock x:Name="LogOutput" TextWrapping="NoWrap" Text="" Margin="5"/>
+        </TabItem>
     </TabControl>
 </Window>

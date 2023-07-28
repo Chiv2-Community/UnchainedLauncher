@@ -1,4 +1,5 @@
-﻿using System;
+﻿using C2GUILauncher.src;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -30,7 +31,7 @@ namespace C2GUILauncher
             var installationType = (InstallationType)InstallationTypeSelection.SelectedIndex;
             if (installationType == InstallationType.NotSet)
             {
-                installationType = C2LauncherUtils.AutoDetectInstallationType();
+                installationType = InstallationTypeUtils.AutoDetectInstallationType();
                 if (installationType == InstallationType.NotSet)
                 {
                     MessageBox.Show("Could not detect installation type. Please select one manually.");
@@ -45,7 +46,7 @@ namespace C2GUILauncher
             try
             {
                 var args = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
-                C2LauncherUtils.LaunchGame(args, false);
+                Chivalry2Launchers.VanillaLauncher.Launch(args);
             }
             catch (Exception ex)
             {
@@ -62,8 +63,24 @@ namespace C2GUILauncher
 
                 var isSteam = installationType == InstallationType.Steam;
 
+                // don't pass args through for steam
                 var args = isSteam ? "" : string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
-                C2LauncherUtils.LaunchGame(args, true);
+
+                List<DownloadTask> downloadTasks = ModDownloader.DownloadModFiles(EnableDebugDLLs.IsChecked ?? false).ToList();
+
+                while (downloadTasks.Count() > 0)
+                {
+                    var downloadingOutput = downloadTasks.Select(dl => dl.Target.Url + " -> " + dl.Target.OutputPath).Aggregate((a, b) => a + "\n" + b);
+                    LogOutput.Text = "Waiting for " + downloadTasks.Count() + " downloads to finish...\n";
+                    LogOutput.Text += downloadingOutput + "\n";
+
+                    Task[] taskList = downloadTasks.Select(dl => dl.Task).ToArray();
+                    var idx = Task.WaitAny(taskList);
+
+                    downloadTasks.RemoveAt(idx);
+                }
+
+                Chivalry2Launchers.ModdedLauncher.Launch(args);  
             }
             catch (Exception ex)
             {

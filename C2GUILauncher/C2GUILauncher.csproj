@@ -6,6 +6,7 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 	<SelfContained>false</SelfContained>
 	<PublishSingleFile>true</PublishSingleFile>
+	<Nullable>enable</Nullable>
     <PublishReadyToRun>False</PublishReadyToRun>
 	<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <IncludeNativeLibrariesForSelfExtract>True</IncludeNativeLibrariesForSelfExtract>

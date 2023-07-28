@@ -56,13 +56,13 @@ namespace C2GUILauncher
 
             // Execute the process
             proc.Start();
-            //Paths to be injected MUST be absolute
-            //TODO: put this as an automatic conversion inside the Inject.cs
-            Dlls = Dlls.Select(a => Path.GetFullPath(a)); 
-            //MessageBox.Show(Dlls.Aggregate((a,b) => a + "\n" + b));
+
             // If dlls are present inject them
             if(Dlls != null && Dlls.Any()){
-                src.Inject.InjectAll(proc, Dlls); //TODO: add error checking
+                //TODO: add error checking
+                //This TODO is blocked on the addition of error logging for the launcher
+                //(should it be a MessageBox?)
+                src.Inject.InjectAll(proc, Dlls); 
             }
 
             return proc;

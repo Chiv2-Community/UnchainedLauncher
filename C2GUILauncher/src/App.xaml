@@ -2,7 +2,5 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:C2GUILauncher"
-             StartupUri="MainWindow.xaml">
-    <Application.Resources>
-    </Application.Resources>
+             StartupUri="src/MainWindow.xaml">
 </Application>

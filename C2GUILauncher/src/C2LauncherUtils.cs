@@ -21,43 +21,47 @@ namespace C2GUILauncher
         const string BinDir = "TBL\\Binaries\\Win64";
         const string PluginPath = "TBL\\Binaries\\Win64\\Plugins";
 
-        const string BinName = "Chivalry2-Win64-Shipping.exe";
+        const string GameBinPath = BinDir + "\\Chivalry2-Win64-Shipping.exe";
+        const string OriginalLauncherPath = "Chivalry2Launcher-ORIGINAL.exe";
         const string InjectorDllName = "XAPOFX1_5.dll";
 
 
         public static void LaunchGame(string args, bool modded)
         {
-            var gamePath = modded ? Path.Combine(BinDir, "Chivalry2-Win64-Shipping.exe") : "Chivalry2Launcher-ORIGINAL.exe";
-
-            var commandLine = gamePath + " " + args;
-
-            var processInfo = modded
-                ? CreateModdedChiv2Process(gamePath, commandLine, BinDir)
-                : CreateVanillaChiv2Process(gamePath, commandLine, BinDir);
-
-            if (processInfo == null)
+            Process process;
+            if(modded)
             {
-                var currentDir = Directory.GetCurrentDirectory();
-                throw new Exception($"CreateProcess for {commandLine} failed. cwd: {currentDir}");
+                process = LaunchProcessWithDLL(GameBinPath, args, BinDir, Path.Combine(ModCachePath, InjectorDllName));
+            } else
+            {
+                process = LaunchProcess(OriginalLauncherPath, args, BinDir);
             }
 
-            processInfo.WaitForExit();
 
-            processInfo.Close();
+            if (process == null)
+            {
+                var commandLine = modded ? GameBinPath : OriginalLauncherPath;
+                var currentDir = Directory.GetCurrentDirectory();
+                throw new Exception($"CreateProcess for '{commandLine} {args}' failed. cwd: {currentDir}");
+            }
+
+            process.WaitForExit();
+
+            process.Close();
         }
 
-        public static Process CreateModdedChiv2Process(string executable, string args, string workingDir)
+        public static Process LaunchProcessWithDLL(string executable, string args, string workingDir, string dllPath)
         {
 
-            var proc = CreateVanillaChiv2Process(executable, args, workingDir);
+            var proc = LaunchProcess(executable, args, workingDir);
 
             using (var injector = new Injector(proc))
-                injector.Inject(ModCachePath + "\\" + InjectorDllName);
+                injector.Inject(dllPath);
 
             return proc;
         }
 
-        public static Process CreateVanillaChiv2Process(string executable, string args, string workingDir)
+        public static Process LaunchProcess(string executable, string args, string workingDir)
         {
 
             var proc = new Process();

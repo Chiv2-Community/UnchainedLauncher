@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <UseWPF>True</UseWPF>
@@ -16,19 +16,19 @@
     <Title>Chivalry 2 Unofficial Server Browser</Title>
     <PackageIcon>chiv2-unchained-logo.png</PackageIcon>
     <PackageProjectUrl>https://github.com/Chiv2-Community/C2GUILauncher</PackageProjectUrl>
-    <ApplicationIcon>chiv2-unchained-logo.ico</ApplicationIcon>
+    <ApplicationIcon>assets\chiv2-unchained-logo.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="chiv2-unchained-logo.ico" />
+    <ApplicationDefinition Include="src\App.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="assets\chiv2-unchained-logo.ico" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Reloaded.Injector" Version="1.2.5" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="App.xaml" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Update="chiv2-unchained-logo.png">
+    <None Update="assets\chiv2-unchained-logo.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

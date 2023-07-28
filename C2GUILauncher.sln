@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "C2GUILauncher", "C2GUILauncher\C2GUILauncher.csproj", "{0C235765-7B68-48BB-A3E5-87E12C512540}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "C2GUILauncher", "C2GUILauncher\C2GUILauncher.csproj", "{0C235765-7B68-48BB-A3E5-87E12C512540}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

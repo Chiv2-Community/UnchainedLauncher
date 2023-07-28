@@ -1,13 +1,15 @@
-﻿<Window x:Class="C2GUILauncher.MainWindow"
+﻿<Window
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Unchained Launcher" Height="160" Width="320">
+        xmlns:av="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="av" x:Class="C2GUILauncher.MainWindow"
+        Title="Unchained Launcher" Height="250" Width="320">
 
-    <TabControl>
+    <TabControl x:Name="Tabs">
         <TabItem Header="Launcher">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="40"/>
+                    <RowDefinition Height="40"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
@@ -18,6 +20,7 @@
 
                 <Button x:Name="LaunchVanillaButton" Content="Launch Vanilla" Grid.Row="0" Margin="5" Click="LaunchVanillaButton_Click"/>
                 <Button x:Name="LaunchModdedButton" Content="Launch With Mods" Grid.Row="1" Margin="5" Click="LaunchModdedButton_Click" />
+                <DataGrid x:Name="Downloads" Grid.Row="2"/>
             </Grid>
         </TabItem>
 
@@ -42,10 +45,6 @@
                 </ComboBox>
                 <CheckBox x:Name="EnableDebugDLLs" Grid.Row="3" Grid.ColumnSpan="3" Content="Enable plugin logging" VerticalAlignment="Center" Margin="5,10,5,0"/>
             </Grid>
-        </TabItem>
-
-        <TabItem Header="Log">
-            <TextBlock x:Name="LogOutput" TextWrapping="NoWrap" Text="" Margin="5"/>
         </TabItem>
     </TabControl>
 </Window>

@@ -31,31 +31,4 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <None Remove="C:\Users\atomr\.nuget\packages\reloaded.assembler\1.0.14\build\FASM.DLL" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="C:\Users\atomr\.nuget\packages\reloaded.assembler\1.0.14\build\FASM-LICENSE.TXT" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="C:\Users\atomr\.nuget\packages\reloaded.assembler\1.0.14\build\FASMX64.DLL" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="C:\Users\atomr\.nuget\packages\reloaded.assembler\1.0.14\build\Reloaded.Assembler.targets" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="C:\Users\atomr\.nuget\packages\reloaded.assembler\1.0.14\build\FASM.DLL" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="C:\Users\atomr\.nuget\packages\reloaded.assembler\1.0.14\build\FASM-LICENSE.TXT" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="C:\Users\atomr\.nuget\packages\reloaded.assembler\1.0.14\build\FASMX64.DLL" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="C:\Users\atomr\.nuget\packages\reloaded.assembler\1.0.14\build\Reloaded.Assembler.targets" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Remove="C:\Users\atomr\.nuget\packages\reloaded.assembler\1.0.14\build\Reloaded.Assembler.targets" />
-  </ItemGroup>
 </Project>

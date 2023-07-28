@@ -95,7 +95,6 @@ namespace C2GUILauncher
                 if (!res) { return false; }
                 //inject
                 var thread = CreateRemoteThread(procHandle, IntPtr.Zero, 0, loadLibraryAddr, allocMemAddress, 0, IntPtr.Zero);
-                //Thread.Sleep(500);
                 var signalEvent = WaitForSingleObject(thread, unchecked( (uint) -1));
             }
             VirtualFreeEx(procHandle, allocMemAddress, allocSize, MEM_RELEASE);

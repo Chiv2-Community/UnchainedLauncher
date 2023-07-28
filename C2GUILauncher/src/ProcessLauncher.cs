@@ -62,7 +62,7 @@ namespace C2GUILauncher
                 //TODO: add error checking
                 //This TODO is blocked on the addition of error logging for the launcher
                 //(should it be a MessageBox?)
-                src.Inject.InjectAll(proc, Dlls); 
+                Inject.InjectAll(proc, Dlls); 
             }
 
             return proc;

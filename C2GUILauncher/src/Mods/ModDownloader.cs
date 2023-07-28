@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace C2GUILauncher.Mods
 {
-    static class CoreMods
+    class CoreMods
     {
         public const string GithubBaseURL = "https://github.com";
 
@@ -21,6 +21,7 @@ namespace C2GUILauncher.Mods
         public const string BrowserPluginPath = $"{PluginPath}\\C2BrowserPlugin.dll";
 
         public const string InjectorDllURL = $"{GithubBaseURL}/Chiv2-Community/C2PluginLoader/releases/latest/download/XAPOFX1_5.dll";
+
         public const string AssetLoaderPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2AssetLoaderPlugin/releases/latest/download/C2AssetLoaderPlugin.dll";
         public const string ServerPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2ServerPlugin/releases/latest/download/C2ServerPlugin.dll";
         public const string BrowserPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2BrowserPlugin/releases/latest/download/C2BrowserPlugin.dll";
@@ -40,11 +41,12 @@ namespace C2GUILauncher.Mods
             var downloadFileSuffix = debug ? "_dbg.dll" : ".dll";
 
             // These are the core mods necessary for asset loading, server hosting, server browser usage, and the injector itself.
+            // Please forgive the jank debug dll implementation. It'll be less jank after we aren't using hardcoded paths.
             var coreMods = new List<DownloadTarget>() {
-                new DownloadTarget(CoreMods.InjectorDllURL, CoreMods.InjectorDllPath),
-                new DownloadTarget(CoreMods.AssetLoaderPluginURL, CoreMods.AssetLoaderPluginPath),
-                new DownloadTarget(CoreMods.ServerPluginURL, CoreMods.ServerPluginPath),
-                new DownloadTarget(CoreMods.BrowserPluginURL, CoreMods.BrowserPluginPath)
+                new DownloadTarget(CoreMods.InjectorDllURL.Replace(".dll", downloadFileSuffix), CoreMods.InjectorDllPath),
+                new DownloadTarget(CoreMods.AssetLoaderPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.AssetLoaderPluginPath),
+                new DownloadTarget(CoreMods.ServerPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.ServerPluginPath),
+                new DownloadTarget(CoreMods.BrowserPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.BrowserPluginPath)
             };
 
             return HttpHelpers.DownloadAllFiles(coreMods);

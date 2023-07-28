@@ -1,7 +1,7 @@
 ﻿<Window x:Class="C2GUILauncher.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Unchained Launcher" Height="160" Width="190">
+        Title="Unchained Launcher" Height="160" Width="320">
 
     <TabControl>
         <TabItem Header="Launcher">

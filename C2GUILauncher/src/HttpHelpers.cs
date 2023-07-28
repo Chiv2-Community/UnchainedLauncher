@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -11,6 +12,8 @@ namespace C2GUILauncher
 {
     static class HttpHelpers
     {
+        private static readonly HttpClient _httpClient = new HttpClient();
+
         /// <summary>
         /// Downloads a file asynchronously.
         /// </summary>
@@ -18,22 +21,9 @@ namespace C2GUILauncher
         /// <returns>
         /// The task that represents the asynchronous operation.
         /// </returns>
-        public static async Task DownloadFileAsync(DownloadTarget target)
+        public static Task DownloadFileAsync(DownloadTarget target)
         {
-
-            using (HttpClient client = new HttpClient())
-            {
-                using (HttpResponseMessage response = await client.GetAsync(target.Url))
-                {
-                    response.EnsureSuccessStatusCode();
-
-                    using (Stream contentStream = await response.Content.ReadAsStreamAsync(),
-                            fileStream = new FileStream(target.OutputPath, FileMode.Create, FileAccess.Write, FileShare.None))
-                    {
-                        await contentStream.CopyToAsync(fileStream);
-                    }
-                }
-            }
+            return _httpClient.GetByteArrayAsync(target.Url).ContinueWith(t => File.WriteAllBytes(target.OutputPath, t.Result));
         }
 
         /// <summary>
@@ -49,38 +39,7 @@ namespace C2GUILauncher
         }
     }
 
-    /// <summary>
-    /// This class represents a URL to download and the path to save it to.
-    /// </summary>
-    class DownloadTarget
-    {
-        [MemberNotNull]
-        public string Url { get; }
+    record DownloadTarget(string Url, string OutputPath);
 
-        [MemberNotNull]
-        public string OutputPath { get; }
-
-        public DownloadTarget(string url, string outputPath)
-        {
-            Url = url;
-            OutputPath = outputPath;
-        }
-    }
-
-    /// <summary>
-    /// This class represents an asynchronous download task, as well as the target being downloaded.
-    /// </summary>
-    class DownloadTask
-    {
-        [MemberNotNull]
-        public Task Task { get; }
-        [MemberNotNull]
-        public DownloadTarget Target { get; }
-
-        public DownloadTask(Task task, DownloadTarget target)
-        {
-            Task = task;
-            Target = target;
-        }
-    }
+    record DownloadTask(Task Task, DownloadTarget Target);
 }

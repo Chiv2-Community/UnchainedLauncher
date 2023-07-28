@@ -74,7 +74,7 @@ namespace C2GUILauncher
                 var args = isSteam ? "" : string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
 
                 // Download the mod files, potentially using debug dlls
-                List<DownloadTask> downloadTasks = ModDownloader.DownloadModFiles(EnableDebugDLLs.IsChecked ?? false).ToList();
+                /*List<DownloadTask> downloadTasks = ModDownloader.DownloadModFiles(EnableDebugDLLs.IsChecked ?? false).ToList();
 
                 // while downloads are still running
                 while (downloadTasks.Count() > 0)
@@ -94,7 +94,7 @@ namespace C2GUILauncher
 
                     // Remove the task that completed.
                     downloadTasks.RemoveAt(idx);
-                }
+                }*/
 
                 Chivalry2Launchers.ModdedLauncher.Launch(args);  
             }

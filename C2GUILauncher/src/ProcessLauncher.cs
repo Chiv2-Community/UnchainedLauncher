@@ -7,9 +7,9 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
-using Reloaded.Injector;
 using System.IO;
 using System.Diagnostics.CodeAnalysis;
+using System.Windows;
 
 namespace C2GUILauncher
 {
@@ -25,7 +25,7 @@ namespace C2GUILauncher
         [MemberNotNull]
         public string WorkingDirectory { get; }
 
-        public IEnumerable<string>? Dlls { get; }
+        public IEnumerable<string>? Dlls { get; set; }
 
         public ProcessLauncher(string executableLocation, string workingDirectory, IEnumerable<string>? dlls = null)
         {
@@ -56,23 +56,16 @@ namespace C2GUILauncher
 
             // Execute the process
             proc.Start();
-
+            //Paths to be injected MUST be absolute
+            //TODO: put this as an automatic conversion inside the Inject.cs
+            Dlls = Dlls.Select(a => Path.GetFullPath(a)); 
+            //MessageBox.Show(Dlls.Aggregate((a,b) => a + "\n" + b));
             // If dlls are present inject them
-            if(this.Dlls != null)
-            {
-                using (var injector = new Injector(proc))
-                {
-                    foreach (var dll in this.Dlls)
-                    {
-                        injector.Inject(dll);
-                    }
-                }
+            if(Dlls != null && Dlls.Any()){
+                src.Inject.InjectAll(proc, Dlls); //TODO: add error checking
             }
 
             return proc;
         }
     }
-
-    
-
 }

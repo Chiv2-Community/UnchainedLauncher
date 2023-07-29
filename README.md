@@ -58,49 +58,10 @@ Join the [Chivalry 2 Unchained community on Discord](https://discord.gg/chiv2unc
 
 - The "Launch Vanilla" and "Launch Modded" buttons will be disabled during the launch process to prevent multiple launches.
 
----
-
-## Developer-Focused App Structure and Details
-
-### Main Components
-
-- **Chivalry2Launchers**: Contains definitions for Vanilla and Modded launchers.
-  - **VanillaLauncher**: Launches the original, unmodified version of Chivalry 2.
-  - **ModdedLauncher**: Launches the modified version of Chivalry 2 with selected mods.
-- **MainWindow**: The main window of the application, handling user interactions.
-  - **Initialize**: Sets up the main window and loads user preferences.
-  - **HandleLaunch**: Manages the process of launching the game, either in vanilla or modded mode.
-- **ModDownloader**: Responsible for downloading mod files.
-  - **DownloadMods**: Downloads the selected mods from the repository.
-  - **UpdateMods**: Checks for updates to installed mods and downloads them if necessary.
-- **ProcessLauncher**: Handles the launching of processes.
-  - **LaunchGame**: Starts the Chivalry 2 game process with the selected options.
-  - **MonitorProcess**: Keeps track of the game process and provides feedback to the user.
-
-### Directory Structure
-
-- **src**: Contains the main source code files.
-  - **Mods**: Contains classes related to mod management.
-  - **assets**: Contains assets like logos.
-  - **Properties**: Contains properties and publish profiles.
-
-### Key Files
-
-- **Chivalry2Launchers.cs**: Defines the paths and launchers for vanilla and modded versions.
-- **MainWindow.xaml.cs**: Contains the interaction logic for the main window.
-- **ModDownloader.cs**: Handles the downloading of mod files.
-- **ProcessLauncher.cs**: Manages the launching of processes.
-
-## Assets
-
-- **Chivalry 2 Unchained Logo:**
-  - PNG: <img src="https://github.com/Chiv2-Community/C2GUILauncher/blob/main/C2GUILauncher/assets/chiv2-unchained-logo.png" width="200">
-  - ICO: ![chiv2-unchained-logo.ico](https://github.com/Chiv2-Community/C2GUILauncher/blob/main/C2GUILauncher/assets/chiv2-unchained-logo.ico)
-
 ## License
 
 This project is licensed under the terms of the [LICENSE](LICENSE) file.
 
 ## Contributing
 
-Contributions are welcome! Feel free to open an issue or submit a pull request.
+Contributions are welcome! Feel free to open an issue or submit a pull request. See `CONTRIBUTING` for development-related details.

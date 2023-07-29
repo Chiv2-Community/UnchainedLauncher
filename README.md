@@ -4,9 +4,8 @@
 - [Features](#features)
 - [Join the Community](#community)
 - [Installation](#installation)
-  - [Installation Instructions](#installation-instructions)
 - [General Use Instructions](#general-use-instructions)
-  - [How to Use the Tool](#how-to-use-the-tool)
+  - [How to Use the Tool](#how-to-use-the-unchained-launcher)
   - [Troubleshooting](#troubleshooting)
   - [Note](#note)
 - [Developer-Focused App Structure and Details](#developer-focused-app-structure-and-details)
@@ -21,6 +20,7 @@ The Chivalry 2 Unchained Launcher (C2UL) is a graphical user interface (GUI) too
 ## Features
 
 - **Launch Chivalry 2**: Easily launch Chivalry 2 with custom configurations.
+- **Switch Between Vanilla and Modded**: Seamlessly switch between vanilla and modded installs without manually moving any files around.
 - **Mod Management**: Download and manage mods for Chivalry 2.
 - **Customization**: Customize the launcher with various settings and preferences.
 
@@ -96,7 +96,6 @@ Join the [Chivalry 2 Unchained community on Discord](https://discord.gg/chiv2unc
 - **Chivalry 2 Unchained Logo:**
   - PNG: <img src="https://github.com/Chiv2-Community/C2GUILauncher/blob/main/C2GUILauncher/assets/chiv2-unchained-logo.png" width="200">
   - ICO: ![chiv2-unchained-logo.ico](https://github.com/Chiv2-Community/C2GUILauncher/blob/main/C2GUILauncher/assets/chiv2-unchained-logo.ico)
-
 
 ## License
 

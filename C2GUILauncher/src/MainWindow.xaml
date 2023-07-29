@@ -31,6 +31,7 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <Grid.ColumnDefinitions>
@@ -44,6 +45,7 @@
                     <ComboBoxItem Content="Epic Games Store"/>
                 </ComboBox>
                 <CheckBox x:Name="EnableDebugDLLs" Grid.Row="3" Grid.ColumnSpan="3" Content="Enable plugin logging" VerticalAlignment="Center" Margin="5,10,5,0"/>
+                <CheckBox x:Name="DisablePluginDownload" Grid.Row="4" Grid.ColumnSpan="3" Content="Disable Plugin Downloads" VerticalAlignment="Center" Margin="5,10,5,0"/>
             </Grid>
         </TabItem>
     </TabControl>

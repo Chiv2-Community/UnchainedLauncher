@@ -32,11 +32,14 @@ namespace C2GUILauncher.Mods
 
         public static IEnumerable<DownloadTask> DownloadModFiles(bool debug)
         {
+            // Create plugins dir. This method does nothing if the directory already exists.
+            Directory.CreateDirectory(PluginPath);
+
             // All Chiv2-Community dll releases have an optional _dbg suffix for debug builds.
             var downloadFileSuffix = debug ? "_dbg.dll" : ".dll";
 
             // These are the core mods necessary for asset loading, server hosting, server browser usage, and the injector itself.
-            // Please forgive the jank debug dll implementation. It'll be less jank after we aren't using hardcoded paths.
+            // Please forgive the jank debug dll implementation. It'll be less jank after we aren't using hardcoded paths
             var coreMods = new List<DownloadTarget>() {
                 new DownloadTarget(CoreMods.AssetLoaderPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.AssetLoaderPluginPath),
                 new DownloadTarget(CoreMods.ServerPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.ServerPluginPath),

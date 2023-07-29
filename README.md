@@ -96,9 +96,9 @@ Join the [Chivalry 2 Unchained community on Discord](https://discord.gg/chiv2unc
 
 ## Assets
 
-- Chivalry 2 Unchained Logos: 
-    - [`chiv2-unchained-logo.png`](https://github.com/Chiv2-Community/C2GUILauncher/blob/main/path/to/chiv2-unchained-logo.png)
-    - [`chiv2-unchained-logo.ico`](https://github.com/Chiv2-Community/C2GUILauncher/blob/main/path/to/chiv2-unchained-logo.ico)
+- **Chivalry 2 Unchained Logo:**
+  - PNG: <img src="https://github.com/Chiv2-Community/C2GUILauncher/blob/main/C2GUILauncher/assets/chiv2-unchained-logo.png" width="200">
+  - ICO: ![chiv2-unchained-logo.ico](https://github.com/Chiv2-Community/C2GUILauncher/blob/main/C2GUILauncher/assets/chiv2-unchained-logo.ico)
 
 
 ## License

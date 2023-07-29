@@ -89,7 +89,7 @@ namespace C2GUILauncher
                 // writing the name of the dll there
                 UIntPtr bytesWritten;
                 var res = WriteProcessMemory(procHandle, allocMemAddress,
-                    Encoding.Default.GetBytes(path),
+                    Encoding.Default.GetBytes(path + '\0'),
                     (uint)((path.Length + 1) * Marshal.SizeOf(typeof(char))),
                     out bytesWritten);
                 if (!res) { return false; }

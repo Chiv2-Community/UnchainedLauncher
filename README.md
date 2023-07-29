@@ -48,7 +48,7 @@ Join the [Chivalry 2 Unchained community on Discord](https://discord.gg/chiv2unc
    - If desired, check the "Enable Debug DLLs" option for debugging purposes.
    - If you want to skip downloading plugins, check the "Disable Plugin Download" option.
    - Click the "Launch Modded" button to start the modded version of Chivalry 2. The necessary mod files will be downloaded and applied.
-5. **Monitor Downloads**: If you are launching the modded game, you can monitor the download progress of the mod files in the "Downloads" section.
+5. **Monitor Downloads**: If you are launching the modded game, you can monitor the download progress of the mod files in the "Downloads" section from the settings tab.
 
 ### Troubleshooting
 

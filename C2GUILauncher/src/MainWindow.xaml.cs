@@ -24,17 +24,22 @@ namespace C2GUILauncher
     public partial class MainWindow : Window
     {
 
-        private IList<DownloadTarget> PendingDownloads = new List<DownloadTarget>();
+        private IList<DownloadTarget> PendingDownloads;
         private string CLIArgs;
-        private bool CLIArgsModified = false;
+        private bool CLIArgsModified;
 
         public MainWindow()
         {
             InitializeComponent();
+
+            this.PendingDownloads = new List<DownloadTarget>();
             this.Downloads.ItemsSource = PendingDownloads;
 
             // Skip 1, because the first arg is the exe path
             this.CLIArgs = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
+            this.CLIArgsTextBox.Text = this.CLIArgs;
+
+            this.CLIArgsModified = false;
         }
 
         private void DisableButtons()
@@ -109,7 +114,7 @@ namespace C2GUILauncher
                     var process = Chivalry2Launchers.ModdedLauncher.Launch(args);
 
                     await process.WaitForExitAsync();
-                    System.Environment.Exit(0);
+                    Environment.Exit(0);
                 }
                 catch (Exception ex)
                 {
@@ -124,7 +129,7 @@ namespace C2GUILauncher
         private void CLIArgsTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             CLIArgsModified = true;
-            CLIArgs = CLIArgsTextBox.Text.Replace(System.Environment.NewLine, " ");
+            CLIArgs = CLIArgsTextBox.Text.Replace(Environment.NewLine, " ");
         }
     }
 }

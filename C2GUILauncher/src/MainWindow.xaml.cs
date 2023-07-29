@@ -24,11 +24,17 @@ namespace C2GUILauncher
     public partial class MainWindow : Window
     {
 
-        private IList<DownloadTarget> pendingDownloads = new List<DownloadTarget>();
+        private IList<DownloadTarget> PendingDownloads = new List<DownloadTarget>();
+        private string CLIArgs;
+        private bool CLIArgsModified = false;
+
         public MainWindow()
         {
             InitializeComponent();
-            this.Downloads.ItemsSource = pendingDownloads;
+            this.Downloads.ItemsSource = PendingDownloads;
+
+            // Skip 1, because the first arg is the exe path
+            this.CLIArgs = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
         }
 
         private void DisableButtons()
@@ -78,10 +84,11 @@ namespace C2GUILauncher
             var installationType = GetInstallationType();
             if (installationType == InstallationType.NotSet) return;
 
-            var isSteam = installationType == InstallationType.Steam;
+            // Pass args through if the args box has been modified, or if we're an EGS install
+            var shouldSendArgs = installationType == InstallationType.EpicGamesStore || CLIArgsModified;
 
-            // don't pass args through for steam
-            var args = isSteam ? "" : string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
+            // pass empty string for args, if we shouldn't send any.
+            var args = shouldSendArgs ? CLIArgs : "";
 
             var debugMode = EnableDebugDLLs.IsChecked ?? false;
             var disablePluginDownloads = DisablePluginDownload.IsChecked ?? false;
@@ -94,7 +101,7 @@ namespace C2GUILauncher
                 {
                     if (!disablePluginDownloads) { 
                         List<DownloadTask> downloadTasks = ModDownloader.DownloadModFiles(debugMode).ToList();
-                        pendingDownloads.Concat(downloadTasks.Select(x => x.Target));
+                        PendingDownloads.Concat(downloadTasks.Select(x => x.Target));
                         await Task.WhenAll(downloadTasks.Select(x => x.Task));
                     }
                     var dlls = Directory.EnumerateFiles(Chivalry2Launchers.PluginDir, "*.dll").ToArray();
@@ -102,6 +109,7 @@ namespace C2GUILauncher
                     var process = Chivalry2Launchers.ModdedLauncher.Launch(args);
 
                     await process.WaitForExitAsync();
+                    System.Environment.Exit(0);
                 }
                 catch (Exception ex)
                 {
@@ -111,9 +119,12 @@ namespace C2GUILauncher
 
             launchThread.Start();
             DisableButtons();
-
         }
 
-        private void RunLaunchModdedProcess() { }
+        private void CLIArgsTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            CLIArgsModified = true;
+            CLIArgs = CLIArgsTextBox.Text.Replace(System.Environment.NewLine, " ");
+        }
     }
 }

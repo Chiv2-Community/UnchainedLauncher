@@ -43,6 +43,7 @@ namespace C2GUILauncher
         /// </returns>
         public Process Launch(string args)
         {
+
             // Initialize a process
             var proc = new Process();
 
@@ -55,17 +56,52 @@ namespace C2GUILauncher
             };
 
             // Execute the process
-            proc.Start();
+            try {
+                proc.Start();
+            } catch(Exception e) { 
+                throw new LaunchFailedException(proc.StartInfo.FileName, proc.StartInfo.Arguments, e);
+            }
+
 
             // If dlls are present inject them
-            if(Dlls != null && Dlls.Any()){
-                //TODO: add error checking
-                //This TODO is blocked on the addition of error logging for the launcher
-                //(should it be a MessageBox?)
-                Inject.InjectAll(proc, Dlls); 
+            if (Dlls != null && Dlls.Any())
+            {
+                try
+                {
+                    Inject.InjectAll(proc, Dlls);
+                }
+                catch (Exception e)
+                {
+                    throw new InjectionFailedException(Dlls, e);
+                }
             }
 
             return proc;
+        }
+    }
+
+    class LaunchFailedException : Exception
+    {
+        public string ExecutablePath { get; }
+        public string Args { get; }
+        public Exception Underlying { get; }
+
+        public LaunchFailedException(string executablePath, string args, Exception underlying) : base($"Failed to launch executable '{executablePath} {args}'\n\n{underlying.Message}") { 
+            this.ExecutablePath = executablePath;
+            this.Args = args;   
+            this.Underlying = underlying;
+        }
+    }
+
+    class InjectionFailedException : Exception
+    {
+        public IEnumerable<string> DllPaths { get; }
+        public Exception Underlying { get; }
+
+        public InjectionFailedException(IEnumerable<string> dllPaths, Exception underlying) : base($"Failed to inject DLLs '{dllPaths.Aggregate((l, r) => l + ", " + r)}'\n\n{underlying.Message}")
+        {
+            this.DllPaths = dllPaths;
+            this.Underlying = underlying;
         }
     }
 }

@@ -62,7 +62,6 @@ namespace C2GUILauncher
                 var args = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
                 Chivalry2Launchers.VanillaLauncher.Launch(args);
                 DisableButtons();
-
             }
             catch (Exception ex)
             {
@@ -85,15 +84,19 @@ namespace C2GUILauncher
             var args = isSteam ? "" : string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
 
             var debugMode = EnableDebugDLLs.IsChecked ?? false;
+            var disablePluginDownloads = DisablePluginDownload.IsChecked ?? false;
+
 
             // Download the mod files, potentially using debug dlls
             var launchThread = new Thread(async () =>
             {
                 try
                 {
-                    List<DownloadTask> downloadTasks = ModDownloader.DownloadModFiles(debugMode).ToList();
-                    pendingDownloads.Concat(downloadTasks.Select(x => x.Target));
-                    await Task.WhenAll(downloadTasks.Select(x => x.Task));
+                    if (!disablePluginDownloads) { 
+                        List<DownloadTask> downloadTasks = ModDownloader.DownloadModFiles(debugMode).ToList();
+                        pendingDownloads.Concat(downloadTasks.Select(x => x.Target));
+                        await Task.WhenAll(downloadTasks.Select(x => x.Task));
+                    }
                     var dlls = Directory.EnumerateFiles(Chivalry2Launchers.PluginDir, "*.dll").ToArray();
                     Chivalry2Launchers.ModdedLauncher.Dlls = dlls;
                     var process = Chivalry2Launchers.ModdedLauncher.Launch(args);

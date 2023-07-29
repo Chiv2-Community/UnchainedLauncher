@@ -36,6 +36,9 @@ namespace C2GUILauncher
         static extern IntPtr CreateRemoteThread(IntPtr hProcess,
             IntPtr lpThreadAttributes, uint dwStackSize, IntPtr lpStartAddress, IntPtr lpParameter, uint dwCreationFlags, IntPtr lpThreadId);
 
+        [DllImport("kernel32.dll")]
+        static extern uint WaitForSingleObject(IntPtr hProcess, uint dwMilliseconds);
+
         // privileges
         const int PROCESS_CREATE_THREAD = 0x0002;
         const int PROCESS_QUERY_INFORMATION = 0x0400;
@@ -86,12 +89,13 @@ namespace C2GUILauncher
                 // writing the name of the dll there
                 UIntPtr bytesWritten;
                 var res = WriteProcessMemory(procHandle, allocMemAddress,
-                    Encoding.Default.GetBytes(path),
+                    Encoding.Default.GetBytes(path + '\0'),
                     (uint)((path.Length + 1) * Marshal.SizeOf(typeof(char))),
                     out bytesWritten);
                 if (!res) { return false; }
                 //inject
-                CreateRemoteThread(procHandle, IntPtr.Zero, 0, loadLibraryAddr, allocMemAddress, 0, IntPtr.Zero);
+                var thread = CreateRemoteThread(procHandle, IntPtr.Zero, 0, loadLibraryAddr, allocMemAddress, 0, IntPtr.Zero);
+                var signalEvent = WaitForSingleObject(thread, unchecked( (uint) -1));
             }
             VirtualFreeEx(procHandle, allocMemAddress, allocSize, MEM_RELEASE);
             return true;

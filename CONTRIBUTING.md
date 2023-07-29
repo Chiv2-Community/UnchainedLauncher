@@ -23,15 +23,15 @@ Handles the launching of processes.
 - **MonitorProcess**: Keeps track of the game process and provides feedback to the user.
 
 #### Inject
-Handles the injection of DLLs into the game process.
+Handles the injection of DLLs into the game process. "_Makes all the real magic happen_"
 - **InjectAll**: Injects all specified DLLs into the given process.
 
 ### Directory Structure
 
 - **src**: Contains the main source code files.
   - **Mods**: Contains classes related to mod management.
-  - **assets**: Contains assets like logos.
-  - **Properties**: Contains properties and publish profiles.
+- **Properties**: Contains properties and publish profiles.
+- **assets**: Contains assets like logos and other static content.
 
 ### Key Files
 

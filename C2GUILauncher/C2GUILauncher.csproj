@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <UseWPF>True</UseWPF>
@@ -6,6 +6,7 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 	<SelfContained>false</SelfContained>
 	<PublishSingleFile>true</PublishSingleFile>
+	<Nullable>enable</Nullable>
     <PublishReadyToRun>False</PublishReadyToRun>
 	<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <IncludeNativeLibrariesForSelfExtract>True</IncludeNativeLibrariesForSelfExtract>
@@ -23,9 +24,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="assets\chiv2-unchained-logo.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Reloaded.Injector" Version="1.2.5" />
   </ItemGroup>
   <ItemGroup>
     <None Update="assets\chiv2-unchained-logo.png">

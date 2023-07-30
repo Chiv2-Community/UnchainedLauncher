@@ -66,7 +66,6 @@ namespace C2GUILauncher.Mods
                     .Select(async path => await Client.Repository.Content.GetAllContentsByRef(RegistryOrg, RegistryRepoName, path, "main")) // Get the contents of the file
                     .Select(async result => (await result)[0].Content) // Get the content of the file as a string
                     .Select(async content => splitByNewlineFilterNullAndRewriteHost(await content)) // Split by newline, filter out nulls, and rewrite the host
-                    .ToList()
                     .Select(async x => modRepoRootURLs.AddRange(await x)); // Add all the repos to the list
 
             // Wait for the repo list to be populated

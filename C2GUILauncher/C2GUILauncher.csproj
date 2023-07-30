@@ -26,6 +26,9 @@
     <Content Include="assets\chiv2-unchained-logo.ico" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Octokit" Version="7.1.0" />
+  </ItemGroup>
+  <ItemGroup>
     <None Update="assets\chiv2-unchained-logo.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

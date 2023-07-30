@@ -36,7 +36,6 @@ namespace C2GUILauncher.Mods
         public string RegistryOrg { get; }
         public string RegistryRepoName { get; }
         private GitHubClient Client { get; }
-        private HttpClient HttpClient { get; }
         public List<Mod> Mods { get; }
 
         public ModManager(string registryOrg, string registryRepoName)
@@ -46,7 +45,6 @@ namespace C2GUILauncher.Mods
             Mods = new List<Mod>();
 
             Client = new GitHubClient(new ProductHeaderValue("Chiv2-Unchained-Launcher"));
-            HttpClient = new HttpClient();
         }
 
         public async Task UpdateModsList()
@@ -133,16 +131,16 @@ namespace C2GUILauncher.Mods
     enum ModType
     {
         [System.Runtime.Serialization.EnumMember(Value = "PLUGIN")]
-        PLUGIN,
+        Plugin,
 
         [System.Runtime.Serialization.EnumMember(Value = "HOST_ONLY_PLUGIN")]
-        HOST_ONLY_PLUGIN,
+        HostOnlyPlugin,
 
         [System.Runtime.Serialization.EnumMember(Value = "CLIENT_ONLY_PLUGIN")]
-        CLIENT_ONLY_PLUGIN,
+        ClientOnlyPlugin,
 
         [System.Runtime.Serialization.EnumMember(Value = "ASSETS")]
-        ASSETS
+        Assets
     }
     record Mod(
         [property: JsonProperty("name")] string Name,

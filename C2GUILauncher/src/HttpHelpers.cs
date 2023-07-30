@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -7,6 +9,8 @@ using System.Net.Http;
 using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Controls.Ribbon;
+using System.Windows.Media.Animation;
 
 namespace C2GUILauncher
 {
@@ -24,6 +28,11 @@ namespace C2GUILauncher
         public static Task DownloadFileAsync(DownloadTarget target)
         {
             return _httpClient.GetByteArrayAsync(target.Url).ContinueWith(t => File.WriteAllBytes(target.OutputPath, t.Result));
+        }
+
+        public static async Task<string> GetRawContentsAsync(string url)
+        {
+            return await _httpClient.GetStringAsync(url);
         }
 
         /// <summary>

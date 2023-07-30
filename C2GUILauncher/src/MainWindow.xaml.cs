@@ -27,19 +27,22 @@ namespace C2GUILauncher
         private IList<DownloadTarget> PendingDownloads;
         private string CLIArgs;
         private bool CLIArgsModified;
+        private ModManager ModManager;
 
         public MainWindow()
         {
             InitializeComponent();
 
             this.PendingDownloads = new List<DownloadTarget>();
-            this.Downloads.ItemsSource = PendingDownloads;
 
             // Skip 1, because the first arg is the exe path
             this.CLIArgs = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
             this.CLIArgsTextBox.Text = this.CLIArgs;
 
             this.CLIArgsModified = false;
+
+            this.ModManager = new ModManager("Chiv2-Community", "C2ModRegistry");
+            this.ModList.ItemsSource = ModManager.Mods;
         }
 
         private void DisableButtons()
@@ -105,7 +108,7 @@ namespace C2GUILauncher
                 try
                 {
                     if (!disablePluginDownloads) { 
-                        List<DownloadTask> downloadTasks = ModDownloader.DownloadModFiles(debugMode).ToList();
+                        List<DownloadTask> downloadTasks = ModManager.DownloadModFiles(debugMode).ToList();
                         PendingDownloads.Concat(downloadTasks.Select(x => x.Target));
                         await Task.WhenAll(downloadTasks.Select(x => x.Task));
                     }
@@ -130,6 +133,12 @@ namespace C2GUILauncher
         {
             CLIArgsModified = true;
             CLIArgs = CLIArgsTextBox.Text.Replace(Environment.NewLine, " ");
+        }
+
+        private async void RefreshModListButton_Click(object sender, RoutedEventArgs e)
+        {
+            await ModManager.UpdateModsList();
+            ModList.ItemsSource = ModManager.Mods;
         }
     }
 }

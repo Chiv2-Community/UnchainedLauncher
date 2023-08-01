@@ -18,6 +18,8 @@ using System.Threading;
 using System.Runtime.InteropServices;
 using Octokit;
 using System.Diagnostics;
+using Microsoft.Win32;
+using static System.Net.WebRequestMethods;
 
 namespace C2GUILauncher
 {
@@ -43,6 +45,50 @@ namespace C2GUILauncher
             this.CLIArgsTextBox.Text = this.CLIArgs;
 
             this.CLIArgsModified = false;
+            string exeName = Process.GetCurrentProcess().ProcessName;
+            if (exeName != "Chivalry2Launcher")
+            {
+                MessageBoxResult dialogResult = MessageBox.Show(
+                   $"This program is not currently running in place of the default Chivalry 2 launcher.\n\n" +
+                   $"Do you want this launcher to move itself in place of the Chivalry 2 launcher? The " +
+                   $"defualt launcher will remain as 'Chivalry2Launcher-ORIGINAL.exe'\n\n" +
+                   $"This is required if you are playing on Epic!",
+                   "Replace launcher?", MessageBoxButton.YesNo);
+
+                if (dialogResult == MessageBoxResult.Yes)
+                {
+                    Process pwsh = new Process();
+                    pwsh.StartInfo.FileName = "powershell.exe";
+                    var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
+                    var originalLauncherPath = "Chivalry2Launcher.exe";
+                    var filePicker = new Microsoft.Win32.OpenFileDialog();
+                    if (!System.IO.File.Exists(originalLauncherPath)){
+                        filePicker.Title = "Select chivalry2Launcher.exe in your chivalry 2 install folder";
+                        filePicker.Filter = "Executable file | *.exe";
+                        filePicker.Multiselect = false;
+                        filePicker.InitialDirectory = "C:\\Program Files (x86)\\Epic Games\\Games\\Chivalry2";
+                        filePicker.CheckFileExists = true;
+                        filePicker.ShowDialog();
+                        originalLauncherPath = filePicker.FileName;
+                    }
+                    
+                    var originalLauncherDir = System.IO.Path.GetDirectoryName(originalLauncherPath);
+
+                    var powershellCommand =
+                        $"Wait-Process -Id {Environment.ProcessId}; " +
+                        $"Start-Sleep -Milliseconds 500; " +
+                        $"Move-Item -Force \\\"{originalLauncherPath}\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher-ORIGINAL.exe\\\"; " +
+                        $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"; " +
+                        $"Start-Sleep -Milliseconds 500; " +
+                        $"Start-Process \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\" {commandLinePass}";
+                    pwsh.StartInfo.Arguments = $"-Command \"{powershellCommand}\"";
+                    pwsh.StartInfo.CreateNoWindow = true;
+                    pwsh.Start();
+                    MessageBox.Show($"The launcher will now close to perform the operation. It should restart itself in 1 second.");
+                    this.Close(); //close the program
+                    return;
+                }
+            }
         }
 
         private void DisableButtons()

@@ -1,25 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using C2GUILauncher.Mods;
 using System.IO;
 using System.Threading;
-using System.Runtime.InteropServices;
 using Octokit;
 using System.Diagnostics;
-using Microsoft.Win32;
-using static System.Net.WebRequestMethods;
 
 namespace C2GUILauncher
 {
@@ -32,6 +21,46 @@ namespace C2GUILauncher
         private IList<DownloadTarget> PendingDownloads;
         private string CLIArgs;
         private bool CLIArgsModified;
+
+        string? searchDirForLauncher(string dir) {
+            string launcherDir = Path.GetDirectoryName(dir) ?? "";
+            string launcherOriginalPath = Path.Combine(launcherDir, "Chivalry2Launcher-ORIGINAL.exe");
+            string launcherDefaultPath = Path.Combine(launcherDir, "Chivalry2Launcher.exe");
+            if (File.Exists(launcherOriginalPath)) {
+                return launcherOriginalPath;
+            }else if (File.Exists(launcherDefaultPath)) {
+                return launcherDefaultPath;
+            } else {
+                return null;
+            }
+        }
+
+        string? getLauncherOnPath(){
+            string? originalLauncherPath = "Chivalry2Launcher.exe";
+            //try to find it as a relative path
+            if (!File.Exists(originalLauncherPath)){
+                do{
+                    //MessageBox.Show("Starting file dialogue");
+                    var filePicker = new Microsoft.Win32.OpenFileDialog();
+                    filePicker.Title = "Select chivalry2Launcher.exe in your chivalry 2 install folder";
+                    filePicker.Filter = "Executable file | *.exe";
+                    filePicker.Multiselect = false;
+                    filePicker.InitialDirectory = "C:\\Program Files (x86)\\Epic Games\\Games\\Chivalry2";
+                    filePicker.CheckFileExists = true;
+                    if (!(filePicker.ShowDialog() ?? false)) {
+                        return null;
+                    }
+                    originalLauncherPath = searchDirForLauncher(filePicker.FileName);
+                    if (originalLauncherPath == null) {
+                        MessageBox.Show($"`{filePicker.FileName}` is not a valid launcher, and" +
+                            $"no valid launcher could be found in that folder. Please try again.");
+                    }
+                } while (originalLauncherPath == null);
+            }
+
+            return originalLauncherPath;
+
+        }
 
         public MainWindow()
         {
@@ -46,35 +75,29 @@ namespace C2GUILauncher
 
             this.CLIArgsModified = false;
             string exeName = Process.GetCurrentProcess().ProcessName;
-            if (exeName != "Chivalry2Launcher")
-            {
+            if (exeName != "Chivalry2Launcher"){
                 MessageBoxResult dialogResult = MessageBox.Show(
                    $"This program is not currently running in place of the default Chivalry 2 launcher.\n\n" +
                    $"Do you want this launcher to move itself in place of the Chivalry 2 launcher? The " +
                    $"defualt launcher will remain as 'Chivalry2Launcher-ORIGINAL.exe'\n\n" +
-                   $"This is required if you are playing on Epic!",
+                   $"This will make the launcher start automatically when you launch via epic games or" +
+                   $"steam. Doing this is required if you are playing on Epic!",
                    "Replace launcher?", MessageBoxButton.YesNo);
 
-                if (dialogResult == MessageBoxResult.Yes)
-                {
+                if (dialogResult == MessageBoxResult.Yes){
                     Process pwsh = new Process();
                     pwsh.StartInfo.FileName = "powershell.exe";
-                    var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
-                    var originalLauncherPath = "Chivalry2Launcher.exe";
-                    var filePicker = new Microsoft.Win32.OpenFileDialog();
-                    if (!System.IO.File.Exists(originalLauncherPath)){
-                        filePicker.Title = "Select chivalry2Launcher.exe in your chivalry 2 install folder";
-                        filePicker.Filter = "Executable file | *.exe";
-                        filePicker.Multiselect = false;
-                        filePicker.InitialDirectory = "C:\\Program Files (x86)\\Epic Games\\Games\\Chivalry2";
-                        filePicker.CheckFileExists = true;
-                        filePicker.ShowDialog();
-                        originalLauncherPath = filePicker.FileName;
-                    }
-                    
-                    var originalLauncherDir = System.IO.Path.GetDirectoryName(originalLauncherPath);
+                    string commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
 
-                    var powershellCommand =
+                    string? originalLauncherPath = getLauncherOnPath();
+                    if (originalLauncherPath == null) {
+                        MessageBox.Show("Unable to move: Failed to get the path to the original launcher");
+                        return;
+                    }
+
+                    string originalLauncherDir = Path.GetDirectoryName(originalLauncherPath) ?? "";
+
+                    string powershellCommand =
                         $"Wait-Process -Id {Environment.ProcessId}; " +
                         $"Start-Sleep -Milliseconds 500; " +
                         $"Move-Item -Force \\\"{originalLauncherPath}\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher-ORIGINAL.exe\\\"; " +
@@ -231,6 +254,8 @@ namespace C2GUILauncher
                         Process pwsh = new Process();
                         pwsh.StartInfo.FileName = "powershell.exe";
                         var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
+                        //relative paths here are safe. This will never move the executable
+                        //to a different directory
                         string powershellCommand =
                         $"Wait-Process -Id {Environment.ProcessId}; " +
                         $"Start-Sleep -Milliseconds 500; " +

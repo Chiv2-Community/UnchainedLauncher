@@ -36,9 +36,9 @@ namespace C2GUILauncher
         }
 
         string? getLauncherOnPath(){
-            string? originalLauncherPath = "Chivalry2Launcher.exe";
+            string? originalLauncherPath = searchDirForLauncher("Chivalry2Launcher.exe");
             //try to find it as a relative path
-            if (!File.Exists(originalLauncherPath)){
+            if (originalLauncherPath == null || !File.Exists(originalLauncherPath)){
                 do{
                     //MessageBox.Show("Starting file dialogue");
                     var filePicker = new Microsoft.Win32.OpenFileDialog();
@@ -95,7 +95,11 @@ namespace C2GUILauncher
                         return;
                     }
 
-                    string originalLauncherDir = Path.GetDirectoryName(originalLauncherPath) ?? "";
+                    string originalLauncherDir = Path.GetDirectoryName(originalLauncherPath) ?? ".";
+                    if (originalLauncherDir == "") {
+                        originalLauncherDir = ".";
+                    }
+                    //MessageBox.Show(originalLauncherPath);
 
                     string powershellCommand =
                         $"Wait-Process -Id {Environment.ProcessId}; " +
@@ -104,6 +108,8 @@ namespace C2GUILauncher
                         $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"; " +
                         $"Start-Sleep -Milliseconds 500; " +
                         $"Start-Process \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\" {commandLinePass}";
+
+                    //MessageBox.Show(powershellCommand);
                     pwsh.StartInfo.Arguments = $"-Command \"{powershellCommand}\"";
                     pwsh.StartInfo.CreateNoWindow = true;
                     pwsh.Start();

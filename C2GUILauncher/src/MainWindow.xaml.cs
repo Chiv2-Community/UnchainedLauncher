@@ -244,7 +244,7 @@ namespace C2GUILauncher
                     try
                     {
                         var url = latestInfo.Assets.Where(
-                                    a => a.Name.Contains("Chivalry2Launcher.exe") //find the launcher exe
+                                    a => a.Name.Contains("C2GUILauncher.exe") //find the launcher exe
                                 ).First().BrowserDownloadUrl; //get the download URL
                         var newDownloadTask = HttpHelpers.DownloadFileAsync(new DownloadTarget(url, "C2GUILauncher.exe"));
                         string exePath = System.Reflection.Assembly.GetExecutingAssembly().Location;

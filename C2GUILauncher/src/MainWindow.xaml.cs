@@ -15,6 +15,8 @@ using System.Windows.Shapes;
 using C2GUILauncher.Mods;
 using System.IO;
 using System.Threading;
+using Octokit;
+using System.Collections.ObjectModel;
 
 namespace C2GUILauncher
 {
@@ -28,6 +30,9 @@ namespace C2GUILauncher
         private string CLIArgs;
         private bool CLIArgsModified;
         private ModManager ModManager;
+        private ObservableCollection<Mod> ModListView;
+        private Mod SelectedMod;
+
 
         public MainWindow()
         {
@@ -41,8 +46,18 @@ namespace C2GUILauncher
 
             this.CLIArgsModified = false;
 
-            this.ModManager = new ModManager("Chiv2-Community", "C2ModRegistry");
-            this.ModList.ItemsSource = ModManager.Mods;
+            this.ModListView = new ObservableCollection<Mod>();
+
+            this.ModManager = new ModManager(
+                "Chiv2-Community",
+                "C2ModRegistry",
+                new GitHubClient(new ProductHeaderValue("Chiv2-Unchained-Launcher")),
+                this.ModListView
+            );
+
+            this.ModList.ItemsSource = this.ModListView;
+
+            this.SelectedMod = null;
         }
 
         private void DisableButtons()
@@ -139,6 +154,12 @@ namespace C2GUILauncher
         {
             await ModManager.UpdateModsList();
             ModList.ItemsSource = ModManager.Mods;
+        }
+
+        private void ModList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if(ModList.SelectedItem != null)
+                this.SelectedMod = this.ModList.SelectedItem as Mod;
         }
     }
 }

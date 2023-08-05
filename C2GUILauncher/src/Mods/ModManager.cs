@@ -4,6 +4,7 @@ using Newtonsoft.Json.Serialization;
 using Octokit;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -36,19 +37,40 @@ namespace C2GUILauncher.Mods
         public string RegistryOrg { get; }
         public string RegistryRepoName { get; }
         private GitHubClient Client { get; }
-        public List<Mod> Mods { get; }
+        public ObservableCollection<Mod> Mods { get; }
 
-        public ModManager(string registryOrg, string registryRepoName)
+        public ModManager(string registryOrg, string registryRepoName, GitHubClient githubClient, ObservableCollection<Mod> baseModList)
         {
             RegistryOrg = registryOrg;
             RegistryRepoName = registryRepoName;
-            Mods = new List<Mod>();
-
-            Client = new GitHubClient(new ProductHeaderValue("Chiv2-Unchained-Launcher"));
+            Client = githubClient;
+            Mods = baseModList;
         }
 
         public async Task UpdateModsList()
         {
+            Mods.Clear();
+
+            await Task.Delay(100);
+            
+            Mods.Add(
+                new Mod(
+                    new ModManifest(
+                        "sex",
+                        "sex mod.",
+                        null,
+                        null,
+                        ModType.Shared,
+                        "ur mum, ur dad",
+                        new List<Dependency>() { new Dependency("test mod", "1.0.0") },
+                        new List<ModTag> { ModTag.Explicit, ModTag.Assets, ModTag.Misc }.Select(x => x.ToString()).Aggregate((x, y) => x + ", " + y)
+                    ),
+                    new List<Release>() { new Release("1.0.0", "abcd", DateTime.Now)}
+                )
+            );
+
+            /*
+
             var modRepoRootURLs = new List<string>();
 
             // Use the github api to list the contents of the registry dir
@@ -80,6 +102,8 @@ namespace C2GUILauncher.Mods
                     .Select(async x => Mods.Add(await x));
 
             await Task.WhenAll(downloadModManifestsResults);
+            */
+            
         }
 
         private static async Task<string> DownloadModManifest(string repoRoot)
@@ -126,29 +150,49 @@ namespace C2GUILauncher.Mods
         }
     }
 
+
+
+    record Mod(ModManifest Manifest, List<Release> Releases);
+    record Release(
+        [property: JsonProperty("tag")] string VersionString,
+        [property: JsonProperty("hash")] string ReleaseHash,
+        [property: JsonProperty("release_date")] DateTime ReleaseDate
+    );
+
     [JsonConverter(typeof(StringEnumConverter))]
     enum ModType
     {
-        [System.Runtime.Serialization.EnumMember(Value = "PLUGIN")]
-        Plugin,
-
-        [System.Runtime.Serialization.EnumMember(Value = "HOST_ONLY_PLUGIN")]
-        HostOnlyPlugin,
-
-        [System.Runtime.Serialization.EnumMember(Value = "CLIENT_ONLY_PLUGIN")]
-        ClientOnlyPlugin,
-
-        [System.Runtime.Serialization.EnumMember(Value = "ASSETS")]
-        Assets
+        Client,
+        Server,
+        Shared
     }
-    record Mod(
+    [JsonConverter(typeof(StringEnumConverter))]
+    enum ModTag
+    {
+        Weapon,
+        Map,
+        Assets,
+        Framework,
+        Mod,
+        Gamemode,
+        Misc,
+        Explicit
+    }
+
+    record Dependency(
+        [property: JsonProperty("repo_url")] string RepoUrl, 
+        [property: JsonProperty("version")] string Version
+    );
+
+    record ModManifest(
         [property: JsonProperty("name")] string Name,
         [property: JsonProperty("description")] string Description,
-        [property: JsonProperty("image_url")] string ImageUrl,
-        [property: JsonProperty("download_url")] string DownloadUrl,
-        [property: JsonProperty("mod_type")] string ModType,
-        [property: JsonProperty("authors")] List<string> Authors,
-        [property: JsonProperty("versions")] List<string>? Versions
+        [property: JsonProperty("home_page")] string? HomePage,
+        [property: JsonProperty("image_url")] string? ImageUrl,
+        [property: JsonProperty("mod_type")] ModType ModType,
+        [property: JsonProperty("authors")] string Authors,
+        [property: JsonProperty("dependencies")] List<Dependency> Dependencies,
+        [property: JsonProperty("tags")] string Tags
     );
 
     record Repo(string Org, string Name);

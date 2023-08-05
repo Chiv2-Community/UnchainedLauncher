@@ -3,7 +3,29 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:av="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" x:Name="Unchained_Launcher" mc:Ignorable="av" x:Class="C2GUILauncher.MainWindow"
         Title="Unchained Launcher" Height="250" Width="400">
-
+    
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Background" Value="LightGray"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+    </Window.Resources>
+    
     <TabControl x:Name="Tabs">
         <TabItem Header="Launcher">
             <Grid>
@@ -20,11 +42,19 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Button x:Name="RefreshModListButton" Content="Refresh Mod List" Grid.Row="1" Grid.Column="2" Margin="5" Click="RefreshModListButton_Click"/>
-                <Button x:Name="LaunchVanillaButton" Content="Launch Vanilla" Grid.Row="2" Grid.Column="2" Margin="5" Click="LaunchVanillaButton_Click"/>
-                <Button x:Name="LaunchModdedButton" Content="Launch With Mods" Grid.Row="3" Grid.Column="2" Margin="5" Click="LaunchModdedButton_Click" />
-                <DataGrid x:Name="ModList" Grid.RowSpan="4" Grid.ColumnSpan="2" />
-                <TextBlock Grid.Column="2" TextWrapping="Wrap" Text="TextBlock" Margin="5"/>
+                <Button x:Name="RefreshModListButton" Content="Refresh Mod List" Grid.Row="1" Grid.Column="2" Click="RefreshModListButton_Click"/>
+                <Button x:Name="LaunchVanillaButton" Content="Launch Vanilla" Grid.Row="2" Grid.Column="2" Click="LaunchVanillaButton_Click"/>
+                <Button x:Name="LaunchModdedButton" Content="Launch With Mods" Grid.Row="3" Grid.Column="2" Click="LaunchModdedButton_Click" />
+                <DataGrid x:Name="ModList" Grid.RowSpan="4" Grid.ColumnSpan="2" ItemsSource="{Binding Source=ModListView}"  AutoGenerateColumns="False" Margin="0,5,10,5" SelectionChanged="ModList_SelectionChanged" >
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Manifest.Name}"/>
+                        <DataGridTextColumn Header="ModType" Binding="{Binding Manifest.ModType}"/>
+                        <DataGridTextColumn Header="Tags" Binding="{Binding Manifest.Tags}"/>
+                        <DataGridTextColumn Header="Authors" Binding="{Binding Manifest.Authors}"/>
+                        <DataGridTextColumn Header="Last Updated" Binding="{Binding Releases[0].ReleaseDate}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <TextBlock Grid.Column="2" TextWrapping="Wrap" Text="{Binding ElementName=SelectedMod, Path=Description }"/>
             </Grid>
         </TabItem>
 

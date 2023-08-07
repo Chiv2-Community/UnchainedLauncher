@@ -167,7 +167,12 @@ namespace C2GUILauncher
                 if(result.warnings.Count > 0) MessageBox.Show(result.warnings.Aggregate((x, y) => x + ", " + y));
                 if(result.failures.Count > 0) MessageBox.Show(result.failures.Aggregate((x, y) => x + ", " + y));
 
-                MessageBox.Show(ModListView.Select(x => x.EnabledRelease?.Manifest.Name + "@" + x.EnabledRelease?.Tag).Aggregate((x, y) => x + ", " + y));
+                MessageBox.Show(
+                    ModListView
+                        .Where(x => x.EnabledRelease != null)
+                        .Select(x => x.EnabledRelease!.Manifest.Name + "@" + x.EnabledRelease!.Tag)
+                        .Aggregate((x, y) => x + ", " + y)
+                );
             } catch (Exception ex)
             {
                 MessageBox.Show(ex.ToString());

@@ -5,12 +5,12 @@ using Octokit;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.Eventing.Reader;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-
 namespace C2GUILauncher.Mods
 {
 
@@ -38,13 +38,57 @@ namespace C2GUILauncher.Mods
         public string RegistryRepoName { get; }
         private GitHubClient Client { get; }
         public ObservableCollection<Mod> Mods { get; }
+        public ObservableCollection<Release> EnabledModReleases { get; }
 
-        public ModManager(string registryOrg, string registryRepoName, GitHubClient githubClient, ObservableCollection<Mod> baseModList)
+        public ModManager(string registryOrg, string registryRepoName, GitHubClient githubClient, ObservableCollection<Mod> baseModList, ObservableCollection<Release> enabledMods)
         {
             RegistryOrg = registryOrg;
             RegistryRepoName = registryRepoName;
             Client = githubClient;
             Mods = baseModList;
+            EnabledModReleases = enabledMods;
+        }
+
+        public Release? GetCurrentlyEnabledReleaseForMod(Mod mod)
+        {
+            return EnabledModReleases.FirstOrDefault(x => mod.Releases.Contains(x));
+        }
+
+        public ModEnableResult EnableModRelease(Release release)
+        {
+            var associatedMod = this.Mods.First(Mods => Mods.Releases.Contains(release));
+
+            if (associatedMod == null)
+                return ModEnableResult.Failure("Selected release not found in mod list: " + release.Manifest.Name + " @" + release.Tag);
+
+            var result = ModEnableResult.Success;
+
+            var enabledModRelease = GetCurrentlyEnabledReleaseForMod(associatedMod);
+
+            if (enabledModRelease != null)
+            {
+                if (enabledModRelease == release)
+                    return ModEnableResult.Success;
+
+                result += ModEnableResult.Warning("Mod already enabled with different version: " + enabledModRelease.Manifest.Name + " @" + enabledModRelease.Tag);
+            }
+
+            foreach (var dependency in release.Manifest.Dependencies)
+            {
+                var dependencyRelease = 
+                    this.Mods
+                    .First(mod => mod.LatestManifest.RepoUrl == dependency.RepoUrl)?.Releases
+                    .First(release => release.Tag == dependency.Version);
+
+                if (dependencyRelease == null)
+                    result += ModEnableResult.Failure("Dependency not found: " + dependency.RepoUrl + " @" + dependency.Version);
+                else 
+                    result += EnableModRelease(dependencyRelease);
+
+            }
+
+            EnabledModReleases.Add(release);
+            return result;
         }
 
         public async Task UpdateModsList()
@@ -52,22 +96,70 @@ namespace C2GUILauncher.Mods
             Mods.Clear();
 
             await Task.Delay(100);
-            
+
+            var manifest = new ModManifest(
+                "https://github.com/Chiv2-Community-X/sex",
+                "sex",
+                "sex mod.",
+                null,
+                null,
+                ModType.Shared,
+                "ur mum, ur dad",
+                new List<Dependency>() { new Dependency("https://github.com/Chiv2-Community/ArgonSDKCoreUtils", "v0.1.0") },
+                new List<ModTag> { ModTag.Explicit, ModTag.Assets, ModTag.Misc }.Select(x => x.ToString()).ToList()
+            );
+
+
             Mods.Add(
                 new Mod(
-                    new ModManifest(
-                        "sex",
-                        "sex mod.",
-                        null,
-                        null,
-                        ModType.Shared,
-                        "ur mum, ur dad",
-                        new List<Dependency>() { new Dependency("test mod", "1.0.0") },
-                        new List<ModTag> { ModTag.Explicit, ModTag.Assets, ModTag.Misc }.Select(x => x.ToString()).Aggregate((x, y) => x + ", " + y)
-                    ),
-                    new List<Release>() { new Release("1.0.0", "abcd", DateTime.Now)}
+                    manifest,
+                    new List<Release>() { new Release("v1.0.0", "abcd", DateTime.Now, manifest)}
                 )
             );
+
+            await Task.Delay(100);
+
+            manifest = new ModManifest(
+                "https://github.com/Nihilianth/C2LightsabersMod",
+                "Lightsaber Mod",
+                "High viz lightsabers",
+                null,
+                null,
+                ModType.Shared,
+                "Nihilianth",
+                new List<Dependency>() { },
+                new List<ModTag> { ModTag.Mod }.Select(x => x.ToString()).ToList()
+            );
+
+
+            Mods.Add(
+                new Mod(
+                    manifest,
+                    new List<Release>() { new Release("v1.0.0", "abcd", DateTime.Now, manifest) }
+                )
+            );
+
+            manifest = new ModManifest(
+                "https://github.com/Chiv2-Community/ArgonSDKCoreUtils",
+                "ArgonSDK Core Utils",
+                "ArgonSDK Core Utilities. Convienent helpers provided by the Chivalry2 Community",
+                null,
+                null,
+                ModType.Shared,
+                "Nihilianth, DrLong",
+                new List<Dependency>(),
+                new List<ModTag> { ModTag.Misc }.Select(x => x.ToString()).ToList()
+            );
+
+
+            Mods.Add(
+                new Mod(
+                    manifest,
+                    new List<Release>() { new Release("v0.1.0", "abcd", DateTime.Now, manifest) }
+                )
+            );
+
+            await Task.Delay(100);
 
             /*
 
@@ -103,7 +195,7 @@ namespace C2GUILauncher.Mods
 
             await Task.WhenAll(downloadModManifestsResults);
             */
-            
+
         }
 
         private static async Task<string> DownloadModManifest(string repoRoot)
@@ -151,12 +243,30 @@ namespace C2GUILauncher.Mods
     }
 
 
+    record ModEnableResult(bool successful, List<string> failures, List<string> warnings)
+    {
+        public static ModEnableResult Success => new ModEnableResult(true, new List<string>(), new List<string>());
+        public static ModEnableResult Failure(string failure) => new ModEnableResult(false, new List<string>() { failure }, new List<string>());
+        public static ModEnableResult Failures(List<string> failures) => new ModEnableResult(false, failures, new List<string>());
+        public static ModEnableResult Warning(string warning) => new ModEnableResult(false, new List<string>(), new List<string>() { warning });
+        public static ModEnableResult Warnings(List<string> warnings) => new ModEnableResult(false, new List<string>(), warnings);
 
-    record Mod(ModManifest Manifest, List<Release> Releases);
+        public static ModEnableResult operator +(ModEnableResult a, ModEnableResult b)
+        {
+            return new ModEnableResult(
+                a.successful && b.successful, 
+                a.failures.Concat(b.failures).ToList(), 
+                a.warnings.Concat(b.warnings).ToList()
+            );
+        }
+    }
+
+    record Mod(ModManifest LatestManifest, List<Release> Releases);
     record Release(
-        [property: JsonProperty("tag")] string VersionString,
+        [property: JsonProperty("tag")] string Tag,
         [property: JsonProperty("hash")] string ReleaseHash,
-        [property: JsonProperty("release_date")] DateTime ReleaseDate
+        [property: JsonProperty("release_date")] DateTime ReleaseDate,
+        [property: JsonProperty("manifest")] ModManifest Manifest
     );
 
     [JsonConverter(typeof(StringEnumConverter))]
@@ -185,6 +295,7 @@ namespace C2GUILauncher.Mods
     );
 
     record ModManifest(
+        [property: JsonProperty("repo_url")] string RepoUrl,
         [property: JsonProperty("name")] string Name,
         [property: JsonProperty("description")] string Description,
         [property: JsonProperty("home_page")] string? HomePage,
@@ -192,7 +303,7 @@ namespace C2GUILauncher.Mods
         [property: JsonProperty("mod_type")] ModType ModType,
         [property: JsonProperty("authors")] string Authors,
         [property: JsonProperty("dependencies")] List<Dependency> Dependencies,
-        [property: JsonProperty("tags")] string Tags
+        [property: JsonProperty("tags")] List<string> Tags
     );
 
     record Repo(string Org, string Name);

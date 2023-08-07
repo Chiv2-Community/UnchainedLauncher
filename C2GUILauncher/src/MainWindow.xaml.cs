@@ -12,11 +12,12 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using C2GUILauncher.Mods;
 using System.IO;
 using System.Threading;
-using Octokit;
 using System.Collections.ObjectModel;
+using C2GUILauncher.Views;
+using System.Collections.Specialized;
+using C2GUILauncher.Mods;
 
 namespace C2GUILauncher
 {
@@ -29,10 +30,11 @@ namespace C2GUILauncher
         private IList<DownloadTarget> PendingDownloads;
         private string CLIArgs;
         private bool CLIArgsModified;
-        private ModManager ModManager;
-        private ObservableCollection<Mod> ModListView;
-        private Mod SelectedMod;
+        private ModListView ModListView;
+        private ModView SelectedMod;
 
+
+        private ModManager ModManager;
 
         public MainWindow()
         {
@@ -46,16 +48,19 @@ namespace C2GUILauncher
 
             this.CLIArgsModified = false;
 
-            this.ModListView = new ObservableCollection<Mod>();
 
-            this.ModManager = new ModManager(
+            this.ModManager = new Mods.ModManager(
                 "Chiv2-Community",
                 "C2ModRegistry",
-                new GitHubClient(new ProductHeaderValue("Chiv2-Unchained-Launcher")),
-                this.ModListView
+                new Octokit.GitHubClient(new Octokit.ProductHeaderValue("Chiv2-Unchained-Launcher")),
+                new ObservableCollection<Mods.Mod>(),
+                new ObservableCollection<Mods.Release>()
             );
 
-            this.ModList.ItemsSource = this.ModListView;
+            this.ModListView = new ModListView(ModManager);
+
+
+            this.ModListDataGrid.ItemsSource = this.ModListView;
 
             this.SelectedMod = null;
         }
@@ -122,7 +127,8 @@ namespace C2GUILauncher
             {
                 try
                 {
-                    if (!disablePluginDownloads) { 
+                    if (!disablePluginDownloads)
+                    {
                         List<DownloadTask> downloadTasks = ModManager.DownloadModFiles(debugMode).ToList();
                         PendingDownloads.Concat(downloadTasks.Select(x => x.Target));
                         await Task.WhenAll(downloadTasks.Select(x => x.Task));
@@ -152,14 +158,29 @@ namespace C2GUILauncher
 
         private async void RefreshModListButton_Click(object sender, RoutedEventArgs e)
         {
-            await ModManager.UpdateModsList();
-            ModList.ItemsSource = ModManager.Mods;
+            try
+            {
+                await ModManager.UpdateModsList();
+                var result = ModManager.EnableModRelease(ModManager.Mods.First().Releases.First());
+
+                MessageBox.Show(result.successful ? "Success!" : "Failure!");
+                if(result.warnings.Count > 0) MessageBox.Show(result.warnings.Aggregate((x, y) => x + ", " + y));
+                if(result.failures.Count > 0) MessageBox.Show(result.failures.Aggregate((x, y) => x + ", " + y));
+
+                MessageBox.Show(ModListView.Select(x => x.EnabledRelease?.Manifest.Name + "@" + x.EnabledRelease?.Tag).Aggregate((x, y) => x + ", " + y));
+            } catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
         }
 
-        private void ModList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void ModListDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if(ModList.SelectedItem != null)
-                this.SelectedMod = this.ModList.SelectedItem as Mod;
+            if (ModListDataGrid.SelectedItem != null)
+            {
+                this.SelectedMod = (this.ModListDataGrid.SelectedItem as ModView)!;
+                this.DescriptionBox.Text = this.SelectedMod.Mod.LatestManifest.Description;
+            }
         }
     }
 }

@@ -118,8 +118,9 @@ namespace C2GUILauncher.ViewModels
 
         public ModViewModel(Mod mod, Release? enabledRelease, ModManager modManager)
         {
+            _enabledRelease = enabledRelease;
+
             Mod = mod;
-            EnabledRelease = enabledRelease;
             ModManager = modManager;
             DownloadError = null;
 

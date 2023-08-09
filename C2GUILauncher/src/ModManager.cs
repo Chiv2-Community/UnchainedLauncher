@@ -88,9 +88,8 @@ namespace C2GUILauncher.Mods
                     .Select(x => JsonConvert.DeserializeObject<Release>(File.ReadAllText(x)))
                     .Where(x => x != null);
 
+
             enabledModReleases ??= new List<Release>();
-
-
 
             return new ModManager(
                 registryOrg,
@@ -105,7 +104,7 @@ namespace C2GUILauncher.Mods
 
         public Release? GetCurrentlyEnabledReleaseForMod(Mod mod)
         {
-            return EnabledModReleases.FirstOrDefault(x => mod.Releases.Contains(x));
+            return EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl);
         }
 
         public void DisableModRelease(Release release)
@@ -214,6 +213,7 @@ namespace C2GUILauncher.Mods
             await Task.WhenAll(downloadTasks);
         }
 
+        // TODO: Somehow move this around. this function downloads the plugins, not the mods
         public IEnumerable<DownloadTask> DownloadModFiles(bool debug)
         {
             // Create plugins dir. This method does nothing if the directory already exists.

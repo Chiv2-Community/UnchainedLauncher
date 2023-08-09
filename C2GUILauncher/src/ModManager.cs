@@ -11,6 +11,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Windows;
+
 namespace C2GUILauncher.Mods
 {
 
@@ -96,7 +98,12 @@ namespace C2GUILauncher.Mods
             Mods.Clear();
 
             await Task.Delay(100);
+            /* 
+            var files = await File.ReadAllLinesAsync("..\\..\\..\\..\\test_data\\package_list.txt");
 
+            files.Select(async x => await File.ReadAllTextAsync("..\\..\\..\\..\\test_data\\" + x))
+                .Select(async x => JsonConvert.DeserializeObject<Mod>(await x)); */
+            
             var manifest = new ModManifest(
                 "https://github.com/Chiv2-Community-X/sex",
                 "sex",

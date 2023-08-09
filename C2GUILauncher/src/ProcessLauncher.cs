@@ -45,14 +45,15 @@ namespace C2GUILauncher
         {
 
             // Initialize a process
-            var proc = new Process();
-
-            // Build the process start info
-            proc.StartInfo = new ProcessStartInfo()
+            var proc = new Process
             {
-                FileName = this.ExecutableLocation,
-                Arguments = args,
-                WorkingDirectory = Path.GetFullPath(this.WorkingDirectory),
+                // Build the process start info
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = this.ExecutableLocation,
+                    Arguments = args,
+                    WorkingDirectory = Path.GetFullPath(this.WorkingDirectory),
+                }
             };
 
             // Execute the process

@@ -41,7 +41,7 @@ namespace C2GUILauncher.ViewModels
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
             CLIArgs = cliArgs;
 
-            CheckForUpdateCommand = new RelayCommand<Window>(CheckForUpdate);
+            CheckForUpdateCommand = new RelayCommand<Window?>(CheckForUpdate);
         }
 
         public static SettingsViewModel LoadSettings()
@@ -79,7 +79,7 @@ namespace C2GUILauncher.ViewModels
         }
 
         // TODO: Somehow generalize the updater and installer
-        private void CheckForUpdate(Window window)
+        private void CheckForUpdate(Window? window)
         {
             var github = new GitHubClient(new ProductHeaderValue("C2GUILauncher"));
 
@@ -87,7 +87,7 @@ namespace C2GUILauncher.ViewModels
             repoCall.Wait();
             if (!repoCall.IsCompletedSuccessfully)
             {
-                MessageBox.Show("Could not connect to github to retrieve latest version information:\n" + repoCall.Exception.Message);
+                MessageBox.Show("Could not connect to github to retrieve latest version information:\n" + repoCall?.Exception?.Message);
                 return;
             }
             var latestInfo = repoCall.Result;
@@ -129,7 +129,7 @@ namespace C2GUILauncher.ViewModels
                         newDownloadTask.Wait();
                         if (!repoCall.IsCompletedSuccessfully)
                         {
-                            MessageBox.Show("Failed to download the new version:\n" + newDownloadTask.Exception.Message);
+                            MessageBox.Show("Failed to download the new version:\n" + newDownloadTask?.Exception?.Message);
                             return;
                         }
 
@@ -148,7 +148,7 @@ namespace C2GUILauncher.ViewModels
                         pwsh.StartInfo.CreateNoWindow = true;
                         pwsh.Start();
                         MessageBox.Show("The launcher will now close and start the new version. No further action must be taken.");
-                        window.Close(); //close the program
+                        window?.Close(); //close the program
                         return;
                     }
                     catch (Exception ex)

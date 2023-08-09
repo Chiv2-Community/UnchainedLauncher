@@ -1,5 +1,6 @@
 ﻿using C2GUILauncher.JsonModels;
 using C2GUILauncher.Mods;
+using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -9,17 +10,16 @@ using System.Threading.Tasks;
 
 namespace C2GUILauncher.ViewModels
 {
-    public class ModViewModel : INotifyPropertyChanged
+    [AddINotifyPropertyChangedInterface]
+    public class ModViewModel
     {
-        public event PropertyChangedEventHandler PropertyChanged;
-        
         // A ModViewModel needs access to the mod manager so that it can enable/disable releases as they get set on the view.
         private ModManager ModManager { get; }
 
         public Mod Mod { get; }
 
         // This property duplication (_enabledRelease and EnabledRelease) is normal in C# and is for maintaining public
-        // getters/setters independently of the underlying value.  This is necessary in this case because of the 
+        // getters/setters independently of the underlying private value.  This is necessary in this case because of the 
         // special interactions with the ModManager.
         private Release? _enabledRelease;
         public Release? EnabledRelease

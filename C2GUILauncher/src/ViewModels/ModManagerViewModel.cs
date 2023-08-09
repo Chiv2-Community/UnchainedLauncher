@@ -17,10 +17,9 @@ using C2GUILauncher.JsonModels;
 
 namespace C2GUILauncher.ViewModels
 {
-    public class ModManagerViewModel : INotifyPropertyChanged
+    [AddINotifyPropertyChangedInterface]
+    public class ModManagerViewModel
     {
-        public event PropertyChangedEventHandler PropertyChanged;
-
         private readonly ModManager ModManager;
         private ObservableCollection<ModViewModel> UnfilteredModView { get; }
         private ObservableCollection<ModFilter> ModFilters { get; }
@@ -73,7 +72,7 @@ namespace C2GUILauncher.ViewModels
             }
         }
 
-        private void UnfilteredModViewOrModFilters_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        private void UnfilteredModViewOrModFilters_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             this.DisplayMods.Clear();
             this.UnfilteredModView
@@ -83,7 +82,7 @@ namespace C2GUILauncher.ViewModels
 
         }
 
-        private void ModManager_ModList_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        private void ModManager_ModList_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             switch (e.Action)
             {

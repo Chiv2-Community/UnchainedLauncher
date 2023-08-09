@@ -87,11 +87,10 @@ namespace C2GUILauncher
             foreach (string path in paths)
             {
                 // writing the name of the dll there
-                UIntPtr bytesWritten;
                 var res = WriteProcessMemory(procHandle, allocMemAddress,
                     Encoding.Default.GetBytes(path + '\0'),
                     (uint)((path.Length + 1) * Marshal.SizeOf(typeof(char))),
-                    out bytesWritten);
+                    out UIntPtr bytesWritten);
                 if (!res) { return false; }
                 //inject
                 var thread = CreateRemoteThread(procHandle, IntPtr.Zero, 0, loadLibraryAddr, allocMemAddress, 0, IntPtr.Zero);

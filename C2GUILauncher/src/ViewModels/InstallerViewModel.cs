@@ -94,12 +94,15 @@ namespace C2GUILauncher.src.ViewModels
                 do
                 {
                     //MessageBox.Show("Starting file dialogue");
-                    var filePicker = new Microsoft.Win32.OpenFileDialog();
-                    filePicker.Title = "Select chivalry2Launcher.exe in your chivalry 2 install folder";
-                    filePicker.Filter = "Executable file | *.exe";
-                    filePicker.Multiselect = false;
-                    filePicker.InitialDirectory = "C:\\Program Files (x86)\\Epic Games\\Games\\Chivalry2";
-                    filePicker.CheckFileExists = true;
+                    var filePicker = new Microsoft.Win32.OpenFileDialog
+                    {
+                        Title = "Select chivalry2Launcher.exe in your chivalry 2 install folder",
+                        Filter = "Executable file | *.exe",
+                        Multiselect = false,
+                        InitialDirectory = "C:\\Program Files (x86)\\Epic Games\\Games\\Chivalry2",
+                        CheckFileExists = true
+                    };
+
                     if (!(filePicker.ShowDialog() ?? false))
                     {
                         return null;

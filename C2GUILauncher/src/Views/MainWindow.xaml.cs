@@ -44,7 +44,8 @@ namespace C2GUILauncher
             InitializeComponent();
 
             var needsClose = InstallerViewModel.AttemptInstall();
-            this.Close();
+            if(needsClose)
+                this.Close();
 
             this.ModManager = new ModManager(
                 "Chiv2-Community",

@@ -126,7 +126,7 @@
                 <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Row="3" Content="Enable Automatic Plugin Updates and Downloads" Margin="5,10,5,0"/>
                 <TextBlock Text="CLI Args:" Grid.Row="4" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>
                 <TextBox Text="{Binding CLIArgs}" Grid.Row="5" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
-                <Button x:Name="CheckUpdateButton" Content="Check for updates" Grid.Row="6" Margin="5" Click="CheckUpdateButton_Click" />
+                <Button x:Name="CheckUpdateButton" Content="Check for updates" Grid.Row="6" Margin="5" Command="{Binding CheckForUpdateCommand}" />
             </Grid>
         </TabItem>
     </TabControl>

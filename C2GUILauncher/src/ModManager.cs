@@ -77,17 +77,13 @@ namespace C2GUILauncher.Mods
             Directory.CreateDirectory(CoreMods.EnabledModsCacheDir);
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBDir);
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBPackagesDir);
-            
 
-            // List everything in the EnabledModsCacheDir
-            var enabledMods = Directory.GetFiles(CoreMods.EnabledModsCacheDir);
-
-            // Deserialize the release in each file
-            var enabledModReleases =
-                enabledMods?
+            // List everything in the EnabledModsCacheDir and its direct subdirs, then deserialize and filter out any failures (null)
+            var enabledModReleases = 
+                Directory.GetDirectories(CoreMods.EnabledModsCacheDir)
+                    .SelectMany(x => Directory.GetFiles(x))
                     .Select(x => JsonConvert.DeserializeObject<Release>(File.ReadAllText(x)))
                     .Where(x => x != null);
-
 
             enabledModReleases ??= new List<Release>();
 
@@ -109,7 +105,10 @@ namespace C2GUILauncher.Mods
 
         public void DisableModRelease(Release release)
         {
+            logger.Info("Disabling mod release: " + release.Manifest.Name + " @" + release.Tag);
             EnabledModReleases.Remove(release);
+
+
         }
 
         public ModEnableResult EnableModRelease(Release release)
@@ -177,7 +176,14 @@ namespace C2GUILauncher.Mods
                 {
                     logger.Info("Download complete: " + outputPath);
                     var enabledModJson = JsonConvert.SerializeObject(release);
-                    File.WriteAllText(CoreMods.EnabledModsCacheDir + "\\" + release.Manifest.Name + ".json", enabledModJson);
+                    var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
+
+                    var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
+                    var filePath = orgPath + "\\" + urlParts.Last() + ".json";
+
+                    Directory.CreateDirectory(orgPath);
+                    File.WriteAllText(filePath, enabledModJson);
+
                     PendingDownloads.Remove(downloadTask);
                 }
             });

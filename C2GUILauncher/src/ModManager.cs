@@ -108,7 +108,16 @@ namespace C2GUILauncher.Mods
             logger.Info("Disabling mod release: " + release.Manifest.Name + " @" + release.Tag);
             EnabledModReleases.Remove(release);
 
+            var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
 
+            var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
+            var filePath = orgPath + "\\" + urlParts.Last() + ".json";
+
+            //EnabledModReleases
+            //    .Where(otherRelease => otherRelease.Manifest.Dependencies.Any(dep => dep.RepoUrl == release.Manifest.RepoUrl))
+
+            File.Delete(filePath);
+            File.Delete(PakDir + "\\" + release.PakFileName);
         }
 
         public ModEnableResult EnableModRelease(Release release)

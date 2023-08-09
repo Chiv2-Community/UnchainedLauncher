@@ -48,7 +48,7 @@ namespace C2GUILauncher
         }
     }
 
-    record DownloadTarget(string Url, string OutputPath);
+   public record DownloadTarget(string Url, string OutputPath);
 
-    record DownloadTask(Task Task, DownloadTarget Target);
+   public record DownloadTask(Task Task, DownloadTarget Target);
 }

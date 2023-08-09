@@ -1,0 +1,131 @@
+﻿<Window
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:av="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" x:Name="Unchained_Launcher" mc:Ignorable="av" x:Class="C2GUILauncher.MainWindow"
+        Title="Unchained Launcher" Height="250" Width="600" >
+
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Background" Value="LightGray"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="Black"/>
+        </Style>
+    </Window.Resources>
+
+    <TabControl x:Name="Tabs">
+        <TabItem x:Name="LauncherTab" Header="Launcher" DataContext="{Binding LauncherViewModel}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="LaunchVanillaButton" Content="Launch Vanilla" Grid.Row="0" Command="{Binding LaunchVanillaCommand}" />
+                <Button x:Name="LaunchModdedButton" Content="Launch With Mods" Grid.Row="1" Command="{Binding LaunchModdedCommand}" />
+            </Grid>
+        </TabItem>
+        <TabItem x:Name="ModManagerTab"  DataContext="{Binding ModManagerViewModel}"  Header="Mod Manager">
+            <Grid>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="40"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <DataGrid 
+                    x:Name="ModListDataGrid" 
+                    IsReadOnly="True"  
+                    Grid.RowSpan="4" 
+                    Grid.ColumnSpan="1" 
+                    ItemsSource="{Binding DisplayMods}" 
+                    SelectedValue="{Binding SelectedMod}" 
+                    AutoGenerateColumns="False" 
+                    Margin="0,5,5,0" 
+                    SelectionMode="Single" 
+                    SelectionUnit="FullRow"   
+                    >
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Mod.LatestManifest.Name}"/>
+                        <DataGridTextColumn Header="Mod Type" Binding="{Binding Mod.LatestManifest.ModType}"/>
+                        <DataGridTextColumn Header="Tags" Binding="{Binding TagsString}"/>
+                        <DataGridTextColumn Header="Authors" Binding="{Binding Mod.LatestManifest.Authors}"/>
+                        <DataGridTextColumn Header="Enabled" Binding="{Binding EnabledVersion}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <Button x:Name="RefreshModListButton" Content="Refresh Mod List" Grid.Row="0" Grid.Column="1" Command="{Binding RefreshModListCommand}" Margin="0,5,0,5"/>
+
+                <Border BorderBrush="Black" BorderThickness="1" Grid.Column="1" Grid.Row="1" />
+                <Grid Grid.Column="1" Grid.Row="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="40"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="80"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="{Binding SelectedMod.Description}" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" TextWrapping="Wrap" Margin="5"/>
+                    <Button Content="Disable" Grid.Row="1" Grid.Column="0" Command="{Binding DisableModCommand}" IsEnabled="{Binding SelectedMod.IsEnabled}"/>
+                    <ComboBox ItemsSource="{Binding SelectedMod.Mod.Releases}" 
+                              SelectedItem="{Binding SelectedMod.EnabledRelease}"
+                              DisplayMemberPath="Tag"
+                              Grid.Row="1" 
+                              Grid.Column="1" 
+                              Height="NaN" 
+                              Margin="5" 
+                              VerticalAlignment="Stretch" 
+                              Width="NaN" FontSize="18"/>
+                </Grid>
+            </Grid>
+        </TabItem>
+
+        <TabItem x:Name="SettingsTab"  DataContext="{Binding SettingsViewModel}" Header="Settings">
+            <Grid HorizontalAlignment="Stretch" Margin="0,0,0,0" Width="NaN" VerticalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="Installation Type:" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
+                <ComboBox x:Name="InstallationTypeSelection" SelectedItem="{Binding InstallationType}" ItemsSource="{Binding AllInstallationTypes}" Grid.Row="1" Margin="0,0,0,0" HorizontalAlignment="Stretch" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />
+                <CheckBox IsChecked="{Binding EnablePluginLogging }" Grid.Row="2" Content="Enable Plugin Logging" Margin="5,10,0,0" HorizontalAlignment="Left" Width="290"/>
+                <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Row="3" Content="Enable Automatic Plugin Updates and Downloads" Margin="5,10,5,0"/>
+                <TextBlock Text="CLI Args:" Grid.Row="4" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>
+                <TextBox Text="{Binding CLIArgs}" Grid.Row="5" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
+            </Grid>
+        </TabItem>
+    </TabControl>
+</Window>

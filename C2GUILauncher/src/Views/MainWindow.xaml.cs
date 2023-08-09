@@ -18,25 +18,24 @@ using C2GUILauncher.ViewModels;
 using C2GUILauncher.Mods;
 using C2GUILauncher.JsonModels;
 using System.Diagnostics;
-using Octokit;
 using C2GUILauncher.src.ViewModels;
+using System.IO.Compression;
+using PropertyChanged;
 
 namespace C2GUILauncher
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
+    [AddINotifyPropertyChangedInterface]
     public partial class MainWindow : Window
     {
 
-        public ModManagerViewModel ModManagerViewModel;
-        public SettingsViewModel SettingsViewModel;
-        public LauncherViewModel LauncherViewModel;
-
-        public MainWindowViewModel MainWindowViewModel;
+        public ModListViewModel ModManagerViewModel { get; }
+        public SettingsViewModel SettingsViewModel { get; }
+        public LauncherViewModel LauncherViewModel { get; }
 
         private readonly ModManager ModManager;
-
 
 
         public MainWindow()
@@ -47,31 +46,21 @@ namespace C2GUILauncher
             if(needsClose)
                 this.Close();
 
-            this.ModManager = new ModManager(
+            this.ModManager = ModManager.ForRegistry(
                 "Chiv2-Community",
                 "C2ModRegistry",
-                new ObservableCollection<Mod>(),
-                new ObservableCollection<JsonModels.Release>()
+                "TBL\\Content\\Paks"
             );
 
             this.SettingsViewModel = SettingsViewModel.LoadSettings();
-
-
-            this.ModManagerViewModel = new ModManagerViewModel(ModManager);
-
-
+            this.ModManagerViewModel = new ModListViewModel(ModManager);
             this.LauncherViewModel = new LauncherViewModel(SettingsViewModel, ModManager);
 
-            this.MainWindowViewModel = new MainWindowViewModel(ModManagerViewModel, SettingsViewModel, LauncherViewModel);
+            this.SettingsTab.DataContext = this.SettingsViewModel;
+            this.ModManagerTab.DataContext = this.ModManagerViewModel;
+            this.LauncherTab.DataContext = this.LauncherViewModel;
 
             this.Closed += MainWindow_Closed;
-
-            this.DataContext = this;
-
-
-            this.LauncherTab.DataContext = this.LauncherViewModel;
-            this.ModManagerTab.DataContext = this.ModManagerViewModel;
-            this.SettingsTab.DataContext = this.SettingsViewModel;
         }
 
         private void MainWindow_Closed(object? sender, EventArgs e)
@@ -81,17 +70,4 @@ namespace C2GUILauncher
 
     }
 
-    public class MainWindowViewModel
-    {
-        public ModManagerViewModel ModManagerViewModel { get; }
-        public SettingsViewModel SettingsViewModel { get; }
-        public LauncherViewModel LauncherViewModel { get; }
-
-        public MainWindowViewModel(ModManagerViewModel modManagerViewModel, SettingsViewModel settingsViewModel, LauncherViewModel launcherViewModel)
-        {
-            this.ModManagerViewModel = modManagerViewModel;
-            this.SettingsViewModel = settingsViewModel;
-            this.LauncherViewModel = launcherViewModel;
-        }
-    }
 }

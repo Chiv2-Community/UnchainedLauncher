@@ -16,6 +16,7 @@ namespace C2GUILauncher.JsonModels
     public record Release(
         [property: JsonProperty("tag")] string Tag,
         [property: JsonProperty("hash")] string ReleaseHash,
+        [property: JsonProperty("pak_file_name")] string PakFileName,
         [property: JsonProperty("release_date")] DateTime ReleaseDate,
         [property: JsonProperty("manifest")] ModManifest Manifest
     );
@@ -52,7 +53,7 @@ namespace C2GUILauncher.JsonModels
         [property: JsonProperty("home_page")] string? HomePage,
         [property: JsonProperty("image_url")] string? ImageUrl,
         [property: JsonProperty("mod_type")] ModType ModType,
-        [property: JsonProperty("authors")] string Authors,
+        [property: JsonProperty("authors")] List<string> Authors,
         [property: JsonProperty("dependencies")] List<Dependency> Dependencies,
         [property: JsonProperty("tags")] List<string> Tags
     );

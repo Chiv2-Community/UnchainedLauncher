@@ -41,7 +41,6 @@ namespace C2GUILauncher.ViewModels
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
             this.LaunchModdedCommand = new RelayCommand(LaunchModded);
-
         }
 
         private void LaunchVanilla()
@@ -101,8 +100,6 @@ namespace C2GUILauncher.ViewModels
             launchThread.Start();
             CanClick = false;
         }
-
-
 
         private InstallationType GetInstallationType()
         {

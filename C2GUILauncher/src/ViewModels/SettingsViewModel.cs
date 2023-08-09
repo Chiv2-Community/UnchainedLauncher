@@ -122,14 +122,14 @@ namespace C2GUILauncher.ViewModels
                         var url = latestInfo.Assets.Where(
                                     a => a.Name.Contains("C2GUILauncher.exe") //find the launcher exe
                                 ).First().BrowserDownloadUrl; //get the download URL
-                        var newDownloadTask = HttpHelpers.DownloadFileAsync(new DownloadTarget(url, "C2GUILauncher.exe"));
+                        var newDownloadTask = HttpHelpers.DownloadFileAsync(url, "C2GUILauncher.exe");
                         string exePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
                         string exeDir = System.IO.Path.GetDirectoryName(exePath) ?? "";
 
-                        newDownloadTask.Wait();
+                        newDownloadTask.Task.Wait();
                         if (!repoCall.IsCompletedSuccessfully)
                         {
-                            MessageBox.Show("Failed to download the new version:\n" + newDownloadTask?.Exception?.Message);
+                            MessageBox.Show("Failed to download the new version:\n" + newDownloadTask?.Task.Exception?.Message);
                             return;
                         }
 

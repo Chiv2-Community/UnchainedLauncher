@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Controls.Ribbon;
 using System.Windows.Media.Animation;
 
@@ -25,14 +26,31 @@ namespace C2GUILauncher
         /// <returns>
         /// The task that represents the asynchronous operation.
         /// </returns>
-        public static Task DownloadFileAsync(DownloadTarget target)
+        public static DownloadTask DownloadFileAsync(string url, string outputPath)
         {
-            return _httpClient.GetByteArrayAsync(target.Url).ContinueWith(t => File.WriteAllBytes(target.OutputPath, t.Result));
+            if(!Directory.Exists(Path.GetDirectoryName(outputPath)))
+                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+
+            return new DownloadTask(
+                _httpClient.GetByteArrayAsync(url).ContinueWith(t => File.WriteAllBytes(outputPath, t.Result)),
+                new DownloadTarget(url, outputPath)
+            );
         }
 
-        public static async Task<string> GetRawContentsAsync(string url)
+        public static DownloadTask<Stream> GetByteContentsAsync(string url)
         {
-            return await _httpClient.GetStringAsync(url);
+              return new DownloadTask<Stream>(
+                  _httpClient.GetStreamAsync(url), 
+                  new DownloadTarget(url, null)
+                );
+        }
+
+        public static DownloadTask<string> GetStringContentsAsync(string url)
+        {
+            return new DownloadTask<string>(
+                _httpClient.GetStringAsync(url), 
+                new DownloadTarget(url, null)
+            );
         }
 
         /// <summary>
@@ -44,11 +62,31 @@ namespace C2GUILauncher
         /// </returns>
         public static IEnumerable<DownloadTask> DownloadAllFiles(IEnumerable<DownloadTarget> files)
         {
-            return files.Select(x => new DownloadTask(DownloadFileAsync(x), x));
+            return files.Select(x => 
+                x.OutputPath == null 
+                    ? throw new ArgumentNullException("OutputPath") 
+                    : DownloadFileAsync(x.Url, x.OutputPath!)
+            );
         }
     }
 
-   public record DownloadTarget(string Url, string OutputPath);
+   public record DownloadTarget(string Url, string? OutputPath);
 
-   public record DownloadTask(Task Task, DownloadTarget Target);
+    // The DownloadTask records below will eventually be used to hold on to a reference which indicates the current download progress.
+    // Wrapping the task is necessary so that we can show results before they have completed.
+    public record DownloadTask(Task Task, DownloadTarget Target)
+    {
+        public DownloadTask ContinueWith(Action action)
+        {
+            Task.ContinueWith(t => action());
+            return this;
+        }
+    }
+    public record DownloadTask<T>(Task<T> Task, DownloadTarget Target)
+    {
+        public DownloadTask<U> ContinueWith<U>(Func<T, U> action)
+        {
+            return new DownloadTask<U>(Task.ContinueWith(t => action(t.Result)), Target);
+        }
+    }
 }

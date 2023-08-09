@@ -18,20 +18,19 @@ using C2GUILauncher.JsonModels;
 namespace C2GUILauncher.ViewModels
 {
     [AddINotifyPropertyChangedInterface]
-    public class ModManagerViewModel
+    public class ModListViewModel
     {
         private readonly ModManager ModManager;
         private ObservableCollection<ModViewModel> UnfilteredModView { get; }
         private ObservableCollection<ModFilter> ModFilters { get; }
-        public ObservableCollection<ModViewModel> DisplayMods { get; }
+
         public ICommand RefreshModListCommand { get; }
-        public ICommand DisableModCommand { get; }
 
         public ModViewModel? SelectedMod { get; set; }
-        public Release? SelectedModRelease { get; set; }
+        public ObservableCollection<ModViewModel> DisplayMods { get; }
 
 
-        public ModManagerViewModel(ModManager modManager) {
+        public ModListViewModel(ModManager modManager) {
             this.ModManager = modManager;
             this.UnfilteredModView = new ObservableCollection<ModViewModel>();
             this.DisplayMods = new ObservableCollection<ModViewModel>();
@@ -46,14 +45,7 @@ namespace C2GUILauncher.ViewModels
             this.UnfilteredModView.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
             this.ModFilters.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
 
-            this.RefreshModListCommand = new AsyncRelayCommand(() => this.RefreshModListAsync());
-            this.DisableModCommand = new RelayCommand(() => this.DisableMod());
-        }
-
-        private void DisableMod()
-        {
-            if (this.SelectedMod == null) return;
-            this.SelectedMod.EnabledRelease = null;
+            this.RefreshModListCommand = new AsyncRelayCommand(RefreshModListAsync);
         }
 
         private async Task RefreshModListAsync()
@@ -61,10 +53,6 @@ namespace C2GUILauncher.ViewModels
             try
             {
                 await ModManager.UpdateModsList();
-                var result = ModManager.EnableModRelease(ModManager.Mods.First().Releases.First());
-
-                if (result.Warnings.Count > 0) MessageBox.Show(result.Warnings.Aggregate((x, y) => x + ", " + y));
-                if (result.Failures.Count > 0) MessageBox.Show(result.Failures.Aggregate((x, y) => x + ", " + y));
             }
             catch (Exception ex)
             {
@@ -96,7 +84,9 @@ namespace C2GUILauncher.ViewModels
                 case NotifyCollectionChangedAction.Remove:
                     foreach (Mod mod in e.OldItems!)
                     {
-                        this.UnfilteredModView.Remove(this.UnfilteredModView.First(x => x.Mod.LatestManifest.RepoUrl == mod.LatestManifest.RepoUrl));
+                        var removeElem = this.UnfilteredModView.FirstOrDefault(x => x.Mod.LatestManifest.RepoUrl == mod.LatestManifest.RepoUrl);
+                        if (removeElem != null)
+                         this.UnfilteredModView.Remove(removeElem);
                     }
                     break;
                 case NotifyCollectionChangedAction.Reset:

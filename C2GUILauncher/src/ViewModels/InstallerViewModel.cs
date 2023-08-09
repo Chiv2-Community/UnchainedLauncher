@@ -16,7 +16,6 @@ namespace C2GUILauncher.src.ViewModels
     {
         public static bool AttemptInstall()
         {
-            MessageBox.Show(Directory.GetCurrentDirectory());
             string exeName = Process.GetCurrentProcess().ProcessName;
             if (exeName != "Chivalry2Launcher")
             {

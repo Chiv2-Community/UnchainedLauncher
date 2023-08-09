@@ -11,13 +11,15 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.IO;
 using System.Threading;
 using System.Collections.ObjectModel;
 using C2GUILauncher.ViewModels;
 using C2GUILauncher.Mods;
 using C2GUILauncher.JsonModels;
+using System.Diagnostics;
+using Octokit;
+using C2GUILauncher.src.ViewModels;
 
 namespace C2GUILauncher
 {
@@ -35,15 +37,20 @@ namespace C2GUILauncher
 
         private readonly ModManager ModManager;
 
+
+
         public MainWindow()
         {
             InitializeComponent();
+
+            var needsClose = InstallerViewModel.AttemptInstall();
+            this.Close();
 
             this.ModManager = new ModManager(
                 "Chiv2-Community",
                 "C2ModRegistry",
                 new ObservableCollection<Mod>(),
-                new ObservableCollection<Release>()
+                new ObservableCollection<JsonModels.Release>()
             );
 
             this.SettingsViewModel = SettingsViewModel.LoadSettings();
@@ -64,13 +71,13 @@ namespace C2GUILauncher
             this.LauncherTab.DataContext = this.LauncherViewModel;
             this.ModManagerTab.DataContext = this.ModManagerViewModel;
             this.SettingsTab.DataContext = this.SettingsViewModel;
-
         }
 
         private void MainWindow_Closed(object? sender, EventArgs e)
         {
             this.SettingsViewModel.SaveSettings();
         }
+
     }
 
     public class MainWindowViewModel

@@ -1,24 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 
-namespace C2GUILauncher.src.ViewModels
-{
+namespace C2GUILauncher.src.ViewModels {
     // This isn't a view model in the normal sense that we hold on to a view of data and bind to it.
     // I just figure this is the "View" for the installer workflow.
     // TODO: Somehow generalize the updater and installer
-    class InstallerViewModel
-    {
-        public static bool AttemptInstall()
-        {
+    class InstallerViewModel {
+        public static bool AttemptInstall() {
             string exeName = Process.GetCurrentProcess().ProcessName;
-            if (exeName != "Chivalry2Launcher")
-            {
+            if (exeName != "Chivalry2Launcher") {
                 MessageBoxResult dialogResult = MessageBox.Show(
                    $"This program is not currently running in place of the default Chivalry 2 launcher.\n\n" +
                    $"Do you want this launcher to move itself in place of the Chivalry 2 launcher? The " +
@@ -27,22 +20,19 @@ namespace C2GUILauncher.src.ViewModels
                    $"steam. Doing this is required if you are playing on Epic!",
                    "Replace launcher?", MessageBoxButton.YesNo);
 
-                if (dialogResult == MessageBoxResult.Yes)
-                {
+                if (dialogResult == MessageBoxResult.Yes) {
                     Process pwsh = new Process();
                     pwsh.StartInfo.FileName = "powershell.exe";
                     string commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
 
                     string? originalLauncherPath = GetLauncherOnPath();
-                    if (originalLauncherPath == null)
-                    {
+                    if (originalLauncherPath == null) {
                         MessageBox.Show("Unable to move: Failed to get the path to the original launcher");
                         return false;
                     }
 
                     string originalLauncherDir = Path.GetDirectoryName(originalLauncherPath) ?? ".";
-                    if (originalLauncherDir == "")
-                    {
+                    if (originalLauncherDir == "") {
                         originalLauncherDir = ".";
                     }
                     //MessageBox.Show(originalLauncherPath);
@@ -66,36 +56,26 @@ namespace C2GUILauncher.src.ViewModels
             return false;
         }
 
-        private static string? SearchDirForLauncher(string dir)
-        {
+        private static string? SearchDirForLauncher(string dir) {
             string launcherDir = Path.GetDirectoryName(dir) ?? "";
             string launcherOriginalPath = Path.Combine(launcherDir, "Chivalry2Launcher-ORIGINAL.exe");
             string launcherDefaultPath = Path.Combine(launcherDir, "Chivalry2Launcher.exe");
-            if (File.Exists(launcherOriginalPath))
-            {
+            if (File.Exists(launcherOriginalPath)) {
                 return launcherOriginalPath;
-            }
-            else if (File.Exists(launcherDefaultPath))
-            {
+            } else if (File.Exists(launcherDefaultPath)) {
                 return launcherDefaultPath;
-            }
-            else
-            {
+            } else {
                 return null;
             }
         }
 
-        private static string? GetLauncherOnPath()
-        {
+        private static string? GetLauncherOnPath() {
             string? originalLauncherPath = SearchDirForLauncher("Chivalry2Launcher.exe");
             //try to find it as a relative path
-            if (originalLauncherPath == null || !File.Exists(originalLauncherPath))
-            {
-                do
-                {
+            if (originalLauncherPath == null || !File.Exists(originalLauncherPath)) {
+                do {
                     //MessageBox.Show("Starting file dialogue");
-                    var filePicker = new Microsoft.Win32.OpenFileDialog
-                    {
+                    var filePicker = new Microsoft.Win32.OpenFileDialog {
                         Title = "Select chivalry2Launcher.exe in your chivalry 2 install folder",
                         Filter = "Executable file | *.exe",
                         Multiselect = false,
@@ -103,16 +83,17 @@ namespace C2GUILauncher.src.ViewModels
                         CheckFileExists = true
                     };
 
-                    if (!(filePicker.ShowDialog() ?? false))
-                    {
+                    if (!(filePicker.ShowDialog() ?? false)) {
                         return null;
                     }
+
                     originalLauncherPath = SearchDirForLauncher(filePicker.FileName);
-                    if (originalLauncherPath == null)
-                    {
+
+                    if (originalLauncherPath == null) {
                         MessageBox.Show($"`{filePicker.FileName}` is not a valid launcher, and" +
                             $"no valid launcher could be found in that folder. Please try again.");
                     }
+
                 } while (originalLauncherPath == null);
             }
 
@@ -120,7 +101,7 @@ namespace C2GUILauncher.src.ViewModels
 
         }
 
-        
+
 
 
     }

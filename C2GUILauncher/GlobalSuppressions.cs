@@ -4,4 +4,4 @@
 // a specific target and scoped to a namespace, type, member, etc.
 
 using System.Diagnostics.CodeAnalysis;
-[assembly: SuppressMessage("Style", "IDE0090:Use 'new(...)'", Justification="It makes things hard to read")]
+[assembly: SuppressMessage("Style", "IDE0090:Use 'new(...)'", Justification = "It makes things hard to read")]

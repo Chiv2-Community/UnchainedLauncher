@@ -1,14 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.IO;
 
-namespace C2GUILauncher
-{
-    static class Chivalry2Launchers
-    {
+namespace C2GUILauncher {
+    static class Chivalry2Launchers {
         public const string BinDir = "TBL\\Binaries\\Win64";
         public const string GameBinPath = BinDir + "\\Chivalry2-Win64-Shipping.exe";
         public const string OriginalLauncherPath = "Chivalry2Launcher-ORIGINAL.exe";

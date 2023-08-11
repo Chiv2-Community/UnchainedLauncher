@@ -1,25 +1,16 @@
 ﻿using C2GUILauncher.JsonModels;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Serialization;
 using NLog;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics.Eventing.Reader;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
-using System.Windows;
 
-namespace C2GUILauncher.Mods
-{
+namespace C2GUILauncher.Mods {
 
-    class CoreMods
-    {
+    class CoreMods {
         public const string GithubBaseURL = "https://github.com";
 
         public const string EnabledModsCacheDir = $"{FilePaths.ModCachePath}\\enabled_mods";
@@ -39,8 +30,7 @@ namespace C2GUILauncher.Mods
         public const string PackageDBPackageListUrl = $"{PackageDBBaseUrl}/mod_list_index.txt";
     }
 
-    public class ModManager
-    {
+    public class ModManager {
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
         public string RegistryOrg { get; }
@@ -54,14 +44,13 @@ namespace C2GUILauncher.Mods
         private string PakDir { get; }
 
         public ModManager(
-            string registryOrg, 
+            string registryOrg,
             string registryRepoName,
             string pakDir,
-            ObservableCollection<Mod> baseModList, 
+            ObservableCollection<Mod> baseModList,
             ObservableCollection<Release> enabledMods,
             ObservableCollection<ModReleaseDownloadTask> pendingDownloads,
-            ObservableCollection<ModReleaseDownloadTask> failedDownloads)
-        {
+            ObservableCollection<ModReleaseDownloadTask> failedDownloads) {
             RegistryOrg = registryOrg;
             RegistryRepoName = registryRepoName;
             PakDir = pakDir;
@@ -71,15 +60,14 @@ namespace C2GUILauncher.Mods
             FailedDownloads = failedDownloads;
         }
 
-        public static ModManager ForRegistry(string registryOrg, string registryRepoName, string pakDir)
-        {
+        public static ModManager ForRegistry(string registryOrg, string registryRepoName, string pakDir) {
             // Create mod cache dirs if they don't exist
             Directory.CreateDirectory(CoreMods.EnabledModsCacheDir);
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBDir);
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBPackagesDir);
 
             // List everything in the EnabledModsCacheDir and its direct subdirs, then deserialize and filter out any failures (null)
-            var enabledModReleases = 
+            var enabledModReleases =
                 Directory.GetDirectories(CoreMods.EnabledModsCacheDir)
                     .SelectMany(x => Directory.GetFiles(x))
                     .Select(x => JsonConvert.DeserializeObject<Release>(File.ReadAllText(x)))
@@ -98,13 +86,11 @@ namespace C2GUILauncher.Mods
             );
         }
 
-        public Release? GetCurrentlyEnabledReleaseForMod(Mod mod)
-        {
+        public Release? GetCurrentlyEnabledReleaseForMod(Mod mod) {
             return EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl);
         }
 
-        public void DisableModRelease(Release release)
-        {
+        public void DisableModRelease(Release release) {
             logger.Info("Disabling mod release: " + release.Manifest.Name + " @" + release.Tag);
             EnabledModReleases.Remove(release);
 
@@ -120,8 +106,7 @@ namespace C2GUILauncher.Mods
             File.Delete(PakDir + "\\" + release.PakFileName);
         }
 
-        public ModEnableResult EnableModRelease(Release release)
-        {
+        public ModEnableResult EnableModRelease(Release release) {
             logger.Debug("Enabling mod release: " + release.Manifest.Name + " @" + release.Tag);
             var associatedMod = this.Mods.First(Mods => Mods.Releases.Contains(release));
 
@@ -132,8 +117,7 @@ namespace C2GUILauncher.Mods
 
             var enabledModRelease = GetCurrentlyEnabledReleaseForMod(associatedMod);
 
-            if (enabledModRelease != null)
-            {
+            if (enabledModRelease != null) {
                 // If its already enabled and the download was successful, just return success
                 if (enabledModRelease == release && !FailedDownloads.Any(x => x.Release == release))
                     return ModEnableResult.Success;
@@ -141,16 +125,15 @@ namespace C2GUILauncher.Mods
                 result += ModEnableResult.Warn("Mod already enabled with different version: " + enabledModRelease.Manifest.Name + " @" + enabledModRelease.Tag);
             }
 
-            foreach (var dependency in release.Manifest.Dependencies)
-            {
-                var dependencyRelease = 
+            foreach (var dependency in release.Manifest.Dependencies) {
+                var dependencyRelease =
                     this.Mods
                         .FirstOrDefault(mod => mod.LatestManifest.RepoUrl == dependency.RepoUrl)?.Releases
                         .FirstOrDefault(release => release.Tag == dependency.Version);
 
                 if (dependencyRelease == null)
                     result += ModEnableResult.Fail("Dependency not found: " + dependency.RepoUrl + " @" + dependency.Version);
-                else 
+                else
                     result += EnableModRelease(dependencyRelease);
             }
 
@@ -161,8 +144,7 @@ namespace C2GUILauncher.Mods
             return result;
         }
 
-        private ModReleaseDownloadTask DownloadModRelease(Release release)
-        {
+        private ModReleaseDownloadTask DownloadModRelease(Release release) {
             // Cleanup the previously failed download if it exists
             if (FailedDownloads.Any(x => x.Release == release))
                 FailedDownloads.Remove(FailedDownloads.First(x => x.Release == release));
@@ -174,15 +156,11 @@ namespace C2GUILauncher.Mods
             var downloadTask = new ModReleaseDownloadTask(release, HttpHelpers.DownloadFileAsync(downloadUrl, outputPath));
             PendingDownloads.Add(downloadTask);
 
-            downloadTask.DownloadTask.Task.ContinueWith(task =>
-            {
-                if (task.IsFaulted)
-                {
+            downloadTask.DownloadTask.Task.ContinueWith(task => {
+                if (task.IsFaulted) {
                     logger.Error("Download failed: " + task.Exception?.Message);
                     FailedDownloads.Add(downloadTask);
-                }
-                else
-                {
+                } else {
                     logger.Info("Download complete: " + outputPath);
                     var enabledModJson = JsonConvert.SerializeObject(release);
                     var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
@@ -200,8 +178,7 @@ namespace C2GUILauncher.Mods
             return downloadTask;
         }
 
-        public async Task UpdateModsList()
-        {
+        public async Task UpdateModsList() {
             Mods.Clear();
 
             await HttpHelpers.DownloadFileAsync(CoreMods.PackageDBPackageListUrl, CoreMods.ModsCachePackageDBListPath).Task;
@@ -214,8 +191,7 @@ namespace C2GUILauncher.Mods
 
             var downloadTasks = packages
                 .Select(packageName => HttpHelpers.DownloadFileAsync(packageNameToMetadataPath(packageName), packageNameToFilePath(packageName)))
-                .Select(async downloadTask =>
-                {
+                .Select(async downloadTask => {
                     await downloadTask.Task;
                     var fileLocation = downloadTask.Target.OutputPath!;
                     var mod = JsonConvert.DeserializeObject<Mod>(await File.ReadAllTextAsync(fileLocation));
@@ -229,8 +205,7 @@ namespace C2GUILauncher.Mods
         }
 
         // TODO: Somehow move this around. this function downloads the plugins, not the mods
-        public IEnumerable<DownloadTask> DownloadModFiles(bool debug)
-        {
+        public IEnumerable<DownloadTask> DownloadModFiles(bool debug) {
             // Create plugins dir. This method does nothing if the directory already exists.
             Directory.CreateDirectory(FilePaths.PluginDir);
 
@@ -250,23 +225,21 @@ namespace C2GUILauncher.Mods
     }
 
 
-    public record ModEnableResult(bool Successful, List<string> Failures, List<string> Warnings)
-    {
+    public record ModEnableResult(bool Successful, List<string> Failures, List<string> Warnings) {
         public static ModEnableResult Success => new ModEnableResult(true, new List<string>(), new List<string>());
         public static ModEnableResult Fail(string failure) => new ModEnableResult(false, new List<string>() { failure }, new List<string>());
         public static ModEnableResult Fails(List<string> failures) => new ModEnableResult(false, failures, new List<string>());
         public static ModEnableResult Warn(string warning) => new ModEnableResult(false, new List<string>(), new List<string>() { warning });
         public static ModEnableResult Warns(List<string> warnings) => new ModEnableResult(false, new List<string>(), warnings);
 
-        public static ModEnableResult operator +(ModEnableResult a, ModEnableResult b)
-        {
+        public static ModEnableResult operator +(ModEnableResult a, ModEnableResult b) {
             return new ModEnableResult(
-                a.Successful && b.Successful, 
-                a.Failures.Concat(b.Failures).ToList(), 
+                a.Successful && b.Successful,
+                a.Failures.Concat(b.Failures).ToList(),
                 a.Warnings.Concat(b.Warnings).ToList()
             );
         }
     }
 
-    public record ModReleaseDownloadTask(Release Release, DownloadTask DownloadTask); 
+    public record ModReleaseDownloadTask(Release Release, DownloadTask DownloadTask);
 }

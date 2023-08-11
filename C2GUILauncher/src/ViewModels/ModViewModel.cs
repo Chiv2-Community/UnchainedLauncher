@@ -5,17 +5,12 @@ using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.ComponentModel;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 
-namespace C2GUILauncher.ViewModels
-{
+namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
-    public class ModViewModel
-    {
+    public class ModViewModel {
         // A ModViewModel needs access to the mod manager so that it can enable/disable releases as they get set on the view.
         private ModManager ModManager { get; }
 
@@ -25,23 +20,18 @@ namespace C2GUILauncher.ViewModels
         // getters/setters independently of the underlying private value.  This is necessary in this case because of the 
         // special interactions with the ModManager.
         private Release? _enabledRelease;
-        public Release? EnabledRelease
-        {
+        public Release? EnabledRelease {
             get { return _enabledRelease; }
-            set
-            {
-                if (EnabledRelease != value)
-                {
+            set {
+                if (EnabledRelease != value) {
                     var original = _enabledRelease;
                     _enabledRelease = value;
 
-                    if (original != null)
-                    {
+                    if (original != null) {
                         ModManager.DisableModRelease(original);
                     }
 
-                    if(value != null)
-                    {
+                    if (value != null) {
                         ModManager.EnableModRelease(value);
                     }
                 }
@@ -51,18 +41,15 @@ namespace C2GUILauncher.ViewModels
         public Exception? DownloadError { get; set; }
         public bool DownloadFailed { get { return DownloadError != null; } }
 
-        public string Description
-        {
+        public string Description {
             get {
                 var message = EnabledRelease?.Manifest.Description ?? Mod.LatestManifest.Description;
 
                 var manifest = EnabledRelease?.Manifest ?? Mod.LatestManifest;
 
-                if(manifest.Dependencies.Count > 0)
-                {
+                if (manifest.Dependencies.Count > 0) {
                     message += "\n\nDependencies:\n";
-                    foreach(var dep in manifest.Dependencies)
-                    {
+                    foreach (var dep in manifest.Dependencies) {
                         var mod = ModManager.Mods.FirstOrDefault(x => x.LatestManifest.RepoUrl == dep.RepoUrl);
                         if (mod == null)
                             message += $"-Dependency not found: {dep.RepoUrl} {dep.Version}\n";
@@ -78,28 +65,25 @@ namespace C2GUILauncher.ViewModels
             }
         }
 
-        public string ButtonText { 
-            get { 
-                if(DownloadFailed)
+        public string ButtonText {
+            get {
+                if (DownloadFailed)
                     return "Retry Download";
 
                 return "Disable";
-            } 
+            }
         }
 
 
-        public string TagsString
-        {
+        public string TagsString {
             get { return string.Join(", ", Mod.LatestManifest.Tags); }
         }
 
-        public bool IsEnabled
-        {
+        public bool IsEnabled {
             get { return EnabledRelease != null; }
         }
 
-        public string? EnabledVersion
-        {
+        public string? EnabledVersion {
             get {
                 if (DownloadFailed)
                     return "Error";
@@ -111,15 +95,13 @@ namespace C2GUILauncher.ViewModels
             }
         }
 
-        public List<string> AvailableVersions
-        {
+        public List<string> AvailableVersions {
             get { return Mod.Releases.Select(x => x.Tag).ToList(); }
         }
 
         public ICommand ButtonCommand { get; }
 
-        public ModViewModel(Mod mod, Release? enabledRelease, ModManager modManager)
-        {
+        public ModViewModel(Mod mod, Release? enabledRelease, ModManager modManager) {
             _enabledRelease = enabledRelease;
 
             Mod = mod;
@@ -132,22 +114,17 @@ namespace C2GUILauncher.ViewModels
             ButtonCommand = new RelayCommand(DisableOrRetry);
         }
 
-        private void DisableOrRetry()
-        {
-            if (DownloadFailed && EnabledRelease != null)
-            {
+        private void DisableOrRetry() {
+            if (DownloadFailed && EnabledRelease != null) {
                 ModManager.EnableModRelease(EnabledRelease);
-            }
-            else
-            {
+            } else {
                 EnabledRelease = null;
             }
         }
 
-        private void FailedDownloads_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
+        private void FailedDownloads_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
             // Find this mod if it was added to the failed downloads
-            var thisDownloadFailed = 
+            var thisDownloadFailed =
                 e.NewItems?
                     .Cast<ModReleaseDownloadTask>()
                     .FirstOrDefault(failedDownload => failedDownload.Release.Manifest.RepoUrl == this.Mod.LatestManifest.RepoUrl);
@@ -165,10 +142,8 @@ namespace C2GUILauncher.ViewModels
                 DownloadError = null;
         }
 
-        private void EnabledModReleases_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            if (IsEnabled)
-            {
+        private void EnabledModReleases_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
+            if (IsEnabled) {
                 var isRemoved = e.OldItems?.Cast<Release>()
                         .Any(removedRelease => removedRelease == EnabledRelease);
 
@@ -181,7 +156,7 @@ namespace C2GUILauncher.ViewModels
                     .FirstOrDefault(newRelease => newRelease.Manifest.RepoUrl == Mod.LatestManifest.RepoUrl);
 
             if (enabledRelease != null)
-                  EnabledRelease = enabledRelease;
+                EnabledRelease = enabledRelease;
         }
     }
 }

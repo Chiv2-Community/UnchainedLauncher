@@ -1,25 +1,19 @@
-﻿using C2GUILauncher.Mods;
+﻿using C2GUILauncher.JsonModels;
+using C2GUILauncher.Mods;
+using CommunityToolkit.Mvvm.Input;
 using PropertyChanged;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.ComponentModel;
 using System.Data;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using System.Xml.Linq;
-using CommunityToolkit.Mvvm.Input;
-using C2GUILauncher.JsonModels;
 
-namespace C2GUILauncher.ViewModels
-{
+namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
-    public class ModListViewModel
-    {
+    public class ModListViewModel {
         private readonly ModManager ModManager;
         private ObservableCollection<ModViewModel> UnfilteredModView { get; }
         private ObservableCollection<ModFilter> ModFilters { get; }
@@ -48,20 +42,15 @@ namespace C2GUILauncher.ViewModels
             this.RefreshModListCommand = new AsyncRelayCommand(RefreshModListAsync);
         }
 
-        private async Task RefreshModListAsync()
-        {
-            try
-            {
+        private async Task RefreshModListAsync() {
+            try {
                 await ModManager.UpdateModsList();
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 MessageBox.Show(ex.ToString());
             }
         }
 
-        private void UnfilteredModViewOrModFilters_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
+        private void UnfilteredModViewOrModFilters_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
             this.DisplayMods.Clear();
             this.UnfilteredModView
                 .Where(modView => this.ModFilters.All(modFilter => modFilter.ShouldInclude(modView)))
@@ -70,40 +59,33 @@ namespace C2GUILauncher.ViewModels
 
         }
 
-        private void ModManager_ModList_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            switch (e.Action)
-            {
+        private void ModManager_ModList_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
+            switch (e.Action) {
                 case NotifyCollectionChangedAction.Add:
-                    foreach (Mod mod in e.NewItems!)
-                    {
+                    foreach (Mod mod in e.NewItems!) {
                         this.UnfilteredModView.Add(new ModViewModel(mod, ModManager.GetCurrentlyEnabledReleaseForMod(mod), ModManager));
                     }
                     break;
 
                 case NotifyCollectionChangedAction.Remove:
-                    foreach (Mod mod in e.OldItems!)
-                    {
+                    foreach (Mod mod in e.OldItems!) {
                         var removeElem = this.UnfilteredModView.FirstOrDefault(x => x.Mod.LatestManifest.RepoUrl == mod.LatestManifest.RepoUrl);
                         if (removeElem != null)
-                         this.UnfilteredModView.Remove(removeElem);
+                            this.UnfilteredModView.Remove(removeElem);
                     }
                     break;
                 case NotifyCollectionChangedAction.Reset:
                     this.UnfilteredModView.Clear();
                     break;
-                default: 
+                default:
                     throw new Exception("Unhandled NotifyCollectionChangedAction: " + e.Action);
             }
         }
     }
 
-    public record ModFilter(string Tag, FilterType Type)
-    {
-          public bool ShouldInclude(ModViewModel mod)
-        {
-            return Type switch
-            {
+    public record ModFilter(string Tag, FilterType Type) {
+        public bool ShouldInclude(ModViewModel mod) {
+            return Type switch {
                 FilterType.Include => mod.Mod.LatestManifest.Tags.Contains(Tag),
                 FilterType.Exclude => !mod.Mod.LatestManifest.Tags.Contains(Tag),
                 _ => throw new Exception("Unhandled FilterType: " + Type)
@@ -111,8 +93,7 @@ namespace C2GUILauncher.ViewModels
         }
     }
 
-    public enum FilterType
-    {
+    public enum FilterType {
         Include,
         Exclude
     };

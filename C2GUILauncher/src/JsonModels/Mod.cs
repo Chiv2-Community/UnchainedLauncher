@@ -1,15 +1,11 @@
-﻿using Newtonsoft.Json.Converters;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace C2GUILauncher.JsonModels
-{
+namespace C2GUILauncher.JsonModels {
     public record Mod(
-        [property: JsonProperty("latest_manifest")] ModManifest LatestManifest, 
+        [property: JsonProperty("latest_manifest")] ModManifest LatestManifest,
         [property: JsonProperty("releases")] List<Release> Releases
     );
 
@@ -22,15 +18,13 @@ namespace C2GUILauncher.JsonModels
     );
 
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum ModType
-    {
+    public enum ModType {
         Client,
         Server,
         Shared
     }
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum ModTag
-    {
+    public enum ModTag {
         Weapon,
         Map,
         Assets,

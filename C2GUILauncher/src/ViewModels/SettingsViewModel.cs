@@ -8,16 +8,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 
-namespace C2GUILauncher.ViewModels
-{
+namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
-    public class SettingsViewModel
-    {
+    public class SettingsViewModel {
         public static readonly int[] version = { 0, 0, 0 };
 
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_settings.json";
@@ -29,13 +25,11 @@ namespace C2GUILauncher.ViewModels
 
         public ICommand CheckForUpdateCommand { get; }
 
-        public static IEnumerable<InstallationType> AllInstallationTypes
-        {
+        public static IEnumerable<InstallationType> AllInstallationTypes {
             get { return Enum.GetValues(typeof(InstallationType)).Cast<InstallationType>(); }
         }
 
-        public SettingsViewModel(InstallationType installationType, bool enablePluginLogging, bool enablePluginAutomaticUpdates, string cliArgs)
-        {
+        public SettingsViewModel(InstallationType installationType, bool enablePluginLogging, bool enablePluginAutomaticUpdates, string cliArgs) {
             InstallationType = installationType;
             EnablePluginLogging = enablePluginLogging;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
@@ -44,8 +38,7 @@ namespace C2GUILauncher.ViewModels
             CheckForUpdateCommand = new RelayCommand<Window?>(CheckForUpdate);
         }
 
-        public static SettingsViewModel LoadSettings()
-        {
+        public static SettingsViewModel LoadSettings() {
             var cliArgsList = Environment.GetCommandLineArgs();
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => x + " " + y) : "";
 
@@ -56,37 +49,31 @@ namespace C2GUILauncher.ViewModels
 
             var savedSettings = JsonConvert.DeserializeObject<SavedSettings>(File.ReadAllText(SettingsFilePath));
 
-            if (savedSettings is not null)
-            {
+            if (savedSettings is not null) {
                 return new SettingsViewModel(savedSettings.InstallationType, savedSettings.EnablePluginLogging, savedSettings.EnablePluginAutomaticUpdates, cliArgs);
-            }
-            else
-            {
+            } else {
                 MessageBox.Show("Settings malformed or from an unsupported old version. Loading defaults.");
                 return defaultSettings;
             }
         }
 
-        public void SaveSettings()
-        {
+        public void SaveSettings() {
             var settings = new SavedSettings(InstallationType, EnablePluginLogging, EnablePluginAutomaticUpdates);
             var json = JsonConvert.SerializeObject(settings, Newtonsoft.Json.Formatting.Indented);
 
-            if(!Directory.Exists(FilePaths.ModCachePath))
+            if (!Directory.Exists(FilePaths.ModCachePath))
                 Directory.CreateDirectory(FilePaths.ModCachePath);
 
             File.WriteAllText(SettingsFilePath, json);
         }
 
         // TODO: Somehow generalize the updater and installer
-        private void CheckForUpdate(Window? window)
-        {
+        private void CheckForUpdate(Window? window) {
             var github = new GitHubClient(new ProductHeaderValue("C2GUILauncher"));
 
             var repoCall = github.Repository.Release.GetLatest(667470779); //C2GUILauncher repo id
             repoCall.Wait();
-            if (!repoCall.IsCompletedSuccessfully)
-            {
+            if (!repoCall.IsCompletedSuccessfully) {
                 MessageBox.Show("Could not connect to github to retrieve latest version information:\n" + repoCall?.Exception?.Message);
                 return;
             }
@@ -102,8 +89,7 @@ namespace C2GUILauncher.ViewModels
             //if latest is newer than current version
             if (latest[0] > version[0] ||
                 latest[1] > version[1] ||
-                latest[2] > version[2])
-            {
+                latest[2] > version[2]) {
                 string currentVersionString = string.Join(".", version.Select(i => i.ToString()));
                 MessageBoxResult dialogResult = MessageBox.Show(
                     $"A newer version was found.\n " +
@@ -111,14 +97,10 @@ namespace C2GUILauncher.ViewModels
                     $"Download the new update?",
                     "Update?", MessageBoxButton.YesNo);
 
-                if (dialogResult == MessageBoxResult.No)
-                {
+                if (dialogResult == MessageBoxResult.No) {
                     return;
-                }
-                else if (dialogResult == MessageBoxResult.Yes)
-                {
-                    try
-                    {
+                } else if (dialogResult == MessageBoxResult.Yes) {
+                    try {
                         var url = latestInfo.Assets.Where(
                                     a => a.Name.Contains("C2GUILauncher.exe") //find the launcher exe
                                 ).First().BrowserDownloadUrl; //get the download URL
@@ -127,8 +109,7 @@ namespace C2GUILauncher.ViewModels
                         string exeDir = System.IO.Path.GetDirectoryName(exePath) ?? "";
 
                         newDownloadTask.Task.Wait();
-                        if (!repoCall.IsCompletedSuccessfully)
-                        {
+                        if (!repoCall.IsCompletedSuccessfully) {
                             MessageBox.Show("Failed to download the new version:\n" + newDownloadTask?.Task.Exception?.Message);
                             return;
                         }
@@ -150,16 +131,12 @@ namespace C2GUILauncher.ViewModels
                         MessageBox.Show("The launcher will now close and start the new version. No further action must be taken.");
                         window?.Close(); //close the program
                         return;
-                    }
-                    catch (Exception ex)
-                    {
+                    } catch (Exception ex) {
                         MessageBox.Show(ex.Message + "\n" + ex.StackTrace);
                     }
 
                 }
-            }
-            else
-            {
+            } else {
                 MessageBox.Show("You are currently running the latest version.");
             }
         }

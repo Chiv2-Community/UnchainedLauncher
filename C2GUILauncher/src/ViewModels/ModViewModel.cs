@@ -34,11 +34,13 @@ namespace C2GUILauncher.ViewModels
                 {
                     var original = _enabledRelease;
                     _enabledRelease = value;
-                    if (value == null)
+
+                    if (original != null)
                     {
-                        ModManager.DisableModRelease(original!);
+                        ModManager.DisableModRelease(original);
                     }
-                    else
+
+                    if(value != null)
                     {
                         ModManager.EnableModRelease(value);
                     }

@@ -31,7 +31,10 @@ namespace C2GUILauncher.ViewModels {
                                 ? $"Failed to disable mod because another active mod depends on this mod. Disable this mod and all mods that depend on it?"
                                 : $"Failed to change mod version because another active mod depends on this mod version. Change this mod version anyway?";
 
+                            var dependentsNameAndVersionString = string.Join("\n", result.Dependents.Select(x => $"- {x.Manifest.Name} {x.Tag}"));
                             var shouldCascade = value == null;
+
+                            message += $"\n\nDependents:\n{dependentsNameAndVersionString}";
 
                             var messageBoxResult = MessageBox.Show(
                                 message,
@@ -41,7 +44,7 @@ namespace C2GUILauncher.ViewModels {
                             );
 
                             if (messageBoxResult == MessageBoxResult.Yes) {
-                                  ModManager.DisableModRelease(_enabledRelease, true, shouldCascade);
+                                ModManager.DisableModRelease(_enabledRelease, true, shouldCascade);
                             } else {
                                 return;
                             }

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 
 namespace C2GUILauncher.ViewModels {
@@ -16,24 +17,42 @@ namespace C2GUILauncher.ViewModels {
 
         public Mod Mod { get; }
 
-        // This property duplication (_enabledRelease and EnabledRelease) is normal in C# and is for maintaining public
-        // getters/setters independently of the underlying private value.  This is necessary in this case because of the 
-        // special interactions with the ModManager.
+
         private Release? _enabledRelease;
         public Release? EnabledRelease {
-            get { return _enabledRelease; }
+            get => _enabledRelease;
             set {
-                if (EnabledRelease != value) {
-                    var original = _enabledRelease;
-                    _enabledRelease = value;
+                if (_enabledRelease != value) {
+                    if (_enabledRelease != null) {
+                        var result = ModManager.DisableModRelease(_enabledRelease, false, false);
 
-                    if (original != null) {
-                        ModManager.DisableModRelease(original);
+                        if (!result.Successful) {
+                            var message = value == null
+                                ? $"Failed to disable mod because another active mod depends on this mod. Disable this mod and all mods that depend on it?"
+                                : $"Failed to change mod version because another active mod depends on this mod version. Change this mod version anyway?";
+
+                            var shouldCascade = value == null;
+
+                            var messageBoxResult = MessageBox.Show(
+                                message,
+                                "Error",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Error
+                            );
+
+                            if (messageBoxResult == MessageBoxResult.Yes) {
+                                  ModManager.DisableModRelease(_enabledRelease, true, shouldCascade);
+                            } else {
+                                return;
+                            }
+                        }
                     }
 
                     if (value != null) {
                         ModManager.EnableModRelease(value);
                     }
+
+                    _enabledRelease = value;
                 }
             }
         }

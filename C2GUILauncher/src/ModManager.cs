@@ -90,20 +90,47 @@ namespace C2GUILauncher.Mods {
             return EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl);
         }
 
-        public void DisableModRelease(Release release) {
+        public ModDisableResult DisableModRelease(Release release, bool force, bool cascade) {
             logger.Info("Disabling mod release: " + release.Manifest.Name + " @" + release.Tag);
-            EnabledModReleases.Remove(release);
 
-            var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
+            var dependents = GetDependents(release);
+            ModDisableResult result = ModDisableResult.Success;
 
-            var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
-            var filePath = orgPath + "\\" + urlParts.Last() + ".json";
+            if (dependents.Any()) {
+                if (!force) {
+                    result += ModDisableResult.Conflicts(dependents);
+                }
 
-            //EnabledModReleases
-            //    .Where(otherRelease => otherRelease.Manifest.Dependencies.Any(dep => dep.RepoUrl == release.Manifest.RepoUrl))
+                if (cascade) {
+                    foreach (var dependent in dependents) {
+                        result += DisableModRelease(dependent, force, cascade);
+                    }
+                }
+            }
 
-            File.Delete(filePath);
-            File.Delete(PakDir + "\\" + release.PakFileName);
+            if (result.Successful) {
+
+                EnabledModReleases.Remove(release);
+
+
+                var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
+
+                var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
+                var filePath = orgPath + "\\" + urlParts.Last() + ".json";
+
+
+                File.Delete(filePath);
+                File.Delete(PakDir + "\\" + release.PakFileName);
+            }
+
+            return result;
+        }
+
+        private List<Release> GetDependents(Release targetRelease) {
+              return EnabledModReleases
+                .Where(otherRelease => otherRelease.Manifest.RepoUrl != targetRelease.Manifest.RepoUrl) // Filter out the target release
+                .Where(otherRelease => otherRelease.Manifest.Dependencies.Any(dep => dep.RepoUrl == targetRelease.Manifest.RepoUrl)) // Get anything depending on the target release
+                .ToList();
         }
 
         public ModEnableResult EnableModRelease(Release release) {
@@ -237,6 +264,18 @@ namespace C2GUILauncher.Mods {
                 a.Successful && b.Successful,
                 a.Failures.Concat(b.Failures).ToList(),
                 a.Warnings.Concat(b.Warnings).ToList()
+            );
+        }
+    }
+
+    public record ModDisableResult(bool Successful, List<Release> Dependents) {
+        public static ModDisableResult Success => new ModDisableResult(true, new List<Release>());
+        public static ModDisableResult Conflict(Release conflict) => new ModDisableResult(false, new List<Release>() { conflict });
+        public static ModDisableResult Conflicts(List<Release> conflicts) => new ModDisableResult(false, conflicts);
+        public static ModDisableResult operator +(ModDisableResult a, ModDisableResult b) {
+            return new ModDisableResult(
+                a.Successful && b.Successful,
+                a.Dependents.Concat(b.Dependents).ToList()
             );
         }
     }

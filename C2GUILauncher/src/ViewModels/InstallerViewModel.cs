@@ -60,6 +60,7 @@ namespace C2GUILauncher.src.ViewModels {
             string launcherDir = Path.GetDirectoryName(dir) ?? "";
             string launcherOriginalPath = Path.Combine(launcherDir, "Chivalry2Launcher-ORIGINAL.exe");
             string launcherDefaultPath = Path.Combine(launcherDir, "Chivalry2Launcher.exe");
+
             if (File.Exists(launcherOriginalPath)) {
                 return launcherOriginalPath;
             } else if (File.Exists(launcherDefaultPath)) {
@@ -100,9 +101,5 @@ namespace C2GUILauncher.src.ViewModels {
             return originalLauncherPath;
 
         }
-
-
-
-
     }
 }

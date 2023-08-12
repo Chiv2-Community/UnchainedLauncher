@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.IO;
-using System.Threading.Tasks;
 
-namespace C2GUILauncher
-{
+namespace C2GUILauncher {
     //Code modified/adapted from https://codingvision.net/c-inject-a-dll-into-a-process-w-createremotethread
-    internal class Inject
-    {
+    internal class Inject {
         [DllImport("kernel32.dll")]
         public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
 
@@ -52,15 +49,13 @@ namespace C2GUILauncher
         const uint MEM_RELEASE = 0x00008000;
 
         const uint PAGE_READWRITE = 4;
-        public static bool InjectAll(Process p, IEnumerable<string> paths)
-        {
+        public static bool InjectAll(Process p, IEnumerable<string> paths) {
             //Paths to be injected MUST be absolute
             paths = paths.Select(p => Path.GetFullPath(p));
             IntPtr procHandle = OpenProcess(PROCESS_CREATE_THREAD |
                 PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION |
                 PROCESS_VM_WRITE | PROCESS_VM_READ, false, p.Id);
-            if (procHandle == IntPtr.Zero)
-            {
+            if (procHandle == IntPtr.Zero) {
                 return false;
             }
 
@@ -69,8 +64,7 @@ namespace C2GUILauncher
 
             // searching for the address of LoadLibraryA and storing it in a pointer
             IntPtr loadLibraryAddr = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
-            if (loadLibraryAddr == IntPtr.Zero)
-            {
+            if (loadLibraryAddr == IntPtr.Zero) {
                 return false;
             }
             // alocating some memory on the target process - enough to store the name of the dll
@@ -79,23 +73,20 @@ namespace C2GUILauncher
                 IntPtr.Zero,
                 allocSize,
                 MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-            if (allocMemAddress == IntPtr.Zero)
-            {
+            if (allocMemAddress == IntPtr.Zero) {
                 return false;
             }
 
-            foreach (string path in paths)
-            {
+            foreach (string path in paths) {
                 // writing the name of the dll there
-                UIntPtr bytesWritten;
                 var res = WriteProcessMemory(procHandle, allocMemAddress,
                     Encoding.Default.GetBytes(path + '\0'),
                     (uint)((path.Length + 1) * Marshal.SizeOf(typeof(char))),
-                    out bytesWritten);
+                    out UIntPtr bytesWritten);
                 if (!res) { return false; }
                 //inject
                 var thread = CreateRemoteThread(procHandle, IntPtr.Zero, 0, loadLibraryAddr, allocMemAddress, 0, IntPtr.Zero);
-                var signalEvent = WaitForSingleObject(thread, unchecked( (uint) -1));
+                var signalEvent = WaitForSingleObject(thread, unchecked((uint)-1));
             }
             VirtualFreeEx(procHandle, allocMemAddress, allocSize, MEM_RELEASE);
             return true;

@@ -14,7 +14,7 @@ using System.Windows.Input;
 namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class SettingsViewModel {
-        public static readonly int[] version = { 0, 4, 0 };
+        public static readonly int[] version = { 0, 4, 1 };
 
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_settings.json";
 
@@ -22,6 +22,10 @@ namespace C2GUILauncher.ViewModels {
         public bool EnablePluginLogging { get; set; }
         public bool EnablePluginAutomaticUpdates { get; set; }
         public string CLIArgs { get; set; }
+
+        public string CurrentVersion {
+            get => "v" + string.Join(".", version.Select(x => x.ToString()));
+        }
 
         public ICommand CheckForUpdateCommand { get; }
 

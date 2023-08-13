@@ -22,8 +22,8 @@ namespace C2GUILauncher {
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             else if (IsFileLocked(outputPath))
                 return new DownloadTask(
-                _httpClient.GetByteArrayAsync(url).ContinueWith(t => { }),
-                new DownloadTarget(url, outputPath)
+                Task.CompletedTask,
+                new DownloadTarget("", null)
             );
 
             return new DownloadTask(

@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using NLog;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -22,9 +23,12 @@ namespace C2GUILauncher.Mods {
         public const string ServerPluginPath = $"{FilePaths.PluginDir}\\C2ServerPlugin.dll";
         public const string BrowserPluginPath = $"{FilePaths.PluginDir}\\C2BrowserPlugin.dll";
 
-        public const string AssetLoaderPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2AssetLoaderPlugin/releases/latest/download/C2AssetLoaderPlugin.dll";
-        public const string ServerPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2ServerPlugin/releases/latest/download/C2ServerPlugin.dll";
-        public const string BrowserPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2BrowserPlugin/releases/latest/download/C2BrowserPlugin.dll";
+        //public const string AssetLoaderPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2AssetLoaderPlugin/releases/latest/download/C2AssetLoaderPlugin.dll";
+        //public const string ServerPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2ServerPlugin/releases/latest/download/C2ServerPlugin.dll";
+        //public const string BrowserPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2BrowserPlugin/releases/latest/download/C2BrowserPlugin.dll";
+
+        public const string UnchainedPluginPath = $"{FilePaths.PluginDir}\\UnchainedPlugin.dll";
+        public const string UnchainedPluginURL = $"{GithubBaseURL}/Chiv2-Community/UnchainedPlugin/releases/latest/download/UnchainedPlugin.dll";
 
         public const string PackageDBBaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/db/package_db";
         public const string PackageDBPackageListUrl = $"{PackageDBBaseUrl}/mod_list_index.txt";
@@ -242,10 +246,19 @@ namespace C2GUILauncher.Mods {
             // These are the core mods necessary for asset loading, server hosting, server browser usage, and the injector itself.
             // Please forgive the jank debug dll implementation. It'll be less jank after we aren't using hardcoded paths
             var coreMods = new List<DownloadTarget>() {
-                new DownloadTarget(CoreMods.AssetLoaderPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.AssetLoaderPluginPath),
-                new DownloadTarget(CoreMods.ServerPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.ServerPluginPath),
-                new DownloadTarget(CoreMods.BrowserPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.BrowserPluginPath)
+                new DownloadTarget(CoreMods.UnchainedPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.UnchainedPluginPath)
             };
+
+            var DeprecatedLibs = new List<String>()
+            {
+                CoreMods.AssetLoaderPluginPath,
+                CoreMods.ServerPluginPath,
+                CoreMods.BrowserPluginPath
+            };
+
+            foreach ( var depr in DeprecatedLibs)
+                if (File.Exists(depr))
+                    File.Delete(depr);
 
             return HttpHelpers.DownloadAllFiles(coreMods);
         }

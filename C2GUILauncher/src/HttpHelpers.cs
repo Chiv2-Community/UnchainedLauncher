@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 namespace C2GUILauncher {
     static class HttpHelpers {
         private static readonly HttpClient _httpClient = new HttpClient();
+        public const string UserLockSuffix = ".USER_LOCK";
 
         /// <summary>
         /// Downloads a file asynchronously.
@@ -19,6 +20,11 @@ namespace C2GUILauncher {
         public static DownloadTask DownloadFileAsync(string url, string outputPath) {
             if (!Directory.Exists(Path.GetDirectoryName(outputPath)))
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+            else if (IsFileLocked(outputPath))
+                return new DownloadTask(
+                _httpClient.GetByteArrayAsync(url).ContinueWith(t => { }),
+                new DownloadTarget(url, outputPath)
+            );
 
             return new DownloadTask(
                 _httpClient.GetByteArrayAsync(url).ContinueWith(t => File.WriteAllBytes(outputPath, t.Result)),
@@ -53,6 +59,12 @@ namespace C2GUILauncher {
                     ? throw new ArgumentNullException("OutputPath")
                     : DownloadFileAsync(x.Url, x.OutputPath!)
             );
+        }
+
+        public static bool IsFileLocked(string filePath)
+        {
+            return File.Exists(Path.Combine(Path.GetDirectoryName(filePath)!, UserLockSuffix)) ||
+                   File.Exists(filePath + UserLockSuffix);
         }
     }
 

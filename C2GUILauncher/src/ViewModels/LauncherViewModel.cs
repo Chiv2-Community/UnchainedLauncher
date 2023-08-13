@@ -167,6 +167,8 @@ namespace C2GUILauncher.ViewModels {
                 int TBLloc = cliArgs.IndexOf("TBL");
                 cliArgs.Insert(TBLloc, RCONMap);
                 cliArgs.Add("-nullrhi"); //disable rendering
+                //this isn't used, but will be needed later
+                cliArgs.Add("-rcon 9001"); //let the serverplugin know that we want RCON running on the given port
                 cliArgs.Add("-RenderOffScreen"); //*really* disable rendering
                 cliArgs.Add("-unattended"); //let it know no one's around to help
                 cliArgs.Add("-nosound"); //disable sound

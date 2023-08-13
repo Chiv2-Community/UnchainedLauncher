@@ -10,6 +10,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Diagnostics;
+using System.Windows.Controls;
+using System.Runtime.InteropServices;
 
 namespace C2GUILauncher.ViewModels {
 
@@ -17,6 +20,8 @@ namespace C2GUILauncher.ViewModels {
     public class LauncherViewModel {
         public ICommand LaunchVanillaCommand { get; }
         public ICommand LaunchModdedCommand { get; }
+        public ICommand LaunchServerCommand { get; }
+        public ICommand LaunchServerHeadlessCommand { get; }
 
         private SettingsViewModel Settings { get; }
 
@@ -35,7 +40,9 @@ namespace C2GUILauncher.ViewModels {
             this.ModManager = modManager;
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
-            this.LaunchModdedCommand = new RelayCommand(LaunchModded);
+            this.LaunchModdedCommand = new RelayCommand(() => LaunchModded(null)); //ugly wrapper lambda
+            this.LaunchServerCommand = new RelayCommand(LaunchServer);
+            this.LaunchServerHeadlessCommand = new RelayCommand(LaunchServerHeadless);
         }
 
         private void LaunchVanilla() {
@@ -50,7 +57,17 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        private void LaunchModded() {
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool GenerateConsoleCtrlEvent(ConsoleCtrlEvent sigevent, int dwProcessGroupId);
+        public enum ConsoleCtrlEvent {
+            CTRL_C = 0,
+            CTRL_BREAK = 1,
+            CTRL_CLOSE = 2,
+            CTRL_LOGOFF = 5,
+            CTRL_SHUTDOWN = 6
+        }
+
+        private void LaunchModded(Process? serverRegister = null) {
             // For a modded installation we need to download the mod files and then launch via the modded launcher.
             // For steam installations, args do not get passed through.
 
@@ -75,7 +92,23 @@ namespace C2GUILauncher.ViewModels {
                     Chivalry2Launchers.ModdedLauncher.Dlls = dlls;
                     var process = Chivalry2Launchers.ModdedLauncher.Launch(args);
 
+                    serverRegister?.Start();
                     await process.WaitForExitAsync();
+                    if(serverRegister != null) {
+                        /*Process killp = new Process();
+                        killp.StartInfo.FileName = "powershell.exe";
+                        killp.StartInfo.CreateNoWindow = true;
+                        killp.StartInfo.Arguments = $"-Command \"Stop-Process -Id {serverRegister.Id}\"";
+                        MessageBox.Show($"{serverRegister.Id}");
+                        killp.Start();
+                        killp.WaitForExit();*/
+
+                        //serverRegister.StandardInput.Close();
+                        //none of these work
+                        //TODO: Figure out some better way to close the serverRegister when the game closes.
+                        //for some reason this is unnecessarily complicated on windows. Desperately need a sigint...
+                        //GenerateConsoleCtrlEvent(ConsoleCtrlEvent.CTRL_C, serverRegister.SessionId);
+                    }
                     Environment.Exit(0);
                 } catch (Exception ex) {
                     MessageBox.Show(ex.ToString());
@@ -84,6 +117,66 @@ namespace C2GUILauncher.ViewModels {
 
             launchThread.Start();
             CanClick = false;
+        }
+
+        private Process? makeRegistrationProcess() {
+            if (!File.Exists("RegisterUnchainedServer.exe")) {
+                DownloadTask serverRegisterDownload = HttpHelpers.DownloadFileAsync(
+                "https://github.com/Chiv2-Community/C2ServerAPI/releases/latest/download/RegisterUnchainedServer.exe",
+                "./RegisterUnchainedServer.exe"); //TODO: this breaks if `./` is not used as the directory. This is HttpHelpers' fault
+
+                serverRegisterDownload.Task.Wait();
+                if (!serverRegisterDownload.Task.IsCompletedSuccessfully) {
+                    MessageBox.Show("Failed to download the Unchained server registration program:\n" +
+                        serverRegisterDownload?.Task.Exception?.Message);
+                    return null;
+                }
+            }
+
+            Process serverRegister = new Process();
+            serverRegister.StartInfo.FileName = "RegisterUnchainedServer.exe";
+
+            return serverRegister;
+        }
+
+        private void LaunchServer() {
+            try {
+                Process? serverRegister = makeRegistrationProcess();
+                if (serverRegister == null) {
+                    return;
+                }
+                LaunchModded(serverRegister);
+                
+            } catch (Exception ex) {
+                MessageBox.Show(ex.ToString());
+            }
+            
+        }
+
+        private void LaunchServerHeadless() {
+            Process? serverRegister = makeRegistrationProcess();
+            if (serverRegister == null) {
+                return;
+            }
+
+            try {
+                //modify command line args and enable required mods for RCON connectivity
+                string RCONMap = "agmods?map=frontend?rcon";
+                CLIArgsModified = true;
+                List<string> cliArgs = this.Settings.CLIArgs.Split(" ").ToList();
+                int TBLloc = cliArgs.IndexOf("TBL");
+                cliArgs.Insert(TBLloc, RCONMap);
+                cliArgs.Add("-nullrhi"); //disable rendering
+                cliArgs.Add("-RenderOffScreen"); //*really* disable rendering
+                cliArgs.Add("-unattended"); //let it know no one's around to help
+                cliArgs.Add("-nosound"); //disable sound
+
+                this.Settings.CLIArgs = string.Join(" ", cliArgs);
+            } catch(Exception ex) {
+                MessageBox.Show(ex.ToString());
+            }
+
+            LaunchModded(serverRegister);
         }
 
         private InstallationType GetInstallationType() {

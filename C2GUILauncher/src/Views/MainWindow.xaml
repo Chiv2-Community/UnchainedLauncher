@@ -139,8 +139,8 @@
                 <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Row="3" Grid.ColumnSpan ="2" Content="Enable Automatic Plugin Updates and Downloads" Margin="5,10,5,0"/>
                 <TextBlock Text="CLI Args:" Grid.Row="4" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>
                 <TextBox Text="{Binding CLIArgs}" Grid.Row="5" Grid.ColumnSpan ="2" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
-                <Button Content="Check for updates" Grid.Row="6" Grid.Column="0" Margin="5" Command="{Binding CheckForUpdateCommand}" />
-                <TextBlock Text="{Binding CurrentVersion}" Grid.Row="6" Grid.ColumnSpan ="2" Grid.Column="1" HorizontalAlignment="Center" Height="NaN" Margin="0,0,0,0" VerticalAlignment="Center" Width="NaN" />
+                <Button Content="Check for updates" Grid.Row="6" Grid.Column="0" Command="{Binding CheckForUpdateCommand}" />
+                <TextBlock Text="{Binding CurrentVersion}" Grid.Row="6" Grid.Column="1" HorizontalAlignment="Center" Height="NaN" Margin="0,0,0,0" VerticalAlignment="Center" Width="NaN" />
             </Grid>
         </TabItem>
     </TabControl>

@@ -33,6 +33,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
                 <Grid.ColumnDefinitions>
@@ -41,6 +42,7 @@
 
                 <Button x:Name="LaunchVanillaButton" Content="Launch Vanilla" Grid.Row="0" Command="{Binding LaunchVanillaCommand}" />
                 <Button x:Name="LaunchModdedButton" Content="Launch With Mods" Grid.Row="1" Command="{Binding LaunchModdedCommand}" />
+                <Button x:Name="LaunchServerButton" Content="Launch Headless Server" Grid.Row="2" Command="{Binding LaunchServerCommand}" />
             </Grid>
         </TabItem>
         <TabItem x:Name="ModManagerTab"  DataContext="{Binding ModManagerViewModel}"  Header="Mod Manager">

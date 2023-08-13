@@ -83,8 +83,6 @@ namespace C2GUILauncher {
                     this.SettingsViewModel.InstallationType = InstallationType.EpicGamesStore;
                 else if (Path.Equals(CurDir, SteamDir))
                     this.SettingsViewModel.InstallationType = InstallationType.Steam;
-
-                this.SettingsViewModel.CLIArgs = CurDir;
             }
             this.ModManagerViewModel = new ModListViewModel(ModManager);
             this.LauncherViewModel = new LauncherViewModel(SettingsViewModel, ModManager);

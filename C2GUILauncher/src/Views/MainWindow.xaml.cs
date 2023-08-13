@@ -1,8 +1,10 @@
 ﻿using C2GUILauncher.Mods;
+using C2GUILauncher.src;
 using C2GUILauncher.src.ViewModels;
 using C2GUILauncher.ViewModels;
 using PropertyChanged;
 using System;
+using System.IO;
 using System.Windows;
 
 namespace C2GUILauncher {
@@ -21,10 +23,19 @@ namespace C2GUILauncher {
 
         public MainWindow() {
             InitializeComponent();
+            var EGSDir = InstallHelpers.FindEGSDir();
+            var SteamDir = InstallHelpers.FindSteamDir();
 
             var needsClose = InstallerViewModel.AttemptInstall();
             if (needsClose)
                 this.Close();
+            else
+            {
+                MessageBoxResult dialogResult = MessageBox.Show(
+                   $"EGS:\n{EGSDir} \n\n" +
+                   $"Steam:\n{SteamDir}\n\n"
+                   , "Detected dirs", MessageBoxButton.OK);
+            }
 
             this.ModManager = ModManager.ForRegistry(
                 "Chiv2-Community",

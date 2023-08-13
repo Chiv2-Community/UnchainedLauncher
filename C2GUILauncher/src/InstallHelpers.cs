@@ -30,8 +30,7 @@ namespace C2GUILauncher.src
                 string pattern = "\"(\\d+)\"[\\s\\t]*\\{[\\s\\S]*?\"path\"[\\s\\t]*\"(.*?)\"";
                 MatchCollection matches = Regex.Matches(vdfContent, pattern);
 
-                for (int i = 0; i < matches.Count; ++i)
-                {
+                for (int i = 0; i < matches.Count; ++i) {
                     Match match = matches[i];
 
                     string CandidateDir = match.Groups[2].Value;
@@ -66,8 +65,7 @@ namespace C2GUILauncher.src
             string EGSDataFile =  Path.Combine(ProgramDataDir, @"Epic\UnrealEngineLauncher\LauncherInstalled.dat") ;
             if (File.Exists(EGSDataFile)) {
                 var savedSettings = JsonConvert.DeserializeObject<EGSInstallList>(File.ReadAllText(EGSDataFile));
-                if (savedSettings != null && savedSettings.InstallationList.Count > 0)
-                {
+                if (savedSettings != null && savedSettings.InstallationList.Count > 0) {
                     var chivEntry = savedSettings.InstallationList.Where(x => x.AppName == Chiv2EGSAppName);
                     if (chivEntry.Any())
                         return chivEntry.First().InstallLocation;

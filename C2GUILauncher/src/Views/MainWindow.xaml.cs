@@ -4,6 +4,7 @@ using C2GUILauncher.src.ViewModels;
 using C2GUILauncher.ViewModels;
 using PropertyChanged;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 
@@ -20,22 +21,48 @@ namespace C2GUILauncher {
 
         private readonly ModManager ModManager;
 
+        public int ShowInstallRequestFor(string TargetDir, string InstallType)
+        {
+            if (TargetDir.Length > 0) {
+                MessageBoxResult res = MessageBox.Show(
+                   $"Detected install location ({InstallType}):\n\n" +
+                   $"{TargetDir} \n\n" +
+                   $"Install the launcher for {InstallType} at this location?\n\n"
+                   , $"Install Launcher ({InstallType})", MessageBoxButton.YesNoCancel);
+
+                if (res == MessageBoxResult.Yes) {
+                    InstallerViewModel.AttemptInstall(TargetDir, InstallType);
+                    return 1;
+                }
+                else if (res == MessageBoxResult.No) {
+                    return 0;
+                }
+            }
+            return -1;
+        }
 
         public MainWindow() {
             InitializeComponent();
             var EGSDir = InstallHelpers.FindEGSDir();
             var SteamDir = InstallHelpers.FindSteamDir();
+            bool needsClose = false;
+            int res = 0;
+            string exeName = Process.GetCurrentProcess().ProcessName;
 
-            var needsClose = InstallerViewModel.AttemptInstall();
+            if (exeName != "Chivalry2Launcher")
+            {
+                int EGSRes = ShowInstallRequestFor(EGSDir, "Epic Games");
+                int SteamRes = -1;
+                if (EGSRes >= 0)
+                    SteamRes = ShowInstallRequestFor(SteamDir, "Steam");
+                needsClose = EGSRes > 0 || SteamRes > 0;
+            }
+
+            if (!needsClose)
+                needsClose = InstallerViewModel.AttemptInstall("","");
+
             if (needsClose)
                 this.Close();
-            else
-            {
-                MessageBoxResult dialogResult = MessageBox.Show(
-                   $"EGS:\n{EGSDir} \n\n" +
-                   $"Steam:\n{SteamDir}\n\n"
-                   , "Detected dirs", MessageBoxButton.OK);
-            }
 
             this.ModManager = ModManager.ForRegistry(
                 "Chiv2-Community",

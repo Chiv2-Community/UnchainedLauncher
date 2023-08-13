@@ -1,4 +1,5 @@
-﻿using C2GUILauncher.Mods;
+﻿using C2GUILauncher.JsonModels;
+using C2GUILauncher.Mods;
 using C2GUILauncher.src;
 using C2GUILauncher.src.ViewModels;
 using C2GUILauncher.ViewModels;
@@ -21,8 +22,9 @@ namespace C2GUILauncher {
 
         private readonly ModManager ModManager;
 
-        public int ShowInstallRequestFor(string TargetDir, string InstallType)
+        public int ShowInstallRequestFor(string TargetDir, InstallationType InstallType)
         {
+            var InstallTypeStr = InstallType == InstallationType.Steam ? "Steam" : "Epic Games";
             if (TargetDir.Length > 0) {
                 MessageBoxResult res = MessageBox.Show(
                    $"Detected install location ({InstallType}):\n\n" +
@@ -48,21 +50,25 @@ namespace C2GUILauncher {
             bool needsClose = false;
             int res = 0;
             string exeName = Process.GetCurrentProcess().ProcessName;
+            string CurDir = System.IO.Directory.GetCurrentDirectory();
 
-            if (exeName != "Chivalry2Launcher")
+            if (exeName != "Chivalry2Launcher" && !Path.Equals(CurDir, SteamDir))
             {
-                int EGSRes = ShowInstallRequestFor(EGSDir, "Epic Games");
-                int SteamRes = -1;
-                if (EGSRes >= 0)
-                    SteamRes = ShowInstallRequestFor(SteamDir, "Steam");
+                int SteamRes = ShowInstallRequestFor(SteamDir, InstallationType.Steam);
+                int EGSRes = -1;
+                if (SteamRes >= 0)
+                    EGSRes = ShowInstallRequestFor(EGSDir, InstallationType.EpicGamesStore);
                 needsClose = EGSRes > 0 || SteamRes > 0;
+
+                if (!needsClose)
+                    needsClose = InstallerViewModel.AttemptInstall("", InstallationType.NotSet);
             }
 
-            if (!needsClose)
-                needsClose = InstallerViewModel.AttemptInstall("","");
-
             if (needsClose)
+            {
+                MessageBox.Show($"The launcher will now close to perform the operation. It should restart itself in 1 second.");
                 this.Close();
+            }
 
             this.ModManager = ModManager.ForRegistry(
                 "Chiv2-Community",
@@ -71,6 +77,15 @@ namespace C2GUILauncher {
             );
 
             this.SettingsViewModel = SettingsViewModel.LoadSettings();
+            if (this.SettingsViewModel.InstallationType == InstallationType.NotSet)
+            {
+                if (Path.Equals(CurDir, EGSDir))
+                    this.SettingsViewModel.InstallationType = InstallationType.EpicGamesStore;
+                else if (Path.Equals(CurDir, SteamDir))
+                    this.SettingsViewModel.InstallationType = InstallationType.Steam;
+
+                this.SettingsViewModel.CLIArgs = CurDir;
+            }
             this.ModManagerViewModel = new ModListViewModel(ModManager);
             this.LauncherViewModel = new LauncherViewModel(SettingsViewModel, ModManager);
 
@@ -84,7 +99,6 @@ namespace C2GUILauncher {
         private void MainWindow_Closed(object? sender, EventArgs e) {
             this.SettingsViewModel.SaveSettings();
         }
-
     }
 
 }

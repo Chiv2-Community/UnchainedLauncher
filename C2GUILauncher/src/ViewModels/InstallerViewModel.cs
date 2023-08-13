@@ -16,8 +16,8 @@ namespace C2GUILauncher.src.ViewModels {
     // TODO: Somehow generalize the updater and installer
     class InstallerViewModel {
 
-        public static bool AttemptInstall(string InstallDir, string InstallType) {
-            bool Specific = InstallType.Length > 0;
+        public static bool AttemptInstall(string InstallDir, InstallationType InstallType) {
+            bool Specific = InstallType != InstallationType.NotSet;
             string exeName = Process.GetCurrentProcess().ProcessName;
             if (exeName != "Chivalry2Launcher") {
                 MessageBoxResult dialogResult = MessageBox.Show(
@@ -26,9 +26,10 @@ namespace C2GUILauncher.src.ViewModels {
                    $"default launcher will remain as 'Chivalry2Launcher-ORIGINAL.exe'\n\n" +
                    $"This will make the launcher start automatically when you launch via Epic Games or" +
                    $"Steam.\n\nDoing this is required if you are playing on Epic!",
-                   "Replace launcher?", MessageBoxButton.YesNo);
+                   "Replace launcher?", MessageBoxButton.YesNoCancel);
 
-                if (dialogResult == MessageBoxResult.Yes) {
+                if (dialogResult == MessageBoxResult.Yes ||
+                        dialogResult == MessageBoxResult.No){
                     Process pwsh = new Process();
                     pwsh.StartInfo.FileName = "powershell.exe";
                     string commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
@@ -44,20 +45,28 @@ namespace C2GUILauncher.src.ViewModels {
                         originalLauncherDir = ".";
                     }
                     //MessageBox.Show(originalLauncherPath);
-
-                    string powershellCommand =
-                        $"Wait-Process -Id {Environment.ProcessId}; " +
-                        $"Start-Sleep -Milliseconds 500; " +
-                        $"Move-Item -Force \\\"{originalLauncherPath}\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher-ORIGINAL.exe\\\"; " +
-                        $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"; " +
-                        $"Start-Sleep -Milliseconds 500; " +
-                        $"Start-Process \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\" {commandLinePass}";
-
+                    string powershellCommand = "";
+                    if (dialogResult == MessageBoxResult.Yes) {
+                        powershellCommand =
+                            $"Wait-Process -Id {Environment.ProcessId}; " +
+                            $"Start-Sleep -Milliseconds 500; " +
+                            $"Move-Item -Force \\\"{originalLauncherPath}\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher-ORIGINAL.exe\\\"; " +
+                            $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"; " +
+                            $"Start-Sleep -Milliseconds 500; " +
+                            $"Start-Process \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\" -WorkingDirectory \\\"{originalLauncherDir}\\\" {commandLinePass}";
+                    }
+                    else {
+                        powershellCommand =
+                            $"Wait-Process -Id {Environment.ProcessId}; " +
+                            $"Start-Sleep -Milliseconds 500; " +
+                            $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\{exeName}.exe\\\"; " +
+                            $"Start-Sleep -Milliseconds 500; " +
+                            $"Start-Process \\\"{originalLauncherDir}\\{exeName}.exe\\\" -WorkingDirectory \\\"{originalLauncherDir}\\\" {commandLinePass}";
+                    }
                     //MessageBox.Show(powershellCommand);
                     pwsh.StartInfo.Arguments = $"-Command \"{powershellCommand}\"";
                     pwsh.StartInfo.CreateNoWindow = true;
                     pwsh.Start();
-                    MessageBox.Show($"The launcher will now close to perform the operation. It should restart itself in 1 second.");
                     return true;
                 }
             }

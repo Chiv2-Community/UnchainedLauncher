@@ -15,7 +15,6 @@
     <RepositoryType>git</RepositoryType>
     <StartupObject>C2GUILauncher.App</StartupObject>
     <Title>Chivalry 2 Unofficial Server Browser</Title>
-    <PackageIcon>chiv2-unchained-logo.png</PackageIcon>
     <PackageProjectUrl>https://github.com/Chiv2-Community/C2GUILauncher</PackageProjectUrl>
     <ApplicationIcon>assets\chiv2-unchained-logo.ico</ApplicationIcon>
   </PropertyGroup>

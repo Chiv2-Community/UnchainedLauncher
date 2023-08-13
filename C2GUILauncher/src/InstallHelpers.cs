@@ -14,12 +14,13 @@ namespace C2GUILauncher.src
 {
     internal class InstallHelpers
     {
+        private static string Chiv2SteamAppID = "1824220";
+        private static string Chiv2EGSAppName = "Peppermint";
+
         public static string FindSteamDir()
         {
             string SteamPath = (string)Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Valve\Steam", "SteamPath", null)!;
             string SteamLibFile = Path.Combine(SteamPath, "steamapps", "libraryfolders.vdf");
-            string SteamDir = "asdf";
-            var chivFoundPath = "";
 
 
             if (File.Exists(SteamLibFile)) {
@@ -52,18 +53,8 @@ namespace C2GUILauncher.src
                     string[] lines = ss_sub2.Split(new[] { '\"' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
                     for (int j = 0; j < lines.Length; j += 2)
-                    {
-                        try
-                        {
-                            var id = int.Parse(lines[j]);
-                            if (id == 1824220)
-                            {
-                                SteamDir = CandidateDir;
-                                return Path.Combine(CandidateDir, @"steamapps\common\Chivalry 2");
-                            }
-                        }
-                        catch { }
-                    }
+                        if (lines[j].Equals(Chiv2SteamAppID))
+                            return Path.Combine(CandidateDir, @"steamapps\common\Chivalry 2");
                 }
             }
             return "";
@@ -77,7 +68,7 @@ namespace C2GUILauncher.src
                 var savedSettings = JsonConvert.DeserializeObject<EGSInstallList>(File.ReadAllText(EGSDataFile));
                 if (savedSettings != null && savedSettings.InstallationList.Count > 0)
                 {
-                    var chivEntry = savedSettings.InstallationList.Where(x => x.AppName == "Peppermint");
+                    var chivEntry = savedSettings.InstallationList.Where(x => x.AppName == Chiv2EGSAppName);
                     if (chivEntry.Any())
                         return chivEntry.First().InstallLocation;
                 }

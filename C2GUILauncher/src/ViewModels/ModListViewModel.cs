@@ -14,13 +14,34 @@ using System.Windows.Input;
 namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class ModListViewModel {
+        /// <summary>
+        /// The mod manager is used to maintain the list of mods and their releases.
+        /// </summary>
         private readonly ModManager ModManager;
+
+        /// <summary>
+        /// The unfiltered mod view is the list of mods that we get from the mod manager, before any filters are applied.
+        /// </summary>
         private ObservableCollection<ModViewModel> UnfilteredModView { get; }
+
+        /// <summary>
+        /// The mod filters are the list of filters that we apply to the unfiltered mod view.
+        /// </summary>
         private ObservableCollection<ModFilter> ModFilters { get; }
 
+        /// <summary>
+        /// The refresh mod list command is used to invoke the mod manager to refresh the list of mods.
+        /// </summary>
         public ICommand RefreshModListCommand { get; }
 
+        /// <summary>
+        /// The selected mod is the mod that is currently selected in the mod list.
+        /// </summary>
         public ModViewModel? SelectedMod { get; set; }
+
+        /// <summary>
+        /// Display mods is the list of mods that we display in the mod list, after applying the filters.
+        /// </summary>
         public ObservableCollection<ModViewModel> DisplayMods { get; }
 
 
@@ -42,6 +63,10 @@ namespace C2GUILauncher.ViewModels {
             this.RefreshModListCommand = new AsyncRelayCommand(RefreshModListAsync);
         }
 
+        /// <summary>
+        /// The refresh mod list command is used to invoke the mod manager to refresh the list of mods.
+        /// </summary>
+        /// <returns>A Task which completes when the update is complete</returns>
         private async Task RefreshModListAsync() {
             try {
                 await ModManager.UpdateModsList();
@@ -50,6 +75,12 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
+        /// <summary>
+        /// Triggered when the unfiltered mod view or mod filters change. 
+        /// This will keep the display mods list up to date.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void UnfilteredModViewOrModFilters_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
             this.DisplayMods.Clear();
             this.UnfilteredModView
@@ -59,6 +90,13 @@ namespace C2GUILauncher.ViewModels {
 
         }
 
+        /// <summary>
+        /// Triggered when the mod manager's mod list changes.
+        /// This will keep the unfiltered mod view up to date by adding or removing mods as needed.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        /// <exception cref="Exception"></exception>
         private void ModManager_ModList_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
             switch (e.Action) {
                 case NotifyCollectionChangedAction.Add:

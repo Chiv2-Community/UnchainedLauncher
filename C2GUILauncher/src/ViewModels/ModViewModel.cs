@@ -13,12 +13,30 @@ namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class ModViewModel {
         // A ModViewModel needs access to the mod manager so that it can enable/disable releases as they get set on the view.
+
+        /// <summary>
+        /// The mod manager is used to enable/disable mods/releases as they get set on the view.
+        /// </summary>
         private ModManager ModManager { get; }
 
+        /// <summary>
+        /// The mod that this view model represents.
+        /// </summary>
         public Mod Mod { get; }
 
-
+        /// <summary>
+        /// The underlying enabled release for this mod, or null if no release is enabled.
+        /// </summary>
         private Release? _enabledRelease;
+
+        /// <summary>
+        /// The public accessor and setter for the enabled release for this mod, or null if no release is enabled.
+        /// 
+        /// The get accessor will return null if the enabled release is not in the list of releases for this mod.
+        /// 
+        /// The setter will enable the given release in the mod manager if it is not already enabled, as well as any dependencies of the given release.
+        /// When disabling or changing the enabled release, the setter will also disable any releases that depend on the given release.
+        /// </summary>
         public Release? EnabledRelease {
             get => _enabledRelease;
             set {
@@ -60,9 +78,17 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
+        /// <summary>
+        /// If the download for this mod failed, this will be the exception that caused the download to fail.
+        /// This is tracked by subscribing to the FailedDownloads collection on the mod manager.
+        /// </summary>
         public Exception? DownloadError { get; set; }
         public bool DownloadFailed { get { return DownloadError != null; } }
 
+        /// <summary>
+        /// This is the description that will be displayed in the mod list.
+        /// It includes any dependencies that the mod has, as well as any download errors.
+        /// </summary>
         public string Description {
             get {
                 var message = EnabledRelease?.Manifest.Description ?? Mod.LatestManifest.Description;
@@ -87,6 +113,10 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
+        /// <summary>
+        /// This is the text that will be displayed on the button for this mod.
+        /// If the download failed, it will say "Retry Download", and the button will retry the download
+        /// </summary>
         public string ButtonText {
             get {
                 if (DownloadFailed)
@@ -105,6 +135,9 @@ namespace C2GUILauncher.ViewModels {
             get { return EnabledRelease != null; }
         }
 
+        /// <summary>
+        /// This is the text that will be displayed in the version column for this mod.
+        /// </summary>
         public string? EnabledVersion {
             get {
                 if (DownloadFailed)
@@ -121,6 +154,9 @@ namespace C2GUILauncher.ViewModels {
             get { return Mod.Releases.Select(x => x.Tag).ToList(); }
         }
 
+        /// <summary>
+        /// The ButtonCommand is bound to the button on the view, and will either disable the mod if it is enabled, or retry the download if it failed.
+        /// </summary>
         public ICommand ButtonCommand { get; }
 
         public ModViewModel(Mod mod, Release? enabledRelease, ModManager modManager) {
@@ -136,6 +172,9 @@ namespace C2GUILauncher.ViewModels {
             ButtonCommand = new RelayCommand(DisableOrRetry);
         }
 
+        /// <summary>
+        /// Disable the mod if it is enabled, or retry the download if it failed.
+        /// </summary>
         private void DisableOrRetry() {
             if (DownloadFailed && EnabledRelease != null) {
                 ModManager.EnableModRelease(EnabledRelease);
@@ -144,6 +183,11 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
+        /// <summary>
+        /// Track changes to the failed downloads, and update the download error if this mod is in the failed downloads.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void FailedDownloads_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
             // Find this mod if it was added to the failed downloads
             var thisDownloadFailed =
@@ -164,6 +208,11 @@ namespace C2GUILauncher.ViewModels {
                 DownloadError = null;
         }
 
+        /// <summary>
+        /// Track changes to the enabled mod releases, and update the enabled release if it is changed.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void EnabledModReleases_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
             if (IsEnabled) {
                 var isRemoved = e.OldItems?.Cast<Release>()

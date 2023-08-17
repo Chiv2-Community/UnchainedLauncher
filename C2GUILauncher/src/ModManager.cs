@@ -31,16 +31,42 @@ namespace C2GUILauncher.Mods {
     }
 
     public class ModManager {
+        // Doesn't work or something.
         private static readonly Logger logger = LogManager.GetCurrentClassLogger();
 
+        /// <summary>
+        /// The registry org is the github organization that the mod registry is hosted under.
+        /// </summary>
         public string RegistryOrg { get; }
+
+        /// <summary>
+        /// The registry repo name is the github repository that the mod registry is hosted under.
+        /// </summary>
         public string RegistryRepoName { get; }
+
+        /// <summary>
+        /// The list of mods found in the registry
+        /// </summary>
         public ObservableCollection<Mod> Mods { get; }
+
+        /// <summary>
+        /// The list of enabled mods loaded from the enabled mods cache dir, updated when the user enables or disables mods.
+        /// </summary>
         public ObservableCollection<Release> EnabledModReleases { get; }
 
+        /// <summary>
+        /// The list of pending downloads, updated when the user enables mods or changes the version of a mod.
+        /// </summary>
         public ObservableCollection<ModReleaseDownloadTask> PendingDownloads { get; }
+
+        /// <summary>
+        /// The list of failed downloads, updated when a download fails.
+        /// </summary>
         public ObservableCollection<ModReleaseDownloadTask> FailedDownloads { get; }
 
+        /// <summary>
+        /// The path to the directory where the pak files are stored.
+        /// </summary>
         private string PakDir { get; }
 
         public ModManager(
@@ -71,9 +97,8 @@ namespace C2GUILauncher.Mods {
                 Directory.GetDirectories(CoreMods.EnabledModsCacheDir)
                     .SelectMany(x => Directory.GetFiles(x))
                     .Select(x => JsonConvert.DeserializeObject<Release>(File.ReadAllText(x)))
-                    .Where(x => x != null);
-
-            enabledModReleases ??= new List<Release>();
+                    .Where(x => x != null)
+                    .Select(x => x!);
 
             return new ModManager(
                 registryOrg,
@@ -86,10 +111,22 @@ namespace C2GUILauncher.Mods {
             );
         }
 
+        /// <summary>
+        /// Searches the enabled releases to see if this mod has any releases enabled.
+        /// </summary>
+        /// <param name="mod">The mod to find an associated enabled release for</param>
+        /// <returns></returns>
         public Release? GetCurrentlyEnabledReleaseForMod(Mod mod) {
             return EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl);
         }
 
+        /// <summary>
+        /// Disables a mod release, optionally forcing it to disable even if it has dependents, and optionally cascading the disable to its dependents.
+        /// </summary>
+        /// <param name="release">The release to disable</param>
+        /// <param name="force">Whether or not to disable despite enabled dependents</param>
+        /// <param name="cascade">Whether or not to disable the dependents</param>
+        /// <returns></returns>
         public ModDisableResult DisableModRelease(Release release, bool force, bool cascade) {
             logger.Info("Disabling mod release: " + release.Manifest.Name + " @" + release.Tag);
 
@@ -98,10 +135,12 @@ namespace C2GUILauncher.Mods {
 
             if (dependents.Any()) {
                 if (!force) {
+                    // if we're not forcing, we need to make the result fail and add the conflicts
                     result += ModDisableResult.Conflicts(dependents);
                 }
 
                 if (cascade) {
+                    // if we're cascading, we need to disable all the dependents
                     foreach (var dependent in dependents) {
                         result += DisableModRelease(dependent, force, cascade);
                     }
@@ -126,6 +165,11 @@ namespace C2GUILauncher.Mods {
             return result;
         }
 
+        /// <summary>
+        /// Gets a list of releases that depend on the target release.
+        /// </summary>
+        /// <param name="targetRelease"></param>
+        /// <returns></returns>
         private List<Release> GetDependents(Release targetRelease) {
               return EnabledModReleases
                 .Where(otherRelease => otherRelease.Manifest.RepoUrl != targetRelease.Manifest.RepoUrl) // Filter out the target release
@@ -133,19 +177,28 @@ namespace C2GUILauncher.Mods {
                 .ToList();
         }
 
+
+        /// <summary>
+        /// Enables a mod release and downloads any dependencies that are not already enabled.
+        /// </summary>
+        /// <param name="release">the release to enable</param>
+        /// <returns></returns>
         public ModEnableResult EnableModRelease(Release release) {
             logger.Debug("Enabling mod release: " + release.Manifest.Name + " @" + release.Tag);
             var associatedMod = this.Mods.First(Mods => Mods.Releases.Contains(release));
 
+            // If there is no mod associated with this release, return a failure
             if (associatedMod == null)
                 return ModEnableResult.Fail("Selected release not found in mod list: " + release.Manifest.Name + " @" + release.Tag);
 
             var result = ModEnableResult.Success;
 
+            // Check if this mod is already enabled
             var enabledModRelease = GetCurrentlyEnabledReleaseForMod(associatedMod);
 
+            // If it is, check if its the same version
             if (enabledModRelease != null) {
-                // If its already enabled and the download was successful, just return success
+                // If its already enabled with the same version, and the download was successful, just return success
                 if (enabledModRelease == release && !FailedDownloads.Any(x => x.Release == release))
                     return ModEnableResult.Success;
 
@@ -153,24 +206,33 @@ namespace C2GUILauncher.Mods {
             }
 
             foreach (var dependency in release.Manifest.Dependencies) {
+                // Get the release for the given dependency
                 var dependencyRelease =
                     this.Mods
                         .FirstOrDefault(mod => mod.LatestManifest.RepoUrl == dependency.RepoUrl)?.Releases
                         .FirstOrDefault(release => release.Tag == dependency.Version);
 
+                // If a dependency release was not found, return a failure, otherwise enable it.
                 if (dependencyRelease == null)
                     result += ModEnableResult.Fail("Dependency not found: " + dependency.RepoUrl + " @" + dependency.Version);
                 else
                     result += EnableModRelease(dependencyRelease);
             }
 
-
-            EnabledModReleases.Add(release);
-            PendingDownloads.Add(DownloadModRelease(release));
+            if (result == ModEnableResult.Success) {
+                // Finally add the requested release to the enabled list and download it
+                EnabledModReleases.Add(release);
+                PendingDownloads.Add(DownloadModRelease(release));
+            }
 
             return result;
         }
-
+        
+        /// <summary>
+        /// Downloads a mod release and adds it to the pending downloads list.
+        /// </summary>
+        /// <param name="release">the release to download</param>
+        /// <returns></returns>
         private ModReleaseDownloadTask DownloadModRelease(Release release) {
             // Cleanup the previously failed download if it exists
             if (FailedDownloads.Any(x => x.Release == release))
@@ -205,6 +267,10 @@ namespace C2GUILauncher.Mods {
             return downloadTask;
         }
 
+        /// <summary>
+        /// Updates the list of mods from the package db.
+        /// </summary>
+        /// <returns>A Task that completes when the update completes</returns>
         public async Task UpdateModsList() {
             Mods.Clear();
 
@@ -256,8 +322,8 @@ namespace C2GUILauncher.Mods {
         public static ModEnableResult Success => new ModEnableResult(true, new List<string>(), new List<string>());
         public static ModEnableResult Fail(string failure) => new ModEnableResult(false, new List<string>() { failure }, new List<string>());
         public static ModEnableResult Fails(List<string> failures) => new ModEnableResult(false, failures, new List<string>());
-        public static ModEnableResult Warn(string warning) => new ModEnableResult(false, new List<string>(), new List<string>() { warning });
-        public static ModEnableResult Warns(List<string> warnings) => new ModEnableResult(false, new List<string>(), warnings);
+        public static ModEnableResult Warn(string warning) => new ModEnableResult(true, new List<string>(), new List<string>() { warning });
+        public static ModEnableResult Warns(List<string> warnings) => new ModEnableResult(true, new List<string>(), warnings);
 
         public static ModEnableResult operator +(ModEnableResult a, ModEnableResult b) {
             return new ModEnableResult(

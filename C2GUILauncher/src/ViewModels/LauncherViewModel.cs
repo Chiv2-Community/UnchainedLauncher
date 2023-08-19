@@ -57,16 +57,6 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool GenerateConsoleCtrlEvent(ConsoleCtrlEvent sigevent, int dwProcessGroupId);
-        public enum ConsoleCtrlEvent {
-            CTRL_C = 0,
-            CTRL_BREAK = 1,
-            CTRL_CLOSE = 2,
-            CTRL_LOGOFF = 5,
-            CTRL_SHUTDOWN = 6
-        }
-
         private void LaunchModded(Process? serverRegister = null) {
             // For a modded installation we need to download the mod files and then launch via the modded launcher.
             // For steam installations, args do not get passed through.
@@ -94,21 +84,7 @@ namespace C2GUILauncher.ViewModels {
 
                     serverRegister?.Start();
                     await process.WaitForExitAsync();
-                    if(serverRegister != null) {
-                        /*Process killp = new Process();
-                        killp.StartInfo.FileName = "powershell.exe";
-                        killp.StartInfo.CreateNoWindow = true;
-                        killp.StartInfo.Arguments = $"-Command \"Stop-Process -Id {serverRegister.Id}\"";
-                        MessageBox.Show($"{serverRegister.Id}");
-                        killp.Start();
-                        killp.WaitForExit();*/
-
-                        //serverRegister.StandardInput.Close();
-                        //none of these work
-                        //TODO: Figure out some better way to close the serverRegister when the game closes.
-                        //for some reason this is unnecessarily complicated on windows. Desperately need a sigint...
-                        //GenerateConsoleCtrlEvent(ConsoleCtrlEvent.CTRL_C, serverRegister.SessionId);
-                    }
+                    serverRegister?.CloseMainWindow();
                     Environment.Exit(0);
                 } catch (Exception ex) {
                     MessageBox.Show(ex.ToString());
@@ -134,7 +110,10 @@ namespace C2GUILauncher.ViewModels {
             }
 
             Process serverRegister = new Process();
-            serverRegister.StartInfo.FileName = "RegisterUnchainedServer.exe";
+            //We *must* use cmd.exe as a wrapper to start RegisterUnchainedServer.exe, otherwise we have no way to
+            //close the window later
+            serverRegister.StartInfo.FileName = "cmd.exe";
+            serverRegister.StartInfo.Arguments = "RegisterUnchainedServer.exe";
 
             return serverRegister;
         }
@@ -161,7 +140,7 @@ namespace C2GUILauncher.ViewModels {
 
             try {
                 //modify command line args and enable required mods for RCON connectivity
-                string RCONMap = "agmods?map=frontend?rcon";
+                string RCONMap = "agmods?map=frontend?rcon"; //ensure the RCON zombie blueprint gets started
                 CLIArgsModified = true;
                 List<string> cliArgs = this.Settings.CLIArgs.Split(" ").ToList();
                 int TBLloc = cliArgs.IndexOf("TBL");
@@ -169,7 +148,7 @@ namespace C2GUILauncher.ViewModels {
                 cliArgs.Add("-nullrhi"); //disable rendering
                 //this isn't used, but will be needed later
                 cliArgs.Add("-rcon 9001"); //let the serverplugin know that we want RCON running on the given port
-                cliArgs.Add("-RenderOffScreen"); //*really* disable rendering
+                cliArgs.Add("-RenderOffScreen"); //super-disable rendering
                 cliArgs.Add("-unattended"); //let it know no one's around to help
                 cliArgs.Add("-nosound"); //disable sound
 

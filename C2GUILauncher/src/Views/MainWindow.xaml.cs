@@ -15,6 +15,7 @@ namespace C2GUILauncher {
         public ModListViewModel ModManagerViewModel { get; }
         public SettingsViewModel SettingsViewModel { get; }
         public LauncherViewModel LauncherViewModel { get; }
+        public ServerSettingsViewModel ServerSettingsViewModel { get; }
 
         private readonly ModManager ModManager;
 
@@ -34,11 +35,13 @@ namespace C2GUILauncher {
 
             this.SettingsViewModel = SettingsViewModel.LoadSettings();
             this.ModManagerViewModel = new ModListViewModel(ModManager);
-            this.LauncherViewModel = new LauncherViewModel(SettingsViewModel, ModManager);
+            this.ServerSettingsViewModel = new ServerSettingsViewModel();
+            this.LauncherViewModel = new LauncherViewModel(SettingsViewModel, this.ServerSettingsViewModel, ModManager);
 
             this.SettingsTab.DataContext = this.SettingsViewModel;
             this.ModManagerTab.DataContext = this.ModManagerViewModel;
             this.LauncherTab.DataContext = this.LauncherViewModel;
+            this.ServerSettingsTab.DataContext = this.ServerSettingsViewModel;
 
             this.Closed += MainWindow_Closed;
         }

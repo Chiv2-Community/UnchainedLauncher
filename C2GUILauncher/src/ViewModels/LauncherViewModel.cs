@@ -13,6 +13,7 @@ using System.Windows.Input;
 using System.Diagnostics;
 using System.Windows.Controls;
 using System.Runtime.InteropServices;
+using C2GUILauncher.src.ViewModels;
 
 namespace C2GUILauncher.ViewModels {
 
@@ -24,6 +25,7 @@ namespace C2GUILauncher.ViewModels {
         public ICommand LaunchServerHeadlessCommand { get; }
 
         private SettingsViewModel Settings { get; }
+        private ServerSettingsViewModel ServerSettings { get; }
 
         private ModManager ModManager { get; }
 
@@ -33,10 +35,11 @@ namespace C2GUILauncher.ViewModels {
 
 
 
-        public LauncherViewModel(SettingsViewModel settings, ModManager modManager) {
+        public LauncherViewModel(SettingsViewModel settings, ServerSettingsViewModel serverSettings, ModManager modManager) {
             CanClick = true;
 
             this.Settings = settings;
+            this.ServerSettings = serverSettings;
             this.ModManager = modManager;
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
@@ -113,7 +116,14 @@ namespace C2GUILauncher.ViewModels {
             //We *must* use cmd.exe as a wrapper to start RegisterUnchainedServer.exe, otherwise we have no way to
             //close the window later
             serverRegister.StartInfo.FileName = "cmd.exe";
-            serverRegister.StartInfo.Arguments = "RegisterUnchainedServer.exe";
+            
+            string registerCommand = $"RegisterUnchainedServer.exe " +
+                $"-n ^\"{ServerSettings.serverName.Replace("\"", "^\"")}^\" " +
+                $"-d ^\"{ServerSettings.serverDescription.Replace("\"", "^\"").Replace("\n", "^\n")}^\" " +
+                $"-r ^\"{ServerSettings.serverList}^\" " +
+                $"-c ^\"{ServerSettings.rconPort}^\"";
+            serverRegister.StartInfo.Arguments = $"/c \"{registerCommand}\"";
+            //MessageBox.Show($"{serverRegister.StartInfo.Arguments}");
 
             return serverRegister;
         }
@@ -124,6 +134,11 @@ namespace C2GUILauncher.ViewModels {
                 if (serverRegister == null) {
                     return;
                 }
+                CLIArgsModified = true;
+                List<string> cliArgs = this.Settings.CLIArgs.Split(" ").ToList();
+                cliArgs.Add($"-port {ServerSettings.gamePort}");
+
+                this.Settings.CLIArgs = string.Join(" ", cliArgs);
                 LaunchModded(serverRegister);
                 
             } catch (Exception ex) {
@@ -145,9 +160,10 @@ namespace C2GUILauncher.ViewModels {
                 List<string> cliArgs = this.Settings.CLIArgs.Split(" ").ToList();
                 int TBLloc = cliArgs.IndexOf("TBL");
                 cliArgs.Insert(TBLloc, RCONMap);
+                cliArgs.Add($"-port {ServerSettings.gamePort}");
                 cliArgs.Add("-nullrhi"); //disable rendering
                 //this isn't used, but will be needed later
-                cliArgs.Add("-rcon 9001"); //let the serverplugin know that we want RCON running on the given port
+                cliArgs.Add($"-rcon {ServerSettings.rconPort}"); //let the serverplugin know that we want RCON running on the given port
                 cliArgs.Add("-RenderOffScreen"); //super-disable rendering
                 cliArgs.Add("-unattended"); //let it know no one's around to help
                 cliArgs.Add("-nosound"); //disable sound

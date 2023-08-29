@@ -50,7 +50,7 @@ namespace C2GUILauncher {
         public static IEnumerable<DownloadTask> DownloadAllFiles(IEnumerable<DownloadTarget> files) {
             return files.Select(x =>
                 x.OutputPath == null
-                    ? throw new ArgumentNullException("OutputPath")
+                    ? throw new ArgumentNullException(nameof(x.OutputPath))
                     : DownloadFileAsync(x.Url, x.OutputPath!)
             );
         }

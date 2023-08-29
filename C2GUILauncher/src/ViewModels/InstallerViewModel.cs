@@ -1,23 +1,27 @@
-﻿using System;
+﻿//using System.Windows.Shapes;
+using C2GUILauncher.JsonModels;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Windows;
-using System.Xml.Linq;
-//using System.Windows.Shapes;
-using C2GUILauncher.JsonModels;
-using Microsoft.Win32;
-using Newtonsoft.Json;
 
-namespace C2GUILauncher.src.ViewModels {
+namespace C2GUILauncher.ViewModels {
     // This isn't a view model in the normal sense that we hold on to a view of data and bind to it.
     // I just figure this is the "View" for the installer workflow.
     // TODO: Somehow generalize the updater and installer
     class InstallerViewModel {
 
-        public static bool AttemptInstall(string InstallDir, InstallationType InstallType) {
-            bool Specific = InstallType != InstallationType.NotSet;
+        /// <summary>
+        /// Attempts to install the launcher at the given install directory.
+        /// Returns true if installation was successful and we need a restart
+        /// Returns false if installation was unsuccessful and we don't need a restart
+        /// </summary>
+        /// <param name="installDir"></param>
+        /// <param name="installType"></param>
+        /// <returns></returns>
+        public static bool AttemptInstall(string installDir, InstallationType installType) {
+            bool specific = installType != InstallationType.NotSet;
             string exeName = Process.GetCurrentProcess().ProcessName;
             if (exeName != "Chivalry2Launcher") {
                 MessageBoxResult dialogResult = MessageBox.Show(
@@ -29,12 +33,12 @@ namespace C2GUILauncher.src.ViewModels {
                    "Replace launcher?", MessageBoxButton.YesNoCancel);
 
                 if (dialogResult == MessageBoxResult.Yes ||
-                        dialogResult == MessageBoxResult.No){
+                        dialogResult == MessageBoxResult.No) {
                     Process pwsh = new Process();
                     pwsh.StartInfo.FileName = "powershell.exe";
                     string commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
 
-                    string? originalLauncherPath = GetLauncherOnPath(Specific ? InstallDir : "Chivalry2Launcher.exe");
+                    string? originalLauncherPath = GetLauncherOnPath(specific ? installDir : "Chivalry2Launcher.exe");
                     if (originalLauncherPath == null) {
                         MessageBox.Show("Unable to move: Failed to get the path to the original launcher");
                         return false;
@@ -45,7 +49,7 @@ namespace C2GUILauncher.src.ViewModels {
                         originalLauncherDir = ".";
                     }
                     //MessageBox.Show(originalLauncherPath);
-                    string powershellCommand = "";
+                    string powershellCommand;
                     if (dialogResult == MessageBoxResult.Yes) {
                         powershellCommand =
                             $"Wait-Process -Id {Environment.ProcessId}; " +
@@ -54,8 +58,7 @@ namespace C2GUILauncher.src.ViewModels {
                             $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"; " +
                             $"Start-Sleep -Milliseconds 500; " +
                             $"Start-Process \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\" -WorkingDirectory \\\"{originalLauncherDir}\\\" {commandLinePass}";
-                    }
-                    else {
+                    } else {
                         powershellCommand =
                             $"Wait-Process -Id {Environment.ProcessId}; " +
                             $"Start-Sleep -Milliseconds 500; " +
@@ -89,7 +92,7 @@ namespace C2GUILauncher.src.ViewModels {
 
         private static string? GetLauncherOnPath(string dir) {
             //string? originalLauncherPath = SearchDirForLauncher("Chivalry2Launcher.exe");
-            string? originalLauncherPath = SearchDirForLauncher(Path.Combine(dir,"Chivalry2Launcher.exe"));
+            string? originalLauncherPath = SearchDirForLauncher(Path.Combine(dir, "Chivalry2Launcher.exe"));
             //try to find it as a relative path
             if (originalLauncherPath == null || !File.Exists(originalLauncherPath)) {
                 do {

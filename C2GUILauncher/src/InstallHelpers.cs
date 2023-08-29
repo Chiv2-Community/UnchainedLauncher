@@ -2,23 +2,16 @@
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Windows;
 
-namespace C2GUILauncher.src
-{
-    internal class InstallHelpers
-    {
+namespace C2GUILauncher {
+    internal class InstallHelpers {
         private static string Chiv2SteamAppID = "1824220";
         private static string Chiv2EGSAppName = "Peppermint";
 
-        public static string FindSteamDir()
-        {
+        public static string? FindSteamDir() {
             string SteamPath = (string)Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Valve\Steam", "SteamPath", null)!;
             string SteamLibFile = Path.Combine(SteamPath, "steamapps", "libraryfolders.vdf");
 
@@ -56,13 +49,12 @@ namespace C2GUILauncher.src
                             return Path.Combine(CandidateDir, @"steamapps\common\Chivalry 2");
                 }
             }
-            return "";
+            return null;
         }
 
-        public static string FindEGSDir()
-        {
+        public static string? FindEGSDir() {
             var ProgramDataDir = Environment.ExpandEnvironmentVariables("%PROGRAMDATA%");
-            string EGSDataFile =  Path.Combine(ProgramDataDir, @"Epic\UnrealEngineLauncher\LauncherInstalled.dat") ;
+            string EGSDataFile = Path.Combine(ProgramDataDir, @"Epic\UnrealEngineLauncher\LauncherInstalled.dat");
             if (File.Exists(EGSDataFile)) {
                 var savedSettings = JsonConvert.DeserializeObject<EGSInstallList>(File.ReadAllText(EGSDataFile));
                 if (savedSettings != null && savedSettings.InstallationList.Count > 0) {
@@ -71,7 +63,7 @@ namespace C2GUILauncher.src
                         return chivEntry.First().InstallLocation;
                 }
             }
-            return "";
+            return null;
         }
     }
 }

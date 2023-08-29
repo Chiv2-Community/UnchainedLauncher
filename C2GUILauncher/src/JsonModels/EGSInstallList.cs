@@ -1,12 +1,7 @@
 ﻿using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace C2GUILauncher.JsonModels
-{
+namespace C2GUILauncher.JsonModels {
     public record InstallEntry(
         [property: JsonProperty("InstallLocation")] string InstallLocation,
         [property: JsonProperty("NamespaceId")] string NamespaceId,

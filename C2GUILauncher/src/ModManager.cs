@@ -2,7 +2,6 @@
 using Newtonsoft.Json;
 using NLog;
 using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -131,10 +130,10 @@ namespace C2GUILauncher.Mods {
         }
 
         private List<Release> GetDependents(Release targetRelease) {
-              return EnabledModReleases
-                .Where(otherRelease => otherRelease.Manifest.RepoUrl != targetRelease.Manifest.RepoUrl) // Filter out the target release
-                .Where(otherRelease => otherRelease.Manifest.Dependencies.Any(dep => dep.RepoUrl == targetRelease.Manifest.RepoUrl)) // Get anything depending on the target release
-                .ToList();
+            return EnabledModReleases
+              .Where(otherRelease => otherRelease.Manifest.RepoUrl != targetRelease.Manifest.RepoUrl) // Filter out the target release
+              .Where(otherRelease => otherRelease.Manifest.Dependencies.Any(dep => dep.RepoUrl == targetRelease.Manifest.RepoUrl)) // Get anything depending on the target release
+              .ToList();
         }
 
         public ModEnableResult EnableModRelease(Release release) {
@@ -256,7 +255,7 @@ namespace C2GUILauncher.Mods {
                 CoreMods.BrowserPluginPath
             };
 
-            foreach ( var depr in DeprecatedLibs)
+            foreach (var depr in DeprecatedLibs)
                 if (File.Exists(depr))
                     File.Delete(depr);
 

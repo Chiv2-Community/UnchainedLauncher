@@ -1,7 +1,6 @@
 ﻿using C2GUILauncher.JsonModels;
 using C2GUILauncher.Mods;
-using C2GUILauncher.src;
-using C2GUILauncher.src.ViewModels;
+using C2GUILauncher.ViewModels;
 using C2GUILauncher.ViewModels;
 using PropertyChanged;
 using System;
@@ -16,58 +15,106 @@ namespace C2GUILauncher {
     [AddINotifyPropertyChangedInterface]
     public partial class MainWindow : Window {
 
+        enum InstallResult {
+            Rejected,
+            Installed,
+            NoTarget,
+            Failed
+        }
+
         public ModListViewModel ModManagerViewModel { get; }
         public SettingsViewModel SettingsViewModel { get; }
         public LauncherViewModel LauncherViewModel { get; }
 
         private readonly ModManager ModManager;
 
-        public int ShowInstallRequestFor(string TargetDir, InstallationType InstallType)
-        {
-            var InstallTypeStr = InstallType == InstallationType.Steam ? "Steam" : "Epic Games";
-            if (TargetDir.Length > 0) {
-                MessageBoxResult res = MessageBox.Show(
-                   $"Detected install location ({InstallType}):\n\n" +
-                   $"{TargetDir} \n\n" +
-                   $"Install the launcher for {InstallType} at this location?\n\n"
-                   , $"Install Launcher ({InstallType})", MessageBoxButton.YesNoCancel);
+        /// <summary>
+        /// Shows the install dialog for the given install type.
+        /// Returns null if there is nothing to do, true if the user wants to install, and false if they don't.
+        /// </summary>
+        /// <param name="currentDir"></param>
+        /// <param name="targetDir"></param>
+        /// <param name="installType"></param>
+        /// <returns></returns>
+        private InstallResult ShowInstallRequestFor(string currentDir, string? targetDir, InstallationType installType) {
+            if (targetDir == null) return InstallResult.NoTarget;
+            if (currentDir == targetDir) return InstallResult.Installed;
 
-                if (res == MessageBoxResult.Yes) {
-                    InstallerViewModel.AttemptInstall(TargetDir, InstallType);
-                    return 1;
-                }
-                else if (res == MessageBoxResult.No) {
-                    return 0;
-                }
+            var installTypeStr = installType == InstallationType.Steam ? "Steam" : "Epic Games";
+
+            MessageBoxResult res = MessageBox.Show(
+                $"Detected install location ({installTypeStr}):\n\n" +
+                $"{targetDir} \n\n" +
+                $"Install the launcher for {installTypeStr} at this location?\n\n"
+                , $"Install Launcher ({installTypeStr})", MessageBoxButton.YesNo);
+
+            if (res == MessageBoxResult.Yes) {
+                return InstallerViewModel.AttemptInstall(targetDir, installType) ? InstallResult.Installed : InstallResult.Failed;
+            } else {
+                return InstallResult.Rejected;
             }
-            return -1;
+        }
+
+        /// <summary>
+        /// Attempts an install for either steam or egs
+        /// Returns true if installation was successful and we need a restart
+        /// Returns false if installation was unsuccessful and we don't need a restart
+        /// </summary>
+        /// <param name="steamDir"></param>
+        /// <param name="egsDir"></param>
+        /// <returns></returns>
+        private InstallResult Install(string? steamDir, string? egsDir) {
+            string curDir = Directory.GetCurrentDirectory();
+            MessageBox.Show(curDir);
+            // If we're already in the install dir, we don't need to do anything. 
+            // If a TBL dir is in the current dir, and we're not in the source code dir, we're probably in the install dir.
+            var alreadyInInstallDir = steamDir == curDir || egsDir == curDir || (Directory.Exists(Path.Combine(curDir, "TBL")) && !curDir.Contains("C2GUILauncher\\C2GUILauncher"));
+
+            if (alreadyInInstallDir)
+                return InstallerViewModel.AttemptInstall("", InstallationType.NotSet) ? InstallResult.Installed : InstallResult.Failed;
+
+            InstallResult steamInstallResult = ShowInstallRequestFor(curDir, steamDir, InstallationType.Steam);
+            if (steamInstallResult == InstallResult.Installed || steamInstallResult == InstallResult.Failed) return steamInstallResult;
+
+            InstallResult egsInstallResult = ShowInstallRequestFor(curDir, egsDir, InstallationType.EpicGamesStore);
+            if (egsInstallResult == InstallResult.Installed || egsInstallResult == InstallResult.Failed) return egsInstallResult;
+
+            return InstallResult.Rejected;
         }
 
         public MainWindow() {
             InitializeComponent();
-            var EGSDir = InstallHelpers.FindEGSDir();
-            var SteamDir = InstallHelpers.FindSteamDir();
-            bool needsClose = false;
-            int res = 0;
-            string exeName = Process.GetCurrentProcess().ProcessName;
-            string CurDir = System.IO.Directory.GetCurrentDirectory();
+            var egsDir = InstallHelpers.FindEGSDir();
+            var steamDir = InstallHelpers.FindSteamDir();
+            var curDir = Directory.GetCurrentDirectory();
+            var exeName = Process.GetCurrentProcess().ProcessName;
 
-            if (exeName != "Chivalry2Launcher" && !Path.Equals(CurDir, SteamDir))
-            {
-                int SteamRes = ShowInstallRequestFor(SteamDir, InstallationType.Steam);
-                int EGSRes = -1;
-                if (SteamRes >= 0)
-                    EGSRes = ShowInstallRequestFor(EGSDir, InstallationType.EpicGamesStore);
-                needsClose = EGSRes > 0 || SteamRes > 0;
+            // DESNOTE(2023-08-28, jbarber): We check for the exe name here 
+            // because we assume we are already installed in that case. We 
+            // check if we're in steam already, because steam users may 
+            // install the launcher without it being named Chivalry2Launcher;
+            // it just needs to be in the steam dir to function.
+            if (exeName != "Chivalry2Launcher" && !Path.Equals(curDir, steamDir)) {
+                var installResult = Install(steamDir, egsDir);
 
-                if (!needsClose)
-                    needsClose = InstallerViewModel.AttemptInstall("", InstallationType.NotSet);
-            }
-
-            if (needsClose)
-            {
-                MessageBox.Show($"The launcher will now close to perform the operation. It should restart itself in 1 second.");
-                this.Close();
+                switch (installResult) {
+                    case InstallResult.Rejected:
+                        MessageBox.Show($"Installation rejected. Running launcher in-place.");
+                        break;
+                    case InstallResult.Installed:
+                        MessageBox.Show($"Launcher installation is complete.");
+                        this.Close();
+                        break;
+                    case InstallResult.Failed:
+                        MessageBox.Show($"Launcher installation failed.");
+                        this.Close();
+                        break;
+                    case InstallResult.NoTarget:
+                        // This case should be impossible, but lets handle it here just in case.
+                        MessageBox.Show($"Launcher installation failed because no target was found. Please install manually");
+                        this.Close();
+                        break;
+                }
             }
 
             this.ModManager = ModManager.ForRegistry(
@@ -77,11 +124,10 @@ namespace C2GUILauncher {
             );
 
             this.SettingsViewModel = SettingsViewModel.LoadSettings();
-            if (this.SettingsViewModel.InstallationType == InstallationType.NotSet)
-            {
-                if (Path.Equals(CurDir, EGSDir))
+            if (this.SettingsViewModel.InstallationType == InstallationType.NotSet) {
+                if (Path.Equals(curDir, egsDir))
                     this.SettingsViewModel.InstallationType = InstallationType.EpicGamesStore;
-                else if (Path.Equals(CurDir, SteamDir))
+                else if (Path.Equals(curDir, steamDir))
                     this.SettingsViewModel.InstallationType = InstallationType.Steam;
             }
             this.ModManagerViewModel = new ModListViewModel(ModManager);

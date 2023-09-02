@@ -1,6 +1,7 @@
 ﻿using C2GUILauncher.JsonModels;
 using C2GUILauncher.Mods;
 using CommunityToolkit.Mvvm.Input;
+using Newtonsoft.Json.Linq;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
@@ -17,45 +18,39 @@ namespace C2GUILauncher.ViewModels {
 
         public Mod Mod { get; }
 
+        private bool dirty = false;
 
         private Release? _enabledRelease;
         public Release? EnabledRelease {
             get => _enabledRelease;
             set {
-                if (_enabledRelease != value) {
-                    if (_enabledRelease != null) {
-                        var result = ModManager.DisableModRelease(_enabledRelease, false, false);
+                if (dirty) return;
 
-                        if (!result.Successful) {
-                            var message = value == null
-                                ? $"Failed to disable mod because another active mod depends on this mod. Disable this mod and all mods that depend on it?"
-                                : $"Failed to change mod version because another active mod depends on this mod version. Change this mod version anyway?";
+                dirty = true;
+                try {
+                    if (_enabledRelease != value) {
+                        var releaseLocked = false;
+                        if (_enabledRelease != null) {
+                            var result = ModManager.DisableModRelease(_enabledRelease, false, false);
 
-                            var dependentsNameAndVersionString = string.Join("\n", result.Dependents.Select(x => $"- {x.Manifest.Name} {x.Tag}"));
-                            var shouldCascade = value == null;
+                            // If any of the locks contain this release, then it is locked
+                            releaseLocked = result.Locks.Any(lockedRelease => lockedRelease == value);
 
-                            message += $"\n\nDependents:\n{dependentsNameAndVersionString}";
+                            HandleModDisableResult(value, result);
+                        }
 
-                            var messageBoxResult = MessageBox.Show(
-                                message,
-                                "Error",
-                                MessageBoxButton.YesNo,
-                                MessageBoxImage.Error
-                            );
-
-                            if (messageBoxResult == MessageBoxResult.Yes) {
-                                ModManager.DisableModRelease(_enabledRelease, true, shouldCascade);
-                            } else {
-                                return;
+                        // Only enable an alternate version if the current release is not locked
+                        if (!releaseLocked) {
+                            if (value != null) {
+                                var result = ModManager.EnableModRelease(value);
+                                HandleModEnableResult(value, result);
                             }
+
+                            _enabledRelease = value;
                         }
                     }
-
-                    if (value != null) {
-                        ModManager.EnableModRelease(value);
-                    }
-
-                    _enabledRelease = value;
+                } finally {
+                    dirty = false;
                 }
             }
         }
@@ -138,7 +133,8 @@ namespace C2GUILauncher.ViewModels {
 
         private void DisableOrRetry() {
             if (DownloadFailed && EnabledRelease != null) {
-                ModManager.EnableModRelease(EnabledRelease);
+                var result = ModManager.EnableModRelease(EnabledRelease);
+                HandleModEnableResult(EnabledRelease, result);
             } else {
                 EnabledRelease = null;
             }
@@ -179,6 +175,52 @@ namespace C2GUILauncher.ViewModels {
 
             if (enabledRelease != null)
                 EnabledRelease = enabledRelease;
+        }
+
+        private void HandleModEnableResult(Release? attemptedToEnable, ModEnableResult result) {
+            if (result.Warnings.Count > 0) {
+                var warningsString = result.Warnings.Aggregate("", (acc, warning) => acc + warning + "\n");
+                MessageBox.Show(warningsString, "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+            if (!result.Successful) {
+                var errorString = result.Failures.Aggregate("Failed to change currently active release.", (acc, failure) => acc + failure + "\n");
+
+                MessageBox.Show(errorString, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void HandleModDisableResult(Release? attemptedToDisable, ModDisableResult result) {
+            if (result.Locks.Count > 0) {
+                var warningsString = result.Locks.Aggregate("", (acc, lockedRelease) => acc + $"\n- {lockedRelease.Manifest.Name}");
+
+                var message = "The files associated with the mods below are locked and will not be changed:" + warningsString;
+                MessageBox.Show(message, "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+            if (!result.Successful) {
+                var message = attemptedToDisable == null
+                    ? $"Failed to disable mod because another active mod depends on this mod. Disable this mod and all mods that depend on it?"
+                    : $"Failed to change mod version because another active mod depends on this mod version. Change this mod version anyway?";
+
+                var dependentsNameAndVersionString = string.Join("\n", result.DependencyConflicts.Select(x => $"- {x.Manifest.Name} {x.Tag}"));
+                var shouldCascade = attemptedToDisable == null;
+
+                message += $"\n\nDependents:\n{dependentsNameAndVersionString}";
+
+                var messageBoxResult = MessageBox.Show(
+                    message,
+                    "Error",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Error
+                );
+
+                if (messageBoxResult == MessageBoxResult.Yes) {
+                    ModManager.DisableModRelease(_enabledRelease!, true, shouldCascade);
+                } else {
+                    return;
+                }
+            }
         }
     }
 }

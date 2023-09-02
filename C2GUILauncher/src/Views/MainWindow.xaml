@@ -104,13 +104,13 @@
                     <TextBlock Text="{Binding Description}" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" TextWrapping="Wrap" Margin="5"/>
                     <Button Content="Disable" Grid.Row="1" Grid.Column="0" Command="{Binding ButtonCommand}" IsEnabled="{Binding IsEnabled}"/>
                     <ComboBox ItemsSource="{Binding Mod.Releases}" 
-                              SelectedItem="{Binding EnabledRelease}"
+                              SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
                               DisplayMemberPath="Tag"
                               Grid.Row="1" 
                               Grid.Column="1" 
                               Height="NaN" 
                               Margin="5" 
-                              VerticalAlignment="Stretch" 
+                              VerticalAlignment="Stretch"
                               Width="NaN" FontSize="18"/>
                 </Grid>
             </Grid>

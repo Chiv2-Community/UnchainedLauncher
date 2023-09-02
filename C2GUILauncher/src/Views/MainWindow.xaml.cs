@@ -1,7 +1,6 @@
 ﻿using C2GUILauncher.JsonModels;
 using C2GUILauncher.Mods;
 using C2GUILauncher.ViewModels;
-using C2GUILauncher.ViewModels;
 using PropertyChanged;
 using System;
 using System.Diagnostics;

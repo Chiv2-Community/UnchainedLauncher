@@ -8,8 +8,8 @@ using System.Text.RegularExpressions;
 
 namespace C2GUILauncher {
     internal class InstallHelpers {
-        private static string Chiv2SteamAppID = "1824220";
-        private static string Chiv2EGSAppName = "Peppermint";
+        private static readonly string Chiv2SteamAppID = "1824220";
+        private static readonly string Chiv2EGSAppName = "Peppermint";
 
         public static string? FindSteamDir() {
             string SteamPath = (string)Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Valve\Steam", "SteamPath", null)!;
@@ -30,18 +30,16 @@ namespace C2GUILauncher {
                     CandidateDir = Regex.Unescape(CandidateDir);
                     //Console.WriteLine($"Folder Path: {folderPath}");
 
-                    // Get Apps section
-                    pattern = "\"apps\"[\\s\\t]*\\{[\\s\\S]*?\"(\\d+)\"[\\s\\t]*\"(\\d+)\"[\\s\\t]*\\}";
                     // get substring until next section
                     var maxIdx = (i < matches.Count - 1) ? matches[i + 1].Index : vdfContent.Length;
-                    string ss = vdfContent.Substring(match.Index, maxIdx - match.Index);
+                    string ss = vdfContent[match.Index..maxIdx];
 
                     // skip apps and brackets, then parse each line
                     string pattern3 = "\"apps\"[\\s\\t]*\\{";
                     MatchCollection matches3 = Regex.Matches(ss, pattern3);
                     int appsIdx = matches3[0].Index + matches3[0].Value.Length;
                     // get only the lines with numbers inside "apps"
-                    var ss_sub2 = ss.Substring(appsIdx, ss.IndexOf('}', appsIdx) - appsIdx);
+                    var ss_sub2 = ss[appsIdx..ss.IndexOf('}', appsIdx)];
                     string[] lines = ss_sub2.Split(new[] { '\"' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
                     for (int j = 0; j < lines.Length; j += 2)

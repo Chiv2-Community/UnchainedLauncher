@@ -28,7 +28,7 @@ namespace C2GUILauncher.ViewModels {
                    $"This program is not currently running in place of the default Chivalry 2 launcher.\n\n" +
                    $"Do you want this launcher to move itself in place of the Chivalry 2 launcher? The " +
                    $"default launcher will remain as 'Chivalry2Launcher-ORIGINAL.exe'\n\n" +
-                   $"This will make the launcher start automatically when you launch via Epic Games or" +
+                   $"This will make the launcher start automatically when you launch via Epic Games or " +
                    $"Steam.\n\nDoing this is required if you are playing on Epic!",
                    "Replace launcher?", MessageBoxButton.YesNoCancel);
 

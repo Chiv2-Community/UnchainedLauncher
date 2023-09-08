@@ -17,8 +17,16 @@ namespace C2GUILauncher {
         /// The task that represents the asynchronous operation.
         /// </returns>
         public static DownloadTask DownloadFileAsync(string url, string outputPath) {
-            if (!Directory.Exists(Path.GetDirectoryName(outputPath)))
+            if (!Directory.Exists(Path.GetDirectoryName(outputPath))) {
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+            }
+            
+            if (FileHelpers.IsFileLocked(outputPath)) {
+                return new DownloadTask(
+                    Task.CompletedTask,
+                    new DownloadTarget(url, outputPath)
+                );
+            }
 
             return new DownloadTask(
                 _httpClient.GetByteArrayAsync(url).ContinueWith(t => File.WriteAllBytes(outputPath, t.Result)),
@@ -54,6 +62,8 @@ namespace C2GUILauncher {
                     : DownloadFileAsync(x.Url, x.OutputPath!)
             );
         }
+
+
     }
 
     public record DownloadTarget(string Url, string? OutputPath);

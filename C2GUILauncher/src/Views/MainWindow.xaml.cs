@@ -101,7 +101,7 @@ namespace C2GUILauncher {
                         MessageBox.Show($"Installation rejected. Running launcher in-place.");
                         break;
                     case InstallResult.Installed:
-                        MessageBox.Show($"Launcher installation is complete.");
+                        MessageBox.Show($"Launcher installation is complete. Launch Chivalry2 Normally via EGS or Steam.");
                         this.Close();
                         break;
                     case InstallResult.Failed:
@@ -130,7 +130,7 @@ namespace C2GUILauncher {
                     this.SettingsViewModel.InstallationType = InstallationType.Steam;
             }
             this.ModManagerViewModel = new ModListViewModel(ModManager);
-            this.LauncherViewModel = new LauncherViewModel(SettingsViewModel, ModManager);
+            this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, ModManager);
 
             this.SettingsTab.DataContext = this.SettingsViewModel;
             this.ModManagerTab.DataContext = this.ModManagerViewModel;

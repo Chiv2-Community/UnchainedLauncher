@@ -55,16 +55,12 @@ namespace C2GUILauncher.ViewModels {
                             $"Wait-Process -Id {Environment.ProcessId}; " +
                             $"Start-Sleep -Milliseconds 500; " +
                             $"Move-Item -Force \\\"{originalLauncherPath}\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher-ORIGINAL.exe\\\"; " +
-                            $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"; " +
-                            $"Start-Sleep -Milliseconds 500; " +
-                            $"Start-Process \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\" -WorkingDirectory \\\"{originalLauncherDir}\\\" {commandLinePass}";
+                            $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"; ";
                     } else {
                         powershellCommand =
                             $"Wait-Process -Id {Environment.ProcessId}; " +
                             $"Start-Sleep -Milliseconds 500; " +
-                            $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\{exeName}.exe\\\"; " +
-                            $"Start-Sleep -Milliseconds 500; " +
-                            $"Start-Process \\\"{originalLauncherDir}\\{exeName}.exe\\\" -WorkingDirectory \\\"{originalLauncherDir}\\\" {commandLinePass}";
+                            $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\{exeName}.exe\\\"; ";
                     }
                     //MessageBox.Show(powershellCommand);
                     pwsh.StartInfo.Arguments = $"-Command \"{powershellCommand}\"";

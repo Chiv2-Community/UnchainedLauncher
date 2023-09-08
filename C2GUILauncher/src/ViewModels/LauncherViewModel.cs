@@ -95,7 +95,6 @@ namespace C2GUILauncher.ViewModels {
 
             launchThread.Start();
             CanClick = false;
-            Window.Hide();
         }
 
         private InstallationType GetInstallationType() {

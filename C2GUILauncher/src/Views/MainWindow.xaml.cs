@@ -130,7 +130,7 @@ namespace C2GUILauncher {
                     this.SettingsViewModel.InstallationType = InstallationType.Steam;
             }
             this.ModManagerViewModel = new ModListViewModel(ModManager);
-            this.LauncherViewModel = new LauncherViewModel(SettingsViewModel, ModManager);
+            this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, ModManager);
 
             this.SettingsTab.DataContext = this.SettingsViewModel;
             this.ModManagerTab.DataContext = this.ModManagerViewModel;

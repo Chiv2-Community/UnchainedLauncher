@@ -26,9 +26,9 @@ namespace C2GUILauncher.ViewModels {
 
         private bool CLIArgsModified { get; set; }
 
+        private Window Window;
 
-
-        public LauncherViewModel(SettingsViewModel settings, ModManager modManager) {
+        public LauncherViewModel(Window window, SettingsViewModel settings, ModManager modManager) {
             CanClick = true;
 
             this.Settings = settings;
@@ -36,6 +36,7 @@ namespace C2GUILauncher.ViewModels {
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
             this.LaunchModdedCommand = new RelayCommand(LaunchModded);
+            this.Window = window;
         }
 
         private void LaunchVanilla() {
@@ -45,6 +46,7 @@ namespace C2GUILauncher.ViewModels {
                 var args = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
                 Chivalry2Launchers.VanillaLauncher.Launch(args);
                 CanClick = false;
+                Window.Close();
             } catch (Exception ex) {
                 MessageBox.Show(ex.ToString());
             }
@@ -75,8 +77,17 @@ namespace C2GUILauncher.ViewModels {
                     Chivalry2Launchers.ModdedLauncher.Dlls = dlls;
                     var process = Chivalry2Launchers.ModdedLauncher.Launch(args);
 
+
+                    await Window.Dispatcher.BeginInvoke((Action)delegate () {
+                        Window.Hide();
+                    });
+
                     await process.WaitForExitAsync();
-                    Environment.Exit(0);
+
+                    await Window.Dispatcher.BeginInvoke((Action)delegate () {
+                        Window.Close();
+                    });
+
                 } catch (Exception ex) {
                     MessageBox.Show(ex.ToString());
                 }

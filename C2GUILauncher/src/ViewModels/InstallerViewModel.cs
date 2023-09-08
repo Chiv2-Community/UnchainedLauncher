@@ -1,6 +1,7 @@
 ﻿//using System.Windows.Shapes;
 using C2GUILauncher.JsonModels;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -24,13 +25,24 @@ namespace C2GUILauncher.ViewModels {
             bool specific = installType != InstallationType.NotSet;
             string exeName = Process.GetCurrentProcess().ProcessName;
             if (exeName != "Chivalry2Launcher") {
+                var messageLines = new List<string>() {
+                    "Set Unchained Modloader as Default?",
+                    "",
+                    "Would you like to set the Unchained Modloader as your default launcher for Chivalry 2? This allows you to easily choose between vanilla Chivalry 2 and the modded Unchained version upon startup.",
+                    "",
+                    "Your original Chivalry 2 launcher will still be accessible and will be renamed to 'Chivalry2Launcher-ORIGINAL.exe'.",
+                    "",
+                    "Yes (Simple) - Replace Chivalry2Launcher.exe with the Unchained Launcher",
+                    "",
+                    "No (Advanced) - Move the Unchained Launcher in to the Chivalry 2 Directory, but Keep Chivalry2Launcher.exe as the default launcher.",
+                    "",
+                    "Cancel - Do not install the Unchained Launcher."
+                };
+
                 MessageBoxResult dialogResult = MessageBox.Show(
-                   $"This program is not currently running in place of the default Chivalry 2 launcher.\n\n" +
-                   $"Do you want this launcher to move itself in place of the Chivalry 2 launcher? The " +
-                   $"default launcher will remain as 'Chivalry2Launcher-ORIGINAL.exe'\n\n" +
-                   $"This will make the launcher start automatically when you launch via Epic Games or " +
-                   $"Steam.\n\nDoing this is required if you are playing on Epic!",
-                   "Replace launcher?", MessageBoxButton.YesNoCancel);
+                    messageLines.Aggregate((a, b) => a + "\n" + b),
+                    "Replace Current Launcher?", MessageBoxButton.YesNoCancel
+                );
 
                 if (dialogResult == MessageBoxResult.Yes ||
                         dialogResult == MessageBoxResult.No) {

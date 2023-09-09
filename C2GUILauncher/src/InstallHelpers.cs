@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Windows;
 
 namespace C2GUILauncher {
     internal class InstallHelpers {
@@ -21,34 +22,38 @@ namespace C2GUILauncher {
 
 
             if (File.Exists(SteamLibFile)) {
+                try {
+                    string vdfContent = File.ReadAllText(SteamLibFile);
+                    // This captures everything after "path"
+                    string pattern = "\"(\\d+)\"[\\s\\t]*\\{[\\s\\S]*?\"path\"[\\s\\t]*\"(.*?)\"";
+                    MatchCollection matches = Regex.Matches(vdfContent, pattern);
 
-                string vdfContent = File.ReadAllText(SteamLibFile);
-                // This captures everything after "path"
-                string pattern = "\"(\\d+)\"[\\s\\t]*\\{[\\s\\S]*?\"path\"[\\s\\t]*\"(.*?)\"";
-                MatchCollection matches = Regex.Matches(vdfContent, pattern);
+                    for (int i = 0; i < matches.Count; ++i) {
+                        Match match = matches[i];
 
-                for (int i = 0; i < matches.Count; ++i) {
-                    Match match = matches[i];
+                        string CandidateDir = match.Groups[2].Value;
+                        CandidateDir = Regex.Unescape(CandidateDir);
+                        //Console.WriteLine($"Folder Path: {folderPath}");
 
-                    string CandidateDir = match.Groups[2].Value;
-                    CandidateDir = Regex.Unescape(CandidateDir);
-                    //Console.WriteLine($"Folder Path: {folderPath}");
+                        // get substring until next section
+                        var maxIdx = (i < matches.Count - 1) ? matches[i + 1].Index : vdfContent.Length;
+                        string ss = vdfContent[match.Index..maxIdx];
 
-                    // get substring until next section
-                    var maxIdx = (i < matches.Count - 1) ? matches[i + 1].Index : vdfContent.Length;
-                    string ss = vdfContent[match.Index..maxIdx];
+                        // skip apps and brackets, then parse each line
+                        string pattern3 = "\"apps\"[\\s\\t]*\\{";
+                        MatchCollection matches3 = Regex.Matches(ss, pattern3);
+                        int appsIdx = matches3[0].Index + matches3[0].Value.Length;
+                        // get only the lines with numbers inside "apps"
+                        var ss_sub2 = ss[appsIdx..ss.IndexOf('}', appsIdx)];
+                        string[] lines = ss_sub2.Split(new[] { '\"' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
-                    // skip apps and brackets, then parse each line
-                    string pattern3 = "\"apps\"[\\s\\t]*\\{";
-                    MatchCollection matches3 = Regex.Matches(ss, pattern3);
-                    int appsIdx = matches3[0].Index + matches3[0].Value.Length;
-                    // get only the lines with numbers inside "apps"
-                    var ss_sub2 = ss[appsIdx..ss.IndexOf('}', appsIdx)];
-                    string[] lines = ss_sub2.Split(new[] { '\"' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-
-                    for (int j = 0; j < lines.Length; j += 2)
-                        if (lines[j].Equals(Chiv2SteamAppID))
-                            return Path.Combine(CandidateDir, @"steamapps\common\Chivalry 2");
+                        for (int j = 0; j < lines.Length; j += 2)
+                            if (lines[j].Equals(Chiv2SteamAppID))
+                                return Path.Combine(CandidateDir, @"steamapps\common\Chivalry 2");
+                    }
+                } catch(Exception e) {
+                    File.WriteAllText(".\\steaminstallererror.txt", e.ToString());
+                    return null;
                 }
             }
             return null;

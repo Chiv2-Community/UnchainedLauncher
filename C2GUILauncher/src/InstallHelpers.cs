@@ -12,7 +12,11 @@ namespace C2GUILauncher {
         private static readonly string Chiv2EGSAppName = "Peppermint";
 
         public static string? FindSteamDir() {
-            string SteamPath = (string)Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Valve\Steam", "SteamPath", null)!;
+            object? steamPathObj = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Valve\Steam", "SteamPath", null);
+            if(steamPathObj == null)
+                return null;
+            
+            string SteamPath = (string)steamPathObj;
             string SteamLibFile = Path.Combine(SteamPath, "steamapps", "libraryfolders.vdf");
 
 
@@ -53,6 +57,7 @@ namespace C2GUILauncher {
         public static string? FindEGSDir() {
             var ProgramDataDir = Environment.ExpandEnvironmentVariables("%PROGRAMDATA%");
             string EGSDataFile = Path.Combine(ProgramDataDir, @"Epic\UnrealEngineLauncher\LauncherInstalled.dat");
+
             if (File.Exists(EGSDataFile)) {
                 var savedSettings = JsonConvert.DeserializeObject<EGSInstallList>(File.ReadAllText(EGSDataFile));
                 if (savedSettings != null && savedSettings.InstallationList.Count > 0) {

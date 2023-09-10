@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 
-namespace C2GUILauncher.src.ViewModels {
+namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class ServerSettingsViewModel {
         public string serverName { get; set; } = "Chivalry 2 server";

@@ -22,9 +22,12 @@ namespace C2GUILauncher.Mods {
         public const string ServerPluginPath = $"{FilePaths.PluginDir}\\C2ServerPlugin.dll";
         public const string BrowserPluginPath = $"{FilePaths.PluginDir}\\C2BrowserPlugin.dll";
 
-        public const string AssetLoaderPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2AssetLoaderPlugin/releases/latest/download/C2AssetLoaderPlugin.dll";
-        public const string ServerPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2ServerPlugin/releases/latest/download/C2ServerPlugin.dll";
-        public const string BrowserPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2BrowserPlugin/releases/latest/download/C2BrowserPlugin.dll";
+        //public const string AssetLoaderPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2AssetLoaderPlugin/releases/latest/download/C2AssetLoaderPlugin.dll";
+        //public const string ServerPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2ServerPlugin/releases/latest/download/C2ServerPlugin.dll";
+        //public const string BrowserPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2BrowserPlugin/releases/latest/download/C2BrowserPlugin.dll";
+
+        public const string UnchainedPluginPath = $"{FilePaths.PluginDir}\\UnchainedPlugin.dll";
+        public const string UnchainedPluginURL = $"{GithubBaseURL}/Chiv2-Community/UnchainedPlugin/releases/latest/download/UnchainedPlugin.dll";
 
         public const string PackageDBBaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/db/package_db";
         public const string PackageDBPackageListUrl = $"{PackageDBBaseUrl}/mod_list_index.txt";
@@ -109,28 +112,31 @@ namespace C2GUILauncher.Mods {
             }
 
             if (result.Successful) {
-
-                EnabledModReleases.Remove(release);
-
-
                 var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
 
                 var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
-                var filePath = orgPath + "\\" + urlParts.Last() + ".json";
+                var metadataFilePath = orgPath + "\\" + urlParts.Last() + ".json";
+                var pakFilePath = PakDir + "\\" + release.PakFileName;
 
+                var fileList = new List<string> { pakFilePath, metadataFilePath };
 
-                File.Delete(filePath);
-                File.Delete(PakDir + "\\" + release.PakFileName);
+                var deleteResult = FileHelpers.DeleteFiles(fileList);
+
+                if (deleteResult) {
+                    EnabledModReleases.Remove(release);
+                } else {
+                    result += ModDisableResult.Locked(release);
+                }
             }
 
             return result;
         }
 
         private List<Release> GetDependents(Release targetRelease) {
-              return EnabledModReleases
-                .Where(otherRelease => otherRelease.Manifest.RepoUrl != targetRelease.Manifest.RepoUrl) // Filter out the target release
-                .Where(otherRelease => otherRelease.Manifest.Dependencies.Any(dep => dep.RepoUrl == targetRelease.Manifest.RepoUrl)) // Get anything depending on the target release
-                .ToList();
+            return EnabledModReleases
+              .Where(otherRelease => otherRelease.Manifest.RepoUrl != targetRelease.Manifest.RepoUrl) // Filter out the target release
+              .Where(otherRelease => otherRelease.Manifest.Dependencies.Any(dep => dep.RepoUrl == targetRelease.Manifest.RepoUrl)) // Get anything depending on the target release
+              .ToList();
         }
 
         public ModEnableResult EnableModRelease(Release release) {
@@ -164,9 +170,15 @@ namespace C2GUILauncher.Mods {
                     result += EnableModRelease(dependencyRelease);
             }
 
+            var downloadResult = DownloadModRelease(release);
 
-            EnabledModReleases.Add(release);
-            PendingDownloads.Add(DownloadModRelease(release));
+            if (FileHelpers.IsFileLocked(downloadResult.DownloadTask.Target.OutputPath!)) {
+                // We'll still pretend like we downloaded and changed things, but we'll return a warning about the lock too
+                result += ModEnableResult.Locked(release);
+            } else {
+                PendingDownloads.Add(downloadResult);
+                EnabledModReleases.Add(release);
+            }
 
             return result;
         }
@@ -242,10 +254,18 @@ namespace C2GUILauncher.Mods {
             // These are the core mods necessary for asset loading, server hosting, server browser usage, and the injector itself.
             // Please forgive the jank debug dll implementation. It'll be less jank after we aren't using hardcoded paths
             var coreMods = new List<DownloadTarget>() {
-                new DownloadTarget(CoreMods.AssetLoaderPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.AssetLoaderPluginPath),
-                new DownloadTarget(CoreMods.ServerPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.ServerPluginPath),
-                new DownloadTarget(CoreMods.BrowserPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.BrowserPluginPath)
+                new DownloadTarget(CoreMods.UnchainedPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.UnchainedPluginPath)
             };
+
+            var DeprecatedLibs = new List<String>()
+            {
+                CoreMods.AssetLoaderPluginPath,
+                CoreMods.ServerPluginPath,
+                CoreMods.BrowserPluginPath
+            };
+
+            foreach (var depr in DeprecatedLibs)
+                FileHelpers.DeleteFile(depr);
 
             return HttpHelpers.DownloadAllFiles(coreMods);
         }
@@ -254,10 +274,14 @@ namespace C2GUILauncher.Mods {
 
     public record ModEnableResult(bool Successful, List<string> Failures, List<string> Warnings) {
         public static ModEnableResult Success => new ModEnableResult(true, new List<string>(), new List<string>());
+
         public static ModEnableResult Fail(string failure) => new ModEnableResult(false, new List<string>() { failure }, new List<string>());
         public static ModEnableResult Fails(List<string> failures) => new ModEnableResult(false, failures, new List<string>());
-        public static ModEnableResult Warn(string warning) => new ModEnableResult(false, new List<string>(), new List<string>() { warning });
-        public static ModEnableResult Warns(List<string> warnings) => new ModEnableResult(false, new List<string>(), warnings);
+
+        public static ModEnableResult Warn(string warning) => Warns(new List<string>() { warning });
+        public static ModEnableResult Warns(List<string> warnings) => new ModEnableResult(true, new List<string>(), warnings);
+
+        public static ModEnableResult Locked(Release lockedRelease) => Warn($"Mod {lockedRelease.Manifest.Name} is locked and will remain unchanged.");
 
         public static ModEnableResult operator +(ModEnableResult a, ModEnableResult b) {
             return new ModEnableResult(
@@ -268,14 +292,23 @@ namespace C2GUILauncher.Mods {
         }
     }
 
-    public record ModDisableResult(bool Successful, List<Release> Dependents) {
-        public static ModDisableResult Success => new ModDisableResult(true, new List<Release>());
-        public static ModDisableResult Conflict(Release conflict) => new ModDisableResult(false, new List<Release>() { conflict });
-        public static ModDisableResult Conflicts(List<Release> conflicts) => new ModDisableResult(false, conflicts);
+    public record ModDisableResult(bool Successful, List<Release> DependencyConflicts, List<Release> Locks) {
+        public static ModDisableResult Success => new ModDisableResult(true, new List<Release>(), new List<Release>());
+
+        public static ModDisableResult Conflict(Release conflict) => Conflicts(new List<Release>() { conflict });
+        public static ModDisableResult Conflicts(List<Release> conflicts) => new ModDisableResult(false, conflicts, new List<Release>());
+
+        public static ModDisableResult Locked(Release lockedRelease) => Lockeds(new List<Release>() { lockedRelease });
+
+        // Locks happen when a user has manually imposed a lock on a release. This is not a conflict, but it does prevent the mod from being disabled.
+        // As such, success is still "true" but the locks are returned so that the user can be informed of them.
+        public static ModDisableResult Lockeds(List<Release> lockedReleases) => new ModDisableResult(true, new List<Release>(), lockedReleases);
+
         public static ModDisableResult operator +(ModDisableResult a, ModDisableResult b) {
             return new ModDisableResult(
                 a.Successful && b.Successful,
-                a.Dependents.Concat(b.Dependents).ToList()
+                a.DependencyConflicts.Concat(b.DependencyConflicts).ToList(),
+                a.Locks.Concat(b.Locks).ToList()
             );
         }
     }

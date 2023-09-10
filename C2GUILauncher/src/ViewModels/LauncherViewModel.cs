@@ -13,7 +13,7 @@ using System.Windows.Input;
 using System.Diagnostics;
 using System.Windows.Controls;
 using System.Runtime.InteropServices;
-using C2GUILauncher.src.ViewModels;
+using C2GUILauncher.ViewModels;
 
 namespace C2GUILauncher.ViewModels {
 
@@ -33,9 +33,10 @@ namespace C2GUILauncher.ViewModels {
 
         private bool CLIArgsModified { get; set; }
 
+        private Window Window;
 
 
-        public LauncherViewModel(SettingsViewModel settings, ServerSettingsViewModel serverSettings, ModManager modManager) {
+        public LauncherViewModel(Window window, SettingsViewModel settings, ServerSettingsViewModel serverSettings, ModManager modManager) {
             CanClick = true;
 
             this.Settings = settings;
@@ -46,6 +47,7 @@ namespace C2GUILauncher.ViewModels {
             this.LaunchModdedCommand = new RelayCommand(() => LaunchModded(null)); //ugly wrapper lambda
             this.LaunchServerCommand = new RelayCommand(LaunchServer);
             this.LaunchServerHeadlessCommand = new RelayCommand(LaunchServerHeadless);
+            this.Window = window;
         }
 
         private void LaunchVanilla() {
@@ -55,6 +57,7 @@ namespace C2GUILauncher.ViewModels {
                 var args = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
                 Chivalry2Launchers.VanillaLauncher.Launch(args);
                 CanClick = false;
+                Window.Close();
             } catch (Exception ex) {
                 MessageBox.Show(ex.ToString());
             }
@@ -86,9 +89,16 @@ namespace C2GUILauncher.ViewModels {
                     var process = Chivalry2Launchers.ModdedLauncher.Launch(args);
 
                     serverRegister?.Start();
+
+                    await Window.Dispatcher.BeginInvoke((Action)delegate () {
+                        Window.Hide();
+                    });
+
                     await process.WaitForExitAsync();
                     serverRegister?.CloseMainWindow();
-                    Environment.Exit(0);
+                    await Window.Dispatcher.BeginInvoke((Action)delegate () {
+                        Window.Close();
+                    });
                 } catch (Exception ex) {
                     MessageBox.Show(ex.ToString());
                 }

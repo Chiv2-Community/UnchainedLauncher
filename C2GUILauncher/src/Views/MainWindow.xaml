@@ -112,13 +112,13 @@
                     <TextBlock Text="{Binding Description}" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" TextWrapping="Wrap" Margin="5"/>
                     <Button Content="Disable" Grid.Row="1" Grid.Column="0" Command="{Binding ButtonCommand}" IsEnabled="{Binding IsEnabled}"/>
                     <ComboBox ItemsSource="{Binding Mod.Releases}" 
-                              SelectedItem="{Binding EnabledRelease}"
+                              SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
                               DisplayMemberPath="Tag"
                               Grid.Row="1" 
                               Grid.Column="1" 
                               Height="NaN" 
                               Margin="5" 
-                              VerticalAlignment="Stretch" 
+                              VerticalAlignment="Stretch"
                               Width="NaN" FontSize="18"/>
                 </Grid>
             </Grid>
@@ -142,7 +142,7 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Text="Installation Type:" Grid.Row="0" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <ComboBox SelectedItem="{Binding InstallationType}" ItemsSource="{Binding AllInstallationTypes}" Grid.Row="1" Grid.ColumnSpan ="2" Margin="0,0,0,0" HorizontalAlignment="Stretch" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />
+                <ComboBox SelectedItem="{Binding InstallationType,Mode=TwoWay}" ItemsSource="{Binding AllInstallationTypes}" Grid.Row="1" Grid.ColumnSpan ="2" Margin="0,0,0,0" HorizontalAlignment="Stretch" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />
                 <CheckBox IsChecked="{Binding EnablePluginLogging }" Grid.Row="2" Grid.ColumnSpan ="2" Content="Enable Plugin Logging" Margin="5,10,0,0" HorizontalAlignment="Left" Width="290"/>
                 <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Row="3" Grid.ColumnSpan ="2" Content="Enable Automatic Plugin Updates and Downloads" Margin="5,10,5,0"/>
                 <TextBlock Text="CLI Args:" Grid.Row="4" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>

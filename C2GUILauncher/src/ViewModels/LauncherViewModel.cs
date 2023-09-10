@@ -10,6 +10,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Diagnostics;
+using System.Windows.Controls;
+using System.Runtime.InteropServices;
+using C2GUILauncher.ViewModels;
 
 namespace C2GUILauncher.ViewModels {
 
@@ -17,8 +21,11 @@ namespace C2GUILauncher.ViewModels {
     public class LauncherViewModel {
         public ICommand LaunchVanillaCommand { get; }
         public ICommand LaunchModdedCommand { get; }
+        public ICommand LaunchServerCommand { get; }
+        public ICommand LaunchServerHeadlessCommand { get; }
 
         private SettingsViewModel Settings { get; }
+        private ServerSettingsViewModel ServerSettings { get; }
 
         private ModManager ModManager { get; }
 
@@ -28,14 +35,18 @@ namespace C2GUILauncher.ViewModels {
 
         private Window Window;
 
-        public LauncherViewModel(Window window, SettingsViewModel settings, ModManager modManager) {
+
+        public LauncherViewModel(Window window, SettingsViewModel settings, ServerSettingsViewModel serverSettings, ModManager modManager) {
             CanClick = true;
 
             this.Settings = settings;
+            this.ServerSettings = serverSettings;
             this.ModManager = modManager;
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
-            this.LaunchModdedCommand = new RelayCommand(LaunchModded);
+            this.LaunchModdedCommand = new RelayCommand(() => LaunchModded(null)); //ugly wrapper lambda
+            this.LaunchServerCommand = new RelayCommand(LaunchServer);
+            this.LaunchServerHeadlessCommand = new RelayCommand(LaunchServerHeadless);
             this.Window = window;
         }
 
@@ -52,7 +63,7 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        private void LaunchModded() {
+        private void LaunchModded(Process? serverRegister = null) {
             // For a modded installation we need to download the mod files and then launch via the modded launcher.
             // For steam installations, args do not get passed through.
 
@@ -77,17 +88,17 @@ namespace C2GUILauncher.ViewModels {
                     Chivalry2Launchers.ModdedLauncher.Dlls = dlls;
                     var process = Chivalry2Launchers.ModdedLauncher.Launch(args);
 
+                    serverRegister?.Start();
 
                     await Window.Dispatcher.BeginInvoke((Action)delegate () {
                         Window.Hide();
                     });
 
                     await process.WaitForExitAsync();
-
+                    serverRegister?.CloseMainWindow();
                     await Window.Dispatcher.BeginInvoke((Action)delegate () {
                         Window.Close();
                     });
-
                 } catch (Exception ex) {
                     MessageBox.Show(ex.ToString());
                 }
@@ -95,6 +106,87 @@ namespace C2GUILauncher.ViewModels {
 
             launchThread.Start();
             CanClick = false;
+        }
+
+        private Process? makeRegistrationProcess() {
+            if (!File.Exists("RegisterUnchainedServer.exe")) {
+                DownloadTask serverRegisterDownload = HttpHelpers.DownloadFileAsync(
+                "https://github.com/Chiv2-Community/C2ServerAPI/releases/latest/download/RegisterUnchainedServer.exe",
+                "./RegisterUnchainedServer.exe"); //TODO: this breaks if `./` is not used as the directory. This is HttpHelpers' fault
+
+                serverRegisterDownload.Task.Wait();
+                if (!serverRegisterDownload.Task.IsCompletedSuccessfully) {
+                    MessageBox.Show("Failed to download the Unchained server registration program:\n" +
+                        serverRegisterDownload?.Task.Exception?.Message);
+                    return null;
+                }
+            }
+
+            Process serverRegister = new Process();
+            //We *must* use cmd.exe as a wrapper to start RegisterUnchainedServer.exe, otherwise we have no way to
+            //close the window later
+
+            //TODO: Get this to actually be able to be closed
+            serverRegister.StartInfo.FileName = "cmd.exe";
+            
+            string registerCommand = $"RegisterUnchainedServer.exe " +
+                $"-n ^\"{ServerSettings.serverName.Replace("\"", "^\"")}^\" " +
+                $"-d ^\"{ServerSettings.serverDescription.Replace("\"", "^\"").Replace("\n", "^\n")}^\" " +
+                $"-r ^\"{ServerSettings.serverList}^\" " +
+                $"-c ^\"{ServerSettings.rconPort}^\"";
+            serverRegister.StartInfo.Arguments = $"/c \"{registerCommand}\"";
+            serverRegister.StartInfo.CreateNoWindow = false;
+            //MessageBox.Show($"{serverRegister.StartInfo.Arguments}");
+
+            return serverRegister;
+        }
+
+        private void LaunchServer() {
+            try {
+                Process? serverRegister = makeRegistrationProcess();
+                if (serverRegister == null) {
+                    return;
+                }
+                CLIArgsModified = true;
+                List<string> cliArgs = this.Settings.CLIArgs.Split(" ").ToList();
+                cliArgs.Add($"-port {ServerSettings.gamePort}");
+
+                this.Settings.CLIArgs = string.Join(" ", cliArgs);
+                LaunchModded(serverRegister);
+                
+            } catch (Exception ex) {
+                MessageBox.Show(ex.ToString());
+            }
+            
+        }
+
+        private void LaunchServerHeadless() {
+            Process? serverRegister = makeRegistrationProcess();
+            if (serverRegister == null) {
+                return;
+            }
+
+            try {
+                //modify command line args and enable required mods for RCON connectivity
+                string RCONMap = "agmods?map=frontend?rcon"; //ensure the RCON zombie blueprint gets started
+                CLIArgsModified = true;
+                List<string> cliArgs = this.Settings.CLIArgs.Split(" ").ToList();
+                int TBLloc = cliArgs.IndexOf("TBL");
+                cliArgs.Insert(TBLloc, RCONMap);
+                cliArgs.Add($"-port {ServerSettings.gamePort}");
+                cliArgs.Add("-nullrhi"); //disable rendering
+                //this isn't used, but will be needed later
+                cliArgs.Add($"-rcon {ServerSettings.rconPort}"); //let the serverplugin know that we want RCON running on the given port
+                cliArgs.Add("-RenderOffScreen"); //super-disable rendering
+                cliArgs.Add("-unattended"); //let it know no one's around to help
+                cliArgs.Add("-nosound"); //disable sound
+
+                this.Settings.CLIArgs = string.Join(" ", cliArgs);
+            } catch(Exception ex) {
+                MessageBox.Show(ex.ToString());
+            }
+
+            LaunchModded(serverRegister);
         }
 
         private InstallationType GetInstallationType() {

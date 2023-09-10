@@ -131,6 +131,7 @@ namespace C2GUILauncher.ViewModels {
                         $".\\Chivalry2Launcher.exe {commandLinePass}";
                         pwsh.StartInfo.Arguments = $"-Command \"{powershellCommand}\"";
                         pwsh.StartInfo.CreateNoWindow = true;
+                        
                         pwsh.Start();
                         MessageBox.Show("The launcher will now close and start the new version. No further action must be taken.");
                         window?.Close(); //close the program

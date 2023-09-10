@@ -165,9 +165,24 @@ namespace C2GUILauncher.ViewModels {
 
             try {
                 //modify command line args and enable required mods for RCON connectivity
-                string RCONMap = "agmods?map=frontend?rcon"; //ensure the RCON zombie blueprint gets started
+                string RCONMap = "agmods?map=ffa_courtyard?rcon"; //ensure the RCON zombie blueprint gets started
+                if (this.ModManager.EnabledModReleases.Any()) {
+                    string modsString = this.ModManager.EnabledModReleases
+                        .Select(mod => mod.Manifest)
+                        .Where(manifest => manifest.Tags.Contains("Mods"))
+                        .Select(manifest => manifest.Name.Replace(" ", ""))
+                        .Aggregate("?mods=", (agg, name) => agg + name + ",");
+                    modsString = modsString.Substring(0, modsString.Length - 1); //cut off dangling comma
+                    RCONMap += modsString;
+                }
+
+                MessageBox.Show(RCONMap);
+                
                 List<string> cliArgs = this.Settings.CLIArgs.Split(" ").ToList();
                 int TBLloc = cliArgs.IndexOf("TBL");
+                if (TBLloc == -1) {
+                    TBLloc = 0;
+                }
                 cliArgs.Insert(TBLloc, RCONMap);
                 cliArgs.Add($"-port {ServerSettings.gamePort}");
                 cliArgs.Add("-nullrhi"); //disable rendering

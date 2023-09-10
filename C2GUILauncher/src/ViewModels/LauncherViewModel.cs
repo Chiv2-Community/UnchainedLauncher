@@ -115,6 +115,8 @@ namespace C2GUILauncher.ViewModels {
             Process serverRegister = new Process();
             //We *must* use cmd.exe as a wrapper to start RegisterUnchainedServer.exe, otherwise we have no way to
             //close the window later
+
+            //TODO: Get this to actually be able to be closed
             serverRegister.StartInfo.FileName = "cmd.exe";
             
             string registerCommand = $"RegisterUnchainedServer.exe " +
@@ -123,6 +125,7 @@ namespace C2GUILauncher.ViewModels {
                 $"-r ^\"{ServerSettings.serverList}^\" " +
                 $"-c ^\"{ServerSettings.rconPort}^\"";
             serverRegister.StartInfo.Arguments = $"/c \"{registerCommand}\"";
+            serverRegister.StartInfo.CreateNoWindow = false;
             //MessageBox.Show($"{serverRegister.StartInfo.Arguments}");
 
             return serverRegister;

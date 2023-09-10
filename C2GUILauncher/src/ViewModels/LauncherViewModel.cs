@@ -31,8 +31,6 @@ namespace C2GUILauncher.ViewModels {
 
         public bool CanClick { get; set; }
 
-        private bool CLIArgsModified { get; set; }
-
         private Window Window;
 
 
@@ -72,7 +70,7 @@ namespace C2GUILauncher.ViewModels {
             if (installationType == InstallationType.NotSet) return;
 
             // Pass args through if the args box has been modified, or if we're an EGS install
-            var shouldSendArgs = installationType == InstallationType.EpicGamesStore || this.CLIArgsModified;
+            var shouldSendArgs = installationType == InstallationType.EpicGamesStore || this.Settings.CLIArgsModified;
 
             // pass empty string for args, if we shouldn't send any.
             var args = shouldSendArgs ? this.Settings.CLIArgs : "";
@@ -147,7 +145,6 @@ namespace C2GUILauncher.ViewModels {
                 if (serverRegister == null) {
                     return;
                 }
-                CLIArgsModified = true;
                 List<string> cliArgs = this.Settings.CLIArgs.Split(" ").ToList();
                 cliArgs.Add($"-port {ServerSettings.gamePort}");
 
@@ -169,7 +166,6 @@ namespace C2GUILauncher.ViewModels {
             try {
                 //modify command line args and enable required mods for RCON connectivity
                 string RCONMap = "agmods?map=frontend?rcon"; //ensure the RCON zombie blueprint gets started
-                CLIArgsModified = true;
                 List<string> cliArgs = this.Settings.CLIArgs.Split(" ").ToList();
                 int TBLloc = cliArgs.IndexOf("TBL");
                 cliArgs.Insert(TBLloc, RCONMap);

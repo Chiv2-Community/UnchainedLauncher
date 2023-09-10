@@ -14,14 +14,25 @@ using System.Windows.Input;
 namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class SettingsViewModel {
-        public static readonly int[] version = { 0, 4, 1 };
+        public static readonly int[] version = { 0, 4, 3 };
 
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_settings.json";
 
         public InstallationType InstallationType { get; set; }
         public bool EnablePluginLogging { get; set; }
         public bool EnablePluginAutomaticUpdates { get; set; }
-        public string CLIArgs { get; set; }
+
+        public string _cliArgs;
+        public string CLIArgs {
+            get { return _cliArgs; }
+            set {
+                if (value != _cliArgs) {
+                    CLIArgsModified = true;
+                }
+                _cliArgs = value;
+            }
+        }
+        public bool CLIArgsModified { get; set; }
 
         public string CurrentVersion {
             get => "v" + string.Join(".", version.Select(x => x.ToString()));
@@ -37,7 +48,8 @@ namespace C2GUILauncher.ViewModels {
             InstallationType = installationType;
             EnablePluginLogging = enablePluginLogging;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
-            CLIArgs = cliArgs;
+            _cliArgs = cliArgs;
+            CLIArgsModified = false;
 
             CheckForUpdateCommand = new RelayCommand<Window?>(CheckForUpdate);
         }

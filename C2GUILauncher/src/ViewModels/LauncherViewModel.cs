@@ -42,7 +42,9 @@ namespace C2GUILauncher.ViewModels {
             this.ModManager = modManager;
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
-            this.LaunchModdedCommand = new RelayCommand(() => LaunchModded(null)); //ugly wrapper lambda
+            this.LaunchModdedCommand = new RelayCommand(
+                () => LaunchModded("agmods?map=frontend" + buildModsString())
+            ); //ugly wrapper lambda
             this.LaunchServerCommand = new RelayCommand(LaunchServer);
             this.LaunchServerHeadlessCommand = new RelayCommand(LaunchServerHeadless);
             this.Window = window;
@@ -61,7 +63,7 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        private void LaunchModded(Process? serverRegister = null) {
+        private void LaunchModded(string mapTarget, string[]? exArgs = null, Process? serverRegister = null) {
             // For a modded installation we need to download the mod files and then launch via the modded launcher.
             // For steam installations, args do not get passed through.
 
@@ -74,6 +76,19 @@ namespace C2GUILauncher.ViewModels {
 
             // pass empty string for args, if we shouldn't send any.
             var args = shouldSendArgs ? this.Settings.CLIArgs : "";
+
+            //setup necessary cli args for a modded launch
+            List<string> cliArgs = args.Split(" ").ToList();
+            int TBLloc = cliArgs.IndexOf("TBL") + 1;
+
+            //add map target for agmods built by caller. This looks like "agmods?map=frontend?mods=...?rcon"
+            cliArgs.Insert(TBLloc, mapTarget);
+            //add extra args like -nullrhi or -rcon
+            if (exArgs != null) {
+                cliArgs.AddRange(exArgs); 
+            }
+
+            args = string.Join(" ", cliArgs);
 
             // Download the mod files, potentially using debug dlls
             var launchThread = new Thread(async () => {
@@ -139,17 +154,31 @@ namespace C2GUILauncher.ViewModels {
             return serverRegister;
         }
 
+        private string buildModsString(bool server = false) {
+            if (this.ModManager.EnabledModReleases.Any()) {
+                string modsString = this.ModManager.EnabledModReleases
+                    .Select(mod => mod.Manifest) //TODO: set up tags so that "server" and "mods" aren't conflicting in uses
+                    .Where(manifest => manifest.Tags.Contains("Mods") || (manifest.Tags.Contains("Server") /*&& server*/))
+                    .Select(manifest => manifest.Name.Replace(" ", ""))
+                    .Aggregate("?mods=", (agg, name) => agg + name + ",");
+                modsString = modsString.Substring(0, modsString.Length - 1); //cut off dangling comma
+                return modsString;
+            } else {
+                return "";
+            }
+        }
+
         private void LaunchServer() {
             try {
                 Process? serverRegister = makeRegistrationProcess();
                 if (serverRegister == null) {
                     return;
                 }
-                List<string> cliArgs = this.Settings.CLIArgs.Split(" ").ToList();
-                cliArgs.Add($"-port {ServerSettings.gamePort}");
+                
+                string loaderMap = "agmods?map=frontend" + buildModsString();
+                string[] exArgs = { $"-port {ServerSettings.gamePort}" };
 
-                this.Settings.CLIArgs = string.Join(" ", cliArgs);
-                LaunchModded(serverRegister);
+                LaunchModded(loaderMap, exArgs, serverRegister);
                 
             } catch (Exception ex) {
                 MessageBox.Show(ex.ToString());
@@ -165,39 +194,22 @@ namespace C2GUILauncher.ViewModels {
 
             try {
                 //modify command line args and enable required mods for RCON connectivity
-                string RCONMap = "agmods?map=ffa_courtyard?rcon"; //ensure the RCON zombie blueprint gets started
-                if (this.ModManager.EnabledModReleases.Any()) {
-                    string modsString = this.ModManager.EnabledModReleases
-                        .Select(mod => mod.Manifest)
-                        .Where(manifest => manifest.Tags.Contains("Mods"))
-                        .Select(manifest => manifest.Name.Replace(" ", ""))
-                        .Aggregate("?mods=", (agg, name) => agg + name + ",");
-                    modsString = modsString.Substring(0, modsString.Length - 1); //cut off dangling comma
-                    RCONMap += modsString;
-                }
+                string RCONMap = "agmods?map=frontend?rcon" + buildModsString(); //ensure the RCON zombie blueprint gets started
 
-                MessageBox.Show(RCONMap);
-                
-                List<string> cliArgs = this.Settings.CLIArgs.Split(" ").ToList();
-                int TBLloc = cliArgs.IndexOf("TBL");
-                if (TBLloc == -1) {
-                    TBLloc = 0;
-                }
-                cliArgs.Insert(TBLloc, RCONMap);
-                cliArgs.Add($"-port {ServerSettings.gamePort}");
-                cliArgs.Add("-nullrhi"); //disable rendering
-                //this isn't used, but will be needed later
-                cliArgs.Add($"-rcon {ServerSettings.rconPort}"); //let the serverplugin know that we want RCON running on the given port
-                cliArgs.Add("-RenderOffScreen"); //super-disable rendering
-                cliArgs.Add("-unattended"); //let it know no one's around to help
-                cliArgs.Add("-nosound"); //disable sound
+                //MessageBox.Show(RCONMap);
 
-                this.Settings.CLIArgs = string.Join(" ", cliArgs);
+                string[] exArgs = { 
+                    $"-port {ServerSettings.gamePort}", //specify server port
+                    "-nullrhi", //disable rendering
+                    $"-rcon {ServerSettings.rconPort}", //let the serverplugin know that we want RCON running on the given port
+                    "-RenderOffScreen", //super-disable rendering
+                    "-unattended", //let it know no one's around to help
+                    "-nosound" //disable sound
+                };
+                LaunchModded(RCONMap, exArgs, serverRegister);
             } catch(Exception ex) {
                 MessageBox.Show(ex.ToString());
             }
-
-            LaunchModded(serverRegister);
         }
 
         private InstallationType GetInstallationType() {
@@ -211,8 +223,6 @@ namespace C2GUILauncher.ViewModels {
 
             return installationType;
         }
-
-
 
         private static class InstallationTypeUtils {
             const string SteamPathSearchString = "Steam";

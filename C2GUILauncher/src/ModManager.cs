@@ -4,8 +4,10 @@ using NLog;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.DirectoryServices;
 using System.IO;
 using System.Linq;
+using System.Runtime.Intrinsics.Arm;
 using System.Threading.Tasks;
 
 namespace C2GUILauncher.Mods {
@@ -93,94 +95,104 @@ namespace C2GUILauncher.Mods {
             return EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl);
         }
 
-        public ModDisableResult DisableModRelease(Release release, bool force, bool cascade) {
+        public void DisableModRelease(Release release) {
             logger.Info("Disabling mod release: " + release.Manifest.Name + " @" + release.Tag);
 
-            var dependents = GetDependents(release);
-            ModDisableResult result = ModDisableResult.Success;
+            // Should be doing this when all downloads get done, but cba to do it better right now.
+            FileHelpers.DeleteFile(PakDir + "\\" + release.PakFileName);
 
-            if (dependents.Any()) {
-                if (!force) {
-                    result += ModDisableResult.Conflicts(dependents);
-                }
+            var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
+            var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
+            var metadataFilePath = orgPath + "\\" + urlParts.Last() + ".json";
+            FileHelpers.DeleteFile(metadataFilePath);
 
-                if (cascade) {
-                    foreach (var dependent in dependents) {
-                        result += DisableModRelease(dependent, force, cascade);
-                    }
-                }
-            }
-
-            if (result.Successful) {
-                var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
-
-                var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
-                var metadataFilePath = orgPath + "\\" + urlParts.Last() + ".json";
-                var pakFilePath = PakDir + "\\" + release.PakFileName;
-
-                var fileList = new List<string> { pakFilePath, metadataFilePath };
-
-                var deleteResult = FileHelpers.DeleteFiles(fileList);
-
-                if (deleteResult) {
-                    EnabledModReleases.Remove(release);
-                } else {
-                    result += ModDisableResult.Locked(release);
-                }
-            }
-
-            return result;
+            EnabledModReleases.Remove(release);
         }
 
-        private List<Release> GetDependents(Release targetRelease) {
-            return EnabledModReleases
-              .Where(otherRelease => otherRelease.Manifest.RepoUrl != targetRelease.Manifest.RepoUrl) // Filter out the target release
-              .Where(otherRelease => otherRelease.Manifest.Dependencies.Any(dep => dep.RepoUrl == targetRelease.Manifest.RepoUrl)) // Get anything depending on the target release
-              .ToList();
-        }
-
-        public ModEnableResult EnableModRelease(Release release) {
+        public void EnableModRelease(Release release) {
             logger.Debug("Enabling mod release: " + release.Manifest.Name + " @" + release.Tag);
             var associatedMod = this.Mods.First(Mods => Mods.Releases.Contains(release));
-
-            if (associatedMod == null)
-                return ModEnableResult.Fail("Selected release not found in mod list: " + release.Manifest.Name + " @" + release.Tag);
-
-            var result = ModEnableResult.Success;
-
-            var enabledModRelease = GetCurrentlyEnabledReleaseForMod(associatedMod);
-
-            if (enabledModRelease != null) {
-                // If its already enabled and the download was successful, just return success
-                if (enabledModRelease == release && !FailedDownloads.Any(x => x.Release == release))
-                    return ModEnableResult.Success;
-
-                result += ModEnableResult.Warn("Mod already enabled with different version: " + enabledModRelease.Manifest.Name + " @" + enabledModRelease.Tag);
+            var currentlyEnabledRelease = GetCurrentlyEnabledReleaseForMod(associatedMod);
+            if (currentlyEnabledRelease != null) {
+                  DisableModRelease(currentlyEnabledRelease);
             }
 
-            foreach (var dependency in release.Manifest.Dependencies) {
-                var dependencyRelease =
-                    this.Mods
-                        .FirstOrDefault(mod => mod.LatestManifest.RepoUrl == dependency.RepoUrl)?.Releases
-                        .FirstOrDefault(release => release.Tag == dependency.Version);
+            this.EnabledModReleases.Add(release);
+        }
 
-                if (dependencyRelease == null)
-                    result += ModEnableResult.Fail("Dependency not found: " + dependency.RepoUrl + " @" + dependency.Version);
-                else
-                    result += EnableModRelease(dependencyRelease);
-            }
+        public async Task UpdateModsList() {
+            Mods.Clear();
 
-            var downloadResult = DownloadModRelease(release);
+            await HttpHelpers.DownloadFileAsync(CoreMods.PackageDBPackageListUrl, CoreMods.ModsCachePackageDBListPath).Task;
 
-            if (FileHelpers.IsFileLocked(downloadResult.DownloadTask.Target.OutputPath!)) {
-                // We'll still pretend like we downloaded and changed things, but we'll return a warning about the lock too
-                result += ModEnableResult.Locked(release);
-            } else {
-                PendingDownloads.Add(downloadResult);
-                EnabledModReleases.Add(release);
-            }
+            var packageListString = File.ReadAllText(CoreMods.ModsCachePackageDBListPath);
+            var packageNameToMetadataPath = (String s) => $"{CoreMods.PackageDBBaseUrl}/packages/{s}.json";
+            var packageNameToFilePath = (String s) => $"{CoreMods.ModsCachePackageDBPackagesDir}\\{s}.json";
 
-            return result;
+            var packages = packageListString.Split("\n").Where(s => s.Length > 0);
+
+            var downloadTasks = packages
+                .Select(packageName => HttpHelpers.DownloadFileAsync(packageNameToMetadataPath(packageName), packageNameToFilePath(packageName)))
+                .Select(async downloadTask => {
+                    await downloadTask.Task;
+                    var fileLocation = downloadTask.Target.OutputPath!;
+                    var mod = JsonConvert.DeserializeObject<Mod>(await File.ReadAllTextAsync(fileLocation));
+                    if (mod != null)
+                        Mods.Add(mod);
+                    return mod;
+                })
+                .ToList();
+
+            await Task.WhenAll(downloadTasks);
+        }
+
+        public IEnumerable<ModReleaseDownloadTask> DownloadModFiles(bool debug) {
+            Directory.CreateDirectory(FilePaths.PluginDir);
+            var downloadFileSuffix = debug ? "_dbg.dll" : ".dll";
+
+            var DeprecatedLibs = new List<String>()
+            {
+                CoreMods.AssetLoaderPluginPath,
+                CoreMods.ServerPluginPath,
+                CoreMods.BrowserPluginPath
+            };
+
+            foreach (var depr in DeprecatedLibs)
+                FileHelpers.DeleteFile(depr);
+
+
+            var coreMods = new List<DownloadTarget>() {
+                new DownloadTarget(CoreMods.UnchainedPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.UnchainedPluginPath)
+            };
+
+            var coreModsDownloads = HttpHelpers.DownloadAllFiles(coreMods);
+
+            var coreModsModReleaseDownloadTasks = 
+                coreModsDownloads.Select(downloadTask => new ModReleaseDownloadTask(
+                    // Stubbing this object out so the task can be displayed with the normal mod download tasks
+                    new Release(
+                        "latest", 
+                        "", 
+                        "",
+                        DateTime.Now, 
+                        new ModManifest(
+                            "",
+                            downloadTask.Target.OutputPath!.Split("/").Last(), 
+                            "", 
+                            "", 
+                            "", 
+                            ModType.Shared, 
+                            new List<string>(), 
+                            new List<Dependency>(), 
+                            new List<string>()
+                        )
+                    ),
+                    downloadTask
+                ));
+
+            var tasks = EnabledModReleases.ToList().Select(DownloadModRelease);
+
+            return coreModsModReleaseDownloadTasks.Concat(tasks);
         }
 
         private ModReleaseDownloadTask DownloadModRelease(Release release) {
@@ -216,102 +228,22 @@ namespace C2GUILauncher.Mods {
 
             return downloadTask;
         }
-
-        public async Task UpdateModsList() {
-            Mods.Clear();
-
-            await HttpHelpers.DownloadFileAsync(CoreMods.PackageDBPackageListUrl, CoreMods.ModsCachePackageDBListPath).Task;
-
-            var packageListString = File.ReadAllText(CoreMods.ModsCachePackageDBListPath);
-            var packageNameToMetadataPath = (String s) => $"{CoreMods.PackageDBBaseUrl}/packages/{s}.json";
-            var packageNameToFilePath = (String s) => $"{CoreMods.ModsCachePackageDBPackagesDir}\\{s}.json";
-
-            var packages = packageListString.Split("\n").Where(s => s.Length > 0);
-
-            var downloadTasks = packages
-                .Select(packageName => HttpHelpers.DownloadFileAsync(packageNameToMetadataPath(packageName), packageNameToFilePath(packageName)))
-                .Select(async downloadTask => {
-                    await downloadTask.Task;
-                    var fileLocation = downloadTask.Target.OutputPath!;
-                    var mod = JsonConvert.DeserializeObject<Mod>(await File.ReadAllTextAsync(fileLocation));
-                    if (mod != null)
-                        Mods.Add(mod);
-                    return mod;
-                })
-                .ToList();
-
-            await Task.WhenAll(downloadTasks);
-        }
-
-        // TODO: Somehow move this around. this function downloads the plugins, not the mods
-        public IEnumerable<DownloadTask> DownloadModFiles(bool debug) {
-            // Create plugins dir. This method does nothing if the directory already exists.
-            Directory.CreateDirectory(FilePaths.PluginDir);
-
-            // All Chiv2-Community dll releases have an optional _dbg suffix for debug builds.
-            var downloadFileSuffix = debug ? "_dbg.dll" : ".dll";
-
-            // These are the core mods necessary for asset loading, server hosting, server browser usage, and the injector itself.
-            // Please forgive the jank debug dll implementation. It'll be less jank after we aren't using hardcoded paths
-            var coreMods = new List<DownloadTarget>() {
-                new DownloadTarget(CoreMods.UnchainedPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.UnchainedPluginPath)
-            };
-
-            var DeprecatedLibs = new List<String>()
-            {
-                CoreMods.AssetLoaderPluginPath,
-                CoreMods.ServerPluginPath,
-                CoreMods.BrowserPluginPath
-            };
-
-            foreach (var depr in DeprecatedLibs)
-                FileHelpers.DeleteFile(depr);
-
-            return HttpHelpers.DownloadAllFiles(coreMods);
-        }
     }
 
 
-    public record ModEnableResult(bool Successful, List<string> Failures, List<string> Warnings) {
-        public static ModEnableResult Success => new ModEnableResult(true, new List<string>(), new List<string>());
-
-        public static ModEnableResult Fail(string failure) => new ModEnableResult(false, new List<string>() { failure }, new List<string>());
-        public static ModEnableResult Fails(List<string> failures) => new ModEnableResult(false, failures, new List<string>());
-
-        public static ModEnableResult Warn(string warning) => Warns(new List<string>() { warning });
-        public static ModEnableResult Warns(List<string> warnings) => new ModEnableResult(true, new List<string>(), warnings);
-
-        public static ModEnableResult Locked(Release lockedRelease) => Warn($"Mod {lockedRelease.Manifest.Name} is locked and will remain unchanged.");
-
-        public static ModEnableResult operator +(ModEnableResult a, ModEnableResult b) {
-            return new ModEnableResult(
+    public record ResolveReleasesResult(bool Successful, List<Release> Releases, List<DependencyConflict> Conflicts) {
+        public static ResolveReleasesResult Success(List<Release> releases) { return new ResolveReleasesResult(true, releases, new List<DependencyConflict>()); }
+        public static ResolveReleasesResult Failure(List<DependencyConflict> conflicts) { return new ResolveReleasesResult(false, new List<Release>(), conflicts); }
+        public static ResolveReleasesResult operator +(ResolveReleasesResult a, ResolveReleasesResult b) {
+            return new ResolveReleasesResult(
                 a.Successful && b.Successful,
-                a.Failures.Concat(b.Failures).ToList(),
-                a.Warnings.Concat(b.Warnings).ToList()
+                a.Releases.Concat(b.Releases).ToList(),
+                a.Conflicts.Concat(b.Conflicts).ToList()
             );
         }
     }
 
-    public record ModDisableResult(bool Successful, List<Release> DependencyConflicts, List<Release> Locks) {
-        public static ModDisableResult Success => new ModDisableResult(true, new List<Release>(), new List<Release>());
-
-        public static ModDisableResult Conflict(Release conflict) => Conflicts(new List<Release>() { conflict });
-        public static ModDisableResult Conflicts(List<Release> conflicts) => new ModDisableResult(false, conflicts, new List<Release>());
-
-        public static ModDisableResult Locked(Release lockedRelease) => Lockeds(new List<Release>() { lockedRelease });
-
-        // Locks happen when a user has manually imposed a lock on a release. This is not a conflict, but it does prevent the mod from being disabled.
-        // As such, success is still "true" but the locks are returned so that the user can be informed of them.
-        public static ModDisableResult Lockeds(List<Release> lockedReleases) => new ModDisableResult(true, new List<Release>(), lockedReleases);
-
-        public static ModDisableResult operator +(ModDisableResult a, ModDisableResult b) {
-            return new ModDisableResult(
-                a.Successful && b.Successful,
-                a.DependencyConflicts.Concat(b.DependencyConflicts).ToList(),
-                a.Locks.Concat(b.Locks).ToList()
-            );
-        }
-    }
+    public record DependencyConflict(List<Tuple<Release, Dependency>> Dependents);
 
     public record ModReleaseDownloadTask(Release Release, DownloadTask DownloadTask);
 }

@@ -121,16 +121,16 @@ namespace C2GUILauncher.ViewModels {
             CanClick = false;
         }
 
-        private Process? makeRegistrationProcess() {
+        private async Task<Process?> makeRegistrationProcess() {
             if (!File.Exists("RegisterUnchainedServer.exe")) {
                 DownloadTask serverRegisterDownload = HttpHelpers.DownloadFileAsync(
                 "https://github.com/Chiv2-Community/C2ServerAPI/releases/latest/download/RegisterUnchainedServer.exe",
                 "./RegisterUnchainedServer.exe"); //TODO: this breaks if `./` is not used as the directory. This is HttpHelpers' fault
 
-                serverRegisterDownload.Task.Wait();
-                if (!serverRegisterDownload.Task.IsCompletedSuccessfully) {
-                    MessageBox.Show("Failed to download the Unchained server registration program:\n" +
-                        serverRegisterDownload?.Task.Exception?.Message);
+                try {
+                    await serverRegisterDownload.Task;
+                } catch (Exception e) {
+                    MessageBox.Show("Failed to download the Unchained server registration program:\n" + e.Message);
                     return null;
                 }
             }
@@ -157,8 +157,9 @@ namespace C2GUILauncher.ViewModels {
         private string buildModsString(bool server = false) {
             if (this.ModManager.EnabledModReleases.Any()) {
                 string modsString = this.ModManager.EnabledModReleases
-                    .Select(mod => mod.Manifest) //TODO: set up tags so that "server" and "mods" aren't conflicting in uses
-                    .Where(manifest => manifest.Tags.Contains("Mods") || (manifest.Tags.Contains("Server") /*&& server*/))
+                    .Select(mod => mod.Manifest)
+                    .Where(manifest => manifest.ModType == ModType.Server || manifest.ModType == ModType.Shared)
+                    .Where(manifest => manifest.Tags.Any(x => x.Contains("Mod")))
                     .Select(manifest => manifest.Name.Replace(" ", ""))
                     .Aggregate("?mods=", (agg, name) => agg + name + ",");
                 modsString = modsString.Substring(0, modsString.Length - 1); //cut off dangling comma
@@ -168,14 +169,14 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        private void LaunchServer() {
+        private async void LaunchServer() {
             try {
-                Process? serverRegister = makeRegistrationProcess();
+                Process? serverRegister = await makeRegistrationProcess();
                 if (serverRegister == null) {
                     return;
                 }
                 
-                string loaderMap = "agmods?map=frontend" + buildModsString();
+                string loaderMap = "agmods?map=frontend" + buildModsString() + "?listen";
                 string[] exArgs = { $"-port {ServerSettings.gamePort}" };
 
                 LaunchModded(loaderMap, exArgs, serverRegister);
@@ -186,15 +187,15 @@ namespace C2GUILauncher.ViewModels {
             
         }
 
-        private void LaunchServerHeadless() {
-            Process? serverRegister = makeRegistrationProcess();
+        private async void LaunchServerHeadless() {
+            Process? serverRegister = await makeRegistrationProcess();
             if (serverRegister == null) {
                 return;
             }
 
             try {
                 //modify command line args and enable required mods for RCON connectivity
-                string RCONMap = "agmods?map=frontend?rcon" + buildModsString(); //ensure the RCON zombie blueprint gets started
+                string RCONMap = "agmods?map=frontend?rcon" + buildModsString() + "?listen"; //ensure the RCON zombie blueprint gets started
 
                 //MessageBox.Show(RCONMap);
 

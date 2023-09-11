@@ -101,6 +101,11 @@ namespace C2GUILauncher.Mods {
             // Should be doing this when all downloads get done, but cba to do it better right now.
             FileHelpers.DeleteFile(PakDir + "\\" + release.PakFileName);
 
+            var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
+            var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
+            var metadataFilePath = orgPath + "\\" + urlParts.Last() + ".json";
+            FileHelpers.DeleteFile(metadataFilePath);
+
             EnabledModReleases.Remove(release);
         }
 

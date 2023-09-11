@@ -1,7 +1,6 @@
 ﻿using C2GUILauncher.JsonModels;
 using Newtonsoft.Json;
 using NLog;
-using Semver;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;

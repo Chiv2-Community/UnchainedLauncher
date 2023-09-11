@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Semver;
 using System;
 using System.Collections.Generic;
 
@@ -15,7 +16,9 @@ namespace C2GUILauncher.JsonModels {
         [property: JsonProperty("pak_file_name")] string PakFileName,
         [property: JsonProperty("release_date")] DateTime ReleaseDate,
         [property: JsonProperty("manifest")] ModManifest Manifest
-    );
+    ) {
+        // public Semver.SemVersion SemVersion => Semver.SemVersion.Parse(Tag, SemVersionStyles.Any);
+    };
 
     [JsonConverter(typeof(StringEnumConverter))]
     public enum ModType {
@@ -38,7 +41,9 @@ namespace C2GUILauncher.JsonModels {
     public record Dependency(
         [property: JsonProperty("repo_url")] string RepoUrl,
         [property: JsonProperty("version")] string Version
-    );
+    ) {
+        // public SemVersionRange SemVersionRange => SemVersionRange.Parse(Version);
+    }
 
     public record ModManifest(
         [property: JsonProperty("repo_url")] string RepoUrl,

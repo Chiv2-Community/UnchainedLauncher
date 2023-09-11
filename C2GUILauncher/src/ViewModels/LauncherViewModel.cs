@@ -79,8 +79,8 @@ namespace C2GUILauncher.ViewModels {
             var launchThread = new Thread(async () => {
                 try {
                     if (this.Settings.EnablePluginAutomaticUpdates) {
-                        List<DownloadTask> downloadTasks = this.ModManager.DownloadModFiles(this.Settings.EnablePluginLogging).ToList();
-                        await Task.WhenAll(downloadTasks.Select(x => x.Task));
+                        List<ModReleaseDownloadTask> downloadTasks = this.ModManager.DownloadModFiles(this.Settings.EnablePluginLogging).ToList();
+                        await Task.WhenAll(downloadTasks.Select(x => x.DownloadTask.Task));
                     }
                     var dlls = Directory.EnumerateFiles(Chivalry2Launchers.PluginDir, "*.dll").ToArray();
                     Chivalry2Launchers.ModdedLauncher.Dlls = dlls;

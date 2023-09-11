@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Semver;
 using System;
 using System.Collections.Generic;
 

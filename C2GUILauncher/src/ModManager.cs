@@ -1,4 +1,4 @@
-﻿using C2GUILauncher.JsonModels;
+﻿using C2GUILauncher.JsonModels.Metadata.V2;
 using Newtonsoft.Json;
 using NLog;
 using System;
@@ -72,12 +72,24 @@ namespace C2GUILauncher.Mods {
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBDir);
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBPackagesDir);
 
+            var parseRelease = (string s) => {
+                var maybeRelease = JsonConvert.DeserializeObject<Release>(s);
+
+                if(maybeRelease == null) {
+                    var maybeV1Release = JsonConvert.DeserializeObject<JsonModels.Metadata.V1.Release>(s);
+                    if(maybeV1Release != null) {
+                        maybeRelease = Release.FromV1(maybeV1Release);
+                    }
+                }
+
+                return maybeRelease;
+            };
+
             // List everything in the EnabledModsCacheDir and its direct subdirs, then deserialize and filter out any failures (null)
             var enabledModReleases =
                 Directory.GetDirectories(CoreMods.EnabledModsCacheDir)
-                    .SelectMany(x => Directory.GetFiles(x))
-                    .Select(x => JsonConvert.DeserializeObject<Release>(File.ReadAllText(x)))
-                    .Where(x => x != null);
+                    .SelectMany(Directory.GetFiles)
+                    .Select(parseRelease);
 
             enabledModReleases ??= new List<Release>();
 

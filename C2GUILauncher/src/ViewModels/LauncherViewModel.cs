@@ -1,4 +1,5 @@
 ﻿using C2GUILauncher.JsonModels;
+using C2GUILauncher.JsonModels.Metadata.V2;
 using C2GUILauncher.Mods;
 using CommunityToolkit.Mvvm.Input;
 using PropertyChanged;
@@ -31,7 +32,7 @@ namespace C2GUILauncher.ViewModels {
 
         public bool CanClick { get; set; }
 
-        private Window Window;
+        private readonly Window Window;
 
 
         public LauncherViewModel(Window window, SettingsViewModel settings, ServerSettingsViewModel serverSettings, ModManager modManager) {

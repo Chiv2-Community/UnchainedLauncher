@@ -27,13 +27,13 @@ namespace C2GUILauncher.JsonModels {
     }
     [JsonConverter(typeof(StringEnumConverter))]
     public enum ModTag {
-        Weapon,
-        Map,
-        Assets,
-        Framework,
-        Mod,
-        Gamemode,
-        Misc,
+        Mutator, 
+        Map, 
+        Cosmetic, 
+        Audio, 
+        Model, 
+        Weapon, 
+        Doodad,
         Explicit
     }
 
@@ -53,7 +53,8 @@ namespace C2GUILauncher.JsonModels {
         [property: JsonProperty("mod_type")] ModType ModType,
         [property: JsonProperty("authors")] List<string> Authors,
         [property: JsonProperty("dependencies")] List<Dependency> Dependencies,
-        [property: JsonProperty("tags")] List<string> Tags
+        [property: JsonProperty("tags")] List<ModTag> Tags,
+        [property: JsonProperty("ag_mod")] bool AgMod
     );
 
     public record Repo(string Org, string Name);

@@ -8,6 +8,7 @@ using System.DirectoryServices;
 using System.IO;
 using System.Linq;
 using System.Runtime.Intrinsics.Arm;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace C2GUILauncher.Mods {
@@ -184,7 +185,8 @@ namespace C2GUILauncher.Mods {
                             ModType.Shared, 
                             new List<string>(), 
                             new List<Dependency>(), 
-                            new List<string>()
+                            new List<ModTag>(),
+                            false
                         )
                     ),
                     downloadTask
@@ -221,6 +223,14 @@ namespace C2GUILauncher.Mods {
 
                     Directory.CreateDirectory(orgPath);
                     File.WriteAllText(filePath, enabledModJson);
+
+                    var shaHash = Convert.ToBase64String(SHA256.HashData(File.ReadAllBytes(outputPath)));
+
+                    if(shaHash != release.ReleaseHash) {
+                        logger.Error("Downloaded file hash does not match expected hash. Expected: " + release.ReleaseHash + " Got: " + shaHash);
+                        FailedDownloads.Add(downloadTask);
+                        throw new Exception("Downloaded file hash does not match expected hash. Expected: " + release.ReleaseHash + " Got: " + shaHash);
+                    }
 
                     PendingDownloads.Remove(downloadTask);
                 }

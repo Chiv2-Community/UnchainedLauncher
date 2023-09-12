@@ -30,7 +30,7 @@ namespace C2GUILauncher.ViewModels {
             this.DisplayMods = new ObservableCollection<ModViewModel>();
 
             this.ModFilters = new ObservableCollection<ModFilter>();
-            ModFilters.Add(new ModFilter("Explicit", FilterType.Exclude));
+            ModFilters.Add(new ModFilter(ModTag.Explicit, FilterType.Exclude));
 
             // Watch the mod manager for changes, and update our view accordingly
             this.ModManager.Mods.CollectionChanged += ModManager_ModList_CollectionChanged;
@@ -83,7 +83,7 @@ namespace C2GUILauncher.ViewModels {
         }
     }
 
-    public record ModFilter(string Tag, FilterType Type) {
+    public record ModFilter(ModTag Tag, FilterType Type) {
         public bool ShouldInclude(ModViewModel mod) {
             return Type switch {
                 FilterType.Include => mod.Mod.LatestManifest.Tags.Contains(Tag),

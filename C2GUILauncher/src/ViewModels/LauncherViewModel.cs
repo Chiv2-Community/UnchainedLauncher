@@ -159,7 +159,7 @@ namespace C2GUILauncher.ViewModels {
                 string modsString = this.ModManager.EnabledModReleases
                     .Select(mod => mod.Manifest)
                     .Where(manifest => manifest.ModType == ModType.Server || manifest.ModType == ModType.Shared)
-                    .Where(manifest => manifest.Tags.Any(x => x.Contains("Mod")))
+                    .Where(manifest => manifest.AgMod)
                     .Select(manifest => manifest.Name.Replace(" ", ""))
                     .Aggregate("?mods=", (agg, name) => agg + name + ",");
                 modsString = modsString.Substring(0, modsString.Length - 1); //cut off dangling comma

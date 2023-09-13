@@ -33,7 +33,7 @@ namespace C2GUILauncher {
                 );
             }
 
-            logger.Info($"Downloading file ${outputPath} from {url}");
+            logger.Info($"Downloading file {outputPath} from {url}");
             return new DownloadTask(
                 _httpClient.GetByteArrayAsync(url).ContinueWith(t => File.WriteAllBytes(outputPath, t.Result)),
                 new DownloadTarget(url, outputPath)
@@ -41,7 +41,7 @@ namespace C2GUILauncher {
         }
 
         public static DownloadTask<Stream> GetByteContentsAsync(string url) {
-            logger.Info($"Downloading file ${url}");
+            logger.Info($"Downloading file {url}");
             return new DownloadTask<Stream>(
                 _httpClient.GetStreamAsync(url),
                 new DownloadTarget(url, null)
@@ -49,7 +49,7 @@ namespace C2GUILauncher {
         }
 
         public static DownloadTask<string> GetStringContentsAsync(string url) {
-            logger.Info($"Downloading file ${url}");
+            logger.Info($"Downloading file {url}");
             return new DownloadTask<string>(
                 _httpClient.GetStringAsync(url),
                 new DownloadTarget(url, null)

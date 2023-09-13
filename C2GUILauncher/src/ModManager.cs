@@ -1,6 +1,6 @@
 ﻿using C2GUILauncher.JsonModels.Metadata.V2;
+using log4net;
 using Newtonsoft.Json;
-using NLog;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -38,7 +38,7 @@ namespace C2GUILauncher.Mods {
     }
 
     public class ModManager {
-        private static readonly Logger logger = LogManager.GetCurrentClassLogger();
+        private static ILog logger = LogManager.GetLogger("MainWindow");
 
         public string RegistryOrg { get; }
         public string RegistryRepoName { get; }
@@ -68,11 +68,6 @@ namespace C2GUILauncher.Mods {
         }
 
         public static ModManager ForRegistry(string registryOrg, string registryRepoName, string pakDir) {
-            // Create mod cache dirs if they don't exist
-            Directory.CreateDirectory(CoreMods.EnabledModsCacheDir);
-            Directory.CreateDirectory(CoreMods.ModsCachePackageDBDir);
-            Directory.CreateDirectory(CoreMods.ModsCachePackageDBPackagesDir);
-
             var loadReleaseMetadata = (string path) => {
                 if(!File.Exists(path)) {
                     logger.Warn("Failed to find metadata file: " + path);
@@ -97,13 +92,17 @@ namespace C2GUILauncher.Mods {
                 return deserializationResult.Result;
             };
 
-            // List everything in the EnabledModsCacheDir and its direct subdirs, then deserialize and filter out any failures (null)
-            var enabledModReleases =
-                Directory.GetDirectories(CoreMods.EnabledModsCacheDir)
-                    .SelectMany(Directory.GetFiles)
-                    .Select(loadReleaseMetadata);
+            var enabledModReleases = new List<Release>();
 
-            enabledModReleases ??= new List<Release>();
+            if (Directory.Exists(CoreMods.EnabledModsCacheDir)) {
+                // List everything in the EnabledModsCacheDir and its direct subdirs, then deserialize and filter out any failures (null)
+                enabledModReleases =
+                    Directory.GetDirectories(CoreMods.EnabledModsCacheDir)
+                        .SelectMany(Directory.GetFiles)
+                        .Select(loadReleaseMetadata)
+                        .ToList();
+            }
+
 
             return new ModManager(
                 registryOrg,
@@ -121,7 +120,7 @@ namespace C2GUILauncher.Mods {
         }
 
         public void DisableModRelease(Release release) {
-            logger.Info("Disabling mod release: " + release.Manifest.Name + " @" + release.Tag);
+            logger.Info("Disabling mod release: " + release.Manifest.Name + " " + release.Tag);
 
             // Should be doing this when all downloads get done, but cba to do it better right now.
             FileHelpers.DeleteFile(PakDir + "\\" + release.PakFileName);
@@ -135,19 +134,22 @@ namespace C2GUILauncher.Mods {
         }
 
         public void EnableModRelease(Release release) {
-            logger.Debug("Enabling mod release: " + release.Manifest.Name + " @" + release.Tag);
+            logger.Info("Enabling mod release: " + release.Manifest.Name + " " + release.Tag);
             var associatedMod = this.Mods.First(Mods => Mods.Releases.Contains(release));
             var currentlyEnabledRelease = GetCurrentlyEnabledReleaseForMod(associatedMod);
             if (currentlyEnabledRelease != null) {
-                  DisableModRelease(currentlyEnabledRelease);
+                logger.Info("Disabling currently enabled release: " + currentlyEnabledRelease.Manifest.Name + " " + currentlyEnabledRelease.Tag);
+                DisableModRelease(currentlyEnabledRelease);
             }
 
             this.EnabledModReleases.Add(release);
         }
 
         public async Task UpdateModsList() {
+            logger.Info("Updating mods list...");
             Mods.Clear();
 
+            logger.Info($"Downloading mod list from registry {RegistryOrg}/{RegistryRepoName}");
             await HttpHelpers.DownloadFileAsync(CoreMods.PackageDBPackageListUrl, CoreMods.ModsCachePackageDBListPath).Task;
 
             var packageListString = File.ReadAllText(CoreMods.ModsCachePackageDBListPath);
@@ -155,6 +157,8 @@ namespace C2GUILauncher.Mods {
             var packageNameToFilePath = (String s) => $"{CoreMods.ModsCachePackageDBPackagesDir}\\{s}.json";
 
             var packages = packageListString.Split("\n").Where(s => s.Length > 0);
+
+            logger.Info($"Found {packages.Count()} packages listed...");
 
             var downloadTasks = packages
                 .Select(packageName => HttpHelpers.DownloadFileAsync(packageNameToMetadataPath(packageName), packageNameToFilePath(packageName)))
@@ -172,7 +176,14 @@ namespace C2GUILauncher.Mods {
         }
 
         public IEnumerable<ModReleaseDownloadTask> DownloadModFiles(bool debug) {
+            logger.Info("Downloading mod files...");
+
+            logger.Info("Creating mod diretories...");
+            Directory.CreateDirectory(CoreMods.EnabledModsCacheDir);
+            Directory.CreateDirectory(CoreMods.ModsCachePackageDBDir);
+            Directory.CreateDirectory(CoreMods.ModsCachePackageDBPackagesDir);
             Directory.CreateDirectory(FilePaths.PluginDir);
+
             var downloadFileSuffix = debug ? "_dbg.dll" : ".dll";
 
             var DeprecatedLibs = new List<String>()
@@ -229,7 +240,26 @@ namespace C2GUILauncher.Mods {
             var downloadUrl = release.Manifest.RepoUrl + "/releases/download/" + release.Tag + "/" + release.PakFileName;
             var outputPath = PakDir + "\\" + release.PakFileName;
 
-            logger.Info("Beginning download of " + downloadUrl + " to " + outputPath);
+            if (File.Exists(outputPath)) {
+                var shaHash = Convert.ToBase64String(SHA256.HashData(File.ReadAllBytes(outputPath)));
+                logger.Debug(shaHash);
+                logger.Debug(release.ReleaseHash);
+
+                if (shaHash == release.ReleaseHash) {
+                    logger.Info($"Already downloaded {release.Manifest.Name} {release.Tag}. Skipping");
+
+                    // Already downloaded, so returning a completed task.
+                    return new ModReleaseDownloadTask(release, 
+                        new DownloadTask(
+                            Task.CompletedTask, 
+                            new DownloadTarget(downloadUrl, outputPath)
+                        )
+                    );
+                }
+
+
+            }
+
             var downloadTask = new ModReleaseDownloadTask(release, HttpHelpers.DownloadFileAsync(downloadUrl, outputPath));
             PendingDownloads.Add(downloadTask);
 

@@ -8,13 +8,14 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
 
 namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class SettingsViewModel {
-        public static readonly int[] version = { 0, 4, 1 };
+        private static readonly Version version = new Version("0.5.0");
 
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_settings.json";
 
@@ -35,7 +36,7 @@ namespace C2GUILauncher.ViewModels {
         public bool CLIArgsModified { get; set; }
 
         public string CurrentVersion {
-            get => "v" + string.Join(".", version.Select(x => x.ToString()));
+            get => "v" + version.ToString(3);
         }
 
         public ICommand CheckForUpdateCommand { get; }
@@ -43,6 +44,8 @@ namespace C2GUILauncher.ViewModels {
         public static IEnumerable<InstallationType> AllInstallationTypes {
             get { return Enum.GetValues(typeof(InstallationType)).Cast<InstallationType>(); }
         }
+
+        public static Version Version => version;
 
         public SettingsViewModel(InstallationType installationType, bool enablePluginLogging, bool enablePluginAutomaticUpdates, string cliArgs) {
             InstallationType = installationType;
@@ -95,18 +98,18 @@ namespace C2GUILauncher.ViewModels {
             }
             var latestInfo = repoCall.Result;
             string tagName = latestInfo.TagName;
-            int[] latest = tagName
-                .Split(".")
-                .Select(
-                    s => int.Parse( //parse as int
-                        string.Concat(s.Where(c => char.IsDigit(c))) //filter out non-numeric characters
-                    )
-                ).ToArray(); //join to array representing version
+
+            Version? latest = null;
+            try {
+                Version.Parse(tagName);
+            } catch {
+                // If parsing fails, just say they're equal.
+                latest = version;
+            }
             //if latest is newer than current version
-            if (latest[0] > version[0] ||
-                latest[1] > version[1] ||
-                latest[2] > version[2]) {
-                string currentVersionString = string.Join(".", version.Select(i => i.ToString()));
+            if (latest > version) {
+                string currentVersionString = version.ToString();
+
                 MessageBoxResult dialogResult = MessageBox.Show(
                     $"A newer version was found.\n " +
                     $"{tagName} > v{currentVersionString}\n\n" +

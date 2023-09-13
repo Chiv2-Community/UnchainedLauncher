@@ -67,12 +67,12 @@ namespace C2GUILauncher.ViewModels {
                             $"Wait-Process -Id {Environment.ProcessId}; " +
                             $"Start-Sleep -Milliseconds 500; " +
                             $"Move-Item -Force \\\"{originalLauncherPath}\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher-ORIGINAL.exe\\\"; " +
-                            $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"; ";
+                            $"Copy-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"; ";
                     } else {
                         powershellCommand =
                             $"Wait-Process -Id {Environment.ProcessId}; " +
                             $"Start-Sleep -Milliseconds 500; " +
-                            $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\{exeName}.exe\\\"; ";
+                            $"Copy-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\{exeName}.exe\\\"; ";
                     }
                     //MessageBox.Show(powershellCommand);
                     pwsh.StartInfo.Arguments = $"-Command \"{powershellCommand}\"";

@@ -31,7 +31,7 @@ namespace C2GUILauncher {
 
         private readonly ModManager ModManager;
 
-        private ILog logger = LogManager.GetLogger("test");
+        private ILog logger = LogManager.GetLogger(nameof(MainWindow));
 
         /// <summary>
         /// Shows the install dialog for the given install type.

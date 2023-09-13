@@ -15,7 +15,7 @@ using System.Windows.Input;
 namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class SettingsViewModel {
-        private static readonly Version version = new Version("0.5.0");
+        private static readonly Version version = new Version("0.4.1");
 
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_settings.json";
 

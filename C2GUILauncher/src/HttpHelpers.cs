@@ -1,4 +1,5 @@
-﻿using System;
+﻿using log4net;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,6 +8,8 @@ using System.Threading.Tasks;
 
 namespace C2GUILauncher {
     static class HttpHelpers {
+        private static ILog logger = LogManager.GetLogger("MainWindow");
+
         private static readonly HttpClient _httpClient = new HttpClient();
 
         /// <summary>
@@ -18,16 +21,19 @@ namespace C2GUILauncher {
         /// </returns>
         public static DownloadTask DownloadFileAsync(string url, string outputPath) {
             if (!Directory.Exists(Path.GetDirectoryName(outputPath))) {
+                logger.Info($"Creating directory {outputPath}...");
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             }
             
             if (FileHelpers.IsFileLocked(outputPath)) {
+                logger.Info($"{outputPath} is locked, skipping download.");
                 return new DownloadTask(
                     Task.CompletedTask,
                     new DownloadTarget(url, outputPath)
                 );
             }
 
+            logger.Info($"Downloading file ${outputPath} from {url}");
             return new DownloadTask(
                 _httpClient.GetByteArrayAsync(url).ContinueWith(t => File.WriteAllBytes(outputPath, t.Result)),
                 new DownloadTarget(url, outputPath)
@@ -35,6 +41,7 @@ namespace C2GUILauncher {
         }
 
         public static DownloadTask<Stream> GetByteContentsAsync(string url) {
+            logger.Info($"Downloading file ${url}");
             return new DownloadTask<Stream>(
                 _httpClient.GetStreamAsync(url),
                 new DownloadTarget(url, null)
@@ -42,6 +49,7 @@ namespace C2GUILauncher {
         }
 
         public static DownloadTask<string> GetStringContentsAsync(string url) {
+            logger.Info($"Downloading file ${url}");
             return new DownloadTask<string>(
                 _httpClient.GetStringAsync(url),
                 new DownloadTarget(url, null)

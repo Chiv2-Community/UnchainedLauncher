@@ -1,5 +1,7 @@
 ﻿//using System.Windows.Shapes;
 using C2GUILauncher.JsonModels;
+using log4net;
+using log4net.Repository.Hierarchy;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,6 +14,7 @@ namespace C2GUILauncher.ViewModels {
     // I just figure this is the "View" for the installer workflow.
     // TODO: Somehow generalize the updater and installer
     class InstallerViewModel {
+        private static ILog logger = LogManager.GetLogger(nameof(InstallerViewModel));
 
         /// <summary>
         /// Attempts to install the launcher at the given install directory.
@@ -22,6 +25,7 @@ namespace C2GUILauncher.ViewModels {
         /// <param name="installType"></param>
         /// <returns></returns>
         public static bool AttemptInstall(string installDir, InstallationType installType) {
+            logger.Info($"Attempting to install launcher to {installDir} as {installType}");
             bool specific = installType != InstallationType.NotSet;
             string exeName = Process.GetCurrentProcess().ProcessName;
             if (exeName != "Chivalry2Launcher") {
@@ -43,6 +47,7 @@ namespace C2GUILauncher.ViewModels {
                     messageLines.Aggregate((a, b) => a + "\n" + b),
                     "Replace Current Launcher?", MessageBoxButton.YesNoCancel
                 );
+                logger.Info($"Replace Current Launcher? User Selects: {dialogResult}");
 
                 if (dialogResult == MessageBoxResult.Yes ||
                         dialogResult == MessageBoxResult.No) {
@@ -67,20 +72,23 @@ namespace C2GUILauncher.ViewModels {
                             $"Wait-Process -Id {Environment.ProcessId}; " +
                             $"Start-Sleep -Milliseconds 500; " +
                             $"Move-Item -Force \\\"{originalLauncherPath}\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher-ORIGINAL.exe\\\"; " +
-                            $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"; ";
+                            $"Copy-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"; ";
                     } else {
                         powershellCommand =
                             $"Wait-Process -Id {Environment.ProcessId}; " +
                             $"Start-Sleep -Milliseconds 500; " +
-                            $"Move-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\{exeName}.exe\\\"; ";
+                            $"Copy-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\{exeName}.exe\\\"; ";
                     }
                     //MessageBox.Show(powershellCommand);
                     pwsh.StartInfo.Arguments = $"-Command \"{powershellCommand}\"";
                     pwsh.StartInfo.CreateNoWindow = true;
                     pwsh.Start();
+
+                    logger.Info($"Launcher installed successfully.");
                     return true;
                 }
             }
+            logger.Info($"Already installed. (exe is named Chivalry2Launcher.exe)");
             return false;
         }
 

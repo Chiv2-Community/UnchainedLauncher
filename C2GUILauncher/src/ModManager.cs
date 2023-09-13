@@ -80,7 +80,21 @@ namespace C2GUILauncher.Mods {
                 }
 
                 var s = File.ReadAllText(path);
-                return JsonHelpers.CascadeDeserialize<Release, JsonModels.Metadata.V1.Release>(s, Release.FromV1);
+
+                var deserializationResult = JsonHelpers.Deserialize<Release>(s).RecoverWith(ex => {
+                    if (ex != null) {
+                        logger.Warn("Failed to deserialize metadata file " + path + " " + ex.Message + ". Falling back to legacy deserialization");
+                    }
+
+                    return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Release>(s).Select(Release.FromV1);
+                });
+
+                if (!deserializationResult.Success) {
+                    logger.Error("Failed to deserialize metadata file " + path + " " + deserializationResult.Exception?.Message);
+                    return null;
+                }
+
+                return deserializationResult.Result;
             };
 
             // List everything in the EnabledModsCacheDir and its direct subdirs, then deserialize and filter out any failures (null)

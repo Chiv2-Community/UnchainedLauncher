@@ -4,50 +4,78 @@ using System.Data.SqlTypes;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Controls;
+using System.Windows.Media.Media3D;
 
 namespace C2GUILauncher {
     static class JsonHelpers {
 
         /// <summary>
-        /// Attempts to deserialize T, if that fails, attempts to deserialize T2, and then convert it to T.
+        /// Returns a composable deserialization result with the result and exception.
         /// </summary>
-        /// <typeparam name="T">The target output type</typeparam>
-        /// <typeparam name="T2">An alternate version of the target output type</typeparam>
-        /// <param name="json">The json to deserialize</param>
-        /// <param name="convert">The function to use to convert T2 to T</param>
-        /// <returns>Deserialized T or null</returns>
-        /// <exception cref="AggregateException"></exception>
-        public static T? CascadeDeserialize<T, T2>(string json, Func<T2, T> convert) {
-
-            var errors = new List<Exception>();
-
+        /// <typeparam name="T"></typeparam>
+        /// <param name="json"></param>
+        /// <returns></returns>
+        public static DeserializationResult<T> Deserialize<T>(string json) {
             try {
-                T? result = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(json);
-
-                if (result != null)
-                    return result;
+                var result = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(json);
+                return new DeserializationResult<T>(result, null);
             } catch (Newtonsoft.Json.JsonSerializationException e) {
-                errors.Add(e);
+                return new DeserializationResult<T>(default, e);
+            }
+        }
+    }
+
+    record DeserializationResult<T>(T? Result, Exception? Exception) {
+        public bool Success => Result != null;
+
+        /// <summary>
+        /// If !Successful, run the function and return the result. 
+        /// Combining the errors if this function also fails.
+        /// </summary>
+        /// <param name="recover"></param>
+        /// <returns></returns>
+        public DeserializationResult<T> RecoverWith(Func<Exception?, DeserializationResult<T>> recover) {
+            if (Success) {
+                return this;
             }
 
-            try {
-                var v2 = Newtonsoft.Json.JsonConvert.DeserializeObject<T2>(json);
-                if (v2 != null)
-                    return convert(v2);
+            var result = recover(this.Exception);
 
-            } catch (Newtonsoft.Json.JsonSerializationException e) {
-                errors.Add(e);
+            result = this.CombineErrors(result);
+
+            return result;
+        }
+
+        /// <summary>
+        /// Functor map. Run a function to transform the result if successful.
+        /// </summary>
+        /// <typeparam name="T2"></typeparam>
+        /// <param name="func"></param>
+        /// <returns></returns>
+        public DeserializationResult<T2> Select<T2>(Func<T, T2> func) {
+            if (Success) {
+                return new DeserializationResult<T2>(func(Result!), Exception);
             }
 
-            if (errors.Count > 0) {
-                var message = "Failed to deserialize json:\n";
-                foreach (var e in errors) {
-                    message += e.Message + "\n";
-                }
-                throw new AggregateException(message, errors);
+            return new DeserializationResult<T2>(default, Exception);
+        }
+
+        private DeserializationResult<T> CombineErrors(DeserializationResult<T> other) {
+            Exception? e = null;
+
+            if (other.Exception != null && Exception != null) {
+                e = new AggregateException(
+                    "Failed to deserialize either of the provided types",
+                    new List<Exception>() { other.Exception, Exception }
+                );
+            } else if (other.Exception != null) {
+                e = other.Exception;
+            } else if (Exception != null) {
+                e = other.Exception;
             }
 
-            return default;
+            return new DeserializationResult<T>(Success ? Result : other.Result, e);
         }
     }
 }

@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.DirectoryServices;
 using System.IO;
 using System.Linq;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
@@ -72,24 +73,21 @@ namespace C2GUILauncher.Mods {
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBDir);
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBPackagesDir);
 
-            var parseRelease = (string s) => {
-                var maybeRelease = JsonConvert.DeserializeObject<Release>(s);
-
-                if(maybeRelease == null) {
-                    var maybeV1Release = JsonConvert.DeserializeObject<JsonModels.Metadata.V1.Release>(s);
-                    if(maybeV1Release != null) {
-                        maybeRelease = Release.FromV1(maybeV1Release);
-                    }
+            var loadReleaseMetadata = (string path) => {
+                if(!File.Exists(path)) {
+                    logger.Warn("Failed to find metadata file: " + path);
+                    return null;
                 }
 
-                return maybeRelease;
+                var s = File.ReadAllText(path);
+                return JsonHelpers.CascadeDeserialize<Release, JsonModels.Metadata.V1.Release>(s, Release.FromV1);
             };
 
             // List everything in the EnabledModsCacheDir and its direct subdirs, then deserialize and filter out any failures (null)
             var enabledModReleases =
                 Directory.GetDirectories(CoreMods.EnabledModsCacheDir)
                     .SelectMany(Directory.GetFiles)
-                    .Select(parseRelease);
+                    .Select(loadReleaseMetadata);
 
             enabledModReleases ??= new List<Release>();
 

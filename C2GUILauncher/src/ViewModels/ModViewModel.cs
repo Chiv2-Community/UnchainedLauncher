@@ -1,4 +1,4 @@
-﻿using C2GUILauncher.JsonModels;
+﻿using C2GUILauncher.JsonModels.Metadata.V2;
 using C2GUILauncher.Mods;
 using CommunityToolkit.Mvvm.Input;
 using Newtonsoft.Json.Linq;

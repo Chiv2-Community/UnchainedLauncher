@@ -1,4 +1,4 @@
-﻿using C2GUILauncher.JsonModels;
+﻿using C2GUILauncher.JsonModels.Metadata.V2;
 using Newtonsoft.Json;
 using NLog;
 using System;
@@ -7,7 +7,9 @@ using System.Collections.ObjectModel;
 using System.DirectoryServices;
 using System.IO;
 using System.Linq;
+using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 namespace C2GUILauncher.Mods {
@@ -71,12 +73,21 @@ namespace C2GUILauncher.Mods {
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBDir);
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBPackagesDir);
 
+            var loadReleaseMetadata = (string path) => {
+                if(!File.Exists(path)) {
+                    logger.Warn("Failed to find metadata file: " + path);
+                    return null;
+                }
+
+                var s = File.ReadAllText(path);
+                return JsonHelpers.CascadeDeserialize<Release, JsonModels.Metadata.V1.Release>(s, Release.FromV1);
+            };
+
             // List everything in the EnabledModsCacheDir and its direct subdirs, then deserialize and filter out any failures (null)
             var enabledModReleases =
                 Directory.GetDirectories(CoreMods.EnabledModsCacheDir)
-                    .SelectMany(x => Directory.GetFiles(x))
-                    .Select(x => JsonConvert.DeserializeObject<Release>(File.ReadAllText(x)))
-                    .Where(x => x != null);
+                    .SelectMany(Directory.GetFiles)
+                    .Select(loadReleaseMetadata);
 
             enabledModReleases ??= new List<Release>();
 
@@ -184,7 +195,8 @@ namespace C2GUILauncher.Mods {
                             ModType.Shared, 
                             new List<string>(), 
                             new List<Dependency>(), 
-                            new List<string>()
+                            new List<ModTag>(),
+                            false
                         )
                     ),
                     downloadTask
@@ -221,6 +233,14 @@ namespace C2GUILauncher.Mods {
 
                     Directory.CreateDirectory(orgPath);
                     File.WriteAllText(filePath, enabledModJson);
+
+                    var shaHash = Convert.ToBase64String(SHA256.HashData(File.ReadAllBytes(outputPath)));
+
+                    if(shaHash != release.ReleaseHash) {
+                        logger.Error("Downloaded file hash does not match expected hash. Expected: " + release.ReleaseHash + " Got: " + shaHash);
+                        FailedDownloads.Add(downloadTask);
+                        throw new Exception("Downloaded file hash does not match expected hash. Expected: " + release.ReleaseHash + " Got: " + shaHash);
+                    }
 
                     PendingDownloads.Remove(downloadTask);
                 }

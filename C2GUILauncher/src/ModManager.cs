@@ -38,7 +38,7 @@ namespace C2GUILauncher.Mods {
     }
 
     public class ModManager {
-        private static ILog logger = LogManager.GetLogger("MainWindow");
+        private static ILog logger = LogManager.GetLogger(nameof(ModManager));
 
         public string RegistryOrg { get; }
         public string RegistryRepoName { get; }

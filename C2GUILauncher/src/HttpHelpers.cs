@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace C2GUILauncher {
     static class HttpHelpers {
-        private static ILog logger = LogManager.GetLogger("MainWindow");
+        private static ILog logger = LogManager.GetLogger(nameof(HttpHelpers));
 
         private static readonly HttpClient _httpClient = new HttpClient();
 

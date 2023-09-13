@@ -89,26 +89,27 @@ namespace C2GUILauncher {
 
         #pragma warning disable CS8618 
         public MainWindow() {
-            InitializeComponent();
+            try {
 
-            Assembly assembly = Assembly.GetExecutingAssembly();
-            FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
+                InitializeComponent();
 
-            logger.Info("Checking if installation is necessary...");
-            var egsDir = InstallHelpers.FindEGSDir();
-            var steamDir = InstallHelpers.FindSteamDir();
-            var curDir = Directory.GetCurrentDirectory();
-            var exeName = Process.GetCurrentProcess().ProcessName;
+                Assembly assembly = Assembly.GetExecutingAssembly();
+                FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
 
-            // DESNOTE(2023-08-28, jbarber): We check for the exe name here 
-            // because we assume we are already installed in that case. We 
-            // check if we're in steam already, because steam users may 
-            // install the launcher without it being named Chivalry2Launcher;
-            // it just needs to be in the steam dir to function.
-            if (exeName != "Chivalry2Launcher" && !Path.Equals(curDir, steamDir)) {
-                logger.Info("Running installation process");
+                logger.Info("Checking if installation is necessary...");
+                var egsDir = InstallHelpers.FindEGSDir();
+                var steamDir = InstallHelpers.FindSteamDir();
+                var curDir = Directory.GetCurrentDirectory();
+                var exeName = Process.GetCurrentProcess().ProcessName;
 
-                try {
+                // DESNOTE(2023-08-28, jbarber): We check for the exe name here 
+                // because we assume we are already installed in that case. We 
+                // check if we're in steam already, because steam users may 
+                // install the launcher without it being named Chivalry2Launcher;
+                // it just needs to be in the steam dir to function.
+                if (exeName != "Chivalry2Launcher" && !Path.Equals(curDir, steamDir)) {
+                    logger.Info("Running installation process");
+
                     var installResult = Install(steamDir, egsDir);
 
                     switch (installResult) {
@@ -133,36 +134,37 @@ namespace C2GUILauncher {
                             this.Close();
                             break;
                     }
-                } catch (Exception e) {
-                    logger.Error("Installation Failed", e);
-                    throw;
+
                 }
+
+                this.ModManager = ModManager.ForRegistry(
+                    "Chiv2-Community",
+                    "C2ModRegistry",
+                    "TBL\\Content\\Paks"
+                );
+
+                this.SettingsViewModel = SettingsViewModel.LoadSettings();
+                if (this.SettingsViewModel.InstallationType == InstallationType.NotSet) {
+                    if (Path.Equals(curDir, egsDir))
+                        this.SettingsViewModel.InstallationType = InstallationType.EpicGamesStore;
+                    else if (Path.Equals(curDir, steamDir))
+                        this.SettingsViewModel.InstallationType = InstallationType.Steam;
+                }
+                this.ModManagerViewModel = new ModListViewModel(ModManager);
+                this.ServerSettingsViewModel = new ServerSettingsViewModel();
+                this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, this.ServerSettingsViewModel, ModManager);
+
+                this.SettingsTab.DataContext = this.SettingsViewModel;
+                this.ModManagerTab.DataContext = this.ModManagerViewModel;
+                this.LauncherTab.DataContext = this.LauncherViewModel;
+                this.ServerSettingsTab.DataContext = this.ServerSettingsViewModel;
+
+
+                this.Closed += MainWindow_Closed;
+            } catch (Exception e) {
+                logger.Error("Initialization Failed", e);
+                throw;
             }
-
-            this.ModManager = ModManager.ForRegistry(
-                "Chiv2-Community",
-                "C2ModRegistry",
-                "TBL\\Content\\Paks"
-            );
-
-            this.SettingsViewModel = SettingsViewModel.LoadSettings();
-            if (this.SettingsViewModel.InstallationType == InstallationType.NotSet) {
-                if (Path.Equals(curDir, egsDir))
-                    this.SettingsViewModel.InstallationType = InstallationType.EpicGamesStore;
-                else if (Path.Equals(curDir, steamDir))
-                    this.SettingsViewModel.InstallationType = InstallationType.Steam;
-            }
-            this.ModManagerViewModel = new ModListViewModel(ModManager);
-            this.ServerSettingsViewModel = new ServerSettingsViewModel();
-            this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, this.ServerSettingsViewModel, ModManager);
-
-            this.SettingsTab.DataContext = this.SettingsViewModel;
-            this.ModManagerTab.DataContext = this.ModManagerViewModel;
-            this.LauncherTab.DataContext = this.LauncherViewModel;
-            this.ServerSettingsTab.DataContext = this.ServerSettingsViewModel;
-
-
-            this.Closed += MainWindow_Closed;
         }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 

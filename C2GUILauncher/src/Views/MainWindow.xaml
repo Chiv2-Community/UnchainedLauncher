@@ -108,8 +108,7 @@
                         <ColumnDefinition Width="80"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-
-                    <TextBlock Text="{Binding Description}" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" TextWrapping="Wrap" Margin="5"/>
+                    <TextBox Text="{Binding Description, Mode=OneWay}" Background="Transparent" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" Margin="5" BorderThickness="0" IsReadOnly="True" TextWrapping="Wrap"  />
                     <Button Content="{Binding ButtonText}" Grid.Row="1" Grid.Column="0" Command="{Binding ButtonCommand}"/>
                     <ComboBox ItemsSource="{Binding Mod.Releases}" 
                               SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"

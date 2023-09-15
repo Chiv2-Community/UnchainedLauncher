@@ -142,8 +142,14 @@
 
                 <TextBlock Text="Installation Type:" Grid.Row="0" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
                 <ComboBox SelectedItem="{Binding InstallationType,Mode=TwoWay}" ItemsSource="{Binding AllInstallationTypes}" Grid.Row="1" Grid.ColumnSpan ="2" Margin="0,0,0,0" HorizontalAlignment="Stretch" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />
-                <CheckBox IsChecked="{Binding EnablePluginLogging }" Grid.Row="2" Grid.ColumnSpan ="2" Content="Enable Plugin Logging" Margin="5,10,0,0" HorizontalAlignment="Left" Width="290"/>
-                <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Row="3" Grid.ColumnSpan ="2" Content="Enable Automatic Plugin Updates and Downloads" Margin="5,10,5,0"/>
+                <StackPanel Grid.Row="2" Grid.ColumnSpan ="2" Orientation="Horizontal"  Margin="5">
+                    <CheckBox IsChecked="{Binding EnablePluginLogging }" Grid.Row="2" Grid.ColumnSpan ="2" Content="Enable Plugin Logging" Margin="5,10,0,0" HorizontalAlignment="Left" Width="290"/>
+                    <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Row="3" Grid.ColumnSpan ="2" Content="Enable Automatic Plugin Updates and Downloads" Margin="5,10,5,0"/>
+                </StackPanel>
+                <StackPanel Grid.Row="3" Grid.ColumnSpan ="2" Orientation="Horizontal"  Margin="5">
+                    <TextBlock Text="Additional Mod Actors:" Margin="5"/>
+                    <TextBox Text="{Binding AdditionalModActors, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" HorizontalAlignment="Stretch" Width="400"/>
+                </StackPanel>
                 <TextBlock Text="CLI Args:" Grid.Row="4" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>
                 <TextBox Text="{Binding CLIArgs}" Grid.Row="5" Grid.ColumnSpan ="2" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
                 <Button Content="Check for updates" Grid.Row="6" Grid.Column="0" Margin="5" Command="{Binding CheckForUpdateCommand}" />

@@ -2,6 +2,7 @@
 using C2GUILauncher.JsonModels.Metadata.V2;
 using C2GUILauncher.Mods;
 using CommunityToolkit.Mvvm.Input;
+using Octokit;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
@@ -41,7 +42,8 @@ namespace C2GUILauncher.ViewModels {
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
             this.LaunchModdedCommand = new RelayCommand(
-                () => LaunchModded("agmods?map=frontend" + BuildModsString())
+                () => LaunchModded(BuildModsString())
+                //() => LaunchModded(BuildModsString())
             ); //ugly wrapper lambda
             this.LaunchServerCommand = new RelayCommand(LaunchServer);
             this.LaunchServerHeadlessCommand = new RelayCommand(LaunchServerHeadless);
@@ -159,8 +161,19 @@ namespace C2GUILauncher.ViewModels {
                     .Where(manifest => manifest.ModType == ModType.Server || manifest.ModType == ModType.Shared)
                     .Where(manifest => manifest.AgMod)
                     .Select(manifest => manifest.Name.Replace(" ", ""))
-                    .Aggregate("?mods=", (agg, name) => agg + name + ",");
-                modsString = modsString[..^1]; //cut off dangling comma
+                    .Aggregate("", (agg, name) => agg + name + ",");
+
+                bool hasAdditional = this.Settings.AdditionalModActors != "";
+                if (modsString != "" && hasAdditional)
+                {
+                    modsString = "--all-mod-actors " + modsString;
+                    if (hasAdditional)
+                        modsString += this.Settings.AdditionalModActors;
+                    else
+                        modsString = modsString[..^1]; //cut off dangling comma
+                }
+
+                //return modsString+ " --default-mod-actors ModMenu,FrontendMod --next-map-name to_coxwell --next-map-mod-actors GiantSlayers,FilthyPeasants";
                 return modsString;
             } else {
                 return "";
@@ -193,7 +206,8 @@ namespace C2GUILauncher.ViewModels {
 
             try {
                 //modify command line args and enable required mods for RCON connectivity
-                string RCONMap = "agmods?map=frontend?rcon" + BuildModsString() + "?listen"; //ensure the RCON zombie blueprint gets started
+                //string RCONMap = "?rcon" + BuildModsString(); //ensure the RCON zombie blueprint gets started
+                string RCONMap = BuildModsString();
 
                 //MessageBox.Show(RCONMap);
 
@@ -203,7 +217,8 @@ namespace C2GUILauncher.ViewModels {
                     $"-rcon {ServerSettings.RconPort}", //let the serverplugin know that we want RCON running on the given port
                     "-RenderOffScreen", //super-disable rendering
                     "-unattended", //let it know no one's around to help
-                    "-nosound" //disable sound
+                    "-nosound", //disable sound
+                    "--next-map-name to_coxwell"
                 };
                 LaunchModded(RCONMap, exArgs, serverRegister);
             } catch (Exception ex) {

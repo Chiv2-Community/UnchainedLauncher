@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace C2GUILauncher {
     static class FileHelpers {
@@ -47,6 +45,11 @@ namespace C2GUILauncher {
             File.Delete(Path.Combine(Path.GetDirectoryName(filePath)!, USER_LOCK_SUFFIX));
         }
 
-
+        public static string Sha512(string filePath) {
+            //return "";
+            using var sha512 = System.Security.Cryptography.SHA512.Create();
+            var bytes = File.ReadAllBytes(filePath);
+            return BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+        }
     }
 }

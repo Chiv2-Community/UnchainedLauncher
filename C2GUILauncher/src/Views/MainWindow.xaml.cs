@@ -6,7 +6,6 @@ using PropertyChanged;
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Windows;
 
@@ -31,7 +30,7 @@ namespace C2GUILauncher {
 
         private readonly ModManager ModManager;
 
-        private ILog logger = LogManager.GetLogger(nameof(MainWindow));
+        private static readonly ILog logger = LogManager.GetLogger(nameof(MainWindow));
 
         /// <summary>
         /// Shows the install dialog for the given install type.
@@ -41,7 +40,7 @@ namespace C2GUILauncher {
         /// <param name="targetDir"></param>
         /// <param name="installType"></param>
         /// <returns></returns>
-        private InstallResult ShowInstallRequestFor(string currentDir, string? targetDir, InstallationType installType) {
+        private static InstallResult ShowInstallRequestFor(string currentDir, string? targetDir, InstallationType installType) {
             if (targetDir == null) return InstallResult.NoTarget;
             if (currentDir == targetDir) return InstallResult.Installed;
 
@@ -75,7 +74,7 @@ namespace C2GUILauncher {
             // If a TBL dir is in the current dir, and we're not in the source code dir, we're probably in the install dir.
             var alreadyInInstallDir = steamDir == curDir || egsDir == curDir || (Directory.Exists(Path.Combine(curDir, "TBL")) && !curDir.Contains("C2GUILauncher\\C2GUILauncher"));
 
-            if (alreadyInInstallDir) 
+            if (alreadyInInstallDir)
                 return InstallerViewModel.AttemptInstall("", InstallationType.NotSet) ? InstallResult.Installed : InstallResult.Failed;
 
             InstallResult steamInstallResult = ShowInstallRequestFor(curDir, steamDir, InstallationType.Steam);
@@ -87,7 +86,6 @@ namespace C2GUILauncher {
             return InstallResult.Rejected;
         }
 
-        #pragma warning disable CS8618 
         public MainWindow() {
             try {
 
@@ -119,7 +117,7 @@ namespace C2GUILauncher {
                             break;
                         case InstallResult.Installed:
                             logger.Info("Installed successfully");
-                            MessageBox.Show($"Launcher installation is complete. Launch Chivalry2 Normally via EGS or Steam.");
+                            MessageBox.Show($"Launcher installation is complete.");
                             this.Close();
                             break;
                         case InstallResult.Failed:
@@ -150,8 +148,10 @@ namespace C2GUILauncher {
                     else if (Path.Equals(curDir, steamDir))
                         this.SettingsViewModel.InstallationType = InstallationType.Steam;
                 }
+
+                this.ServerSettingsViewModel = ServerSettingsViewModel.LoadSettings();
+
                 this.ModManagerViewModel = new ModListViewModel(ModManager);
-                this.ServerSettingsViewModel = new ServerSettingsViewModel();
                 this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, this.ServerSettingsViewModel, ModManager);
 
                 this.SettingsTab.DataContext = this.SettingsViewModel;
@@ -166,10 +166,9 @@ namespace C2GUILauncher {
                 throw;
             }
         }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-
         private void MainWindow_Closed(object? sender, EventArgs e) {
             this.SettingsViewModel.SaveSettings();
+            this.ServerSettingsViewModel.SaveSettings();
         }
     }
 

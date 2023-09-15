@@ -24,7 +24,7 @@ namespace C2GUILauncher {
                 logger.Info($"Creating directory {outputPath}...");
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             }
-            
+
             if (FileHelpers.IsFileLocked(outputPath)) {
                 logger.Info($"{outputPath} is locked, skipping download.");
                 return new DownloadTask(

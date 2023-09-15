@@ -1,7 +1,5 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Reflection;
-using System.Transactions;
 using System.Windows;
 
 namespace C2GUILauncher {

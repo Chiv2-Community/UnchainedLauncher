@@ -41,12 +41,12 @@ namespace C2GUILauncher.JsonModels.Metadata.V2 {
     }
     [JsonConverter(typeof(StringEnumConverter))]
     public enum ModTag {
-        Mutator, 
-        Map, 
-        Cosmetic, 
-        Audio, 
-        Model, 
-        Weapon, 
+        Mutator,
+        Map,
+        Cosmetic,
+        Audio,
+        Model,
+        Weapon,
         Doodad,
         Explicit
     }

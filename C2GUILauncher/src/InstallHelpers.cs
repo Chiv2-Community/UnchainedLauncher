@@ -6,7 +6,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows;
 
 namespace C2GUILauncher {
     internal class InstallHelpers {
@@ -22,7 +21,7 @@ namespace C2GUILauncher {
                 logger.Info("Steam library metadata location not found in registry.");
                 return null;
             }
-            
+
             string SteamPath = (string)steamPathObj;
             string SteamLibFile = Path.Combine(SteamPath, "steamapps", "libraryfolders.vdf");
 
@@ -58,7 +57,7 @@ namespace C2GUILauncher {
                             if (lines[j].Equals(Chiv2SteamAppID))
                                 return Path.Combine(CandidateDir, @"steamapps\common\Chivalry 2");
                     }
-                } catch(Exception e) {
+                } catch (Exception e) {
                     logger.Error($"Error reading Steam library metadata file", e);
                     return null;
                 }

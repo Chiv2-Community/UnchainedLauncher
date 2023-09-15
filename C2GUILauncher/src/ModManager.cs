@@ -4,11 +4,8 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.DirectoryServices;
 using System.IO;
 using System.Linq;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 
@@ -38,7 +35,7 @@ namespace C2GUILauncher.Mods {
     }
 
     public class ModManager {
-        private static ILog logger = LogManager.GetLogger(nameof(ModManager));
+        private static readonly ILog logger = LogManager.GetLogger(nameof(ModManager));
 
         public string RegistryOrg { get; }
         public string RegistryRepoName { get; }
@@ -69,7 +66,7 @@ namespace C2GUILauncher.Mods {
 
         public static ModManager ForRegistry(string registryOrg, string registryRepoName, string pakDir) {
             var loadReleaseMetadata = (string path) => {
-                if(!File.Exists(path)) {
+                if (!File.Exists(path)) {
                     logger.Warn("Failed to find metadata file: " + path);
                     return null;
                 }
@@ -203,23 +200,23 @@ namespace C2GUILauncher.Mods {
 
             var coreModsDownloads = HttpHelpers.DownloadAllFiles(coreMods);
 
-            var coreModsModReleaseDownloadTasks = 
+            var coreModsModReleaseDownloadTasks =
                 coreModsDownloads.Select(downloadTask => new ModReleaseDownloadTask(
                     // Stubbing this object out so the task can be displayed with the normal mod download tasks
                     new Release(
-                        "latest", 
-                        "", 
+                        "latest",
                         "",
-                        DateTime.Now, 
+                        "",
+                        DateTime.Now,
                         new ModManifest(
                             "",
-                            downloadTask.Target.OutputPath!.Split("/").Last(), 
-                            "", 
-                            "", 
-                            "", 
-                            ModType.Shared, 
-                            new List<string>(), 
-                            new List<Dependency>(), 
+                            downloadTask.Target.OutputPath!.Split("/").Last(),
+                            "",
+                            "",
+                            "",
+                            ModType.Shared,
+                            new List<string>(),
+                            new List<Dependency>(),
                             new List<ModTag>(),
                             false
                         )
@@ -241,7 +238,7 @@ namespace C2GUILauncher.Mods {
             var outputPath = PakDir + "\\" + release.PakFileName;
 
             if (File.Exists(outputPath)) {
-                var shaHash = Convert.ToBase64String(SHA256.HashData(File.ReadAllBytes(outputPath)));
+                var shaHash = FileHelpers.Sha512(outputPath);
                 logger.Debug(shaHash);
                 logger.Debug(release.ReleaseHash);
 
@@ -249,9 +246,9 @@ namespace C2GUILauncher.Mods {
                     logger.Info($"Already downloaded {release.Manifest.Name} {release.Tag}. Skipping");
 
                     // Already downloaded, so returning a completed task.
-                    return new ModReleaseDownloadTask(release, 
+                    return new ModReleaseDownloadTask(release,
                         new DownloadTask(
-                            Task.CompletedTask, 
+                            Task.CompletedTask,
                             new DownloadTarget(downloadUrl, outputPath)
                         )
                     );
@@ -280,7 +277,7 @@ namespace C2GUILauncher.Mods {
 
                     var shaHash = Convert.ToBase64String(SHA256.HashData(File.ReadAllBytes(outputPath)));
 
-                    if(shaHash != release.ReleaseHash) {
+                    if (shaHash != release.ReleaseHash) {
                         logger.Error("Downloaded file hash does not match expected hash. Expected: " + release.ReleaseHash + " Got: " + shaHash);
                         FailedDownloads.Add(downloadTask);
                         throw new Exception("Downloaded file hash does not match expected hash. Expected: " + release.ReleaseHash + " Got: " + shaHash);

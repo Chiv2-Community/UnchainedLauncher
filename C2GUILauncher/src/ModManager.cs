@@ -275,7 +275,7 @@ namespace C2GUILauncher.Mods {
                     Directory.CreateDirectory(orgPath);
                     File.WriteAllText(filePath, enabledModJson);
 
-                    var shaHash = Convert.ToBase64String(SHA256.HashData(File.ReadAllBytes(outputPath)));
+                    var shaHash = FileHelpers.Sha512(outputPath);
 
                     if (shaHash != release.ReleaseHash) {
                         logger.Error("Downloaded file hash does not match expected hash. Expected: " + release.ReleaseHash + " Got: " + shaHash);

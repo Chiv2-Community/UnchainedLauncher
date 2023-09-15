@@ -46,7 +46,6 @@ namespace C2GUILauncher {
         }
 
         public static string Sha512(string filePath) {
-            //return "";
             using var sha512 = System.Security.Cryptography.SHA512.Create();
             var bytes = File.ReadAllBytes(filePath);
             return BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();

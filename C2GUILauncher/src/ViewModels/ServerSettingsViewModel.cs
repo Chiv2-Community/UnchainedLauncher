@@ -1,10 +1,5 @@
 ﻿using C2GUILauncher.JsonModels;
 using PropertyChanged;
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Windows;
 
 namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
@@ -39,26 +34,26 @@ namespace C2GUILauncher.ViewModels {
 
         public static ServerSettingsViewModel LoadSettings() {
             var defaultSettings = new ServerSettings(
-                "Chivalry 2 server", 
-                "Example description", 
+                "Chivalry 2 server",
+                "Example description",
                 "https://servers.polehammer.net",
-                7777,  
-                9001, 
-                7071, 
+                7777,
+                9001,
+                7071,
                 3075
             );
 
             var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath, defaultSettings);
 
             var loadedSettings = fileBackedSettings.LoadSettings();
-               
+
             return new ServerSettingsViewModel(
                 loadedSettings.ServerName,
                 loadedSettings.ServerDescription,
                 loadedSettings.ServerList,
                 loadedSettings.GamePort,
                 loadedSettings.RconPort,
-                loadedSettings.A2sPort, 
+                loadedSettings.A2sPort,
                 loadedSettings.PingPort,
                 fileBackedSettings
             );

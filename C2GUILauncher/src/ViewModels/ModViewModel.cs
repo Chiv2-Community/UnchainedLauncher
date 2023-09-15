@@ -1,13 +1,9 @@
 ﻿using C2GUILauncher.JsonModels.Metadata.V2;
 using C2GUILauncher.Mods;
 using CommunityToolkit.Mvvm.Input;
-using Newtonsoft.Json.Linq;
 using PropertyChanged;
-using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
-using System.Windows;
 using System.Windows.Input;
 
 namespace C2GUILauncher.ViewModels {
@@ -94,7 +90,7 @@ namespace C2GUILauncher.ViewModels {
         }
 
         private void DisableOrEnable() {
-            if(EnabledRelease == null)
+            if (EnabledRelease == null)
                 EnabledRelease = Mod.Releases.First();
             else
                 EnabledRelease = null;

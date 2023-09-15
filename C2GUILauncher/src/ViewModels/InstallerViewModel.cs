@@ -1,7 +1,6 @@
 ﻿//using System.Windows.Shapes;
 using C2GUILauncher.JsonModels;
 using log4net;
-using log4net.Repository.Hierarchy;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,7 +13,7 @@ namespace C2GUILauncher.ViewModels {
     // I just figure this is the "View" for the installer workflow.
     // TODO: Somehow generalize the updater and installer
     class InstallerViewModel {
-        private static ILog logger = LogManager.GetLogger(nameof(InstallerViewModel));
+        private static readonly ILog logger = LogManager.GetLogger(nameof(InstallerViewModel));
 
         /// <summary>
         /// Attempts to install the launcher at the given install directory.

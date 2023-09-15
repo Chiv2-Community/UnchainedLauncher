@@ -5,16 +5,13 @@ using CommunityToolkit.Mvvm.Input;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using System.Diagnostics;
-using System.Windows.Controls;
-using System.Runtime.InteropServices;
-using C2GUILauncher.ViewModels;
 
 namespace C2GUILauncher.ViewModels {
 
@@ -44,7 +41,7 @@ namespace C2GUILauncher.ViewModels {
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
             this.LaunchModdedCommand = new RelayCommand(
-                () => LaunchModded("agmods?map=frontend" + buildModsString())
+                () => LaunchModded("agmods?map=frontend" + BuildModsString())
             ); //ugly wrapper lambda
             this.LaunchServerCommand = new RelayCommand(LaunchServer);
             this.LaunchServerHeadlessCommand = new RelayCommand(LaunchServerHeadless);
@@ -86,7 +83,7 @@ namespace C2GUILauncher.ViewModels {
             cliArgs.Insert(TBLloc, mapTarget);
             //add extra args like -nullrhi or -rcon
             if (exArgs != null) {
-                cliArgs.AddRange(exArgs); 
+                cliArgs.AddRange(exArgs);
             }
 
             args = string.Join(" ", cliArgs);
@@ -122,7 +119,7 @@ namespace C2GUILauncher.ViewModels {
             CanClick = false;
         }
 
-        private async Task<Process?> makeRegistrationProcess() {
+        private async Task<Process?> MakeRegistrationProcess() {
             if (!File.Exists("RegisterUnchainedServer.exe")) {
                 DownloadTask serverRegisterDownload = HttpHelpers.DownloadFileAsync(
                 "https://github.com/Chiv2-Community/C2ServerAPI/releases/latest/download/RegisterUnchainedServer.exe",
@@ -142,7 +139,7 @@ namespace C2GUILauncher.ViewModels {
 
             //TODO: Get this to actually be able to be closed
             serverRegister.StartInfo.FileName = "cmd.exe";
-            
+
             string registerCommand = $"RegisterUnchainedServer.exe " +
                 $"-n ^\"{ServerSettings.ServerName.Replace("\"", "^\"")}^\" " +
                 $"-d ^\"{ServerSettings.ServerDescription.Replace("\"", "^\"").Replace("\n", "^\n")}^\" " +
@@ -155,7 +152,7 @@ namespace C2GUILauncher.ViewModels {
             return serverRegister;
         }
 
-        private string buildModsString(bool server = false) {
+        private string BuildModsString(bool server = false) {
             if (this.ModManager.EnabledModReleases.Any()) {
                 string modsString = this.ModManager.EnabledModReleases
                     .Select(mod => mod.Manifest)
@@ -163,7 +160,7 @@ namespace C2GUILauncher.ViewModels {
                     .Where(manifest => manifest.AgMod)
                     .Select(manifest => manifest.Name.Replace(" ", ""))
                     .Aggregate("?mods=", (agg, name) => agg + name + ",");
-                modsString = modsString.Substring(0, modsString.Length - 1); //cut off dangling comma
+                modsString = modsString[..^1]; //cut off dangling comma
                 return modsString;
             } else {
                 return "";
@@ -172,35 +169,35 @@ namespace C2GUILauncher.ViewModels {
 
         private async void LaunchServer() {
             try {
-                Process? serverRegister = await makeRegistrationProcess();
+                Process? serverRegister = await MakeRegistrationProcess();
                 if (serverRegister == null) {
                     return;
                 }
-                
-                string loaderMap = "agmods?map=frontend" + buildModsString() + "?listen";
+
+                string loaderMap = "agmods?map=frontend" + BuildModsString() + "?listen";
                 string[] exArgs = { $"-port {ServerSettings.GamePort}" };
 
                 LaunchModded(loaderMap, exArgs, serverRegister);
-                
+
             } catch (Exception ex) {
                 MessageBox.Show(ex.ToString());
             }
-            
+
         }
 
         private async void LaunchServerHeadless() {
-            Process? serverRegister = await makeRegistrationProcess();
+            Process? serverRegister = await MakeRegistrationProcess();
             if (serverRegister == null) {
                 return;
             }
 
             try {
                 //modify command line args and enable required mods for RCON connectivity
-                string RCONMap = "agmods?map=frontend?rcon" + buildModsString() + "?listen"; //ensure the RCON zombie blueprint gets started
+                string RCONMap = "agmods?map=frontend?rcon" + BuildModsString() + "?listen"; //ensure the RCON zombie blueprint gets started
 
                 //MessageBox.Show(RCONMap);
 
-                string[] exArgs = { 
+                string[] exArgs = {
                     $"-port {ServerSettings.GamePort}", //specify server port
                     "-nullrhi", //disable rendering
                     $"-rcon {ServerSettings.RconPort}", //let the serverplugin know that we want RCON running on the given port
@@ -209,7 +206,7 @@ namespace C2GUILauncher.ViewModels {
                     "-nosound" //disable sound
                 };
                 LaunchModded(RCONMap, exArgs, serverRegister);
-            } catch(Exception ex) {
+            } catch (Exception ex) {
                 MessageBox.Show(ex.ToString());
             }
         }

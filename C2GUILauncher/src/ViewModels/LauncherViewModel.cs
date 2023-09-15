@@ -144,10 +144,10 @@ namespace C2GUILauncher.ViewModels {
             serverRegister.StartInfo.FileName = "cmd.exe";
             
             string registerCommand = $"RegisterUnchainedServer.exe " +
-                $"-n ^\"{ServerSettings.serverName.Replace("\"", "^\"")}^\" " +
-                $"-d ^\"{ServerSettings.serverDescription.Replace("\"", "^\"").Replace("\n", "^\n")}^\" " +
-                $"-r ^\"{ServerSettings.serverList}^\" " +
-                $"-c ^\"{ServerSettings.rconPort}^\"";
+                $"-n ^\"{ServerSettings.ServerName.Replace("\"", "^\"")}^\" " +
+                $"-d ^\"{ServerSettings.ServerDescription.Replace("\"", "^\"").Replace("\n", "^\n")}^\" " +
+                $"-r ^\"{ServerSettings.ServerList}^\" " +
+                $"-c ^\"{ServerSettings.RconPort}^\"";
             serverRegister.StartInfo.Arguments = $"/c \"{registerCommand}\"";
             serverRegister.StartInfo.CreateNoWindow = false;
             //MessageBox.Show($"{serverRegister.StartInfo.Arguments}");
@@ -178,7 +178,7 @@ namespace C2GUILauncher.ViewModels {
                 }
                 
                 string loaderMap = "agmods?map=frontend" + buildModsString() + "?listen";
-                string[] exArgs = { $"-port {ServerSettings.gamePort}" };
+                string[] exArgs = { $"-port {ServerSettings.GamePort}" };
 
                 LaunchModded(loaderMap, exArgs, serverRegister);
                 
@@ -201,9 +201,9 @@ namespace C2GUILauncher.ViewModels {
                 //MessageBox.Show(RCONMap);
 
                 string[] exArgs = { 
-                    $"-port {ServerSettings.gamePort}", //specify server port
+                    $"-port {ServerSettings.GamePort}", //specify server port
                     "-nullrhi", //disable rendering
-                    $"-rcon {ServerSettings.rconPort}", //let the serverplugin know that we want RCON running on the given port
+                    $"-rcon {ServerSettings.RconPort}", //let the serverplugin know that we want RCON running on the given port
                     "-RenderOffScreen", //super-disable rendering
                     "-unattended", //let it know no one's around to help
                     "-nosound" //disable sound

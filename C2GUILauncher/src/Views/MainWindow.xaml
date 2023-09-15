@@ -171,20 +171,20 @@
 
                 <TextBlock Text="Server List:" Grid.Row="0" Grid.Column ="2" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
                 <TextBlock Text="Server Name:" Grid.Row="0" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <TextBox Text="{Binding serverList}" Grid.Row="1" Grid.Column ="2" Grid.ColumnSpan ="2" Margin ="5,0,5,0" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="False" />
-                <TextBox Text="{Binding serverName}" Grid.Row="1" Grid.ColumnSpan ="2" TextWrapping="Wrap" Margin ="5,0,5,0" IsManipulationEnabled="True" AcceptsReturn="False" />
+                <TextBox Text="{Binding ServerList}" Grid.Row="1" Grid.Column ="2" Grid.ColumnSpan ="2" Margin ="5,0,5,0" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="False" />
+                <TextBox Text="{Binding ServerName}" Grid.Row="1" Grid.ColumnSpan ="2" TextWrapping="Wrap" Margin ="5,0,5,0" IsManipulationEnabled="True" AcceptsReturn="False" />
                 <TextBlock Text="Server Description:" Grid.Row="2" Grid.ColumnSpan ="4" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <TextBox Text="{Binding serverDescription}" Grid.Row="3" Grid.ColumnSpan ="4" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
+                <TextBox Text="{Binding ServerDescription}" Grid.Row="3" Grid.ColumnSpan ="4" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
                 <Rectangle Fill="Gray" IsHitTestVisible="False" Grid.Row="5" Grid.Column="2" Grid.ColumnSpan ="2"/>
                 <Rectangle Fill="Gray" IsHitTestVisible="False" Grid.Row="4" Grid.Column="2" Grid.ColumnSpan ="2"/>
                 <TextBlock Text="Game port:" Grid.Row="4" Grid.Column = "0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
                 <TextBlock Text="RCON port:" Grid.Row="4" Grid.Column = "1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
                 <TextBlock Text="A2S port:" Grid.Row="4" Grid.Column = "2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
                 <TextBlock Text="Ping port:" Grid.Row="4" Grid.Column = "3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <TextBox Text="{Binding gamePort}" Grid.Row="5" Grid.Column = "0" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
-                <TextBox Text="{Binding rconPort}" Grid.Row="5" Grid.Column = "1" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
-                <TextBox Text="{Binding a2sPort}" Grid.Row="5" Grid.Column = "2" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
-                <TextBox Text="{Binding pingPort}" Grid.Row="5" Grid.Column = "3" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
+                <TextBox Text="{Binding GamePort}" Grid.Row="5" Grid.Column = "0" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
+                <TextBox Text="{Binding RconPort}" Grid.Row="5" Grid.Column = "1" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
+                <TextBox Text="{Binding A2sPort}" Grid.Row="5" Grid.Column = "2" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
+                <TextBox Text="{Binding PingPort}" Grid.Row="5" Grid.Column = "3" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
                 
             </Grid>
         </TabItem>

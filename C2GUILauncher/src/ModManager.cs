@@ -221,7 +221,8 @@ namespace C2GUILauncher.Mods {
                             new List<string>(), 
                             new List<Dependency>(), 
                             new List<ModTag>(),
-                            false
+                            false,
+                            new List<string>()
                         )
                     ),
                     downloadTask
@@ -241,7 +242,7 @@ namespace C2GUILauncher.Mods {
             var outputPath = PakDir + "\\" + release.PakFileName;
 
             if (File.Exists(outputPath)) {
-                var shaHash = Convert.ToBase64String(SHA256.HashData(File.ReadAllBytes(outputPath)));
+                var shaHash = FileHelpers.Sha512(outputPath);
                 logger.Debug(shaHash);
                 logger.Debug(release.ReleaseHash);
 

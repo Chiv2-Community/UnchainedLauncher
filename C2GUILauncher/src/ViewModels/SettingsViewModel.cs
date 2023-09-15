@@ -15,7 +15,7 @@ using System.Windows.Input;
 namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class SettingsViewModel {
-        private static readonly Version version = new Version("0.4.1");
+        private static readonly Version version = Assembly.GetExecutingAssembly().GetName().Version!;
 
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_settings.json";
 
@@ -45,12 +45,14 @@ namespace C2GUILauncher.ViewModels {
             get { return Enum.GetValues(typeof(InstallationType)).Cast<InstallationType>(); }
         }
 
-        public static Version Version => version;
+        public FileBackedSettings<LauncherSettings> LauncherSettings { get; set; }
 
-        public SettingsViewModel(InstallationType installationType, bool enablePluginLogging, bool enablePluginAutomaticUpdates, string cliArgs) {
+        public SettingsViewModel(InstallationType installationType, bool enablePluginLogging, bool enablePluginAutomaticUpdates, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs) {
             InstallationType = installationType;
             EnablePluginLogging = enablePluginLogging;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
+            LauncherSettings = launcherSettings;
+
             _cliArgs = cliArgs;
             CLIArgsModified = false;
 
@@ -61,29 +63,24 @@ namespace C2GUILauncher.ViewModels {
             var cliArgsList = Environment.GetCommandLineArgs();
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => x + " " + y) : "";
 
-            var defaultSettings = new SettingsViewModel(InstallationType.NotSet, false, true, cliArgs);
+            var defaultSettings = new LauncherSettings(InstallationType.NotSet, false, true);
+            var fileBackedSettings = new FileBackedSettings<LauncherSettings>(SettingsFilePath, defaultSettings);
 
-            if (!File.Exists(SettingsFilePath))
-                return defaultSettings;
+            var loadedSettings = fileBackedSettings.LoadSettings();
 
-            var savedSettings = JsonConvert.DeserializeObject<SavedSettings>(File.ReadAllText(SettingsFilePath));
-
-            if (savedSettings is not null) {
-                return new SettingsViewModel(savedSettings.InstallationType, savedSettings.EnablePluginLogging, savedSettings.EnablePluginAutomaticUpdates, cliArgs);
-            } else {
-                MessageBox.Show("Settings malformed or from an unsupported old version. Loading defaults.");
-                return defaultSettings;
-            }
+            return new SettingsViewModel(
+                loadedSettings.InstallationType,
+                loadedSettings.EnablePluginLogging,
+                loadedSettings.EnablePluginAutomaticUpdates,
+                fileBackedSettings,
+                cliArgs
+            );
         }
 
         public void SaveSettings() {
-            var settings = new SavedSettings(InstallationType, EnablePluginLogging, EnablePluginAutomaticUpdates);
-            var json = JsonConvert.SerializeObject(settings, Newtonsoft.Json.Formatting.Indented);
-
-            if (!Directory.Exists(FilePaths.ModCachePath))
-                Directory.CreateDirectory(FilePaths.ModCachePath);
-
-            File.WriteAllText(SettingsFilePath, json);
+            LauncherSettings.SaveSettings(
+                new LauncherSettings(InstallationType, EnablePluginLogging, EnablePluginAutomaticUpdates)
+            );
         }
 
         // TODO: Somehow generalize the updater and installer
@@ -121,11 +118,12 @@ namespace C2GUILauncher.ViewModels {
                 } else if (dialogResult == MessageBoxResult.Yes) {
                     try {
                         var url = latestInfo.Assets.Where(
-                                    a => a.Name.Contains("C2GUILauncher.exe") //find the launcher exe
-                                ).First().BrowserDownloadUrl; //get the download URL
+                            a => a.Name.Contains("C2GUILauncher.exe") //find the launcher exe
+                        ).First().BrowserDownloadUrl; //get the download URL
+
                         var newDownloadTask = HttpHelpers.DownloadFileAsync(url, "C2GUILauncher.exe");
-                        string exePath = System.Reflection.Assembly.GetExecutingAssembly().Location;
-                        string exeDir = System.IO.Path.GetDirectoryName(exePath) ?? "";
+                        string exePath = Assembly.GetExecutingAssembly().Location;
+                        string exeDir = Path.GetDirectoryName(exePath) ?? "";
 
                         newDownloadTask.Task.Wait();
                         if (!repoCall.IsCompletedSuccessfully) {

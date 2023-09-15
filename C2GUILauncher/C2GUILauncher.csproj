@@ -14,10 +14,13 @@
     <RepositoryUrl>https://github.com/Chiv2-Community/C2GUILauncher</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <StartupObject>C2GUILauncher.App</StartupObject>
-    <Title>Chivalry 2 Unofficial Server Browser</Title>
+    <Title>Unchained Launcher</Title>
+	<Description>A launcher for Chivalry 2 that allows you to use mods.</Description>
+	<Authors>Jacoby6000, AERoese (BK, DrLong), Nihilianth</Authors>
     <PackageProjectUrl>https://github.com/Chiv2-Community/C2GUILauncher</PackageProjectUrl>
     <ApplicationIcon>assets\chiv2-unchained-logo.ico</ApplicationIcon>
-    <AssemblyVersion>0.5.0</AssemblyVersion>
+    <AssemblyVersion>0.4.1</AssemblyVersion>
+    <AssemblyName>UnchainedLauncher</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="log4net.config" />

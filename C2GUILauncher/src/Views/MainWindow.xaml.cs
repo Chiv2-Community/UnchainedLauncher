@@ -150,8 +150,10 @@ namespace C2GUILauncher {
                     else if (Path.Equals(curDir, steamDir))
                         this.SettingsViewModel.InstallationType = InstallationType.Steam;
                 }
+
+                this.ServerSettingsViewModel = ServerSettingsViewModel.LoadSettings();
+
                 this.ModManagerViewModel = new ModListViewModel(ModManager);
-                this.ServerSettingsViewModel = new ServerSettingsViewModel();
                 this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, this.ServerSettingsViewModel, ModManager);
 
                 this.SettingsTab.DataContext = this.SettingsViewModel;
@@ -170,6 +172,7 @@ namespace C2GUILauncher {
 
         private void MainWindow_Closed(object? sender, EventArgs e) {
             this.SettingsViewModel.SaveSettings();
+            this.ServerSettingsViewModel.SaveSettings();
         }
     }
 

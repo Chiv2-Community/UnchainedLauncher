@@ -1,9 +1,11 @@
-﻿using System;
+﻿using log4net;
+using log4net.Repository.Hierarchy;
+using System;
 using System.Collections.Generic;
 
 namespace C2GUILauncher {
     static class JsonHelpers {
-
+        private static readonly ILog logger = LogManager.GetLogger(nameof(JsonHelpers));
         /// <summary>
         /// Returns a composable deserialization result with the result and exception.
         /// </summary>
@@ -13,6 +15,7 @@ namespace C2GUILauncher {
         public static DeserializationResult<T> Deserialize<T>(string json) {
             try {
                 var result = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(json);
+                logger.Info(result?.ToString() ?? "null");
                 return new DeserializationResult<T>(result, null);
             } catch (Newtonsoft.Json.JsonSerializationException e) {
                 return new DeserializationResult<T>(default, e);

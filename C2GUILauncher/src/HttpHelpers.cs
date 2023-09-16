@@ -20,9 +20,10 @@ namespace C2GUILauncher {
         /// The task that represents the asynchronous operation.
         /// </returns>
         public static DownloadTask DownloadFileAsync(string url, string outputPath) {
-            if (!Directory.Exists(Path.GetDirectoryName(outputPath) ?? ".")) {
+            var dirName = Path.GetDirectoryName(outputPath);
+            if (dirName != null && dirName != "" && !Directory.Exists(dirName)) {
                 logger.Info($"Creating directory {outputPath}...");
-                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+                Directory.CreateDirectory(dirName);
             }
 
             if (FileHelpers.IsFileLocked(outputPath)) {

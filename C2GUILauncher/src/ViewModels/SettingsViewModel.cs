@@ -27,7 +27,7 @@ namespace C2GUILauncher.ViewModels {
         public InstallationType InstallationType { get; set; }
         public bool EnablePluginLogging { get; set; }
         public bool EnablePluginAutomaticUpdates { get; set; }
-        public string? AdditionalModActors { get; set; }
+        public string AdditionalModActors { get; set; }
 
         public string _cliArgs;
         public string CLIArgs {
@@ -53,10 +53,11 @@ namespace C2GUILauncher.ViewModels {
 
         public FileBackedSettings<LauncherSettings> LauncherSettings { get; set; }
 
-        public SettingsViewModel(MainWindow window, InstallationType installationType, bool enablePluginLogging, bool enablePluginAutomaticUpdates, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs) {
+        public SettingsViewModel(MainWindow window, InstallationType installationType, bool enablePluginLogging, bool enablePluginAutomaticUpdates, string additionalModActors, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs) {
             InstallationType = installationType;
             EnablePluginLogging = enablePluginLogging;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
+            AdditionalModActors = additionalModActors;
             LauncherSettings = launcherSettings;
             _cliArgs = cliArgs;
             CLIArgsModified = false;
@@ -71,19 +72,22 @@ namespace C2GUILauncher.ViewModels {
             var cliArgsList = Environment.GetCommandLineArgs();
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => x + " " + y) : "";
 
-            var defaultSettings = new LauncherSettings(InstallationTypeUtils.AutoDetectInstallationType(), false, true);
+            var defaultSettings = new LauncherSettings(InstallationTypeUtils.AutoDetectInstallationType(), false, true, "ModMenu,FrontendMod");
             var fileBackedSettings = new FileBackedSettings<LauncherSettings>(SettingsFilePath, defaultSettings);
 
             var loadedSettings = fileBackedSettings.LoadSettings();
 
+            #pragma warning disable CS8629 // All calls to .Value and ! below are safe because all defaults are non-null.
             return new SettingsViewModel(
                 window,
-                loadedSettings.InstallationType,
-                loadedSettings.EnablePluginLogging,
-                loadedSettings.EnablePluginAutomaticUpdates,
+                loadedSettings.InstallationType ?? defaultSettings.InstallationType.Value,
+                loadedSettings.EnablePluginLogging ?? defaultSettings.EnablePluginLogging.Value,
+                loadedSettings.EnablePluginAutomaticUpdates ?? defaultSettings.EnablePluginAutomaticUpdates.Value,
+                loadedSettings.AdditionalModActors ?? defaultSettings.AdditionalModActors!,
                 fileBackedSettings,
                 cliArgs
             );
+            #pragma warning restore CS8629 // Nullable value type may be null.
         }
 
         public void SaveSettings() {

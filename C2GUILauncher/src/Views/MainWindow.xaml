@@ -44,8 +44,8 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Button x:Name="LaunchVanillaButton" Content="Launch Vanilla" Grid.Row="0" Grid.ColumnSpan = "2" Command="{Binding LaunchVanillaCommand}" />
-                <Button x:Name="LaunchModdedButton" Content="Launch With Mods" Grid.Row="1" Grid.ColumnSpan = "2" Command="{Binding LaunchModdedCommand}" />
+                <Button x:Name="LaunchVanillaButton" Content="Launch Vanilla" Grid.Row="0" Grid.ColumnSpan = "2" Command="{Binding LaunchVanillaCommand}" IsEnabled="{Binding CanClick}" />
+                <Button x:Name="LaunchModdedButton" Content="Launch With Mods" Grid.Row="1" Grid.ColumnSpan = "2" Command="{Binding LaunchModdedCommand}" IsEnabled="{Binding CanClick}" />
             </Grid>
         </TabItem>
         <TabItem x:Name="ModManagerTab"  DataContext="{Binding ModManagerViewModel}"  Header="Mod Manager">
@@ -146,7 +146,7 @@
                 <ComboBox ItemsSource="{Binding MapsList, Mode=TwoWay}" SelectedItem="{Binding SelectedMap, Mode=TwoWay}"  Grid.Row="1" Grid.Column="2" Grid.ColumnSpan ="1" Margin ="5,0,5,0" IsManipulationEnabled="True" />
 
                 <TextBlock Text="Server Registration Host:" Grid.Row="0" Grid.Column ="3" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <TextBox Text="{Binding ServerList}" Grid.Row="1" Grid.Column ="3" Grid.ColumnSpan ="1" Margin ="5,0,5,0" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="False" />
+                <TextBox x:Name="ServerListTextBox" Text="{Binding ServerList}" Grid.Row="1" Grid.Column ="3" Grid.ColumnSpan ="1" Margin ="5,0,5,0" IsManipulationEnabled="True" AcceptsReturn="False" Width="NaN" Height="22" />
                     
                 <TextBlock Text="Server Description:" Grid.Row="2" Grid.ColumnSpan ="4" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
                 <TextBox Text="{Binding ServerDescription}" Grid.Row="3" Grid.ColumnSpan ="4" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
@@ -164,9 +164,9 @@
                     
                 <TextBlock Text="Ping port:" Grid.Row="4" Grid.Column = "3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
                 <TextBox Text="{Binding PingPort}" Grid.Row="5" Grid.Column = "3" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="False" AcceptsReturn="True" />
-                
-                <Button x:Name="LaunchServerButton" Content="Launch Server" Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Command="{Binding LaunchServerCommand}" />
-                <Button x:Name="LaunchServerHeadlessButton" Content="Launch Headless Server" Grid.Row="6" Grid.Column="2" Grid.ColumnSpan="2" Command="{Binding LaunchServerHeadlessCommand}" />
+
+                <Button x:Name="LaunchServerButton" Content="Launch Server" Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Command="{Binding LaunchServerCommand}" IsEnabled="{Binding CanClick}" />
+                <Button x:Name="LaunchServerHeadlessButton" Content="Launch Headless Server" Grid.Row="6" Grid.Column="2" Grid.ColumnSpan="2" Command="{Binding LaunchServerHeadlessCommand}" IsEnabled="{Binding CanClick}"/>
             </Grid>
         </TabItem>
 
@@ -190,8 +190,14 @@
 
                 <TextBlock Text="Installation Type:" Grid.Row="0" Grid.ColumnSpan ="3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
                 <ComboBox SelectedItem="{Binding InstallationType,Mode=TwoWay}" ItemsSource="{Binding AllInstallationTypes}" Grid.Row="1" Grid.ColumnSpan ="3" Margin="0,0,0,0" HorizontalAlignment="Stretch" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />
-                <CheckBox IsChecked="{Binding EnablePluginLogging }" Grid.Row="2" Grid.ColumnSpan ="3" Content="Enable Plugin Logging" Margin="5,10,0,0" HorizontalAlignment="Left" Width="290"/>
-                <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Row="3" Grid.ColumnSpan ="3" Content="Enable Automatic Plugin Updates and Downloads" Margin="5,10,5,0"/>
+                <StackPanel Grid.Row="2" Grid.ColumnSpan ="2" Orientation="Horizontal"  Margin="5">
+                    <CheckBox IsChecked="{Binding EnablePluginLogging }" Grid.Row="2" Grid.ColumnSpan ="2" Content="Enable Plugin Logging" Margin="5,10,0,0" HorizontalAlignment="Left" Width="290"/>
+                    <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Row="3" Grid.ColumnSpan ="2" Content="Enable Automatic Plugin Updates and Downloads" Margin="5,10,5,0"/>
+                </StackPanel>
+                <StackPanel Grid.Row="3" Grid.ColumnSpan ="2" Orientation="Horizontal"  Margin="5">
+                    <TextBlock Text="Additional Mod Actors:" Margin="5"/>
+                    <TextBox Text="{Binding AdditionalModActors, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" HorizontalAlignment="Stretch" VerticalAlignment="Center" Width="400"/>
+                </StackPanel>
                 <TextBlock Text="CLI Args:" Grid.Row="4" Grid.ColumnSpan ="3" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>
                 <TextBox Text="{Binding CLIArgs}" Grid.Row="5" Grid.ColumnSpan ="3" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
                 <Button Content="Clean Up Installation" Grid.Row="6" Grid.Column="0" Margin="5" Command="{Binding CleanUpInstallationCommand}" />
@@ -200,42 +206,5 @@
             </Grid>
         </TabItem>
 
-        <TabItem x:Name="ServerSettingsTab"  DataContext="{Binding ServerSettingsViewModel}" Header="Server">
-            <Grid HorizontalAlignment="Stretch" Margin="0,0,0,0" Width="NaN" VerticalAlignment="Stretch">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Text="Server List:" Grid.Row="0" Grid.Column ="2" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <TextBlock Text="Server Name:" Grid.Row="0" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <TextBox Text="{Binding ServerList}" Grid.Row="1" Grid.Column ="2" Grid.ColumnSpan ="2" Margin ="5,0,5,0" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="False" />
-                <TextBox Text="{Binding ServerName}" Grid.Row="1" Grid.ColumnSpan ="2" TextWrapping="Wrap" Margin ="5,0,5,0" IsManipulationEnabled="True" AcceptsReturn="False" />
-                <TextBlock Text="Server Description:" Grid.Row="2" Grid.ColumnSpan ="4" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <TextBox Text="{Binding ServerDescription}" Grid.Row="3" Grid.ColumnSpan ="4" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
-                <Rectangle Fill="Gray" IsHitTestVisible="False" Grid.Row="5" Grid.Column="2" Grid.ColumnSpan ="2"/>
-                <Rectangle Fill="Gray" IsHitTestVisible="False" Grid.Row="4" Grid.Column="2" Grid.ColumnSpan ="2"/>
-                <TextBlock Text="Game port:" Grid.Row="4" Grid.Column = "0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <TextBlock Text="RCON port:" Grid.Row="4" Grid.Column = "1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <TextBlock Text="A2S port:" Grid.Row="4" Grid.Column = "2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <TextBlock Text="Ping port:" Grid.Row="4" Grid.Column = "3" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <TextBox Text="{Binding GamePort}" Grid.Row="5" Grid.Column = "0" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
-                <TextBox Text="{Binding RconPort}" Grid.Row="5" Grid.Column = "1" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
-                <TextBox Text="{Binding A2sPort}" Grid.Row="5" Grid.Column = "2" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
-                <TextBox Text="{Binding PingPort}" Grid.Row="5" Grid.Column = "3" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
-            </Grid>
-        </TabItem>
-        
     </TabControl>
 </Window>

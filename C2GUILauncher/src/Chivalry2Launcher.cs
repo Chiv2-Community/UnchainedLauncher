@@ -8,9 +8,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Linq;
+using log4net.Repository.Hierarchy;
+using log4net;
 
 namespace C2GUILauncher {
     public class Chivalry2Launcher {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2Launcher));
         public static string GameBinPath = FilePaths.BinDir + "\\Chivalry2-Win64-Shipping.exe";
         public static string OriginalLauncherPath = "Chivalry2Launcher-ORIGINAL.exe";
 
@@ -36,6 +39,11 @@ namespace C2GUILauncher {
         public Thread? LaunchModded(Window window, InstallationType installationType, List<string> args, bool downloadPlugin, bool enablePluginLogging, Process? serverRegister = null) {
             if (installationType == InstallationType.NotSet) return null;
 
+            logger.Info("Attempting to launch modded game.");
+
+
+            LogList($"Mods Enabled:", ModManager.EnabledModReleases.Select(mod => mod.Manifest.Name + " " + mod.Tag));
+            LogList($"Launch args:", args);
 
             // Download the mod files, potentially using debug dlls
             var launchThread = new Thread(async () => {
@@ -68,6 +76,13 @@ namespace C2GUILauncher {
 
             launchThread.Start();
             return launchThread;
+        }
+
+        private void LogList<T>(string initialMessage, IEnumerable<T> list) {
+            logger.Info(initialMessage);
+            foreach (var item in list) {
+                logger.Info("    " + (item?.ToString() ?? "null"));
+            }
         }
     }
 }

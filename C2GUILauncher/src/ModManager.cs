@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using System.Windows.Shapes;
 
 namespace C2GUILauncher.Mods {
 
@@ -78,10 +79,10 @@ namespace C2GUILauncher.Mods {
 
                 var deserializationResult =
                     JsonHelpers.Deserialize<Release>(s).RecoverWith(ex => {
-                        if (ex != null) { logger.Warn("Falling back to V2 deserialization"); }
+                        logger.Error("Falling back to V2 deserialization", ex);
                         return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Release>(s).Select(Release.FromV2);
                     }).RecoverWith(ex => {
-                        if (ex != null) { logger.Warn("Falling back to V1 deserialization"); }
+                        logger.Error("Falling back to V1 deserialization", ex);
                         return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Release>(s).Select(JsonModels.Metadata.V2.Release.FromV1).Select(Release.FromV2);
                     });
 
@@ -89,6 +90,8 @@ namespace C2GUILauncher.Mods {
                     logger.Error("Failed to deserialize metadata file " + path + " " + deserializationResult.Exception?.Message);
                     return null;
                 }
+
+                logger.Info(path + ": " + deserializationResult.Result!.Manifest.OptionFlags.ActorMod);
 
                 return deserializationResult.Result;
             };
@@ -166,12 +169,30 @@ namespace C2GUILauncher.Mods {
                 .Select(async downloadTask => {
                     await downloadTask.Task;
                     var fileLocation = downloadTask.Target.OutputPath!;
-                    var mod = JsonConvert.DeserializeObject<Mod>(await File.ReadAllTextAsync(fileLocation));
-                    if (mod != null)
-                        Mods.Add(mod);
-                    return mod;
-                })
-                .ToList();
+
+                    var jsonString = await File.ReadAllTextAsync(fileLocation);
+                    var deserializationResult =
+                        JsonHelpers
+                            .Deserialize<Mod>(jsonString)
+                            .RecoverWith(e => {
+                                logger.Error("Falling back to V2 deserialization", e);
+                                return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Mod>(jsonString).Select(Mod.FromV2);
+                            })
+                            .RecoverWith(e => {
+                                logger.Error("Falling back to V1 deserialization", e);
+                                return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Mod>(jsonString).Select(JsonModels.Metadata.V2.Mod.FromV1).Select(Mod.FromV2);
+                            });
+
+                    if(deserializationResult.Exception != null)
+                        logger.Error("Failed to deserialize mod metadata file " + fileLocation, deserializationResult.Exception);
+
+                    if (deserializationResult.Success) {
+                        logger.Info(downloadTask.Target.OutputPath + ": " + deserializationResult.Result!.Releases.First()!.Manifest.OptionFlags.ActorMod);
+                        Mods.Add(deserializationResult.Result!);
+                    } else {
+                        logger.Error("Failed to deserialize mod metadata file " + fileLocation, deserializationResult.Exception);
+                    }
+                });
 
             await Task.WhenAll(downloadTasks);
         }

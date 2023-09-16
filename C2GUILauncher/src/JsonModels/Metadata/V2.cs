@@ -5,8 +5,8 @@ using System.Collections.Generic;
 
 namespace C2GUILauncher.JsonModels.Metadata.V2 {
     public record Mod(
-        [property: JsonProperty("latest_manifest")] ModManifest LatestManifest,
-        [property: JsonProperty("releases")] List<Release> Releases
+        [property: JsonProperty("latest_manifest", Required = Required.Always)] ModManifest LatestManifest,
+        [property: JsonProperty("releases", Required = Required.Always)] List<Release> Releases
     ) {
         public static Mod FromV1(V1.Mod v1Mod) {
             return new Mod(
@@ -17,11 +17,11 @@ namespace C2GUILauncher.JsonModels.Metadata.V2 {
     }
 
     public record Release(
-        [property: JsonProperty("tag")] string Tag,
-        [property: JsonProperty("hash")] string ReleaseHash,
-        [property: JsonProperty("pak_file_name")] string PakFileName,
-        [property: JsonProperty("release_date")] DateTime ReleaseDate,
-        [property: JsonProperty("manifest")] ModManifest Manifest
+        [property: JsonProperty("tag", Required = Required.Always)] string Tag,
+        [property: JsonProperty("hash", Required = Required.Always)] string ReleaseHash,
+        [property: JsonProperty("pak_file_name", Required = Required.Always)] string PakFileName,
+        [property: JsonProperty("release_date", Required = Required.Always)] DateTime ReleaseDate,
+        [property: JsonProperty("manifest", Required = Required.Always)] ModManifest Manifest
     ) {
         public static Release FromV1(V1.Release input) {
             return new Release(
@@ -51,8 +51,8 @@ namespace C2GUILauncher.JsonModels.Metadata.V2 {
     }
 
     public record Dependency(
-        [property: JsonProperty("repo_url")] string RepoUrl,
-        [property: JsonProperty("version")] string Version
+        [property: JsonProperty("repo_url", Required = Required.Always)] string RepoUrl,
+        [property: JsonProperty("version", Required = Required.Always)] string Version
     ) {
         public static Dependency FromV1(V1.Dependency input) {
             return new Dependency(
@@ -63,18 +63,16 @@ namespace C2GUILauncher.JsonModels.Metadata.V2 {
     }
 
     public record ModManifest(
-        [property: JsonProperty("repo_url")] string RepoUrl,
-        [property: JsonProperty("name")] string Name,
-        [property: JsonProperty("description")] string Description,
+        [property: JsonProperty("repo_url", Required = Required.Always)] string RepoUrl,
+        [property: JsonProperty("name", Required = Required.Always)] string Name,
+        [property: JsonProperty("description", Required = Required.Always)] string Description,
         [property: JsonProperty("home_page")] string? HomePage,
         [property: JsonProperty("image_url")] string? ImageUrl,
-        [property: JsonProperty("mod_type")] ModType ModType,
-        [property: JsonProperty("authors")] List<string> Authors,
-        [property: JsonProperty("dependencies")] List<Dependency> Dependencies,
-        [property: JsonProperty("tags")] List<ModTag> Tags,
-        [property: JsonProperty("ag_mod")] bool AgMod,
-        [property: JsonProperty("global_mod")] bool GlobalMod,
-        [property: JsonProperty("maps")] List<string> Maps
+        [property: JsonProperty("mod_type", Required = Required.Always)] ModType ModType,
+        [property: JsonProperty("authors", Required = Required.Always)] List<string> Authors,
+        [property: JsonProperty("dependencies", Required = Required.Always)] List<Dependency> Dependencies,
+        [property: JsonProperty("tags", Required = Required.Always)] List<ModTag> Tags,
+        [property: JsonProperty("ag_mod", Required = Required.Always)] bool AgMod
     ) {
         public static ModManifest FromV1(V1.ModManifest latestManifest) {
             return new ModManifest(
@@ -87,9 +85,7 @@ namespace C2GUILauncher.JsonModels.Metadata.V2 {
                 Authors: latestManifest.Authors,
                 Dependencies: latestManifest.Dependencies.ConvertAll(Dependency.FromV1),
                 Tags: new List<ModTag>(),
-                AgMod: false,
-                GlobalMod: false,
-                Maps: new List<string>()
+                AgMod: false
             );
         }
     }

@@ -40,8 +40,11 @@ namespace C2GUILauncher {
                 return false;
             }
 
-            logger.Info("Deleting file: " + filePath);
-            File.Delete(filePath);
+            if (File.Exists(filePath)) {
+                logger.Info("Deleting file: " + filePath);
+                File.Delete(filePath);
+            }
+
             return true;
         }
 

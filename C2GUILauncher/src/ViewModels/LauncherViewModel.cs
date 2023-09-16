@@ -2,6 +2,8 @@
 using C2GUILauncher.JsonModels.Metadata.V3;
 using C2GUILauncher.Mods;
 using CommunityToolkit.Mvvm.Input;
+using log4net;
+using log4net.Repository.Hierarchy;
 using Octokit;
 using PropertyChanged;
 using System;
@@ -18,6 +20,7 @@ namespace C2GUILauncher.ViewModels {
 
     [AddINotifyPropertyChangedInterface]
     public class LauncherViewModel {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherViewModel));
         public ICommand LaunchVanillaCommand { get; }
         public ICommand LaunchModdedCommand { get; }
 
@@ -38,7 +41,7 @@ namespace C2GUILauncher.ViewModels {
             ModManager = modManager;
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
-            this.LaunchModdedCommand = new RelayCommand(() => LaunchModded(BuildModsString()));
+            this.LaunchModdedCommand = new RelayCommand(() => LaunchModded());
 
             Window = window;
 
@@ -57,7 +60,7 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        public void LaunchModded(string mapTarget, string[]? exArgs = null, Process? serverRegister = null) {
+        public void LaunchModded(string[]? exArgs = null, Process? serverRegister = null) {
             // Pass args through if the args box has been modified, or if we're an EGS install
             var shouldSendArgs = Settings.InstallationType == InstallationType.EpicGamesStore || Settings.CLIArgsModified;
 
@@ -68,12 +71,12 @@ namespace C2GUILauncher.ViewModels {
             List<string> cliArgs = args.Split(" ").ToList();
             int TBLloc = cliArgs.IndexOf("TBL") + 1;
 
-            //add map target for agmods built by caller. This looks like "agmods?map=frontend?mods=...?rcon"
-            cliArgs.Insert(TBLloc, mapTarget);
-            //add extra args like -nullrhi or -rcon
+            cliArgs.Insert(TBLloc, BuildModsString());
             if (exArgs != null) {
                 cliArgs.AddRange(exArgs);
             }
+
+            cliArgs = cliArgs.Select(x => x.Trim()).Where(x => x != null && x != "").ToList();
 
             var maybeThread = Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, Settings.EnablePluginLogging, serverRegister);
 

@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 
 namespace C2GUILauncher {
     internal class InstallHelpers {
-        private static ILog logger = LogManager.GetLogger(nameof(InstallHelpers));
+        private static readonly ILog logger = LogManager.GetLogger(nameof(InstallHelpers));
 
         private static readonly string Chiv2SteamAppID = "1824220";
         private static readonly string Chiv2EGSAppName = "Peppermint";

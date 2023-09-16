@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace C2GUILauncher.src {
     public static class PowerShell {
         private static readonly ILog logger = LogManager.GetLogger(nameof(PowerShell));
-        public static Process Run(List<string> commands, bool createWindow = false) {
+        public static Process Run(IEnumerable<string> commands, bool createWindow = false) {
             var process = new Process();
 
             var commandString = commands.Aggregate("", (acc, elem) => acc + elem + "; \n");

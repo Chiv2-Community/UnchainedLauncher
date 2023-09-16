@@ -6,8 +6,8 @@ using System.Linq;
 
 namespace C2GUILauncher.JsonModels.Metadata.V3 {
     public record Mod(
-        [property: JsonProperty("latest_manifest")] ModManifest LatestManifest,
-        [property: JsonProperty("releases")] List<Release> Releases
+        [property: JsonProperty("latest_manifest", Required = Required.Always)] ModManifest LatestManifest,
+        [property: JsonProperty("releases", Required = Required.Always)] List<Release> Releases
     ) {
         public static Mod FromV2(V2.Mod input) {
             return new Mod(
@@ -18,11 +18,11 @@ namespace C2GUILauncher.JsonModels.Metadata.V3 {
     }
 
     public record Release(
-        [property: JsonProperty("tag")] string Tag,
-        [property: JsonProperty("hash")] string ReleaseHash,
-        [property: JsonProperty("pak_file_name")] string PakFileName,
-        [property: JsonProperty("release_date")] DateTime ReleaseDate,
-        [property: JsonProperty("manifest")] ModManifest Manifest
+        [property: JsonProperty("tag", Required = Required.Always)] string Tag,
+        [property: JsonProperty("hash", Required = Required.Always)] string ReleaseHash,
+        [property: JsonProperty("pak_file_name", Required = Required.Always)] string PakFileName,
+        [property: JsonProperty("release_date", Required = Required.Always)] DateTime ReleaseDate,
+        [property: JsonProperty("manifest", Required = Required.Always)] ModManifest Manifest
     ) {
         public static Release FromV2(V2.Release input) {
             return new Release(
@@ -53,8 +53,8 @@ namespace C2GUILauncher.JsonModels.Metadata.V3 {
     }
 
     public record Dependency(
-        [property: JsonProperty("repo_url")] string RepoUrl,
-        [property: JsonProperty("version")] string Version
+        [property: JsonProperty("repo_url", Required = Required.Always)] string RepoUrl,
+        [property: JsonProperty("version", Required = Required.Always)] string Version
     ) {
         public static Dependency FromV2(V2.Dependency input) {
             return new Dependency(
@@ -65,37 +65,37 @@ namespace C2GUILauncher.JsonModels.Metadata.V3 {
     }
 
     public record OptionFlags(
-        [property: JsonProperty("actor_mod")] bool ActorMod,
-        [property: JsonProperty("global_mod")] bool GlobalMod
+        [property: JsonProperty("actor_mod", Required = Required.Always)] bool ActorMod,
+        [property: JsonProperty("global_mod", Required = Required.Always)] bool GlobalMod
     );
 
     public record ModManifest(
-        [property: JsonProperty("repo_url")] string RepoUrl,
-        [property: JsonProperty("name")] string Name,
-        [property: JsonProperty("description")] string Description,
+        [property: JsonProperty("repo_url", Required = Required.Always)] string RepoUrl,
+        [property: JsonProperty("name", Required = Required.Always)] string Name,
+        [property: JsonProperty("description", Required = Required.Always)] string Description,
         [property: JsonProperty("home_page")] string? HomePage,
         [property: JsonProperty("image_url")] string? ImageUrl,
-        [property: JsonProperty("mod_type")] ModType ModType,
-        [property: JsonProperty("authors")] List<string> Authors,
-        [property: JsonProperty("dependencies")] List<Dependency> Dependencies,
-        [property: JsonProperty("tags")] List<ModTag> Tags,
-        [property: JsonProperty("maps")] List<string> Maps,
-        [property: JsonProperty("options")] OptionFlags OptionFlags
+        [property: JsonProperty("mod_type", Required = Required.Always)] ModType ModType,
+        [property: JsonProperty("authors", Required = Required.Always)] List<string> Authors,
+        [property: JsonProperty("dependencies", Required = Required.Always)] List<Dependency> Dependencies,
+        [property: JsonProperty("tags", Required = Required.Always)] List<ModTag> Tags,
+        [property: JsonProperty("maps", Required = Required.Always)] List<string> Maps,
+        [property: JsonProperty("options", Required = Required.Always)] OptionFlags OptionFlags
     ) {
-        public static ModManifest FromV2(V2.ModManifest latestManifest) {
+        public static ModManifest FromV2(V2.ModManifest input) {
             return new ModManifest(
-                RepoUrl: latestManifest.RepoUrl,
-                Name: latestManifest.Name,
-                Description: latestManifest.Description,
-                HomePage: latestManifest.HomePage,
-                ImageUrl: latestManifest.ImageUrl,
-                ModType: Enum.Parse<ModType>(latestManifest.ModType.ToString()),
-                Authors: latestManifest.Authors,
-                Dependencies: latestManifest.Dependencies.ConvertAll(Dependency.FromV2),
-                Tags: latestManifest.Tags.Select(x => Enum.Parse<ModTag>(x.ToString())).ToList(),
-                Maps: latestManifest.Maps,
+                RepoUrl: input.RepoUrl,
+                Name: input.Name,
+                Description: input.Description,
+                HomePage: input.HomePage,
+                ImageUrl: input.ImageUrl,
+                ModType: Enum.Parse<ModType>(input.ModType.ToString()),
+                Authors: input.Authors,
+                Dependencies: input.Dependencies.ConvertAll(Dependency.FromV2),
+                Tags: input.Tags.Select(x => Enum.Parse<ModTag>(x.ToString())).ToList(),
+                Maps: new List<string>(),
                 OptionFlags: new OptionFlags(
-                    ActorMod: latestManifest.AgMod,
+                    ActorMod: input.AgMod,
                     GlobalMod: false
                 )
             );

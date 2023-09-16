@@ -72,7 +72,7 @@ namespace C2GUILauncher.ViewModels {
             var cliArgsList = Environment.GetCommandLineArgs();
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => x + " " + y) : "";
 
-            var defaultSettings = new LauncherSettings(InstallationTypeUtils.AutoDetectInstallationType(), false, true, "ModMenu,FrontendMod");
+            var defaultSettings = new LauncherSettings(InstallationTypeUtils.AutoDetectInstallationType(), false, true, "");
             var fileBackedSettings = new FileBackedSettings<LauncherSettings>(SettingsFilePath, defaultSettings);
 
             var loadedSettings = fileBackedSettings.LoadSettings();
@@ -104,7 +104,7 @@ namespace C2GUILauncher.ViewModels {
         private void CleanUpInstallation() {
             logger.Info("CleanUpInstallation button clicked.");
             var message = new List<string>() {
-                "Are you sure? This will delete the following:",
+                "Are you sure? This will disable all mods and reset all settings to their defaults. This will delete the following:",
                 "* All files in .mod_cache",
                 "* All files in TBL\\Binaries\\Win64\\Plugins",
                 "* All non-vanilla paks in TBL\\Content\\Paks.",

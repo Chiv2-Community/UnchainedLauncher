@@ -45,7 +45,7 @@
                 </Grid.ColumnDefinitions>
 
                 <Button x:Name="LaunchVanillaButton" Content="Launch Vanilla" Grid.Row="0" Grid.ColumnSpan = "2" Command="{Binding LaunchVanillaCommand}" IsEnabled="{Binding CanClick}" />
-                <Button x:Name="LaunchModdedButton" Content="Launch With Mods" Grid.Row="1" Grid.ColumnSpan = "2" Command="{Binding LaunchModdedCommand}" IsEnabled="{Binding CanClick}" />
+                <Button x:Name="LaunchModdedButton" Content="Launch Unchained" Grid.Row="1" Grid.ColumnSpan = "2" Command="{Binding LaunchModdedCommand}" IsEnabled="{Binding CanClick}" />
             </Grid>
         </TabItem>
         <TabItem x:Name="ModManagerTab"  DataContext="{Binding ModManagerViewModel}"  Header="Mod Manager">

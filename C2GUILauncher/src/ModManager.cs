@@ -1,4 +1,4 @@
-﻿using C2GUILauncher.JsonModels.Metadata.V2;
+﻿using C2GUILauncher.JsonModels.Metadata.V3;
 using log4net;
 using Newtonsoft.Json;
 using System;
@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using System.Windows.Shapes;
 
 namespace C2GUILauncher.Mods {
 
@@ -65,7 +66,10 @@ namespace C2GUILauncher.Mods {
         }
 
         public static ModManager ForRegistry(string registryOrg, string registryRepoName, string pakDir) {
+
+
             var loadReleaseMetadata = (string path) => {
+                logger.Info("Loading release metadata from " + path);
                 if (!File.Exists(path)) {
                     logger.Warn("Failed to find metadata file: " + path);
                     return null;
@@ -73,13 +77,14 @@ namespace C2GUILauncher.Mods {
 
                 var s = File.ReadAllText(path);
 
-                var deserializationResult = JsonHelpers.Deserialize<Release>(s).RecoverWith(ex => {
-                    if (ex != null) {
-                        logger.Warn("Failed to deserialize metadata file " + path + " " + ex.Message + ". Falling back to legacy deserialization");
-                    }
-
-                    return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Release>(s).Select(Release.FromV1);
-                });
+                var deserializationResult =
+                    JsonHelpers.Deserialize<Release>(s).RecoverWith(ex => {
+                        logger.Warn("Falling back to V2 deserialization" + ex?.Message ?? "unknown failure");
+                        return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Release>(s).Select(Release.FromV2);
+                    }).RecoverWith(ex => {
+                        logger.Warn("Falling back to V1 deserialization" + ex?.Message ?? "unknown failure");
+                        return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Release>(s).Select(JsonModels.Metadata.V2.Release.FromV1).Select(Release.FromV2);
+                    });
 
                 if (!deserializationResult.Success) {
                     logger.Error("Failed to deserialize metadata file " + path + " " + deserializationResult.Exception?.Message);
@@ -140,6 +145,7 @@ namespace C2GUILauncher.Mods {
             }
 
             this.EnabledModReleases.Add(release);
+            DownloadModRelease(release);
         }
 
         public async Task UpdateModsList() {
@@ -162,17 +168,34 @@ namespace C2GUILauncher.Mods {
                 .Select(async downloadTask => {
                     await downloadTask.Task;
                     var fileLocation = downloadTask.Target.OutputPath!;
-                    var mod = JsonConvert.DeserializeObject<Mod>(await File.ReadAllTextAsync(fileLocation));
-                    if (mod != null)
-                        Mods.Add(mod);
-                    return mod;
-                })
-                .ToList();
+
+                    var jsonString = await File.ReadAllTextAsync(fileLocation);
+                    var deserializationResult =
+                        JsonHelpers
+                            .Deserialize<Mod>(jsonString)
+                            .RecoverWith(e => {
+                                logger.Warn("Falling back to V2 deserialization: " + e?.Message ?? "unknown failure");
+                                return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Mod>(jsonString).Select(Mod.FromV2);
+                            })
+                            .RecoverWith(e => {
+                                logger.Warn("Falling back to V1 deserialization" + e?.Message ?? "unknown failure");
+                                return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Mod>(jsonString).Select(JsonModels.Metadata.V2.Mod.FromV1).Select(Mod.FromV2);
+                            });
+
+                    if(deserializationResult.Exception != null)
+                        logger.Error("Failed to deserialize mod metadata file " + fileLocation, deserializationResult.Exception);
+
+                    if (deserializationResult.Success) {
+                        Mods.Add(deserializationResult.Result!);
+                    } else {
+                        logger.Error("Failed to deserialize mod metadata file " + fileLocation, deserializationResult.Exception);
+                    }
+                });
 
             await Task.WhenAll(downloadTasks);
         }
 
-        public IEnumerable<ModReleaseDownloadTask> DownloadModFiles(bool debug) {
+        public IEnumerable<ModReleaseDownloadTask> DownloadModFiles(bool downloadPlugin, bool debug) {
             logger.Info("Downloading mod files...");
 
             logger.Info("Creating mod diretories...");
@@ -194,9 +217,10 @@ namespace C2GUILauncher.Mods {
                 FileHelpers.DeleteFile(depr);
 
 
-            var coreMods = new List<DownloadTarget>() {
-                new DownloadTarget(CoreMods.UnchainedPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.UnchainedPluginPath)
-            };
+            var coreMods = 
+                downloadPlugin 
+                    ? new List<DownloadTarget>() { new DownloadTarget(CoreMods.UnchainedPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.UnchainedPluginPath)}
+                    : new List<DownloadTarget>();
 
             var coreModsDownloads = HttpHelpers.DownloadAllFiles(coreMods);
 
@@ -218,7 +242,8 @@ namespace C2GUILauncher.Mods {
                             new List<string>(),
                             new List<Dependency>(),
                             new List<ModTag>(),
-                            false
+                            new List<string>(),
+                            new OptionFlags(false, false)
                         )
                     ),
                     downloadTask
@@ -239,9 +264,6 @@ namespace C2GUILauncher.Mods {
 
             if (File.Exists(outputPath)) {
                 var shaHash = FileHelpers.Sha512(outputPath);
-                logger.Debug(shaHash);
-                logger.Debug(release.ReleaseHash);
-
                 if (shaHash == release.ReleaseHash) {
                     logger.Info($"Already downloaded {release.Manifest.Name} {release.Tag}. Skipping");
 
@@ -253,9 +275,16 @@ namespace C2GUILauncher.Mods {
                         )
                     );
                 }
-
-
             }
+
+            var enabledModJson = JsonConvert.SerializeObject(release);
+            var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
+
+            var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
+            var filePath = orgPath + "\\" + urlParts.Last() + ".json";
+
+            Directory.CreateDirectory(orgPath);
+            File.WriteAllText(filePath, enabledModJson);
 
             var downloadTask = new ModReleaseDownloadTask(release, HttpHelpers.DownloadFileAsync(downloadUrl, outputPath));
             PendingDownloads.Add(downloadTask);
@@ -266,15 +295,6 @@ namespace C2GUILauncher.Mods {
                     FailedDownloads.Add(downloadTask);
                 } else {
                     logger.Info("Download complete: " + outputPath);
-                    var enabledModJson = JsonConvert.SerializeObject(release);
-                    var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
-
-                    var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
-                    var filePath = orgPath + "\\" + urlParts.Last() + ".json";
-
-                    Directory.CreateDirectory(orgPath);
-                    File.WriteAllText(filePath, enabledModJson);
-
                     var shaHash = FileHelpers.Sha512(outputPath);
 
                     if (shaHash != release.ReleaseHash) {

@@ -2,16 +2,17 @@
 using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
-namespace C2GUILauncher.JsonModels.Metadata.V2 {
+namespace C2GUILauncher.JsonModels.Metadata.V3 {
     public record Mod(
         [property: JsonProperty("latest_manifest", Required = Required.Always)] ModManifest LatestManifest,
         [property: JsonProperty("releases", Required = Required.Always)] List<Release> Releases
     ) {
-        public static Mod FromV1(V1.Mod v1Mod) {
+        public static Mod FromV2(V2.Mod input) {
             return new Mod(
-                LatestManifest: ModManifest.FromV1(v1Mod.LatestManifest),
-                Releases: v1Mod.Releases.ConvertAll(Release.FromV1)
+                LatestManifest: ModManifest.FromV2(input.LatestManifest),
+                Releases: input.Releases.ConvertAll(Release.FromV2)
             );
         }
     }
@@ -23,13 +24,13 @@ namespace C2GUILauncher.JsonModels.Metadata.V2 {
         [property: JsonProperty("release_date", Required = Required.Always)] DateTime ReleaseDate,
         [property: JsonProperty("manifest", Required = Required.Always)] ModManifest Manifest
     ) {
-        public static Release FromV1(V1.Release input) {
+        public static Release FromV2(V2.Release input) {
             return new Release(
                 Tag: input.Tag,
                 ReleaseHash: input.ReleaseHash,
                 PakFileName: input.PakFileName,
                 ReleaseDate: input.ReleaseDate,
-                Manifest: ModManifest.FromV1(input.Manifest)
+                Manifest: ModManifest.FromV2(input.Manifest)
             );
         }
     }
@@ -48,19 +49,25 @@ namespace C2GUILauncher.JsonModels.Metadata.V2 {
         Model,
         Weapon,
         Doodad,
+        Library
     }
 
     public record Dependency(
         [property: JsonProperty("repo_url", Required = Required.Always)] string RepoUrl,
         [property: JsonProperty("version", Required = Required.Always)] string Version
     ) {
-        public static Dependency FromV1(V1.Dependency input) {
+        public static Dependency FromV2(V2.Dependency input) {
             return new Dependency(
                 RepoUrl: input.RepoUrl,
                 Version: input.Version
             );
         }
     }
+
+    public record OptionFlags(
+        [property: JsonProperty("actor_mod", Required = Required.Always)] bool ActorMod,
+        [property: JsonProperty("global_mod", Required = Required.Always)] bool GlobalMod
+    );
 
     public record ModManifest(
         [property: JsonProperty("repo_url", Required = Required.Always)] string RepoUrl,
@@ -72,20 +79,25 @@ namespace C2GUILauncher.JsonModels.Metadata.V2 {
         [property: JsonProperty("authors", Required = Required.Always)] List<string> Authors,
         [property: JsonProperty("dependencies", Required = Required.Always)] List<Dependency> Dependencies,
         [property: JsonProperty("tags", Required = Required.Always)] List<ModTag> Tags,
-        [property: JsonProperty("ag_mod", Required = Required.Always)] bool AgMod
+        [property: JsonProperty("maps", Required = Required.Always)] List<string> Maps,
+        [property: JsonProperty("options", Required = Required.Always)] OptionFlags OptionFlags
     ) {
-        public static ModManifest FromV1(V1.ModManifest latestManifest) {
+        public static ModManifest FromV2(V2.ModManifest input) {
             return new ModManifest(
-                RepoUrl: latestManifest.RepoUrl,
-                Name: latestManifest.Name,
-                Description: latestManifest.Description,
-                HomePage: latestManifest.HomePage,
-                ImageUrl: latestManifest.ImageUrl,
-                ModType: Enum.Parse<ModType>(latestManifest.ModType, true),
-                Authors: latestManifest.Authors,
-                Dependencies: latestManifest.Dependencies.ConvertAll(Dependency.FromV1),
-                Tags: new List<ModTag>(),
-                AgMod: false
+                RepoUrl: input.RepoUrl,
+                Name: input.Name,
+                Description: input.Description,
+                HomePage: input.HomePage,
+                ImageUrl: input.ImageUrl,
+                ModType: Enum.Parse<ModType>(input.ModType.ToString()),
+                Authors: input.Authors,
+                Dependencies: input.Dependencies.ConvertAll(Dependency.FromV2),
+                Tags: input.Tags.Select(x => Enum.Parse<ModTag>(x.ToString())).ToList(),
+                Maps: new List<string>(),
+                OptionFlags: new OptionFlags(
+                    ActorMod: input.AgMod,
+                    GlobalMod: false
+                )
             );
         }
     }

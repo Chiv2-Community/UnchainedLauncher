@@ -27,6 +27,7 @@ namespace C2GUILauncher.ViewModels {
         public InstallationType InstallationType { get; set; }
         public bool EnablePluginLogging { get; set; }
         public bool EnablePluginAutomaticUpdates { get; set; }
+        public string? AdditionalModActors { get; set; }
 
         public string _cliArgs;
         public string CLIArgs {
@@ -39,7 +40,6 @@ namespace C2GUILauncher.ViewModels {
             }
         }
         public bool CLIArgsModified { get; set; }
-
         public string CurrentVersion {
             get => "v" + version.ToString(3);
         }
@@ -58,7 +58,6 @@ namespace C2GUILauncher.ViewModels {
             EnablePluginLogging = enablePluginLogging;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
             LauncherSettings = launcherSettings;
-
             _cliArgs = cliArgs;
             CLIArgsModified = false;
 
@@ -89,7 +88,7 @@ namespace C2GUILauncher.ViewModels {
 
         public void SaveSettings() {
             LauncherSettings.SaveSettings(
-                new LauncherSettings(InstallationType, EnablePluginLogging, EnablePluginAutomaticUpdates)
+                new LauncherSettings(InstallationType, EnablePluginLogging, EnablePluginAutomaticUpdates, AdditionalModActors)
             );
         }
 

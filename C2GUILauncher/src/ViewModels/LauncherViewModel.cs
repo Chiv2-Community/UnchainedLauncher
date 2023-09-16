@@ -2,6 +2,7 @@
 using C2GUILauncher.JsonModels.Metadata.V3;
 using C2GUILauncher.Mods;
 using CommunityToolkit.Mvvm.Input;
+using Octokit;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
@@ -36,10 +37,8 @@ namespace C2GUILauncher.ViewModels {
             Settings = settings;
             ModManager = modManager;
 
-            LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
-            LaunchModdedCommand = new RelayCommand(
-                () => LaunchModded("agmods?map=frontend" + BuildModsString())
-            ); //ugly wrapper lambda
+            this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
+            this.LaunchModdedCommand = new RelayCommand(() => LaunchModded(BuildModsString()));
 
             Window = window;
 
@@ -93,8 +92,19 @@ namespace C2GUILauncher.ViewModels {
                     .Where(manifest => manifest.ModType == ModType.Server || manifest.ModType == ModType.Shared)
                     .Where(manifest => manifest.OptionFlags.ActorMod)
                     .Select(manifest => manifest.Name.Replace(" ", ""))
-                    .Aggregate("?mods=", (agg, name) => agg + name + ",");
-                modsString = modsString[..^1]; //cut off dangling comma
+                    .Aggregate("", (agg, name) => agg + name + ",");
+
+                bool hasAdditional = this.Settings.AdditionalModActors != "";
+                if (modsString != "" && hasAdditional)
+                {
+                    modsString = "--all-mod-actors " + modsString;
+                    if (hasAdditional)
+                        modsString += this.Settings.AdditionalModActors;
+                    else
+                        modsString = modsString[..^1]; //cut off dangling comma
+                }
+
+                //return modsString+ " --default-mod-actors ModMenu,FrontendMod --next-map-name to_coxwell --next-map-mod-actors GiantSlayers,FilthyPeasants";
                 return modsString;
             } else {
                 return "";

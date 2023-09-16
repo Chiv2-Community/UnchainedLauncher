@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace C2GUILauncher {
     static class HttpHelpers {
-        private static ILog logger = LogManager.GetLogger(nameof(HttpHelpers));
+        private static readonly ILog logger = LogManager.GetLogger(nameof(HttpHelpers));
 
         private static readonly HttpClient _httpClient = new HttpClient();
 
@@ -20,7 +20,7 @@ namespace C2GUILauncher {
         /// The task that represents the asynchronous operation.
         /// </returns>
         public static DownloadTask DownloadFileAsync(string url, string outputPath) {
-            if (!Directory.Exists(Path.GetDirectoryName(outputPath))) {
+            if (!Directory.Exists(Path.GetDirectoryName(outputPath) ?? ".")) {
                 logger.Info($"Creating directory {outputPath}...");
                 Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
             }

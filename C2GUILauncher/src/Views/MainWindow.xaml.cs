@@ -26,7 +26,8 @@ namespace C2GUILauncher {
         public ModListViewModel ModManagerViewModel { get; }
         public SettingsViewModel SettingsViewModel { get; }
         public LauncherViewModel LauncherViewModel { get; }
-        public ServerSettingsViewModel ServerSettingsViewModel { get; }
+        public ServerLauncherViewModel ServerSettingsViewModel { get; }
+        public bool DisableSaveSettings { get; set; }
 
         private readonly ModManager ModManager;
 
@@ -86,6 +87,12 @@ namespace C2GUILauncher {
             return InstallResult.Rejected;
         }
 
+        // DESNOTE(2023-09-15, jbarber):ggg
+        //     This is a warning that we aren't initializing all of ourg
+        //     non-nullable members of this class. The only time we fail to
+        //     initialize things is if we're closing immediately, so its not a
+        //     problem.
+        #pragma warning disable CS8618
         public MainWindow() {
             try {
 
@@ -119,29 +126,33 @@ namespace C2GUILauncher {
                             logger.Info("Installed successfully");
                             MessageBox.Show($"Launcher installation is complete.");
                             this.Close();
-                            break;
+                            return;
                         case InstallResult.Failed:
                             logger.Info("Installation failed");
                             MessageBox.Show($"Launcher installation failed.");
                             this.Close();
-                            break;
+                            return;
                         case InstallResult.NoTarget:
                             // This case should be impossible, but lets handle it here just in case.
                             logger.Info("No installation target found... This should never happen");
                             MessageBox.Show($"Launcher installation failed because no target was found. Please install manually");
                             this.Close();
-                            break;
+                            return;
                     }
 
+                } else {
+                    logger.Info("Already installed.");
                 }
 
                 this.ModManager = ModManager.ForRegistry(
                     "Chiv2-Community",
                     "C2ModRegistry",
-                    "TBL\\Content\\Paks"
+                    FilePaths.PakDir
                 );
 
-                this.SettingsViewModel = SettingsViewModel.LoadSettings();
+                var chiv2Launcher = new Chivalry2Launcher(ModManager);
+
+                this.SettingsViewModel = SettingsViewModel.LoadSettings(this);
                 if (this.SettingsViewModel.InstallationType == InstallationType.NotSet) {
                     if (Path.Equals(curDir, egsDir))
                         this.SettingsViewModel.InstallationType = InstallationType.EpicGamesStore;
@@ -149,24 +160,27 @@ namespace C2GUILauncher {
                         this.SettingsViewModel.InstallationType = InstallationType.Steam;
                 }
 
-                this.ServerSettingsViewModel = ServerSettingsViewModel.LoadSettings();
+                this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, ModManager, chiv2Launcher);
+                this.ServerSettingsViewModel = ServerLauncherViewModel.LoadSettings(LauncherViewModel, ModManager);
 
                 this.ModManagerViewModel = new ModListViewModel(ModManager);
-                this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, this.ServerSettingsViewModel, ModManager);
 
                 this.SettingsTab.DataContext = this.SettingsViewModel;
                 this.ModManagerTab.DataContext = this.ModManagerViewModel;
                 this.LauncherTab.DataContext = this.LauncherViewModel;
                 this.ServerSettingsTab.DataContext = this.ServerSettingsViewModel;
 
-
+                DisableSaveSettings = false;
                 this.Closed += MainWindow_Closed;
             } catch (Exception e) {
                 logger.Error("Initialization Failed", e);
                 throw;
             }
         }
+
         private void MainWindow_Closed(object? sender, EventArgs e) {
+            if (DisableSaveSettings) return;
+
             this.SettingsViewModel.SaveSettings();
             this.ServerSettingsViewModel.SaveSettings();
         }

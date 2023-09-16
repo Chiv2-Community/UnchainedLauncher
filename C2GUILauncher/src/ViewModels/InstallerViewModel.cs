@@ -1,5 +1,6 @@
 ﻿//using System.Windows.Shapes;
 using C2GUILauncher.JsonModels;
+using C2GUILauncher.src;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -50,8 +51,6 @@ namespace C2GUILauncher.ViewModels {
 
                 if (dialogResult == MessageBoxResult.Yes ||
                         dialogResult == MessageBoxResult.No) {
-                    Process pwsh = new Process();
-                    pwsh.StartInfo.FileName = "powershell.exe";
                     string commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
 
                     string? originalLauncherPath = GetLauncherOnPath(specific ? installDir : "Chivalry2Launcher.exe");
@@ -61,28 +60,26 @@ namespace C2GUILauncher.ViewModels {
                     }
 
                     string originalLauncherDir = Path.GetDirectoryName(originalLauncherPath) ?? ".";
-                    if (originalLauncherDir == "") {
-                        originalLauncherDir = ".";
-                    }
-                    //MessageBox.Show(originalLauncherPath);
-                    string powershellCommand;
-                    if (dialogResult == MessageBoxResult.Yes) {
-                        powershellCommand =
-                            $"Wait-Process -Id {Environment.ProcessId}; " +
-                            $"Start-Sleep -Milliseconds 500; " +
-                            $"Move-Item -Force \\\"{originalLauncherPath}\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher-ORIGINAL.exe\\\"; " +
-                            $"Copy-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"; ";
-                    } else {
-                        powershellCommand =
-                            $"Wait-Process -Id {Environment.ProcessId}; " +
-                            $"Start-Sleep -Milliseconds 500; " +
-                            $"Copy-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\{exeName}.exe\\\"; ";
-                    }
-                    //MessageBox.Show(powershellCommand);
-                    pwsh.StartInfo.Arguments = $"-Command \"{powershellCommand}\"";
-                    pwsh.StartInfo.CreateNoWindow = true;
-                    pwsh.Start();
+                    originalLauncherDir = originalLauncherDir == "" ? "." : originalLauncherDir;
 
+                    //MessageBox.Show(originalLauncherPath);
+                    List<string> powershellCommand = new List<string>() {
+                        $"Wait-Process -Id {Environment.ProcessId}",
+                        $"Start-Sleep -Milliseconds 500"
+                    };
+
+                    if (dialogResult == MessageBoxResult.Yes) {
+                        powershellCommand.AddRange(new List<string>() {
+                            $"Move-Item -Force \\\"{originalLauncherPath}\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher-ORIGINAL.exe\\\"",
+                            $"Copy-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\""
+                        });
+                    } else {
+                        powershellCommand.AddRange(new List<string>() {
+                            $"Copy-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\{exeName}.exe\\\""
+                        });
+                    }
+
+                    PowerShell.Run(powershellCommand);
                     logger.Info($"Launcher installed successfully.");
                     return true;
                 }

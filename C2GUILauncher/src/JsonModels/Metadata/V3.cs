@@ -2,16 +2,17 @@
 using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
-namespace C2GUILauncher.JsonModels.Metadata.V2 {
+namespace C2GUILauncher.JsonModels.Metadata.V3 {
     public record Mod(
         [property: JsonProperty("latest_manifest")] ModManifest LatestManifest,
         [property: JsonProperty("releases")] List<Release> Releases
     ) {
-        public static Mod FromV1(V1.Mod v1Mod) {
+        public static Mod FromV2(V2.Mod input) {
             return new Mod(
-                LatestManifest: ModManifest.FromV1(v1Mod.LatestManifest),
-                Releases: v1Mod.Releases.ConvertAll(Release.FromV1)
+                LatestManifest: ModManifest.FromV2(input.LatestManifest),
+                Releases: input.Releases.ConvertAll(Release.FromV2)
             );
         }
     }
@@ -23,13 +24,13 @@ namespace C2GUILauncher.JsonModels.Metadata.V2 {
         [property: JsonProperty("release_date")] DateTime ReleaseDate,
         [property: JsonProperty("manifest")] ModManifest Manifest
     ) {
-        public static Release FromV1(V1.Release input) {
+        public static Release FromV2(V2.Release input) {
             return new Release(
                 Tag: input.Tag,
                 ReleaseHash: input.ReleaseHash,
                 PakFileName: input.PakFileName,
                 ReleaseDate: input.ReleaseDate,
-                Manifest: ModManifest.FromV1(input.Manifest)
+                Manifest: ModManifest.FromV2(input.Manifest)
             );
         }
     }
@@ -48,19 +49,25 @@ namespace C2GUILauncher.JsonModels.Metadata.V2 {
         Model,
         Weapon,
         Doodad,
+        Library
     }
 
     public record Dependency(
         [property: JsonProperty("repo_url")] string RepoUrl,
         [property: JsonProperty("version")] string Version
     ) {
-        public static Dependency FromV1(V1.Dependency input) {
+        public static Dependency FromV2(V2.Dependency input) {
             return new Dependency(
                 RepoUrl: input.RepoUrl,
                 Version: input.Version
             );
         }
     }
+
+    public record OptionFlags(
+        [property: JsonProperty("actor_mod")] bool ActorMod,
+        [property: JsonProperty("global_mod")] bool GlobalMod
+    );
 
     public record ModManifest(
         [property: JsonProperty("repo_url")] string RepoUrl,
@@ -72,24 +79,25 @@ namespace C2GUILauncher.JsonModels.Metadata.V2 {
         [property: JsonProperty("authors")] List<string> Authors,
         [property: JsonProperty("dependencies")] List<Dependency> Dependencies,
         [property: JsonProperty("tags")] List<ModTag> Tags,
-        [property: JsonProperty("ag_mod")] bool AgMod,
-        [property: JsonProperty("global_mod")] bool GlobalMod,
-        [property: JsonProperty("maps")] List<string> Maps
+        [property: JsonProperty("maps")] List<string> Maps,
+        [property: JsonProperty("options")] OptionFlags OptionFlags
     ) {
-        public static ModManifest FromV1(V1.ModManifest latestManifest) {
+        public static ModManifest FromV2(V2.ModManifest latestManifest) {
             return new ModManifest(
                 RepoUrl: latestManifest.RepoUrl,
                 Name: latestManifest.Name,
                 Description: latestManifest.Description,
                 HomePage: latestManifest.HomePage,
                 ImageUrl: latestManifest.ImageUrl,
-                ModType: Enum.Parse<ModType>(latestManifest.ModType, true),
+                ModType: Enum.Parse<ModType>(latestManifest.ModType.ToString()),
                 Authors: latestManifest.Authors,
-                Dependencies: latestManifest.Dependencies.ConvertAll(Dependency.FromV1),
-                Tags: new List<ModTag>(),
-                AgMod: false,
-                GlobalMod: false,
-                Maps: new List<string>()
+                Dependencies: latestManifest.Dependencies.ConvertAll(Dependency.FromV2),
+                Tags: latestManifest.Tags.Select(x => Enum.Parse<ModTag>(x.ToString())).ToList(),
+                Maps: latestManifest.Maps,
+                OptionFlags: new OptionFlags(
+                    ActorMod: latestManifest.AgMod,
+                    GlobalMod: false
+                )
             );
         }
     }

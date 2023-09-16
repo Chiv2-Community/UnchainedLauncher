@@ -15,7 +15,6 @@ namespace C2GUILauncher {
         public static DeserializationResult<T> Deserialize<T>(string json) {
             try {
                 var result = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(json);
-                logger.Info(result?.ToString() ?? "null");
                 return new DeserializationResult<T>(result, null);
             } catch (Newtonsoft.Json.JsonSerializationException e) {
                 return new DeserializationResult<T>(default, e);

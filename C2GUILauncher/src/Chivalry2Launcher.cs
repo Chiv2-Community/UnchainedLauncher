@@ -79,10 +79,12 @@ namespace C2GUILauncher {
         }
 
         private void LogList<T>(string initialMessage, IEnumerable<T> list) {
+            logger.Info("");
             logger.Info(initialMessage);
             foreach (var item in list) {
                 logger.Info("    " + (item?.ToString() ?? "null"));
             }
+            logger.Info("");
         }
     }
 }

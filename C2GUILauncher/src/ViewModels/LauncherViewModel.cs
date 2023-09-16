@@ -71,7 +71,7 @@ namespace C2GUILauncher.ViewModels {
             List<string> cliArgs = args.Split(" ").ToList();
             int TBLloc = cliArgs.IndexOf("TBL") + 1;
 
-            cliArgs.Insert(TBLloc, BuildModsString());
+            BuildModArgs().ToList().ForEach(arg => cliArgs.Insert(TBLloc, arg));
             if (exArgs != null) {
                 cliArgs.AddRange(exArgs);
             }
@@ -88,30 +88,49 @@ namespace C2GUILauncher.ViewModels {
             CanClick = false;
         }
 
-        public string BuildModsString() {
+        public string[] BuildModArgs() {
             if (ModManager.EnabledModReleases.Any()) {
-                string modsString = ModManager.EnabledModReleases
+                var serverMods = ModManager.EnabledModReleases
                     .Select(mod => mod.Manifest)
-                    .Where(manifest => manifest.ModType == ModType.Server || manifest.ModType == ModType.Shared)
-                    .Where(manifest => manifest.OptionFlags.ActorMod)
-                    .Select(manifest => manifest.Name.Replace(" ", ""))
-                    .Aggregate("", (agg, name) => agg + name + ",");
+                    .Where(manifest => manifest.ModType == ModType.Server || manifest.ModType == ModType.Shared);
 
-                bool hasAdditional = this.Settings.AdditionalModActors != "";
-                if (modsString != "" && hasAdditional)
-                {
-                    modsString = "--all-mod-actors " + modsString;
-                    if (hasAdditional)
-                        modsString += this.Settings.AdditionalModActors;
-                    else
-                        modsString = modsString[..^1]; //cut off dangling comma
-                }
+                string modActorsListString = 
+                    BuildCommaSeparatedArgsList(
+                        "all-mod-actors", 
+                        serverMods
+                            .Where(manifest => manifest.OptionFlags.ActorMod)
+                            .Select(manifest => manifest.Name.Replace(" ", "")),
+                        Settings.AdditionalModActors
+                    );
 
-                //return modsString+ " --default-mod-actors ModMenu,FrontendMod --next-map-name to_coxwell --next-map-mod-actors GiantSlayers,FilthyPeasants";
-                return modsString;
+                string globalModsListString =
+                    BuildCommaSeparatedArgsList(
+                        "default-mod-actors",
+                        serverMods
+                            .Where(manifest => manifest.OptionFlags.GlobalMod)
+                            .Select(manifest => manifest.Name.Replace(" ", ""))
+                            .ToList()
+                    );
+
+                return new string[] { modActorsListString, globalModsListString }.Where(x => x.Trim() != "").ToArray();
             } else {
+                return Array.Empty<string>();
+            }
+        }
+
+        private static string BuildCommaSeparatedArgsList(string argName, IEnumerable<string> args, string extraArgs = "") {
+            if(args.Any() && extraArgs == "") {
                 return "";
             }
+
+            var argsString = args.Aggregate("", (agg, name) => agg + name + ",");
+            if(extraArgs != "") {
+                argsString += extraArgs;
+            } else if(argsString != ""){
+                argsString = argsString[..^1];
+            }
+
+            return $"--{argName} {argsString}";
         }
     }
 }

@@ -128,6 +128,8 @@ namespace C2GUILauncher.ViewModels {
                 argsString += extraArgs;
             } else if(argsString != ""){
                 argsString = argsString[..^1];
+            } else {
+                return "";
             }
 
             return $"--{argName} {argsString}";

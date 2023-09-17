@@ -19,7 +19,7 @@
 	<Authors>Jacoby6000, AERoese (BK, DrLong), Nihilianth</Authors>
     <PackageProjectUrl>https://github.com/Chiv2-Community/C2GUILauncher</PackageProjectUrl>
     <ApplicationIcon>assets\chiv2-unchained-logo.ico</ApplicationIcon>
-    <AssemblyVersion>0.5.2</AssemblyVersion>
+    <AssemblyVersion>0.5.3</AssemblyVersion>
     <AssemblyName>UnchainedLauncher</AssemblyName>
   </PropertyGroup>
   <ItemGroup>

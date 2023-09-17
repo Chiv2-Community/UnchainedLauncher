@@ -119,7 +119,7 @@ namespace C2GUILauncher.ViewModels {
         }
 
         private static string BuildCommaSeparatedArgsList(string argName, IEnumerable<string> args, string extraArgs = "") {
-            if(args.Any() && extraArgs == "") {
+            if(!args.Any() && extraArgs == "") {
                 return "";
             }
 

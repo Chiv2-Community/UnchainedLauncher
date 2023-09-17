@@ -163,7 +163,8 @@ namespace C2GUILauncher.ViewModels {
                 LauncherViewModel.LaunchModded(exArgs, serverRegister);
 
             } catch (Exception ex) {
-                MessageBox.Show(ex.ToString());
+                MessageBox.Show("Failed to launch. Check the logs for details.");
+                logger.Error("Failed to launch.", ex);
                 CanClick = true;
             }
 

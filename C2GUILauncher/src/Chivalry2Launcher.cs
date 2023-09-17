@@ -41,10 +41,6 @@ namespace C2GUILauncher {
 
             logger.Info("Attempting to launch modded game.");
 
-
-            LogList($"Mods Enabled:", ModManager.EnabledModReleases.Select(mod => mod.Manifest.Name + " " + mod.Tag));
-            LogList($"Launch args:", args);
-
             // Download the mod files, potentially using debug dlls
             var launchThread = new Thread(async () => {
                 try {
@@ -54,6 +50,10 @@ namespace C2GUILauncher {
                     }
                     var dlls = Directory.EnumerateFiles(FilePaths.PluginDir, "*.dll").ToArray();
                     ModdedLauncher.Dlls = dlls;
+
+
+                    LogList($"Mods Enabled:", ModManager.EnabledModReleases.Select(mod => mod.Manifest.Name + " " + mod.Tag));
+                    LogList($"Launch args:", args);
 
                     var process = ModdedLauncher.Launch(string.Join(" ", args));
 

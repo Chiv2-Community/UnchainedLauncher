@@ -283,6 +283,7 @@ namespace C2GUILauncher.Mods {
             var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
             var filePath = orgPath + "\\" + urlParts.Last() + ".json";
 
+            logger.Info("Writing enabled mod json metadata to " + filePath);
             Directory.CreateDirectory(orgPath);
             File.WriteAllText(filePath, enabledModJson);
 

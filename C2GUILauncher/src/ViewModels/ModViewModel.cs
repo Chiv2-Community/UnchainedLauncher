@@ -1,6 +1,7 @@
 ﻿using C2GUILauncher.JsonModels.Metadata.V3;
 using C2GUILauncher.Mods;
 using CommunityToolkit.Mvvm.Input;
+using log4net;
 using PropertyChanged;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,7 @@ using System.Windows.Input;
 namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class ModViewModel {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(ModViewModel));
         // A ModViewModel needs access to the mod manager so that it can enable/disable releases as they get set on the view.
         private ModManager ModManager { get; }
 
@@ -82,11 +84,14 @@ namespace C2GUILauncher.ViewModels {
 
         public ModViewModel(Mod mod, Release? enabledRelease, ModManager modManager) {
             _enabledRelease = enabledRelease;
+            EnabledRelease = _enabledRelease;
 
             Mod = mod;
             ModManager = modManager;
 
             ButtonCommand = new RelayCommand(DisableOrEnable);
+
+            logger.Debug($"Initialized ModViewModel for {mod.LatestManifest.Name}. Currently enabled release: {enabledRelease?.Tag ?? "None"}");
         }
 
         private void DisableOrEnable() {

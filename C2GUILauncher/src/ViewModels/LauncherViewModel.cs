@@ -103,6 +103,16 @@ namespace C2GUILauncher.ViewModels {
                         Settings.AdditionalModActors
                     );
 
+                // same as modActorsListString for now. Just turn on all the enabled mods for first map.
+                string nextMapModActors =
+                    BuildCommaSeparatedArgsList(
+                        "next-map-mod-actors",
+                        serverMods
+                            .Where(manifest => manifest.OptionFlags.ActorMod)
+                            .Select(manifest => manifest.Name.Replace(" ", "")),
+                        Settings.AdditionalModActors
+                    );
+
                 string globalModsListString =
                     BuildCommaSeparatedArgsList(
                         "default-mod-actors",
@@ -112,7 +122,7 @@ namespace C2GUILauncher.ViewModels {
                             .ToList()
                     );
 
-                return new string[] { modActorsListString, globalModsListString }.Where(x => x.Trim() != "").ToArray();
+                return new string[] { modActorsListString, globalModsListString, nextMapModActors }.Where(x => x.Trim() != "").ToArray();
             } else {
                 return Array.Empty<string>();
             }

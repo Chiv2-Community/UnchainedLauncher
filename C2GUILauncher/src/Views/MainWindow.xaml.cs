@@ -124,7 +124,7 @@ namespace C2GUILauncher {
                             break;
                         case InstallResult.Installed:
                             logger.Info("Installed successfully");
-                            MessageBox.Show($"Launcher installation is complete.");
+                            MessageBox.Show($"Launcher installation is complete. Launch Chivalry2 as you normally would.");
                             this.Close();
                             return;
                         case InstallResult.Failed:

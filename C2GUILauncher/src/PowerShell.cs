@@ -12,10 +12,12 @@ namespace C2GUILauncher.src {
         public static Process Run(IEnumerable<string> commands, bool createWindow = false) {
             var process = new Process();
 
+            logger.Info("Running powershell command:");
+            foreach (var command in commands) {
+                logger.Info("    " + command);
+            }
+
             var commandString = commands.Aggregate("", (acc, elem) => acc + elem + "; \n");
-
-            logger.Info($"Executing powershell command: {commandString}");
-
             try {
                 process.StartInfo.FileName = "powershell.exe";
                 process.StartInfo.Arguments = $"-Command \"{commandString}\"";

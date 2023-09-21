@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Windows;
 
 namespace C2GUILauncher.ViewModels {
@@ -68,16 +69,26 @@ namespace C2GUILauncher.ViewModels {
                         $"Start-Sleep -Milliseconds 500"
                     };
 
+                    var exeOutputPath = "";
+
                     if (dialogResult == MessageBoxResult.Yes) {
+                        exeOutputPath = $"\\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\"";
                         powershellCommand.AddRange(new List<string>() {
-                            $"Move-Item -Force \\\"{originalLauncherPath}\\\" ",
-                            $"Copy-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\""
+                            $"Move-Item -Force \\\"{originalLauncherPath}\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher-ORIGINAL.exe\\\"",
+                            $"Copy-Item -Force \\\"{exeName}.exe\\\" {exeOutputPath}"
                         });
                     } else {
+                        exeOutputPath = $"\\\"{originalLauncherDir}\\{exeName}.exe\\\"";
                         powershellCommand.AddRange(new List<string>() {
-                            $"Copy-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\{exeName}.exe\\\""
+                            $"Copy-Item -Force \\\"{exeName}.exe\\\" {exeOutputPath}"
                         });
                     }
+
+                    string hashPath = Path.Combine(originalLauncherDir, FilePaths.ModCachePath, "unchained-launcher.sha512");
+                    powershellCommand.AddRange(new List<string>() {
+                        $"$hashResult = Get-FileHash {exeOutputPath} -Algorithm SHA512",
+                        $"$hashResult.Hash | Set-Content -Path \\\"{hashPath}\\\""
+                    });
 
                     PowerShell.Run(powershellCommand);
                     logger.Info($"Launcher installed successfully.");
@@ -93,12 +104,32 @@ namespace C2GUILauncher.ViewModels {
             string launcherOriginalPath = Path.Combine(launcherDir, "Chivalry2Launcher-ORIGINAL.exe");
             string launcherDefaultPath = Path.Combine(launcherDir, "Chivalry2Launcher.exe");
 
-            if (File.Exists(launcherOriginalPath)) {
-                return launcherOriginalPath;
-            } else if (File.Exists(launcherDefaultPath)) {
-                return launcherDefaultPath;
+            string hashPath = Path.Combine(launcherDir, FilePaths.ModCachePath, "unchained-launcher.sha512");
+
+            if (File.Exists(hashPath)) {
+                logger.Info("Hash file from previous install found. Checking current launcher against hash...");
+                string hash = File.ReadAllText(hashPath).Trim().ToUpper();
+                string currentHash = FileHelpers.Sha512(launcherDefaultPath).Trim().ToUpper();
+
+                logger.Info("Launcher hash: " + currentHash);
+                logger.Info("Cached hash: " + hash);
+
+                if (hash == currentHash && File.Exists(launcherOriginalPath)) {
+                    logger.Info("Hashes match. Using existing ORIGINAL launcher.");
+                    return launcherOriginalPath;
+                } else {
+                    logger.Info("Hashes do not match or no ORIGINAL launcher exists. Update detected. Assuming Chivalry2Launcher.exe is the vanilla executable.");
+                    return launcherDefaultPath;
+                }
             } else {
-                return null;
+                logger.Info("No hash file from previous install found.");
+                if (File.Exists(launcherOriginalPath)) {
+                    return launcherOriginalPath;
+                } else if (File.Exists(launcherDefaultPath)) {
+                    return launcherDefaultPath;
+                } else {
+                    return null;
+                }
             }
         }
 

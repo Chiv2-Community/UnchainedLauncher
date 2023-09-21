@@ -51,7 +51,6 @@ namespace C2GUILauncher {
                     var dlls = Directory.EnumerateFiles(FilePaths.PluginDir, "*.dll").ToArray();
                     ModdedLauncher.Dlls = dlls;
 
-
                     LogList($"Mods Enabled:", ModManager.EnabledModReleases.Select(mod => mod.Manifest.Name + " " + mod.Tag));
                     LogList($"Launch args:", args);
 

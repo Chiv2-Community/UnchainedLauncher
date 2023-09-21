@@ -70,7 +70,7 @@ namespace C2GUILauncher.ViewModels {
 
                     if (dialogResult == MessageBoxResult.Yes) {
                         powershellCommand.AddRange(new List<string>() {
-                            $"Move-Item -Force \\\"{originalLauncherPath}\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher-ORIGINAL.exe\\\"",
+                            $"Move-Item -Force \\\"{originalLauncherPath}\\\" ",
                             $"Copy-Item -Force \\\"{exeName}.exe\\\" \\\"{originalLauncherDir}\\Chivalry2Launcher.exe\\\""
                         });
                     } else {

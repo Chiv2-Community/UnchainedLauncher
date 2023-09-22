@@ -71,6 +71,7 @@ namespace C2GUILauncher {
 
                         var exitedGracefully = GracefulExitCodes.Contains(process.ExitCode);
                         if(!restartOnCrash || exitedGracefully) break;
+                        
                         await window.Dispatcher.BeginInvoke(delegate () { window.Show(); });
 
                         logger.Info($"Detected Chivalry2 crash (Exit code {process.ExitCode}). Restarting in 10 seconds. You may close the launcher while it is visible to prevent further restarts.");

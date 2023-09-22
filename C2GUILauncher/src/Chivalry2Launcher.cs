@@ -17,6 +17,8 @@ namespace C2GUILauncher {
         public static string GameBinPath = FilePaths.BinDir + "\\Chivalry2-Win64-Shipping.exe";
         public static string OriginalLauncherPath = "Chivalry2Launcher-ORIGINAL.exe";
 
+        private static readonly HashSet<int> GracefulExitCodes = new HashSet<int> { 0, -1073741510 };
+
         /// <summary>
         /// The original launcher is used to launch the game with no mods.
         /// </summary>
@@ -33,6 +35,8 @@ namespace C2GUILauncher {
         }
 
         public Process LaunchVanilla(IEnumerable<string> args) {
+            logger.Info("Attempting to launch vanilla game.");
+            LogList("Launch args: ", args);
             return VanillaLauncher.Launch(string.Join(" ", args));
         }
 
@@ -54,22 +58,35 @@ namespace C2GUILauncher {
                     LogList($"Mods Enabled:", ModManager.EnabledModReleases.Select(mod => mod.Manifest.Name + " " + mod.Tag));
                     LogList($"Launch args:", args);
 
-                    var process = ModdedLauncher.Launch(string.Join(" ", args));
-
                     serverRegister?.Start();
 
-                    await window.Dispatcher.BeginInvoke(delegate () {
-                        window.Hide();
-                    });
+                    var restartOnCrash = serverRegister != null;
 
-                    await process.WaitForExitAsync();
+                    do {
+                        logger.Info("Starting Chivalry 2 Unchained.");
+                        var process = ModdedLauncher.Launch(string.Join(" ", args));
+
+                        await window.Dispatcher.BeginInvoke(delegate () { window.Hide(); });
+                        await process.WaitForExitAsync();
+
+                        var exitedGracefully = GracefulExitCodes.Contains(process.ExitCode);
+                        if(!restartOnCrash || exitedGracefully) break;
+                        
+                        await window.Dispatcher.BeginInvoke(delegate () { window.Show(); });
+
+                        logger.Info($"Detected Chivalry2 crash (Exit code {process.ExitCode}). Restarting in 10 seconds. You may close the launcher while it is visible to prevent further restarts.");
+                        await Task.Delay(10000);
+                    } while (true);
+
+                    logger.Info("Process exited. Closing RCON and UnchainedLauncher.");
+
                     serverRegister?.CloseMainWindow();
 
-                    await window.Dispatcher.BeginInvoke(delegate () {
-                        window.Close();
-                    });
+                    await window.Dispatcher.BeginInvoke(delegate () { window.Close(); });
+
                 } catch (Exception ex) {
-                    MessageBox.Show(ex.ToString());
+                    logger.Error(ex);
+                    MessageBox.Show("Failed to launch Chivalry 2 Uncahined. Check the logs for details.");
                 }
             });
 

@@ -32,6 +32,7 @@ namespace C2GUILauncher.ViewModels {
         public short A2sPort { get; set; }
         public short PingPort { get; set; }
         public string SelectedMap { get; set; }
+        public bool ShowInServerBrowser { get; set; }
         public bool CanClick { get; set; }
 
         public ObservableCollection<string> MapsList { get; set; }
@@ -47,7 +48,7 @@ namespace C2GUILauncher.ViewModels {
         //in the hopes of having multiple independent servers running one one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, ModManager modManager, string serverName, string serverDescription, string serverList, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, FileBackedSettings<ServerSettings> settingsFile) {
+        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, ModManager modManager, string serverName, string serverDescription, string serverList, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
             CanClick = true;
             
             ServerName = serverName;
@@ -58,6 +59,7 @@ namespace C2GUILauncher.ViewModels {
             RconPort = rconPort;
             A2sPort = a2sPort;
             PingPort = pingPort;
+            ShowInServerBrowser = showInServerBrowser;
 
             SettingsFile = settingsFile;
 
@@ -110,7 +112,8 @@ namespace C2GUILauncher.ViewModels {
                 7777,
                 9001,
                 7071,
-                3075
+                3075,
+                true
             );
 
             var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath, defaultSettings);
@@ -129,7 +132,8 @@ namespace C2GUILauncher.ViewModels {
                 loadedSettings.GamePort ?? defaultSettings.GamePort.Value,
                 loadedSettings.RconPort ?? defaultSettings.RconPort.Value,
                 loadedSettings.A2sPort ?? defaultSettings.A2sPort.Value,
-                loadedSettings.PingPort! ?? defaultSettings.PingPort.Value,
+                loadedSettings.PingPort ?? defaultSettings.PingPort.Value,
+                loadedSettings.ShowInServerBrowser ?? defaultSettings.ShowInServerBrowser.Value,
                 fileBackedSettings
             );
             #pragma warning restore CS8629 // Nullable value type may be null.
@@ -145,7 +149,8 @@ namespace C2GUILauncher.ViewModels {
                     GamePort, 
                     RconPort, 
                     A2sPort, 
-                    PingPort
+                    PingPort,
+                    ShowInServerBrowser
                 )
             );
         }
@@ -223,6 +228,11 @@ namespace C2GUILauncher.ViewModels {
                 $"-d ^\"{ServerDescription.Replace("\"", "^\"").Replace("\n", "^\n")}^\" " +
                 $"-r ^\"{ServerList}^\" " +
                 $"-c ^\"{RconPort}^\"";
+
+            if(!ShowInServerBrowser) {
+                registerCommand += " --no-register";
+            }
+
             serverRegister.StartInfo.Arguments = $"/c \"{registerCommand}\"";
             serverRegister.StartInfo.CreateNoWindow = false;
 

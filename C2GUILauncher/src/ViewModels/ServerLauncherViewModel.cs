@@ -163,7 +163,7 @@ namespace C2GUILauncher.ViewModels {
                     return;
                 }
 
-                string[] exArgs = { $"-port {GamePort}" };
+                string[] exArgs = { $"-Port {GamePort}" };
 
                 LauncherViewModel.LaunchModded(exArgs, serverRegister);
 
@@ -185,7 +185,7 @@ namespace C2GUILauncher.ViewModels {
 
             try {
                 string[] exArgs = {
-                    $"-port {GamePort}", //specify server port
+                    $"-Port {GamePort}", //specify server port
                     "-nullrhi", //disable rendering
                     $"-rcon {RconPort}", //let the serverplugin know that we want RCON running on the given port
                     "-RenderOffScreen", //super-disable rendering

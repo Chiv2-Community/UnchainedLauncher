@@ -48,9 +48,26 @@ namespace C2GUILauncher {
             // Download the mod files, potentially using debug dlls
             var launchThread = new Thread(async () => {
                 try {
-                    if (downloadPlugin) {
+                    try {
+                        if (!this.ModManager.EnabledModReleases.Any(x => x.Manifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods"))) {
+                            var latestUnchainedMod = this.ModManager.Mods.First(x => x.LatestManifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods")).Releases.First();
+                            var modReleaseDownloadTask = this.ModManager.EnableModRelease(latestUnchainedMod);
+
+                            await modReleaseDownloadTask.DownloadTask.Task;
+                        }
+
                         List<ModReleaseDownloadTask> downloadTasks = this.ModManager.DownloadModFiles(downloadPlugin, enablePluginLogging).ToList();
                         await Task.WhenAll(downloadTasks.Select(x => x.DownloadTask.Task));
+                    } catch (Exception ex) {
+                        logger.Error("Failed to download mods and plugins.", ex);
+                        var result = MessageBox.Show("Failed to download mods and plugins. Check the logs for details. Continue Anyway?", "Continue Launching Chivalry 2 Unchained?", MessageBoxButton.YesNo);
+
+                        if (result == MessageBoxResult.No) {
+                            logger.Info("Cancelling launch.");
+                            return;
+                        } 
+                            
+                        logger.Info("Continuing launch.");
                     }
                     var dlls = Directory.EnumerateFiles(FilePaths.PluginDir, "*.dll").ToArray();
                     ModdedLauncher.Dlls = dlls;

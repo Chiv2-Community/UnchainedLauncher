@@ -135,7 +135,7 @@ namespace C2GUILauncher.Mods {
             EnabledModReleases.Remove(release);
         }
 
-        public void EnableModRelease(Release release) {
+        public ModReleaseDownloadTask EnableModRelease(Release release) {
             logger.Info("Enabling mod release: " + release.Manifest.Name + " " + release.Tag);
             var associatedMod = this.Mods.First(Mods => Mods.Releases.Contains(release));
             var currentlyEnabledRelease = GetCurrentlyEnabledReleaseForMod(associatedMod);
@@ -145,7 +145,7 @@ namespace C2GUILauncher.Mods {
             }
 
             this.EnabledModReleases.Add(release);
-            DownloadModRelease(release);
+            return DownloadModRelease(release);
         }
 
         public async Task UpdateModsList() {

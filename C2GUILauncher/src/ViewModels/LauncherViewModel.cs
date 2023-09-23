@@ -61,6 +61,8 @@ namespace C2GUILauncher.ViewModels {
         }
 
         public void LaunchModded(string[]? exArgs = null, Process? serverRegister = null) {
+            CanClick = false;
+
             // Pass args through if the args box has been modified, or if we're an EGS install
             var shouldSendArgs = Settings.InstallationType == InstallationType.EpicGamesStore || Settings.CLIArgsModified;
 
@@ -77,15 +79,13 @@ namespace C2GUILauncher.ViewModels {
             }
 
             cliArgs = cliArgs.Select(x => x.Trim()).Where(x => x != null && x != "").ToList();
-
             var maybeThread = Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, Settings.EnablePluginLogging, serverRegister);
+            CanClick = true;
 
             if (maybeThread == null) {
                 MessageBox.Show("Failed to launch game. Please select an InstallationType if one isn't set.");
                 return;
             }
-
-            CanClick = false;
         }
 
         public string[] BuildModArgs() {

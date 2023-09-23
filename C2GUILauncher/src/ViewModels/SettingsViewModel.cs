@@ -171,26 +171,36 @@ namespace C2GUILauncher.ViewModels {
             var latestInfo = repoCall.Result;
             string tagName = latestInfo.TagName;
 
+            logger.Info($"Latest version tag: {tagName}");
+
             Version? latest = null;
             try {
-                Version.Parse(tagName);
+                var versionString = tagName;
+                if(versionString.StartsWith("v")) {
+                    versionString = versionString[1..];
+                }
+                latest = Version.Parse(versionString);
             } catch {
                 // If parsing fails, just say they're equal.
-                latest = version;
+                logger.Info($"Failed to parse version tag {tagName}");
+                MessageBox.Show("Failed to check for updates.");
+                return;
             }
+
+            logger.Info($"Latest version: {tagName}, Current version: {CurrentVersion}");
             //if latest is newer than current version
             if (latest > version) {
-                string currentVersionString = version.ToString();
-
                 MessageBoxResult dialogResult = MessageBox.Show(
                     $"A newer version was found.\n " +
-                    $"{tagName} > v{currentVersionString}\n\n" +
+                    $"{tagName} > {CurrentVersion}\n\n" +
                     $"Download the new update?",
                     "Update?", MessageBoxButton.YesNo);
 
                 if (dialogResult == MessageBoxResult.No) {
+                    logger.Info("User chose not to update.");
                     return;
                 } else if (dialogResult == MessageBoxResult.Yes) {
+                    logger.Info("User chose to update.");
                     try {
                         var url = latestInfo.Assets.Where(
                             a => a.Name.Contains("Launcher.exe") //find the launcher exe
@@ -198,12 +208,17 @@ namespace C2GUILauncher.ViewModels {
 
                         var currentExecutableName = Process.GetCurrentProcess().ProcessName;
 
+                        if(!currentExecutableName.EndsWith(".exe")) {
+                            currentExecutableName += ".exe";
+                        }
+
                         var newDownloadTask = HttpHelpers.DownloadFileAsync(url, "UnchainedLauncher-update.exe");
                         string exePath = Assembly.GetExecutingAssembly().Location;
                         string exeDir = Path.GetDirectoryName(exePath) ?? "";
 
                         newDownloadTask.Task.Wait();
                         if (!repoCall.IsCompletedSuccessfully) {
+                            logger.Error("Failed to download the new version", newDownloadTask?.Task.Exception);
                             MessageBox.Show("Failed to download the new version:\n" + newDownloadTask?.Task.Exception?.Message);
                             return;
                         }
@@ -211,7 +226,7 @@ namespace C2GUILauncher.ViewModels {
                         var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
                         var powershellCommand = new List<string>() {
                             $"Wait-Process -Id {Environment.ProcessId}",
-                            $"Start-Sleep -Milliseconds 500",
+                            $"Start-Sleep -Milliseconds 1000",
                             $"Move-Item -Force UnchainedLauncher-update.exe {currentExecutableName}",
                             $"Start-Sleep -Milliseconds 500",
                             $".\\{currentExecutableName} {commandLinePass}"
@@ -222,6 +237,7 @@ namespace C2GUILauncher.ViewModels {
                         Window.Close(); //close the program
                         return;
                     } catch (Exception ex) {
+                        logger.Error(ex);
                         MessageBox.Show(ex.Message + "\n" + ex.StackTrace);
                     }
 

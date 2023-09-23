@@ -227,9 +227,12 @@ namespace C2GUILauncher.ViewModels {
                 $"-n ^\"{ServerName.Replace("\"", "^\"")}^\" " +
                 $"-d ^\"{ServerDescription.Replace("\"", "^\"").Replace("\n", "^\n")}^\" " +
                 $"-r ^\"{ServerList}^\" " +
-                $"-c ^\"{RconPort}^\"";
+                $"-c ^\"{RconPort}^\" " +
+                $"-a ^\"{A2sPort}^\" " +
+                $"-p ^\"{PingPort}^\" " +
+                $"-g ^\"{GamePort}^\" ";
 
-            if(!ShowInServerBrowser) {
+            if (!ShowInServerBrowser) {
                 registerCommand += " --no-register";
             }
 

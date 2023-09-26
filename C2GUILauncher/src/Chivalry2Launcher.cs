@@ -40,21 +40,29 @@ namespace C2GUILauncher {
             return VanillaLauncher.Launch(string.Join(" ", args));
         }
 
-        public Thread? LaunchModded(Window window, InstallationType installationType, List<string> args, bool downloadPlugin, bool enablePluginLogging, Process? serverRegister = null) {
+        public async Task<Thread?> LaunchModded(Window window, InstallationType installationType, List<string> args, bool downloadPlugin, bool enablePluginLogging, Process? serverRegister = null) {
             if (installationType == InstallationType.NotSet) return null;
 
             logger.Info("Attempting to launch modded game.");
+
+            if (!this.ModManager.EnabledModReleases.Any(x => x.Manifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods"))) {
+                logger.Info("Unchained-Mods mod not enabled. Enabling.");
+                var hasModList = this.ModManager.Mods.Any();
+
+                if (!hasModList)
+                    await this.ModManager.UpdateModsList();
+
+                var latestUnchainedMod = this.ModManager.Mods.First(x => x.LatestManifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods")).Releases.First();
+                var modReleaseDownloadTask = this.ModManager.EnableModRelease(latestUnchainedMod);
+
+                await modReleaseDownloadTask.DownloadTask.Task;
+            }
 
             // Download the mod files, potentially using debug dlls
             var launchThread = new Thread(async () => {
                 try {
                     try {
-                        if (!this.ModManager.EnabledModReleases.Any(x => x.Manifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods"))) {
-                            var latestUnchainedMod = this.ModManager.Mods.First(x => x.LatestManifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods")).Releases.First();
-                            var modReleaseDownloadTask = this.ModManager.EnableModRelease(latestUnchainedMod);
-
-                            await modReleaseDownloadTask.DownloadTask.Task;
-                        }
+                        
 
                         List<ModReleaseDownloadTask> downloadTasks = this.ModManager.DownloadModFiles(downloadPlugin, enablePluginLogging).ToList();
                         await Task.WhenAll(downloadTasks.Select(x => x.DownloadTask.Task));

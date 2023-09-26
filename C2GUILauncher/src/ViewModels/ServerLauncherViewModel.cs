@@ -163,7 +163,7 @@ namespace C2GUILauncher.ViewModels {
                     return;
                 }
 
-                string[] exArgs = { $"-Port={GamePort}", $"-QueryPort={PingPort}", $"-GameServerQueryPort={A2sPort}"};
+                string[] exArgs = { $"Port={GamePort}", $"GameServerQueryPort={PingPort}", $"GameServerQueryPort={A2sPort}"};
 
                 await LauncherViewModel.LaunchModded(exArgs, serverRegister);
 
@@ -185,9 +185,9 @@ namespace C2GUILauncher.ViewModels {
 
             try {
                 string[] exArgs = {
-                    $"-Port={GamePort}", //specify server port
-                    $"-QueryPort={PingPort}",
-                    $"-GameServerQueryPort={A2sPort}",
+                    $"Port={GamePort}", //specify server port
+                    $"GameServerQueryPort={PingPort}",
+                    $"GameServerQueryPort={A2sPort}",
                     "-nullrhi", //disable rendering
                     //Note the distinction here with the other ports.
                     //The rcon flag DOES NOT support the equals sign syntax

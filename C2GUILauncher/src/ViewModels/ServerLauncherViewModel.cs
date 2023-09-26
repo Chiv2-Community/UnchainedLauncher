@@ -165,7 +165,7 @@ namespace C2GUILauncher.ViewModels {
 
                 string[] exArgs = { $"-port {GamePort}" };
 
-                LauncherViewModel.LaunchModded(exArgs, serverRegister);
+                await LauncherViewModel.LaunchModded(exArgs, serverRegister);
 
             } catch (Exception ex) {
                 MessageBox.Show("Failed to launch. Check the logs for details.");
@@ -194,7 +194,7 @@ namespace C2GUILauncher.ViewModels {
                     "--next-map-name " + SelectedMap
                 };
 
-                LauncherViewModel.LaunchModded(exArgs, serverRegister);
+                await LauncherViewModel.LaunchModded(exArgs, serverRegister);
             } catch (Exception ex) {
                 MessageBox.Show(ex.ToString());
                 CanClick = true;

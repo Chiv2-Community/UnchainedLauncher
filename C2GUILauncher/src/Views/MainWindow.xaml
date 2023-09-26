@@ -153,8 +153,6 @@
 
                 <CheckBox IsChecked="{Binding ShowInServerBrowser}" Grid.Column="2" Grid.Row="2" Grid.ColumnSpan ="2" Content="Show in Server Browser" Margin="5" Height="NaN" VerticalAlignment="Stretch" Width="NaN" HorizontalAlignment="Right" FlowDirection="RightToLeft" />
 
-                <Rectangle Fill="Gray" IsHitTestVisible="False" Grid.Row="4" Grid.Column="2" Grid.ColumnSpan="2" Grid.RowSpan="2"/>
-
                 <TextBlock Text="Game port:" Grid.Row="4" Grid.Column = "0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
                 <TextBox Text="{Binding GamePort}" Grid.Row="5" Grid.Column = "0" TextWrapping="Wrap" Margin ="5" IsManipulationEnabled="True" AcceptsReturn="True" />
 

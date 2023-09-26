@@ -41,7 +41,7 @@ namespace C2GUILauncher.ViewModels {
             ModManager = modManager;
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
-            this.LaunchModdedCommand = new RelayCommand(() => LaunchModded());
+            this.LaunchModdedCommand = new RelayCommand(async () => await LaunchModded());
 
             Window = window;
 
@@ -60,7 +60,7 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        public void LaunchModded(string[]? exArgs = null, Process? serverRegister = null) {
+        public async Task LaunchModded(string[]? exArgs = null, Process? serverRegister = null) {
             CanClick = false;
 
             // Pass args through if the args box has been modified, or if we're an EGS install
@@ -79,7 +79,7 @@ namespace C2GUILauncher.ViewModels {
             }
 
             cliArgs = cliArgs.Select(x => x.Trim()).Where(x => x != null && x != "").ToList();
-            var maybeThread = Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, Settings.EnablePluginLogging, serverRegister);
+            var maybeThread = await Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, Settings.EnablePluginLogging, serverRegister);
             CanClick = true;
 
             if (maybeThread == null) {

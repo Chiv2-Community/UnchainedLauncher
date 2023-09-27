@@ -65,8 +65,7 @@ namespace C2GUILauncher.JsonModels.Metadata.V3 {
     }
 
     public record OptionFlags(
-        [property: JsonProperty("actor_mod", Required = Required.Always)] bool ActorMod,
-        [property: JsonProperty("global_mod", Required = Required.Always)] bool GlobalMod
+        [property: JsonProperty("actor_mod", Required = Required.Always)] bool ActorMod
     );
 
     public record ModManifest(
@@ -95,12 +94,9 @@ namespace C2GUILauncher.JsonModels.Metadata.V3 {
                 Tags: input.Tags.Select(x => Enum.Parse<ModTag>(x.ToString())).ToList(),
                 Maps: new List<string>(),
                 OptionFlags: new OptionFlags(
-                    ActorMod: input.AgMod,
-                    GlobalMod: false
+                    ActorMod: input.AgMod
                 )
             );
         }
     }
-
-    public record Repo(string Org, string Name);
 }

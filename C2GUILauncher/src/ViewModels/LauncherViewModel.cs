@@ -113,16 +113,7 @@ namespace C2GUILauncher.ViewModels {
                         Settings.AdditionalModActors
                     );
 
-                string globalModsListString =
-                    BuildCommaSeparatedArgsList(
-                        "default-mod-actors",
-                        serverMods
-                            .Where(manifest => manifest.OptionFlags.GlobalMod)
-                            .Select(manifest => manifest.Name.Replace(" ", ""))
-                            .ToList()
-                    );
-
-                return new string[] { modActorsListString, globalModsListString, nextMapModActors }.Where(x => x.Trim() != "").ToArray();
+                return new string[] { modActorsListString, nextMapModActors }.Where(x => x.Trim() != "").ToArray();
             } else {
                 return Array.Empty<string>();
             }

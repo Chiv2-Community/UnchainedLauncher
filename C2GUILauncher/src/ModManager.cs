@@ -243,7 +243,7 @@ namespace C2GUILauncher.Mods {
                             new List<Dependency>(),
                             new List<ModTag>(),
                             new List<string>(),
-                            new OptionFlags(false, false)
+                            new OptionFlags(false)
                         )
                     ),
                     downloadTask

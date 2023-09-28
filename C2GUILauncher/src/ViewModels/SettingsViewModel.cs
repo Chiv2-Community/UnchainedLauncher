@@ -28,6 +28,7 @@ namespace C2GUILauncher.ViewModels {
         public bool EnablePluginLogging { get; set; }
         public bool EnablePluginAutomaticUpdates { get; set; }
         public string AdditionalModActors { get; set; }
+        public string ExtraINIDir { get; set; }
 
         public string _cliArgs;
         public string CLIArgs {
@@ -44,6 +45,7 @@ namespace C2GUILauncher.ViewModels {
             get => "v" + version.ToString(3);
         }
 
+
         public ICommand CheckForUpdateCommand { get; }
         public ICommand CleanUpInstallationCommand { get; }
 
@@ -53,7 +55,7 @@ namespace C2GUILauncher.ViewModels {
 
         public FileBackedSettings<LauncherSettings> LauncherSettings { get; set; }
 
-        public SettingsViewModel(MainWindow window, InstallationType installationType, bool enablePluginLogging, bool enablePluginAutomaticUpdates, string additionalModActors, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs) {
+        public SettingsViewModel(MainWindow window, InstallationType installationType, bool enablePluginLogging, bool enablePluginAutomaticUpdates, string additionalModActors, string extraINIDir, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs) {
             InstallationType = installationType;
             EnablePluginLogging = enablePluginLogging;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
@@ -66,13 +68,14 @@ namespace C2GUILauncher.ViewModels {
             CleanUpInstallationCommand = new RelayCommand(CleanUpInstallation);
 
             this.Window = window;
+            ExtraINIDir = extraINIDir;
         }
 
         public static SettingsViewModel LoadSettings(MainWindow window) {
             var cliArgsList = Environment.GetCommandLineArgs();
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => x + " " + y) : "";
 
-            var defaultSettings = new LauncherSettings(InstallationTypeUtils.AutoDetectInstallationType(), false, true, "");
+            var defaultSettings = new LauncherSettings(InstallationTypeUtils.AutoDetectInstallationType(), false, true, "", "");
             var fileBackedSettings = new FileBackedSettings<LauncherSettings>(SettingsFilePath, defaultSettings);
 
             var loadedSettings = fileBackedSettings.LoadSettings();
@@ -84,6 +87,7 @@ namespace C2GUILauncher.ViewModels {
                 loadedSettings.EnablePluginLogging ?? defaultSettings.EnablePluginLogging.Value,
                 loadedSettings.EnablePluginAutomaticUpdates ?? defaultSettings.EnablePluginAutomaticUpdates.Value,
                 loadedSettings.AdditionalModActors ?? defaultSettings.AdditionalModActors!,
+                loadedSettings.ExtraINIDir ?? defaultSettings.ExtraINIDir!,
                 fileBackedSettings,
                 cliArgs
             );
@@ -92,7 +96,7 @@ namespace C2GUILauncher.ViewModels {
 
         public void SaveSettings() {
             LauncherSettings.SaveSettings(
-                new LauncherSettings(InstallationType, EnablePluginLogging, EnablePluginAutomaticUpdates, AdditionalModActors)
+                new LauncherSettings(InstallationType, EnablePluginLogging, EnablePluginAutomaticUpdates, AdditionalModActors, ExtraINIDir)
             );
         }
 

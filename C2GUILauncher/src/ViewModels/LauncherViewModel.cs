@@ -69,6 +69,7 @@ namespace C2GUILauncher.ViewModels {
             // pass empty string for args, if we shouldn't send any.
             var args = shouldSendArgs ? this.Settings.CLIArgs : "";
 
+
             //setup necessary cli args for a modded launch
             List<string> cliArgs = args.Split(" ").ToList();
             int TBLloc = cliArgs.IndexOf("TBL") + 1;
@@ -77,6 +78,8 @@ namespace C2GUILauncher.ViewModels {
             if (exArgs != null) {
                 cliArgs.AddRange(exArgs);
             }
+
+            cliArgs.AddRange(GetINIFileArgs());
 
             cliArgs = cliArgs.Select(x => x.Trim()).Where(x => x != null && x != "").ToList();
             var maybeThread = await Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, Settings.EnablePluginLogging, serverRegister);
@@ -117,6 +120,25 @@ namespace C2GUILauncher.ViewModels {
             } else {
                 return Array.Empty<string>();
             }
+        }
+
+        private IEnumerable<string> GetINIFileArgs() {
+            if(Settings.ExtraINIDir.Trim() == "" || !Directory.Exists(Settings.ExtraINIDir)) 
+                return new List<string>() { };
+
+            var iniFiles = Directory.EnumerateFiles(Settings.ExtraINIDir, "*.ini");
+
+            var iniArgs =
+                iniFiles.Select(iniFilePath => {
+                    var absoluteiniFilePath = Path.GetFullPath(iniFilePath);
+
+                    var iniFileName = Path.GetFileName(iniFilePath);
+                    var cliFlagName = iniFileName.ToUpper().Replace("DEFAULT", "DEF").Replace(".INI", "INI");
+                    
+                    return $"-{cliFlagName}=\"{absoluteiniFilePath}\"";
+                });
+
+            return iniArgs;
         }
 
         private static string BuildCommaSeparatedArgsList(string argName, IEnumerable<string> args, string extraArgs = "") {

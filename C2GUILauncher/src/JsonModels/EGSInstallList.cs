@@ -14,7 +14,5 @@ namespace C2GUILauncher.JsonModels {
     public record EGSInstallList(
         [property: JsonProperty("InstallationList")] List<InstallEntry> InstallationList
     );
-    //internal class EGSInstallList
-    //{
-    //}
+
 }

@@ -14,6 +14,8 @@ namespace C2GUILauncher.ViewModels {
     // This isn't a view model in the normal sense that we hold on to a view of data and bind to it.
     // I just figure this is the "View" for the installer workflow.
     // TODO: Somehow generalize the updater and installer
+
+    // This has turned in to spaghetti over a few iterations. Need to rework it
     class InstallerViewModel {
         private static readonly ILog logger = LogManager.GetLogger(nameof(InstallerViewModel));
 

@@ -176,7 +176,6 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
@@ -187,22 +186,46 @@
                     <ColumnDefinition Width="auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Text="Installation Type:" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <ComboBox SelectedItem="{Binding InstallationType,Mode=TwoWay}" ItemsSource="{Binding AllInstallationTypes}" Grid.Row="1" Margin="5" HorizontalAlignment="Stretch" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />
+                <Grid Grid.Row="0" Grid.Column="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Text="Installation Type:" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
+                    <ComboBox SelectedItem="{Binding InstallationType,Mode=TwoWay}" ItemsSource="{Binding AllInstallationTypes}" Grid.Column="1" Margin="5" HorizontalAlignment="Stretch" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />
+                </Grid>
+
+
+                <Grid Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Text="Additional Mod Actors:" Margin="5" Grid.Column="0" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding AdditionalModActors, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" Grid.Column="1" Height="NaN" Margin="5" Width="NaN" VerticalAlignment="Center"/>
+                </Grid>
+
+                <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Row="1" Grid.Column="0" Content="Enable Automatic Plugin Updates and Downloads" HorizontalAlignment="Left" Margin="5" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />
+
+                <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="Extra INI Directory:" Margin="5" Grid.Column="0" VerticalAlignment="Center"/>
+                    <TextBox Text="{Binding ExtraINIDir, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" Grid.Column="1" Height="NaN" Margin="5" Width="NaN" VerticalAlignment="Center"/>
+                </Grid>
+
+                <TextBlock Text="CLI Args:" Grid.Row="2" Grid.ColumnSpan ="3" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>
+                <TextBox Text="{Binding CLIArgs}" Grid.Row="3" Grid.ColumnSpan ="3" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
                 
-                <TextBlock Text="Additional Mod Actors:" Margin="5" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"/>
-                <TextBox Text="{Binding AdditionalModActors, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
+                <Button Content="Clean Up Installation" Grid.Row="4" Grid.Column="0" Margin="5" Command="{Binding CleanUpInstallationCommand}" />
+                <Button Content="Check for updates" Grid.Row="4" Grid.Column="1" Margin="5" Command="{Binding CheckForUpdateCommand}" />
                 
-                <CheckBox IsChecked="{Binding EnablePluginLogging }" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan ="1" Content="Enable Plugin Logging" Height="NaN" VerticalAlignment="Stretch" Margin="5" HorizontalAlignment="Left" />
-                <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan ="2" Content="Enable Automatic Plugin Updates and Downloads" HorizontalAlignment="Left" Margin="5" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />
-                
-                <TextBlock Text="CLI Args:" Grid.Row="3" Grid.ColumnSpan ="3" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>
-                <TextBox Text="{Binding CLIArgs}" Grid.Row="4" Grid.ColumnSpan ="3" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
-                
-                <Button Content="Clean Up Installation" Grid.Row="5" Grid.Column="0" Margin="5" Command="{Binding CleanUpInstallationCommand}" />
-                <Button Content="Check for updates" Grid.Row="5" Grid.Column="1" Margin="5" Command="{Binding CheckForUpdateCommand}" />
-                
-                <TextBlock Text="{Binding CurrentVersion}" Grid.Row="5" Grid.ColumnSpan ="2" Grid.Column="2" HorizontalAlignment="Center" Height="NaN" Margin="0,0,0,0" VerticalAlignment="Center" Width="NaN" />
+                <TextBlock Text="{Binding CurrentVersion}" Grid.Row="4" Grid.ColumnSpan ="2" Grid.Column="2" HorizontalAlignment="Center" Height="NaN" Margin="0,0,0,0" VerticalAlignment="Center" Width="NaN" />
             </Grid>
         </TabItem>
 

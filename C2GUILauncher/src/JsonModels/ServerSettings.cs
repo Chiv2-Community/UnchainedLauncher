@@ -14,6 +14,18 @@ namespace C2GUILauncher.JsonModels {
         [property: JsonProperty("ping_port")] short? PingPort,
         [property: JsonProperty("show_in_server_browser")] bool? ShowInServerBrowser,
         [property: JsonProperty("selected_bool_options")] ObservableCollection<string>? SelectedBoolOptionsList,
-        [property: JsonProperty("selected_mods")] ObservableCollection<string>? SelectedModsList
+        [property: JsonProperty("selected_mods")] ObservableCollection<string>? SelectedModsList,
+        [property: JsonProperty("num_bots")] short? NumBots,
+        [property: JsonProperty("max_fps")] short? MaxFPS,
+        [property: JsonProperty("ffa_time_limit")] uint? FFATimeLimit,
+        [property: JsonProperty("ffa_score_limit")] uint? FFAScoreLimit,
+        [property: JsonProperty("tdm_time_limit")] uint? TDMTimeLimit,
+        [property: JsonProperty("tbm_ticket_count")] uint? TDMTicketCount,
+        [property: JsonProperty("ffa_time_limit_enable")] bool? EnableFFATimeLimit,
+        [property: JsonProperty("ffa_score_limit_enable")] bool? EnableFFAScoreLimit,
+        [property: JsonProperty("tdm_time_limit_enable")] bool? EnableTDMTimeLimit,
+        [property: JsonProperty("tbm_ticket_count_enable")] bool? EnableTDMTicketCount,
+        [property: JsonProperty("ini_override_enable")] bool? EnableIniOverrides,
+        [property: JsonProperty("mods_enable")] bool? EnableMods
     );
 }

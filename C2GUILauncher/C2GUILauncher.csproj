@@ -20,7 +20,7 @@
     <PackageProjectUrl>https://github.com/Chiv2-Community/C2GUILauncher</PackageProjectUrl>
     <ApplicationIcon>assets\chiv2-unchained-logo.ico</ApplicationIcon>
     <AssemblyVersion>0.5.9</AssemblyVersion>
-    <AssemblyName>UnchainedLauncher</AssemblyName>
+    <AssemblyName>Chivalry2Launcher</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="DefaultBoolOptions.ini" />

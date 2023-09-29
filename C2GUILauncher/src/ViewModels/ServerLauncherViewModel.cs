@@ -36,6 +36,18 @@ namespace C2GUILauncher.ViewModels {
         public bool CanClick { get; set; }
         public ObservableCollection<string> SelectedBoolOptionsList { get; set; }
         public ObservableCollection<string> SelectedModsList { get; set; }
+        public short NumBots { get; set; }
+        public short MaxFPS { get; set; }
+        public uint FFATimeLimit { get; set; }
+        public uint FFAScoreLimit { get; set; }
+        public uint TDMTimeLimit { get; set; }
+        public uint TDMTicketCount { get; set; }
+        public bool EnableFFATimeLimit { get; set; }
+        public bool EnableFFAScoreLimit { get; set; }
+        public bool EnableTDMTimeLimit { get; set; }
+        public bool EnableTDMTicketCount { get; set; }
+        public bool EnableIniOverrides { get; set; }
+        public bool EnableMods { get; set; }
 
         public ObservableCollection<string> MapsList { get; set; }
         public ObservableCollection<string> EnabledModsList { get; set; }
@@ -52,7 +64,8 @@ namespace C2GUILauncher.ViewModels {
         //in the hopes of having multiple independent servers running one one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, ModManager modManager, string serverName, string serverDescription, string serverList, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, ObservableCollection<string> selectedBoolOptionsList, ObservableCollection<string> selectedModsList, FileBackedSettings<ServerSettings> settingsFile) {
+        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, ModManager modManager, string serverName, string serverDescription, string serverList, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, ObservableCollection<string> selectedBoolOptionsList, ObservableCollection<string> selectedModsList,
+            short numBots, short maxFPS, uint fFATimeLimit, uint fFAScoreLimit, uint tDMTimeLimit, uint tDMTicketCount, bool enableFFATimeLimit, bool enableFFAScoreLimit, bool enableTDMTimeLimit, bool enableTDMTicketCount, bool enableIniOverrides, bool enableMods, FileBackedSettings<ServerSettings> settingsFile) {
             CanClick = true;
             
             ServerName = serverName;
@@ -66,6 +79,18 @@ namespace C2GUILauncher.ViewModels {
             ShowInServerBrowser = showInServerBrowser;
             SelectedBoolOptionsList = selectedBoolOptionsList;
             SelectedModsList = selectedModsList;
+            NumBots = numBots;
+            MaxFPS = maxFPS;
+            FFATimeLimit = fFATimeLimit;
+            FFAScoreLimit = fFAScoreLimit;
+            TDMTimeLimit = tDMTimeLimit;
+            TDMTicketCount = tDMTicketCount;
+            EnableFFATimeLimit = enableFFATimeLimit;
+            EnableFFAScoreLimit = enableFFAScoreLimit;
+            EnableTDMTimeLimit = enableTDMTimeLimit;
+            EnableTDMTicketCount = enableTDMTicketCount;
+            EnableIniOverrides = enableIniOverrides;
+            EnableMods = enableMods;
 
             SettingsFile = settingsFile;
 
@@ -92,7 +117,7 @@ namespace C2GUILauncher.ViewModels {
                 }
             }
 
-            using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("C2GUILauncher.DefaultBoolOptions.txt"))
+            using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("C2GUILauncher.DefaultBoolOptions.ini"))
             {
                 if (defaultMapsListStream != null)
                 {
@@ -146,7 +171,19 @@ namespace C2GUILauncher.ViewModels {
                 3075,
                 true,
                 new ObservableCollection<string>(),
-                new ObservableCollection<string>()
+                new ObservableCollection<string>(),
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false
             );
 
             var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath, defaultSettings);
@@ -169,6 +206,18 @@ namespace C2GUILauncher.ViewModels {
                 loadedSettings.ShowInServerBrowser ?? defaultSettings.ShowInServerBrowser.Value,
                 loadedSettings.SelectedBoolOptionsList ?? defaultSettings.SelectedBoolOptionsList!,
                 loadedSettings.SelectedModsList ?? defaultSettings.SelectedModsList!,
+                loadedSettings.NumBots ?? defaultSettings.NumBots.Value,
+                loadedSettings.MaxFPS ?? defaultSettings.MaxFPS.Value,
+                loadedSettings.FFATimeLimit ?? defaultSettings.FFATimeLimit.Value,
+                loadedSettings.FFAScoreLimit ?? defaultSettings.FFAScoreLimit.Value,
+                loadedSettings.TDMTimeLimit ?? defaultSettings.TDMTimeLimit.Value,
+                loadedSettings.TDMTicketCount ?? defaultSettings.TDMTicketCount.Value,
+                loadedSettings.EnableFFATimeLimit ?? defaultSettings.EnableFFATimeLimit.Value,
+                loadedSettings.EnableFFAScoreLimit ?? defaultSettings.EnableFFAScoreLimit.Value,
+                loadedSettings.EnableTDMTimeLimit ?? defaultSettings.EnableTDMTimeLimit.Value,
+                loadedSettings.EnableTDMTicketCount ?? defaultSettings.EnableTDMTicketCount.Value,
+                loadedSettings.EnableIniOverrides ?? defaultSettings.EnableIniOverrides.Value,
+                loadedSettings.EnableMods ?? defaultSettings.EnableMods.Value,
                 fileBackedSettings
             );
             #pragma warning restore CS8629 // Nullable value type may be null.
@@ -187,7 +236,19 @@ namespace C2GUILauncher.ViewModels {
                     PingPort,
                     ShowInServerBrowser,
                     SelectedBoolOptionsList,
-                    SelectedModsList
+                    SelectedModsList,
+                    NumBots,
+                    MaxFPS,
+                    FFATimeLimit,
+                    FFAScoreLimit,
+                    TDMTimeLimit,
+                    TDMTicketCount,
+                    EnableFFATimeLimit,
+                    EnableFFAScoreLimit,
+                    EnableTDMTimeLimit,
+                    EnableTDMTicketCount,
+                    EnableIniOverrides,
+                    EnableMods
                 )
             );
         }

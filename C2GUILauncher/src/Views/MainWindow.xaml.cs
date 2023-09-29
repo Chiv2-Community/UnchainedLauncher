@@ -184,6 +184,11 @@ namespace C2GUILauncher {
             this.SettingsViewModel.SaveSettings();
             this.ServerSettingsViewModel.SaveSettings();
         }
+
+        private void RefreshModListButton_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 
 }

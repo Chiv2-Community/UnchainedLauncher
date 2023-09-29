@@ -23,6 +23,7 @@
     <AssemblyName>UnchainedLauncher</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="DefaultBoolOptions.ini" />
     <None Remove="DefaultMaps.txt" />
     <None Remove="log4net.config" />
   </ItemGroup>
@@ -33,6 +34,7 @@
     <Content Include="assets\chiv2-unchained-logo.ico" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="DefaultBoolOptions.ini" />
     <EmbeddedResource Include="DefaultMaps.txt" />
     <EmbeddedResource Include="log4net.config" />
   </ItemGroup>

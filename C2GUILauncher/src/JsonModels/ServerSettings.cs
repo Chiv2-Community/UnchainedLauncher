@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.ObjectModel;
 
 namespace C2GUILauncher.JsonModels {
     public record ServerSettings(
@@ -11,6 +12,8 @@ namespace C2GUILauncher.JsonModels {
         [property: JsonProperty("rcon_port")] short? RconPort,
         [property: JsonProperty("a2s_port")] short? A2sPort,
         [property: JsonProperty("ping_port")] short? PingPort,
-        [property: JsonProperty("show_in_server_browser")] bool? ShowInServerBrowser
+        [property: JsonProperty("show_in_server_browser")] bool? ShowInServerBrowser,
+        [property: JsonProperty("selected_bool_options")] ObservableCollection<string>? SelectedBoolOptionsList,
+        [property: JsonProperty("selected_mods")] ObservableCollection<string>? SelectedModsList
     );
 }

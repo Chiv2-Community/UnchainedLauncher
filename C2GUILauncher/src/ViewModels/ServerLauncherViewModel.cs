@@ -34,8 +34,12 @@ namespace C2GUILauncher.ViewModels {
         public string SelectedMap { get; set; }
         public bool ShowInServerBrowser { get; set; }
         public bool CanClick { get; set; }
+        public ObservableCollection<string> SelectedBoolOptionsList { get; set; }
+        public ObservableCollection<string> SelectedModsList { get; set; }
 
         public ObservableCollection<string> MapsList { get; set; }
+        public ObservableCollection<string> EnabledModsList { get; set; }
+        public ObservableCollection<IniConfigItem> BoolConfigItems { get; set; }
         private LauncherViewModel LauncherViewModel { get; }
         public ICommand LaunchServerCommand { get; }
         public ICommand LaunchServerHeadlessCommand { get; }
@@ -48,7 +52,7 @@ namespace C2GUILauncher.ViewModels {
         //in the hopes of having multiple independent servers running one one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, ModManager modManager, string serverName, string serverDescription, string serverList, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
+        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, ModManager modManager, string serverName, string serverDescription, string serverList, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, ObservableCollection<string> selectedBoolOptionsList, ObservableCollection<string> selectedModsList, FileBackedSettings<ServerSettings> settingsFile) {
             CanClick = true;
             
             ServerName = serverName;
@@ -60,6 +64,8 @@ namespace C2GUILauncher.ViewModels {
             A2sPort = a2sPort;
             PingPort = pingPort;
             ShowInServerBrowser = showInServerBrowser;
+            SelectedBoolOptionsList = selectedBoolOptionsList;
+            SelectedModsList = selectedModsList;
 
             SettingsFile = settingsFile;
 
@@ -70,6 +76,8 @@ namespace C2GUILauncher.ViewModels {
             LaunchServerHeadlessCommand = new RelayCommand(LaunchServerHeadless);
 
             MapsList = new ObservableCollection<string>();
+            EnabledModsList = new ObservableCollection<string>();
+            BoolConfigItems = new ObservableCollection<IniConfigItem>();
 
             using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("C2GUILauncher.DefaultMaps.txt")) {
                 if (defaultMapsListStream != null) {
@@ -84,7 +92,30 @@ namespace C2GUILauncher.ViewModels {
                 }
             }
 
+            using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("C2GUILauncher.DefaultBoolOptions.txt"))
+            {
+                if (defaultMapsListStream != null)
+                {
+                    using StreamReader reader = new StreamReader(defaultMapsListStream!);
+
+                    var defaultMapsString = reader.ReadToEnd();
+
+                    IniParser parser = new IniParser();
+                    parser.Parse(defaultMapsString);
+                    Dictionary<string, Dictionary<string, IniConfigItem>> data = parser.GetData();
+                    foreach (var section in data.Values)
+                    {
+                        foreach (var configItem in section.Values)
+                        {
+                            BoolConfigItems.Add(configItem);
+                        }
+                    }
+                }
+            }
+
             ModManager.EnabledModReleases.SelectMany(x => x.Manifest.Maps).ToList().ForEach(MapsList.Add);
+            ModManager.EnabledModReleases.Select(x => x.PakFileName.Split('.')[0]).ToList().ForEach(EnabledModsList.Add);
+            
 
             ModManager.EnabledModReleases.CollectionChanged += ProcessEnabledModsChanged;
         }
@@ -113,7 +144,9 @@ namespace C2GUILauncher.ViewModels {
                 9001,
                 7071,
                 3075,
-                true
+                true,
+                new ObservableCollection<string>(),
+                new ObservableCollection<string>()
             );
 
             var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath, defaultSettings);
@@ -134,6 +167,8 @@ namespace C2GUILauncher.ViewModels {
                 loadedSettings.A2sPort ?? defaultSettings.A2sPort.Value,
                 loadedSettings.PingPort ?? defaultSettings.PingPort.Value,
                 loadedSettings.ShowInServerBrowser ?? defaultSettings.ShowInServerBrowser.Value,
+                loadedSettings.SelectedBoolOptionsList ?? defaultSettings.SelectedBoolOptionsList!,
+                loadedSettings.SelectedModsList ?? defaultSettings.SelectedModsList!,
                 fileBackedSettings
             );
             #pragma warning restore CS8629 // Nullable value type may be null.
@@ -150,7 +185,9 @@ namespace C2GUILauncher.ViewModels {
                     RconPort, 
                     A2sPort, 
                     PingPort,
-                    ShowInServerBrowser
+                    ShowInServerBrowser,
+                    SelectedBoolOptionsList,
+                    SelectedModsList
                 )
             );
         }

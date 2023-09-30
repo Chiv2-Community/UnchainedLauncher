@@ -163,7 +163,12 @@ namespace C2GUILauncher.ViewModels {
                     return;
                 }
 
-                string[] exArgs = { $"Port={GamePort}", $"GameServerQueryPort={PingPort}", $"GameServerQueryPort={A2sPort}"};
+                string[] exArgs = { 
+                    $"Port={GamePort}", 
+                    $"GameServerQueryPort={PingPort}", 
+                    $"GameServerQueryPort={A2sPort}",
+                    $"-rcon {RconPort}",
+                };
 
                 await LauncherViewModel.LaunchModded(exArgs, serverRegister);
 

@@ -6,7 +6,7 @@
         x:Name="Unchained_Launcher" 
         mc:Ignorable="av" 
         x:Class="C2GUILauncher.MainWindow"   
-        Title="Unchained Launcher" Height="300" Width="600"
+        Title="Unchained Launcher" Height="320" Width="600"
     >
 
     <Window.Resources>
@@ -40,12 +40,13 @@
                 </Grid.RowDefinitions>
 
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="70*"/>
+                    <ColumnDefinition Width="29*"/>
+                    <ColumnDefinition Width="99*"/>
                 </Grid.ColumnDefinitions>
 
-                <Button x:Name="LaunchVanillaButton" Content="Launch Vanilla" Grid.Row="0" Grid.ColumnSpan = "2" Command="{Binding LaunchVanillaCommand}" IsEnabled="{Binding CanClick}" />
-                <Button x:Name="LaunchModdedButton" Content="Launch Unchained" Grid.Row="1" Grid.ColumnSpan = "2" Command="{Binding LaunchModdedCommand}" IsEnabled="{Binding CanClick}" />
+                <Button x:Name="LaunchVanillaButton" Content="Launch Vanilla" Grid.Row="0" Grid.ColumnSpan = "3" Command="{Binding LaunchVanillaCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
+                <Button x:Name="LaunchModdedButton" Content="Launch Unchained" Grid.Row="1" Grid.ColumnSpan = "3" Command="{Binding LaunchModdedCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
             </Grid>
         </TabItem>
         <TabItem x:Name="ModManagerTab"  DataContext="{Binding ModManagerViewModel}"  Header="Mod Manager">
@@ -148,25 +149,26 @@
                 </Grid>-->
 
                 <TextBlock Text="Name" Grid.Column ="5" Grid.ColumnSpan ="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,5,2,5" />
-                <TextBox Text="{Binding ServerName}" Grid.Column="6" Grid.ColumnSpan="4" TextWrapping="Wrap" Margin ="5,5,5,5" IsManipulationEnabled="True" AcceptsReturn="False" Height="24" />
+                <TextBox Text="{Binding ServerName}" Grid.Column="6" Grid.ColumnSpan="4" TextWrapping="Wrap" Margin ="5,5,5,5" IsManipulationEnabled="True" AcceptsReturn="False" Height="24" VerticalContentAlignment="Center" />
 
                 <TextBlock Text="Initial Map"  Grid.Row="1" Grid.Column="5" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,5,2,5" />
-                <ComboBox ItemsSource="{Binding MapsList, Mode=TwoWay}" SelectedItem="{Binding SelectedMap, Mode=TwoWay}"  Grid.Row="1" Grid.Column="6" Grid.ColumnSpan ="4" Margin ="5,5,5,5" IsManipulationEnabled="True" Height="24" />
-
-                <TextBlock Text="Registration" Grid.Row="2" Grid.Column ="5" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5,5,2,5"/>
-                <TextBox x:Name="ServerListTextBox" Text="{Binding ServerList}" Grid.Row="2" Grid.Column ="6" Grid.ColumnSpan ="4" Margin ="5,5,5,5" IsManipulationEnabled="True" AcceptsReturn="False" Height="24" />
+                <ComboBox ItemsSource="{Binding MapsList, Mode=TwoWay}" SelectedItem="{Binding SelectedMap, Mode=TwoWay}"  Grid.Row="1" Grid.Column="6" Grid.ColumnSpan ="4" Margin ="5,5,5,5" IsManipulationEnabled="True" Height="24" VerticalContentAlignment="Center" />
 
                 <!--<TextBlock Text="Server Description:" Grid.Row="2" Grid.ColumnSpan ="4" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>-->
-                <TextBox Text="{Binding ServerDescription, FallbackValue='Description'}" Margin ="5" Grid.Row="3" Grid.Column="5" Grid.ColumnSpan ="2" Grid.RowSpan="2" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
-                <ListBox ItemsSource="{Binding BoolConfigItems}" Margin="5" Grid.ColumnSpan="3" Grid.RowSpan="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" VerticalAlignment="Stretch" IsManipulationEnabled="True" SelectionMode="Multiple" ScrollViewer.VerticalScrollBarVisibility="Hidden" ScrollViewer.HorizontalScrollBarVisibility="Hidden" Grid.Row="3">
+                <TextBox Text="{Binding ServerDescription, FallbackValue='Description'}" Margin ="5" Grid.Row="2" Grid.Column="5" Grid.ColumnSpan="2" Grid.RowSpan="3" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
+                <ListBox ItemsSource="{Binding BoolConfigItems}" Margin="5" Grid.ColumnSpan="3" Grid.RowSpan="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" VerticalAlignment="Stretch" IsManipulationEnabled="True" SelectionMode="Multiple" ScrollViewer.VerticalScrollBarVisibility="Hidden" ScrollViewer.HorizontalScrollBarVisibility="Hidden" Grid.Row="3" IsEnabled="False">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <CheckBox IsChecked="{Binding DefaultValue}" Content="{Binding DisplayName}" FlowDirection="RightToLeft"/>
+                            <CheckBox IsChecked="{Binding Value}" Content="{Binding DisplayName}" FlowDirection="RightToLeft"/>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-                <ListBox ItemsSource="{Binding EnabledModsList}" Margin="5" SelectionMode="Multiple" Grid.Column="3" Grid.ColumnSpan="2" Grid.RowSpan="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Row="3"/>
-                <CheckBox FlowDirection="RightToLeft" IsChecked="{Binding ShowInServerBrowser}" Grid.Column="5" Grid.Row="5" Grid.ColumnSpan ="2" Content="Show in Server Browser" Margin="5" Height="NaN" VerticalAlignment="Top" Width="NaN" HorizontalAlignment="Right"/>
+                <ListBox ItemsSource="{Binding EnabledModsList}" Margin="5" SelectionMode="Multiple" Grid.Column="3" Grid.ColumnSpan="2" Grid.RowSpan="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Row="3" IsEnabled="False"/>
+                <StackPanel Margin="5" Grid.Row="5" Grid.Column="5" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Stretch">
+                    <CheckBox FlowDirection="RightToLeft" IsChecked="{Binding ShowInServerBrowser}" Content="Server List" Margin="5" Height="NaN" Width="NaN" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                    <TextBox x:Name="ServerListTextBox" Text="{Binding ServerList}" IsManipulationEnabled="True" AcceptsReturn="False" Height="24" Width="200" VerticalAlignment="Center" HorizontalAlignment="Right" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
                 <!--<CheckBox IsChecked="{Binding ShowInServerBrowser}" Grid.Column="5" Grid.Row="5" Grid.ColumnSpan ="2" Margin="5" FlowDirection="RightToLeft">
                     <TextBlock FlowDirection="RightToLeft" Text="Show in Server Browser" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                 </CheckBox>-->
@@ -210,11 +212,11 @@
                             <!--<CheckBox Content="Override" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" VerticalAlignment="Center"/>-->
                             <!--<TextBlock Text="Override" Grid.Row="0" Grid.Column ="1" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0"/>-->
                             <TextBlock Text="Time" Grid.Row="1" Grid.Column ="0" Grid.ColumnSpan ="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="2"/>
-                            <TextBox Text="{Binding FFATimeLimit}" Grid.Row="1" Grid.Column = "2" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding FFATimeLimit}" Grid.Row="1" Grid.Column = "2" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" />
                             <CheckBox IsChecked="{Binding EnableFFATimeLimit}" Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="3" VerticalAlignment="Center" Margin="5,0,0,0"/>
 
                             <TextBlock Text="Score" Grid.Row="2" Grid.Column ="0" Grid.ColumnSpan ="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="2"/>
-                            <TextBox Text="{Binding FFAScoreLimit}" Grid.Row="2" Grid.Column = "2" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding FFAScoreLimit}" Grid.Row="2" Grid.Column = "2" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" />
                             <CheckBox IsChecked="{Binding EnableFFAScoreLimit}" Grid.Row="2" Grid.Column="3" Grid.ColumnSpan="3" VerticalAlignment="Center" Margin="5,0,0,0"/>
                         </Grid>
                     </TabItem>
@@ -240,11 +242,11 @@
                             <!--<CheckBox Content="Override" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" VerticalAlignment="Center"/>-->
                             <!--<TextBlock Text="Override" Grid.Row="0" Grid.Column ="1" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0"/>-->
                             <TextBlock Text="Time" Grid.Row="1" Grid.Column ="0" Grid.ColumnSpan ="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="2"/>
-                            <TextBox Text="{Binding TDMTimeLimit}" Grid.Row="1" Grid.Column = "2" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding TDMTimeLimit}" Grid.Row="1" Grid.Column = "2" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" />
                             <CheckBox IsChecked="{Binding EnableTDMTimeLimit}" Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="3" VerticalAlignment="Center" Margin="5,0,0,0"/>
 
                             <TextBlock Text="Tickets" Grid.Row="2" Grid.Column ="0" Grid.ColumnSpan ="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="2"/>
-                            <TextBox Text="{Binding TDMTicketCount}" Grid.Row="2" Grid.Column = "2" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding TDMTicketCount}" Grid.Row="2" Grid.Column = "2" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" />
                             <CheckBox IsChecked="{Binding EnableTDMTicketCount}" Grid.Row="2" Grid.Column="3" Grid.ColumnSpan="3" VerticalAlignment="Center" Margin="5,0,0,0"/>
                         </Grid>
                     </TabItem>
@@ -270,11 +272,11 @@
                             <!--<CheckBox Content="Override" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" VerticalAlignment="Center"/>-->
                             <!--<TextBlock Text="Override" Grid.Row="0" Grid.Column ="1" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="0"/>-->
                             <TextBlock Text="Time" Grid.Row="1" Grid.Column ="0" Grid.ColumnSpan ="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="2"/>
-                            <TextBox Text="{Binding A2sPort}" Grid.Row="1" Grid.Column = "2" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding A2sPort}" Grid.Row="1" Grid.Column = "2" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" />
                             <CheckBox IsChecked="{Binding EnableTDMTicketCount}" Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="3" VerticalAlignment="Center" Margin="5,0,0,0"/>
 
                             <TextBlock Text="Tickets" Grid.Row="2" Grid.Column ="0" Grid.ColumnSpan ="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="2"/>
-                            <TextBox Text="{Binding A2sPort}" Grid.Row="2" Grid.Column = "2" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBox Text="{Binding A2sPort}" Grid.Row="2" Grid.Column = "2" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" VerticalContentAlignment="Center" />
                             <CheckBox IsChecked="{Binding EnableTDMTicketCount}" Grid.Row="2" Grid.Column="3" Grid.ColumnSpan="3" VerticalAlignment="Center" Margin="5,0,0,0"/>
                         </Grid>
                     </TabItem>
@@ -295,13 +297,6 @@
                     <TextBox Text="{Binding A2sPort}" Grid.Row="2" Grid.Column = "5" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" />-->
 
                 <!--</Grid>-->
-
-
-                <TextBlock Text="Num Bots" Grid.Row="0" Grid.Column ="3" Grid.ColumnSpan ="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,2,0,2"/>
-                <TextBox Text="{Binding NumBots}" Grid.Row="0" Grid.Column = "4" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" />
-
-                <TextBlock Text="Max FPS" Grid.Row="1" Grid.Column ="3" Grid.ColumnSpan ="1" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="2,2,0,2"/>
-                <TextBox Text="{Binding MaxFPS}" Grid.Row="1" Grid.Column = "4" Margin ="0" IsManipulationEnabled="False" AcceptsReturn="False" Height="18" Width="50" HorizontalAlignment="Center" VerticalAlignment="Center" />
 
 
                 <TextBlock Text="Ports" FontSize="22" Grid.Row="6" Grid.Column ="0" Grid.RowSpan ="2" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5"/>
@@ -331,8 +326,30 @@
                 </StackPanel>-->
                 <Button x:Name="LaunchServerButton" Content="Launch Server" Grid.Row="6" Grid.Column="5" Grid.ColumnSpan="1" Command="{Binding LaunchServerCommand}" IsEnabled="{Binding CanClick}" Grid.RowSpan="2" />
                 <Button x:Name="LaunchServerHeadlessButton" Content="Launch Headless Server" Grid.Row="6" Grid.Column="6" Grid.ColumnSpan="2" Command="{Binding LaunchServerHeadlessCommand}" IsEnabled="{Binding CanClick}" Grid.RowSpan="2"/>
-                <CheckBox IsChecked="{Binding EnableIniOverrides}" Content="Config (ini) overrides:" Grid.Row="2" Grid.ColumnSpan="3" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="5,0,0,0"/>
-                <CheckBox IsChecked="{Binding EnableMods}" Content="Enabled Mods:" Grid.Row="2" Grid.ColumnSpan="2" Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="5,0,0,0"/>
+                <CheckBox IsChecked="{Binding EnableIniOverrides}" Content="Config (ini) overrides:" Grid.Row="2" Grid.ColumnSpan="3" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="5,0,0,0" IsEnabled="False"/>
+                <CheckBox IsChecked="{Binding Enab}" Content="Enabled Mods:" Grid.Row="2" Grid.ColumnSpan="2" Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="5,0,0,0" IsEnabled="False"/>
+
+                <Grid Grid.Column="3" Grid.RowSpan="2" Grid.ColumnSpan="2">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Num Bots" HorizontalAlignment="Right"/>
+                    <TextBox Text="{Binding NumBots}" IsManipulationEnabled="False" AcceptsReturn="False" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" Grid.ColumnSpan="2" Width="50" Height="18" VerticalContentAlignment="Center" />
+
+                    <TextBlock Text="Max FPS" Grid.Row="1" HorizontalAlignment="Right"/>
+                    <TextBox Text="{Binding MaxFPS}" IsManipulationEnabled="False" AcceptsReturn="False" Grid.Column="1" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center" Width="50" Height="18" VerticalContentAlignment="Center" />
+
+                    <TextBlock Text="Warmup" Grid.Row="2" HorizontalAlignment="Right"/>
+                    <TextBox x:Name="WarmupBox" Text="{Binding WarmupTime,StringFormat=N2}" IsManipulationEnabled="False" AcceptsReturn="False" Grid.Column="1" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="50" Height="18" Margin="0,0,0,4" VerticalContentAlignment="Center" />
+                </Grid>
             </Grid>
         </TabItem>
 

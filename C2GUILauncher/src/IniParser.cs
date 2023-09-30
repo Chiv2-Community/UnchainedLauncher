@@ -13,6 +13,7 @@ namespace C2GUILauncher
         public string? DisplayName { get; set; }
         public string? Section { get; set; }
         public string? Key { get; set; }
+        public bool Value { get; set; }
         public bool DefaultValue { get; set; }
     }
 
@@ -69,7 +70,8 @@ namespace C2GUILauncher
                         DisplayName = currentComments.ContainsKey(key) ? currentComments[key] : "John Doe",
                         Section = currentSection,
                         Key = key,
-                        DefaultValue = value
+                        DefaultValue = value,
+                        Value = value,
                     };
                     _data[currentSection][key] = configItem;
 

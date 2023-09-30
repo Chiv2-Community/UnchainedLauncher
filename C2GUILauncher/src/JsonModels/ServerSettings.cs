@@ -17,6 +17,7 @@ namespace C2GUILauncher.JsonModels {
         [property: JsonProperty("selected_mods")] ObservableCollection<string>? SelectedModsList,
         [property: JsonProperty("num_bots")] short? NumBots,
         [property: JsonProperty("max_fps")] short? MaxFPS,
+        [property: JsonProperty("warmup_time")] double? WarmupTime,
         [property: JsonProperty("ffa_time_limit")] uint? FFATimeLimit,
         [property: JsonProperty("ffa_score_limit")] uint? FFAScoreLimit,
         [property: JsonProperty("tdm_time_limit")] uint? TDMTimeLimit,

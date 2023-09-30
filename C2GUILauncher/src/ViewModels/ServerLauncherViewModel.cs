@@ -17,6 +17,7 @@ using System.Collections.Specialized;
 using System.Collections.ObjectModel;
 using log4net.Repository.Hierarchy;
 using log4net;
+using System.Globalization;
 
 namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
@@ -38,6 +39,7 @@ namespace C2GUILauncher.ViewModels {
         public ObservableCollection<string> SelectedModsList { get; set; }
         public short NumBots { get; set; }
         public short MaxFPS { get; set; }
+        public double WarmupTime { get; set; }
         public uint FFATimeLimit { get; set; }
         public uint FFAScoreLimit { get; set; }
         public uint TDMTimeLimit { get; set; }
@@ -65,7 +67,7 @@ namespace C2GUILauncher.ViewModels {
         //whose settings can be stored/loaded from files
 
         public ServerLauncherViewModel(LauncherViewModel launcherViewModel, ModManager modManager, string serverName, string serverDescription, string serverList, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, ObservableCollection<string> selectedBoolOptionsList, ObservableCollection<string> selectedModsList,
-            short numBots, short maxFPS, uint fFATimeLimit, uint fFAScoreLimit, uint tDMTimeLimit, uint tDMTicketCount, bool enableFFATimeLimit, bool enableFFAScoreLimit, bool enableTDMTimeLimit, bool enableTDMTicketCount, bool enableIniOverrides, bool enableMods, FileBackedSettings<ServerSettings> settingsFile) {
+            short numBots, short maxFPS, double warmupTime, uint fFATimeLimit, uint fFAScoreLimit, uint tDMTimeLimit, uint tDMTicketCount, bool enableFFATimeLimit, bool enableFFAScoreLimit, bool enableTDMTimeLimit, bool enableTDMTicketCount, bool enableIniOverrides, bool enableMods, FileBackedSettings<ServerSettings> settingsFile) {
             CanClick = true;
             
             ServerName = serverName;
@@ -81,6 +83,7 @@ namespace C2GUILauncher.ViewModels {
             SelectedModsList = selectedModsList;
             NumBots = numBots;
             MaxFPS = maxFPS;
+            WarmupTime = warmupTime;
             FFATimeLimit = fFATimeLimit;
             FFAScoreLimit = fFAScoreLimit;
             TDMTimeLimit = tDMTimeLimit;
@@ -174,6 +177,7 @@ namespace C2GUILauncher.ViewModels {
                 new ObservableCollection<string>(),
                 0,
                 0,
+                30.023, // WarmupTime
                 0,
                 0,
                 0,
@@ -208,6 +212,7 @@ namespace C2GUILauncher.ViewModels {
                 loadedSettings.SelectedModsList ?? defaultSettings.SelectedModsList!,
                 loadedSettings.NumBots ?? defaultSettings.NumBots.Value,
                 loadedSettings.MaxFPS ?? defaultSettings.MaxFPS.Value,
+                loadedSettings.WarmupTime ?? defaultSettings.WarmupTime.Value,
                 loadedSettings.FFATimeLimit ?? defaultSettings.FFATimeLimit.Value,
                 loadedSettings.FFAScoreLimit ?? defaultSettings.FFAScoreLimit.Value,
                 loadedSettings.TDMTimeLimit ?? defaultSettings.TDMTimeLimit.Value,
@@ -239,6 +244,7 @@ namespace C2GUILauncher.ViewModels {
                     SelectedModsList,
                     NumBots,
                     MaxFPS,
+                    WarmupTime,
                     FFATimeLimit,
                     FFAScoreLimit,
                     TDMTimeLimit,
@@ -253,6 +259,49 @@ namespace C2GUILauncher.ViewModels {
             );
         }
 
+        private string? GetCommonServerOptions()
+        {
+            string[] args =
+            {
+                    (WarmupTime > 0.0) ? $"?WarmupTime={WarmupTime.ToString("0.000000", CultureInfo.InvariantCulture)}" : "",
+                    (NumBots > 0) ? $"?NumPlayerBots={NumBots}" : "",
+                    EnableFFATimeLimit ? $"?FFATimeLimit={FFATimeLimit}" : "",
+                    EnableFFAScoreLimit ? $"?FFAScoreLimit={FFAScoreLimit}" : "",
+                    EnableTDMTimeLimit ? $"?TDMTimeLimit={TDMTimeLimit}" : "",
+                    EnableTDMTicketCount ? $"?TDMTicketCount={TDMTicketCount}" : "",
+            };
+            return "--map-options "+String.Join("", args);
+        }
+
+
+        private string? GetCommonServerargs()
+        {
+
+            string args = "";
+
+            if (MaxFPS > 0)
+                args += $"-ini:TBLGameUserSettings:[/Script/TBL.TBLGameUserSettings]:MaxFPS={MaxFPS}";
+
+            // Gamemode
+            args += $" -ini:Game:[/Script/TBL.TBLGameMode]:ServerName=\"{ServerName}{ (ShowInServerBrowser ? "\"" : " (Unlisted)\"") },";
+
+            // TODO: figure out why this doesn't work
+            //if (WarmupTime > 0.0)
+            //    args += $" -ini:Game:[/Script/TBL.TBLGameMode]:MinTimeBeforeStartingMatch=\"{WarmupTime.ToString("0.000000", CultureInfo.InvariantCulture)}\",";
+
+            foreach ( var ci in BoolConfigItems)
+            {
+
+                if (ci.Value != ci.DefaultValue)
+                {
+                    //args += ($"[{ci.Section}]:{ci.Key}={ci.Value},");
+                    args += ($"{ci.Key}={ci.Value},");
+                } 
+
+            }
+            return args.Substring(0, args.Length - 1);
+        }
+
         private async void LaunchServer() {
             CanClick = false;
             try {
@@ -260,8 +309,9 @@ namespace C2GUILauncher.ViewModels {
                 if (serverRegister == null) {
                     return;
                 }
-
-                string[] exArgs = { $"Port={GamePort}", $"GameServerQueryPort={PingPort}", $"GameServerQueryPort={A2sPort}"};
+                var a = GetCommonServerargs();
+                var b = GetCommonServerOptions();
+                string[] exArgs = { $"Port={GamePort}", $"GameServerQueryPort={PingPort}", $"GameServerQueryPort={A2sPort}", a, b};
 
                 await LauncherViewModel.LaunchModded(exArgs, serverRegister);
 
@@ -281,7 +331,10 @@ namespace C2GUILauncher.ViewModels {
                 return;
             }
 
-            try {
+            try
+            {
+                var a = GetCommonServerargs();
+                var b = GetCommonServerOptions();
                 string[] exArgs = {
                     $"Port={GamePort}", //specify server port
                     $"GameServerQueryPort={PingPort}",
@@ -293,7 +346,9 @@ namespace C2GUILauncher.ViewModels {
                     "-RenderOffScreen", //super-disable rendering
                     "-unattended", //let it know no one's around to help
                     "-nosound", //disable sound
-                    "--next-map-name " + SelectedMap
+                    "--next-map-name " + SelectedMap,
+                    a,
+                    b
                 };
 
                 await LauncherViewModel.LaunchModded(exArgs, serverRegister);

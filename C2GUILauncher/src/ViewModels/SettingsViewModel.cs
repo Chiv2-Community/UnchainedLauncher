@@ -28,6 +28,7 @@ namespace C2GUILauncher.ViewModels {
         public bool EnablePluginLogging { get; set; }
         public bool EnablePluginAutomaticUpdates { get; set; }
         public string AdditionalModActors { get; set; }
+        public string ServerBrowserBackend { get; set; }
 
         public string _cliArgs;
         public string CLIArgs {
@@ -53,12 +54,14 @@ namespace C2GUILauncher.ViewModels {
 
         public FileBackedSettings<LauncherSettings> LauncherSettings { get; set; }
 
-        public SettingsViewModel(MainWindow window, InstallationType installationType, bool enablePluginLogging, bool enablePluginAutomaticUpdates, string additionalModActors, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs) {
+        public SettingsViewModel(MainWindow window, InstallationType installationType, bool enablePluginLogging, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs) {
             InstallationType = installationType;
             EnablePluginLogging = enablePluginLogging;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
             AdditionalModActors = additionalModActors;
             LauncherSettings = launcherSettings;
+            ServerBrowserBackend = serverBrowserBackend;
+
             _cliArgs = cliArgs;
             CLIArgsModified = false;
 
@@ -72,7 +75,7 @@ namespace C2GUILauncher.ViewModels {
             var cliArgsList = Environment.GetCommandLineArgs();
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => x + " " + y) : "";
 
-            var defaultSettings = new LauncherSettings(InstallationTypeUtils.AutoDetectInstallationType(), false, true, "");
+            var defaultSettings = new LauncherSettings(InstallationTypeUtils.AutoDetectInstallationType(), false, true, "", "https://servers.polehammer.net");
             var fileBackedSettings = new FileBackedSettings<LauncherSettings>(SettingsFilePath, defaultSettings);
 
             var loadedSettings = fileBackedSettings.LoadSettings();
@@ -84,6 +87,7 @@ namespace C2GUILauncher.ViewModels {
                 loadedSettings.EnablePluginLogging ?? defaultSettings.EnablePluginLogging.Value,
                 loadedSettings.EnablePluginAutomaticUpdates ?? defaultSettings.EnablePluginAutomaticUpdates.Value,
                 loadedSettings.AdditionalModActors ?? defaultSettings.AdditionalModActors!,
+                loadedSettings.ServerBrowserBackend ?? defaultSettings.ServerBrowserBackend!,
                 fileBackedSettings,
                 cliArgs
             );
@@ -92,7 +96,7 @@ namespace C2GUILauncher.ViewModels {
 
         public void SaveSettings() {
             LauncherSettings.SaveSettings(
-                new LauncherSettings(InstallationType, EnablePluginLogging, EnablePluginAutomaticUpdates, AdditionalModActors)
+                new LauncherSettings(InstallationType, EnablePluginLogging, EnablePluginAutomaticUpdates, AdditionalModActors, ServerBrowserBackend)
             );
         }
 

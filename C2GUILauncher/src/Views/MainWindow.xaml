@@ -142,11 +142,8 @@
                 <TextBlock Text="Server Name :" Grid.Row="0" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" />
                 <TextBox Text="{Binding ServerName}" Grid.Row="1" Grid.ColumnSpan ="2" TextWrapping="Wrap" Margin ="5,0,5,0" IsManipulationEnabled="True" AcceptsReturn="False" />
 
-                <TextBlock Text="Select Starting Map:" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan ="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" />
-                <ComboBox ItemsSource="{Binding MapsList, Mode=TwoWay}" SelectedItem="{Binding SelectedMap, Mode=TwoWay}"  Grid.Row="1" Grid.Column="2" Grid.ColumnSpan ="1" Margin ="5,0,5,0" IsManipulationEnabled="True" />
-
-                <TextBlock Text="Server Registration Host:" Grid.Row="0" Grid.Column ="3" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <TextBox x:Name="ServerListTextBox" Text="{Binding ServerList}" Grid.Row="1" Grid.Column ="3" Grid.ColumnSpan ="1" Margin ="5,0,5,0" IsManipulationEnabled="True" AcceptsReturn="False" Width="NaN" Height="22" />
+                <TextBlock Text="Select Starting Map:" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" />
+                <ComboBox ItemsSource="{Binding MapsList, Mode=TwoWay}" SelectedItem="{Binding SelectedMap, Mode=TwoWay}"  Grid.Row="1" Grid.Column="2" Grid.ColumnSpan ="2" Margin ="5,0,5,0" IsManipulationEnabled="True" />
 
                 <TextBlock Text="Server Description:" Grid.Row="2" Grid.ColumnSpan ="4" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
                 <TextBox Text="{Binding ServerDescription}" Grid.Row="3" Grid.ColumnSpan ="4" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
@@ -187,21 +184,44 @@
                     <ColumnDefinition Width="auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Text="Installation Type:" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
-                <ComboBox SelectedItem="{Binding InstallationType,Mode=TwoWay}" ItemsSource="{Binding AllInstallationTypes}" Grid.Row="1" Margin="5" HorizontalAlignment="Stretch" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />
-                
-                <TextBlock Text="Additional Mod Actors:" Margin="5" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"/>
-                <TextBox Text="{Binding AdditionalModActors, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
-                
-                <CheckBox IsChecked="{Binding EnablePluginLogging }" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan ="1" Content="Enable Plugin Logging" Height="NaN" VerticalAlignment="Stretch" Margin="5" HorizontalAlignment="Left" />
-                <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan ="2" Content="Enable Automatic Plugin Updates and Downloads" HorizontalAlignment="Left" Margin="5" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />
-                
-                <TextBlock Text="CLI Args:" Grid.Row="3" Grid.ColumnSpan ="3" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>
+                <Grid Grid.Row="0" Grid.Column="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+
+
+                    <TextBlock Text="Installation Type:" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <ComboBox SelectedItem="{Binding InstallationType,Mode=TwoWay}" ItemsSource="{Binding AllInstallationTypes}" Margin="5" Grid.Column="1" VerticalAlignment="Center" Width="NaN" />
+                </Grid>
+
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Additional Mod Actors:" Margin="5" Grid.Column="0" Grid.ColumnSpan="2"/>
+                    <TextBox Text="{Binding AdditionalModActors, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
+                </Grid>
+
+                <Grid Grid.Row="1" Grid.Column="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Server Browser Backend:" Margin="5" Grid.Column="0" Grid.ColumnSpan="2"/>
+                    <TextBox Text="{Binding ServerBrowserBackend, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
+                </Grid>
+
+                <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Column="1" Content="Enable Automatic Plugin Updates and Downloads" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Center" />
+
+                <TextBlock Text="CLI Args:" Grid.Row="2" Grid.ColumnSpan ="3" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>
                 <TextBox Text="{Binding CLIArgs}" Grid.Row="4" Grid.ColumnSpan ="3" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
-                
+
                 <Button Content="Clean Up Installation" Grid.Row="5" Grid.Column="0" Margin="5" Command="{Binding CleanUpInstallationCommand}" />
                 <Button Content="Check for updates" Grid.Row="5" Grid.Column="1" Margin="5" Command="{Binding CheckForUpdateCommand}" />
-                
+
                 <TextBlock Text="{Binding CurrentVersion}" Grid.Row="5" Grid.ColumnSpan ="2" Grid.Column="2" HorizontalAlignment="Center" Height="NaN" Margin="0,0,0,0" VerticalAlignment="Center" Width="NaN" />
             </Grid>
         </TabItem>

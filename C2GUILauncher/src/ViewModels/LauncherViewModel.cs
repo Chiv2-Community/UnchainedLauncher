@@ -69,6 +69,8 @@ namespace C2GUILauncher.ViewModels {
             // pass empty string for args, if we shouldn't send any.
             var args = shouldSendArgs ? this.Settings.CLIArgs : "";
 
+            var serverBrowserBackendArg = "--server-browser-backend " + Settings.ServerBrowserBackend.Trim();
+
             //setup necessary cli args for a modded launch
             List<string> cliArgs = args.Split(" ").ToList();
             int TBLloc = cliArgs.IndexOf("TBL") + 1;
@@ -77,8 +79,8 @@ namespace C2GUILauncher.ViewModels {
             if (exArgs != null) {
                 cliArgs.AddRange(exArgs);
             }
-
-            cliArgs = cliArgs.Select(x => x.Trim()).Where(x => x != null && x != "").ToList();
+            cliArgs.Add(serverBrowserBackendArg);
+            cliArgs = cliArgs.Where(x => x != null).Select(x => x.Trim()).Where(x => x.Any()).ToList();
             var maybeThread = await Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, Settings.EnablePluginLogging, serverRegister);
             CanClick = true;
 

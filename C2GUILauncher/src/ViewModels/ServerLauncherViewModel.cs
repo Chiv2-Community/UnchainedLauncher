@@ -26,7 +26,6 @@ namespace C2GUILauncher.ViewModels {
 
         public string ServerName { get; set; }
         public string ServerDescription { get; set; }
-        public string ServerList { get; set; }
         public short GamePort { get; set; }
         public short RconPort { get; set; }
         public short A2sPort { get; set; }
@@ -37,6 +36,7 @@ namespace C2GUILauncher.ViewModels {
 
         public ObservableCollection<string> MapsList { get; set; }
         private LauncherViewModel LauncherViewModel { get; }
+        private SettingsViewModel SettingsViewModel { get; }
         public ICommand LaunchServerCommand { get; }
         public ICommand LaunchServerHeadlessCommand { get; }
 
@@ -48,18 +48,18 @@ namespace C2GUILauncher.ViewModels {
         //in the hopes of having multiple independent servers running one one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, ModManager modManager, string serverName, string serverDescription, string serverList, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
+        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ModManager modManager, string serverName, string serverDescription, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
             CanClick = true;
             
             ServerName = serverName;
             ServerDescription = serverDescription;
-            ServerList = serverList;
             SelectedMap = selectedMap;
             GamePort = gamePort;
             RconPort = rconPort;
             A2sPort = a2sPort;
             PingPort = pingPort;
             ShowInServerBrowser = showInServerBrowser;
+            SettingsViewModel = settingsViewModel;
 
             SettingsFile = settingsFile;
 
@@ -103,11 +103,10 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        public static ServerLauncherViewModel LoadSettings(LauncherViewModel launcherViewModel, ModManager modManager) {
+        public static ServerLauncherViewModel LoadSettings(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ModManager modManager) {
             var defaultSettings = new ServerSettings(
                 "Chivalry 2 server",
                 "Example description",
-                "https://servers.polehammer.net",
                 "FFA_Courtyard",
                 7777,
                 9001,
@@ -124,10 +123,10 @@ namespace C2GUILauncher.ViewModels {
             #pragma warning disable CS8629 // Every call to .Value is safe here because all default server settings are defined.
             return new ServerLauncherViewModel(
                 launcherViewModel,
+                settingsViewModel,
                 modManager,
                 loadedSettings.ServerName ?? defaultSettings.ServerName!,
                 loadedSettings.ServerDescription ?? defaultSettings.ServerDescription!,
-                loadedSettings.ServerList ?? defaultSettings.ServerList!,
                 loadedSettings.SelectedMap ?? defaultSettings.SelectedMap!,
                 loadedSettings.GamePort ?? defaultSettings.GamePort.Value,
                 loadedSettings.RconPort ?? defaultSettings.RconPort.Value,
@@ -144,7 +143,6 @@ namespace C2GUILauncher.ViewModels {
                 new ServerSettings(
                     ServerName, 
                     ServerDescription, 
-                    ServerList, 
                     SelectedMap,
                     GamePort, 
                     RconPort, 
@@ -233,19 +231,21 @@ namespace C2GUILauncher.ViewModels {
             serverRegister.StartInfo.FileName = "cmd.exe";
 
             string registerCommand = $"RegisterUnchainedServer.exe " +
-                $"-n ^\"{ServerName.Replace("\"", "^\"")}^\" " +
-                $"-d ^\"{ServerDescription.Replace("\"", "^\"").Replace("\n", "^\n")}^\" " +
-                $"-r ^\"{ServerList}^\" " +
-                $"-c ^\"{RconPort}^\" " +
-                $"-a ^\"{A2sPort}^\" " +
-                $"-p ^\"{PingPort}^\" " +
-                $"-g ^\"{GamePort}^\" ";
+                $"-n \"{ServerName.Replace("\"", "\"")}\" " +
+                $"-d \"{ServerDescription.Replace("\"", "\"").Replace("\n", "\n")}\" " +
+                $"-r \"{SettingsViewModel.ServerBrowserBackend}\" " +
+                $"-c \"{RconPort}\" " +
+                $"-a \"{A2sPort}\" " +
+                $"-p \"{PingPort}\" " +
+                $"-g \"{GamePort}\" ";
 
             if (!ShowInServerBrowser) {
                 registerCommand += " --no-register";
             }
 
-            serverRegister.StartInfo.Arguments = $"/c \"{registerCommand}\"";
+            logger.Info($"Running registration: {registerCommand}");
+
+            serverRegister.StartInfo.Arguments = $"/C \"{registerCommand}\"";
             serverRegister.StartInfo.CreateNoWindow = false;
 
             return serverRegister;

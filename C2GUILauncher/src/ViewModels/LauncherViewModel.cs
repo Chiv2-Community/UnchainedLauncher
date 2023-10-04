@@ -81,7 +81,7 @@ namespace C2GUILauncher.ViewModels {
             }
             cliArgs.Add(serverBrowserBackendArg);
             cliArgs = cliArgs.Where(x => x != null).Select(x => x.Trim()).Where(x => x.Any()).ToList();
-            var maybeThread = await Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, Settings.EnablePluginLogging, serverRegister);
+            var maybeThread = await Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, serverRegister);
             CanClick = true;
 
             if (maybeThread == null) {

@@ -195,7 +195,7 @@ namespace C2GUILauncher.Mods {
             await Task.WhenAll(downloadTasks);
         }
 
-        public IEnumerable<ModReleaseDownloadTask> DownloadModFiles(bool downloadPlugin, bool debug) {
+        public IEnumerable<ModReleaseDownloadTask> DownloadModFiles(bool downloadPlugin) {
             logger.Info("Downloading mod files...");
 
             logger.Info("Creating mod diretories...");
@@ -203,8 +203,6 @@ namespace C2GUILauncher.Mods {
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBDir);
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBPackagesDir);
             Directory.CreateDirectory(FilePaths.PluginDir);
-
-            var downloadFileSuffix = debug ? "_dbg.dll" : ".dll";
 
             var DeprecatedLibs = new List<String>()
             {
@@ -219,7 +217,7 @@ namespace C2GUILauncher.Mods {
 
             var coreMods = 
                 downloadPlugin 
-                    ? new List<DownloadTarget>() { new DownloadTarget(CoreMods.UnchainedPluginURL.Replace(".dll", downloadFileSuffix), CoreMods.UnchainedPluginPath)}
+                    ? new List<DownloadTarget>() { new DownloadTarget(CoreMods.UnchainedPluginURL, CoreMods.UnchainedPluginPath)}
                     : new List<DownloadTarget>();
 
             var coreModsDownloads = HttpHelpers.DownloadAllFiles(coreMods);

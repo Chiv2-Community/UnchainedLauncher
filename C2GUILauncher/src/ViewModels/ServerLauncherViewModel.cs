@@ -163,7 +163,7 @@ namespace C2GUILauncher.ViewModels {
 
                 string[] exArgs = { 
                     $"Port={GamePort}", 
-                    $"GameServerQueryPort={PingPort}", 
+                    $"GameServerPingPort={PingPort}", 
                     $"GameServerQueryPort={A2sPort}",
                     $"-rcon {RconPort}",
                 };
@@ -189,7 +189,7 @@ namespace C2GUILauncher.ViewModels {
             try {
                 string[] exArgs = {
                     $"Port={GamePort}", //specify server port
-                    $"GameServerQueryPort={PingPort}",
+                    $"GameServerPingPort={PingPort}",
                     $"GameServerQueryPort={A2sPort}",
                     "-nullrhi", //disable rendering
                     //Note the distinction here with the other ports.

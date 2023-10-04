@@ -142,8 +142,11 @@
                 <TextBlock Text="Server Name :" Grid.Row="0" Grid.ColumnSpan ="2" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" />
                 <TextBox Text="{Binding ServerName}" Grid.Row="1" Grid.ColumnSpan ="2" TextWrapping="Wrap" Margin ="5,0,5,0" IsManipulationEnabled="True" AcceptsReturn="False" />
 
-                <TextBlock Text="Select Starting Map:" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" />
-                <ComboBox ItemsSource="{Binding MapsList, Mode=TwoWay}" SelectedItem="{Binding SelectedMap, Mode=TwoWay}"  Grid.Row="1" Grid.Column="2" Grid.ColumnSpan ="2" Margin ="5,0,5,0" IsManipulationEnabled="True" />
+                <TextBlock Text="Password:" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" />
+                <TextBox Text="{Binding ServerPassword}" Grid.Row="1" Grid.Column ="2" TextWrapping="Wrap" Margin ="5,0,5,0" IsManipulationEnabled="True" AcceptsReturn="False" />
+                
+                <TextBlock Text="Select Starting Map:" Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" />
+                <ComboBox ItemsSource="{Binding MapsList, Mode=TwoWay}" SelectedItem="{Binding SelectedMap, Mode=TwoWay}"  Grid.Row="1" Grid.Column="3" Grid.ColumnSpan ="1" Margin ="5,0,5,0" IsManipulationEnabled="True" />
 
                 <TextBlock Text="Server Description:" Grid.Row="2" Grid.ColumnSpan ="4" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>
                 <TextBox Text="{Binding ServerDescription}" Grid.Row="3" Grid.ColumnSpan ="4" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />

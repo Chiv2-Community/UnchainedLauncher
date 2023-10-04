@@ -5,6 +5,7 @@ namespace C2GUILauncher.JsonModels {
     public record ServerSettings(
         [property: JsonProperty("server_name")] string? ServerName,
         [property: JsonProperty("server_description")] string? ServerDescription,
+        [property: JsonProperty("server_password")] string? ServerPassword,
         [property: JsonProperty("selected_map")] string? SelectedMap,
         [property: JsonProperty("game_port")] short? GamePort,
         [property: JsonProperty("rcon_port")] short? RconPort,

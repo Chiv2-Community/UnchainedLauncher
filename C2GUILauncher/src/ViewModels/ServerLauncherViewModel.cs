@@ -26,6 +26,7 @@ namespace C2GUILauncher.ViewModels {
 
         public string ServerName { get; set; }
         public string ServerDescription { get; set; }
+        public string ServerPassword { get; set; }
         public short GamePort { get; set; }
         public short RconPort { get; set; }
         public short A2sPort { get; set; }
@@ -48,11 +49,13 @@ namespace C2GUILauncher.ViewModels {
         //in the hopes of having multiple independent servers running one one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ModManager modManager, string serverName, string serverDescription, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
+        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
             CanClick = true;
             
             ServerName = serverName;
             ServerDescription = serverDescription;
+            ServerPassword = serverPassword;
+
             SelectedMap = selectedMap;
             GamePort = gamePort;
             RconPort = rconPort;
@@ -107,6 +110,7 @@ namespace C2GUILauncher.ViewModels {
             var defaultSettings = new ServerSettings(
                 "Chivalry 2 server",
                 "Example description",
+                "",
                 "FFA_Courtyard",
                 7777,
                 9001,
@@ -127,6 +131,7 @@ namespace C2GUILauncher.ViewModels {
                 modManager,
                 loadedSettings.ServerName ?? defaultSettings.ServerName!,
                 loadedSettings.ServerDescription ?? defaultSettings.ServerDescription!,
+                loadedSettings.ServerPassword ?? defaultSettings.ServerPassword!,
                 loadedSettings.SelectedMap ?? defaultSettings.SelectedMap!,
                 loadedSettings.GamePort ?? defaultSettings.GamePort.Value,
                 loadedSettings.RconPort ?? defaultSettings.RconPort.Value,
@@ -143,6 +148,7 @@ namespace C2GUILauncher.ViewModels {
                 new ServerSettings(
                     ServerName, 
                     ServerDescription, 
+                    ServerPassword,
                     SelectedMap,
                     GamePort, 
                     RconPort, 
@@ -161,12 +167,16 @@ namespace C2GUILauncher.ViewModels {
                     return;
                 }
 
-                string[] exArgs = { 
+                var exArgs = new List<string>(){ 
                     $"Port={GamePort}", 
                     $"GameServerPingPort={PingPort}", 
                     $"GameServerQueryPort={A2sPort}",
                     $"-rcon {RconPort}",
                 };
+
+                if(ServerPassword.Trim() != "") {
+                    exArgs.Add($"ServerPassword={ServerPassword.Trim()}");
+                }
 
                 await LauncherViewModel.LaunchModded(exArgs, serverRegister);
 
@@ -187,7 +197,7 @@ namespace C2GUILauncher.ViewModels {
             }
 
             try {
-                string[] exArgs = {
+                var exArgs = new List<string>(){
                     $"Port={GamePort}", //specify server port
                     $"GameServerPingPort={PingPort}",
                     $"GameServerQueryPort={A2sPort}",
@@ -200,6 +210,10 @@ namespace C2GUILauncher.ViewModels {
                     "-nosound", //disable sound
                     "--next-map-name " + SelectedMap
                 };
+
+                if (ServerPassword.Trim() != "") {
+                    exArgs.Add($"ServerPassword={ServerPassword.Trim()}");
+                }
 
                 await LauncherViewModel.LaunchModded(exArgs, serverRegister);
             } catch (Exception ex) {
@@ -240,7 +254,11 @@ namespace C2GUILauncher.ViewModels {
                 $"-g \"{GamePort}\" ";
 
             if (!ShowInServerBrowser) {
-                registerCommand += " --no-register";
+                registerCommand += "--no-register ";
+            }
+
+            if(ServerPassword.Trim() != "") {
+                registerCommand += $"-x ";
             }
 
             logger.Info($"Running registration: {registerCommand}");

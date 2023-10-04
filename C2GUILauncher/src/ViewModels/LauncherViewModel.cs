@@ -60,7 +60,7 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        public async Task LaunchModded(string[]? exArgs = null, Process? serverRegister = null) {
+        public async Task LaunchModded(IEnumerable<string>? exArgs = null, Process? serverRegister = null) {
             CanClick = false;
 
             // Pass args through if the args box has been modified, or if we're an EGS install

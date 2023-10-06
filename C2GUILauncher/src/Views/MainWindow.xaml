@@ -371,7 +371,7 @@
                 <ComboBox SelectedItem="{Binding InstallationType,Mode=TwoWay}" ItemsSource="{Binding AllInstallationTypes}" Grid.Row="1" Margin="5" HorizontalAlignment="Stretch" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />
 
                 <TextBlock Text="Additional Mod Actors:" Margin="5" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2"/>
-                <TextBox Text="{Binding AdditionalModActors, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
+                <TextBox Text="{Binding UntrackedModActors, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
 
                 <CheckBox IsChecked="{Binding EnablePluginLogging }" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan ="1" Content="Enable Plugin Logging" Height="NaN" VerticalAlignment="Stretch" Margin="5" HorizontalAlignment="Left" />
                 <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan ="2" Content="Enable Automatic Plugin Updates and Downloads" HorizontalAlignment="Left" Margin="5" Height="NaN" VerticalAlignment="Stretch" Width="NaN" />

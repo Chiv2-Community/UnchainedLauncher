@@ -100,7 +100,7 @@ namespace C2GUILauncher.ViewModels {
                         serverMods
                             .Where(manifest => manifest.OptionFlags.ActorMod)
                             .Select(manifest => manifest.Name.Replace(" ", "")),
-                        Settings.AdditionalModActors
+                        Settings.UntrackedModActors
                     );
 
                 // same as modActorsListString for now. Just turn on all the enabled mods for first map.
@@ -109,8 +109,7 @@ namespace C2GUILauncher.ViewModels {
                         "next-map-mod-actors",
                         serverMods
                             .Where(manifest => manifest.OptionFlags.ActorMod)
-                            .Select(manifest => manifest.Name.Replace(" ", "")),
-                        Settings.AdditionalModActors
+                            .Select(manifest => manifest.Name.Replace(" ", ""))
                     );
 
                 return new string[] { modActorsListString, nextMapModActors }.Where(x => x.Trim() != "").ToArray();

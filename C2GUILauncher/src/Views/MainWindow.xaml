@@ -156,18 +156,15 @@
 
                 <!--<TextBlock Text="Server Description:" Grid.Row="2" Grid.ColumnSpan ="4" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5"/>-->
                 <TextBox Text="{Binding ServerDescription, FallbackValue='Description'}" Margin ="5" Grid.Row="2" Grid.Column="5" Grid.ColumnSpan="2" Grid.RowSpan="3" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
-                <ListBox ItemsSource="{Binding BoolConfigItems}" Margin="5" Grid.ColumnSpan="3" Grid.RowSpan="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" VerticalAlignment="Stretch" IsManipulationEnabled="True" SelectionMode="Multiple" ScrollViewer.VerticalScrollBarVisibility="Hidden" ScrollViewer.HorizontalScrollBarVisibility="Hidden" Grid.Row="3" IsEnabled="False">
+                <ListBox ItemsSource="{Binding BoolConfigItems}" Margin="5" Grid.ColumnSpan="3" Grid.RowSpan="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Right" VerticalAlignment="Stretch" IsManipulationEnabled="True" ScrollViewer.VerticalScrollBarVisibility="Hidden" ScrollViewer.HorizontalScrollBarVisibility="Hidden" Grid.Row="3" IsEnabled="False">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <CheckBox IsChecked="{Binding Value}" Content="{Binding DisplayName}" FlowDirection="RightToLeft"/>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-                <ListBox ItemsSource="{Binding EnabledModsList}" Margin="5" SelectionMode="Multiple" Grid.Column="3" Grid.ColumnSpan="2" Grid.RowSpan="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Row="3" IsEnabled="False"/>
-                <StackPanel Margin="5" Grid.Row="5" Grid.Column="5" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Stretch">
-                    <CheckBox FlowDirection="RightToLeft" IsChecked="{Binding ShowInServerBrowser}" Content="Server List" Margin="5" Height="NaN" Width="NaN" VerticalAlignment="Center" HorizontalAlignment="Right"/>
-                    <TextBox x:Name="ServerListTextBox" Text="{Binding ServerList}" IsManipulationEnabled="True" AcceptsReturn="False" Height="24" Width="200" VerticalAlignment="Center" HorizontalAlignment="Right" VerticalContentAlignment="Center"/>
-                </StackPanel>
+                <ListBox ItemsSource="{Binding EnabledModsList}" Margin="5" SelectionMode="Multiple" Grid.Column="3" Grid.ColumnSpan="2" Grid.RowSpan="3" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Grid.Row="3"/>
+                <CheckBox Margin="5" Grid.Row="5" Grid.Column="5" Grid.ColumnSpan="2" FlowDirection="RightToLeft" IsChecked="{Binding ShowInServerBrowser}" Content="Show in Server Browser" Height="NaN" Width="NaN" VerticalAlignment="Center" HorizontalAlignment="Right"/>
 
                 <!--<CheckBox IsChecked="{Binding ShowInServerBrowser}" Grid.Column="5" Grid.Row="5" Grid.ColumnSpan ="2" Margin="5" FlowDirection="RightToLeft">
                     <TextBlock FlowDirection="RightToLeft" Text="Show in Server Browser" HorizontalAlignment="Center" VerticalAlignment="Top"/>
@@ -327,7 +324,7 @@
                 <Button x:Name="LaunchServerButton" Content="Launch Server" Grid.Row="6" Grid.Column="5" Grid.ColumnSpan="1" Command="{Binding LaunchServerCommand}" IsEnabled="{Binding CanClick}" Grid.RowSpan="2" />
                 <Button x:Name="LaunchServerHeadlessButton" Content="Launch Headless Server" Grid.Row="6" Grid.Column="6" Grid.ColumnSpan="2" Command="{Binding LaunchServerHeadlessCommand}" IsEnabled="{Binding CanClick}" Grid.RowSpan="2"/>
                 <CheckBox IsChecked="{Binding EnableIniOverrides}" Content="Config (ini) overrides:" Grid.Row="2" Grid.ColumnSpan="3" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="5,0,0,0" IsEnabled="False"/>
-                <CheckBox IsChecked="{Binding Enab}" Content="Enabled Mods:" Grid.Row="2" Grid.ColumnSpan="2" Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="5,0,0,0" IsEnabled="False"/>
+                <CheckBox IsChecked="{Binding Enab}" Content="Enabled Mods:" Grid.Row="2" Grid.ColumnSpan="2" Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="5,0,0,0"/>
 
                 <Grid Grid.Column="3" Grid.RowSpan="2" Grid.ColumnSpan="2">
 

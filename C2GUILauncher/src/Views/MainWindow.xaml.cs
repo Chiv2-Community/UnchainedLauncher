@@ -161,7 +161,7 @@ namespace C2GUILauncher {
                 }
 
                 this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, ModManager, chiv2Launcher);
-                this.ServerSettingsViewModel = ServerLauncherViewModel.LoadSettings(LauncherViewModel, ModManager);
+                this.ServerSettingsViewModel = ServerLauncherViewModel.LoadSettings(SettingsViewModel, LauncherViewModel, ModManager);
 
                 this.ModManagerViewModel = new ModListViewModel(ModManager);
 

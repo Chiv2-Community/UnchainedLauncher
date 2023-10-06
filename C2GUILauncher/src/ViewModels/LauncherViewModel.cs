@@ -60,7 +60,7 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        public async Task LaunchModded(string[]? exArgs = null, Process? serverRegister = null) {
+        public async Task LaunchModded(string[]? exArgs = null, Process? serverRegister = null, string[]? selectedMods = null) {
             CanClick = false;
 
             // Pass args through if the args box has been modified, or if we're an EGS install
@@ -73,7 +73,7 @@ namespace C2GUILauncher.ViewModels {
             List<string> cliArgs = args.Split(" ").ToList();
             int TBLloc = cliArgs.IndexOf("TBL") + 1;
 
-            BuildModArgs().ToList().ForEach(arg => cliArgs.Insert(TBLloc, arg));
+            BuildModArgs(selectedMods).ToList().ForEach(arg => cliArgs.Insert(TBLloc, arg));
             if (exArgs != null) {
                 cliArgs.AddRange(exArgs);
             }
@@ -88,11 +88,18 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        public string[] BuildModArgs() {
-            if (ModManager.EnabledModReleases.Any()) {
-                var serverMods = ModManager.EnabledModReleases
+        public IEnumerable<ModManifest> GetEnabledModManifests()
+        {
+            var serverMods = ModManager.EnabledModReleases
                     .Select(mod => mod.Manifest)
                     .Where(manifest => manifest.ModType == ModType.Server || manifest.ModType == ModType.Shared);
+
+            return serverMods;
+        }
+
+        public string[] BuildModArgs(string[]? selectedMods = null) {
+            if (ModManager.EnabledModReleases.Any()) {
+                var serverMods = GetEnabledModManifests();
 
                 string modActorsListString = 
                     BuildCommaSeparatedArgsList(
@@ -103,13 +110,11 @@ namespace C2GUILauncher.ViewModels {
                         Settings.UntrackedModActors
                     );
 
-                // same as modActorsListString for now. Just turn on all the enabled mods for first map.
-                string nextMapModActors =
-                    BuildCommaSeparatedArgsList(
+                string nextMapModActors = "";
+                if (selectedMods != null)                
+                    nextMapModActors = BuildCommaSeparatedArgsList(
                         "next-map-mod-actors",
-                        serverMods
-                            .Where(manifest => manifest.OptionFlags.ActorMod)
-                            .Select(manifest => manifest.Name.Replace(" ", ""))
+                        selectedMods
                     );
 
                 return new string[] { modActorsListString, nextMapModActors }.Where(x => x.Trim() != "").ToArray();

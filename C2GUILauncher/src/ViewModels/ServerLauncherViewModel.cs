@@ -20,6 +20,16 @@ using log4net;
 using System.Globalization;
 
 namespace C2GUILauncher.ViewModels {
+    public class ModListEntry
+    {
+        public ModListEntry(bool isActive, string name) {
+            IsActive = isActive;
+            ModName = name;
+        }
+        public bool IsActive { get; set; }
+        public string ModName { get; set; }
+    }
+
     [AddINotifyPropertyChangedInterface]
     public class ServerLauncherViewModel {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServerLauncherViewModel));
@@ -36,7 +46,11 @@ namespace C2GUILauncher.ViewModels {
         public bool ShowInServerBrowser { get; set; }
         public bool CanClick { get; set; }
         public ObservableCollection<string> SelectedBoolOptionsList { get; set; }
-        public ObservableCollection<string> SelectedModsList { get; set; }
+        public ObservableCollection<string> _SelectedModsList;
+        public ObservableCollection<string> SelectedModsList
+        {
+            get { return new ObservableCollection<string>(this.ModList.Where(x => x.IsActive).Select(x => x.ModName).ToList()); }
+        }
         public short NumBots { get; set; }
         public short MaxFPS { get; set; }
         public double WarmupTime { get; set; }
@@ -52,21 +66,22 @@ namespace C2GUILauncher.ViewModels {
         public bool EnableMods { get; set; }
 
         public ObservableCollection<string> MapsList { get; set; }
-        public ObservableCollection<string> EnabledModsList { get; set; }
         public ObservableCollection<IniConfigItem> BoolConfigItems { get; set; }
         private LauncherViewModel LauncherViewModel { get; }
         public ICommand LaunchServerCommand { get; }
         public ICommand LaunchServerHeadlessCommand { get; }
 
+        public ObservableCollection<ModListEntry> ModList { get; set; }
 
         public FileBackedSettings<ServerSettings> SettingsFile { get; set; }
 
         private ModManager ModManager { get; }
+        private SettingsViewModel SettingsViewModel { get; }
         //may want to add a mods list here as well,
         //in the hopes of having multiple independent servers running one one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, ModManager modManager, string serverName, string serverDescription, string serverList, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, ObservableCollection<string> selectedBoolOptionsList, ObservableCollection<string> selectedModsList,
+        public ServerLauncherViewModel(SettingsViewModel settingsViewModel, LauncherViewModel launcherViewModel, ModManager modManager, string serverName, string serverDescription, string serverList, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, ObservableCollection<string> selectedBoolOptionsList, ObservableCollection<string> selectedModsList,
             short numBots, short maxFPS, double warmupTime, uint fFATimeLimit, uint fFAScoreLimit, uint tDMTimeLimit, uint tDMTicketCount, bool enableFFATimeLimit, bool enableFFAScoreLimit, bool enableTDMTimeLimit, bool enableTDMTicketCount, bool enableIniOverrides, bool enableMods, FileBackedSettings<ServerSettings> settingsFile) {
             CanClick = true;
             
@@ -80,7 +95,7 @@ namespace C2GUILauncher.ViewModels {
             PingPort = pingPort;
             ShowInServerBrowser = showInServerBrowser;
             SelectedBoolOptionsList = selectedBoolOptionsList;
-            SelectedModsList = selectedModsList;
+            _SelectedModsList = selectedModsList;
             NumBots = numBots;
             MaxFPS = maxFPS;
             WarmupTime = warmupTime;
@@ -99,13 +114,14 @@ namespace C2GUILauncher.ViewModels {
 
             LauncherViewModel = launcherViewModel;
             ModManager = modManager;
+            SettingsViewModel = settingsViewModel;
 
             LaunchServerCommand = new RelayCommand(LaunchServer);
             LaunchServerHeadlessCommand = new RelayCommand(LaunchServerHeadless);
 
             MapsList = new ObservableCollection<string>();
-            EnabledModsList = new ObservableCollection<string>();
             BoolConfigItems = new ObservableCollection<IniConfigItem>();
+            ModList = new ObservableCollection<ModListEntry>();
 
             using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("C2GUILauncher.DefaultMaps.txt")) {
                 if (defaultMapsListStream != null) {
@@ -142,10 +158,32 @@ namespace C2GUILauncher.ViewModels {
             }
 
             ModManager.EnabledModReleases.SelectMany(x => x.Manifest.Maps).ToList().ForEach(MapsList.Add);
-            ModManager.EnabledModReleases.Select(x => x.PakFileName.Split('.')[0]).ToList().ForEach(EnabledModsList.Add);
-            
+
+            BuildModsList();
 
             ModManager.EnabledModReleases.CollectionChanged += ProcessEnabledModsChanged;
+        }
+
+        private void BuildModsList()
+        {
+            ModList.Clear();
+
+            List<string> allMods = new List<string>();
+            if (ModManager.EnabledModReleases.Any())
+            {
+                var serverMods = LauncherViewModel.GetEnabledModManifests();
+                serverMods.Where(manifest => manifest.OptionFlags.ActorMod)
+                            .Select(manifest => manifest.Name.Replace(" ", "")).ToList().ForEach(allMods.Add);
+                SettingsViewModel.UntrackedModActors.Split(",").ToList().ForEach(allMods.Add);
+            }
+
+            foreach (var activeMod in _SelectedModsList)
+                ModList.Add(new ModListEntry(true, activeMod));
+
+            foreach (var mod in allMods)
+                if (!_SelectedModsList.Contains(mod))
+                    ModList.Add(new ModListEntry(false, mod));
+
         }
 
         private void ProcessEnabledModsChanged(object? sender, NotifyCollectionChangedEventArgs e) {
@@ -160,9 +198,10 @@ namespace C2GUILauncher.ViewModels {
                     modRelease.Manifest.Maps.ForEach(MapsList.Add);
                 }
             }
+            BuildModsList();
         }
 
-        public static ServerLauncherViewModel LoadSettings(LauncherViewModel launcherViewModel, ModManager modManager) {
+        public static ServerLauncherViewModel LoadSettings(SettingsViewModel settingsViewModel, LauncherViewModel launcherViewModel, ModManager modManager) {
             var defaultSettings = new ServerSettings(
                 "Chivalry 2 server",
                 "Example description",
@@ -197,6 +236,7 @@ namespace C2GUILauncher.ViewModels {
 
             #pragma warning disable CS8629 // Every call to .Value is safe here because all default server settings are defined.
             return new ServerLauncherViewModel(
+                settingsViewModel,
                 launcherViewModel,
                 modManager,
                 loadedSettings.ServerName ?? defaultSettings.ServerName!,
@@ -312,8 +352,7 @@ namespace C2GUILauncher.ViewModels {
                 if (serverRegister == null) {
                     return;
                 }
-                var a = GetCommonServerargs();
-                var b = GetCommonServerOptions();
+
                 string[] exArgs = { 
                     $"Port={GamePort}", 
                     $"GameServerQueryPort={PingPort}", 
@@ -322,7 +361,7 @@ namespace C2GUILauncher.ViewModels {
                     GetCommonServerOptions()
                 };
 
-                await LauncherViewModel.LaunchModded(exArgs, serverRegister);
+                await LauncherViewModel.LaunchModded(exArgs, serverRegister, SelectedModsList.ToArray());
 
             } catch (Exception ex) {
                 MessageBox.Show("Failed to launch. Check the logs for details.");
@@ -358,7 +397,7 @@ namespace C2GUILauncher.ViewModels {
                     GetCommonServerOptions()
                 };
 
-                await LauncherViewModel.LaunchModded(exArgs, serverRegister);
+                await LauncherViewModel.LaunchModded(exArgs, serverRegister, SelectedModsList.ToArray());
             } catch (Exception ex) {
                 MessageBox.Show(ex.ToString());
                 CanClick = true;

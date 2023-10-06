@@ -259,7 +259,7 @@ namespace C2GUILauncher.ViewModels {
             );
         }
 
-        private string? GetCommonServerOptions()
+        private string GetCommonServerOptions()
         {
             string[] args =
             {
@@ -270,7 +270,10 @@ namespace C2GUILauncher.ViewModels {
                     EnableTDMTimeLimit ? $"?TDMTimeLimit={TDMTimeLimit}" : "",
                     EnableTDMTicketCount ? $"?TDMTicketCount={TDMTicketCount}" : "",
             };
-            return "--map-options "+String.Join("", args);
+            if (args.Length > 0 )
+                return "--map-options " + String.Join("", args);
+
+            return "";
         }
 
 
@@ -285,7 +288,7 @@ namespace C2GUILauncher.ViewModels {
             // Gamemode
             args += $" -ini:Game:[/Script/TBL.TBLGameMode]:ServerName=\"{ServerName}{ (ShowInServerBrowser ? "\"" : " (Unlisted)\"") },";
 
-            // TODO: figure out why this doesn't work
+            // TODO: figure out why this doesn't work (overridden?)
             //if (WarmupTime > 0.0)
             //    args += $" -ini:Game:[/Script/TBL.TBLGameMode]:MinTimeBeforeStartingMatch=\"{WarmupTime.ToString("0.000000", CultureInfo.InvariantCulture)}\",";
 
@@ -311,7 +314,13 @@ namespace C2GUILauncher.ViewModels {
                 }
                 var a = GetCommonServerargs();
                 var b = GetCommonServerOptions();
-                string[] exArgs = { $"Port={GamePort}", $"GameServerQueryPort={PingPort}", $"GameServerQueryPort={A2sPort}", a, b};
+                string[] exArgs = { 
+                    $"Port={GamePort}", 
+                    $"GameServerQueryPort={PingPort}", 
+                    $"GameServerQueryPort={A2sPort}",
+                    GetCommonServerargs(),
+                    GetCommonServerOptions()
+                };
 
                 await LauncherViewModel.LaunchModded(exArgs, serverRegister);
 
@@ -333,8 +342,6 @@ namespace C2GUILauncher.ViewModels {
 
             try
             {
-                var a = GetCommonServerargs();
-                var b = GetCommonServerOptions();
                 string[] exArgs = {
                     $"Port={GamePort}", //specify server port
                     $"GameServerQueryPort={PingPort}",
@@ -347,8 +354,8 @@ namespace C2GUILauncher.ViewModels {
                     "-unattended", //let it know no one's around to help
                     "-nosound", //disable sound
                     "--next-map-name " + SelectedMap,
-                    a,
-                    b
+                    GetCommonServerargs(),
+                    GetCommonServerOptions()
                 };
 
                 await LauncherViewModel.LaunchModded(exArgs, serverRegister);

@@ -224,12 +224,16 @@ namespace C2GUILauncher.ViewModels {
                             return;
                         }
 
+                        string hashPath = Path.Combine(FilePaths.ModCachePath, "unchained-launcher.sha512");
+
                         var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
                         var powershellCommand = new List<string>() {
                             $"Wait-Process -Id {Environment.ProcessId}",
                             $"Start-Sleep -Milliseconds 1000",
                             $"Move-Item -Force UnchainedLauncher-update.exe {currentExecutableName}",
                             $"Start-Sleep -Milliseconds 500",
+                            $"$hashResult = Get-FileHash {currentExecutableName} -Algorithm SHA512",
+                            $"$hashResult.Hash | Set-Content -Path \\\"{hashPath}\\\"",
                             $".\\{currentExecutableName} {commandLinePass}"
                         };
 

@@ -23,6 +23,7 @@ The Chivalry 2 Unchained Launcher (C2UL) is a graphical user interface (GUI) too
 - **Switch Between Vanilla and Modded**: Seamlessly switch between vanilla and modded installs without manually moving any files around.
 - **Mod Management**: Download and manage mods for Chivalry 2.
 - **Customization**: Customize the launcher with various settings and preferences.
+- **Server Hosting**: Configure and host a server for your friends to join
 
 ## Community
 

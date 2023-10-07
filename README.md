@@ -32,7 +32,7 @@ Join the [Chivalry 2 Unchained community on Discord](https://discord.gg/chiv2unc
 ## Installation
 
 ### Automatic Installation (Preferred)
-1. Download UnchainedLauncher.exe
+1. Download UnchainedLauncher.exe from the [latest release](https://github.com/Chiv2-Community/C2GUILauncher/releases)
 2. Windows may warn about a malicious file. 
     * Make sure you downloaded the file from here
     * Select "More Info" and then "Run Anyway"

@@ -214,7 +214,7 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="Server Browser Backend:" Margin="5" Grid.Column="0" Grid.ColumnSpan="2"/>
-                    <TextBox Text="{Binding ServerBrowserBackend, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
+                    <TextBox Text="{Binding ServerBrowserBackend, Mode=TwoWay}" IsEnabled="False" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
                 </Grid>
 
                 <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Column="1" Content="Enable Automatic Plugin Updates and Downloads" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Center" />

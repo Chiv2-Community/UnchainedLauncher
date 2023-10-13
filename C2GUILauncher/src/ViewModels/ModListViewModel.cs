@@ -1,6 +1,8 @@
 ﻿using C2GUILauncher.JsonModels.Metadata.V3;
 using C2GUILauncher.Mods;
 using CommunityToolkit.Mvvm.Input;
+using log4net;
+using log4net.Repository.Hierarchy;
 using PropertyChanged;
 using System;
 using System.Collections.ObjectModel;
@@ -14,11 +16,13 @@ using System.Windows.Input;
 namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class ModListViewModel {
+        private ILog logger = LogManager.GetLogger(nameof(ModListViewModel));
         private readonly ModManager ModManager;
         private ObservableCollection<ModViewModel> UnfilteredModView { get; }
         private ObservableCollection<ModFilter> ModFilters { get; }
 
         public ICommand RefreshModListCommand { get; }
+        public ICommand UpdateModsCommand { get; }
 
         public ModViewModel? SelectedMod { get; set; }
         public ObservableCollection<ModViewModel> DisplayMods { get; }
@@ -39,13 +43,56 @@ namespace C2GUILauncher.ViewModels {
             this.ModFilters.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
 
             this.RefreshModListCommand = new AsyncRelayCommand(RefreshModListAsync);
+            this.UpdateModsCommand = new AsyncRelayCommand(UpdateModsAsync);
         }
 
         private async Task RefreshModListAsync() {
             try {
+                logger.Info("Refreshing mod list...");
                 await ModManager.UpdateModsList();
+                logger.Info("Mod list refreshed successfully");
             } catch (Exception ex) {
+                logger.Error(ex);
                 MessageBox.Show(ex.ToString());
+            }
+        }
+
+        private async Task UpdateModsAsync() {
+            try {
+                logger.Info("Checking for updates...");
+                var pendingUpdates = ModManager.GetUpdateCandidates();
+                var updateCount = pendingUpdates.Count();
+
+                if (updateCount == 0) {
+                    MessageBox.Show("No updates available");
+                    logger.Info("No updates available");
+                    return;
+                }
+
+                var message = $"Found {updateCount} updates available.\n\n";
+                message += string.Join("\n", pendingUpdates.Select(x => $"- {x.Item1.Manifest.Name} {x.Item2.Tag} -> {x.Item1.Tag}"));
+                message += "\n\nWould you like to update these mods now?";
+
+                message.Split("\n").ToList().ForEach(x => logger.Info(x));
+
+                MessageBoxResult res = MessageBox.Show(message, "Update Mods?", MessageBoxButton.YesNo);
+
+                logger.Info("User Selects: " + res.ToString());
+                if (res == MessageBoxResult.Yes) {
+                    logger.Info("Updating mods...");
+
+                    var updatesTask = pendingUpdates.Select(async x => await ModManager.EnableModRelease(x.Item1).DownloadTask.Task);
+                    await Task.WhenAll(updatesTask);
+                    await RefreshModListAsync();
+
+                    logger.Info("Mods updated successfully");
+                    MessageBox.Show("Mods updated successfully");
+                } else {
+                    MessageBox.Show("Mods not updated");
+                }
+            } catch (Exception ex) {
+                logger.Error(ex.ToString());
+                MessageBox.Show("Failed to check for updates. Check the logs for details.");
             }
         }
 

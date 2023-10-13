@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace C2GUILauncher {
     /// <summary>
@@ -92,7 +93,7 @@ namespace C2GUILauncher {
         //     non-nullable members of this class. The only time we fail to
         //     initialize things is if we're closing immediately, so its not a
         //     problem.
-        #pragma warning disable CS8618
+#pragma warning disable CS8618
         public MainWindow() {
             try {
 
@@ -112,7 +113,7 @@ namespace C2GUILauncher {
                 // check if we're in steam already, because steam users may 
                 // install the launcher without it being named Chivalry2Launcher;
                 // it just needs to be in the steam dir to function.
-                if ((exeName != "Chivalry2Launcher" && exeName != "Chivalry2-Win64-Shipping")  && !Path.Equals(curDir, steamDir)) {
+                if ((exeName != "Chivalry2Launcher" && exeName != "Chivalry2-Win64-Shipping") && !Path.Equals(curDir, steamDir)) {
                     logger.Info("Running installation process");
 
                     var installResult = Install(steamDir, egsDir);
@@ -183,6 +184,21 @@ namespace C2GUILauncher {
 
             this.SettingsViewModel.SaveSettings();
             this.ServerSettingsViewModel.SaveSettings();
+        }
+
+        private bool modManagerLoaded = false;
+        private void TabSelectionChanged(object sender, SelectionChangedEventArgs e) {
+            if (Tabs.SelectedItem == null) return;
+
+            logger.Info("Opened Tab: " + ((TabItem)Tabs.SelectedItem).Header.ToString());
+            if (!modManagerLoaded && ModManagerTab.IsSelected) {
+                try {
+                    ModManagerViewModel.RefreshModListCommand.Execute(null);
+                    modManagerLoaded = true;
+                } catch (Exception ex) {
+                    logger.Error(ex);
+                }
+            }
         }
     }
 

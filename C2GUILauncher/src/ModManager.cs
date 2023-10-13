@@ -6,9 +6,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
-using System.Windows.Shapes;
 
 namespace C2GUILauncher.Mods {
 
@@ -193,6 +191,14 @@ namespace C2GUILauncher.Mods {
                 });
 
             await Task.WhenAll(downloadTasks);
+        }
+
+        public IEnumerable<Tuple<Release, Release>> GetUpdateCandidates() {
+            return Mods
+                .Select(mod => new Tuple<Release?, Release?>(mod.LatestRelease, GetCurrentlyEnabledReleaseForMod(mod))) // Get the currently enabled release, as well as the latest mod release
+                .Where(Release => Release.Item2 != null && Release.Item1 != null) // Filter out mods that aren't enabled
+                .Where(tuple => tuple.Item1!.Version.ComparePrecedenceTo(tuple.Item2!.Version) > 0) // Filter out older releases
+                .Select(tuple => new Tuple<Release,Release>(tuple.Item1!, tuple.Item2!)); // Get the latest release
         }
 
         public IEnumerable<ModReleaseDownloadTask> DownloadModFiles(bool downloadPlugin) {

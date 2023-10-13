@@ -3,6 +3,8 @@ using C2GUILauncher.Mods;
 using CommunityToolkit.Mvvm.Input;
 using log4net;
 using PropertyChanged;
+using Semver;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
@@ -15,6 +17,8 @@ namespace C2GUILauncher.ViewModels {
         private ModManager ModManager { get; }
 
         public Mod Mod { get; }
+
+        public VersionNameSort VersionNameSortKey => new VersionNameSort(EnabledRelease?.Version, Mod.LatestManifest.Name);
 
         private Release? _enabledRelease;
         public Release? EnabledRelease {
@@ -99,6 +103,21 @@ namespace C2GUILauncher.ViewModels {
                 EnabledRelease = Mod.Releases.First();
             else
                 EnabledRelease = null;
+        }
+    }
+
+    public record VersionNameSort(SemVersion? Version, string Name) : IComparable<VersionNameSort> {
+        public int CompareTo(VersionNameSort? other) {
+            if(other == null)
+                return 1;
+
+            if (Version == null)
+                return 1;
+
+            if (other.Version == null)
+                return -1;
+
+            return Name.CompareTo(other.Name);
         }
     }
 }

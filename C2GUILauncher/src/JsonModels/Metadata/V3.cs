@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Semver;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,6 +16,7 @@ namespace C2GUILauncher.JsonModels.Metadata.V3 {
                 Releases: input.Releases.ConvertAll(Release.FromV2)
             );
         }
+        public Release? LatestRelease => Releases.Where(x => x.Version.IsRelease).OrderByDescending(x => x.Version).FirstOrDefault();
     }
 
     public record Release(
@@ -33,6 +35,8 @@ namespace C2GUILauncher.JsonModels.Metadata.V3 {
                 Manifest: ModManifest.FromV2(input.Manifest)
             );
         }
+
+        public SemVersion Version => SemVersion.Parse(Tag, SemVersionStyles.AllowV);
     }
     [JsonConverter(typeof(StringEnumConverter))]
     public enum ModType {

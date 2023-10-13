@@ -6,7 +6,7 @@
         x:Name="Unchained_Launcher" 
         mc:Ignorable="av" 
         x:Class="C2GUILauncher.MainWindow"   
-        Title="Unchained Launcher" Height="280" Width="600"
+        Title="Unchained Launcher" Height="280" Width="650"
     >
 
     <Window.Resources>
@@ -31,7 +31,7 @@
         </Style>
     </Window.Resources>
 
-    <TabControl x:Name="Tabs">
+    <TabControl x:Name="Tabs" SelectionChanged="TabSelectionChanged">
         <TabItem x:Name="LauncherTab" Header="Launcher" DataContext="{Binding LauncherViewModel}">
             <Grid>
                 <Grid.RowDefinitions>
@@ -40,12 +40,13 @@
                 </Grid.RowDefinitions>
 
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="58*"/>
+                    <ColumnDefinition Width="103*"/>
+                    <ColumnDefinition Width="161*"/>
                 </Grid.ColumnDefinitions>
 
-                <Button x:Name="LaunchVanillaButton" Content="Launch Chivalry 2" Grid.Row="0" Grid.ColumnSpan = "2" Command="{Binding LaunchVanillaCommand}" IsEnabled="{Binding CanClick}" />
-                <Button x:Name="LaunchModdedButton" Content="Launch Chivalry 2 Unchained" Grid.Row="1" Grid.ColumnSpan = "2" Command="{Binding LaunchModdedCommand}" IsEnabled="{Binding CanClick}" />
+                <Button x:Name="LaunchVanillaButton" Content="Launch Chivalry 2" Grid.Row="0" Grid.ColumnSpan = "3" Command="{Binding LaunchVanillaCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
+                <Button x:Name="LaunchModdedButton" Content="Launch Chivalry 2 Unchained" Grid.Row="1" Grid.ColumnSpan = "3" Command="{Binding LaunchModdedCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
             </Grid>
         </TabItem>
         <TabItem x:Name="ModManagerTab"  DataContext="{Binding ModManagerViewModel}"  Header="Mod Manager">
@@ -57,17 +58,20 @@
                 </Grid.RowDefinitions>
 
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="345*"/>
+                    <ColumnDefinition Width="149*"/>
+                    <ColumnDefinition Width="150*"/>
                 </Grid.ColumnDefinitions>
 
                 <DataGrid 
                     x:Name="ModListDataGrid" 
                     IsReadOnly="True"  
-                    Grid.RowSpan="4" 
+                    Grid.RowSpan="2" 
                     Grid.ColumnSpan="1" 
                     ItemsSource="{Binding DisplayMods}" 
                     SelectedValue="{Binding SelectedMod}" 
+                    
+                    
                     AutoGenerateColumns="False" 
                     Margin="0,5,5,0" 
                     SelectionMode="Single" 
@@ -89,14 +93,15 @@
                         <DataGridTextColumn Header="Name" Binding="{Binding Mod.LatestManifest.Name}"/>
                         <DataGridTextColumn Header="Mod Type" Binding="{Binding Mod.LatestManifest.ModType}"/>
                         <DataGridTextColumn Header="Tags" Binding="{Binding TagsString}"/>
-                        <DataGridTextColumn Header="Enabled" Binding="{Binding EnabledVersion}" />
+                        <DataGridTextColumn Header="Enabled" Binding="{Binding EnabledVersion}"/>
                     </DataGrid.Columns>
                 </DataGrid>
 
-                <Button x:Name="RefreshModListButton" Content="Refresh Mod List" Grid.Row="0" Grid.Column="1" Command="{Binding RefreshModListCommand}" Margin="0,5,0,5"/>
+                <Button x:Name="RefreshModListButton" Content="Refresh Mod List" Grid.Row="0" Grid.Column="2" Command="{Binding RefreshModListCommand}" Margin="2,5,1,5"/>
+                <Button x:Name="UpdateModsButton" Content="Update Mods" Grid.Row="0" Grid.Column="1" Command="{Binding UpdateModsCommand}" Margin="0,5,2,5"/>
 
-                <Border BorderBrush="Black" BorderThickness="1" Grid.Column="1" Grid.Row="1" />
-                <Grid Grid.Column="1" Grid.Row="1" DataContext="{Binding SelectedMod}">
+                <Border BorderBrush="Black" BorderThickness="1" Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="1" />
+                <Grid Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="1" DataContext="{Binding SelectedMod}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="40"/>
@@ -144,7 +149,7 @@
 
                 <TextBlock Text="Password:" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" />
                 <TextBox Text="{Binding ServerPassword}" Grid.Row="1" Grid.Column ="2" TextWrapping="Wrap" Margin ="5,0,5,0" IsManipulationEnabled="True" AcceptsReturn="False" />
-                
+
                 <TextBlock Text="Select Starting Map:" Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5" />
                 <ComboBox ItemsSource="{Binding MapsList, Mode=TwoWay}" SelectedItem="{Binding SelectedMap, Mode=TwoWay}"  Grid.Row="1" Grid.Column="3" Grid.ColumnSpan ="1" Margin ="5,0,5,0" IsManipulationEnabled="True" />
 

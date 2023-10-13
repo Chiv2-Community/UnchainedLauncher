@@ -93,7 +93,7 @@
                         <DataGridTextColumn Header="Name" Binding="{Binding Mod.LatestManifest.Name}"/>
                         <DataGridTextColumn Header="Mod Type" Binding="{Binding Mod.LatestManifest.ModType}"/>
                         <DataGridTextColumn Header="Tags" Binding="{Binding TagsString}"/>
-                        <DataGridTextColumn Header="Enabled" Binding="{Binding EnabledVersion}" />
+                        <DataGridTextColumn Header="Enabled" Binding="{Binding EnabledVersion}"/>
                     </DataGrid.Columns>
                 </DataGrid>
 

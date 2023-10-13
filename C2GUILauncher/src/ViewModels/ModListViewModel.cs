@@ -99,6 +99,7 @@ namespace C2GUILauncher.ViewModels {
         private void UnfilteredModViewOrModFilters_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
             this.DisplayMods.Clear();
             this.UnfilteredModView
+                .OrderBy(modView => modView.VersionNameSortKey)
                 .Where(modView => this.ModFilters.All(modFilter => modFilter.ShouldInclude(modView)))
                 .ToList()
                 .ForEach(modView => this.DisplayMods.Add(modView));

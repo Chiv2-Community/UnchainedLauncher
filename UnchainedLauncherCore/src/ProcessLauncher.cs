@@ -1,17 +1,11 @@
-﻿#nullable enable
-
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
-using System.Linq;
 
-namespace UnchainedLauncherGUI{
+namespace UnchainedLauncherCore {
     /// <summary>
     /// Launches an executable with the provided working directory and DLLs to inject.
     /// </summary>
-    class ProcessLauncher {
+    public class ProcessLauncher {
 
         [MemberNotNull]
         public string ExecutableLocation { get; }

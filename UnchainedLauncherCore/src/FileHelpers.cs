@@ -1,13 +1,7 @@
 ﻿using log4net;
-using log4net.Repository.Hierarchy;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.Eventing.Reader;
-using System.IO;
-using System.Linq;
 
-namespace UnchainedLauncherGUI{
-    static class FileHelpers {
+namespace UnchainedLauncherCore {
+    public static class FileHelpers {
         private static readonly ILog logger = LogManager.GetLogger(nameof(FileHelpers));
 
         public const string USER_LOCK_SUFFIX = ".USER_LOCK";

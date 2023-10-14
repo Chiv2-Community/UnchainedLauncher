@@ -45,6 +45,9 @@
     <PackageReference Include="Semver" Version="2.3.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\UnchainedLauncherCore\UnchainedLauncherCore.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <None Update="assets\chiv2-unchained-logo.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

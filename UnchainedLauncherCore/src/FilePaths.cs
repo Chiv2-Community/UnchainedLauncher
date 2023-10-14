@@ -1,4 +1,4 @@
-﻿namespace UnchainedLauncherGUI {
+﻿namespace UnchainedLauncherCore {
     public static class FilePaths {
         public const string BinDir = "TBL\\Binaries\\Win64";
         public const string GameBinPath = BinDir + "\\Chivalry2-Win64-Shipping.exe";

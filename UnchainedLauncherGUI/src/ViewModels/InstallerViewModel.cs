@@ -1,5 +1,5 @@
 ﻿//using System.Windows.Shapes;
-using UnchainedLauncherGUI.JsonModels;
+using UnchainedLauncherCore.JsonModels;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using UnchainedLauncherCore;
 
 namespace UnchainedLauncherGUI.ViewModels {
     // This isn't a view model in the normal sense that we hold on to a view of data and bind to it.

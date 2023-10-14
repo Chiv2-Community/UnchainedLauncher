@@ -1,14 +1,9 @@
-﻿using UnchainedLauncherGUI.JsonModels.Metadata.V3;
+﻿using UnchainedLauncherCore.JsonModels.Metadata.V3;
 using log4net;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace UnchainedLauncherGUI.Mods {
+namespace UnchainedLauncherCore.Mods {
 
     class CoreMods {
         public const string GithubBaseURL = "https://github.com";

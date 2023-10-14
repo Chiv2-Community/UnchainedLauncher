@@ -1,4 +1,4 @@
-﻿using UnchainedLauncherGUI.JsonModels;
+﻿using UnchainedLauncherCore.JsonModels;
 using log4net;
 using Microsoft.Win32;
 using Newtonsoft.Json;
@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace UnchainedLauncherGUI{
+namespace UnchainedLauncherGUI {
     internal class InstallHelpers {
         private static readonly ILog logger = LogManager.GetLogger(nameof(InstallHelpers));
 

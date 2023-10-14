@@ -1,22 +1,21 @@
-﻿using UnchainedLauncherGUI.JsonModels;
-using UnchainedLauncherGUI.Mods;
-using PropertyChanged;
+﻿using PropertyChanged;
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Linq;
-using UnchainedLauncherGUI.JsonModels.Metadata.V3;
 using CommunityToolkit.Mvvm.Input;
 using System.Windows.Input;
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Collections.Specialized;
 using System.Collections.ObjectModel;
-using log4net.Repository.Hierarchy;
 using log4net;
+using UnchainedLauncherCore.Mods;
+using UnchainedLauncherCore;
+using UnchainedLauncherCore.JsonModels;
+using UnchainedLauncherCore.JsonModels.Metadata.V3;
 
 namespace UnchainedLauncherGUI.ViewModels {
     [AddINotifyPropertyChangedInterface]

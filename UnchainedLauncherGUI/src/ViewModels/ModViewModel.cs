@@ -1,5 +1,5 @@
-﻿using UnchainedLauncherGUI.JsonModels.Metadata.V3;
-using UnchainedLauncherGUI.Mods;
+﻿using UnchainedLauncherCore.JsonModels.Metadata.V3;
+using UnchainedLauncherCore.Mods;
 using CommunityToolkit.Mvvm.Input;
 using log4net;
 using PropertyChanged;

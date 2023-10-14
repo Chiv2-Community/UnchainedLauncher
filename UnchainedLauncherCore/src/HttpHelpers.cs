@@ -1,13 +1,6 @@
 ﻿using log4net;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
-using UnchainedLauncherCore;
 
-namespace UnchainedLauncherGUI {
+namespace UnchainedLauncherCore {
     static class HttpHelpers {
         private static readonly ILog logger = LogManager.GetLogger(nameof(HttpHelpers));
 

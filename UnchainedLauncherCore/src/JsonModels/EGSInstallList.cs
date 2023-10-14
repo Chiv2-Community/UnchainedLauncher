@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json;
-using System.Collections.Generic;
 
-namespace UnchainedLauncherGUI.JsonModels {
+namespace UnchainedLauncherCore.JsonModels {
     public record InstallEntry(
         [property: JsonProperty("InstallLocation")] string InstallLocation,
         [property: JsonProperty("NamespaceId")] string NamespaceId,

@@ -1,9 +1,9 @@
 ﻿using Newtonsoft.Json;
-using System.IO;
-using System.Windows;
+using log4net;
 
-namespace UnchainedLauncherGUI {
+namespace UnchainedLauncherCore {
     public class FileBackedSettings<T> {
+        public static readonly ILog logger = LogManager.GetLogger(nameof(FileBackedSettings<T>));
         public string SettingsFilePath { get; }
         public T DefaultSettings { get; }
 
@@ -23,7 +23,11 @@ namespace UnchainedLauncherGUI {
                 return savedSettings.Result!;
             } else {
                 var cause = savedSettings.Exception?.Message ?? "Schema does not match";
-                MessageBox.Show($"Settings malformed or from an unsupported old version. Loading defaults. Cause: {cause}");
+                logger.Error($"Settings malformed or from an unsupported old version. Loading defaults.");
+
+                if (cause != null)
+                    logger.Error(cause);
+
                 return DefaultSettings;
             }
         }

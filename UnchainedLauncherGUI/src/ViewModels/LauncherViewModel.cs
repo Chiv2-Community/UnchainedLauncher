@@ -1,20 +1,17 @@
-﻿using UnchainedLauncherGUI.JsonModels;
-using UnchainedLauncherGUI.JsonModels.Metadata.V3;
-using UnchainedLauncherGUI.Mods;
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
 using log4net;
-using log4net.Repository.Hierarchy;
-using Octokit;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using UnchainedLauncherCore.Mods;
+using UnchainedLauncherCore.JsonModels;
+using UnchainedLauncherCore.JsonModels.Metadata.V3;
+using UnchainedLauncherCore;
 
 namespace UnchainedLauncherGUI.ViewModels {
 
@@ -63,6 +60,8 @@ namespace UnchainedLauncherGUI.ViewModels {
         public async Task LaunchModded(IEnumerable<string>? exArgs = null, Process? serverRegister = null) {
             CanClick = false;
 
+            await EnableUnchainedMods();
+
             // Pass args through if the args box has been modified, or if we're an EGS install
             var shouldSendArgs = Settings.InstallationType == InstallationType.EpicGamesStore || Settings.CLIArgsModified;
 
@@ -79,14 +78,53 @@ namespace UnchainedLauncherGUI.ViewModels {
             if (exArgs != null) {
                 cliArgs.AddRange(exArgs);
             }
+
             cliArgs.Add(serverBrowserBackendArg);
             cliArgs = cliArgs.Where(x => x != null).Select(x => x.Trim()).Where(x => x.Any()).ToList();
-            var maybeThread = await Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, serverRegister);
-            CanClick = true;
 
-            if (maybeThread == null) {
-                MessageBox.Show("Failed to launch game. Please select an InstallationType if one isn't set.");
+            try {
+                await Window.Dispatcher.BeginInvoke(delegate () { Window.Hide(); });
+                var maybeThread = Launcher.LaunchModded(Settings.InstallationType, cliArgs, serverRegister);
+                if (maybeThread != null) {
+                    maybeThread.Join();
+                    await Window.Dispatcher.BeginInvoke(delegate () { Window.Close(); });
+                }
+            } catch (Exception) {
+                MessageBox.Show("Failed to launch Chivalry 2 Uncahined. Check the logs for details.");
                 return;
+            } finally {
+                CanClick = true;
+            }
+
+        }
+
+        private async Task EnableUnchainedMods() {
+            try {
+                if (!this.ModManager.EnabledModReleases.Any(x => x.Manifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods"))) {
+                    logger.Info("Unchained-Mods mod not enabled. Enabling.");
+                    var hasModList = this.ModManager.Mods.Any();
+
+                    if (!hasModList)
+                        await this.ModManager.UpdateModsList();
+
+                    var latestUnchainedMod = this.ModManager.Mods.First(x => x.LatestManifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods")).Releases.First();
+                    var modReleaseDownloadTask = this.ModManager.EnableModRelease(latestUnchainedMod);
+
+                    await modReleaseDownloadTask.DownloadTask.Task;
+                }
+
+                List<ModReleaseDownloadTask> downloadTasks = this.ModManager.DownloadModFiles(Settings.EnablePluginAutomaticUpdates).ToList();
+                await Task.WhenAll(downloadTasks.Select(x => x.DownloadTask.Task));
+            } catch (Exception ex) {
+                logger.Error("Failed to download mods and plugins.", ex);
+                var result = MessageBox.Show("Failed to download mods and plugins. Check the logs for details. Continue Anyway?", "Continue Launching Chivalry 2 Unchained?", MessageBoxButton.YesNo);
+
+                if (result == MessageBoxResult.No) {
+                    logger.Info("Cancelling launch.");
+                    return;
+                }
+
+                logger.Info("Continuing launch.");
             }
         }
 

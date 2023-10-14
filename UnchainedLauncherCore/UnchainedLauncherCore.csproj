@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+	<PackageReference Include="log4net" Version="2.0.15" />
+	<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />
+	<PackageReference Include="Octokit" Version="7.1.0" />
+	<PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All" />
+	<PackageReference Include="Semver" Version="2.3.0" />
+  </ItemGroup>
+</Project>

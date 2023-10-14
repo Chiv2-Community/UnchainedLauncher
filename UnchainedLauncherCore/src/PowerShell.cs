@@ -1,12 +1,7 @@
 ﻿using log4net;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace UnchainedLauncherGUI {
+namespace UnchainedLauncherCore {
     public static class PowerShell {
         private static readonly ILog logger = LogManager.GetLogger(nameof(PowerShell));
         public static Process Run(IEnumerable<string> commands, bool createWindow = false) {

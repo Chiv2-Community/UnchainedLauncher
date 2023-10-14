@@ -1,7 +1,6 @@
 using log4net.Appender;
-using System.IO;
 
-namespace UnchainedLauncherGUI.Logging {
+namespace UnchainedLauncherCore.Logging {
     class CWDFileAppender : FileAppender {
         public override string File {
             set {

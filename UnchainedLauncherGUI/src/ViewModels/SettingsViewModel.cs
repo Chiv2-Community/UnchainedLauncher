@@ -1,4 +1,4 @@
-﻿using UnchainedLauncherGUI.JsonModels;
+﻿using UnchainedLauncherCore.JsonModels;
 using CommunityToolkit.Mvvm.Input;
 using log4net;
 using Octokit;
@@ -11,6 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
+using UnchainedLauncherCore;
 
 namespace UnchainedLauncherGUI.ViewModels {
     [AddINotifyPropertyChangedInterface]

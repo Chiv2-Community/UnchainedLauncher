@@ -1,5 +1,5 @@
-﻿using UnchainedLauncherGUI.JsonModels;
-using UnchainedLauncherGUI.Mods;
+﻿using UnchainedLauncherCore.JsonModels;
+using UnchainedLauncherCore.Mods;
 using UnchainedLauncherGUI.ViewModels;
 using log4net;
 using PropertyChanged;
@@ -9,6 +9,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using UnchainedLauncherCore;
 
 namespace UnchainedLauncherGUI {
     /// <summary>

@@ -1,8 +1,7 @@
-﻿using UnchainedLauncherGUI.JsonModels.Metadata.V3;
-using UnchainedLauncherGUI.Mods;
+﻿using UnchainedLauncherCore.JsonModels.Metadata.V3;
+using UnchainedLauncherCore.Mods;
 using CommunityToolkit.Mvvm.Input;
 using log4net;
-using log4net.Repository.Hierarchy;
 using PropertyChanged;
 using System;
 using System.Collections.ObjectModel;
@@ -16,7 +15,7 @@ using System.Windows.Input;
 namespace UnchainedLauncherGUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class ModListViewModel {
-        private ILog logger = LogManager.GetLogger(nameof(ModListViewModel));
+        private readonly ILog logger = LogManager.GetLogger(nameof(ModListViewModel));
         private readonly ModManager ModManager;
         private ObservableCollection<ModViewModel> UnfilteredModView { get; }
         private ObservableCollection<ModFilter> ModFilters { get; }

@@ -1,11 +1,8 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Semver;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
-namespace UnchainedLauncherGUI.JsonModels.Metadata.V3 {
+namespace UnchainedLauncherCore.JsonModels.Metadata.V3 {
     public record Mod(
         [property: JsonProperty("latest_manifest", Required = Required.Always)] ModManifest LatestManifest,
         [property: JsonProperty("releases", Required = Required.Always)] List<Release> Releases

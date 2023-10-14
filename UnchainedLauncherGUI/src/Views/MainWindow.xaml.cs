@@ -10,8 +10,10 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using UnchainedLauncherCore;
+using UnchainedLauncherCore.Utilities;
 
-namespace UnchainedLauncherGUI {
+namespace UnchainedLauncherGUI
+{
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>

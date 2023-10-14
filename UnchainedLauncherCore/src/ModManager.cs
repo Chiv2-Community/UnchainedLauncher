@@ -2,6 +2,7 @@
 using log4net;
 using Newtonsoft.Json;
 using System.Collections.ObjectModel;
+using UnchainedLauncherCore.Utilities;
 
 namespace UnchainedLauncherCore.Mods {
 

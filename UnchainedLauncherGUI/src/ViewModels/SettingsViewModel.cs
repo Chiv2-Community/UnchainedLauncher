@@ -12,6 +12,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
 using UnchainedLauncherCore;
+using UnchainedLauncherCore.Utilities;
 
 namespace UnchainedLauncherGUI.ViewModels {
     [AddINotifyPropertyChangedInterface]

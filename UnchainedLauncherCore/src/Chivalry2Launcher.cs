@@ -2,9 +2,11 @@
 using System.Diagnostics;
 using log4net;
 using UnchainedLauncherCore.JsonModels;
-using UnchainedLauncherCore;
+using UnchainedLauncherCore.Logging;
+using UnchainedLauncherCore.Utilities;
 
-namespace UnchainedLauncherCore {
+namespace UnchainedLauncherCore
+{
     public class Chivalry2Launcher {
         private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2Launcher));
         public static readonly string GameBinPath = FilePaths.BinDir + "\\Chivalry2-Win64-Shipping.exe";

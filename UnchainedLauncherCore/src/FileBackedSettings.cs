@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
 using log4net;
+using UnchainedLauncherCore.Utilities;
 
-namespace UnchainedLauncherCore {
+namespace UnchainedLauncherCore
+{
     public class FileBackedSettings<T> {
         public static readonly ILog logger = LogManager.GetLogger(nameof(FileBackedSettings<T>));
         public string SettingsFilePath { get; }

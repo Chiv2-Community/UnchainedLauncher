@@ -1,6 +1,6 @@
 ﻿using log4net;
 
-namespace UnchainedLauncherCore {
+namespace UnchainedLauncherCore.Utilities {
     public static class FileHelpers {
         private static readonly ILog logger = LogManager.GetLogger(nameof(FileHelpers));
 
@@ -44,7 +44,7 @@ namespace UnchainedLauncherCore {
 
         public static bool DeleteDirectory(string filePath) {
             logger.Info("Deleting directory: " + filePath);
-            if(!Directory.Exists(filePath)) {
+            if (!Directory.Exists(filePath)) {
                 logger.Warn($"Not deleting directory because it doesn't exist: {filePath}");
                 return false;
             }
@@ -52,7 +52,7 @@ namespace UnchainedLauncherCore {
             var files = Directory.GetFiles(filePath, "*", SearchOption.AllDirectories);
             var result = DeleteFiles(files);
 
-            if(result)
+            if (result)
                 Directory.Delete(filePath, true);
 
             return result;

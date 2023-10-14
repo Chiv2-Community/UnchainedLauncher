@@ -1,7 +1,7 @@
 ﻿using log4net;
 
-namespace UnchainedLauncherCore {
-    static class HttpHelpers {
+namespace UnchainedLauncherCore.Utilities {
+    public static class HttpHelpers {
         private static readonly ILog logger = LogManager.GetLogger(nameof(HttpHelpers));
 
         private static readonly HttpClient _httpClient = new HttpClient();

@@ -16,8 +16,10 @@ using UnchainedLauncherCore.Mods;
 using UnchainedLauncherCore;
 using UnchainedLauncherCore.JsonModels;
 using UnchainedLauncherCore.JsonModels.Metadata.V3;
+using UnchainedLauncherCore.Utilities;
 
-namespace UnchainedLauncherGUI.ViewModels {
+namespace UnchainedLauncherGUI.ViewModels
+{
     [AddINotifyPropertyChangedInterface]
     public class ServerLauncherViewModel {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServerLauncherViewModel));

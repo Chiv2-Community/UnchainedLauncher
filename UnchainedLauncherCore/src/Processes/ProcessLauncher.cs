@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
-namespace UnchainedLauncherCore {
+namespace UnchainedLauncherCore.Processes {
     /// <summary>
     /// Launches an executable with the provided working directory and DLLs to inject.
     /// </summary>
@@ -16,9 +16,9 @@ namespace UnchainedLauncherCore {
         public IEnumerable<string>? Dlls { get; set; }
 
         public ProcessLauncher(string executableLocation, string workingDirectory, IEnumerable<string>? dlls = null) {
-            this.ExecutableLocation = executableLocation;
-            this.WorkingDirectory = workingDirectory;
-            this.Dlls = dlls;
+            ExecutableLocation = executableLocation;
+            WorkingDirectory = workingDirectory;
+            Dlls = dlls;
         }
 
         /// <summary>
@@ -34,9 +34,9 @@ namespace UnchainedLauncherCore {
             var proc = new Process {
                 // Build the process start info
                 StartInfo = new ProcessStartInfo() {
-                    FileName = this.ExecutableLocation,
+                    FileName = ExecutableLocation,
                     Arguments = args,
-                    WorkingDirectory = Path.GetFullPath(this.WorkingDirectory),
+                    WorkingDirectory = Path.GetFullPath(WorkingDirectory),
                 }
             };
 
@@ -67,9 +67,9 @@ namespace UnchainedLauncherCore {
         public Exception Underlying { get; }
 
         public LaunchFailedException(string executablePath, string args, Exception underlying) : base($"Failed to launch executable '{executablePath} {args}'\n\n{underlying.Message}") {
-            this.ExecutablePath = executablePath;
-            this.Args = args;
-            this.Underlying = underlying;
+            ExecutablePath = executablePath;
+            Args = args;
+            Underlying = underlying;
         }
     }
 
@@ -78,8 +78,8 @@ namespace UnchainedLauncherCore {
         public Exception Underlying { get; }
 
         public InjectionFailedException(IEnumerable<string> dllPaths, Exception underlying) : base($"Failed to inject DLLs '{dllPaths.Aggregate((l, r) => l + ", " + r)}'\n\n{underlying.Message}") {
-            this.DllPaths = dllPaths;
-            this.Underlying = underlying;
+            DllPaths = dllPaths;
+            Underlying = underlying;
         }
     }
 }

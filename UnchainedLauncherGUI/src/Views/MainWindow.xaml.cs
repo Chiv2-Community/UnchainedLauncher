@@ -1,6 +1,6 @@
 ﻿using UnchainedLauncherCore.JsonModels;
-using UnchainedLauncherCore.Mods;
 using UnchainedLauncherGUI.ViewModels;
+using UnchainedLauncherCore.Mods;
 using log4net;
 using PropertyChanged;
 using System;

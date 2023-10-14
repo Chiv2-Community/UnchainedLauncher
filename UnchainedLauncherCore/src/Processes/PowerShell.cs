@@ -1,7 +1,7 @@
 ﻿using log4net;
 using System.Diagnostics;
 
-namespace UnchainedLauncherCore {
+namespace UnchainedLauncherCore.Processes {
     public static class PowerShell {
         private static readonly ILog logger = LogManager.GetLogger(nameof(PowerShell));
         public static Process Run(IEnumerable<string> commands, bool createWindow = false) {

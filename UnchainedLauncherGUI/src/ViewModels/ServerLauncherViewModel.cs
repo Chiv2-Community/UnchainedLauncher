@@ -14,8 +14,8 @@ using System.Collections.ObjectModel;
 using log4net;
 using UnchainedLauncherCore.Mods;
 using UnchainedLauncherCore;
-using UnchainedLauncherCore.JsonModels;
 using UnchainedLauncherCore.JsonModels.Metadata.V3;
+using UnchainedLauncherGUI.JsonModels;
 using UnchainedLauncherCore.Utilities;
 
 namespace UnchainedLauncherGUI.ViewModels

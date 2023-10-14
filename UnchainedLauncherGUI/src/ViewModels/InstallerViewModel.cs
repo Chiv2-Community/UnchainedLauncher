@@ -7,8 +7,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using UnchainedLauncherCore;
 using UnchainedLauncherCore.Utilities;
+using UnchainedLauncherCore.Processes;
 
 namespace UnchainedLauncherGUI.ViewModels {
     // This isn't a view model in the normal sense that we hold on to a view of data and bind to it.

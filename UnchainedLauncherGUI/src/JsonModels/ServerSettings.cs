@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace UnchainedLauncherCore.JsonModels {
+namespace UnchainedLauncherGUI.JsonModels {
     public record ServerSettings(
         [property: JsonProperty("server_name")] string? ServerName,
         [property: JsonProperty("server_description")] string? ServerDescription,

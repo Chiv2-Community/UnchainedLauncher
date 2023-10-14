@@ -1,4 +1,4 @@
-﻿using UnchainedLauncherCore.JsonModels;
+﻿using UnchainedLauncherGUI.JsonModels;
 using log4net;
 using Microsoft.Win32;
 using Newtonsoft.Json;

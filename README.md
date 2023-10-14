@@ -32,7 +32,7 @@ Join the [Chivalry 2 Unchained community on Discord](https://discord.gg/chiv2unc
 ## Installation
 
 ### Automatic Installation (Preferred)
-1. Download UnchainedLauncher.exe from the [latest release](https://github.com/Chiv2-Community/C2GUILauncher/releases)
+1. Download UnchainedLauncher.exe from the [latest release](https://github.com/Chiv2-Community/UnchainedLauncher/releases)
 2. Windows may warn about a malicious file. 
     * Make sure you downloaded the file from here
     * Select "More Info" and then "Run Anyway"
@@ -41,7 +41,7 @@ Join the [Chivalry 2 Unchained community on Discord](https://discord.gg/chiv2unc
 4. Select Yes to install the launcher.
 
 ### Manual Installation (if automatic fails or you're on an unsupported platform and would like to test)
-1. [Download the latest binary from the releases page](https://github.com/Chiv2-Community/C2GUILauncher/releases).
+1. [Download the latest binary from the releases page](https://github.com/Chiv2-Community/UnchainedLauncher/releases).
 2. Locate your game's install (In steam usually `Steam\steamapps\common\Chivalry 2\`, Epic Games `Epic Games\Chivalry 2\`)
 3. In that directory, rename `Chivalry2Launcher.exe` to `Chivalry2Launcher-ORIGINAL.exe`. _Exact naming is important._
 4. Put the downloaded Unchained `Chivalry2Launcher.exe` in place of the old one.

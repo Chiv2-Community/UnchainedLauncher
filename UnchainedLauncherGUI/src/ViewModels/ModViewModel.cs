@@ -1,5 +1,4 @@
-﻿using UnchainedLauncherCore.JsonModels.Metadata.V3;
-using UnchainedLauncherCore.Mods;
+﻿using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using CommunityToolkit.Mvvm.Input;
 using log4net;
 using PropertyChanged;
@@ -8,8 +7,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
+using UnchainedLauncher.Core.Mods;
 
-namespace UnchainedLauncherGUI.ViewModels {
+namespace UnchainedLauncher.GUI.ViewModels
+{
     [AddINotifyPropertyChangedInterface]
     public class ModViewModel {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModViewModel));

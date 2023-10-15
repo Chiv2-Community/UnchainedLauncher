@@ -1,12 +1,14 @@
-﻿using UnchainedLauncherCore.JsonModels.Metadata.V3;
+﻿using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using log4net;
 using Newtonsoft.Json;
 using System.Collections.ObjectModel;
-using UnchainedLauncherCore.Utilities;
+using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncherCore.Mods {
+namespace UnchainedLauncher.Core.Mods
+{
 
-    class CoreMods {
+    class CoreMods
+    {
         public const string GithubBaseURL = "https://github.com";
 
         public const string EnabledModsCacheDir = $"{FilePaths.ModCachePath}\\enabled_mods";
@@ -29,7 +31,8 @@ namespace UnchainedLauncherCore.Mods {
         public const string PackageDBPackageListUrl = $"{PackageDBBaseUrl}/mod_list_index.txt";
     }
 
-    public class ModManager {
+    public class ModManager
+    {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModManager));
 
         public string RegistryOrg { get; }
@@ -49,7 +52,8 @@ namespace UnchainedLauncherCore.Mods {
             ObservableCollection<Mod> baseModList,
             ObservableCollection<Release> enabledMods,
             ObservableCollection<ModReleaseDownloadTask> pendingDownloads,
-            ObservableCollection<ModReleaseDownloadTask> failedDownloads) {
+            ObservableCollection<ModReleaseDownloadTask> failedDownloads)
+        {
             RegistryOrg = registryOrg;
             RegistryRepoName = registryRepoName;
             PakDir = pakDir;
@@ -59,12 +63,15 @@ namespace UnchainedLauncherCore.Mods {
             FailedDownloads = failedDownloads;
         }
 
-        public static ModManager ForRegistry(string registryOrg, string registryRepoName, string pakDir) {
+        public static ModManager ForRegistry(string registryOrg, string registryRepoName, string pakDir)
+        {
 
 
-            var loadReleaseMetadata = (string path) => {
+            var loadReleaseMetadata = (string path) =>
+            {
                 logger.Info("Loading release metadata from " + path);
-                if (!File.Exists(path)) {
+                if (!File.Exists(path))
+                {
                     logger.Warn("Failed to find metadata file: " + path);
                     return null;
                 }
@@ -72,15 +79,18 @@ namespace UnchainedLauncherCore.Mods {
                 var s = File.ReadAllText(path);
 
                 var deserializationResult =
-                    JsonHelpers.Deserialize<Release>(s).RecoverWith(ex => {
+                    JsonHelpers.Deserialize<Release>(s).RecoverWith(ex =>
+                    {
                         logger.Warn("Falling back to V2 deserialization" + ex?.Message ?? "unknown failure");
                         return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Release>(s).Select(Release.FromV2);
-                    }).RecoverWith(ex => {
+                    }).RecoverWith(ex =>
+                    {
                         logger.Warn("Falling back to V1 deserialization" + ex?.Message ?? "unknown failure");
                         return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Release>(s).Select(JsonModels.Metadata.V2.Release.FromV1).Select(Release.FromV2);
                     });
 
-                if (!deserializationResult.Success) {
+                if (!deserializationResult.Success)
+                {
                     logger.Error("Failed to deserialize metadata file " + path + " " + deserializationResult.Exception?.Message);
                     return null;
                 }
@@ -90,7 +100,8 @@ namespace UnchainedLauncherCore.Mods {
 
             var enabledModReleases = new List<Release>();
 
-            if (Directory.Exists(CoreMods.EnabledModsCacheDir)) {
+            if (Directory.Exists(CoreMods.EnabledModsCacheDir))
+            {
                 // List everything in the EnabledModsCacheDir and its direct subdirs, then deserialize and filter out any failures (null)
                 enabledModReleases =
                     Directory.GetDirectories(CoreMods.EnabledModsCacheDir)
@@ -111,11 +122,13 @@ namespace UnchainedLauncherCore.Mods {
             );
         }
 
-        public Release? GetCurrentlyEnabledReleaseForMod(Mod mod) {
+        public Release? GetCurrentlyEnabledReleaseForMod(Mod mod)
+        {
             return EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl);
         }
 
-        public void DisableModRelease(Release release) {
+        public void DisableModRelease(Release release)
+        {
             logger.Info("Disabling mod release: " + release.Manifest.Name + " " + release.Tag);
 
             // Should be doing this when all downloads get done, but cba to do it better right now.
@@ -129,20 +142,23 @@ namespace UnchainedLauncherCore.Mods {
             EnabledModReleases.Remove(release);
         }
 
-        public ModReleaseDownloadTask EnableModRelease(Release release) {
+        public ModReleaseDownloadTask EnableModRelease(Release release)
+        {
             logger.Info("Enabling mod release: " + release.Manifest.Name + " " + release.Tag);
-            var associatedMod = this.Mods.First(Mods => Mods.Releases.Contains(release));
+            var associatedMod = Mods.First(Mods => Mods.Releases.Contains(release));
             var currentlyEnabledRelease = GetCurrentlyEnabledReleaseForMod(associatedMod);
-            if (currentlyEnabledRelease != null) {
+            if (currentlyEnabledRelease != null)
+            {
                 logger.Info("Disabling currently enabled release: " + currentlyEnabledRelease.Manifest.Name + " " + currentlyEnabledRelease.Tag);
                 DisableModRelease(currentlyEnabledRelease);
             }
 
-            this.EnabledModReleases.Add(release);
+            EnabledModReleases.Add(release);
             return DownloadModRelease(release);
         }
 
-        public async Task UpdateModsList() {
+        public async Task UpdateModsList()
+        {
             logger.Info("Updating mods list...");
             Mods.Clear();
 
@@ -150,8 +166,8 @@ namespace UnchainedLauncherCore.Mods {
             await HttpHelpers.DownloadFileAsync(CoreMods.PackageDBPackageListUrl, CoreMods.ModsCachePackageDBListPath).Task;
 
             var packageListString = File.ReadAllText(CoreMods.ModsCachePackageDBListPath);
-            var packageNameToMetadataPath = (String s) => $"{CoreMods.PackageDBBaseUrl}/packages/{s}.json";
-            var packageNameToFilePath = (String s) => $"{CoreMods.ModsCachePackageDBPackagesDir}\\{s}.json";
+            var packageNameToMetadataPath = (string s) => $"{CoreMods.PackageDBBaseUrl}/packages/{s}.json";
+            var packageNameToFilePath = (string s) => $"{CoreMods.ModsCachePackageDBPackagesDir}\\{s}.json";
 
             var packages = packageListString.Split("\n").Where(s => s.Length > 0);
 
@@ -159,7 +175,8 @@ namespace UnchainedLauncherCore.Mods {
 
             var downloadTasks = packages
                 .Select(packageName => HttpHelpers.DownloadFileAsync(packageNameToMetadataPath(packageName), packageNameToFilePath(packageName)))
-                .Select(async downloadTask => {
+                .Select(async downloadTask =>
+                {
                     await downloadTask.Task;
                     var fileLocation = downloadTask.Target.OutputPath!;
 
@@ -167,21 +184,26 @@ namespace UnchainedLauncherCore.Mods {
                     var deserializationResult =
                         JsonHelpers
                             .Deserialize<Mod>(jsonString)
-                            .RecoverWith(e => {
+                            .RecoverWith(e =>
+                            {
                                 logger.Warn("Falling back to V2 deserialization: " + e?.Message ?? "unknown failure");
                                 return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Mod>(jsonString).Select(Mod.FromV2);
                             })
-                            .RecoverWith(e => {
+                            .RecoverWith(e =>
+                            {
                                 logger.Warn("Falling back to V1 deserialization" + e?.Message ?? "unknown failure");
                                 return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Mod>(jsonString).Select(JsonModels.Metadata.V2.Mod.FromV1).Select(Mod.FromV2);
                             });
 
-                    if(deserializationResult.Exception != null)
+                    if (deserializationResult.Exception != null)
                         logger.Error("Failed to deserialize mod metadata file " + fileLocation, deserializationResult.Exception);
 
-                    if (deserializationResult.Success) {
+                    if (deserializationResult.Success)
+                    {
                         Mods.Add(deserializationResult.Result!);
-                    } else {
+                    }
+                    else
+                    {
                         logger.Error("Failed to deserialize mod metadata file " + fileLocation, deserializationResult.Exception);
                     }
                 });
@@ -189,15 +211,17 @@ namespace UnchainedLauncherCore.Mods {
             await Task.WhenAll(downloadTasks);
         }
 
-        public IEnumerable<Tuple<Release, Release>> GetUpdateCandidates() {
+        public IEnumerable<Tuple<Release, Release>> GetUpdateCandidates()
+        {
             return Mods
                 .Select(mod => new Tuple<Release?, Release?>(mod.LatestRelease, GetCurrentlyEnabledReleaseForMod(mod))) // Get the currently enabled release, as well as the latest mod release
                 .Where(Release => Release.Item2 != null && Release.Item1 != null) // Filter out mods that aren't enabled
                 .Where(tuple => tuple.Item1!.Version.ComparePrecedenceTo(tuple.Item2!.Version) > 0) // Filter out older releases
-                .Select(tuple => new Tuple<Release,Release>(tuple.Item1!, tuple.Item2!)); // Get the latest release
+                .Select(tuple => new Tuple<Release, Release>(tuple.Item1!, tuple.Item2!)); // Get the latest release
         }
 
-        public IEnumerable<ModReleaseDownloadTask> DownloadModFiles(bool downloadPlugin) {
+        public IEnumerable<ModReleaseDownloadTask> DownloadModFiles(bool downloadPlugin)
+        {
             logger.Info("Downloading mod files...");
 
             logger.Info("Creating mod diretories...");
@@ -206,7 +230,7 @@ namespace UnchainedLauncherCore.Mods {
             Directory.CreateDirectory(CoreMods.ModsCachePackageDBPackagesDir);
             Directory.CreateDirectory(FilePaths.PluginDir);
 
-            var DeprecatedLibs = new List<String>()
+            var DeprecatedLibs = new List<string>()
             {
                 CoreMods.AssetLoaderPluginPath,
                 CoreMods.ServerPluginPath,
@@ -217,9 +241,9 @@ namespace UnchainedLauncherCore.Mods {
                 FileHelpers.DeleteFile(depr);
 
 
-            var coreMods = 
-                downloadPlugin 
-                    ? new List<DownloadTarget>() { new DownloadTarget(CoreMods.UnchainedPluginURL, CoreMods.UnchainedPluginPath)}
+            var coreMods =
+                downloadPlugin
+                    ? new List<DownloadTarget>() { new DownloadTarget(CoreMods.UnchainedPluginURL, CoreMods.UnchainedPluginPath) }
                     : new List<DownloadTarget>();
 
             var coreModsDownloads = HttpHelpers.DownloadAllFiles(coreMods);
@@ -254,7 +278,8 @@ namespace UnchainedLauncherCore.Mods {
             return coreModsModReleaseDownloadTasks.Concat(tasks);
         }
 
-        private ModReleaseDownloadTask DownloadModRelease(Release release) {
+        private ModReleaseDownloadTask DownloadModRelease(Release release)
+        {
             // Cleanup the previously failed download if it exists
             if (FailedDownloads.Any(x => x.Release == release))
                 FailedDownloads.Remove(FailedDownloads.First(x => x.Release == release));
@@ -262,9 +287,11 @@ namespace UnchainedLauncherCore.Mods {
             var downloadUrl = release.Manifest.RepoUrl + "/releases/download/" + release.Tag + "/" + release.PakFileName;
             var outputPath = PakDir + "\\" + release.PakFileName;
 
-            if (File.Exists(outputPath)) {
+            if (File.Exists(outputPath))
+            {
                 var shaHash = FileHelpers.Sha512(outputPath);
-                if (shaHash == release.ReleaseHash) {
+                if (shaHash == release.ReleaseHash)
+                {
                     logger.Info($"Already downloaded {release.Manifest.Name} {release.Tag}. Skipping");
 
                     // Already downloaded, so returning a completed task.
@@ -290,15 +317,20 @@ namespace UnchainedLauncherCore.Mods {
             var downloadTask = new ModReleaseDownloadTask(release, HttpHelpers.DownloadFileAsync(downloadUrl, outputPath));
             PendingDownloads.Add(downloadTask);
 
-            downloadTask.DownloadTask.Task.ContinueWith(task => {
-                if (task.IsFaulted) {
+            downloadTask.DownloadTask.Task.ContinueWith(task =>
+            {
+                if (task.IsFaulted)
+                {
                     logger.Error("Download failed: " + task.Exception?.Message);
                     FailedDownloads.Add(downloadTask);
-                } else {
+                }
+                else
+                {
                     logger.Info("Download complete: " + outputPath);
                     var shaHash = FileHelpers.Sha512(outputPath);
 
-                    if (shaHash != release.ReleaseHash) {
+                    if (shaHash != release.ReleaseHash)
+                    {
                         logger.Error("Downloaded file hash does not match expected hash. Expected: " + release.ReleaseHash + " Got: " + shaHash);
                         FailedDownloads.Add(downloadTask);
                         throw new Exception("Downloaded file hash does not match expected hash. Expected: " + release.ReleaseHash + " Got: " + shaHash);
@@ -313,10 +345,12 @@ namespace UnchainedLauncherCore.Mods {
     }
 
 
-    public record ResolveReleasesResult(bool Successful, List<Release> Releases, List<DependencyConflict> Conflicts) {
+    public record ResolveReleasesResult(bool Successful, List<Release> Releases, List<DependencyConflict> Conflicts)
+    {
         public static ResolveReleasesResult Success(List<Release> releases) { return new ResolveReleasesResult(true, releases, new List<DependencyConflict>()); }
         public static ResolveReleasesResult Failure(List<DependencyConflict> conflicts) { return new ResolveReleasesResult(false, new List<Release>(), conflicts); }
-        public static ResolveReleasesResult operator +(ResolveReleasesResult a, ResolveReleasesResult b) {
+        public static ResolveReleasesResult operator +(ResolveReleasesResult a, ResolveReleasesResult b)
+        {
             return new ResolveReleasesResult(
                 a.Successful && b.Successful,
                 a.Releases.Concat(b.Releases).ToList(),

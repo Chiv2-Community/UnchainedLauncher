@@ -1,6 +1,5 @@
-﻿using UnchainedLauncherCore.JsonModels;
-using UnchainedLauncherGUI.ViewModels;
-using UnchainedLauncherCore.Mods;
+﻿using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.GUI.ViewModels;
 using log4net;
 using PropertyChanged;
 using System;
@@ -9,10 +8,11 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
-using UnchainedLauncherCore;
-using UnchainedLauncherCore.Utilities;
+using UnchainedLauncher.Core;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.Mods;
 
-namespace UnchainedLauncherGUI
+namespace UnchainedLauncher.GUI
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml

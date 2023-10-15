@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
         x:Name="Unchained_Launcher" 
         mc:Ignorable="av" 
-        x:Class="UnchainedLauncherGUI.MainWindow"   
+        x:Class="UnchainedLauncher.GUI.MainWindow"   
         Title="Unchained Launcher" Height="280" Width="650"
     >
 

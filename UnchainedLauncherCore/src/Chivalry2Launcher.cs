@@ -1,12 +1,12 @@
-﻿using UnchainedLauncherCore.Mods;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using log4net;
-using UnchainedLauncherCore.JsonModels;
-using UnchainedLauncherCore.Logging;
-using UnchainedLauncherCore.Utilities;
-using UnchainedLauncherCore.Processes;
+using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Logging;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Mods;
 
-namespace UnchainedLauncherCore {
+namespace UnchainedLauncher.Core {
     public class Chivalry2Launcher {
         private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2Launcher));
         public static readonly string GameBinPath = FilePaths.BinDir + "\\Chivalry2-Win64-Shipping.exe";
@@ -60,13 +60,13 @@ namespace UnchainedLauncherCore {
                         await process.WaitForExitAsync();
 
                         var exitedGracefully = GracefulExitCodes.Contains(process.ExitCode);
-                        if(!restartOnCrash || exitedGracefully) break;
-                        
+                        if (!restartOnCrash || exitedGracefully) break;
+
                         logger.Info($"Detected Chivalry2 crash (Exit code {process.ExitCode}). Restarting in 10 seconds. You may close the launcher while it is visible to prevent further restarts.");
                         await Task.Delay(10000);
                     } while (true);
 
-                    logger.Info("Process exited. Closing RCON and UnchainedLauncherGUI");
+                    logger.Info("Process exited. Closing RCON and UnchainedLauncher");
 
                     serverRegister?.CloseMainWindow();
 

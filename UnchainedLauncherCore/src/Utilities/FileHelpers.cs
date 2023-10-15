@@ -1,6 +1,6 @@
 ﻿using log4net;
 
-namespace UnchainedLauncherCore.Utilities {
+namespace UnchainedLauncher.Core.Utilities {
     public static class FileHelpers {
         private static readonly ILog logger = LogManager.GetLogger(nameof(FileHelpers));
 

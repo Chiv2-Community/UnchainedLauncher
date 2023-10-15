@@ -702,7 +702,7 @@ Legal:
       <xs:enumeration value="log4net.Appender.TextWriterAppender" />
       <xs:enumeration value="log4net.Appender.TraceAppender" />
 		<xs:enumeration value="log4net.Appender.UdpAppender" />
-		<xs:enumeration value="UnchainedLauncherGUI.Logging.CWDFileAppender" />
+		<xs:enumeration value="UnchainedLauncher.GUI.Logging.CWDFileAppender" />
     </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="log4netUpdateAttribute">

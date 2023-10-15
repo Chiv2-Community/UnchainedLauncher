@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
-using UnchainedLauncherCore.JsonModels;
+using UnchainedLauncher.Core.JsonModels;
 
-namespace UnchainedLauncherGUI.JsonModels {
+namespace UnchainedLauncher.GUI.JsonModels {
     public record LauncherSettings(
         [property: JsonProperty("installation_type")] InstallationType? InstallationType,
         [property: JsonProperty("enable_plugin_automatic_updates")] bool? EnablePluginAutomaticUpdates,

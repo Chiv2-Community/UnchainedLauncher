@@ -1,6 +1,6 @@
-﻿<Application x:Class="UnchainedLauncherGUI.App"
+﻿<Application x:Class="UnchainedLauncher.GUI.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:UnchainedLauncherGUI"
+             xmlns:local="clr-namespace:UnchainedLauncher.GUI"
              StartupUri="src/Views/MainWindow.xaml" >
 </Application>

@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace UnchainedLauncherCore {
+namespace UnchainedLauncher.Core {
     //Code modified/adapted from https://codingvision.net/c-inject-a-dll-into-a-process-w-createremotethread
     internal class Inject {
         [DllImport("kernel32.dll")]

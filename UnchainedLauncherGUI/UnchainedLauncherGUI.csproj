@@ -11,16 +11,16 @@
 	<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <IncludeNativeLibrariesForSelfExtract>True</IncludeNativeLibrariesForSelfExtract>
     <SignAssembly>False</SignAssembly>
-    <RepositoryUrl>https://github.com/Chiv2-Community/UnchainedLauncherGUI</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Chiv2-Community/UnchainedLauncher</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <StartupObject>UnchainedLauncherGUI.App</StartupObject>
+    <StartupObject>UnchainedLauncher.GUI.App</StartupObject>
     <Title>Unchained Launcher</Title>
 	<Description>A launcher for Chivalry 2 that allows you to use mods.</Description>
 	<Authors>Jacoby6000, AERoese (BK, DrLong), Nihilianth</Authors>
-    <PackageProjectUrl>https://github.com/Chiv2-Community/UnchainedLauncherGUI</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/Chiv2-Community/UnchainedLauncher</PackageProjectUrl>
     <ApplicationIcon>assets\chiv2-unchained-logo.ico</ApplicationIcon>
     <AssemblyVersion>0.6.0</AssemblyVersion>
-    <AssemblyName>UnchainedLauncherGUI</AssemblyName>
+    <AssemblyName>UnchainedLauncher</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="DefaultMaps.txt" />

@@ -1,6 +1,6 @@
 ﻿using log4net;
 
-namespace UnchainedLauncherCore.Utilities
+namespace UnchainedLauncher.Core.Utilities
 {
     static class JsonHelpers
     {

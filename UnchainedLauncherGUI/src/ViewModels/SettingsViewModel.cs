@@ -1,5 +1,5 @@
-﻿using UnchainedLauncherGUI.JsonModels;
-using UnchainedLauncherCore.JsonModels;
+﻿using UnchainedLauncher.GUI.JsonModels;
+using UnchainedLauncher.Core.JsonModels;
 using CommunityToolkit.Mvvm.Input;
 using log4net;
 using Octokit;
@@ -12,11 +12,11 @@ using System.Linq;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Input;
-using UnchainedLauncherCore;
-using UnchainedLauncherCore.Utilities;
-using UnchainedLauncherCore.Processes;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core;
 
-namespace UnchainedLauncherGUI.ViewModels {
+namespace UnchainedLauncher.GUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class SettingsViewModel {
         private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsViewModel));
@@ -163,9 +163,9 @@ namespace UnchainedLauncherGUI.ViewModels {
 
         // TODO: Somehow generalize the updater and installer
         private void CheckForUpdate() {
-            var github = new GitHubClient(new ProductHeaderValue("UnchainedLauncherGUI"));
+            var github = new GitHubClient(new ProductHeaderValue("UnchainedLauncher"));
 
-            var repoCall = github.Repository.Release.GetLatest(667470779); //UnchainedLauncherGUI repo id
+            var repoCall = github.Repository.Release.GetLatest(667470779); //UnchainedLauncher repo id
             repoCall.Wait();
             if (!repoCall.IsCompletedSuccessfully) {
                 MessageBox.Show("Could not connect to github to retrieve latest version information:\n" + repoCall?.Exception?.Message);
@@ -215,7 +215,7 @@ namespace UnchainedLauncherGUI.ViewModels {
                             currentExecutableName += ".exe";
                         }
 
-                        var newDownloadTask = HttpHelpers.DownloadFileAsync(url, "UnchainedLauncherGUI-update.exe");
+                        var newDownloadTask = HttpHelpers.DownloadFileAsync(url, "UnchainedLauncher-update.exe");
                         string exePath = Assembly.GetExecutingAssembly().Location;
                         string exeDir = Path.GetDirectoryName(exePath) ?? "";
 
@@ -232,7 +232,7 @@ namespace UnchainedLauncherGUI.ViewModels {
                         var powershellCommand = new List<string>() {
                             $"Wait-Process -Id {Environment.ProcessId}",
                             $"Start-Sleep -Milliseconds 1000",
-                            $"Move-Item -Force UnchainedLauncherGUI-update.exe {currentExecutableName}",
+                            $"Move-Item -Force {newDownloadTask.Target.OutputPath!} {currentExecutableName}",
                             $"Start-Sleep -Milliseconds 500",
                             $"$hashResult = Get-FileHash {currentExecutableName} -Algorithm SHA512",
                             $"$hashResult.Hash | Set-Content -Path \\\"{hashPath}\\\"",

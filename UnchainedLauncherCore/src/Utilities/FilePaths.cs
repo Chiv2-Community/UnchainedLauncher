@@ -1,4 +1,4 @@
-﻿namespace UnchainedLauncherCore.Utilities
+﻿namespace UnchainedLauncher.Core.Utilities
 {
     public static class FilePaths
     {

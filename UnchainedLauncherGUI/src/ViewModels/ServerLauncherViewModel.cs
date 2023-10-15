@@ -12,14 +12,13 @@ using System.Reflection;
 using System.Collections.Specialized;
 using System.Collections.ObjectModel;
 using log4net;
-using UnchainedLauncherCore.Mods;
-using UnchainedLauncherCore;
-using UnchainedLauncherCore.JsonModels.Metadata.V3;
-using UnchainedLauncherGUI.JsonModels;
-using UnchainedLauncherCore.Utilities;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.GUI.JsonModels;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.Mods;
+using UnchainedLauncher.Core;
 
-namespace UnchainedLauncherGUI.ViewModels
-{
+namespace UnchainedLauncher.GUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public class ServerLauncherViewModel {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServerLauncherViewModel));
@@ -75,7 +74,7 @@ namespace UnchainedLauncherGUI.ViewModels
 
             MapsList = new ObservableCollection<string>();
 
-            using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UnchainedLauncherGUI.DefaultMaps.txt")) {
+            using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UnchainedLauncher.GUI.DefaultMaps.txt")) {
                 if (defaultMapsListStream != null) {
                     using StreamReader reader = new StreamReader(defaultMapsListStream!);
 

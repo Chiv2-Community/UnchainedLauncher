@@ -8,12 +8,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using UnchainedLauncherCore.Mods;
-using UnchainedLauncherCore.JsonModels;
-using UnchainedLauncherCore.JsonModels.Metadata.V3;
-using UnchainedLauncherCore;
+using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Mods;
+using UnchainedLauncher.Core;
 
-namespace UnchainedLauncherGUI.ViewModels {
+namespace UnchainedLauncher.GUI.ViewModels {
 
     [AddINotifyPropertyChangedInterface]
     public class LauncherViewModel {

@@ -1,5 +1,5 @@
 ﻿//using System.Windows.Shapes;
-using UnchainedLauncherCore.JsonModels;
+using UnchainedLauncher.Core.JsonModels;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -7,10 +7,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using UnchainedLauncherCore.Utilities;
-using UnchainedLauncherCore.Processes;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.Processes;
 
-namespace UnchainedLauncherGUI.ViewModels {
+namespace UnchainedLauncher.GUI.ViewModels {
     // This isn't a view model in the normal sense that we hold on to a view of data and bind to it.
     // I just figure this is the "View" for the installer workflow.
     // TODO: Somehow generalize the updater and installer

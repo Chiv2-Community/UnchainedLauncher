@@ -25,6 +25,7 @@
   <ItemGroup>
     <None Remove="DefaultMaps.txt" />
     <None Remove="log4net.config" />
+    <None Remove="src\Views\chiv2-unchained-logo.png" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="src\App.xaml" />
@@ -45,9 +46,13 @@
     <PackageReference Include="Semver" Version="2.3.0" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="src\Views\chiv2-unchained-logo.png" />
+  </ItemGroup>
+  <ItemGroup>
     <None Update="assets\chiv2-unchained-logo.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 </Project>

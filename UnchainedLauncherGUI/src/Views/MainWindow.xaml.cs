@@ -77,7 +77,7 @@ namespace UnchainedLauncher.GUI
 
             // If we're already in the install dir, we don't need to do anything. 
             // If a TBL dir is in the current dir, and we're not in the source code dir, we're probably in the install dir.
-            var alreadyInInstallDir = steamDir == curDir || egsDir == curDir || (Directory.Exists(Path.Combine(curDir, "TBL")) && !curDir.Contains("UnchainedLauncherGUI\\UnchainedLauncherGUI"));
+            var alreadyInInstallDir = steamDir == curDir || egsDir == curDir || (Directory.Exists(Path.Combine(curDir, "TBL")) && !curDir.Contains("UnchainedLauncher"));
 
             if (alreadyInInstallDir)
                 return InstallerViewModel.AttemptInstall("", InstallationType.NotSet) ? InstallResult.Installed : InstallResult.Failed;

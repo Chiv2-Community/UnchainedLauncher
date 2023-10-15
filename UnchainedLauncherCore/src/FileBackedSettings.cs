@@ -6,17 +6,15 @@ namespace UnchainedLauncher.Core {
     public class FileBackedSettings<T> {
         public static readonly ILog logger = LogManager.GetLogger(nameof(FileBackedSettings<T>));
         public string SettingsFilePath { get; }
-        public T DefaultSettings { get; }
 
-        public FileBackedSettings(string settingsFilePath, T defaultSettings) {
+        public FileBackedSettings(string settingsFilePath) {
             SettingsFilePath = settingsFilePath;
-            DefaultSettings = defaultSettings;
         }
 
-        public T LoadSettings() {
+        public T? LoadSettings() {
 
             if (!File.Exists(SettingsFilePath))
-                return DefaultSettings;
+                return default;
 
             var savedSettings = JsonHelpers.Deserialize<T>(File.ReadAllText(SettingsFilePath));
 
@@ -24,12 +22,12 @@ namespace UnchainedLauncher.Core {
                 return savedSettings.Result!;
             } else {
                 var cause = savedSettings.Exception?.Message ?? "Schema does not match";
-                logger.Error($"Settings malformed or from an unsupported old version. Loading defaults.");
+                logger.Error($"Settings malformed or from an unsupported old version.");
 
                 if (cause != null)
                     logger.Error(cause);
 
-                return DefaultSettings;
+                return default;
             }
         }
 

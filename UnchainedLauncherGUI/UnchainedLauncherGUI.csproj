@@ -33,8 +33,8 @@
     <Content Include="assets\chiv2-unchained-logo.ico" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="DefaultMaps.txt" />
-    <EmbeddedResource Include="log4net.config" />
+    <EmbeddedResource Include="Resources\DefaultMaps.txt" />
+    <EmbeddedResource Include="Resources\log4net.config" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="log4net" Version="2.0.15" />

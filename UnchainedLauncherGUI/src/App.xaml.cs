@@ -14,7 +14,7 @@ namespace UnchainedLauncher.GUI {
             if (File.Exists("log4net.config")) {
                 log4net.Config.XmlConfigurator.Configure(new FileInfo("log4net.config"));
             } else {
-                using Stream? configStream = assembly.GetManifestResourceStream("UnchainedLauncher.GUI.log4net.config");
+                using Stream? configStream = assembly.GetManifestResourceStream("UnchainedLauncherGUI.Resources.log4net.config");
                 if (configStream != null) {
                     log4net.Config.XmlConfigurator.Configure(configStream);
                 }

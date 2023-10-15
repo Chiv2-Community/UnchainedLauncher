@@ -75,22 +75,19 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var cliArgsList = Environment.GetCommandLineArgs();
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => x + " " + y) : "";
 
-            var defaultSettings = new LauncherSettings(InstallationTypeUtils.AutoDetectInstallationType(), true, "", "https://servers.polehammer.net");
-            var fileBackedSettings = new FileBackedSettings<LauncherSettings>(SettingsFilePath, defaultSettings);
+            var fileBackedSettings = new FileBackedSettings<LauncherSettings>(SettingsFilePath);
 
             var loadedSettings = fileBackedSettings.LoadSettings();
 
-            #pragma warning disable CS8629 // All calls to .Value and ! below are safe because all defaults are non-null.
             return new SettingsViewModel(
                 window,
-                loadedSettings.InstallationType ?? defaultSettings.InstallationType.Value,
-                loadedSettings.EnablePluginAutomaticUpdates ?? defaultSettings.EnablePluginAutomaticUpdates.Value,
-                loadedSettings.AdditionalModActors ?? defaultSettings.AdditionalModActors!,
-                loadedSettings.ServerBrowserBackend ?? defaultSettings.ServerBrowserBackend!,
+                loadedSettings?.InstallationType ?? InstallationTypeUtils.AutoDetectInstallationType(),
+                loadedSettings?.EnablePluginAutomaticUpdates ?? true,
+                loadedSettings?.AdditionalModActors ?? "",
+                loadedSettings?.ServerBrowserBackend ?? "https://servers.polehammer.net",
                 fileBackedSettings,
                 cliArgs
             );
-            #pragma warning restore CS8629 // Nullable value type may be null.
         }
 
         public void SaveSettings() {

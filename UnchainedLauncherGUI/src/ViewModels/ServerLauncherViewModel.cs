@@ -74,7 +74,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             MapsList = new ObservableCollection<string>();
 
-            using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UnchainedLauncher.GUI.DefaultMaps.txt")) {
+            using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UnchainedLauncherGUI.Resources.DefaultMaps.txt")) {
                 if (defaultMapsListStream != null) {
                     using StreamReader reader = new StreamReader(defaultMapsListStream!);
 
@@ -107,40 +107,24 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         public static ServerLauncherViewModel LoadSettings(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ModManager modManager) {
-            var defaultSettings = new ServerSettings(
-                "Chivalry 2 server",
-                "Example description",
-                "",
-                "FFA_Courtyard",
-                7777,
-                9001,
-                7071,
-                3075,
-                true
-            );
-
-            var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath, defaultSettings);
-
+            var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
 
-
-            #pragma warning disable CS8629 // Every call to .Value is safe here because all default server settings are defined.
             return new ServerLauncherViewModel(
                 launcherViewModel,
                 settingsViewModel,
                 modManager,
-                loadedSettings.ServerName ?? defaultSettings.ServerName!,
-                loadedSettings.ServerDescription ?? defaultSettings.ServerDescription!,
-                loadedSettings.ServerPassword ?? defaultSettings.ServerPassword!,
-                loadedSettings.SelectedMap ?? defaultSettings.SelectedMap!,
-                loadedSettings.GamePort ?? defaultSettings.GamePort.Value,
-                loadedSettings.RconPort ?? defaultSettings.RconPort.Value,
-                loadedSettings.A2sPort ?? defaultSettings.A2sPort.Value,
-                loadedSettings.PingPort ?? defaultSettings.PingPort.Value,
-                loadedSettings.ShowInServerBrowser ?? defaultSettings.ShowInServerBrowser.Value,
+                loadedSettings?.ServerName ?? "Chivalry 2 server",
+                loadedSettings?.ServerDescription ?? "",
+                loadedSettings?.ServerPassword ?? "",
+                loadedSettings?.SelectedMap ?? "FFA_Courtyard",
+                loadedSettings?.GamePort ?? 7777,
+                loadedSettings?.RconPort ?? 9001,
+                loadedSettings?.A2sPort ?? 7071,
+                loadedSettings?.PingPort ?? 3075,
+                loadedSettings?.ShowInServerBrowser ?? true,
                 fileBackedSettings
             );
-            #pragma warning restore CS8629 // Nullable value type may be null.
         }
 
         public void SaveSettings() {

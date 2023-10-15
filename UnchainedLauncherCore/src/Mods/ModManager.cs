@@ -3,8 +3,9 @@ using log4net;
 using Newtonsoft.Json;
 using System.Collections.ObjectModel;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncherCore.Mods.Registry;
 
-namespace UnchainedLauncher.Core.Mods
+namespace UnchainedLauncherCore.Mods
 {
 
     class CoreMods
@@ -35,35 +36,28 @@ namespace UnchainedLauncher.Core.Mods
     {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModManager));
 
-        public string RegistryOrg { get; }
-        public string RegistryRepoName { get; }
         public ObservableCollection<Mod> Mods { get; }
         public ObservableCollection<Release> EnabledModReleases { get; }
 
         public ObservableCollection<ModReleaseDownloadTask> PendingDownloads { get; }
         public ObservableCollection<ModReleaseDownloadTask> FailedDownloads { get; }
 
-        private string PakDir { get; }
-
+        public ModRegistry ModRegistry { get; }
         public ModManager(
-            string registryOrg,
-            string registryRepoName,
-            string pakDir,
+            ModRegistry modRegistry,
             ObservableCollection<Mod> baseModList,
             ObservableCollection<Release> enabledMods,
             ObservableCollection<ModReleaseDownloadTask> pendingDownloads,
             ObservableCollection<ModReleaseDownloadTask> failedDownloads)
         {
-            RegistryOrg = registryOrg;
-            RegistryRepoName = registryRepoName;
-            PakDir = pakDir;
+            ModRegistry = modRegistry;
             Mods = baseModList;
             EnabledModReleases = enabledMods;
             PendingDownloads = pendingDownloads;
             FailedDownloads = failedDownloads;
         }
 
-        public static ModManager ForRegistry(string registryOrg, string registryRepoName, string pakDir)
+        public static ModManager ForRegistry(ModRegistry registry)
         {
 
 
@@ -79,14 +73,15 @@ namespace UnchainedLauncher.Core.Mods
                 var s = File.ReadAllText(path);
 
                 var deserializationResult =
-                    JsonHelpers.Deserialize<Release>(s).RecoverWith(ex =>
-                    {
+                    JsonHelpers.Deserialize<Release>(s).RecoverWith(ex => {
                         logger.Warn("Falling back to V2 deserialization" + ex?.Message ?? "unknown failure");
-                        return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Release>(s).Select(Release.FromV2);
-                    }).RecoverWith(ex =>
-                    {
+                        return JsonHelpers.Deserialize<UnchainedLauncher.Core.JsonModels.Metadata.V2.Release>(s)
+                                .Select(Release.FromV2);
+                    }).RecoverWith(ex => {
                         logger.Warn("Falling back to V1 deserialization" + ex?.Message ?? "unknown failure");
-                        return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Release>(s).Select(JsonModels.Metadata.V2.Release.FromV1).Select(Release.FromV2);
+                        return JsonHelpers.Deserialize<UnchainedLauncher.Core.JsonModels.Metadata.V1.Release>(s)
+                            .Select(UnchainedLauncher.Core.JsonModels.Metadata.V2.Release.FromV1)
+                            .Select(Release.FromV2);
                     });
 
                 if (!deserializationResult.Success)
@@ -112,9 +107,7 @@ namespace UnchainedLauncher.Core.Mods
 
 
             return new ModManager(
-                registryOrg,
-                registryRepoName,
-                pakDir,
+                registry,
                 new ObservableCollection<Mod>(),
                 new ObservableCollection<Release>(enabledModReleases!),
                 new ObservableCollection<ModReleaseDownloadTask>(),
@@ -132,7 +125,7 @@ namespace UnchainedLauncher.Core.Mods
             logger.Info("Disabling mod release: " + release.Manifest.Name + " " + release.Tag);
 
             // Should be doing this when all downloads get done, but cba to do it better right now.
-            FileHelpers.DeleteFile(PakDir + "\\" + release.PakFileName);
+            FileHelpers.DeleteFile(FilePaths.PakDir + "\\" + release.PakFileName);
 
             var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
             var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
@@ -162,51 +155,9 @@ namespace UnchainedLauncher.Core.Mods
             logger.Info("Updating mods list...");
             Mods.Clear();
 
-            logger.Info($"Downloading mod list from registry {RegistryOrg}/{RegistryRepoName}");
-            await HttpHelpers.DownloadFileAsync(CoreMods.PackageDBPackageListUrl, CoreMods.ModsCachePackageDBListPath).Task;
-
-            var packageListString = File.ReadAllText(CoreMods.ModsCachePackageDBListPath);
-            var packageNameToMetadataPath = (string s) => $"{CoreMods.PackageDBBaseUrl}/packages/{s}.json";
-            var packageNameToFilePath = (string s) => $"{CoreMods.ModsCachePackageDBPackagesDir}\\{s}.json";
-
-            var packages = packageListString.Split("\n").Where(s => s.Length > 0);
-
-            logger.Info($"Found {packages.Count()} packages listed...");
-
-            var downloadTasks = packages
-                .Select(packageName => HttpHelpers.DownloadFileAsync(packageNameToMetadataPath(packageName), packageNameToFilePath(packageName)))
-                .Select(async downloadTask =>
-                {
-                    await downloadTask.Task;
-                    var fileLocation = downloadTask.Target.OutputPath!;
-
-                    var jsonString = await File.ReadAllTextAsync(fileLocation);
-                    var deserializationResult =
-                        JsonHelpers
-                            .Deserialize<Mod>(jsonString)
-                            .RecoverWith(e =>
-                            {
-                                logger.Warn("Falling back to V2 deserialization: " + e?.Message ?? "unknown failure");
-                                return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Mod>(jsonString).Select(Mod.FromV2);
-                            })
-                            .RecoverWith(e =>
-                            {
-                                logger.Warn("Falling back to V1 deserialization" + e?.Message ?? "unknown failure");
-                                return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Mod>(jsonString).Select(JsonModels.Metadata.V2.Mod.FromV1).Select(Mod.FromV2);
-                            });
-
-                    if (deserializationResult.Exception != null)
-                        logger.Error("Failed to deserialize mod metadata file " + fileLocation, deserializationResult.Exception);
-
-                    if (deserializationResult.Success)
-                    {
-                        Mods.Add(deserializationResult.Result!);
-                    }
-                    else
-                    {
-                        logger.Error("Failed to deserialize mod metadata file " + fileLocation, deserializationResult.Exception);
-                    }
-                });
+            logger.Info($"Downloading mod list from registry {ModRegistry}");
+            
+            var allMods = await ModRegistry.GetAllMods();
 
             await Task.WhenAll(downloadTasks);
         }

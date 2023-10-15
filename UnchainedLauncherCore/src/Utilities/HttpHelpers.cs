@@ -44,7 +44,7 @@ namespace UnchainedLauncher.Core.Utilities {
         }
 
         public static DownloadTask<string> GetStringContentsAsync(string url) {
-            logger.Info($"Downloading file {url}");
+            logger.Info($"Fetching string contents from {url}");
             return new DownloadTask<string>(
                 _httpClient.GetStringAsync(url),
                 new DownloadTarget(url, null)
@@ -65,8 +65,6 @@ namespace UnchainedLauncher.Core.Utilities {
                     : DownloadFileAsync(x.Url, x.OutputPath!)
             );
         }
-
-
     }
 
     public record DownloadTarget(string Url, string? OutputPath);
@@ -82,6 +80,17 @@ namespace UnchainedLauncher.Core.Utilities {
     public record DownloadTask<T>(Task<T> Task, DownloadTarget Target) {
         public DownloadTask<U> ContinueWith<U>(Func<T, U> action) {
             return new DownloadTask<U>(Task.ContinueWith(t => action(t.Result)), Target);
+        }
+
+        public DownloadTask<T> RecoverWith(Func<Exception?, DownloadTask<T>> recover) {
+            Task.ContinueWith(t => {
+                if (t.Exception != null) {
+                    return recover(t.Exception);
+                } else {
+                    return this;
+                }
+            });
+            return this;
         }
     }
 }

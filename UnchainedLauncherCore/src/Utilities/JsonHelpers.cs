@@ -82,7 +82,7 @@ namespace UnchainedLauncher.Core.Utilities
             }
             else if (Exception != null)
             {
-                e = other.Exception;
+                e = Exception;
             }
 
             return new DeserializationResult<T>(Success ? Result : other.Result, e);

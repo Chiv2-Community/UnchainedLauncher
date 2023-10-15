@@ -149,9 +149,7 @@ namespace UnchainedLauncher.GUI
                 }
 
                 this.ModManager = ModManager.ForRegistry(
-                    "Chiv2-Community",
-                    "C2ModRegistry",
-                    FilePaths.PakDir
+
                 );
 
                 var chiv2Launcher = new Chivalry2Launcher(ModManager);

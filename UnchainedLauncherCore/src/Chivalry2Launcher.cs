@@ -66,7 +66,7 @@ namespace UnchainedLauncher.Core {
                         await Task.Delay(10000);
                     } while (true);
 
-                    logger.Info("Process exited. Closing RCON and UnchainedLauncher");
+                    logger.Info("Process exited. Closing RCON and UnchainedLauncherG");
 
                     serverRegister?.CloseMainWindow();
 

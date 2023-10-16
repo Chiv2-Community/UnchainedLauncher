@@ -1,4 +1,6 @@
-﻿using log4net;
+﻿using LanguageExt;
+using LanguageExt.Common;
+using log4net;
 
 namespace UnchainedLauncher.Core.Utilities
 {
@@ -87,5 +89,15 @@ namespace UnchainedLauncher.Core.Utilities
 
             return new DeserializationResult<T>(Success ? Result : other.Result, e);
         }
+
+        public Try<T> ToTry() => 
+            Success 
+                ? Prelude.Try<T>(Result!) 
+                : Prelude.TryFail<T>(Exception!);  
+
+        public Either<Exception, T> ToEither() => 
+            Success 
+                ? Either<Exception, T>.Right(Result!) 
+                : Either<Exception, T>.Left(Exception!);
     }
 }

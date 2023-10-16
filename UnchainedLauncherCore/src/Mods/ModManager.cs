@@ -3,9 +3,9 @@ using log4net;
 using Newtonsoft.Json;
 using System.Collections.ObjectModel;
 using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncherCore.Mods.Registry;
+using UnchainedLauncher.Core.Mods.Registry;
 
-namespace UnchainedLauncherCore.Mods
+namespace UnchainedLauncher.Core.Mods
 {
 
     class CoreMods
@@ -64,8 +64,7 @@ namespace UnchainedLauncherCore.Mods
             var loadReleaseMetadata = (string path) =>
             {
                 logger.Info("Loading release metadata from " + path);
-                if (!File.Exists(path))
-                {
+                if (!File.Exists(path)) {
                     logger.Warn("Failed to find metadata file: " + path);
                     return null;
                 }
@@ -150,16 +149,19 @@ namespace UnchainedLauncherCore.Mods
             return DownloadModRelease(release);
         }
 
-        public async Task UpdateModsList()
+        public async Task<(IEnumerable<RegistryMetadataException>, IEnumerable<Mod>)> UpdateModsList()
         {
             logger.Info("Updating mods list...");
             Mods.Clear();
-
             logger.Info($"Downloading mod list from registry {ModRegistry}");
-            
-            var allMods = await ModRegistry.GetAllMods();
 
-            await Task.WhenAll(downloadTasks);
+            var (exceptions, modMetadata) = await ModRegistry.GetAllMods();
+
+            logger.Info($"Got {modMetadata.Count()} mods from registry {ModRegistry}");
+
+            modMetadata.ToList().ForEach(mod => Mods.Add(mod));
+
+            return (exceptions, modMetadata);
         }
 
         public IEnumerable<Tuple<Release, Release>> GetUpdateCandidates()

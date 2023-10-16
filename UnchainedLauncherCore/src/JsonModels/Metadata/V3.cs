@@ -82,6 +82,9 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
         [property: JsonProperty("maps", Required = Required.Always)] List<string> Maps,
         [property: JsonProperty("options", Required = Required.Always)] OptionFlags OptionFlags
     ) {
+        public string Organization => RepoUrl.Split('/')[^2];
+        public string RepoName => RepoUrl.Split('/')[^1];
+
         public static ModManifest FromV2(V2.ModManifest input) {
             return new ModManifest(
                 RepoUrl: input.RepoUrl,

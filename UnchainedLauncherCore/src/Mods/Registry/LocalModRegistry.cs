@@ -1,33 +1,53 @@
-﻿using System;
+﻿using LanguageExt;
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncherCore.Mods.Registry {
+namespace UnchainedLauncher.Core.Mods.Registry {
     public class LocalModRegistry : ModRegistry {
+
         public string RegistryPath { get; }
         public LocalModRegistry(string registryPath) {
             RegistryPath = registryPath;
         }
 
-        public override DownloadTask<IEnumerable<DownloadTask<Mod>>> GetAllMods() {
+        public override Task<(IEnumerable<RegistryMetadataException>, IEnumerable<Mod>)> GetAllMods() {
             // List all json files found in the registry path
-            var modPaths = Directory.EnumerateFiles(RegistryPath, "*.json", System.IO.SearchOption.AllDirectories);
-            return new DownloadTask<IEnumerable<DownloadTask<Mod>>>(
-                Task.FromResult(modPaths.Select(GetModMetadata)),
-                new DownloadTarget($"file://{RegistryPath}", null)
-            );
+            var emptyResult =
+                new Tuple<ImmutableList<RegistryMetadataException>, ImmutableList<Mod>>(
+                    ImmutableList<RegistryMetadataException>.Empty,
+                    ImmutableList<Mod>.Empty
+                );
+
+            return Task
+                .Run(() => Directory.EnumerateFiles(RegistryPath, "*.json", SearchOption.AllDirectories))
+                .Bind(paths =>
+                    paths.ToImmutableList()
+                        .Select(GetModMetadata)
+                        .Partition()
+                );
         }
 
-        public override DownloadTask<string> GetModMetadataString(string modPath) {
-            var path = Path.Combine(RegistryPath, modPath);
-            return new DownloadTask<string>(
-                Task.FromResult(File.ReadAllText(path)), 
-                new DownloadTarget($"file://{path}", null)
-            );
+
+        public override EitherAsync<RegistryMetadataException, string> GetModMetadataString(string modPath) {
+            return EitherAsync<RegistryMetadataException, string>
+                .Right(Path.Combine(RegistryPath, modPath))
+                .BindAsync(path => Task.Run(() => {
+                    if (!File.Exists(path))
+                        return EitherAsync<RegistryMetadataException, string>
+                            .Left(new RegistryMetadataException(modPath, new IOException("File not found")));
+                    else
+                        return Prelude
+                            .TryAsync(Task.Run(() => File.ReadAllText(path)))
+                            .ToEither()
+                            .MapLeft(e => new RegistryMetadataException(modPath, e));
+                }));
         }
     }
 }

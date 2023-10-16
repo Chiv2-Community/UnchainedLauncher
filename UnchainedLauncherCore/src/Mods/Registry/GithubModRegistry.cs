@@ -1,8 +1,9 @@
-﻿using log4net;
+﻿using LanguageExt;
+using log4net;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncherCore.Mods.Registry {
+namespace UnchainedLauncher.Core.Mods.Registry {
     public class GithubModRegistry : ModRegistry {
         public string Organization { get; }
         public string RepoName { get; }
@@ -15,14 +16,25 @@ namespace UnchainedLauncherCore.Mods.Registry {
             RepoName = repoName;
         }
 
-        public override DownloadTask<IEnumerable<DownloadTask<Mod>>> GetAllMods() {
-            return HttpHelpers.GetStringContentsAsync(PackageDBPackageListUrl)
-                .ContinueWith(listString => listString.Split("\n"))
-                .ContinueWith(packages => packages.Select(GetModMetadata));
+        public override Task<(IEnumerable<RegistryMetadataException>, IEnumerable<Mod>)> GetAllMods() {
+            return Prelude
+                .TryAsync(HttpHelpers.GetStringContentsAsync(PackageDBPackageListUrl).Task)
+                .Select(listString => listString.Split("\n"))
+                .Select(packages => packages.Select(GetModMetadata))
+                .Select(results => results.Partition())
+                .ToEither()
+                .MapLeft(e => new RegistryMetadataException(PackageDBPackageListUrl, e))
+                .Match(
+                    t => t, // return the result if successful
+                    e => (new[] { e }.AsEnumerable(),Enumerable.Empty<Mod>()) // return an error if an error ocurred that prevented anything from being returned
+                );
         }
 
-        public override DownloadTask<string> GetModMetadataString(string modPath) {
-            return HttpHelpers.GetStringContentsAsync($"{PackageDBBaseUrl}/packages/{modPath}.json");
+        public override EitherAsync<RegistryMetadataException, string> GetModMetadataString(string modPath) {
+            return Prelude
+                .TryAsync(HttpHelpers.GetStringContentsAsync($"{PackageDBBaseUrl}/packages/{modPath}.json").Task)
+                .ToEither()
+                .MapLeft(e => new RegistryMetadataException(modPath, e));
         }
     }
 }

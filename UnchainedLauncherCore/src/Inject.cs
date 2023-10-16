@@ -4,7 +4,7 @@ using System.Text;
 
 namespace UnchainedLauncher.Core {
     //Code modified/adapted from https://codingvision.net/c-inject-a-dll-into-a-process-w-createremotethread
-    internal class Inject {
+    public class Inject {
         [DllImport("kernel32.dll")]
         public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
 

@@ -1,6 +1,7 @@
 ﻿using LanguageExt;
 using log4net;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Mods.Registry.Resolver;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Mods.Registry {
@@ -11,7 +12,7 @@ namespace UnchainedLauncher.Core.Mods.Registry {
         public string PackageDBBaseUrl => $"https://raw.githubusercontent.com/{Organization}/{RepoName}/db/package_db";
         public string PackageDBPackageListUrl => $"{PackageDBBaseUrl}/mod_list_index.txt";
 
-        public GithubModRegistry(string organization, string repoName) {
+        public GithubModRegistry(string organization, string repoName, ModRegistryDownloader downloader) : base($"Github mod registry at {organization}/{repoName}", downloader) {
             Organization = organization;
             RepoName = repoName;
         }

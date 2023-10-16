@@ -17,8 +17,14 @@ namespace UnchainedLauncher.Core.Mods.Registry
     public abstract class ModRegistry
     {
         protected static readonly ILog logger = LogManager.GetLogger(nameof(ModRegistry));
+        public ModRegistryDownloader ModRegistryDownloader { get; }
+        public string Name { get; }
 
-        public abstract ModRegistryDownloader ModRegistryDownloader { get; }
+        public ModRegistry(string name, ModRegistryDownloader downloader) {
+            Name = name;
+            ModRegistryDownloader = downloader;
+        }
+
 
         /// <summary>
         /// Get all mod metadata from this registry

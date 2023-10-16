@@ -7,13 +7,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Mods.Registry.Resolver;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Mods.Registry {
     public class LocalModRegistry : ModRegistry {
 
         public string RegistryPath { get; }
-        public LocalModRegistry(string registryPath) {
+        public LocalModRegistry(string registryPath, ModRegistryDownloader downloader) : base("Local registry at: " + registryPath, downloader) {
             RegistryPath = registryPath;
         }
 

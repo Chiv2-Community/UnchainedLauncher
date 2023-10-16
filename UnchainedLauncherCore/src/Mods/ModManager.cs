@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using System.Collections.ObjectModel;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Mods.Registry;
+using LanguageExt;
 
 namespace UnchainedLauncher.Core.Mods
 {
@@ -36,28 +37,29 @@ namespace UnchainedLauncher.Core.Mods
     {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModManager));
 
-        public ObservableCollection<Mod> Mods { get; }
         public ObservableCollection<Release> EnabledModReleases { get; }
 
         public ObservableCollection<ModReleaseDownloadTask> PendingDownloads { get; }
         public ObservableCollection<ModReleaseDownloadTask> FailedDownloads { get; }
 
+        public HashMap<ModRegistry, IEnumerable<Mod>> ModMap { get; }
+
+        public IEnumerable<Mod> Mods => ModMap.Values.Flatten();
         public ModRegistry ModRegistry { get; }
+
         public ModManager(
-            ModRegistry modRegistry,
-            ObservableCollection<Mod> baseModList,
+            HashMap<ModRegistry, IEnumerable<Mod>> modMap,
             ObservableCollection<Release> enabledMods,
             ObservableCollection<ModReleaseDownloadTask> pendingDownloads,
             ObservableCollection<ModReleaseDownloadTask> failedDownloads)
         {
-            ModRegistry = modRegistry;
-            Mods = baseModList;
+            ModMap = modMap;
             EnabledModReleases = enabledMods;
             PendingDownloads = pendingDownloads;
             FailedDownloads = failedDownloads;
         }
 
-        public static ModManager ForRegistry(ModRegistry registry)
+        public static ModManager ForRegistries(params ModRegistry[] registries)
         {
 
 
@@ -74,12 +76,12 @@ namespace UnchainedLauncher.Core.Mods
                 var deserializationResult =
                     JsonHelpers.Deserialize<Release>(s).RecoverWith(ex => {
                         logger.Warn("Falling back to V2 deserialization" + ex?.Message ?? "unknown failure");
-                        return JsonHelpers.Deserialize<UnchainedLauncher.Core.JsonModels.Metadata.V2.Release>(s)
+                        return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Release>(s)
                                 .Select(Release.FromV2);
                     }).RecoverWith(ex => {
                         logger.Warn("Falling back to V1 deserialization" + ex?.Message ?? "unknown failure");
-                        return JsonHelpers.Deserialize<UnchainedLauncher.Core.JsonModels.Metadata.V1.Release>(s)
-                            .Select(UnchainedLauncher.Core.JsonModels.Metadata.V2.Release.FromV1)
+                        return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Release>(s)
+                            .Select(JsonModels.Metadata.V2.Release.FromV1)
                             .Select(Release.FromV2);
                     });
 
@@ -104,10 +106,15 @@ namespace UnchainedLauncher.Core.Mods
                         .ToList();
             }
 
+            var registryMap = new HashMap<ModRegistry, IEnumerable<Mod>>();
+
+            registries.ToList().ForEach(registry =>
+                registryMap.Add(registry, new List<Mod>())
+            );
+
 
             return new ModManager(
-                registry,
-                new ObservableCollection<Mod>(),
+                registryMap,
                 new ObservableCollection<Release>(enabledModReleases!),
                 new ObservableCollection<ModReleaseDownloadTask>(),
                 new ObservableCollection<ModReleaseDownloadTask>()
@@ -152,16 +159,39 @@ namespace UnchainedLauncher.Core.Mods
         public async Task<(IEnumerable<RegistryMetadataException>, IEnumerable<Mod>)> UpdateModsList()
         {
             logger.Info("Updating mods list...");
-            Mods.Clear();
+
             logger.Info($"Downloading mod list from registry {ModRegistry}");
 
-            var (exceptions, modMetadata) = await ModRegistry.GetAllMods();
+            var registries = ModMap.Keys;
 
-            logger.Info($"Got {modMetadata.Count()} mods from registry {ModRegistry}");
+            var result =
+                await registries
+                    .Select(registry => (registry, registry.GetAllMods()))
+                    .Select(async tuple => {
+                        var (registry, getAllModsTask) = tuple;
+                        var (exceptions, mods) = await getAllModsTask;
+                        logger.Info($"Got {mods.Count()} mods from registry {registry}");
 
-            modMetadata.ToList().ForEach(mod => Mods.Add(mod));
+                        if (exceptions.Any())
+                            logger.Error($"Got {exceptions.Count()} exceptions from registry {registry.Name}");
 
-            return (exceptions, modMetadata);
+                        exceptions.ToList().ForEach(exception => logger.Error(exception));
+                        ModMap.AddOrUpdate(registry, mods);
+                        return (exceptions, mods);
+                    })
+                    .SequenceSerial()
+                    .Select(results =>
+                        results.Aggregate((l, r) => (
+                            l.exceptions.Concat(r.exceptions), 
+                            l.mods.Concat(r.mods)
+                        ))
+                    );
+
+
+
+            logger.Info($"Got a total of {result.mods.Count()} mods from all registries");
+
+            return result;
         }
 
         public IEnumerable<Tuple<Release, Release>> GetUpdateCandidates()

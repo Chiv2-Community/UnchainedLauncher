@@ -205,8 +205,6 @@ namespace C2GUILauncher.ViewModels {
                     //Note the distinction here with the other ports.
                     //The rcon flag DOES NOT support the equals sign syntax
                     $"-rcon {RconPort}", //let the serverplugin know that we want RCON running on the given port
-                    "-RenderOffScreen", //super-disable rendering
-                    "-unattended", //let it know no one's around to help
                     "-nosound", //disable sound
                     "--next-map-name " + SelectedMap
                 };

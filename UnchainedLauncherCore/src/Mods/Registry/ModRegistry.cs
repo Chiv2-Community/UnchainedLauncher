@@ -1,4 +1,5 @@
 ﻿using LanguageExt;
+using LanguageExt.Common;
 using log4net;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
@@ -65,15 +66,18 @@ namespace UnchainedLauncher.Core.Mods.Registry
             );
         }
 
-        public EitherAsync<string, Stream> DownloadPak(PakTarget coordinates) {
-              return ModRegistryDownloader.DownloadModPak(coordinates);
+        public EitherAsync<Error, FileWriter> DownloadPak(PakTarget coordinates, string outputLocation) {
+            return 
+                ModRegistryDownloader
+                    .ModPakStream(coordinates)
+                    .Map(stream => new FileWriter(outputLocation, stream));
         }
-        public EitherAsync<string, Stream> DownloadPak(string Org, string RepoName, string FileName, string ReleaseTag) {
-            return DownloadPak(new PakTarget(Org, RepoName, FileName, ReleaseTag));
+        public EitherAsync<Error, FileWriter> DownloadPak(string org, string repoName, string fileName, string releaseTag, string outputLocation) {
+            return DownloadPak(new PakTarget(org, repoName, fileName, releaseTag), outputLocation);
         }
 
-        public EitherAsync<string, Stream> DownloadPak(Release release) {
-              return DownloadPak(release.Manifest.Organization, release.Manifest.RepoName, release.PakFileName, release.Tag);
+        public EitherAsync<Error, FileWriter> DownloadPak(Release release, string outputLocation) {
+            return DownloadPak(release.Manifest.Organization, release.Manifest.RepoName, release.PakFileName, release.Tag, outputLocation);
         }
     }
 

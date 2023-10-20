@@ -11,6 +11,8 @@ using System.Windows.Controls;
 using UnchainedLauncher.Core;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Mods;
+using UnchainedLauncher.Core.Mods.Registry;
+using UnchainedLauncher.Core.Mods.Registry.Resolver;
 
 namespace UnchainedLauncher.GUI
 {
@@ -148,8 +150,8 @@ namespace UnchainedLauncher.GUI
                     logger.Info("Already installed.");
                 }
 
-                this.ModManager = ModManager.ForRegistry(
-
+                this.ModManager = ModManager.ForRegistries(
+                    new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
                 );
 
                 var chiv2Launcher = new Chivalry2Launcher(ModManager);

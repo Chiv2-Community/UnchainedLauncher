@@ -35,9 +35,6 @@ namespace UnchainedLauncher.GUI.ViewModels
 
             this.ModFilters = new ObservableCollection<ModFilter>();
 
-            // Watch the mod manager for changes, and update our view accordingly
-            this.ModManager.Mods.CollectionChanged += ModManager_ModList_CollectionChanged;
-
             // Watch the unfiltered mod view and mod filters for changes, and update our view accordingly
             this.UnfilteredModView.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
             this.ModFilters.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
@@ -49,8 +46,27 @@ namespace UnchainedLauncher.GUI.ViewModels
         private async Task RefreshModListAsync() {
             try {
                 logger.Info("Refreshing mod list...");
-                await ModManager.UpdateModsList();
-                logger.Info("Mod list refreshed successfully");
+                var (errors, updatedModsList) = await ModManager.UpdateModsList();
+
+                if (errors.Any()) {
+                    logger.Warn("Errors encountered while refreshing mod list:");
+                    errors.ToList().ForEach(error => logger.Warn(error));
+                    MessageBox.Show("Errors encountered while refreshing mod list. Check the logs for details.");
+                }
+                UnfilteredModView.Clear();
+
+                updatedModsList.ToList().ForEach(mod => 
+                    UnfilteredModView.Add(
+                        new ModViewModel(
+                            mod, 
+                            ModManager.GetCurrentlyEnabledReleaseForMod(mod), 
+                            ModManager
+                        )
+                    )
+                );
+
+                logger.Info("Mod list refreshed.");
+
             } catch (Exception ex) {
                 logger.Error(ex);
                 MessageBox.Show(ex.ToString());

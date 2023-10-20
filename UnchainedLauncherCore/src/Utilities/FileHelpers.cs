@@ -1,4 +1,7 @@
-﻿using log4net;
+﻿using LanguageExt;
+using log4net;
+using System.Security.AccessControl;
+using LanguageExt.Common;
 
 namespace UnchainedLauncher.Core.Utilities {
     public static class FileHelpers {
@@ -73,5 +76,55 @@ namespace UnchainedLauncher.Core.Utilities {
             var bytes = File.ReadAllBytes(filePath);
             return BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
         }
+
+        public static Task<string> Sha512Async(string filePath) {
+            using var sha512 = System.Security.Cryptography.SHA512.Create();
+            return File.ReadAllBytesAsync(filePath).ContinueWith(t => {
+                var bytes = t.Result;
+                return BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+            });
+        }
+    }
+
+
+    public class FileWriter {
+        public string FilePath { get; }
+        public Stream InputStream { get; }
+
+        public FileWriter(string filePath, Stream inputStream) {
+            FilePath = filePath;
+            InputStream = inputStream;
+        }
+
+        public EitherAsync<Error, Unit> WriteAsync(Option<IProgress<double>> progress, CancellationToken cancellationToken) {
+            return Prelude.TryAsync(
+                async () => {
+                    // Ensure the input stream is readable
+                    if (!InputStream.CanRead)
+                        throw new ArgumentException("The input stream is not readable.", nameof(InputStream));
+
+                    // Create or overwrite the target file
+                    using (var outputStream = new FileStream(FilePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true)) {
+                        var totalBytes = InputStream.Length; // Total bytes to read (if the input stream supports seeking)
+                        var totalBytesWritten = 0L; // Total bytes written to the file
+                        var buffer = new byte[8192]; // Buffer to hold data from input stream
+                        int bytesRead;
+
+                        // While there's data to read from the input stream, read and write asynchronously
+                        while ((bytesRead = await InputStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0) {
+                            await outputStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+
+                            totalBytesWritten += bytesRead;
+                            var percentage = (double)totalBytesWritten / totalBytes * 100;
+                            progress.IfSome(p => p.Report(percentage));
+
+                        }
+                    }
+
+                    return Unit.Default;
+                })
+                .ToEither();
+        }
+
     }
 }

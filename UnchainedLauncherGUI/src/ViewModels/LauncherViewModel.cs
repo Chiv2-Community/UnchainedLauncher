@@ -12,6 +12,8 @@ using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core;
+using System.Threading;
+using LanguageExt;
 
 namespace UnchainedLauncher.GUI.ViewModels {
 
@@ -108,13 +110,15 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         await this.ModManager.UpdateModsList();
 
                     var latestUnchainedMod = this.ModManager.Mods.First(x => x.LatestManifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods")).Releases.First();
-                    var modReleaseDownloadTask = this.ModManager.EnableModRelease(latestUnchainedMod);
+                    var modReleaseDownloadTask = this.ModManager.EnableModRelease(latestUnchainedMod, Option<IProgress<double>>.None, CancellationToken.None);
 
-                    await modReleaseDownloadTask.DownloadTask.Task;
+
+                    var unchainedModsEnableResult = await modReleaseDownloadTask;
+
+                    unchainedModsEnableResult.IfRight(x => logger.Info("Unchained-Mods mod enabled successfully"));
                 }
 
-                List<ModReleaseDownloadTask> downloadTasks = this.ModManager.DownloadModFiles(Settings.EnablePluginAutomaticUpdates).ToList();
-                await Task.WhenAll(downloadTasks.Select(x => x.DownloadTask.Task));
+                await this.ModManager.DownloadModFiles(Settings.EnablePluginAutomaticUpdates);
             } catch (Exception ex) {
                 logger.Error("Failed to download mods and plugins.", ex);
                 var result = MessageBox.Show("Failed to download mods and plugins. Check the logs for details. Continue Anyway?", "Continue Launching Chivalry 2 Unchained?", MessageBoxButton.YesNo);

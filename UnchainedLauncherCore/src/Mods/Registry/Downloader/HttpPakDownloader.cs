@@ -1,5 +1,5 @@
 ﻿using LanguageExt;
-
+using LanguageExt.Common;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Mods.Registry.Resolver
@@ -16,13 +16,12 @@ namespace UnchainedLauncher.Core.Mods.Registry.Resolver
             GetDownloadURL = getDownloadUrl;
         }
 
-        public override EitherAsync<string, Stream> DownloadModPak(PakTarget target)
+        public override EitherAsync<Error, Stream> ModPakStream(PakTarget target)
         {
             var url = GetDownloadURL(target);
             var streamDownloadTask = HttpHelpers.GetByteContentsAsync(url).Task;
             return Prelude.TryAsync(streamDownloadTask)
-                .ToEither()
-                .MapLeft(e => e.Message);
+                .ToEither();
         }
     }
 }

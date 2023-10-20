@@ -1,4 +1,5 @@
 ﻿using LanguageExt;
+using LanguageExt.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,18 +18,15 @@ namespace UnchainedLauncher.Core.Mods.Registry.Resolver
             PakReleasesDir = pakReleasesDir;
         }
 
-        public override EitherAsync<string, Stream> DownloadModPak(PakTarget target)
+        public override EitherAsync<Error, Stream> ModPakStream(PakTarget target)
         {
             // Paks will be found in PakReleasesDir/org/repoName/releaseTag/fileName
             var path = Path.Combine(PakReleasesDir, target.Org, target.RepoName, target.ReleaseTag, target.FileName);
 
             if (!File.Exists(path))
-                return Prelude.LeftAsync<string, Stream>($"Failed to fetch pak. File not found: {path}");
+                return Prelude.LeftAsync<Error, Stream>(Error.New($"Failed to fetch pak. File not found: {path}"));
 
-            return Prelude.Try(() => (Stream)File.OpenRead(path))
-                .ToEither()
-                .MapLeft(e => e.Message)
-                .ToAsync();
+            return Prelude.TryAsync(Task.Run(() => (Stream)File.OpenRead(path))).ToEither();
         }
     }
 }

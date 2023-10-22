@@ -248,6 +248,13 @@ namespace C2GUILauncher.Mods {
         private static async Task<ModReleaseDownloadTask?> DownloadUnchainedPluginUpdates(Window window) {
             logger.Info("Checking for UnchainedPlugin.dll updates...");
 
+            var isPluginInstalled = false;
+            try {
+                isPluginInstalled = File.Exists(CoreMods.UnchainedPluginPath);
+            } catch (Exception ex) {
+                logger.Error("Failed to check if UnchainedPlugin.dll is installed. Assuming it is not.", ex);
+            }
+
             SemVersion? currentVersion = null;
             try {
                 currentVersion = SemVersion.Parse(File.ReadAllText(FilePaths.UnchainedPluginVersionPath), SemVersionStyles.AllowV);
@@ -290,9 +297,19 @@ namespace C2GUILauncher.Mods {
                             logger.Info("UnchainedPlugin.dll is up to date.");
                         }
                     } else {
-                        var message = $"An update is available for UnchainedPlugin.dll\n- Latest Version: {latestVersion}.\n\nWould you like to download the new version?";
-                        message.Split('\n').ToList().ForEach(x => logger.Info(x));
+                        var messagePreamble = 
+                            isPluginInstalled
+                                ? "An update is available for UnchainedPlugin.dll"
+                                : "UnchainedPlugin.dll is not installed.";
 
+                        var messageEnding = 
+                            isPluginInstalled
+                                ? "Would you like to download the new version?"
+                                : "Would you like to download UnchainedPlugin.dll? This is required for mods to work.";
+
+                        var message = $"{messagePreamble}\n- Latest Version: {latestVersion}.\n\n{messageEnding}";
+                        message.Split('\n').ToList().ForEach(x => logger.Info(x));
+                            
                         var result = MessageBox.Show(message, "Update UnchainedPlugin.dll?", MessageBoxButton.YesNo);
                         logger.Info("User Selects: " + result.ToString());
 

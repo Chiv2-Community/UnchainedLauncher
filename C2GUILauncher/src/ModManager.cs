@@ -1,12 +1,14 @@
 ﻿using C2GUILauncher.JsonModels.Metadata.V3;
 using log4net;
 using Newtonsoft.Json;
+using Semver;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows;
 
 namespace C2GUILauncher.Mods {
 
@@ -201,7 +203,7 @@ namespace C2GUILauncher.Mods {
                 .Select(tuple => new Tuple<Release,Release>(tuple.Item1!, tuple.Item2!)); // Get the latest release
         }
 
-        public IEnumerable<ModReleaseDownloadTask> DownloadModFiles(bool downloadPlugin) {
+        public async Task<IEnumerable<ModReleaseDownloadTask>> DownloadModFiles(bool checkForPluginUpdates, Window window) {
             logger.Info("Downloading mod files...");
 
             logger.Info("Creating mod diretories...");
@@ -221,41 +223,119 @@ namespace C2GUILauncher.Mods {
                 FileHelpers.DeleteFile(depr);
 
 
-            var coreMods = 
-                downloadPlugin 
-                    ? new List<DownloadTarget>() { new DownloadTarget(CoreMods.UnchainedPluginURL, CoreMods.UnchainedPluginPath)}
-                    : new List<DownloadTarget>();
+            ModReleaseDownloadTask? unchainedPluginDownloadTask = null;
 
-            var coreModsDownloads = HttpHelpers.DownloadAllFiles(coreMods);
+            if (checkForPluginUpdates) {
+                var version = await CheckForUnchainedPluginUpdates(window);
 
-            var coreModsModReleaseDownloadTasks =
-                coreModsDownloads.Select(downloadTask => new ModReleaseDownloadTask(
-                    // Stubbing this object out so the task can be displayed with the normal mod download tasks
-                    new Release(
-                        "latest",
-                        "",
-                        "",
-                        DateTime.Now,
-                        new ModManifest(
-                            "",
-                            downloadTask.Target.OutputPath!.Split("/").Last(),
-                            "",
-                            "",
-                            "",
-                            ModType.Shared,
-                            new List<string>(),
-                            new List<Dependency>(),
-                            new List<ModTag>(),
-                            new List<string>(),
-                            new OptionFlags(false)
-                        )
-                    ),
-                    downloadTask
-                ));
+                if (version != null) {
+
+                    var target = new DownloadTarget(CoreMods.UnchainedPluginURL, CoreMods.UnchainedPluginPath);
+                    var downloadTask = 
+                        HttpHelpers.DownloadFileAsync(target.Url, target.OutputPath!)
+                            .ContinueWith(() => File.WriteAllText(FilePaths.UnchainedPluginVersionPath, version.ToString()));
+
+                    var unchainedPluginModReleaseDownloadTask =
+                        new ModReleaseDownloadTask(
+                            // Stubbing this object out so the task can be displayed with the normal mod download tasks
+                            new Release(
+                                "latest",
+                                "",
+                                "",
+                                DateTime.Now,
+                                new ModManifest(
+                                    "",
+                                    downloadTask.Target.OutputPath!.Split("/").Last(),
+                                    "",
+                                    "",
+                                    "",
+                                    ModType.Shared,
+                                    new List<string>(),
+                                    new List<Dependency>(),
+                                    new List<ModTag>(),
+                                    new List<string>(),
+                                    new OptionFlags(false)
+                                )
+                            ),
+                            downloadTask
+                        );
+                }
+            }
 
             var tasks = EnabledModReleases.ToList().Select(DownloadModRelease);
 
-            return coreModsModReleaseDownloadTasks.Concat(tasks);
+            var unchainedPluginDownloadTaskAsList = 
+                unchainedPluginDownloadTask != null 
+                    ? new List<ModReleaseDownloadTask>() { unchainedPluginDownloadTask } 
+                    : new List<ModReleaseDownloadTask>();
+
+            return tasks.Concat(unchainedPluginDownloadTaskAsList);
+        }
+
+        /// <summary>
+        /// This is all very dirty and will be deleted in 1.x ModManager should never hold a reference to the window, and should never be invoking delegates on the UI thread.
+        /// </summary>
+        /// <param name="window"></param>
+        /// <returns></returns>
+        private static async Task<SemVersion?> CheckForUnchainedPluginUpdates(Window window) {
+            logger.Info("Checking for UnchainedPlugin.dll updates...");
+
+            SemVersion? currentVersion = null;
+            try {
+                currentVersion = SemVersion.Parse(File.ReadAllText(FilePaths.UnchainedPluginVersionPath), SemVersionStyles.AllowV);
+            } catch (FileNotFoundException) {
+                logger.Warn("Failed to find UnchainedPlugin version file. Assuming no version.");
+            } catch (FormatException) {
+                logger.Warn("Failed to parse UnchainedPlugin version file. Assuming no version.");
+            }
+
+            // Check the latest version by looking at the redirect url for the latest release.
+            // this will provide us with something like "https://github.com/Chiv2-Community/UnchainedLauncher/releases/tag/v1.0.0"
+            var coreModUrl = await HttpHelpers.GetRedirectedUrl("https://github.com/Chiv2-Community/UnchainedLauncher/releases/latest");
+            SemVersion? latestVersion = null;
+
+            try {
+                latestVersion = SemVersion.Parse(coreModUrl?.Split("/").Last(), SemVersionStyles.AllowV);
+            } catch (FormatException) {
+                logger.Warn("Failed to parse latest UnchainedPlugin version from url. Assuming no version.");
+            }
+
+            var downloadPlugin = false;
+
+            await window.Dispatcher.BeginInvoke(delegate () {
+                if (latestVersion != null) {
+                    if (currentVersion != null) {
+                        if (currentVersion.ComparePrecedenceTo(latestVersion) <= -1) {
+                            var message = $"An update is available for UnchainedPlugin.dll\n- Current Version: {currentVersion}\n- Latest Version: {latestVersion}.\n\nWould you like to download the new version?";
+
+                            message.Split('\n').ToList().ForEach(x => logger.Info(x));
+
+                            var result = MessageBox.Show(message, "Update UnchainedPlugin.dll?", MessageBoxButton.YesNo);
+
+                            logger.Info("User Selects: " + result.ToString());
+
+                            if (result == MessageBoxResult.Yes) {
+                                downloadPlugin = true;
+                            }
+                        } else {
+                            logger.Info("UnchainedPlugin.dll is up to date.");
+                        }
+                    } else {
+                        var message = $"An update is available for UnchainedPlugin.dll\n- Latest Version: {latestVersion}.\n\nWould you like to download the new version?";
+                        message.Split('\n').ToList().ForEach(x => logger.Info(x));
+
+                        var result = MessageBox.Show(message, "Update UnchainedPlugin.dll?", MessageBoxButton.YesNo);
+                        logger.Info("User Selects: " + result.ToString());
+
+                        if (result == MessageBoxResult.Yes) { downloadPlugin = true; }
+                    }
+                } else {
+                    logger.Warn("Failed to find latest version of UnchainedPlugin.dll");
+                }
+            });
+
+            return downloadPlugin ? latestVersion : null;
+
         }
 
         private ModReleaseDownloadTask DownloadModRelease(Release release) {

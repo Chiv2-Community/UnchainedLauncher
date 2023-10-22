@@ -41,6 +41,22 @@ namespace C2GUILauncher {
             );
         }
 
+        /// <summary>
+        /// Gets the redirected url for the given url.
+        /// </summary>
+        /// <param name="url"></param>
+        /// <returns></returns>
+        public async static Task<string?> GetRedirectedUrl(string url) {
+            logger.Info($"Getting redirected url for {url}");
+            var request = new HttpRequestMessage(HttpMethod.Head, url);
+            var response = await _httpClient.SendAsync(request);
+            if (response.IsSuccessStatusCode) {
+                return response.RequestMessage?.RequestUri?.ToString();
+            } else {
+                return null;
+            }
+        }
+
         public static DownloadTask<Stream> GetByteContentsAsync(string url) {
             logger.Info($"Downloading file {url}");
             return new DownloadTask<Stream>(

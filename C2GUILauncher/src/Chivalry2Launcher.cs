@@ -40,7 +40,7 @@ namespace C2GUILauncher {
             return VanillaLauncher.Launch(string.Join(" ", args));
         }
 
-        public async Task<Thread?> LaunchModded(Window window, InstallationType installationType, List<string> args, bool downloadPlugin, Process? serverRegister = null) {
+        public async Task<Thread?> LaunchModded(Window window, InstallationType installationType, List<string> args, bool checkForPluginUpdates, Process? serverRegister = null) {
             if (installationType == InstallationType.NotSet) return null;
 
             logger.Info("Attempting to launch modded game.");
@@ -62,9 +62,8 @@ namespace C2GUILauncher {
             var launchThread = new Thread(async () => {
                 try {
                     try {
-                        
 
-                        List<ModReleaseDownloadTask> downloadTasks = this.ModManager.DownloadModFiles(downloadPlugin).ToList();
+                        var downloadTasks = await this.ModManager.DownloadModFiles(checkForPluginUpdates, window);
                         await Task.WhenAll(downloadTasks.Select(x => x.DownloadTask.Task));
                     } catch (Exception ex) {
                         logger.Error("Failed to download mods and plugins.", ex);

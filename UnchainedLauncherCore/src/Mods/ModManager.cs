@@ -8,9 +8,8 @@ using LanguageExt;
 using LanguageExt.Common;
 using LanguageExt.TypeClasses;
 using System;
-using UnchainedLauncher.Core.Logging;
-using UnchainedLauncher.Core.LanguageExt;
 using LanguageExt.ClassInstances.Pred;
+using UnchainedLauncherCore.src.Extensions;
 
 namespace UnchainedLauncher.Core.Mods
 {
@@ -39,24 +38,23 @@ namespace UnchainedLauncher.Core.Mods
         public const string PackageDBPackageListUrl = $"{PackageDBBaseUrl}/mod_list_index.txt";
     }
 
-    public class ModManager {
+    public class ModManager : IModManager {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModManager));
 
         public ObservableCollection<Release> EnabledModReleases { get; }
 
-        public Dictionary<ModRegistry, IEnumerable<Mod>> ModMap { get; }
+        public Dictionary<IModRegistry, IEnumerable<Mod>> ModMap { get; }
 
         public IEnumerable<Mod> Mods => ModMap.Values.Flatten();
-        public ModRegistry ModRegistry { get; }
 
         public ModManager(
-            Dictionary<ModRegistry, IEnumerable<Mod>> modMap,
+            Dictionary<IModRegistry, IEnumerable<Mod>> modMap,
             ObservableCollection<Release> enabledMods) {
             ModMap = modMap;
             EnabledModReleases = enabledMods;
         }
 
-        public static ModManager ForRegistries(params ModRegistry[] registries) {
+        public static ModManager ForRegistries(params IModRegistry[] registries) {
 
 
             var loadReleaseMetadata = (string path) => {
@@ -112,38 +110,54 @@ namespace UnchainedLauncher.Core.Mods
             );
         }
 
-        public Release? GetCurrentlyEnabledReleaseForMod(Mod mod) {
-            return EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl);
+        public Option<Release> GetCurrentlyEnabledReleaseForMod(Mod mod) {
+            return Prelude.Optional(EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl));
         }
 
-        public void DisableModRelease(Release release) {
-            logger.Info("Disabling mod release: " + release.Manifest.Name + " " + release.Tag);
+        public EitherAsync<Error, Unit> DisableModRelease(Release release) {
+            return Prelude.Try(() => {
+                logger.Info("Disabling mod release: " + release.Manifest.Name + " " + release.Tag);
 
-            // Should be doing this when all downloads get done, but cba to do it better right now.
-            FileHelpers.DeleteFile(FilePaths.PakDir + "\\" + release.PakFileName);
+                // Should be doing this when all downloads get done, but cba to do it better right now.
+                FileHelpers.DeleteFile(FilePaths.PakDir + "\\" + release.PakFileName);
 
-            var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
-            var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
-            var metadataFilePath = orgPath + "\\" + urlParts.Last() + ".json";
-            FileHelpers.DeleteFile(metadataFilePath);
+                var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
+                var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
+                var metadataFilePath = orgPath + "\\" + urlParts.Last() + ".json";
+                FileHelpers.DeleteFile(metadataFilePath);
 
-            EnabledModReleases.Remove(release);
+                EnabledModReleases.Remove(release);
+                return Unit.Default;
+            }).ToAsync().ToEither();
         }
 
         public EitherAsync<Error, Unit> EnableModRelease(Release release, Option<IProgress<double>> progress, CancellationToken cancellationToken) {
-            logger.Info("Enabling mod release: " + release.Manifest.Name + " " + release.Tag);
             var associatedMod = Mods.First(Mods => Mods.Releases.Contains(release));
-            var currentlyEnabledRelease = GetCurrentlyEnabledReleaseForMod(associatedMod);
-            if (currentlyEnabledRelease != null) {
-                logger.Info("Disabling currently enabled release: " + currentlyEnabledRelease.Manifest.Name + " " + currentlyEnabledRelease.Tag);
-                DisableModRelease(currentlyEnabledRelease);
-            }
+            var maybeCurrentlyEnabledRelease = GetCurrentlyEnabledReleaseForMod(associatedMod);
 
-            EnabledModReleases.Add(release);
-            return DownloadModRelease(release, progress, cancellationToken);
+            maybeCurrentlyEnabledRelease.IfSome(currentlyEnabledRelease => {
+                logger.Info($"Changing {currentlyEnabledRelease.Manifest.Name} from version {currentlyEnabledRelease.Tag} to version {release.Tag}");
+                DisableModRelease(currentlyEnabledRelease);
+            });
+
+            maybeCurrentlyEnabledRelease.IfNone(() => logger.Info($"Enabling {release.Manifest.Name} version {release.Tag}"));
+
+            return 
+                DownloadModRelease(release, progress, cancellationToken)
+                    .Tap(_ => EnabledModReleases.Add(release));
         }
 
-        public async Task<(IEnumerable<RegistryMetadataException>, IEnumerable<Mod>)> UpdateModsList() {
+        public async Task<GetAllModsResult> UpdateModsList() {
+
+           void logResults(IModRegistry registry, GetAllModsResult result) {
+                logger.Info($"Got {result.Mods.Count()} mods from registry {registry.Name}");
+
+                if (result.Errors.Any())
+                    logger.Error($"Got {result.Errors.Count()} exceptions from registry {registry.Name}");
+
+                result.Errors.ToList().ForEach(exception => logger.Error(exception));
+            }
+
             logger.Info("Updating mods list...");
 
             logger.Info($"Downloading mod list from registry {ModRegistry}");
@@ -152,26 +166,11 @@ namespace UnchainedLauncher.Core.Mods
 
             var result =
                 await registries
-                    .Select(registry => (registry, registry.GetAllMods()))
-                    .Select(async tuple => {
-                        var (registry, getAllModsTask) = tuple;
-                        var (exceptions, mods) = await getAllModsTask;
-                        logger.Info($"Got {mods.Count()} mods from registry {registry}");
-
-                        if (exceptions.Any())
-                            logger.Error($"Got {exceptions.Count()} exceptions from registry {registry.Name}");
-
-                        exceptions.ToList().ForEach(exception => logger.Error(exception));
-                        ModMap.Add(registry, mods);
-                        return (exceptions, mods);
-                    })
+                    .Select(async registry => (registry, await registry.GetAllMods()))
                     .SequenceSerial()
-                    .Select(results =>
-                        results.Aggregate((l, r) => (
-                            l.exceptions.Concat(r.exceptions),
-                            l.mods.Concat(r.mods)
-                        ))
-                    );
+                    .Tap(tuples => tuples.Map((result) => logResults(result.registry, result.Item2)))
+                    .Tap(tuple => ModMap.Add(tuple, updateModsListResult.Mods))
+                    .Select(results => results.Aggregate((l, r) => l + r));
 
 
 
@@ -188,7 +187,7 @@ namespace UnchainedLauncher.Core.Mods
                 .Select(tuple => new Tuple<Release, Release>(tuple.Item1!, tuple.Item2!)); // Get the latest release
         }
 
-        public EitherAsync<Error,Unit> DownloadModFiles(bool downloadPlugin) {
+        public EitherAsync<Error, Unit> DownloadModFiles(bool downloadPlugin) {
             logger.Info("Downloading mod files...");
             logger.Info("Creating mod diretories...");
             Directory.CreateDirectory(CoreMods.EnabledModsCacheDir);
@@ -206,7 +205,7 @@ namespace UnchainedLauncher.Core.Mods
             foreach (var depr in DeprecatedLibs)
                 FileHelpers.DeleteFile(depr);
 
-            var tryDownload = 
+            var tryDownload =
                 Prelude.TryAsync(() =>
                     downloadPlugin
                         ? HttpHelpers.DownloadFileAsync(CoreMods.UnchainedPluginURL, CoreMods.UnchainedPluginPath).Task
@@ -229,7 +228,7 @@ namespace UnchainedLauncher.Core.Mods
         private EitherAsync<Error, Unit> DownloadModRelease(Release release, Option<IProgress<double>> progress, CancellationToken token) {
             var outputPath = FilePaths.PakDir + "\\" + release.PakFileName;
 
-            Option<ModRegistry> maybeResult = GetRegistryForRelease(release);
+            Option<IModRegistry> maybeResult = GetRegistryForRelease(release);
 
             return maybeResult
                 .ToEitherAsync(() => Error.New($"Failed to find mod release {release.Manifest.Name} {release.Tag}"))
@@ -240,8 +239,8 @@ namespace UnchainedLauncher.Core.Mods
                 .Map(_ => logger.InfoUnit($"Successfully enabled mod release {release.Manifest.Name} {release.Tag}"));
         }
 
-        private Option<ModRegistry> GetRegistryForRelease(Release release) {
-            var result = 
+        private Option<IModRegistry> GetRegistryForRelease(Release release) {
+            var result =
                 ModMap.ToHashMap()
                     .Keys
                     .Select(registry =>
@@ -251,8 +250,8 @@ namespace UnchainedLauncher.Core.Mods
                             .Map(_ => registry)
                     ).FirstOrDefault();
 
-            if(result == null)
-                return Option<ModRegistry>.None;
+            if (result == null)
+                return Option<IModRegistry>.None;
 
             return result;
         }
@@ -301,7 +300,7 @@ namespace UnchainedLauncher.Core.Mods
                 return registry.DownloadPak(release, outputPath + ".tmp");
             };
 
-            return 
+            return
                 Prelude.Try(File.Exists(outputPath))
                     .ToAsync()
                     .ToEither()
@@ -325,9 +324,9 @@ namespace UnchainedLauncher.Core.Mods
                 }))
                 .ToEither()
                 .Tap(_ => logger.Info("Successfully wrote enabled mod json metadata to " + filePath))
-                .MapLeft(err => 
+                .MapLeft(err =>
                     Error.New(
-                        "Failed to write enabled mod json metadata to " + filePath + " " + err.Message, 
+                        "Failed to write enabled mod json metadata to " + filePath + " " + err.Message,
                         err
                     )
                 );

@@ -1,7 +1,7 @@
 ﻿using LanguageExt;
 
 
-namespace UnchainedLauncher.Core.LanguageExt {
+namespace UnchainedLauncher.Core.Extensions {
     public static class EitherExtensions {
         public static EitherAsync<L, R> Tap<L, R>(this EitherAsync<L, R> either, Action<R> f) {
             return either.Map(r => {

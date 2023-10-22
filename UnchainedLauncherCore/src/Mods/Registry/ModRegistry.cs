@@ -9,29 +9,41 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Mods.Registry
 {
-    /// <summary>
-    /// A ModRegistry contains all relevant metadata for a repository of mods
-    /// A ModRegistry does not necessarily know how to download the mods, however
-    /// it will provide the coordinates which can be used to download the mods via
-    /// ModRegistryPakFetcher
-    /// </summary>
-    public abstract class ModRegistry
+
+    public record GetAllModsResult(IEnumerable<GetAllModsResult> Errors, IEnumerable<Mod> Mods) {
+        public bool HasErrors => Errors.Any();
+
+        public GetAllModsResult AddError(GetAllModsResult error) {
+            return this with { Errors = Errors.Append(error) };
+        }
+
+        public GetAllModsResult AddMod(Mod mod) {
+            return this with { Mods = Mods.Append(mod) };
+        }
+
+        public static GetAllModsResult operator +(GetAllModsResult a, GetAllModsResult b) {
+            return new GetAllModsResult(a.Errors.Concat(b.Errors), a.Mods.Concat(b.Mods));
+        }
+    };
+
+        /// <summary>
+        /// A ModRegistry contains all relevant metadata for a repository of mods
+        /// A ModRegistry does not necessarily know how to download the mods, however
+        /// it will provide the coordinates which can be used to download the mods via
+        /// ModRegistryPakFetcher
+        /// </summary>
+    public interface IModRegistry
     {
-        protected static readonly ILog logger = LogManager.GetLogger(nameof(ModRegistry));
+        protected static readonly ILog logger = LogManager.GetLogger(nameof(IModRegistry));
         public ModRegistryDownloader ModRegistryDownloader { get; }
         public string Name { get; }
-
-        public ModRegistry(string name, ModRegistryDownloader downloader) {
-            Name = name;
-            ModRegistryDownloader = downloader;
-        }
 
 
         /// <summary>
         /// Get all mod metadata from this registry
         /// </summary>
         /// <returns></returns>
-        public abstract Task<(IEnumerable<RegistryMetadataException>, IEnumerable<Mod>)> GetAllMods();
+        public abstract Task<GetAllModsResult> GetAllMods();
 
         /// <summary>
         /// Gets the mod metadata string located at the given path within the registry

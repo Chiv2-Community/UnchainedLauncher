@@ -30,7 +30,7 @@ namespace C2GUILauncher.Mods {
 
         public const string UnchainedPluginPath = $"{FilePaths.PluginDir}\\UnchainedPlugin.dll";
         public const string UnchainedPluginLatestURL = $"{GithubBaseURL}/Chiv2-Community/UnchainedPlugin/releases/latest";
-        public const string UnchainedPluginURL = $"{UnchainedPluginLatestURL}/download/UnchainedPlugin.dll";
+        public static string UnchainedPluginURL(String tag) => $"{GithubBaseURL}/Chiv2-Community/UnchainedPlugin/releases/download/{tag}/UnchainedPlugin.dll";
 
         public const string PackageDBBaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/db/package_db";
         public const string PackageDBPackageListUrl = $"{PackageDBBaseUrl}/mod_list_index.txt";
@@ -227,42 +227,8 @@ namespace C2GUILauncher.Mods {
 
             ModReleaseDownloadTask? unchainedPluginDownloadTask = null;
 
-            if (checkForPluginUpdates) {
-                var version = await CheckForUnchainedPluginUpdates(window);
-
-                if (version != null) {
-
-                    var target = new DownloadTarget(CoreMods.UnchainedPluginURL, CoreMods.UnchainedPluginPath);
-                    var downloadTask = 
-                        HttpHelpers.DownloadFileAsync(target.Url, target.OutputPath!)
-                            .ContinueWith(() => File.WriteAllText(FilePaths.UnchainedPluginVersionPath, version.ToString()));
-
-                    var unchainedPluginModReleaseDownloadTask =
-                        new ModReleaseDownloadTask(
-                            // Stubbing this object out so the task can be displayed with the normal mod download tasks
-                            new Release(
-                                "latest",
-                                "",
-                                "",
-                                DateTime.Now,
-                                new ModManifest(
-                                    "",
-                                    downloadTask.Target.OutputPath!.Split("/").Last(),
-                                    "",
-                                    "",
-                                    "",
-                                    ModType.Shared,
-                                    new List<string>(),
-                                    new List<Dependency>(),
-                                    new List<ModTag>(),
-                                    new List<string>(),
-                                    new OptionFlags(false)
-                                )
-                            ),
-                            downloadTask
-                        );
-                }
-            }
+            if (checkForPluginUpdates)
+                unchainedPluginDownloadTask = await DownloadUnchainedPluginUpdates(window);
 
             var tasks = EnabledModReleases.ToList().Select(DownloadModRelease);
 
@@ -279,7 +245,7 @@ namespace C2GUILauncher.Mods {
         /// </summary>
         /// <param name="window"></param>
         /// <returns></returns>
-        private static async Task<SemVersion?> CheckForUnchainedPluginUpdates(Window window) {
+        private static async Task<ModReleaseDownloadTask?> DownloadUnchainedPluginUpdates(Window window) {
             logger.Info("Checking for UnchainedPlugin.dll updates...");
 
             SemVersion? currentVersion = null;
@@ -294,10 +260,11 @@ namespace C2GUILauncher.Mods {
             // Check the latest version by looking at the redirect url for the latest release.
             // this will provide us with something like "https://github.com/Chiv2-Community/UnchainedPlugin/releases/tag/v1.0.0"
             var coreModUrl = await HttpHelpers.GetRedirectedUrl(CoreMods.UnchainedPluginLatestURL);
+            var coreModTag = coreModUrl?.Split("/").Last();
             SemVersion? latestVersion = null;
 
             try {
-                latestVersion = SemVersion.Parse(coreModUrl?.Split("/").Last(), SemVersionStyles.AllowV);
+                latestVersion = SemVersion.Parse(coreModTag, SemVersionStyles.AllowV);
             } catch (FormatException) {
                 logger.Warn("Failed to parse latest UnchainedPlugin version from url. Assuming no version.");
             }
@@ -336,8 +303,39 @@ namespace C2GUILauncher.Mods {
                 }
             });
 
-            return downloadPlugin ? latestVersion : null;
+            if (downloadPlugin) {
 
+                var target = new DownloadTarget(CoreMods.UnchainedPluginURL(coreModTag!), CoreMods.UnchainedPluginPath);
+                var downloadTask =
+                    HttpHelpers.DownloadFileAsync(target.Url, target.OutputPath!)
+                        .ContinueWith(() => File.WriteAllText(FilePaths.UnchainedPluginVersionPath, latestVersion!.ToString()));
+
+                return new ModReleaseDownloadTask(
+                        // Stubbing this object out so the task can be displayed with the normal mod download tasks
+                        new Release(
+                            "latest",
+                            "",
+                            "",
+                            DateTime.Now,
+                            new ModManifest(
+                                "",
+                                downloadTask.Target.OutputPath!.Split("/").Last(),
+                                "",
+                                "",
+                                "",
+                                ModType.Shared,
+                                new List<string>(),
+                                new List<Dependency>(),
+                                new List<ModTag>(),
+                                new List<string>(),
+                                new OptionFlags(false)
+                            )
+                        ),
+                        downloadTask
+                    );
+            }
+
+            return null;
         }
 
         private ModReleaseDownloadTask DownloadModRelease(Release release) {

@@ -29,7 +29,8 @@ namespace C2GUILauncher.Mods {
         //public const string BrowserPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2BrowserPlugin/releases/latest/download/C2BrowserPlugin.dll";
 
         public const string UnchainedPluginPath = $"{FilePaths.PluginDir}\\UnchainedPlugin.dll";
-        public const string UnchainedPluginURL = $"{GithubBaseURL}/Chiv2-Community/UnchainedPlugin/releases/latest/download/UnchainedPlugin.dll";
+        public const string UnchainedPluginLatestURL = $"{GithubBaseURL}/Chiv2-Community/UnchainedPlugin/releases/latest";
+        public const string UnchainedPluginURL = $"{UnchainedPluginLatestURL}/download/UnchainedPlugin.dll";
 
         public const string PackageDBBaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/db/package_db";
         public const string PackageDBPackageListUrl = $"{PackageDBBaseUrl}/mod_list_index.txt";
@@ -203,6 +204,7 @@ namespace C2GUILauncher.Mods {
                 .Select(tuple => new Tuple<Release,Release>(tuple.Item1!, tuple.Item2!)); // Get the latest release
         }
 
+        // TODO: Delete this method in 1.x
         public async Task<IEnumerable<ModReleaseDownloadTask>> DownloadModFiles(bool checkForPluginUpdates, Window window) {
             logger.Info("Downloading mod files...");
 
@@ -290,8 +292,8 @@ namespace C2GUILauncher.Mods {
             }
 
             // Check the latest version by looking at the redirect url for the latest release.
-            // this will provide us with something like "https://github.com/Chiv2-Community/UnchainedLauncher/releases/tag/v1.0.0"
-            var coreModUrl = await HttpHelpers.GetRedirectedUrl("https://github.com/Chiv2-Community/UnchainedLauncher/releases/latest");
+            // this will provide us with something like "https://github.com/Chiv2-Community/UnchainedPlugin/releases/tag/v1.0.0"
+            var coreModUrl = await HttpHelpers.GetRedirectedUrl(CoreMods.UnchainedPluginLatestURL);
             SemVersion? latestVersion = null;
 
             try {

@@ -308,7 +308,7 @@ namespace C2GUILauncher.Mods {
                 if (latestVersion != null) {
                     if (currentVersion != null) {
                         if (currentVersion.ComparePrecedenceTo(latestVersion) <= -1) {
-                            var message = $"An update is available for UnchainedPlugin.dll\n- Current Version: {currentVersion}\n- Latest Version: {latestVersion}.\n\nWould you like to download the new version?";
+                            var message = $"An update is available for UnchainedPlugin.dll\n- Current Version: {currentVersion}\n- Latest Version: {latestVersion}\n\nWould you like to download the new version?";
 
                             message.Split('\n').ToList().ForEach(x => logger.Info(x));
 

@@ -11,6 +11,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using UnchainedLauncher.Core.Mods;
+using LanguageExt;
+using System.Threading;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {
@@ -86,7 +88,7 @@ namespace UnchainedLauncher.GUI.ViewModels
                 }
 
                 var message = $"Found {updateCount} updates available.\n\n";
-                message += string.Join("\n", pendingUpdates.Select(x => $"- {x.Item1.Manifest.Name} {x.Item2.Tag} -> {x.Item1.Tag}"));
+                message += string.Join("\n", pendingUpdates.Select(x => $"- {x.CurrentlyEnabled.Manifest.Name} {x.CurrentlyEnabled.Tag} -> {x.AvailableUpdate.Tag}"));
                 message += "\n\nWould you like to update these mods now?";
 
                 message.Split("\n").ToList().ForEach(x => logger.Info(x));
@@ -97,7 +99,7 @@ namespace UnchainedLauncher.GUI.ViewModels
                 if (res == MessageBoxResult.Yes) {
                     logger.Info("Updating mods...");
 
-                    var updatesTask = pendingUpdates.Select(async x => await ModManager.EnableModRelease(x.Item1).DownloadTask.Task);
+                    var updatesTask = pendingUpdates.Select(async x => await ModManager.EnableModRelease(x.AvailableUpdate, Prelude.None, CancellationToken.None));
                     await Task.WhenAll(updatesTask);
                     await RefreshModListAsync();
 

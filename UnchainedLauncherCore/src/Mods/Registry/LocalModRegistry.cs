@@ -9,32 +9,29 @@ using System.Threading.Tasks;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods.Registry.Resolver;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.Mods.Registry;
 
 namespace UnchainedLauncher.Core.Mods.Registry {
-    public class LocalModRegistry : ModRegistry {
+    public class LocalModRegistry : JsonRegistry {
+        public override string Name => $"Local registry at {RegistryPath}";
+        public override ModRegistryDownloader ModRegistryDownloader { get; }
 
         public string RegistryPath { get; }
-        public LocalModRegistry(string registryPath, ModRegistryDownloader downloader) : base("Local registry at: " + registryPath, downloader) {
+        public LocalModRegistry(string registryPath, ModRegistryDownloader downloader) {
             RegistryPath = registryPath;
+            ModRegistryDownloader = downloader;
         }
 
-        public override Task<(IEnumerable<RegistryMetadataException>, IEnumerable<Mod>)> GetAllMods() {
-            // List all json files found in the registry path
-            var emptyResult =
-                new Tuple<ImmutableList<RegistryMetadataException>, ImmutableList<Mod>>(
-                    ImmutableList<RegistryMetadataException>.Empty,
-                    ImmutableList<Mod>.Empty
-                );
-
+        public override Task<GetAllModsResult> GetAllMods() {
             return Task
                 .Run(() => Directory.EnumerateFiles(RegistryPath, "*.json", SearchOption.AllDirectories))
                 .Bind(paths =>
                     paths.ToImmutableList()
                         .Select(GetModMetadata)
                         .Partition()
+                        .Select(t => new GetAllModsResult(t.Item1, t.Item2))
                 );
         }
-
 
         public override EitherAsync<RegistryMetadataException, string> GetModMetadataString(string modPath) {
             return EitherAsync<RegistryMetadataException, string>

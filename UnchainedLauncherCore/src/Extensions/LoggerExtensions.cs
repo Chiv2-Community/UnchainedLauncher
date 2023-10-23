@@ -1,19 +1,40 @@
 ﻿using LanguageExt;
 using log4net;
+using log4net.Core;
 
 namespace UnchainedLauncher.Core.Extensions
 {
     public static class LoggerExtensions
     {
-        public static void LogListInfo<T>(this ILog logger, string initialMessage, IEnumerable<T> list)
+        public static Unit LogListInfo<T>(this ILog logger, string initialMessage, IEnumerable<T> list)
         {
-            logger.Info("");
-            logger.Info(initialMessage);
-            foreach (var item in list)
-            {
-                logger.Info("\t" + (item?.ToString() ?? "null"));
+            return LogList(logger.Info, initialMessage, list);
+        }
+
+        public static Unit LogListError<T>(this ILog logger, string initialMessage, IEnumerable<T> list) {
+            return LogList(logger.Error, initialMessage, list);
+        }
+
+        public static Unit LogListWarn<T>(this ILog logger, string initialMessage, IEnumerable<T> list) {
+            return LogList(logger.Warn, initialMessage, list);
+        }
+
+        public static Unit LogListDebug<T>(this ILog logger, string initialMessage, IEnumerable<T> list) {
+            return LogList(logger.Debug, initialMessage, list);
+        }
+
+        public static Unit LogListFatal<T>(this ILog logger, string initialMessage, IEnumerable<T> list) {
+            return LogList(logger.Fatal, initialMessage, list);
+        }
+
+        private static Unit LogList<T>(Action<string> logFunc, string initialMessage, IEnumerable<T> list) {
+            logFunc("");
+            logFunc(initialMessage);
+            foreach (var item in list) {
+                logFunc("\t" + (item?.ToString() ?? "null"));
             }
-            logger.Info("");
+            logFunc("");
+            return Unit.Default;
         }
 
         public static Unit InfoUnit(this ILog logger, string message)

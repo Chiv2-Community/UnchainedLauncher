@@ -4,7 +4,7 @@ using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Mods;
-using UnchainedLauncherCore.src.Extensions;
+using UnchainedLauncher.Core.Extensions;
 
 namespace UnchainedLauncher.Core
 {

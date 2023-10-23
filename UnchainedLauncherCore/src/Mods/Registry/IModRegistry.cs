@@ -10,10 +10,10 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.Core.Mods.Registry
 {
 
-    public record GetAllModsResult(IEnumerable<GetAllModsResult> Errors, IEnumerable<Mod> Mods) {
+    public record GetAllModsResult(IEnumerable<RegistryMetadataException> Errors, IEnumerable<Mod> Mods) {
         public bool HasErrors => Errors.Any();
 
-        public GetAllModsResult AddError(GetAllModsResult error) {
+        public GetAllModsResult AddError(RegistryMetadataException error) {
             return this with { Errors = Errors.Append(error) };
         }
 
@@ -51,32 +51,8 @@ namespace UnchainedLauncher.Core.Mods.Registry
         /// <param name="modPath"></param>
         /// <returns></returns>
         public abstract EitherAsync<RegistryMetadataException, string> GetModMetadataString(string modPath);
+        public abstract EitherAsync<RegistryMetadataException, Mod> GetModMetadata(string modPath);
 
-        /// <summary>
-        /// Gets the mod metadata located at the given path within the registry
-        /// </summary>
-        /// <param name="modPath"></param>
-        /// <returns></returns>
-        public EitherAsync<RegistryMetadataException, Mod> GetModMetadata(string modPath) {
-            return GetModMetadataString(modPath).Bind(json =>
-                // Try to deserialize as V3 first
-                JsonHelpers.Deserialize<Mod>(json).RecoverWith(e => {
-                    // If that fails, try to deserialize as V2
-                    logger.Warn("Falling back to V2 deserialization: " + e?.Message ?? "unknown failure");
-                    return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Mod>(json)
-                        .Select(Mod.FromV2);
-                }).RecoverWith(e => {
-                    // If that fails, try to deserialize as V1
-                    logger.Warn("Falling back to V1 deserialization" + e?.Message ?? "unknown failure");
-                    return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Mod>(json)
-                        .Select(JsonModels.Metadata.V2.Mod.FromV1)
-                        .Select(Mod.FromV2);
-                })
-                .ToEither()
-                .ToAsync()
-                .MapLeft(err => new RegistryMetadataException(modPath, err))
-            );
-        }
 
         public EitherAsync<Error, FileWriter> DownloadPak(PakTarget coordinates, string outputLocation) {
             return 

@@ -1,8 +1,9 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using UnchainedLauncher.Core;
+using UnchainedLauncherCore.src.Processes;
 
-namespace UnchainedLauncher.Core.Processes {
+namespace UnchainedLauncher.Core.Processes
+{
     /// <summary>
     /// Launches an executable with the provided working directory and DLLs to inject.
     /// </summary>

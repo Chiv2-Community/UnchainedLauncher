@@ -9,7 +9,8 @@ using LanguageExt.Common;
 using LanguageExt.TypeClasses;
 using System;
 using LanguageExt.ClassInstances.Pred;
-using UnchainedLauncherCore.src.Extensions;
+using UnchainedLauncher.Core.Extensions;
+using System.Collections.Immutable;
 
 namespace UnchainedLauncher.Core.Mods
 {
@@ -41,7 +42,8 @@ namespace UnchainedLauncher.Core.Mods
     public class ModManager : IModManager {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModManager));
 
-        public ObservableCollection<Release> EnabledModReleases { get; }
+        public List<Release> _enabledModReleases = new List<Release>();
+        public IEnumerable<Release> EnabledModReleases { get { return _enabledModReleases; } }
 
         public Dictionary<IModRegistry, IEnumerable<Mod>> ModMap { get; }
 
@@ -49,9 +51,9 @@ namespace UnchainedLauncher.Core.Mods
 
         public ModManager(
             Dictionary<IModRegistry, IEnumerable<Mod>> modMap,
-            ObservableCollection<Release> enabledMods) {
+            List<Release> enabledMods) {
             ModMap = modMap;
-            EnabledModReleases = enabledMods;
+            _enabledModReleases = enabledMods;
         }
 
         public static ModManager ForRegistries(params IModRegistry[] registries) {
@@ -97,7 +99,7 @@ namespace UnchainedLauncher.Core.Mods
                         .ToList();
             }
 
-            var registryMap = new Dictionary<ModRegistry, IEnumerable<Mod>>();
+            var registryMap = new Dictionary<IModRegistry, IEnumerable<Mod>>();
 
             registries.ToList().ForEach(registry =>
                 registryMap.Add(registry, new List<Mod>())
@@ -106,7 +108,7 @@ namespace UnchainedLauncher.Core.Mods
 
             return new ModManager(
                 registryMap,
-                new ObservableCollection<Release>(enabledModReleases!)
+                new List<Release>(enabledModReleases)
             );
         }
 
@@ -126,7 +128,7 @@ namespace UnchainedLauncher.Core.Mods
                 var metadataFilePath = orgPath + "\\" + urlParts.Last() + ".json";
                 FileHelpers.DeleteFile(metadataFilePath);
 
-                EnabledModReleases.Remove(release);
+                _enabledModReleases.Remove(release);
                 return Unit.Default;
             }).ToAsync().ToEither();
         }
@@ -144,47 +146,56 @@ namespace UnchainedLauncher.Core.Mods
 
             return 
                 DownloadModRelease(release, progress, cancellationToken)
-                    .Tap(_ => EnabledModReleases.Add(release));
+                    .Tap(_ => _enabledModReleases.Add(release));
         }
 
         public async Task<GetAllModsResult> UpdateModsList() {
-
-           void logResults(IModRegistry registry, GetAllModsResult result) {
+            static Unit logResults(IModRegistry registry, GetAllModsResult result) {
                 logger.Info($"Got {result.Mods.Count()} mods from registry {registry.Name}");
 
                 if (result.Errors.Any())
                     logger.Error($"Got {result.Errors.Count()} exceptions from registry {registry.Name}");
 
                 result.Errors.ToList().ForEach(exception => logger.Error(exception));
+                return Unit.Default;
             }
 
             logger.Info("Updating mods list...");
-
-            logger.Info($"Downloading mod list from registry {ModRegistry}");
 
             var registries = ModMap.Keys;
 
             var result =
                 await registries
-                    .Select(async registry => (registry, await registry.GetAllMods()))
-                    .SequenceSerial()
-                    .Tap(tuples => tuples.Map((result) => logResults(result.registry, result.Item2)))
-                    .Tap(tuple => ModMap.Add(tuple, updateModsListResult.Mods))
-                    .Select(results => results.Aggregate((l, r) => l + r));
+                    .Map(async registry => (registry, result: await registry.GetAllMods()))
+                    .SequenceParallel()
+                    .Map(resultPairs => {
+                        return 
+                            resultPairs
+                                .Map(tuple => {
+                                    var registry = tuple.registry;
+                                    var allModsResult = tuple.result;
 
+                                    logResults(registry, allModsResult);
+                                    ModMap.Add(registry, allModsResult.Mods);
+                                    return allModsResult;
+                                })
+                                .Aggregate((l, r) => l + r);
+                    });
 
-
-            logger.Info($"Got a total of   {result.mods.Count()} mods from all registries");
+            logger.Info($"Got a total of {result.Mods.Count()} mods from all registries");
 
             return result;
         }
 
-        public IEnumerable<Tuple<Release, Release>> GetUpdateCandidates() {
+        public IEnumerable<UpdateCandidate> GetUpdateCandidates() {
             return Mods
-                .Select(mod => new Tuple<Release?, Release?>(mod.LatestRelease, GetCurrentlyEnabledReleaseForMod(mod))) // Get the currently enabled release, as well as the latest mod release
-                .Where(Release => Release.Item2 != null && Release.Item1 != null) // Filter out mods that aren't enabled
-                .Where(tuple => tuple.Item1!.Version.ComparePrecedenceTo(tuple.Item2!.Version) > 0) // Filter out older releases
-                .Select(tuple => new Tuple<Release, Release>(tuple.Item1!, tuple.Item2!)); // Get the latest release
+                .Select(mod =>
+                    (GetCurrentlyEnabledReleaseForMod(mod), mod.LatestRelease)
+                        .Sequence() // Convert (Option<Release>, Option<Release>) to Option<(Release, Release)>
+                        .Map(tuple => new UpdateCandidate(tuple.Item1, tuple.Item2))
+                )
+                .Collect(result => result.ToImmutableList()) // Filter out mods that aren't enabled
+                .Where(tuple => tuple.AvailableUpdate.Version.ComparePrecedenceTo(tuple.CurrentlyEnabled.Version) > 0); // Filter out older releases
         }
 
         public EitherAsync<Error, Unit> DownloadModFiles(bool downloadPlugin) {
@@ -275,9 +286,8 @@ namespace UnchainedLauncher.Core.Mods
                 .Bind(_ => EitherAsync<Error, Unit>.Right(Unit.Default));
         }
 
-        private static EitherAsync<Error, FileWriter> PrepareDownload(ModRegistry registry, Release release, Option<IProgress<double>> progress, string outputPath) {
-
-            Func<bool, EitherAsync<Error, Unit>> checkExistingFileHash = (bool exists) => {
+        private static EitherAsync<Error, FileWriter> PrepareDownload(IModRegistry registry, Release release, Option<IProgress<double>> progress, string outputPath) {
+            EitherAsync<Error, Unit> checkExistingFileHash(bool exists) {
                 if (!exists)
                     return EitherAsync<Error, Unit>.Right(Unit.Default);
 
@@ -293,12 +303,12 @@ namespace UnchainedLauncher.Core.Mods
 
                         return EitherAsync<Error, Unit>.Right(Unit.Default);
                     });
-            };
+            }
 
-            var prepareDownloadFileWriter = () => {
+            EitherAsync<Error, FileWriter> prepareDownloadFileWriter() {
                 logger.Info($"Downloading {release.Manifest.Name} {release.Tag} to {FilePaths.PakDir}/{release.PakFileName}");
                 return registry.DownloadPak(release, outputPath + ".tmp");
-            };
+            }
 
             return
                 Prelude.Try(File.Exists(outputPath))

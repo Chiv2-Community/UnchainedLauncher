@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using LanguageExt;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Semver;
 
@@ -13,7 +14,12 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
                 Releases: input.Releases.ConvertAll(Release.FromV2)
             );
         }
-        public Release? LatestRelease => Releases.Where(x => x.Version.IsRelease).OrderByDescending(x => x.Version).FirstOrDefault();
+        public Option<Release> LatestRelease => 
+            Prelude.Optional(
+                Releases.Where(x => x.Version.IsRelease)
+                    .OrderByDescending(x => x.Version)
+                    .FirstOrDefault()
+            );
     }
 
     public record Release(

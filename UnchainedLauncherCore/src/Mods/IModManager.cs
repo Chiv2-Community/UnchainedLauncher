@@ -34,7 +34,7 @@ namespace UnchainedLauncher.Core.Mods {
         /// TODO: Delete this.
         /// </summary>
         /// <param name="downloadPlugin"></param>
-        /// <returns></returns>
+        /// <returns>Either an error containing information about what went wrong, or the nothing if successful</returns>
         EitherAsync<Error, Unit> DownloadModFiles(bool downloadPlugin);
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace UnchainedLauncher.Core.Mods {
         /// <summary>
         /// Returns a list of all mods which have updates available
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A List of all available updates</returns>
         IEnumerable<UpdateCandidate> GetUpdateCandidates();
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace UnchainedLauncher.Core.Mods {
         /// IModManager implementation has a cached internal state, this method may update that 
         /// internal state.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A Task containing a GetAllModsResult which has the aggregate list of errors and mods from all registries this ModManager instance has</returns>
         public Task<GetAllModsResult> UpdateModsList();
     }
 }

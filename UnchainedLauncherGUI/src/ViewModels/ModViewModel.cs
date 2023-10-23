@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
 using UnchainedLauncher.Core.Mods;
+using LanguageExt;
+using LanguageExt.UnsafeValueAccess;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {
@@ -16,23 +18,27 @@ namespace UnchainedLauncher.GUI.ViewModels
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModViewModel));
         // A ModViewModel needs access to the mod manager so that it can enable/disable releases as they get set on the view.
         private ModManager ModManager { get; }
-
         public Mod Mod { get; }
 
         public VersionNameSort VersionNameSortKey => new VersionNameSort(EnabledRelease?.Version, Mod.LatestManifest.Name);
 
-        private Release? _enabledRelease;
-        public Release? EnabledRelease {
+        private Option<Release> _enabledRelease;
+        public Option<Release> EnabledRelease {
             get => _enabledRelease;
             set {
                 if (_enabledRelease != value) {
-                    if (value == null) {
-                        ModManager.DisableModRelease(_enabledRelease!);
-                    } else {
-                        ModManager.EnableModRelease(value);
-                    }
+                    value.IfNone(() =>
+                        _enabledRelease.IfSome(release =>
+                            // The call to ValueUnsafe here is safe, because _enabledRelease != val
+                            await ModManager.DisableModRelease(release)
+                        )
+                    );
+
+                    _enabledRelease.IfNone(() => ModManager.EnableModRelease(value);
                     _enabledRelease = value;
+
                 }
+            }
             }
         }
         public string Description {
@@ -87,7 +93,7 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public ICommand ButtonCommand { get; }
 
-        public ModViewModel(Mod mod, Release? enabledRelease, ModManager modManager) {
+        public ModViewModel(Mod mod, Option<Release> enabledRelease, ModManager modManager) {
             _enabledRelease = enabledRelease;
             EnabledRelease = _enabledRelease;
 

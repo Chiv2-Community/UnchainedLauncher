@@ -1,5 +1,4 @@
 ﻿using LanguageExt;
-using LanguageExt.Common;
 using log4net;
 
 namespace UnchainedLauncher.Core.Utilities

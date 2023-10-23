@@ -10,42 +10,35 @@ using System.Windows.Input;
 using UnchainedLauncher.Core.Mods;
 using LanguageExt;
 using LanguageExt.UnsafeValueAccess;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
+using System.ComponentModel;
+using System.Threading;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {
     [AddINotifyPropertyChangedInterface]
-    public class ModViewModel {
+    public partial class ModViewModel : INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModViewModel));
         // A ModViewModel needs access to the mod manager so that it can enable/disable releases as they get set on the view.
-        private ModManager ModManager { get; }
+        private IModManager ModManager { get; }
         public Mod Mod { get; }
 
-        public VersionNameSort VersionNameSortKey => new VersionNameSort(EnabledRelease?.Version, Mod.LatestManifest.Name);
+        public VersionNameSort VersionNameSortKey => new VersionNameSort(
+            EnabledRelease.Map(x => x.Version).FirstOrDefault(), 
+            Mod.LatestManifest.Name
+        );
 
-        private Option<Release> _enabledRelease;
-        public Option<Release> EnabledRelease {
-            get => _enabledRelease;
-            set {
-                if (_enabledRelease != value) {
-                    value.IfNone(() =>
-                        _enabledRelease.IfSome(release =>
-                            // The call to ValueUnsafe here is safe, because _enabledRelease != val
-                            await ModManager.DisableModRelease(release)
-                        )
-                    );
+        public Option<Release> EnabledRelease { get; set; }
 
-                    _enabledRelease.IfNone(() => ModManager.EnableModRelease(value);
-                    _enabledRelease = value;
-
-                }
-            }
-            }
-        }
         public string Description {
             get {
-                var message = EnabledRelease?.Manifest.Description ?? Mod.LatestManifest.Description;
+                var manifest = EnabledRelease.Match(
+                    None: Mod.LatestManifest,
+                    Some: x => x.Manifest
+                );
 
-                var manifest = EnabledRelease?.Manifest ?? Mod.LatestManifest;
+                var message = manifest.Description;
 
                 if (manifest.Dependencies.Count > 0) {
                     message += "\n\nYou must also enable the dependencies below:\n";
@@ -62,10 +55,10 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public string ButtonText {
             get {
-                if (EnabledRelease == null)
-                    return "Enable";
-
-                return "Disable";
+                return EnabledRelease.Match(
+                    None: () => "Enable",
+                    Some: _ => "Disable"
+                );
             }
         }
 
@@ -78,12 +71,12 @@ namespace UnchainedLauncher.GUI.ViewModels
             get { return EnabledRelease != null; }
         }
 
-        public string? EnabledVersion {
+        public string EnabledVersion {
             get {
-                if (IsEnabled)
-                    return EnabledRelease!.Tag;
-
-                return "none";
+                return EnabledRelease.Match(
+                    None: () => "none",
+                    Some: x => x.Tag
+                );
             }
         }
 
@@ -93,16 +86,21 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public ICommand ButtonCommand { get; }
 
-        public ModViewModel(Mod mod, Option<Release> enabledRelease, ModManager modManager) {
-            _enabledRelease = enabledRelease;
-            EnabledRelease = _enabledRelease;
+        public ModViewModel(Mod mod, Option<Release> enabledRelease, IModManager modManager) {
+            EnabledRelease = enabledRelease;
 
             Mod = mod;
             ModManager = modManager;
 
             ButtonCommand = new RelayCommand(DisableOrEnable);
 
-            logger.Debug($"Initialized ModViewModel for {mod.LatestManifest.Name}. Currently enabled release: {enabledRelease?.Tag ?? "None"}");
+            PropertyChangedEventManager.AddHandler(this, async (sender, e) => {
+                if (e.PropertyName == nameof(EnabledRelease)) {
+                    await UpdateCurrentlyEnabledVersion(EnabledRelease);
+                }
+            }, nameof(EnabledRelease));
+            
+            logger.Debug($"Initialized ModViewModel for {mod.LatestManifest.Name}. Currently enabled release: {EnabledVersion}");
         }
 
         private void DisableOrEnable() {
@@ -110,6 +108,13 @@ namespace UnchainedLauncher.GUI.ViewModels
                 EnabledRelease = Mod.Releases.First();
             else
                 EnabledRelease = null;
+        }
+
+        private async Task UpdateCurrentlyEnabledVersion(Option<Release> newVersion) {
+            await newVersion.Match(
+                None: async () => await ModManager.DisableMod(Mod),
+                Some: async x => await ModManager.EnableModRelease(x, Prelude.None, CancellationToken.None)
+            );
         }
     }
 

@@ -1,10 +1,10 @@
 ﻿using LanguageExt;
+using LanguageExt.SomeHelp;
 using log4net;
 using Newtonsoft.Json;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods.Registry.Resolver;
 using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncherCore.src.Mods.Registry;
 
 namespace UnchainedLauncher.Core.Mods.Registry {
     public class GithubModRegistry : JsonRegistry, IModRegistry {
@@ -32,7 +32,7 @@ namespace UnchainedLauncher.Core.Mods.Registry {
                 .MapLeft(e => new RegistryMetadataException(PackageDBPackageListUrl, e))
                 .Match(
                     t => new GetAllModsResult(t.Lefts, t.Rights), // return the result if successful
-                    e => (new[] { e }.AsEnumerable(),Enumerable.Empty<Mod>()) // return an error if an error ocurred that prevented anything from being returned
+                    e => new GetAllModsResult(e.ToSome().ToSeq(), Prelude.Seq<Mod>()) // return an error if an error ocurred that prevented anything from being returned
                 );
         }
 

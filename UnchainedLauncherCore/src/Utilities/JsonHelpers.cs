@@ -3,7 +3,7 @@ using log4net;
 
 namespace UnchainedLauncher.Core.Utilities
 {
-    static class JsonHelpers
+    public static class JsonHelpers
     {
         private static readonly ILog logger = LogManager.GetLogger(nameof(JsonHelpers));
         /// <summary>
@@ -26,7 +26,7 @@ namespace UnchainedLauncher.Core.Utilities
         }
     }
 
-    record DeserializationResult<T>(T? Result, Exception? Exception)
+    public record DeserializationResult<T>(T? Result, Exception? Exception)
     {
         public bool Success => Result != null;
 

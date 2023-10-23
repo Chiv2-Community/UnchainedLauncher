@@ -42,6 +42,8 @@ namespace UnchainedLauncher.Core.Mods
     public class ModManager : IModManager {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModManager));
 
+        private IModManager AsIModManager => (IModManager)this;
+
         public List<Release> _enabledModReleases = new List<Release>();
         public IEnumerable<Release> EnabledModReleases { get { return _enabledModReleases; } }
 
@@ -112,10 +114,6 @@ namespace UnchainedLauncher.Core.Mods
             );
         }
 
-        public Option<Release> GetCurrentlyEnabledReleaseForMod(Mod mod) {
-            return Prelude.Optional(EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl));
-        }
-
         public EitherAsync<Error, Unit> DisableModRelease(Release release) {
             return Prelude.Try(() => {
                 logger.Info("Disabling mod release: " + release.Manifest.Name + " " + release.Tag);
@@ -135,7 +133,7 @@ namespace UnchainedLauncher.Core.Mods
 
         public EitherAsync<Error, Unit> EnableModRelease(Release release, Option<IProgress<double>> progress, CancellationToken cancellationToken) {
             var associatedMod = Mods.First(Mods => Mods.Releases.Contains(release));
-            var maybeCurrentlyEnabledRelease = GetCurrentlyEnabledReleaseForMod(associatedMod);
+            var maybeCurrentlyEnabledRelease = AsIModManager.GetCurrentlyEnabledReleaseForMod(associatedMod);
 
             maybeCurrentlyEnabledRelease.IfSome(currentlyEnabledRelease => {
                 logger.Info($"Changing {currentlyEnabledRelease.Manifest.Name} from version {currentlyEnabledRelease.Tag} to version {release.Tag}");
@@ -185,17 +183,6 @@ namespace UnchainedLauncher.Core.Mods
             logger.Info($"Got a total of {result.Mods.Count()} mods from all registries");
 
             return result;
-        }
-
-        public IEnumerable<UpdateCandidate> GetUpdateCandidates() {
-            return Mods
-                .Select(mod =>
-                    (GetCurrentlyEnabledReleaseForMod(mod), mod.LatestRelease)
-                        .Sequence() // Convert (Option<Release>, Option<Release>) to Option<(Release, Release)>
-                        .Map(tuple => new UpdateCandidate(tuple.Item1, tuple.Item2))
-                )
-                .Collect(result => result.ToImmutableList()) // Filter out mods that aren't enabled
-                .Where(tuple => tuple.AvailableUpdate.Version.ComparePrecedenceTo(tuple.CurrentlyEnabled.Version) > 0); // Filter out older releases
         }
 
         public EitherAsync<Error, Unit> DownloadModFiles(bool downloadPlugin) {

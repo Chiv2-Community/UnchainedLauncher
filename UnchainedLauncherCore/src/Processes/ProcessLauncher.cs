@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using UnchainedLauncherCore.src.Processes;
+using UnchainedLauncher.Core.Processes;
 
 namespace UnchainedLauncher.Core.Processes
 {

@@ -1,12 +1,15 @@
 ﻿using C2GUILauncher.JsonModels.Metadata.V3;
+using C2GUILauncher.Views;
 using log4net;
 using Newtonsoft.Json;
 using Semver;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Policy;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -267,8 +270,16 @@ namespace C2GUILauncher.Mods {
             // Check the latest version by looking at the redirect url for the latest release.
             // this will provide us with something like "https://github.com/Chiv2-Community/UnchainedPlugin/releases/tag/v1.0.0"
             var coreModUrl = await HttpHelpers.GetRedirectedUrl(CoreMods.UnchainedPluginLatestURL);
+
+            if(coreModUrl == null) {
+                logger.Warn("Failed to find latest UnchainedPlugin version url. Aborting update process.");
+                return null;
+            }
+
             var coreModTag = coreModUrl?.Split("/").Last();
             SemVersion? latestVersion = null;
+
+
 
             try {
                 latestVersion = SemVersion.Parse(coreModTag, SemVersionStyles.AllowV);
@@ -276,8 +287,7 @@ namespace C2GUILauncher.Mods {
                 logger.Warn("Failed to parse latest UnchainedPlugin version from url. Assuming no version.");
             }
 
-            var downloadPlugin = false;
-
+            var result = MessageBoxResult.None;
             await window.Dispatcher.BeginInvoke(delegate () {
                 if (latestVersion != null) {
                     if (currentVersion != null) {
@@ -286,17 +296,17 @@ namespace C2GUILauncher.Mods {
 
                             message.Split('\n').ToList().ForEach(x => logger.Info(x));
 
-                            var result = MessageBox.Show(message, "Update UnchainedPlugin.dll?", MessageBoxButton.YesNo);
+                            result = MessageBoxEx.Show("Update UnchainedPlugin.dll?", message, "Yes", "No", "View Changelog");
 
-                            logger.Info("User Selects: " + result.ToString());
-
-                            if (result == MessageBoxResult.Yes) {
-                                downloadPlugin = true;
-                            }
                         } else {
                             logger.Info("UnchainedPlugin.dll is up to date.");
                         }
                     } else {
+                        var titleText = 
+                            isPluginInstalled
+                                ? "Update UnchainedPlugin.dll?"
+                                : "Install UnchainedPlugin.dll?";
+
                         var messagePreamble = 
                             isPluginInstalled
                                 ? "An update is available for UnchainedPlugin.dll"
@@ -310,15 +320,28 @@ namespace C2GUILauncher.Mods {
                         var message = $"{messagePreamble}\n- Latest Version: {latestVersion}.\n\n{messageEnding}";
                         message.Split('\n').ToList().ForEach(x => logger.Info(x));
                             
-                        var result = MessageBox.Show(message, "Update UnchainedPlugin.dll?", MessageBoxButton.YesNo);
-                        logger.Info("User Selects: " + result.ToString());
-
-                        if (result == MessageBoxResult.Yes) { downloadPlugin = true; }
+                        result = MessageBoxEx.Show(titleText, message, "Yes", "No", "View Changelog");
                     }
                 } else {
                     logger.Warn("Failed to find latest version of UnchainedPlugin.dll");
                 }
             });
+
+
+            logger.Info("User Selects: " + result.ToString());
+
+            var downloadPlugin = result == MessageBoxResult.Yes;
+
+            if (result == MessageBoxResult.None) {
+                throw new DownloadCancelledException("User selected exit");
+            }
+
+            if (result == MessageBoxResult.Cancel) {
+                logger.Info("Opening changelog in browser: " + coreModUrl);
+                Process.Start(new ProcessStartInfo { FileName = coreModUrl, UseShellExecute = true });
+                throw new DownloadCancelledException("User selected to view changelog");
+            }
+
 
             if (downloadPlugin) {
 
@@ -408,11 +431,13 @@ namespace C2GUILauncher.Mods {
                     PendingDownloads.Remove(downloadTask);
                 }
             });
-
             return downloadTask;
         }
     }
 
+    public class DownloadCancelledException : Exception {
+        public DownloadCancelledException(string message) : base(message) { }
+    }
 
     public record ResolveReleasesResult(bool Successful, List<Release> Releases, List<DependencyConflict> Conflicts) {
         public static ResolveReleasesResult Success(List<Release> releases) { return new ResolveReleasesResult(true, releases, new List<DependencyConflict>()); }

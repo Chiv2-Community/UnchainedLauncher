@@ -65,6 +65,10 @@ namespace C2GUILauncher {
 
                         var downloadTasks = await this.ModManager.DownloadModFiles(checkForPluginUpdates, window);
                         await Task.WhenAll(downloadTasks.Select(x => x.DownloadTask.Task));
+                    } catch (DownloadCancelledException ex) {
+                        logger.Info(ex);
+                        logger.Info("Cancelling launch.");
+                        return;
                     } catch (Exception ex) {
                         logger.Error("Failed to download mods and plugins.", ex);
                         var result = MessageBox.Show("Failed to download mods and plugins. Check the logs for details. Continue Anyway?", "Continue Launching Chivalry 2 Unchained?", MessageBoxButton.YesNo);

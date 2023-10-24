@@ -59,12 +59,12 @@ namespace C2GUILauncher {
             }
 
             // Download the mod files, potentially using debug dlls
-            var launchThread = new Thread(async () => {
+            var launchThread = new Thread(() => {
                 try {
                     try {
 
-                        var downloadTasks = await this.ModManager.DownloadModFiles(checkForPluginUpdates, window);
-                        await Task.WhenAll(downloadTasks.Select(x => x.DownloadTask.Task));
+                        var downloadTasks = this.ModManager.DownloadModFiles(checkForPluginUpdates, window).Result;
+                        Task.WhenAll(downloadTasks.Select(x => x.DownloadTask.Task)).Wait();
                     } catch (DownloadCancelledException ex) {
                         logger.Info(ex);
                         logger.Info("Cancelling launch.");
@@ -94,23 +94,23 @@ namespace C2GUILauncher {
                         logger.Info("Starting Chivalry 2 Unchained.");
                         var process = ModdedLauncher.Launch(string.Join(" ", args));
 
-                        await window.Dispatcher.BeginInvoke(delegate () { window.Hide(); });
-                        await process.WaitForExitAsync();
+                        window.Dispatcher.BeginInvoke(delegate () { window.Hide(); }).Wait();
+                        process.WaitForExitAsync().Wait();
 
                         var exitedGracefully = GracefulExitCodes.Contains(process.ExitCode);
                         if(!restartOnCrash || exitedGracefully) break;
-                        
-                        await window.Dispatcher.BeginInvoke(delegate () { window.Show(); });
+
+                        window.Dispatcher.BeginInvoke(delegate () { window.Show(); }).Wait();
 
                         logger.Info($"Detected Chivalry2 crash (Exit code {process.ExitCode}). Restarting in 10 seconds. You may close the launcher while it is visible to prevent further restarts.");
-                        await Task.Delay(10000);
+                        Task.Delay(10000).Wait();
                     } while (true);
 
                     logger.Info("Process exited. Closing RCON and UnchainedLauncher.");
 
                     serverRegister?.CloseMainWindow();
 
-                    await window.Dispatcher.BeginInvoke(delegate () { window.Close(); });
+                    window.Dispatcher.BeginInvoke(delegate () { window.Close(); }).Wait();
 
                 } catch (Exception ex) {
                     logger.Error(ex);

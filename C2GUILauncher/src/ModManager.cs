@@ -300,6 +300,7 @@ namespace C2GUILauncher.Mods {
 
                         } else {
                             logger.Info("UnchainedPlugin.dll is up to date.");
+                            result = MessageBoxResult.OK;
                         }
                     } else {
                         var titleText = 
@@ -324,6 +325,7 @@ namespace C2GUILauncher.Mods {
                     }
                 } else {
                     logger.Warn("Failed to find latest version of UnchainedPlugin.dll");
+                    result = MessageBoxResult.OK;
                 }
             });
 
@@ -331,6 +333,10 @@ namespace C2GUILauncher.Mods {
             logger.Info("User Selects: " + result.ToString());
 
             var downloadPlugin = result == MessageBoxResult.Yes;
+
+            if (result == MessageBoxResult.OK) {
+                return null;
+            }
 
             if (result == MessageBoxResult.None) {
                 throw new DownloadCancelledException("User selected exit");

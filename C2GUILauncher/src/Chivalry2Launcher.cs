@@ -62,23 +62,26 @@ namespace C2GUILauncher {
             var launchThread = new Thread(() => {
                 try {
                     try {
-
                         var downloadTasks = this.ModManager.DownloadModFiles(checkForPluginUpdates, window).Result;
-                        Task.WhenAll(downloadTasks.Select(x => x.DownloadTask.Task)).Wait();
-                    } catch (DownloadCancelledException ex) {
-                        logger.Info(ex);
-                        logger.Info("Cancelling launch.");
-                        return;
-                    } catch (Exception ex) {
-                        logger.Error("Failed to download mods and plugins.", ex);
-                        var result = MessageBox.Show("Failed to download mods and plugins. Check the logs for details. Continue Anyway?", "Continue Launching Chivalry 2 Unchained?", MessageBoxButton.YesNo);
+                        Task.WaitAll(downloadTasks.Select(x => x.DownloadTask.Task).ToArray());
+                    } catch (AggregateException ex) {
+                        if (ex.InnerExceptions.Count == 1) {
+                            if (ex.InnerException is DownloadCancelledException dce) {
+                                logger.Info(dce);
+                                logger.Info("Cancelling launch.");
+                                return;
+                            }
+                        } else {
+                            logger.Error("Failed to download mods and plugins.", ex);
+                            var result = MessageBox.Show("Failed to download mods and plugins. Check the logs for details. Continue Anyway?", "Continue Launching Chivalry 2 Unchained?", MessageBoxButton.YesNo);
 
-                        if (result == MessageBoxResult.No) {
-                            logger.Info("Cancelling launch.");
-                            return;
-                        } 
-                            
-                        logger.Info("Continuing launch.");
+                            if (result == MessageBoxResult.No) {
+                                logger.Info("Cancelling launch.");
+                                return;
+                            }
+
+                            logger.Info("Continuing launch.");
+                        }
                     }
                     var dlls = Directory.EnumerateFiles(FilePaths.PluginDir, "*.dll").ToArray();
                     ModdedLauncher.Dlls = dlls;

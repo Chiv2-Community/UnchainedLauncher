@@ -14,7 +14,7 @@ namespace UnchainedLauncher.Core.Mods {
         /// <summary>
         /// A List of all currently enabled mods
         /// </summary>
-        IEnumerable<Release> EnabledModReleases { get; }
+        ObservableCollection<Release> EnabledModReleases { get; }
 
         /// <summary>
         /// A List of all mods which are available to be enabled.

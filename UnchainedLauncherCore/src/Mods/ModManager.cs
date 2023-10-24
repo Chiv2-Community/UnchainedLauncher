@@ -44,18 +44,17 @@ namespace UnchainedLauncher.Core.Mods
 
         private IModManager AsIModManager => (IModManager)this;
 
-        public List<Release> _enabledModReleases = new List<Release>();
-        public IEnumerable<Release> EnabledModReleases { get { return _enabledModReleases; } }
+        public ObservableCollection<Release> EnabledModReleases { get; }
 
-        public Dictionary<IModRegistry, IEnumerable<Mod>> ModMap { get; }
+        public HashMap<IModRegistry, IEnumerable<Mod>> ModMap { get; private set; }
 
         public IEnumerable<Mod> Mods => ModMap.Values.Flatten();
 
         public ModManager(
-            Dictionary<IModRegistry, IEnumerable<Mod>> modMap,
+            HashMap<IModRegistry, IEnumerable<Mod>> modMap,
             List<Release> enabledMods) {
             ModMap = modMap;
-            _enabledModReleases = enabledMods;
+            EnabledModReleases = new ObservableCollection<Release>(enabledMods);
         }
 
         public static ModManager ForRegistries(params IModRegistry[] registries) {
@@ -101,11 +100,10 @@ namespace UnchainedLauncher.Core.Mods
                         .ToList();
             }
 
-            var registryMap = new Dictionary<IModRegistry, IEnumerable<Mod>>();
-
-            registries.ToList().ForEach(registry =>
-                registryMap.Add(registry, new List<Mod>())
-            );
+            var registryMap = 
+                new HashMap<IModRegistry, IEnumerable<Mod>>(
+                    registries.ToList().Map(r => (r, (IEnumerable<Mod>)new List<Mod>()))
+                );
 
 
             return new ModManager(
@@ -126,7 +124,7 @@ namespace UnchainedLauncher.Core.Mods
                 var metadataFilePath = orgPath + "\\" + urlParts.Last() + ".json";
                 FileHelpers.DeleteFile(metadataFilePath);
 
-                _enabledModReleases.Remove(release);
+                EnabledModReleases.Remove(release);
                 return Unit.Default;
             }).ToAsync().ToEither();
         }
@@ -144,7 +142,7 @@ namespace UnchainedLauncher.Core.Mods
 
             return 
                 DownloadModRelease(release, progress, cancellationToken)
-                    .Tap(_ => _enabledModReleases.Add(release));
+                    .Tap(_ => EnabledModReleases.Add(release));
         }
 
         public async Task<GetAllModsResult> UpdateModsList() {
@@ -174,7 +172,7 @@ namespace UnchainedLauncher.Core.Mods
                                     var allModsResult = tuple.result;
 
                                     logResults(registry, allModsResult);
-                                    ModMap.Add(registry, allModsResult.Mods);
+                                    ModMap.AddOrUpdate(registry, allModsResult.Mods);
                                     return allModsResult;
                                 })
                                 .Aggregate((l, r) => l + r);

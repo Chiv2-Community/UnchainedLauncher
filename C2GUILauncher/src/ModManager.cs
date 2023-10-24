@@ -269,20 +269,20 @@ namespace C2GUILauncher.Mods {
 
             // Check the latest version by looking at the redirect url for the latest release.
             // this will provide us with something like "https://github.com/Chiv2-Community/UnchainedPlugin/releases/tag/v1.0.0"
-            var coreModUrl = await HttpHelpers.GetRedirectedUrl(CoreMods.UnchainedPluginLatestURL);
+            var latestUnchainedPluginUrl = await HttpHelpers.GetRedirectedUrl(CoreMods.UnchainedPluginLatestURL);
 
-            if(coreModUrl == null) {
+            if(latestUnchainedPluginUrl == null) {
                 logger.Warn("Failed to find latest UnchainedPlugin version url. Aborting update process.");
                 return null;
             }
 
-            var coreModTag = coreModUrl?.Split("/").Last();
+            var latestUnchainedPluginTag = latestUnchainedPluginUrl?.Split("/").Last();
             SemVersion? latestVersion = null;
 
 
 
             try {
-                latestVersion = SemVersion.Parse(coreModTag, SemVersionStyles.AllowV);
+                latestVersion = SemVersion.Parse(latestUnchainedPluginTag, SemVersionStyles.AllowV);
             } catch (FormatException) {
                 logger.Warn("Failed to parse latest UnchainedPlugin version from url. Assuming no version.");
             }
@@ -299,7 +299,7 @@ namespace C2GUILauncher.Mods {
                             result = MessageBoxEx.Show("Update UnchainedPlugin.dll?", message, "Yes", "No", "View Changelog");
 
                         } else {
-                            logger.Info("UnchainedPlugin.dll is up to date.");
+                            logger.Info("UnchainedPlugin.dll is up to date at version " + latestUnchainedPluginTag);
                             result = MessageBoxResult.OK;
                         }
                     } else {
@@ -343,15 +343,15 @@ namespace C2GUILauncher.Mods {
             }
 
             if (result == MessageBoxResult.Cancel) {
-                logger.Info("Opening changelog in browser: " + coreModUrl);
-                Process.Start(new ProcessStartInfo { FileName = coreModUrl, UseShellExecute = true });
+                logger.Info("Opening changelog in browser: " + latestUnchainedPluginUrl);
+                Process.Start(new ProcessStartInfo { FileName = latestUnchainedPluginUrl, UseShellExecute = true });
                 throw new DownloadCancelledException("User selected to view changelog");
             }
 
 
             if (downloadPlugin) {
 
-                var target = new DownloadTarget(CoreMods.UnchainedPluginURL(coreModTag!), CoreMods.UnchainedPluginPath);
+                var target = new DownloadTarget(CoreMods.UnchainedPluginURL(latestUnchainedPluginTag!), CoreMods.UnchainedPluginPath);
                 var downloadTask =
                     HttpHelpers.DownloadFileAsync(target.Url, target.OutputPath!)
                         .ContinueWith(() => File.WriteAllText(FilePaths.UnchainedPluginVersionPath, latestVersion!.ToString()));

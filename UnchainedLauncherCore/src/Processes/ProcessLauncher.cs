@@ -49,7 +49,6 @@ namespace UnchainedLauncher.Core.Processes
                 throw new LaunchFailedException(proc.StartInfo.FileName, proc.StartInfo.Arguments, e);
             }
 
-
             // If dlls are present inject them
             if (Dlls != null && Dlls.Any()) {
                 try {

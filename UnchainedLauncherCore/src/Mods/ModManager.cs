@@ -133,19 +133,25 @@ namespace UnchainedLauncher.Core.Mods
             var associatedMod = Mods.First(Mods => Mods.Releases.Contains(release));
             var maybeCurrentlyEnabledRelease = AsIModManager.GetCurrentlyEnabledReleaseForMod(associatedMod);
 
-            maybeCurrentlyEnabledRelease.IfSome(currentlyEnabledRelease => {
+            var whenNone = () => {
+                logger.Info($"Enabling {release.Manifest.Name} version {release.Tag}");
+                return EitherAsync<Error, Unit>.Right(Unit.Default);
+            };
+
+            var whenSome = (Release currentlyEnabledRelease) => {
                 logger.Info($"Changing {currentlyEnabledRelease.Manifest.Name} from version {currentlyEnabledRelease.Tag} to version {release.Tag}");
-                DisableModRelease(currentlyEnabledRelease);
-            });
+                return DisableModRelease(currentlyEnabledRelease);
+            };
 
-            maybeCurrentlyEnabledRelease.IfNone(() => logger.Info($"Enabling {release.Manifest.Name} version {release.Tag}"));
-
-            return 
-                DownloadModRelease(release, progress, cancellationToken)
+            return
+                maybeCurrentlyEnabledRelease
+                    .Match(None: whenNone, Some: whenSome)
+                    .Bind(_ => DownloadModRelease(release, progress, cancellationToken))
                     .Tap(_ => EnabledModReleases.Add(release));
         }
 
         public async Task<GetAllModsResult> UpdateModsList() {
+
             static Unit logResults(IModRegistry registry, GetAllModsResult result) {
                 logger.Info($"Got {result.Mods.Count()} mods from registry {registry.Name}");
 

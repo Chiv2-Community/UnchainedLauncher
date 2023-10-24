@@ -5,6 +5,7 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Extensions;
+using LanguageExt;
 
 namespace UnchainedLauncher.Core
 {
@@ -36,13 +37,19 @@ namespace UnchainedLauncher.Core
             return VanillaLauncher.Launch(string.Join(" ", args));
         }
 
-        public Thread? LaunchModded(InstallationType installationType, List<string> args, Process? serverRegister = null) {
+        public Thread? LaunchModded(InstallationType installationType, ModdedLaunchOptions launchOptions, Option<ServerLaunchOptions> serverLaunchOptions, List<string> extraArgs) {
             if (installationType == InstallationType.NotSet) return null;
 
             logger.Info("Attempting to launch modded game.");
 
             var launchThread = new Thread(async () => {
                 try {
+                    var moddedLaunchArgs = new List<string>();
+                    launchOptions.ServerBrowserBackend.IfSome(backend => moddedLaunchArgs.Add($"--server-browser-backend {backend}"));
+                    launchOptions.NextMapModActors.IfSome(modActors => moddedLaunchArgs.Add($"--next-map-mod-actors {string.Join(",", modActors)}"));
+                    launchOptions.AllModActors.IfSome(modActors => moddedLaunchArgs.Add($"--all-mod-actors {string.Join(",", modActors)}"));
+                    launchOptions.SavedDirSuffix.IfSome(suffix => moddedLaunchArgs.Add($"--saved-dir-suffix {suffix}"));
+
                     var dlls = Directory.EnumerateFiles(FilePaths.PluginDir, "*.dll").ToArray();
                     ModdedLauncher.Dlls = dlls;
 
@@ -81,4 +88,23 @@ namespace UnchainedLauncher.Core
             return launchThread;
         }
     }
+
+    public record ServerLaunchOptions(
+        bool headless,
+        Option<string> Name,
+        Option<string> Description,
+        Option<string> Password,
+        Option<string> Map,
+        Option<int> GamePort,
+        Option<int> BeaconPort,
+        Option<int> QueryPort,
+        Option<int> RconPort
+    );
+
+    public record ModdedLaunchOptions(
+        Option<string> ServerBrowserBackend,
+        Option<IEnumerable<string>> NextMapModActors,
+        Option<IEnumerable<string>> AllModActors,
+        Option<string> SavedDirSuffix
+    );
 }

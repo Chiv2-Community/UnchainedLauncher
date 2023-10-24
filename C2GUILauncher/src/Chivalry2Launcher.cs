@@ -40,7 +40,7 @@ namespace C2GUILauncher {
             return VanillaLauncher.Launch(string.Join(" ", args));
         }
 
-        public async Task<Thread?> LaunchModded(Window window, InstallationType installationType, List<string> args, bool downloadPlugin, Process? serverRegister = null) {
+        public async Task<Thread?> LaunchModded(Window window, InstallationType installationType, List<string> args, bool checkForPluginUpdates, Process? serverRegister = null) {
             if (installationType == InstallationType.NotSet) return null;
 
             logger.Info("Attempting to launch modded game.");
@@ -59,23 +59,29 @@ namespace C2GUILauncher {
             }
 
             // Download the mod files, potentially using debug dlls
-            var launchThread = new Thread(async () => {
+            var launchThread = new Thread(() => {
                 try {
                     try {
-                        
+                        var downloadTasks = this.ModManager.DownloadModFiles(checkForPluginUpdates, window).Result;
+                        Task.WaitAll(downloadTasks.Select(x => x.DownloadTask.Task).ToArray());
+                    } catch (AggregateException ex) {
+                        if (ex.InnerExceptions.Count == 1) {
+                            if (ex.InnerException is DownloadCancelledException dce) {
+                                logger.Info(dce);
+                                logger.Info("Cancelling launch.");
+                                return;
+                            }
+                        } else {
+                            logger.Error("Failed to download mods and plugins.", ex);
+                            var result = MessageBox.Show("Failed to download mods and plugins. Check the logs for details. Continue Anyway?", "Continue Launching Chivalry 2 Unchained?", MessageBoxButton.YesNo);
 
-                        List<ModReleaseDownloadTask> downloadTasks = this.ModManager.DownloadModFiles(downloadPlugin).ToList();
-                        await Task.WhenAll(downloadTasks.Select(x => x.DownloadTask.Task));
-                    } catch (Exception ex) {
-                        logger.Error("Failed to download mods and plugins.", ex);
-                        var result = MessageBox.Show("Failed to download mods and plugins. Check the logs for details. Continue Anyway?", "Continue Launching Chivalry 2 Unchained?", MessageBoxButton.YesNo);
+                            if (result == MessageBoxResult.No) {
+                                logger.Info("Cancelling launch.");
+                                return;
+                            }
 
-                        if (result == MessageBoxResult.No) {
-                            logger.Info("Cancelling launch.");
-                            return;
-                        } 
-                            
-                        logger.Info("Continuing launch.");
+                            logger.Info("Continuing launch.");
+                        }
                     }
                     var dlls = Directory.EnumerateFiles(FilePaths.PluginDir, "*.dll").ToArray();
                     ModdedLauncher.Dlls = dlls;
@@ -91,23 +97,23 @@ namespace C2GUILauncher {
                         logger.Info("Starting Chivalry 2 Unchained.");
                         var process = ModdedLauncher.Launch(string.Join(" ", args));
 
-                        await window.Dispatcher.BeginInvoke(delegate () { window.Hide(); });
-                        await process.WaitForExitAsync();
+                        window.Dispatcher.BeginInvoke(delegate () { window.Hide(); }).Wait();
+                        process.WaitForExitAsync().Wait();
 
                         var exitedGracefully = GracefulExitCodes.Contains(process.ExitCode);
                         if(!restartOnCrash || exitedGracefully) break;
-                        
-                        await window.Dispatcher.BeginInvoke(delegate () { window.Show(); });
+
+                        window.Dispatcher.BeginInvoke(delegate () { window.Show(); }).Wait();
 
                         logger.Info($"Detected Chivalry2 crash (Exit code {process.ExitCode}). Restarting in 10 seconds. You may close the launcher while it is visible to prevent further restarts.");
-                        await Task.Delay(10000);
+                        Task.Delay(10000).Wait();
                     } while (true);
 
                     logger.Info("Process exited. Closing RCON and UnchainedLauncher.");
 
                     serverRegister?.CloseMainWindow();
 
-                    await window.Dispatcher.BeginInvoke(delegate () { window.Close(); });
+                    window.Dispatcher.BeginInvoke(delegate () { window.Close(); }).Wait();
 
                 } catch (Exception ex) {
                     logger.Error(ex);

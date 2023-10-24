@@ -7,5 +7,6 @@
         public const string PakDir = "TBL\\Content\\Paks";
 
         public const string ModCachePath = ".mod_cache";
+        public const string UnchainedPluginVersionPath = ".mod_cache\\unchained-plugin-version.txt";
     }
 }

@@ -8,6 +8,7 @@ using Octokit;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -41,7 +42,7 @@ namespace C2GUILauncher.ViewModels {
             ModManager = modManager;
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
-            this.LaunchModdedCommand = new RelayCommand(async () => await LaunchModded());
+            this.LaunchModdedCommand = new RelayCommand(() => LaunchModded());
 
             Window = window;
 
@@ -60,7 +61,7 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        public async Task LaunchModded(IEnumerable<string>? exArgs = null, Process? serverRegister = null) {
+        public Task LaunchModded(IEnumerable<string>? exArgs = null, Process? serverRegister = null) {
             CanClick = false;
 
             // Pass args through if the args box has been modified, or if we're an EGS install
@@ -81,13 +82,15 @@ namespace C2GUILauncher.ViewModels {
             }
             cliArgs.Add(serverBrowserBackendArg);
             cliArgs = cliArgs.Where(x => x != null).Select(x => x.Trim()).Where(x => x.Any()).ToList();
-            var maybeThread = await Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, serverRegister);
-            CanClick = true;
+            return Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, serverRegister).ContinueWith(x => {
+                if (x.Result == null) {
+                    MessageBox.Show("Failed to launch game. Please select an InstallationType if one isn't set.");
+                    return;
+                } 
 
-            if (maybeThread == null) {
-                MessageBox.Show("Failed to launch game. Please select an InstallationType if one isn't set.");
-                return;
-            }
+                x.Result.Join();
+                CanClick = true;
+            });
         }
 
         public string[] BuildModArgs() {

@@ -71,20 +71,32 @@ namespace UnchainedLauncher.Core.Utilities {
             File.Delete(Path.Combine(Path.GetDirectoryName(filePath)!, USER_LOCK_SUFFIX));
         }
 
-        public static string Sha512(string filePath) {
-            using var sha512 = System.Security.Cryptography.SHA512.Create();
-            var bytes = File.ReadAllBytes(filePath);
-            return BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+        public static Either<HashFailure, string> Sha512(string filePath) {
+            return Prelude.Try(() => {
+                using var sha512 = System.Security.Cryptography.SHA512.Create();
+                var bytes = File.ReadAllBytes(filePath);
+                return BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
+            }).ToEither()
+              .MapLeft(error => new HashFailure(filePath, error));
         }
 
-        public static Task<string> Sha512Async(string filePath) {
+        public static EitherAsync<HashFailure, string> Sha512Async(string filePath) {
             using var sha512 = System.Security.Cryptography.SHA512.Create();
-            return File.ReadAllBytesAsync(filePath).ContinueWith(t => {
-                var bytes = t.Result;
-                return BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant();
-            });
+
+            return
+                Prelude
+                    .TryAsync(() => File.ReadAllBytesAsync(filePath))
+                    .Map(bytes => BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant())
+                    .ToEither()
+                    .MapLeft(error => new HashFailure(filePath, error));
+        }
+
+        public static EitherAsync<HashFailure, bool> ValidateFileHash(string filePath, string expectedHash) {
+            return Sha512Async(filePath).Map(shaHash => shaHash == expectedHash);
         }
     }
+
+    public record HashFailure(string FilePath, Error Error);
 
 
     public class FileWriter {
@@ -121,7 +133,7 @@ namespace UnchainedLauncher.Core.Utilities {
                         }
                     }
 
-                    return Unit.Default;
+                    return default;
                 })
                 .ToEither();
         }

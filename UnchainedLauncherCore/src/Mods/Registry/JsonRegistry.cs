@@ -9,7 +9,7 @@ namespace UnchainedLauncher.Core.Mods.Registry {
     public abstract class JsonRegistry : IModRegistry {
         protected static readonly ILog logger = LogManager.GetLogger(nameof(JsonRegistry));
 
-        public abstract ModRegistryDownloader ModRegistryDownloader { get; }
+        public abstract IModRegistryDownloader ModRegistryDownloader { get; }
         public abstract string Name { get; }
 
         /// <summary>

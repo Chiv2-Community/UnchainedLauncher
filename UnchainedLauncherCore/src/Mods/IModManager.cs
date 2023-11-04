@@ -41,6 +41,9 @@ namespace UnchainedLauncher.Core.Mods {
         /// <summary>
         /// Enables the given release for the given mod. This includes downloading any pak files
         /// as well as saving local metadata to indicate that this release is enabled.
+        /// 
+        /// Enabling an already enabled mod results in a noop
+        /// Enabling a different version for an already enabled mod will disable the currently enabled version
         /// </summary>
         /// <param name="release">The release to enable</param>
         /// <param name="progress">An optional progress indicator. Progress in percentage will be reported to the provided IProgress instance.</param>
@@ -66,7 +69,7 @@ namespace UnchainedLauncher.Core.Mods {
         public EitherAsync<Error, Unit> DisableMod(Mod mod) {
             return GetCurrentlyEnabledReleaseForMod(mod).Match(
                 Some: release => DisableModRelease(release),
-                None: () => EitherAsync<Error, Unit>.Right(Unit.Default)
+                None: () => EitherAsync<Error, Unit>.Right(default)
             );
         }
 

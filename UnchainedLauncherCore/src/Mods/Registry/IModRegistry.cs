@@ -35,7 +35,7 @@ namespace UnchainedLauncher.Core.Mods.Registry
     public interface IModRegistry
     {
         protected static readonly ILog logger = LogManager.GetLogger(nameof(IModRegistry));
-        public ModRegistryDownloader ModRegistryDownloader { get; }
+        public IModRegistryDownloader ModRegistryDownloader { get; }
         public string Name { get; }
 
 
@@ -46,25 +46,31 @@ namespace UnchainedLauncher.Core.Mods.Registry
         public abstract Task<GetAllModsResult> GetAllMods();
 
         /// <summary>
-        /// Gets the mod metadata string located at the given path within the registry
+        /// Gets the mod metadata in a string format, located at the given path within the registry
         /// </summary>
         /// <param name="modPath"></param>
         /// <returns></returns>
         public abstract EitherAsync<RegistryMetadataException, string> GetModMetadataString(string modPath);
+
+        /// <summary>
+        /// Deserializes the string format from GetModMetadataString into a Mod object
+        /// </summary>
+        /// <param name="modPath"></param>
+        /// <returns></returns>
         public abstract EitherAsync<RegistryMetadataException, Mod> GetModMetadata(string modPath);
 
 
-        public EitherAsync<Error, FileWriter> DownloadPak(PakTarget coordinates, string outputLocation) {
+        public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(PakTarget coordinates, string outputLocation) {
             return 
                 ModRegistryDownloader
                     .ModPakStream(coordinates)
                     .Map(stream => new FileWriter(outputLocation, stream));
         }
-        public EitherAsync<Error, FileWriter> DownloadPak(string org, string repoName, string fileName, string releaseTag, string outputLocation) {
+        public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(string org, string repoName, string fileName, string releaseTag, string outputLocation) {
             return DownloadPak(new PakTarget(org, repoName, fileName, releaseTag), outputLocation);
         }
 
-        public EitherAsync<Error, FileWriter> DownloadPak(Release release, string outputLocation) {
+        public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(Release release, string outputLocation) {
             return DownloadPak(release.Manifest.Organization, release.Manifest.RepoName, release.PakFileName, release.Tag, outputLocation);
         }
     }

@@ -14,7 +14,7 @@ namespace UnchainedLauncher.Core
         public static readonly string GameBinPath = FilePaths.BinDir + "\\Chivalry2-Win64-Shipping.exe";
         public static readonly string OriginalLauncherPath = "Chivalry2Launcher-ORIGINAL.exe";
 
-        private static readonly HashSet<int> GracefulExitCodes = new HashSet<int> { 0, -1073741510 };
+        private static readonly LanguageExt.HashSet<int> GracefulExitCodes = new LanguageExt.HashSet<int> { 0, -1073741510 };
 
         /// <summary>
         /// The original launcher is used to launch the game with no mods.

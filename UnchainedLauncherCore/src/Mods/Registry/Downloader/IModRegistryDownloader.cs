@@ -8,10 +8,12 @@ using System.Threading.Tasks;
 
 namespace UnchainedLauncher.Core.Mods.Registry.Resolver
 {
-    public abstract class ModRegistryDownloader
+    public interface IModRegistryDownloader
     {
-        public abstract EitherAsync<Error, Stream> ModPakStream(PakTarget target);
+        public abstract EitherAsync<ModPakStreamAcquisitionFailure, Stream> ModPakStream(PakTarget target);
     }
 
     public record PakTarget(string Org, string RepoName, string FileName, string ReleaseTag);
+
+    public record ModPakStreamAcquisitionFailure(PakTarget Target, Error Error);
 }

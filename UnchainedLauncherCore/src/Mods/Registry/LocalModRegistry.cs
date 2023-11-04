@@ -14,10 +14,10 @@ using UnchainedLauncher.Core.Mods.Registry;
 namespace UnchainedLauncher.Core.Mods.Registry {
     public class LocalModRegistry : JsonRegistry {
         public override string Name => $"Local registry at {RegistryPath}";
-        public override ModRegistryDownloader ModRegistryDownloader { get; }
+        public override IModRegistryDownloader ModRegistryDownloader { get; }
 
         public string RegistryPath { get; }
-        public LocalModRegistry(string registryPath, ModRegistryDownloader downloader) {
+        public LocalModRegistry(string registryPath, IModRegistryDownloader downloader) {
             RegistryPath = registryPath;
             ModRegistryDownloader = downloader;
         }

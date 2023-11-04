@@ -8,7 +8,7 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Mods.Registry {
     public class GithubModRegistry : JsonRegistry, IModRegistry {
-        public override ModRegistryDownloader ModRegistryDownloader { get; }
+        public override IModRegistryDownloader ModRegistryDownloader { get; }
         public override string Name => $"Github mod registry at {Organization}/{RepoName}";
 
         public string Organization { get; }
@@ -16,7 +16,7 @@ namespace UnchainedLauncher.Core.Mods.Registry {
         public string PackageDBBaseUrl => $"https://raw.githubusercontent.com/{Organization}/{RepoName}/db/package_db";
         public string PackageDBPackageListUrl => $"{PackageDBBaseUrl}/mod_list_index.txt";
 
-        public GithubModRegistry(string organization, string repoName, ModRegistryDownloader downloader) {
+        public GithubModRegistry(string organization, string repoName, IModRegistryDownloader downloader) {
             Organization = organization;
             RepoName = repoName;
             ModRegistryDownloader = downloader;

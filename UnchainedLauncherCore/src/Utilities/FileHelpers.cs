@@ -90,10 +90,6 @@ namespace UnchainedLauncher.Core.Utilities {
                     .ToEither()
                     .MapLeft(error => new HashFailure(filePath, error));
         }
-
-        public static EitherAsync<HashFailure, bool> ValidateFileHash(string filePath, string expectedHash) {
-            return Sha512Async(filePath).Map(shaHash => shaHash == expectedHash);
-        }
     }
 
     public record HashFailure(string FilePath, Error Error);

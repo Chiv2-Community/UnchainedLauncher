@@ -117,7 +117,7 @@ namespace UnchainedLauncher.Core.Mods
             if (!EnabledModReleases.Contains(release))
                 return EitherAsync<Error, Unit>.Right(default);
 
-            return Prelude.Try(() => {
+            return Prelude.Try<Unit>(() => {
                 logger.Info("Disabling mod release: " + release.Manifest.Name + " " + release.Tag);
 
                 // Should be doing this when all downloads get done, but cba to do it better right now.
@@ -227,19 +227,24 @@ namespace UnchainedLauncher.Core.Mods
                             .Select(r => DownloadModRelease(r, Option<IProgress<double>>.None, CancellationToken.None))
                             .SequenceParallel()
                      )
-                    .Select(_ => default); // discard the results because they're all Unit
+                    .Select(_ => default(Unit)); // discard the results because they're all Unit
 
         }
 
         private EitherAsync<Error, Unit> DownloadModRelease(Release release, Option<IProgress<double>> progress, CancellationToken token) {
             var outputPath = FilePaths.PakDir + "\\" + release.PakFileName;
 
-            EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> prepareDownload(IModRegistry registry) {
+            EitherAsync<DownloadModFailure, FileWriter> prepareDownload(IModRegistry registry) {
                 return
                     FileHelpers
-                        .ValidateFileHash(outputPath, release.ReleaseHash)
-                        .Bind(x )
-                        .BindTap()
+                        .Sha512Async(outputPath)
+                        .MapLeft(err => new DownloadModFailure.HashFailureWrapper(err).Widen)
+                        .Bind(hash => {
+                            if (hash == release.ReleaseHash)
+                                return Prelude.RightAsync(default(Unit));
+                            else
+                                return Prelude.LeftAsync(new DownloadModFailure.HashMismatch(release, hash).Widen);
+                        })
                         .Tap(_ => logger.Info($"Downloading {release.Manifest.Name} {release.Tag} to {FilePaths.PakDir}/{release.PakFileName}"))
                         .Bind(_ => registry.DownloadPak(release, outputPath + ".tmp"));
             }
@@ -318,4 +323,15 @@ namespace UnchainedLauncher.Core.Mods
                 );
         }
     }
+
+    public abstract record DownloadModFailure {
+        private DownloadModFailure() { }
+        public record ModPakStreamAcquisitionFailureWrapper(ModPakStreamAcquisitionFailure Failure) : DownloadModFailure;
+        public record HashFailureWrapper(HashFailure Failure) : DownloadModFailure;
+        public record HashMismatch(Release release, string InvalidHash) : DownloadModFailure;
+
+        public DownloadModFailure Widen => this;
+
+    }
+    
 }

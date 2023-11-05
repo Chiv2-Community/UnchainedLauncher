@@ -159,7 +159,6 @@ namespace C2GUILauncher.Mods {
             logger.Info($"Downloading mod list from registry {RegistryOrg}/{RegistryRepoName}");
             var packageListString = await HttpHelpers.GetStringContentsAsync(CoreMods.PackageDBPackageListUrl).Task;
             var packageNameToMetadataPath = (String s) => $"{CoreMods.PackageDBBaseUrl}/packages/{s}.json";
-            var packageNameToFilePath = (String s) => $"{CoreMods.ModsCachePackageDBPackagesDir}\\{s}.json";
 
             var packages = packageListString.Split("\n").Where(s => s.Length > 0);
 

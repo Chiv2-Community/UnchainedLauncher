@@ -187,8 +187,11 @@ namespace C2GUILauncher {
         }
 
         private bool modManagerLoaded = false;
+        private TabItem? lastTab = null;
         private void TabSelectionChanged(object sender, SelectionChangedEventArgs e) {
-            if (Tabs.SelectedItem == null) return;
+            if (Tabs.SelectedItem == null || Tabs.SelectedItem == lastTab) return;
+
+            lastTab = (TabItem)Tabs.SelectedItem;
 
             logger.Info("Opened Tab: " + ((TabItem)Tabs.SelectedItem).Header.ToString());
             if (!modManagerLoaded && ModManagerTab.IsSelected) {

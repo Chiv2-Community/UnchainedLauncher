@@ -23,14 +23,14 @@ namespace C2GUILauncher.Views {
         public UpdatesWindowViewModel ViewModel { get; private set; }
         public MessageBoxResult Result => ViewModel.Result;
 
-        public UpdatesWindow(string titleText, string yesButtonText, string noButtonText, string cancelButtonText, IEnumerable<DependencyUpdate> updates) {
+        public UpdatesWindow(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates) {
             InitializeComponent();
-            ViewModel = new UpdatesWindowViewModel(titleText, yesButtonText, noButtonText, cancelButtonText, updates, Close);
+            ViewModel = new UpdatesWindowViewModel(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates, Close);
             DataContext = ViewModel;
         }
 
-        public static MessageBoxResult Show(string titleText, string yesButtonText, string noButtonText, string cancelButtonText, IEnumerable<DependencyUpdate> updates) {
-            var window = new UpdatesWindow(titleText, yesButtonText, noButtonText, cancelButtonText, updates);
+        public static MessageBoxResult Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates) {
+            var window = new UpdatesWindow(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates);
             window.ShowDialog();
             return window.ViewModel.Result;
         }

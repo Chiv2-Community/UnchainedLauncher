@@ -199,14 +199,15 @@ namespace C2GUILauncher {
             var installingUnchainedMods = unchainedModsLatestRelease != null;
 
             // Set up the update request window
-            var titleText = "Set up core mods?";
+            var titleText = "Chivalry 2 Unchained Core Update";
+            var messageText = updatingPlugin ? "Update core plugin?" : "First Unchained Launch Setup.  Install Unchained Mods and Plugin?";
             var yesButtonText = "Yes";
             var noButtonText = "No";
             var cancelButtonText = "Cancel";
 
             MessageBoxResult? result = null;
             await window.Dispatcher.BeginInvoke(delegate () {
-                result = UpdatesWindow.Show(titleText, yesButtonText, noButtonText, cancelButtonText, updates);
+                result = UpdatesWindow.Show(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates);
             });
 
             if (result == MessageBoxResult.Cancel) {
@@ -220,11 +221,9 @@ namespace C2GUILauncher {
             }
 
             if(result == MessageBoxResult.Yes) {
-                DownloadTask? updatePluginDownloadTask = null;
                 if (latestPluginVersion != null) {
                     logger.Info("User accepted core mod update.");
-                    var target = new DownloadTarget(CoreMods.UnchainedPluginURL(latestUnchainedPluginTag!), CoreMods.UnchainedPluginPath);
-                    await HttpHelpers.DownloadFileAsync(target.Url, target.OutputPath!).Task;
+                    await HttpHelpers.DownloadFileAsync(CoreMods.UnchainedPluginURL(latestUnchainedPluginTag!), CoreMods.UnchainedPluginPath).Task;
                     File.WriteAllText(FilePaths.UnchainedPluginVersionPath, latestPluginVersion!.ToString());
                 }
 

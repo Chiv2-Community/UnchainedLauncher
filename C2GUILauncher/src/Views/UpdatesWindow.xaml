@@ -23,7 +23,7 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="20*" />
             <ColumnDefinition Width="20*" />
-            <ColumnDefinition Width="40*" />
+            <ColumnDefinition Width="{Binding CancelColumnWidth}" />
         </Grid.ColumnDefinitions>
 
         <Grid.RowDefinitions>
@@ -34,7 +34,7 @@
         
         <TextBlock Text="{Binding MessageText}" Grid.ColumnSpan="3" />
 
-        <ListView ItemsSource="{Binding Updates}" Grid.ColumnSpan="3" Grid.Row="1">
+        <ListView ItemsSource="{Binding Updates}" Grid.ColumnSpan="3" Grid.Row="1" BorderThickness="0,1,0,1">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Vertical">
@@ -70,8 +70,9 @@
             </ListView.ItemContainerStyle>
         </ListView>
         
+        
         <Button Name="Yes" IsDefault="True" Grid.Row="2" Content="{Binding YesButtonText}" Command="{Binding YesCommand}" Margin="10,10,0,10" />
-        <Button Grid.Column="1" Grid.Row="2" Content="{Binding NoButtonText}"  Command="{Binding NoCommand}" Margin="5,10,0,10" />
-        <Button IsCancel="True" Grid.Column="2" Grid.Row="2" Content="{Binding CancelButtonText}"  Command="{Binding CancelCommand}" Margin="5,10,10,10" />
+        <Button Grid.Column="1" Grid.Row="2" Content="{Binding NoButtonText}"  Command="{Binding NoCommand}" Margin="{Binding NoButtonMargin}" />
+        <Button Visibility="{Binding ShowCancelButton}" IsCancel="True" Grid.Column="2" Grid.Row="2" Content="{Binding CancelButtonText}"  Command="{Binding CancelCommand}" Margin="5,10,10,10" />
     </Grid >
 </Window>

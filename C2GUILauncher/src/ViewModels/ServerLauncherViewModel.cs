@@ -17,6 +17,7 @@ using System.Collections.Specialized;
 using System.Collections.ObjectModel;
 using log4net.Repository.Hierarchy;
 using log4net;
+using C2GUILauncher.Views;
 
 namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
@@ -183,9 +184,8 @@ namespace C2GUILauncher.ViewModels {
             } catch (Exception ex) {
                 MessageBox.Show("Failed to launch. Check the logs for details.");
                 logger.Error("Failed to launch.", ex);
-                CanClick = true;
             }
-
+            CanClick = true;
         }
 
         private async void LaunchServerHeadless() {
@@ -216,23 +216,16 @@ namespace C2GUILauncher.ViewModels {
                 await LauncherViewModel.LaunchModded(exArgs, serverRegister);
             } catch (Exception ex) {
                 MessageBox.Show(ex.ToString());
-                CanClick = true;
             }
+            CanClick = true;
         }
 
         private async Task<Process?> MakeRegistrationProcess() {
             if (!File.Exists("RegisterUnchainedServer.exe")) {
-                DownloadTask serverRegisterDownload = HttpHelpers.DownloadFileAsync(
-                    "https://github.com/Chiv2-Community/C2ServerAPI/releases/latest/download/RegisterUnchainedServer.exe",
-                    "RegisterUnchainedServer.exe"
-                );
+                var keepGoing = await DownloadRegistrationProcess();
 
-                try {
-                    await serverRegisterDownload.Task;
-                } catch (Exception e) {
-                    MessageBox.Show("Failed to download the Unchained server registration program:\n" + e.Message);
+                if (!keepGoing)
                     return null;
-                }
             }
 
             Process serverRegister = new Process();
@@ -265,6 +258,34 @@ namespace C2GUILauncher.ViewModels {
             serverRegister.StartInfo.CreateNoWindow = false;
 
             return serverRegister;
+        }
+
+        private async Task<bool> DownloadRegistrationProcess() {
+            var latestUrl = await HttpHelpers.GetRedirectedUrl("https://github.com/Chiv2-Community/C2ServerAPI/releases/latest");
+            var latestVersion = latestUrl.Split("/").Last();
+
+            var result = UpdatesWindow.Show("Install registration process?", "The server registration process has not been installed. Would you like to install it?", "Yes", "No", null, new List<DependencyUpdate>() {
+                    new DependencyUpdate("RegisterUnchainedServer.exe", null, latestVersion, latestUrl, "Required to register your server to the server browser")
+            });
+
+            if(result == MessageBoxResult.No) {
+                logger.Info("User declined to install registration process");
+                return false;
+            }
+
+            try {
+                DownloadTask serverRegisterDownload = HttpHelpers.DownloadFileAsync(
+                    $"{latestUrl}/download/RegisterUnchainedServer.exe",
+                    "RegisterUnchainedServer.exe"
+                );
+
+                await serverRegisterDownload.Task;
+
+                return true;
+            } catch (Exception e) {
+                MessageBox.Show("Failed to download the Unchained server registration program:\n" + e.Message);
+                return false;
+            }
         }
     }
 }

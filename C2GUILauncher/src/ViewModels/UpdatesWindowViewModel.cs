@@ -20,7 +20,10 @@ namespace C2GUILauncher.ViewModels {
         public string MessageText { get; }
         public string YesButtonText { get; }
         public string NoButtonText { get; }
-        public string CancelButtonText { get; }
+        public string? CancelButtonText { get; }
+        public bool ShowCancelButton => CancelButtonText != null;
+        public string CancelColumnWidth => ShowCancelButton ? "40*" : "0";
+        public string NoButtonMargin => ShowCancelButton ? "5,10,0,10" : "5,10,10,10";
 
         public IEnumerable<DependencyUpdate> Updates { get; }
 
@@ -31,11 +34,9 @@ namespace C2GUILauncher.ViewModels {
         public ICommand CancelCommand { get; set; }
         private Action CloseWindow { get; }
 
-        public Window Window { get; }
-
-        public UpdatesWindowViewModel(string titleText, string yesButtonText, string noButtonText, string cancelButtonText, IEnumerable<DependencyUpdate> updates, Action closeWindow) {
+        public UpdatesWindowViewModel(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates, Action closeWindow) {
             TitleText = titleText;
-            MessageText = "Install the following mods?";
+            MessageText = messageText;
             YesButtonText = yesButtonText;
             NoButtonText = noButtonText;
             CancelButtonText = cancelButtonText;

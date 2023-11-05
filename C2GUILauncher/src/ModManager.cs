@@ -184,11 +184,9 @@ namespace C2GUILauncher.Mods {
                     if(deserializationResult.Exception != null)
                         logger.Error("Failed to deserialize mod metadata file " + downloadTask.Target.Url, deserializationResult.Exception);
 
-                    if (deserializationResult.Success) {
+                    if (deserializationResult.Success)
                         Mods.Add(deserializationResult.Result!);
-                    } else {
-                        logger.Error("Failed to deserialize mod metadata file " + downloadTask.Target.Url, deserializationResult.Exception);
-                    }
+                
                 });
 
             await Task.WhenAll(downloadTasks);

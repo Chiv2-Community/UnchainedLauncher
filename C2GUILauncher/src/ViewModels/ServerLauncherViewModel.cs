@@ -262,10 +262,16 @@ namespace C2GUILauncher.ViewModels {
 
         private async Task<bool> DownloadRegistrationProcess() {
             var latestUrl = await HttpHelpers.GetRedirectedUrl("https://github.com/Chiv2-Community/C2ServerAPI/releases/latest");
-            var latestVersion = latestUrl.Split("/").Last();
+            var latestVersion = latestUrl?.Split("/").LastOrDefault();
+
+            if(latestVersion == null) {
+                logger.Error("Failed to get latest version url");
+                MessageBox.Show("Failed to find latest RegisterUnchainedServer.exe release. Your server may not appear in the server browser.");
+                return false;
+            }
 
             var result = UpdatesWindow.Show("Install registration process?", "The server registration process has not been installed. Would you like to install it?", "Yes", "No", null, new List<DependencyUpdate>() {
-                    new DependencyUpdate("RegisterUnchainedServer.exe", null, latestVersion, latestUrl, "Required to register your server to the server browser")
+                    new DependencyUpdate("RegisterUnchainedServer.exe", null, latestVersion!, latestUrl!, "Required to register your server to the server browser")
             });
 
             if(result == MessageBoxResult.No) {

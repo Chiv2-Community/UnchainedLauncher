@@ -208,7 +208,7 @@ namespace C2GUILauncher.Mods {
         }
 
         // TODO: Delete this method in 1.x
-        public async Task<IEnumerable<ModReleaseDownloadTask>> DownloadModFiles(bool checkForPluginUpdates, Window window) {
+        public IEnumerable<ModReleaseDownloadTask> DownloadAndValidateMods() {
             logger.Info("Downloading mod files...");
 
             logger.Info("Creating mod diretories...");
@@ -230,9 +230,6 @@ namespace C2GUILauncher.Mods {
 
             ModReleaseDownloadTask? unchainedPluginDownloadTask = null;
 
-            if (checkForPluginUpdates)
-                unchainedPluginDownloadTask = await DownloadUnchainedPluginUpdates(window);
-
             var tasks = EnabledModReleases.ToList().Select(DownloadModRelease);
 
             var unchainedPluginDownloadTaskAsList = 
@@ -241,147 +238,6 @@ namespace C2GUILauncher.Mods {
                     : new List<ModReleaseDownloadTask>();
 
             return tasks.Concat(unchainedPluginDownloadTaskAsList);
-        }
-
-        /// <summary>
-        /// This is all very dirty and will be deleted in 1.x ModManager should never hold a reference to the window, and should never be invoking delegates on the UI thread.
-        /// </summary>
-        /// <param name="window"></param>
-        /// <returns></returns>
-        private static async Task<ModReleaseDownloadTask?> DownloadUnchainedPluginUpdates(Window window) {
-            logger.Info("Checking for UnchainedPlugin.dll updates...");
-
-            var isPluginInstalled = false;
-            try {
-                isPluginInstalled = File.Exists(CoreMods.UnchainedPluginPath);
-            } catch (Exception ex) {
-                logger.Error("Failed to check if UnchainedPlugin.dll is installed. Assuming it is not.", ex);
-            }
-
-            SemVersion? currentVersion = null;
-            try {
-                currentVersion = SemVersion.Parse(File.ReadAllText(FilePaths.UnchainedPluginVersionPath), SemVersionStyles.AllowV);
-            } catch (FileNotFoundException) {
-                logger.Warn("Failed to find UnchainedPlugin version file. Assuming no version.");
-            } catch (FormatException) {
-                logger.Warn("Failed to parse UnchainedPlugin version file. Assuming no version.");
-            }
-
-            // Check the latest version by looking at the redirect url for the latest release.
-            // this will provide us with something like "https://github.com/Chiv2-Community/UnchainedPlugin/releases/tag/v1.0.0"
-            var latestUnchainedPluginUrl = await HttpHelpers.GetRedirectedUrl(CoreMods.UnchainedPluginLatestURL);
-
-            if(latestUnchainedPluginUrl == null) {
-                logger.Warn("Failed to find latest UnchainedPlugin version url. Aborting update process.");
-                return null;
-            }
-
-            var latestUnchainedPluginTag = latestUnchainedPluginUrl?.Split("/").Last();
-            SemVersion? latestVersion = null;
-
-
-
-            try {
-                latestVersion = SemVersion.Parse(latestUnchainedPluginTag, SemVersionStyles.AllowV);
-            } catch (FormatException) {
-                logger.Warn("Failed to parse latest UnchainedPlugin version from url. Assuming no version.");
-            }
-
-            var result = MessageBoxResult.None;
-            await window.Dispatcher.BeginInvoke(delegate () {
-                if (latestVersion != null) {
-                    if (currentVersion != null) {
-                        if (currentVersion.ComparePrecedenceTo(latestVersion) <= -1) {
-                            var message = $"An update is available for UnchainedPlugin.dll\n- Current Version: {currentVersion}\n- Latest Version: {latestVersion}\n\nWould you like to download the new version?";
-
-                            message.Split('\n').ToList().ForEach(x => logger.Info(x));
-
-                            result = MessageBoxEx.Show("Update UnchainedPlugin.dll?", message, "Yes", "No", "View Changelog");
-
-                        } else {
-                            logger.Info("UnchainedPlugin.dll is up to date at version " + latestUnchainedPluginTag);
-                            result = MessageBoxResult.OK;
-                        }
-                    } else {
-                        var titleText = 
-                            isPluginInstalled
-                                ? "Update UnchainedPlugin.dll?"
-                                : "Install UnchainedPlugin.dll?";
-
-                        var messagePreamble = 
-                            isPluginInstalled
-                                ? "An update is available for UnchainedPlugin.dll"
-                                : "UnchainedPlugin.dll is not installed.";
-
-                        var messageEnding = 
-                            isPluginInstalled
-                                ? "Would you like to download the new version?"
-                                : "Would you like to download UnchainedPlugin.dll? This is required for mods to work.";
-
-                        var message = $"{messagePreamble}\n- Latest Version: {latestVersion}.\n\n{messageEnding}";
-                        message.Split('\n').ToList().ForEach(x => logger.Info(x));
-                            
-                        result = MessageBoxEx.Show(titleText, message, "Yes", "No", "View Changelog");
-                    }
-                } else {
-                    logger.Warn("Failed to find latest version of UnchainedPlugin.dll");
-                    result = MessageBoxResult.OK;
-                }
-            });
-
-
-            logger.Info("User Selects: " + result.ToString());
-
-            var downloadPlugin = result == MessageBoxResult.Yes;
-
-            if (result == MessageBoxResult.OK) {
-                return null;
-            }
-
-            if (result == MessageBoxResult.None) {
-                throw new DownloadCancelledException("User selected exit");
-            }
-
-            if (result == MessageBoxResult.Cancel) {
-                logger.Info("Opening changelog in browser: " + latestUnchainedPluginUrl);
-                Process.Start(new ProcessStartInfo { FileName = latestUnchainedPluginUrl, UseShellExecute = true });
-                throw new DownloadCancelledException("User selected to view changelog");
-            }
-
-
-            if (downloadPlugin) {
-
-                var target = new DownloadTarget(CoreMods.UnchainedPluginURL(latestUnchainedPluginTag!), CoreMods.UnchainedPluginPath);
-                var downloadTask =
-                    HttpHelpers.DownloadFileAsync(target.Url, target.OutputPath!)
-                        .ContinueWith(() => File.WriteAllText(FilePaths.UnchainedPluginVersionPath, latestVersion!.ToString()));
-
-                return new ModReleaseDownloadTask(
-                        // Stubbing this object out so the task can be displayed with the normal mod download tasks
-                        new Release(
-                            "latest",
-                            "",
-                            "",
-                            DateTime.Now,
-                            new ModManifest(
-                                "",
-                                downloadTask.Target.OutputPath!.Split("/").Last(),
-                                "",
-                                "",
-                                "",
-                                ModType.Shared,
-                                new List<string>(),
-                                new List<Dependency>(),
-                                new List<ModTag>(),
-                                new List<string>(),
-                                new OptionFlags(false)
-                            )
-                        ),
-                        downloadTask
-                    );
-            }
-
-            return null;
         }
 
         private ModReleaseDownloadTask DownloadModRelease(Release release) {
@@ -441,9 +297,7 @@ namespace C2GUILauncher.Mods {
         }
     }
 
-    public class DownloadCancelledException : Exception {
-        public DownloadCancelledException(string message) : base(message) { }
-    }
+
 
     public record ResolveReleasesResult(bool Successful, List<Release> Releases, List<DependencyConflict> Conflicts) {
         public static ResolveReleasesResult Success(List<Release> releases) { return new ResolveReleasesResult(true, releases, new List<DependencyConflict>()); }

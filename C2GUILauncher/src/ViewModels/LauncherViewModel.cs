@@ -85,9 +85,11 @@ namespace C2GUILauncher.ViewModels {
             return Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, serverRegister).ContinueWith(x => {
                 if (x.Result == null) {
                     MessageBox.Show("Failed to launch game. Please select an InstallationType if one isn't set.");
+                    CanClick = true;
                     return;
-                } 
+                }
 
+                x.Result.Start();
                 x.Result.Join();
                 CanClick = true;
             });

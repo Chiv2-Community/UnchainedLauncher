@@ -37,7 +37,7 @@ namespace UnchainedLauncher.Core
             return VanillaLauncher.Launch(string.Join(" ", args));
         }
 
-        public Thread? LaunchModded(InstallationType installationType, ModdedLaunchOptions launchOptions, Option<ServerLaunchOptions> serverLaunchOptions, List<string> extraArgs) {
+        public Thread? LaunchModded(InstallationType installationType, ModdedLaunchOptions launchOptions, Option<ServerLaunchOptions> serverLaunchOptions, IEnumerable<string> extraArgs) {
             if (installationType == InstallationType.NotSet) return null;
 
             logger.Info("Attempting to launch modded game.");

@@ -101,7 +101,7 @@ namespace UnchainedLauncher.Core.Mods
                         .ToList();
             }
 
-            var registryMap = 
+            var registryMap =
                 new HashMap<IModRegistry, IEnumerable<Mod>>(
                     registries.ToList().Map(r => (r, (IEnumerable<Mod>)new List<Mod>()))
                 );
@@ -113,44 +113,48 @@ namespace UnchainedLauncher.Core.Mods
             );
         }
 
-        public EitherAsync<Error, Unit> DisableModRelease(Release release) {
+        public EitherAsync<DisableModFailure, Unit> DisableModRelease(Release release) {
             if (!EnabledModReleases.Contains(release))
-                return EitherAsync<Error, Unit>.Right(default);
+                return EitherAsync<DisableModFailure, Unit>.Left(DisableModFailure.ModNotEnabled(release));
 
-            return Prelude.Try<Unit>(() => {
-                logger.Info("Disabling mod release: " + release.Manifest.Name + " " + release.Tag);
+            logger.Info("Disabling mod release: " + release.Manifest.Name + " " + release.Tag);
 
-                // Should be doing this when all downloads get done, but cba to do it better right now.
-                FileHelpers.DeleteFile(FilePaths.PakDir + "\\" + release.PakFileName);
+            var pakLocation = FilePaths.PakDir + "\\" + release.PakFileName;
 
-                var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
-                var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
-                var metadataFilePath = orgPath + "\\" + urlParts.Last() + ".json";
-                FileHelpers.DeleteFile(metadataFilePath);
+            var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
+            var orgPath = Path.Combine(CoreMods.EnabledModsCacheDir, release.Manifest.Organization);
+            var metadataFilePath = Path.Combine(orgPath, release.Manifest.RepoName + ".json");
 
-                EnabledModReleases.Remove(release);
-                return default;
-            }).ToAsync().ToEither();
+            return
+                UnchainedEitherExtensions.AttemptAsync(() => FileHelpers.DeleteFile(pakLocation))
+                    .MapLeft(err => DisableModFailure.DeleteFailed(pakLocation, err))
+                    .Tap(_ => logger.Info("Successfully deleted mod pak for " + release.Manifest.Name + " " + release.Tag))
+                    .Bind(_ =>
+                        UnchainedEitherExtensions.AttemptAsync(() => FileHelpers.DeleteFile(metadataFilePath))
+                            .MapLeft(err => DisableModFailure.DeleteFailed(metadataFilePath, err))
+                    )
+                    .Tap(_ => logger.Info("Successfully deleted mod metadata for " + release.Manifest.Name + " " + release.Tag))
+                    .Map(_ => default(Unit));
         }
 
-        public EitherAsync<Error, Unit> EnableModRelease(Release release, Option<IProgress<double>> progress, CancellationToken cancellationToken) {
+        public EitherAsync<EnableModFailure, Unit> EnableModRelease(Release release, Option<IProgress<double>> progress, CancellationToken cancellationToken) {
             var associatedMod = Mods.First(Mods => Mods.Releases.Contains(release));
             var maybeCurrentlyEnabledRelease = AsIModManager.GetCurrentlyEnabledReleaseForMod(associatedMod);
 
             var whenNone = () => {
                 logger.Info($"Enabling {release.Manifest.Name} version {release.Tag}");
-                return EitherAsync<Error, Unit>.Right(default);
+                return EitherAsync<EnableModFailure, Unit>.Right(default);
             };
 
             var whenSome = (Release currentlyEnabledRelease) => {
                 logger.Info($"Changing {currentlyEnabledRelease.Manifest.Name} from version {currentlyEnabledRelease.Tag} to version {release.Tag}");
-                return DisableModRelease(currentlyEnabledRelease);
+                return DisableModRelease(currentlyEnabledRelease).MapLeft(EnableModFailure.Wrap);
             };
 
             return
                 maybeCurrentlyEnabledRelease
                     .Match(None: whenNone, Some: whenSome)
-                    .Bind(_ => DownloadModRelease(release, progress, cancellationToken))
+                    .Bind(_ => DownloadModRelease(release, progress, cancellationToken).MapLeft(EnableModFailure.Wrap))
                     .Tap(_ => EnabledModReleases.Add(release));
         }
 
@@ -175,7 +179,7 @@ namespace UnchainedLauncher.Core.Mods
                     .Map(async registry => (registry, result: await registry.GetAllMods()))
                     .SequenceParallel()
                     .Map(resultPairs => {
-                        return 
+                        return
                             resultPairs
                                 .Map(tuple => {
                                     var registry = tuple.registry;
@@ -193,79 +197,57 @@ namespace UnchainedLauncher.Core.Mods
             return result;
         }
 
-        public EitherAsync<Error, Unit> DownloadModFiles(bool downloadPlugin) {
-            logger.Info("Downloading mod files...");
-            logger.Info("Creating mod diretories...");
-            Directory.CreateDirectory(CoreMods.EnabledModsCacheDir);
-            Directory.CreateDirectory(CoreMods.ModsCachePackageDBDir);
-            Directory.CreateDirectory(CoreMods.ModsCachePackageDBPackagesDir);
-            Directory.CreateDirectory(FilePaths.PluginDir);
-
-            var DeprecatedLibs = new List<string>()
-            {
-                CoreMods.AssetLoaderPluginPath,
-                CoreMods.ServerPluginPath,
-                CoreMods.BrowserPluginPath
-            };
-
-            foreach (var depr in DeprecatedLibs)
-                FileHelpers.DeleteFile(depr);
-
-            var tryDownload =
-                Prelude.TryAsync(() =>
-                    downloadPlugin
-                        ? HttpHelpers.DownloadFileAsync(CoreMods.UnchainedPluginURL, CoreMods.UnchainedPluginPath).Task
-                        : Task.CompletedTask
-                );
-
-            return
-                tryDownload
-                    .ToEither()
-                    .Bind(_ =>
-                        EnabledModReleases
-                            .ToList()
-                            .Select(r => DownloadModRelease(r, Option<IProgress<double>>.None, CancellationToken.None))
-                            .SequenceParallel()
-                     )
-                    .Select(_ => default(Unit)); // discard the results because they're all Unit
-
-        }
-
-        private EitherAsync<Error, Unit> DownloadModRelease(Release release, Option<IProgress<double>> progress, CancellationToken token) {
+        private EitherAsync<DownloadModFailure, Unit> DownloadModRelease(Release release, Option<IProgress<double>> progress, CancellationToken token) {
             var outputPath = FilePaths.PakDir + "\\" + release.PakFileName;
 
             EitherAsync<DownloadModFailure, FileWriter> prepareDownload(IModRegistry registry) {
+                logger.Info($"Downloading {release.Manifest.Name} {release.Tag} to {FilePaths.PakDir}/{release.PakFileName}");
                 return
                     FileHelpers
                         .Sha512Async(outputPath)
-                        .MapLeft(err => new DownloadModFailure.HashFailureWrapper(err).Widen)
-                        .Bind(hash => {
-                            if (hash == release.ReleaseHash)
-                                return Prelude.RightAsync(default(Unit));
-                            else
-                                return Prelude.LeftAsync(new DownloadModFailure.HashMismatch(release, hash).Widen);
-                        })
-                        .Tap(_ => logger.Info($"Downloading {release.Manifest.Name} {release.Tag} to {FilePaths.PakDir}/{release.PakFileName}"))
-                        .Bind(_ => registry.DownloadPak(release, outputPath + ".tmp"));
+                        .MapLeft(DownloadModFailure.Wrap)
+                        .Map(hash => hash == release.ReleaseHash)
+                        .Bind(isHashCorrect =>
+                            isHashCorrect
+                                ? EitherAsync<DownloadModFailure, FileWriter>.Left(DownloadModFailure.AlreadyDownloaded(release))
+                                : registry.DownloadPak(release, outputPath + ".tmp").MapLeft(DownloadModFailure.Wrap)
+                        );
             }
 
-            async Task<EitherAsync<Error, Unit>> completeDownload(FileWriter fileWriter) {
-                await fileWriter.WriteAsync(progress, token);
-                var shaHash = FileHelpers.Sha512(outputPath + ".tmp");
+            EitherAsync<DownloadModFailure, Unit> completeDownload(FileWriter fileWriter) {
+                return fileWriter
+                    .WriteAsync(progress, token)
+                    .MapLeft(err => DownloadModFailure.WriteFailed(fileWriter.FilePath, err))
+                    .Bind(_ => FileHelpers.Sha512Async(fileWriter.FilePath).MapLeft(DownloadModFailure.Wrap))
+                    .Bind(hash =>
+                        (hash == release.ReleaseHash).ToEither(
+                            True: () => default(Unit),
+                            False: () => DownloadModFailure.HashMismatch(release, hash)
+                        ).ToAsync()
+                    ).Bind(_ =>
+                        UnchainedEitherExtensions
+                            .AttemptAsync(() => File.Move(fileWriter.FilePath, outputPath))
+                            .MapLeft(err => DownloadModFailure.WriteFailed(outputPath, err))
+                    );
+            }
 
-                if (shaHash != release.ReleaseHash) {
-                    return Prelude.Try(() => FileHelpers.DeleteFile(outputPath + ".tmp"))
-                        .ToAsync()
-                        .ToEither()
-                        .Bind(_ => EitherAsync<Error, Unit>.Left(
-                            Error.New($"Downloaded pak file hash for {release.Manifest.Name} {release.Tag} does not match expected hash. Expected: {release.ReleaseHash} Got: {shaHash}")
-                        ));
-                }
+            EitherAsync<DownloadModFailure, Unit> saveEnabledReleaseMetadata() {
+                var enabledModJson = JsonConvert.SerializeObject(release);
+                var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
 
-                return Prelude.Try(() => File.Move(outputPath + ".tmp", outputPath))
-                    .ToAsync()
+                var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
+                var filePath = orgPath + "\\" + urlParts.Last() + ".json";
+
+                return Prelude.TryAsync(
+                    Task.Run(async () => {
+                        logger.Info("Writing enabled mod json metadata to " + filePath);
+                        Directory.CreateDirectory(orgPath);
+                        await File.WriteAllTextAsync(filePath, enabledModJson);
+                        return default(Unit);
+                    }))
                     .ToEither()
-                    .Bind(_ => EitherAsync<Error, Unit>.Right(default));
+                    .Tap(_ => logger.Info("Successfully wrote enabled mod json metadata to " + filePath))
+                    .MapLeft(err => DownloadModFailure.WriteFailed(filePath, err));
             }
 
 
@@ -273,11 +255,11 @@ namespace UnchainedLauncher.Core.Mods
 
 
             return maybeResult
-                .ToEitherAsync(() => Error.New($"Failed to find mod release {release.Manifest.Name} {release.Tag}"))
-                .Bind(registry => prepareDownload(registry))
-                .BindAsync(fileWriter => completeDownload(fileWriter))
-                .Map(fileWriter => logger.InfoUnit($"Successfully downloaded mod release {release.Manifest.Name} {release.Tag}"))
-                .Bind(_ => SaveEnabledReleaseMetadata(release))
+                .ToEitherAsync(() => DownloadModFailure.ModNotFound(release))
+                .Bind(prepareDownload)
+                .BindTap(completeDownload)
+                .Tap(_ => logger.InfoUnit($"Successfully downloaded mod release {release.Manifest.Name} {release.Tag}"))
+                .Bind(_ => saveEnabledReleaseMetadata())
                 .Map(_ => logger.InfoUnit($"Successfully enabled mod release {release.Manifest.Name} {release.Tag}"));
         }
 
@@ -297,41 +279,5 @@ namespace UnchainedLauncher.Core.Mods
 
             return result;
         }
-
-        private static 
-        private static EitherAsync<Error, Unit> SaveEnabledReleaseMetadata(Release release) {
-            var enabledModJson = JsonConvert.SerializeObject(release);
-            var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
-
-            var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();
-            var filePath = orgPath + "\\" + urlParts.Last() + ".json";
-
-            return Prelude.TryAsync(
-                Task.Run(async () => {
-                    logger.Info("Writing enabled mod json metadata to " + filePath);
-                    Directory.CreateDirectory(orgPath);
-                    await File.WriteAllTextAsync(filePath, enabledModJson);
-                    return default(Unit);
-                }))
-                .ToEither()
-                .Tap(_ => logger.Info("Successfully wrote enabled mod json metadata to " + filePath))
-                .MapLeft(err =>
-                    Error.New(
-                        "Failed to write enabled mod json metadata to " + filePath + " " + err.Message,
-                        err
-                    )
-                );
-        }
     }
-
-    public abstract record DownloadModFailure {
-        private DownloadModFailure() { }
-        public record ModPakStreamAcquisitionFailureWrapper(ModPakStreamAcquisitionFailure Failure) : DownloadModFailure;
-        public record HashFailureWrapper(HashFailure Failure) : DownloadModFailure;
-        public record HashMismatch(Release release, string InvalidHash) : DownloadModFailure;
-
-        public DownloadModFailure Widen => this;
-
-    }
-    
 }

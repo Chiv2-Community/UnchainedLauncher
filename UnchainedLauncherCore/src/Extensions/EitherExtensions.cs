@@ -1,8 +1,37 @@
 ﻿using LanguageExt;
-
+using LanguageExt.Common;
+using System.ComponentModel;
 
 namespace UnchainedLauncher.Core.Extensions {
-    public static class EitherExtensions {
+    public static class UnchainedEitherExtensions {
+        public static EitherAsync<Error, T> AttemptAsync<T>(Task<T> action) {
+            return Prelude.TryAsync(action).ToEither();
+        }
+
+        public static EitherAsync<Error, T> AttemptAsync<T>(Func<T> action) {
+            return Prelude.Try(action).ToAsync().ToEither();
+        }
+
+        public static EitherAsync<Error, Unit> AttemptAsync(Action action) {
+            return Prelude.Try(() => {
+                action.Invoke();
+                return default(Unit);
+             }).ToAsync().ToEither();
+        }
+
+        public static Either<Exception, T> Attempt<T>(Func<T> action) {
+            return Prelude.Try(action).ToEither();
+        }
+
+        public static Either<Exception, Unit> Attempt<T>(Action action) {
+            return Prelude.Try(() => {
+                action.Invoke();
+                return default(Unit);
+            }).ToEither();
+        }
+
+
+
         public static EitherAsync<L, R> Tap<L, R>(this EitherAsync<L, R> either, Action<R> f) {
             return either.Map(r => {
                 f(r);

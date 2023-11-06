@@ -80,14 +80,17 @@ namespace UnchainedLauncher.Core.Utilities {
               .MapLeft(error => new HashFailure(filePath, error));
         }
 
-        public static EitherAsync<HashFailure, string> Sha512Async(string filePath) {
+        public static EitherAsync<HashFailure, string?> Sha512Async(string filePath) {
             using var sha512 = System.Security.Cryptography.SHA512.Create();
+
+            if (!File.Exists(filePath))
+                return EitherAsync<HashFailure, string?>.Right(null);
 
             return
                 Prelude
                     .TryAsync(() => File.ReadAllBytesAsync(filePath))
-                    .Map(bytes => BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant())
                     .ToEither()
+                    .Map(bytes => (string?)BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant())
                     .MapLeft(error => new HashFailure(filePath, error));
         }
     }
@@ -129,7 +132,7 @@ namespace UnchainedLauncher.Core.Utilities {
                         }
                     }
 
-                    return default;
+                    return default(Unit);
                 })
                 .ToEither();
         }

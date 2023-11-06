@@ -4,6 +4,8 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods.Registry;
+using UnchainedLauncher.Core.Mods.Registry.Resolver;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Mods {
 
@@ -28,15 +30,7 @@ namespace UnchainedLauncher.Core.Mods {
         /// </summary>
         /// <param name="release">The release to disable</param>
         /// <returns>Either an error containing information about why this failed, or nothing if it was successful.</returns>
-        EitherAsync<Error, Unit> DisableModRelease(Release release);
-
-        /// <summary>
-        /// Downloads all mod files for all enabled mods as well as the unchained plugin.
-        /// TODO: Delete this.
-        /// </summary>
-        /// <param name="downloadPlugin"></param>
-        /// <returns>Either an error containing information about what went wrong, or the nothing if successful</returns>
-        EitherAsync<Error, Unit> DownloadModFiles(bool downloadPlugin);
+        EitherAsync<DisableModFailure, Unit> DisableModRelease(Release release);
 
         /// <summary>
         /// Enables the given release for the given mod. This includes downloading any pak files
@@ -49,7 +43,7 @@ namespace UnchainedLauncher.Core.Mods {
         /// <param name="progress">An optional progress indicator. Progress in percentage will be reported to the provided IProgress instance.</param>
         /// <param name="cancellationToken">An optional cancellation token to stop any downloads</param>
         /// <returns>Either an Error containing information about what went wrong, or nothing if things were successful.</returns>
-        EitherAsync<Error, Unit> EnableModRelease(Release release, Option<IProgress<double>> progress, CancellationToken cancellationToken);
+        EitherAsync<EnableModFailure, Unit> EnableModRelease(Release release, Option<IProgress<double>> progress, CancellationToken cancellationToken);
 
         /// <summary>
         /// Fetches all mod metadata from all registries, returning a list of successfully fetched
@@ -66,7 +60,7 @@ namespace UnchainedLauncher.Core.Mods {
         /// </summary>
         /// <param name="release">The release to disable</param>
         /// <returns>Either an error containing information about why this failed, or nothing if it was successful.</returns>
-        public EitherAsync<Error, Unit> DisableMod(Mod mod) {
+        public EitherAsync<DisableModFailure, Unit> DisableMod(Mod mod) {
             return GetCurrentlyEnabledReleaseForMod(mod).Match(
                 Some: release => DisableModRelease(release),
                 None: () => EitherAsync<Error, Unit>.Right(default)
@@ -96,6 +90,98 @@ namespace UnchainedLauncher.Core.Mods {
                )
                .Collect(result => result.ToImmutableList()) // Filter out mods that aren't enabled
                .Where(tuple => tuple.AvailableUpdate.Version.ComparePrecedenceTo(tuple.CurrentlyEnabled.Version) > 0); // Filter out older releases
+        }
+    }
+
+    /// <summary>
+    /// The failure domain of downloading a mod.
+    /// 
+    /// Do not invoke the constructors directly, use the static methods instead.
+    /// </summary>
+    public abstract record DownloadModFailure {
+        private DownloadModFailure() { }
+        public record ModPakStreamAcquisitionFailureWrapper(ModPakStreamAcquisitionFailure Failure) : DownloadModFailure;
+        public record HashFailureWrapper(HashFailure Failure) : DownloadModFailure;
+        public record HashMismatchFailure(Release Release, string? InvalidHash) : DownloadModFailure;
+        public record ModNotFoundFailure(Release Release) : DownloadModFailure;
+        public record WriteFailure(string Path, Error Failure) : DownloadModFailure;
+        public record AlreadyDownloadedFailure(Release Release) : DownloadModFailure;
+
+        public DownloadModFailure Widen => this;
+        public static DownloadModFailure Wrap(ModPakStreamAcquisitionFailure failure) => new ModPakStreamAcquisitionFailureWrapper(failure).Widen;
+        public static DownloadModFailure Wrap(HashFailure failure) => new HashFailureWrapper(failure).Widen;
+
+        public static DownloadModFailure HashMismatch(Release release, string? invalidHash) => new HashMismatchFailure(release, invalidHash).Widen;
+        public static DownloadModFailure ModNotFound(Release release) => new ModNotFoundFailure(release).Widen;
+        public static DownloadModFailure WriteFailed(string path, Error failure) => new WriteFailure(path, failure);
+        public static DownloadModFailure AlreadyDownloaded(Release release) => new AlreadyDownloadedFailure(release);
+
+        public T Match<T>(
+            Func<ModPakStreamAcquisitionFailure, T> ModPakStreamAcquisitionFailure,
+            Func<HashFailure, T> HashFailure,
+            Func<HashMismatchFailure, T> HashMismatchFailure,
+            Func<ModNotFoundFailure, T> ModNotFoundFailure,
+            Func<WriteFailure, T> WriteFailure,
+            Func<AlreadyDownloadedFailure, T> AlreadyDownloadedFailure
+        ) => this switch {
+            ModPakStreamAcquisitionFailureWrapper wrapper => ModPakStreamAcquisitionFailure(wrapper.Failure),
+            HashFailureWrapper wrapper => HashFailure(wrapper.Failure),
+            HashMismatchFailure mismatch => HashMismatchFailure(mismatch),
+            ModNotFoundFailure notFound => ModNotFoundFailure(notFound),
+            WriteFailure write => WriteFailure(write),
+            AlreadyDownloadedFailure alreadyDownloaded => AlreadyDownloadedFailure(alreadyDownloaded),
+            _ => throw new Exception("Unreachable")
+        };
+
+    }
+
+    /// <summary>
+    /// The failure domain of disabling a mod.
+    /// 
+    /// Do not invoke the constructors directly, use the static methods instead.
+    /// </summary>
+    public abstract record DisableModFailure {
+        public record DeleteFailure(string Path, Error Failure) : DisableModFailure;
+        public record ModNotEnabledFailure(Release Release) : DisableModFailure;
+
+        public static DisableModFailure DeleteFailed(string path, Error failure) => new DeleteFailure(path, failure);
+        public static DisableModFailure ModNotEnabled(Release release) => new ModNotEnabledFailure(release);
+
+        public DisableModFailure Widen => this;
+
+        public T Match<T>(
+            Func<DeleteFailure, T> DeleteFailure,
+            Func<ModNotEnabledFailure, T> ModNotEnabledFailure
+        ) => this switch {
+            DeleteFailure delete => DeleteFailure(delete),
+            ModNotEnabledFailure notEnabled => ModNotEnabledFailure(notEnabled),
+            _ => throw new Exception("Unreachable")
+        };
+    }
+
+    /// <summary>
+    /// The failure domain of enabling a mod.
+    /// 
+    /// Do not invoke the constructors directly, use the static methods instead.
+    /// </summary>
+    public abstract record EnableModFailure {
+        public record DownloadModFailureWrapper(DownloadModFailure Failure) : EnableModFailure;
+        public record DisableModFailureWrapper(DisableModFailure Failure) : EnableModFailure;
+
+        public static EnableModFailure Wrap(DownloadModFailure failure) => new DownloadModFailureWrapper(failure);
+        public static EnableModFailure Wrap(DisableModFailure failure) => new DisableModFailureWrapper(failure);
+
+        public EnableModFailure Widen => this;
+
+        public T Match<T>(
+            Func<DownloadModFailure, T> DownloadModFailure,
+            Func<DisableModFailure, T> DisableModFailure
+        ) {
+            return this switch {
+                DownloadModFailureWrapper wrapper => DownloadModFailure(wrapper.Failure),
+                DisableModFailureWrapper wrapper => DisableModFailure(wrapper.Failure),
+                _ => throw new Exception("Unreachable")
+            };
         }
     }
 }

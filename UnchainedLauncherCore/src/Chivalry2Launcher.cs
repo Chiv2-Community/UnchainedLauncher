@@ -6,6 +6,7 @@ using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Extensions;
 using LanguageExt;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 
 namespace UnchainedLauncher.Core
 {
@@ -16,19 +17,19 @@ namespace UnchainedLauncher.Core
 
         private static readonly LanguageExt.HashSet<int> GracefulExitCodes = new LanguageExt.HashSet<int> { 0, -1073741510 };
 
+        private static RestartPolicy DefaultRestartPolicy = new RestartPolicy(Prelude.None, 30000, x => !GracefulExitCodes.Contains(x));
+
         /// <summary>
         /// The original launcher is used to launch the game with no mods.
         /// </summary>
-        private static ProcessLauncher VanillaLauncher { get; } = new ProcessLauncher(OriginalLauncherPath, Directory.GetCurrentDirectory());
+        private static ProcessLauncher VanillaLauncher { get; } = new ProcessLauncher(OriginalLauncherPath, Directory.GetCurrentDirectory(), Prelude.Some(DefaultRestartPolicy));
 
         /// <summary>
         /// The modded launcher is used to launch the game with mods. The DLLs here are the relative paths to the DLLs that are to be injected.
         /// </summary>
-        private static ProcessLauncher ModdedLauncher { get; } = new ProcessLauncher(GameBinPath, FilePaths.BinDir);
+        private static ProcessLauncher ModdedLauncher { get; } = new ProcessLauncher(GameBinPath, FilePaths.BinDir, Prelude.Some(DefaultRestartPolicy));
 
-        private ModManager ModManager { get; }
-        public Chivalry2Launcher(ModManager modManager) {
-            ModManager = modManager;
+        public Chivalry2Launcher() {
         }
 
         public Process LaunchVanilla(IEnumerable<string> args) {
@@ -44,26 +45,38 @@ namespace UnchainedLauncher.Core
 
             var launchThread = new Thread(async () => {
                 try {
-                    var moddedLaunchArgs = new List<string>();
+                    var moddedLaunchArgs = extraArgs.ToList();
+                    var tblLoc = moddedLaunchArgs.IndexOf("TBL") + 1;
+
                     launchOptions.ServerBrowserBackend.IfSome(backend => moddedLaunchArgs.Add($"--server-browser-backend {backend}"));
-                    launchOptions.NextMapModActors.IfSome(modActors => moddedLaunchArgs.Add($"--next-map-mod-actors {string.Join(",", modActors)}"));
-                    launchOptions.AllModActors.IfSome(modActors => moddedLaunchArgs.Add($"--all-mod-actors {string.Join(",", modActors)}"));
+                    launchOptions.NextMapModActors.IfSome(modActors => moddedLaunchArgs.Insert(tblLoc, $"--next-map-mod-actors {string.Join(",", modActors)}"));
+                    launchOptions.AllModActors.IfSome(modActors => moddedLaunchArgs.Insert(tblLoc, $"--all-mod-actors {string.Join(",", modActors)}"));
                     launchOptions.SavedDirSuffix.IfSome(suffix => moddedLaunchArgs.Add($"--saved-dir-suffix {suffix}"));
+
+                    serverLaunchOptions.IfSome(options => {
+                        if(options.headless) {
+                            moddedLaunchArgs.Add("-nullrhi");
+                            moddedLaunchArgs.Add("-unattended");
+                            moddedLaunchArgs.Add("-nosound");
+                        }
+
+                        options.Password.IfSome(password => moddedLaunchArgs.Add($"ServerPassword={password.Trim()}"));
+                        options.Map.IfSome(map => moddedLaunchArgs.Add($"--next-map-name {map}"));
+                        options.GamePort.IfSome(port => moddedLaunchArgs.Add($"Port={port}"));
+                        options.BeaconPort.IfSome(port => moddedLaunchArgs.Add($"GameServerPingPort={port}"));
+                        options.QueryPort.IfSome(port => moddedLaunchArgs.Add($"GameServerQueryPort={port}"));
+                        options.RconPort.IfSome(port => moddedLaunchArgs.Add($"--rcon {port}"));
+                    }); 
 
                     var dlls = Directory.EnumerateFiles(FilePaths.PluginDir, "*.dll").ToArray();
                     ModdedLauncher.Dlls = dlls;
 
-                    logger.LogListInfo($"Mods Enabled:", ModManager.EnabledModReleases.Select(mod => mod.Manifest.Name + " " + mod.Tag));
-                    logger.LogListInfo($"Launch args:", args);
-
-                    serverRegister?.Start();
-
-                    var restartOnCrash = serverRegister != null;
+                    logger.LogListInfo($"Launch args:", moddedLaunchArgs);
 
                     do {
                         // TODO: Overhaul restart behavior. Should be managed by the caller of LaunchModded.
                         logger.Info("Starting Chivalry 2 Unchained.");
-                        var process = ModdedLauncher.Launch(string.Join(" ", args));
+                        ModdedLauncher.Launch(string.Join(" ", moddedLaunchArgs));
 
                         await process.WaitForExitAsync();
 
@@ -91,8 +104,6 @@ namespace UnchainedLauncher.Core
 
     public record ServerLaunchOptions(
         bool headless,
-        Option<string> Name,
-        Option<string> Description,
         Option<string> Password,
         Option<string> Map,
         Option<int> GamePort,
@@ -103,8 +114,7 @@ namespace UnchainedLauncher.Core
 
     public record ModdedLaunchOptions(
         Option<string> ServerBrowserBackend,
-        Option<IEnumerable<string>> NextMapModActors,
-        Option<IEnumerable<string>> AllModActors,
+        Option<IEnumerable<Release>> EnabledMods,
         Option<string> SavedDirSuffix
     );
 }

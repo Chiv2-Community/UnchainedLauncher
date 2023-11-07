@@ -146,6 +146,29 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private async void LaunchServer() {
             CanClick = false;
             try {
+                var serverMods = ModManager.EnabledModReleases
+    .Select(mod => mod.Manifest)
+    .Where(manifest => manifest.ModType == ModType.Server || manifest.ModType == ModType.Shared);
+
+                string modActorsListString =
+                    BuildCommaSeparatedArgsList(
+                        "all-mod-actors",
+                        serverMods
+                            .Where(manifest => manifest.OptionFlags.ActorMod)
+                            .Select(manifest => manifest.Name.Replace(" ", "")),
+                        Settings.AdditionalModActors
+                    );
+
+                // same as modActorsListString for now. Just turn on all the enabled mods for first map.
+                string nextMapModActors =
+                    BuildCommaSeparatedArgsList(
+                        "next-map-mod-actors",
+                        serverMods
+                            .Where(manifest => manifest.OptionFlags.ActorMod)
+                            .Select(manifest => manifest.Name.Replace(" ", "")),
+                        Settings.AdditionalModActors
+                    );
+
                 Process? serverRegister = await MakeRegistrationProcess();
                 if (serverRegister == null) {
                     return;

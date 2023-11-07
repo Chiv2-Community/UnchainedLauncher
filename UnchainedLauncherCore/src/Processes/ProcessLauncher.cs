@@ -1,4 +1,7 @@
-﻿using System.Diagnostics;
+﻿using LanguageExt;
+using LanguageExt.ClassInstances.Pred;
+using log4net;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using UnchainedLauncher.Core.Processes;
 
@@ -8,57 +11,95 @@ namespace UnchainedLauncher.Core.Processes
     /// Launches an executable with the provided working directory and DLLs to inject.
     /// </summary>
     public class ProcessLauncher {
+        public static ILog logger = LogManager.GetLogger(nameof(ProcessLauncher));
 
-        [MemberNotNull]
         public string ExecutableLocation { get; }
 
-        [MemberNotNull]
         public string WorkingDirectory { get; }
 
         public IEnumerable<string>? Dlls { get; set; }
 
-        public ProcessLauncher(string executableLocation, string workingDirectory, IEnumerable<string>? dlls = null) {
+        public Option<RestartPolicy> RestartPolicy { get; }
+
+        public ProcessLauncher(string executableLocation, string workingDirectory, Option<RestartPolicy> restartPolicy, IEnumerable<string>? dlls = null) {
             ExecutableLocation = executableLocation;
             WorkingDirectory = workingDirectory;
             Dlls = dlls;
+            RestartPolicy = restartPolicy;
         }
 
         /// <summary>
         /// Creates a new process with the provided arguments and injects the DLLs.
+        /// Retries the process according to the retry policy. Performs no retries if no retry policy is provided.
         /// </summary>
         /// <param name="args"></param>
         /// <returns>
         /// The process that was created.
         /// </returns>
-        public Process Launch(string args) {
+        public void Launch(string args) {
+            Process runAndInject() {
+                // Initialize a process
+                var proc = new Process {
+                    // Build the process start info
+                    StartInfo = new ProcessStartInfo() {
+                        FileName = ExecutableLocation,
+                        Arguments = args,
+                        WorkingDirectory = Path.GetFullPath(WorkingDirectory),
+                    }
+                };
 
-            // Initialize a process
-            var proc = new Process {
-                // Build the process start info
-                StartInfo = new ProcessStartInfo() {
-                    FileName = ExecutableLocation,
-                    Arguments = args,
-                    WorkingDirectory = Path.GetFullPath(WorkingDirectory),
-                }
-            };
-
-            // Execute the process
-            try {
-                proc.Start();
-            } catch (Exception e) {
-                throw new LaunchFailedException(proc.StartInfo.FileName, proc.StartInfo.Arguments, e);
-            }
-
-            // If dlls are present inject them
-            if (Dlls != null && Dlls.Any()) {
+                // Execute the process
                 try {
-                    Inject.InjectAll(proc, Dlls);
+                    proc.Start();
                 } catch (Exception e) {
-                    throw new InjectionFailedException(Dlls, e);
+                    throw new LaunchFailedException(proc.StartInfo.FileName, proc.StartInfo.Arguments, e);
                 }
+
+                // If dlls are present inject them
+                if (Dlls != null && Dlls.Any()) {
+                    try {
+                        Inject.InjectAll(proc, Dlls);
+                    } catch (Exception e) {
+                        throw new InjectionFailedException(Dlls, e);
+                    }
+                }
+
+                return proc;
             }
 
-            return proc;
+            var retries = 0ul;
+
+            Func<bool> keepGoing = () =>
+                RestartPolicy
+                    .Map(p =>
+                        p.MaxAttempts.Match(
+                            Some: maxAttempts => maxAttempts < retries,
+                            None: true
+                        )
+                    )
+                    .FirstOrDefault(retries == 0);
+
+
+            while (keepGoing()) {
+                var proc = runAndInject();
+                proc.WaitForExit();
+                var exitCode = proc.ExitCode;
+
+                var shouldRestart = 
+                    RestartPolicy
+                        .Map(policy => policy.ShouldRestart(exitCode))
+                        .FirstOrDefault(false);
+
+                if (!shouldRestart)
+                    break;
+
+                var delay = RestartPolicy.Map(policy => policy.DelayMs).IfNone(0);
+
+                logger.Info($"Restarting process in {delay / 1000}seconds. Exit code: {exitCode}");
+                Thread.Sleep(delay);
+
+                retries++;
+            }
         }
     }
 
@@ -83,4 +124,6 @@ namespace UnchainedLauncher.Core.Processes
             Underlying = underlying;
         }
     }
+
+    public record RestartPolicy(Option<ulong> MaxAttempts, int DelayMs, Func<int, bool> ShouldRestart);
 }

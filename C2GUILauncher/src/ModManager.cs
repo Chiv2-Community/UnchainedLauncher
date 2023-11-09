@@ -157,23 +157,17 @@ namespace C2GUILauncher.Mods {
             Mods.Clear();
 
             logger.Info($"Downloading mod list from registry {RegistryOrg}/{RegistryRepoName}");
-            await HttpHelpers.DownloadFileAsync(CoreMods.PackageDBPackageListUrl, CoreMods.ModsCachePackageDBListPath).Task;
-
-            var packageListString = File.ReadAllText(CoreMods.ModsCachePackageDBListPath);
+            var packageListString = await HttpHelpers.GetStringContentsAsync(CoreMods.PackageDBPackageListUrl).Task;
             var packageNameToMetadataPath = (String s) => $"{CoreMods.PackageDBBaseUrl}/packages/{s}.json";
-            var packageNameToFilePath = (String s) => $"{CoreMods.ModsCachePackageDBPackagesDir}\\{s}.json";
 
             var packages = packageListString.Split("\n").Where(s => s.Length > 0);
 
             logger.Info($"Found {packages.Count()} packages listed...");
 
             var downloadTasks = packages
-                .Select(packageName => HttpHelpers.DownloadFileAsync(packageNameToMetadataPath(packageName), packageNameToFilePath(packageName)))
+                .Select(packageName => HttpHelpers.GetStringContentsAsync(packageNameToMetadataPath(packageName)))
                 .Select(async downloadTask => {
-                    await downloadTask.Task;
-                    var fileLocation = downloadTask.Target.OutputPath!;
-
-                    var jsonString = await File.ReadAllTextAsync(fileLocation);
+                    var jsonString = await downloadTask.Task;
                     var deserializationResult =
                         JsonHelpers
                             .Deserialize<Mod>(jsonString)
@@ -187,13 +181,11 @@ namespace C2GUILauncher.Mods {
                             });
 
                     if(deserializationResult.Exception != null)
-                        logger.Error("Failed to deserialize mod metadata file " + fileLocation, deserializationResult.Exception);
+                        logger.Error("Failed to deserialize mod metadata file " + downloadTask.Target.Url, deserializationResult.Exception);
 
-                    if (deserializationResult.Success) {
+                    if (deserializationResult.Success)
                         Mods.Add(deserializationResult.Result!);
-                    } else {
-                        logger.Error("Failed to deserialize mod metadata file " + fileLocation, deserializationResult.Exception);
-                    }
+                
                 });
 
             await Task.WhenAll(downloadTasks);

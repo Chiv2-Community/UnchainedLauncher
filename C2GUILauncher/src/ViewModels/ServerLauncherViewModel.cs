@@ -35,6 +35,7 @@ namespace C2GUILauncher.ViewModels {
         public short PingPort { get; set; }
         public string SelectedMap { get; set; }
         public bool ShowInServerBrowser { get; set; }
+        public bool UseBackendBanList { get; set; }
         public bool CanClick { get; set; }
 
         public ObservableCollection<string> MapsList { get; set; }
@@ -58,7 +59,7 @@ namespace C2GUILauncher.ViewModels {
         //in the hopes of having multiple independent servers running one one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
+        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, bool useBackendBanList, FileBackedSettings<ServerSettings> settingsFile) {
             CanClick = true;
             
             ServerName = serverName;
@@ -71,6 +72,8 @@ namespace C2GUILauncher.ViewModels {
             A2sPort = a2sPort;
             PingPort = pingPort;
             ShowInServerBrowser = showInServerBrowser;
+            UseBackendBanList = useBackendBanList;
+
             SettingsViewModel = settingsViewModel;
 
             SettingsFile = settingsFile;
@@ -125,6 +128,7 @@ namespace C2GUILauncher.ViewModels {
                 9001,
                 7071,
                 3075,
+                true,
                 true
             );
 
@@ -147,6 +151,7 @@ namespace C2GUILauncher.ViewModels {
                 loadedSettings.A2sPort ?? defaultSettings.A2sPort.Value,
                 loadedSettings.PingPort ?? defaultSettings.PingPort.Value,
                 loadedSettings.ShowInServerBrowser ?? defaultSettings.ShowInServerBrowser.Value,
+                loadedSettings.UseBackendBanList ?? defaultSettings.UseBackendBanList.Value,
                 fileBackedSettings
             );
             #pragma warning restore CS8629 // Nullable value type may be null.
@@ -163,7 +168,8 @@ namespace C2GUILauncher.ViewModels {
                     RconPort, 
                     A2sPort, 
                     PingPort,
-                    ShowInServerBrowser
+                    ShowInServerBrowser,
+                    UseBackendBanList
                 )
             );
         }
@@ -182,6 +188,10 @@ namespace C2GUILauncher.ViewModels {
                     $"GameServerQueryPort={A2sPort}",
                     $"-rcon {RconPort}",
                 };
+
+                if(UseBackendBanList) {
+                    exArgs.Add("--use-backend-banlist");
+                }
 
                 if(ServerPassword.Trim() != "") {
                     exArgs.Add($"ServerPassword={ServerPassword.Trim()}");
@@ -217,6 +227,10 @@ namespace C2GUILauncher.ViewModels {
                     "-nosound", //disable sound
                     "--next-map-name " + SelectedMap
                 };
+
+                if (UseBackendBanList) {
+                    exArgs.Add("--use-backend-banlist");
+                }
 
                 if (ServerPassword.Trim() != "") {
                     exArgs.Add($"ServerPassword={ServerPassword.Trim()}");

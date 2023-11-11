@@ -159,6 +159,8 @@ namespace C2GUILauncher {
 
                     if (currentPluginVersion == null)
                         currentPluginVersion = SemVersion.Parse(File.ReadAllText(FilePaths.UnchainedPluginVersionPath), SemVersionStyles.AllowV);
+
+                    logger.Info("Unchained Plugin Current Version: " + currentPluginVersion);
                 } catch (FileNotFoundException) {
                     logger.Warn("Failed to find UnchainedPlugin version file. Assuming no version.");
                 } catch (FormatException) {
@@ -177,6 +179,7 @@ namespace C2GUILauncher {
             var updates = new List<DependencyUpdate>();
 
             if (unchainedModsLatestRelease != null) {
+                logger.Info("Unchained Mods Latest Release: " + unchainedModsLatestRelease.Tag);
                 updates.Add(new DependencyUpdate(
                     unchainedModsLatestRelease.Manifest.Name,
                     null,
@@ -187,6 +190,7 @@ namespace C2GUILauncher {
             }
 
             if (latestPluginVersion != null && (currentPluginVersion == null || latestPluginVersion > currentPluginVersion)) {
+                logger.Info("Unchained Plugin Latest Release: " + latestUnchainedPluginTag);
                 updates.Add(new DependencyUpdate(
                     "UnchainedPlugin.dll",
                     isPluginInstalled ? currentPluginVersion?.ToString() ?? "Unknown" : null,

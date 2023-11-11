@@ -88,7 +88,7 @@ namespace C2GUILauncher {
             return InstallResult.Rejected;
         }
 
-        // DESNOTE(2023-09-15, jbarber):ggg
+        // DESNOTE(2023-09-15, jbarber):
         //     This is a warning that we aren't initializing all of ourg
         //     non-nullable members of this class. The only time we fail to
         //     initialize things is if we're closing immediately, so its not a

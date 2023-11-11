@@ -149,7 +149,12 @@ namespace C2GUILauncher.Mods {
             }
 
             this.EnabledModReleases.Add(release);
-            return DownloadModRelease(release);
+            try {
+                return DownloadModRelease(release);
+            } catch (Exception) {
+                this.EnabledModReleases.Remove(release);
+                throw;
+            }
         }
 
         public async Task UpdateModsList() {
@@ -197,39 +202,6 @@ namespace C2GUILauncher.Mods {
                 .Where(Release => Release.Item2 != null && Release.Item1 != null) // Filter out mods that aren't enabled
                 .Where(tuple => tuple.Item1!.Version.ComparePrecedenceTo(tuple.Item2!.Version) > 0) // Filter out older releases
                 .Select(tuple => new Tuple<Release,Release>(tuple.Item1!, tuple.Item2!)); // Get the latest release
-        }
-
-        // TODO: Delete this method in 1.x
-        public IEnumerable<ModReleaseDownloadTask> DownloadAndValidateMods() {
-            logger.Info("Downloading mod files...");
-
-            logger.Info("Creating mod diretories...");
-            Directory.CreateDirectory(CoreMods.EnabledModsCacheDir);
-            Directory.CreateDirectory(CoreMods.ModsCachePackageDBDir);
-            Directory.CreateDirectory(CoreMods.ModsCachePackageDBPackagesDir);
-            Directory.CreateDirectory(FilePaths.PluginDir);
-
-            var DeprecatedLibs = new List<String>()
-            {
-                CoreMods.AssetLoaderPluginPath,
-                CoreMods.ServerPluginPath,
-                CoreMods.BrowserPluginPath
-            };
-
-            foreach (var depr in DeprecatedLibs)
-                FileHelpers.DeleteFile(depr);
-
-
-            ModReleaseDownloadTask? unchainedPluginDownloadTask = null;
-
-            var tasks = EnabledModReleases.ToList().Select(DownloadModRelease);
-
-            var unchainedPluginDownloadTaskAsList = 
-                unchainedPluginDownloadTask != null 
-                    ? new List<ModReleaseDownloadTask>() { unchainedPluginDownloadTask } 
-                    : new List<ModReleaseDownloadTask>();
-
-            return tasks.Concat(unchainedPluginDownloadTaskAsList);
         }
 
         private ModReleaseDownloadTask DownloadModRelease(Release release) {

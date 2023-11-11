@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace C2GUILauncher.src {
+namespace C2GUILauncher {
     public static class PowerShell {
         private static readonly ILog logger = LogManager.GetLogger(nameof(PowerShell));
         public static Process Run(IEnumerable<string> commands, bool createWindow = false) {

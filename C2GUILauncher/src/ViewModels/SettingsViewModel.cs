@@ -1,5 +1,4 @@
 ﻿using C2GUILauncher.JsonModels;
-using C2GUILauncher.src;
 using CommunityToolkit.Mvvm.Input;
 using log4net;
 using log4net.Repository.Hierarchy;

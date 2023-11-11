@@ -297,7 +297,7 @@ namespace C2GUILauncher.ViewModels {
 
             if(result == MessageBoxResult.No) {
                 logger.Info("User declined to install registration process");
-                return false;
+                return installed;
             }
 
             try {

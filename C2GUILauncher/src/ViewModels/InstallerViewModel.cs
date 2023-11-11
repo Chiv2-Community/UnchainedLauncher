@@ -1,6 +1,5 @@
 ﻿//using System.Windows.Shapes;
 using C2GUILauncher.JsonModels;
-using C2GUILauncher.src;
 using log4net;
 using System;
 using System.Collections.Generic;

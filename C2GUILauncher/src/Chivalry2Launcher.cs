@@ -54,37 +54,14 @@ namespace C2GUILauncher {
 
         public async Task<Thread?> LaunchModded(Window window, InstallationType installationType, List<string> args, bool checkForPluginUpdates, Process? serverRegister = null) {
             if (installationType == InstallationType.NotSet) return null;
+            
+            var shouldContinue = await PrepareFilesystem(window, checkForPluginUpdates);
 
-            try {
-                await UpdateAndInstallBaseFiles(window, checkForPluginUpdates);
-
-                var downloadTasks = this.ModManager.DownloadAndValidateMods();
-                Task.WaitAll(downloadTasks.Select(x => x.DownloadTask.Task).ToArray());
-            } catch (DownloadCancelledException ex) {
-                logger.Info(ex);
+            if(!shouldContinue) 
                 return new Thread(() => logger.Info("Cancelling launch."));
-            } catch (AggregateException ex) {
-                if (ex.InnerExceptions.Count == 1) {
-                    if (ex.InnerException is DownloadCancelledException dce) {
-                        logger.Info(dce);
-                        return new Thread(() => logger.Info("Cancelling launch."));
-                    }
-                } else {
-                    logger.Error("Failed to download mods and plugins.", ex);
-                    var result = MessageBox.Show("Failed to download mods and plugins. Check the logs for details. Continue Anyway?", "Continue Launching Chivalry 2 Unchained?", MessageBoxButton.YesNo);
-
-                    if (result == MessageBoxResult.No) {
-                        return new Thread(() => logger.Info("Cancelling launch."));
-                    }
-
-                    logger.Info("Continuing launch.");
-                }
-            }
 
             logger.Info("Attempting to launch modded game.");
-
-
-            // Download the mod files, potentially using debug dlls
+            
             var launchThread = new Thread(() => {
                 try {
                     var dlls = Directory.EnumerateFiles(FilePaths.PluginDir, "*.dll").ToArray();
@@ -126,6 +103,50 @@ namespace C2GUILauncher {
             });
 
             return launchThread;
+        }
+
+        private async Task<bool> PrepareFilesystem(Window window, bool checkForPluginUpdates) {
+            try {
+                logger.Info("Creating mod diretories...");
+                Directory.CreateDirectory(CoreMods.EnabledModsCacheDir);
+                Directory.CreateDirectory(CoreMods.ModsCachePackageDBDir);
+                Directory.CreateDirectory(CoreMods.ModsCachePackageDBPackagesDir);
+                Directory.CreateDirectory(FilePaths.PluginDir);
+
+                await UpdateAndInstallBaseFiles(window, checkForPluginUpdates);
+
+                var DeprecatedLibs = new List<String>()
+                {
+                    CoreMods.AssetLoaderPluginPath,
+                    CoreMods.ServerPluginPath,
+                    CoreMods.BrowserPluginPath
+                };
+
+                foreach (var depr in DeprecatedLibs)
+                    FileHelpers.DeleteFile(depr);
+
+            } catch (DownloadCancelledException ex) {
+                logger.Info(ex);
+                return false;
+            } catch (AggregateException ex) {
+                if (ex.InnerExceptions.Count == 1) {
+                    if (ex.InnerException is DownloadCancelledException dce) {
+                        logger.Info(dce);
+                        return false;
+                    }
+                } else {
+                    logger.Error("Failed to download mods and plugins.", ex);
+                    var result = MessageBox.Show("Failed to download mods and plugins. Check the logs for details. Continue Anyway?", "Continue Launching Chivalry 2 Unchained?", MessageBoxButton.YesNo);
+
+                    if (result == MessageBoxResult.No) {
+                        return false;
+                    }
+
+                    logger.Info("Continuing launch.");
+                }
+            }
+
+            return true;
         }
 
         public async Task UpdateAndInstallBaseFiles(Window window, bool checkForPluginUpdates) {

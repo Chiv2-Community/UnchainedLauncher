@@ -21,6 +21,13 @@ namespace C2GUILauncher {
         private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2Launcher));
         public static string GameBinPath = FilePaths.BinDir + "\\Chivalry2-Win64-Shipping.exe";
         public static string OriginalLauncherPath = "Chivalry2Launcher-ORIGINAL.exe";
+        public static GithubReleaseSynchronizer PluginSynchronizer = 
+            new GithubReleaseSynchronizer(
+                "Chiv2-Community",
+                "UnchainedPlugin",
+                "UnchainedPlugin.dll",
+                CoreMods.UnchainedPluginPath
+            );
 
         private static readonly HashSet<int> GracefulExitCodes = new HashSet<int> { 0, -1073741510 };
 
@@ -148,26 +155,23 @@ namespace C2GUILauncher {
 
             if (checkForPluginUpdates || !isPluginInstalled) {
                 try {
-                    currentPluginVersion = SemVersion.Parse(File.ReadAllText(FilePaths.UnchainedPluginVersionPath), SemVersionStyles.AllowV);
+                    currentPluginVersion = PluginSynchronizer.GetCurrentVersion();
+
+                    if (currentPluginVersion == null)
+                        currentPluginVersion = SemVersion.Parse(File.ReadAllText(FilePaths.UnchainedPluginVersionPath), SemVersionStyles.AllowV);
                 } catch (FileNotFoundException) {
                     logger.Warn("Failed to find UnchainedPlugin version file. Assuming no version.");
                 } catch (FormatException) {
                     logger.Warn("Failed to parse UnchainedPlugin version file. Assuming no version.");
                 }
 
-                latestUnchainedPluginUrl = await HttpHelpers.GetRedirectedUrl(CoreMods.UnchainedPluginLatestURL);
+                if (currentPluginVersion != null) 
+                    latestUnchainedPluginTag = await PluginSynchronizer.CheckForUpdates(currentPluginVersion);
+                else
+                    latestUnchainedPluginTag = await PluginSynchronizer.GetLatestTag();
 
-                if (latestUnchainedPluginUrl == null) {
-                    logger.Warn("Failed to find latest UnchainedPlugin version url. Aborting update process.");
-                } else {
-                    latestUnchainedPluginTag = latestUnchainedPluginUrl?.Split("/").Last();
-
-                    try {
-                        latestPluginVersion = SemVersion.Parse(latestUnchainedPluginTag, SemVersionStyles.AllowV);
-                    } catch (FormatException) {
-                        logger.Warn("Failed to parse latest UnchainedPlugin version from url. Assuming no version.");
-                    }
-                }
+                if (latestUnchainedPluginTag != null)
+                    latestPluginVersion = SemVersion.Parse(latestUnchainedPluginTag, SemVersionStyles.AllowV);
             }
 
             var updates = new List<DependencyUpdate>();
@@ -185,11 +189,11 @@ namespace C2GUILauncher {
             if (latestPluginVersion != null && (currentPluginVersion == null || latestPluginVersion > currentPluginVersion)) {
                 updates.Add(new DependencyUpdate(
                     "UnchainedPlugin.dll",
-                    currentPluginVersion?.ToString(),
-                    latestPluginVersion.ToString(),
+                    isPluginInstalled ? currentPluginVersion?.ToString() ?? "Unknown" : null,
+                    latestUnchainedPluginTag!,
                     latestUnchainedPluginUrl!,
-                    currentPluginVersion == null ? "Required to play Chivalry 2 Unchained" : ""
-                )); ;
+                    "Required to play Chivalry 2 Unchained"
+                ));
             }
 
             if(!updates.Any()) 
@@ -223,8 +227,7 @@ namespace C2GUILauncher {
             if(result == MessageBoxResult.Yes) {
                 if (latestPluginVersion != null) {
                     logger.Info("User accepted core mod update.");
-                    await HttpHelpers.DownloadFileAsync(CoreMods.UnchainedPluginURL(latestUnchainedPluginTag!), CoreMods.UnchainedPluginPath).Task;
-                    File.WriteAllText(FilePaths.UnchainedPluginVersionPath, latestPluginVersion!.ToString());
+                    await PluginSynchronizer.DownloadRelease(latestUnchainedPluginTag!);
                 }
 
                 if(unchainedModsLatestRelease != null) {

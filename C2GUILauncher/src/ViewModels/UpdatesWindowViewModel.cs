@@ -2,6 +2,7 @@
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -71,7 +72,8 @@ namespace C2GUILauncher.ViewModels {
     }
 
     public record DependencyUpdate(string Name, string? CurrentVersion, string LatestVersion, string ReleaseUrl, string Reason) {
-        public string VersionString => CurrentVersion == null ? LatestVersion : $"{CurrentVersion} -> {LatestVersion}";
+        public string CurrentVersionString => CurrentVersion ?? "None";
+        public string VersionString => CurrentVersion == null ? LatestVersion : $"{CurrentVersionString} -> {LatestVersion}";
         public ICommand HyperlinkCommand => new RelayCommand(Hyperlink_Click);
 
         public void Hyperlink_Click() {

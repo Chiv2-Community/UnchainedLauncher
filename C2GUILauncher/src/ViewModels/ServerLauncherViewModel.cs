@@ -18,6 +18,7 @@ using System.Collections.ObjectModel;
 using log4net.Repository.Hierarchy;
 using log4net;
 using C2GUILauncher.Views;
+using Semver;
 
 namespace C2GUILauncher.ViewModels {
     [AddINotifyPropertyChangedInterface]
@@ -42,6 +43,13 @@ namespace C2GUILauncher.ViewModels {
         public ICommand LaunchServerCommand { get; }
         public ICommand LaunchServerHeadlessCommand { get; }
 
+        public static GithubReleaseSynchronizer RegisterServerSynchronizer = 
+            new GithubReleaseSynchronizer(
+                "Chiv2-Community",
+                "C2ServerAPI",
+                "RegisterUnchainedServer.exe",
+                "RegisterUnchainedServer.exe"
+            );
 
         public FileBackedSettings<ServerSettings> SettingsFile { get; set; }
 
@@ -193,6 +201,7 @@ namespace C2GUILauncher.ViewModels {
 
             Process? serverRegister = await MakeRegistrationProcess();
             if (serverRegister == null) {
+                CanClick = true;
                 return;
             }
 
@@ -221,11 +230,10 @@ namespace C2GUILauncher.ViewModels {
         }
 
         private async Task<Process?> MakeRegistrationProcess() {
-            if (!File.Exists("RegisterUnchainedServer.exe")) {
-                var keepGoing = await DownloadRegistrationProcess();
+            var keepGoing = await DownloadRegistrationProcess();
 
-                if (!keepGoing)
-                    return null;
+            if(!keepGoing) {
+                return null;
             }
 
             Process serverRegister = new Process();
@@ -261,17 +269,30 @@ namespace C2GUILauncher.ViewModels {
         }
 
         private async Task<bool> DownloadRegistrationProcess() {
-            var latestUrl = await HttpHelpers.GetRedirectedUrl("https://github.com/Chiv2-Community/C2ServerAPI/releases/latest");
-            var latestVersion = latestUrl?.Split("/").LastOrDefault();
+            var installed = File.Exists(RegisterServerSynchronizer.OutputPath);
+            SemVersion? currentVersion = RegisterServerSynchronizer.GetCurrentVersion();
 
-            if(latestVersion == null) {
+            var updateVersion =
+                currentVersion == null
+                    ? await RegisterServerSynchronizer.GetLatestTag()
+                    : await RegisterServerSynchronizer.CheckForUpdates(currentVersion);
+
+            if(updateVersion == null) {
                 logger.Error("Failed to get latest version url");
-                MessageBox.Show("Failed to find latest RegisterUnchainedServer.exe release. Your server may not appear in the server browser.");
+                MessageBox.Show("Failed to check for RegisterUnchainedServer.exe updates");
                 return false;
             }
 
-            var result = UpdatesWindow.Show("Install registration process?", "The server registration process has not been installed. Would you like to install it?", "Yes", "No", null, new List<DependencyUpdate>() {
-                    new DependencyUpdate("RegisterUnchainedServer.exe", null, latestVersion!, latestUrl!, "Required to register your server to the server browser")
+            var titlePrefix = installed
+                ? "Install"
+                : "Update";
+
+            var message = installed
+                ? "The server registration process is out of date. Would you like to update it?"
+                : "The server registration process is not installed. Would you like to install it?";
+
+            var result = UpdatesWindow.Show($"{titlePrefix} registration process?", message, "Yes", "No", null, new List<DependencyUpdate>() {
+                    new DependencyUpdate("RegisterUnchainedServer.exe", installed ? currentVersion?.ToString() ?? "Unknown" : null, updateVersion, RegisterServerSynchronizer.ReleaseUrl(updateVersion), "Required to register your server to the server browser")
             });
 
             if(result == MessageBoxResult.No) {
@@ -280,13 +301,7 @@ namespace C2GUILauncher.ViewModels {
             }
 
             try {
-                DownloadTask serverRegisterDownload = HttpHelpers.DownloadFileAsync(
-                    $"{latestUrl}/download/RegisterUnchainedServer.exe",
-                    "RegisterUnchainedServer.exe"
-                );
-
-                await serverRegisterDownload.Task;
-
+                await RegisterServerSynchronizer.DownloadRelease(updateVersion);
                 return true;
             } catch (Exception e) {
                 MessageBox.Show("Failed to download the Unchained server registration program:\n" + e.Message);

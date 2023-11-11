@@ -10,12 +10,24 @@ using System.Windows;
 using System.Linq;
 using log4net.Repository.Hierarchy;
 using log4net;
+using C2GUILauncher.Views;
+using System.Runtime.CompilerServices;
+using C2GUILauncher.JsonModels.Metadata.V3;
+using Semver;
+using C2GUILauncher.ViewModels;
 
 namespace C2GUILauncher {
     public class Chivalry2Launcher {
         private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2Launcher));
         public static string GameBinPath = FilePaths.BinDir + "\\Chivalry2-Win64-Shipping.exe";
         public static string OriginalLauncherPath = "Chivalry2Launcher-ORIGINAL.exe";
+        public static GithubReleaseSynchronizer PluginSynchronizer = 
+            new GithubReleaseSynchronizer(
+                "Chiv2-Community",
+                "UnchainedPlugin",
+                "UnchainedPlugin.dll",
+                CoreMods.UnchainedPluginPath
+            );
 
         private static readonly HashSet<int> GracefulExitCodes = new HashSet<int> { 0, -1073741510 };
 
@@ -43,46 +55,38 @@ namespace C2GUILauncher {
         public async Task<Thread?> LaunchModded(Window window, InstallationType installationType, List<string> args, bool checkForPluginUpdates, Process? serverRegister = null) {
             if (installationType == InstallationType.NotSet) return null;
 
+            try {
+                await UpdateAndInstallBaseFiles(window, checkForPluginUpdates);
+
+                var downloadTasks = this.ModManager.DownloadAndValidateMods();
+                Task.WaitAll(downloadTasks.Select(x => x.DownloadTask.Task).ToArray());
+            } catch (DownloadCancelledException ex) {
+                logger.Info(ex);
+                return new Thread(() => logger.Info("Cancelling launch."));
+            } catch (AggregateException ex) {
+                if (ex.InnerExceptions.Count == 1) {
+                    if (ex.InnerException is DownloadCancelledException dce) {
+                        logger.Info(dce);
+                        return new Thread(() => logger.Info("Cancelling launch."));
+                    }
+                } else {
+                    logger.Error("Failed to download mods and plugins.", ex);
+                    var result = MessageBox.Show("Failed to download mods and plugins. Check the logs for details. Continue Anyway?", "Continue Launching Chivalry 2 Unchained?", MessageBoxButton.YesNo);
+
+                    if (result == MessageBoxResult.No) {
+                        return new Thread(() => logger.Info("Cancelling launch."));
+                    }
+
+                    logger.Info("Continuing launch.");
+                }
+            }
+
             logger.Info("Attempting to launch modded game.");
 
-            if (!this.ModManager.EnabledModReleases.Any(x => x.Manifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods"))) {
-                logger.Info("Unchained-Mods mod not enabled. Enabling.");
-                var hasModList = this.ModManager.Mods.Any();
-
-                if (!hasModList)
-                    await this.ModManager.UpdateModsList();
-
-                var latestUnchainedMod = this.ModManager.Mods.First(x => x.LatestManifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods")).Releases.First();
-                var modReleaseDownloadTask = this.ModManager.EnableModRelease(latestUnchainedMod);
-
-                await modReleaseDownloadTask.DownloadTask.Task;
-            }
 
             // Download the mod files, potentially using debug dlls
             var launchThread = new Thread(() => {
                 try {
-                    try {
-                        var downloadTasks = this.ModManager.DownloadModFiles(checkForPluginUpdates, window).Result;
-                        Task.WaitAll(downloadTasks.Select(x => x.DownloadTask.Task).ToArray());
-                    } catch (AggregateException ex) {
-                        if (ex.InnerExceptions.Count == 1) {
-                            if (ex.InnerException is DownloadCancelledException dce) {
-                                logger.Info(dce);
-                                logger.Info("Cancelling launch.");
-                                return;
-                            }
-                        } else {
-                            logger.Error("Failed to download mods and plugins.", ex);
-                            var result = MessageBox.Show("Failed to download mods and plugins. Check the logs for details. Continue Anyway?", "Continue Launching Chivalry 2 Unchained?", MessageBoxButton.YesNo);
-
-                            if (result == MessageBoxResult.No) {
-                                logger.Info("Cancelling launch.");
-                                return;
-                            }
-
-                            logger.Info("Continuing launch.");
-                        }
-                    }
                     var dlls = Directory.EnumerateFiles(FilePaths.PluginDir, "*.dll").ToArray();
                     ModdedLauncher.Dlls = dlls;
 
@@ -121,9 +125,122 @@ namespace C2GUILauncher {
                 }
             });
 
-            launchThread.Start();
             return launchThread;
         }
+
+        public async Task UpdateAndInstallBaseFiles(Window window, bool checkForPluginUpdates) {
+            Release? unchainedModsLatestRelease = null;
+            if (!this.ModManager.EnabledModReleases.Any(x => x.Manifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods"))) {
+                var hasModList = this.ModManager.Mods.Any();
+
+                if (!hasModList)
+                    await this.ModManager.UpdateModsList();
+
+                unchainedModsLatestRelease = this.ModManager.Mods.First(x => x.LatestManifest.RepoUrl.EndsWith("Chiv2-Community/Unchained-Mods")).Releases.First();
+            }
+
+            var isPluginInstalled = false;
+            try {
+                isPluginInstalled = File.Exists(CoreMods.UnchainedPluginPath);
+            } catch (Exception ex) {
+                logger.Error("Failed to check if UnchainedPlugin.dll is installed. Assuming it is not.", ex);
+            }
+
+            SemVersion? currentPluginVersion = null;
+            SemVersion? latestPluginVersion = null;
+
+            string? latestUnchainedPluginUrl = null;
+            string? latestUnchainedPluginTag = null;
+
+
+            if (checkForPluginUpdates || !isPluginInstalled) {
+                try {
+                    currentPluginVersion = PluginSynchronizer.GetCurrentVersion();
+
+                    if (currentPluginVersion == null)
+                        currentPluginVersion = SemVersion.Parse(File.ReadAllText(FilePaths.UnchainedPluginVersionPath), SemVersionStyles.AllowV);
+
+                    logger.Info("Unchained Plugin Current Version: " + currentPluginVersion);
+                } catch (FileNotFoundException) {
+                    logger.Warn("Failed to find UnchainedPlugin version file. Assuming no version.");
+                } catch (FormatException) {
+                    logger.Warn("Failed to parse UnchainedPlugin version file. Assuming no version.");
+                }
+
+                if (currentPluginVersion != null) 
+                    latestUnchainedPluginTag = await PluginSynchronizer.CheckForUpdates(currentPluginVersion);
+                else
+                    latestUnchainedPluginTag = await PluginSynchronizer.GetLatestTag();
+
+                if (latestUnchainedPluginTag != null)
+                    latestPluginVersion = SemVersion.Parse(latestUnchainedPluginTag, SemVersionStyles.AllowV);
+            }
+
+            var updates = new List<DependencyUpdate>();
+
+            if (unchainedModsLatestRelease != null) {
+                logger.Info("Unchained Mods Latest Release: " + unchainedModsLatestRelease.Tag);
+                updates.Add(new DependencyUpdate(
+                    unchainedModsLatestRelease.Manifest.Name,
+                    null,
+                    unchainedModsLatestRelease.Tag,
+                    unchainedModsLatestRelease.Manifest.RepoUrl + "/releases/tag/" + unchainedModsLatestRelease.Tag,
+                    "Required to join and host modded servers"
+                ));
+            }
+
+            if (latestPluginVersion != null && (currentPluginVersion == null || latestPluginVersion > currentPluginVersion)) {
+                logger.Info("Unchained Plugin Latest Release: " + latestUnchainedPluginTag);
+                updates.Add(new DependencyUpdate(
+                    "UnchainedPlugin.dll",
+                    isPluginInstalled ? currentPluginVersion?.ToString() ?? "Unknown" : null,
+                    latestUnchainedPluginTag!,
+                    latestUnchainedPluginUrl!,
+                    "Required to play Chivalry 2 Unchained"
+                ));
+            }
+
+            if(!updates.Any()) 
+                return;
+
+            var updatingPlugin = currentPluginVersion != null;
+            var installingUnchainedMods = unchainedModsLatestRelease != null;
+
+            // Set up the update request window
+            var titleText = "Chivalry 2 Unchained Core Update";
+            var messageText = updatingPlugin ? "Update core plugin?" : "First Unchained Launch Setup.  Install Unchained Mods and Plugin?";
+            var yesButtonText = "Yes";
+            var noButtonText = "No";
+            var cancelButtonText = "Cancel";
+
+            MessageBoxResult? result = null;
+            await window.Dispatcher.BeginInvoke(delegate () {
+                result = UpdatesWindow.Show(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates);
+            });
+
+            if (result == MessageBoxResult.Cancel) {
+                logger.Info("User cancelled core mod update.");
+                throw new DownloadCancelledException("User cancelled core mod update.");
+            }
+
+            if (result == MessageBoxResult.No) {
+                logger.Info("User declined core mod update.");
+                return;
+            }
+
+            if(result == MessageBoxResult.Yes) {
+                if (latestPluginVersion != null) {
+                    logger.Info("User accepted core mod update.");
+                    await PluginSynchronizer.DownloadRelease(latestUnchainedPluginTag!);
+                }
+
+                if(unchainedModsLatestRelease != null) {
+                    logger.Info("User accepted core mod update.");
+                    await ModManager.EnableModRelease(unchainedModsLatestRelease).DownloadTask.Task;
+                }
+            }
+        }
+
 
         private void LogList<T>(string initialMessage, IEnumerable<T> list) {
             logger.Info("");
@@ -133,5 +250,9 @@ namespace C2GUILauncher {
             }
             logger.Info("");
         }
+    }
+
+    public class DownloadCancelledException : Exception {
+        public DownloadCancelledException(string message) : base(message) { }
     }
 }

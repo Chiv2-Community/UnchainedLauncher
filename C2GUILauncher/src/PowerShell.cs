@@ -14,7 +14,7 @@ namespace C2GUILauncher.src {
 
             logger.Info("Running powershell command:");
             foreach (var command in commands) {
-                logger.Info("    " + command);
+                logger.Info("   " + command);
             }
 
             var commandString = commands.Aggregate("", (acc, elem) => acc + elem + "; \n");

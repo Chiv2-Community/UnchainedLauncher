@@ -18,19 +18,19 @@ namespace C2GUILauncher.Views {
     /// <summary>
     /// Interaction logic for MessageBoxEx.xaml
     /// </summary>
-    public partial class MessageBoxEx : Window {
+    public partial class UpdatesWindow : Window {
 
-        public MessageBoxExViewModel ViewModel { get; private set; }
+        public UpdatesWindowViewModel ViewModel { get; private set; }
         public MessageBoxResult Result => ViewModel.Result;
 
-        public MessageBoxEx(string titleText, string messageText, string yesButtonText, string noButtonText, string cancelButtonText) {
+        public UpdatesWindow(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates) {
             InitializeComponent();
-            ViewModel = new MessageBoxExViewModel(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, Close);
+            ViewModel = new UpdatesWindowViewModel(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates, Close);
             DataContext = ViewModel;
         }
 
-        public static MessageBoxResult Show(string titleText, string messageText, string yesButtonText, string noButtonText, string cancelButtonText) {
-            var window = new MessageBoxEx(titleText, messageText, yesButtonText, noButtonText, cancelButtonText);
+        public static MessageBoxResult Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates) {
+            var window = new UpdatesWindow(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates);
             window.ShowDialog();
             return window.ViewModel.Result;
         }

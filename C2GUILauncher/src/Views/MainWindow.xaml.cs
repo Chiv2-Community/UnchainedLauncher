@@ -108,12 +108,14 @@ namespace C2GUILauncher {
                 var curDir = Directory.GetCurrentDirectory();
                 var exeName = Process.GetCurrentProcess().ProcessName;
 
+                var outsideVisualStudio = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("VisualStudioEdition"));
+
                 // DESNOTE(2023-08-28, jbarber): We check for the exe name here 
                 // because we assume we are already installed in that case. We 
                 // check if we're in steam already, because steam users may 
                 // install the launcher without it being named Chivalry2Launcher;
                 // it just needs to be in the steam dir to function.
-                if ((exeName != "Chivalry2Launcher" && exeName != "Chivalry2-Win64-Shipping") && !Path.Equals(curDir, steamDir)) {
+                if ((exeName != "Chivalry2Launcher" && exeName != "Chivalry2-Win64-Shipping") && !Path.Equals(curDir, steamDir) && outsideVisualStudio) {
                     logger.Info("Running installation process");
 
                     var installResult = Install(steamDir, egsDir);

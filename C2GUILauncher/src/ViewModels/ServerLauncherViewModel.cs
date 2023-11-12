@@ -243,6 +243,16 @@ namespace C2GUILauncher.ViewModels {
             CanClick = true;
         }
 
+        private List<string> MakeModArgsList() {
+            var modArgs = new List<string>();
+
+            foreach (Release modRelease in ModManager.EnabledModReleases) {
+                modArgs.Add($"--mod {modRelease.Manifest.OrgName}/{modRelease.Manifest.Name}={modRelease.Tag}");
+            }
+
+            return modArgs;
+        }
+
         private async Task<Process?> MakeRegistrationProcess() {
             var keepGoing = await DownloadRegistrationProcess();
 
@@ -264,7 +274,8 @@ namespace C2GUILauncher.ViewModels {
                 $"-c \"{RconPort}\" " +
                 $"-a \"{A2sPort}\" " +
                 $"-p \"{PingPort}\" " +
-                $"-g \"{GamePort}\" ";
+                $"-g \"{GamePort}\" " + 
+                string.Join(" ", MakeModArgsList().Aggregate((x, y) => x + " " + y));
 
             if (!ShowInServerBrowser) {
                 registerCommand += "--no-register ";
@@ -284,17 +295,36 @@ namespace C2GUILauncher.ViewModels {
 
         private async Task<bool> DownloadRegistrationProcess() {
             var installed = File.Exists(RegisterServerSynchronizer.OutputPath);
+            var upToDate = false;
+            string? updateVersion = null;
             SemVersion? currentVersion = RegisterServerSynchronizer.GetCurrentVersion();
 
-            var updateVersion =
-                currentVersion == null
-                    ? await RegisterServerSynchronizer.GetLatestTag()
-                    : await RegisterServerSynchronizer.CheckForUpdates(currentVersion);
+            if (currentVersion != null)
+            {
+                var updateCheck = await RegisterServerSynchronizer.CheckForUpdates(currentVersion);
 
-            if(updateVersion == null) {
+                updateCheck.MatchVoid(
+                    failed: () => logger.Warn("Failed to check for RegisterUnchainedServer.exe updates."),
+                    upToDate: () => {
+                        logger.Info("RegisterUnchainedServer.exe is up to date.");
+                        upToDate = true;
+                    },
+                    available: tag => {
+                        logger.Info("RegisterUnchainedServer.exe update available: " + tag);
+                        updateVersion = tag;
+                    }
+                );
+            } else {
+                updateVersion = await RegisterServerSynchronizer.GetLatestTag();
+            }
+
+            if (upToDate) 
+                return true;
+
+            if (updateVersion == null) {
                 logger.Error("Failed to get latest version url");
                 MessageBox.Show("Failed to check for RegisterUnchainedServer.exe updates");
-                return false;
+                return installed;
             }
 
             var titlePrefix = installed
@@ -315,7 +345,7 @@ namespace C2GUILauncher.ViewModels {
             }
 
             try {
-                await RegisterServerSynchronizer.DownloadRelease(updateVersion);
+                await RegisterServerSynchronizer.DownloadRelease(updateVersion).Task;
                 return true;
             } catch (Exception e) {
                 MessageBox.Show("Failed to download the Unchained server registration program:\n" + e.Message);

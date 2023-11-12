@@ -18,7 +18,7 @@ namespace C2GUILauncher {
         public string ReleaseFileName { get; set; }
         public string LatestReleaseUrl => $"https://github.com/{GithubOwner}/{GithubRepo}/releases/latest";
         public string ReleaseUrl(string tag) => $"https://github.com/{GithubOwner}/{GithubRepo}/releases/tag/{tag}";
-        public string ReleaseFileUrl(string tag) => ReleaseUrl(tag) + "/" + ReleaseFileName;
+        public string ReleaseFileUrl(string tag) => $"https://github.com/{GithubOwner}/{GithubRepo}/releases/download/{tag}/{ReleaseFileName}";
 
         public GithubReleaseSynchronizer(string githubOwner, string githubRepo, string releaseFileName, string outputPath) {
             OutputPath = outputPath;
@@ -61,24 +61,54 @@ namespace C2GUILauncher {
             }
         }
 
-        public async Task<string?> CheckForUpdates(SemVersion currentVersion) {
+        public async Task<UpdateCheck> CheckForUpdates(SemVersion currentVersion) {
             string? latestReleaseTag = await GetLatestTag();
 
             if (latestReleaseTag == null)
-                return null;
+                return UpdateCheck.Failed;
            
             SemVersion latestVersion = SemVersion.Parse(latestReleaseTag, SemVersionStyles.Any);
 
             if (latestVersion == null || latestVersion <= currentVersion)
-                return null;
+                return UpdateCheck.UpToDate;
 
-            var name = OutputPath.Split("\\").Last();
-
-            return latestReleaseTag;
+            return UpdateCheck.Available(latestReleaseTag);
         }
 
-        public Task DownloadRelease(string tag) {
-            return HttpHelpers.DownloadFileAsync(ReleaseFileUrl(tag), OutputPath).Task;
+        public DownloadTask DownloadRelease(string tag) {
+            return HttpHelpers.DownloadFileAsync(ReleaseFileUrl(tag), OutputPath);
+        }
+    }
+
+    public abstract record UpdateCheck {
+        private UpdateCheck() { }
+
+        public record UpToDateResult() : UpdateCheck;
+        public record UpdateAvailableResult(string Tag) : UpdateCheck;
+        public record UpdateCheckFailedResult() : UpdateCheck;
+
+        public static UpdateCheck Failed => new UpdateCheckFailedResult();
+        public static UpdateCheck UpToDate => new UpToDateResult();
+        public static UpdateCheck Available(string tag) => new UpdateAvailableResult(tag);
+
+        public T Match<T>(Func<T> failed, Func<T> upToDate, Func<string, T> available) {
+            switch (this) {
+                case UpToDateResult: return upToDate();
+                case UpdateAvailableResult updateAvailableResult: return available(updateAvailableResult.Tag);
+                case UpdateCheckFailedResult: return failed();
+                default:
+                    throw new Exception("Invalid UpdateCheck type");
+            }
+        }
+
+        public void MatchVoid(Action failed, Action upToDate, Action<string> available) {
+            switch (this) {
+                case UpToDateResult: upToDate(); break;
+                case UpdateAvailableResult updateAvailableResult: available(updateAvailableResult.Tag); break;
+                case UpdateCheckFailedResult: failed(); break;
+                default:
+                    throw new Exception("Invalid UpdateCheck type");
+            }
         }
     }
 }

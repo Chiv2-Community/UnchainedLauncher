@@ -161,6 +161,7 @@ namespace C2GUILauncher {
             }
 
             var isPluginInstalled = false;
+            
             try {
                 isPluginInstalled = File.Exists(CoreMods.UnchainedPluginPath);
             } catch (Exception ex) {
@@ -170,9 +171,9 @@ namespace C2GUILauncher {
             SemVersion? currentPluginVersion = null;
             SemVersion? latestPluginVersion = null;
 
-            string? latestUnchainedPluginUrl = null;
             string? latestUnchainedPluginTag = null;
 
+            var pluginUpToDate = false;
 
             if (checkForPluginUpdates || !isPluginInstalled) {
                 try {
@@ -188,10 +189,23 @@ namespace C2GUILauncher {
                     logger.Warn("Failed to parse UnchainedPlugin version file. Assuming no version.");
                 }
 
-                if (currentPluginVersion != null) 
-                    latestUnchainedPluginTag = await PluginSynchronizer.CheckForUpdates(currentPluginVersion);
-                else
+                if (currentPluginVersion != null) {
+                    var updateCheckResult = await PluginSynchronizer.CheckForUpdates(currentPluginVersion);
+
+                    updateCheckResult.MatchVoid(
+                        failed: () => logger.Warn("Failed to check for UnchainedPlugin updates."),
+                        upToDate: () => {
+                            logger.Info("UnchainedPlugin is up to date.");
+                            pluginUpToDate = true;
+                        },
+                        available: tag => {
+                            logger.Info("UnchainedPlugin update available: " + tag);
+                            latestUnchainedPluginTag = tag;
+                        }
+                    );
+                } else {
                     latestUnchainedPluginTag = await PluginSynchronizer.GetLatestTag();
+                }
 
                 if (latestUnchainedPluginTag != null)
                     latestPluginVersion = SemVersion.Parse(latestUnchainedPluginTag, SemVersionStyles.AllowV);
@@ -210,13 +224,13 @@ namespace C2GUILauncher {
                 ));
             }
 
-            if (latestPluginVersion != null && (currentPluginVersion == null || latestPluginVersion > currentPluginVersion)) {
+            if (!pluginUpToDate) {
                 logger.Info("Unchained Plugin Latest Release: " + latestUnchainedPluginTag);
                 updates.Add(new DependencyUpdate(
                     "UnchainedPlugin.dll",
                     isPluginInstalled ? currentPluginVersion?.ToString() ?? "Unknown" : null,
                     latestUnchainedPluginTag!,
-                    latestUnchainedPluginUrl!,
+                    PluginSynchronizer.ReleaseUrl(latestUnchainedPluginTag!),
                     "Required to play Chivalry 2 Unchained"
                 ));
             }
@@ -252,7 +266,7 @@ namespace C2GUILauncher {
             if(result == MessageBoxResult.Yes) {
                 if (latestPluginVersion != null) {
                     logger.Info("User accepted core mod update.");
-                    await PluginSynchronizer.DownloadRelease(latestUnchainedPluginTag!);
+                    await PluginSynchronizer.DownloadRelease(latestUnchainedPluginTag!).Task;
                 }
 
                 if(unchainedModsLatestRelease != null) {

@@ -125,6 +125,9 @@ namespace C2GUILauncher {
                 foreach (var depr in DeprecatedLibs)
                     FileHelpers.DeleteFile(depr);
 
+                // Stop execution if no plugin is installed after preparations
+                return File.Exists(CoreMods.UnchainedPluginPath);
+
             } catch (DownloadCancelledException ex) {
                 logger.Info(ex);
                 return false;

@@ -335,9 +335,14 @@ namespace C2GUILauncher.ViewModels {
                 ? "The server registration process is out of date. Would you like to update it?"
                 : "The server registration process is not installed. Would you like to install it?";
 
-            var result = UpdatesWindow.Show($"{titlePrefix} registration process?", message, "Yes", "No", null, new List<DependencyUpdate>() {
+            var result = UpdatesWindow.Show($"{titlePrefix} registration process?", message, "Yes", "No", "Cancel", new List<DependencyUpdate>() {
                     new DependencyUpdate("RegisterUnchainedServer.exe", installed ? currentVersion?.ToString() ?? "Unknown" : null, updateVersion, RegisterServerSynchronizer.ReleaseUrl(updateVersion), "Required to register your server to the server browser")
             });
+
+            if(result == MessageBoxResult.Cancel) {
+                logger.Info("User cancelled registration process installation");
+                return false;
+            }
 
             if(result == MessageBoxResult.No) {
                 logger.Info("User declined to install registration process");

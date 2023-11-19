@@ -275,7 +275,7 @@ namespace C2GUILauncher.ViewModels {
                 $"-a \"{A2sPort}\" " +
                 $"-p \"{PingPort}\" " +
                 $"-g \"{GamePort}\" " + 
-                string.Join(" ", MakeModArgsList().Aggregate("", (x, y) => x + " " + y));
+                string.Join(" ", MakeModArgsList().Aggregate("", (x, y) => x + " " + y)) + " ";
 
             if (!ShowInServerBrowser) {
                 registerCommand += "--no-register ";

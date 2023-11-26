@@ -247,7 +247,7 @@ namespace C2GUILauncher.ViewModels {
             var modArgs = new List<string>();
 
             foreach (Release modRelease in ModManager.EnabledModReleases) {
-                modArgs.Add($"--mod {modRelease.Manifest.OrgName}/{modRelease.Manifest.Name}={modRelease.Tag}");
+                modArgs.Add($"--mod \"{modRelease.Manifest.OrgName}/{modRelease.Manifest.Name}={modRelease.Tag}\"");
             }
 
             return modArgs;

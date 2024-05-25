@@ -2,6 +2,7 @@
 using log4net;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using UnchainedLauncher.Core.Extensions;
 
 namespace UnchainedLauncher.Core.Processes
 {
@@ -9,7 +10,7 @@ namespace UnchainedLauncher.Core.Processes
     /// Launches an executable with the provided working directory and DLLs to inject.
     /// </summary>
     public class ProcessLauncher {
-        public static ILog logger = LogManager.GetLogger(nameof(ProcessLauncher));
+        private static readonly ILog logger = LogManager.GetLogger(nameof(ProcessLauncher));
 
         public string ExecutableLocation { get; }
 
@@ -41,7 +42,6 @@ namespace UnchainedLauncher.Core.Processes
                     WorkingDirectory = Path.GetFullPath(WorkingDirectory),
                 }
             };
-
             // Execute the process
             try {
                 proc.Start();
@@ -92,11 +92,11 @@ namespace UnchainedLauncher.Core.Processes
             Match<Unit>(
                 launchFailed => {
                     LaunchFailedError(launchFailed);
-                    return default(Unit);
+                    return default;
                 },
                 injectionFailed => {
                     InjectionFailedError(injectionFailed);
-                    return default(Unit);
+                    return default;
                 }
             );
 

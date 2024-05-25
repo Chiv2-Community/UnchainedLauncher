@@ -29,7 +29,7 @@ namespace UnchainedLauncher.Core.Mods.Registry {
                     paths.ToImmutableList()
                         .Select(GetModMetadata)
                         .Partition()
-                        .Select(t => new GetAllModsResult(t.Item1, t.Item2))
+                        .Select(t => new GetAllModsResult(t.Lefts, t.Rights))
                 );
         }
 

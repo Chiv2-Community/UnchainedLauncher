@@ -43,7 +43,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             ModManager = modManager;
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
-            this.LaunchModdedCommand = new RelayCommand(async () => await LaunchModded(Prelude.None));
+            this.LaunchModdedCommand = new RelayCommand(() => LaunchModded(Prelude.None));
 
             Window = window;
 
@@ -54,15 +54,35 @@ namespace UnchainedLauncher.GUI.ViewModels {
             try {
                 // For a vanilla launch we need to pass the args through to the vanilla launcher.
                 // Skip the first arg which is the path to the exe.
-                Launcher.LaunchVanilla(Environment.GetCommandLineArgs().Skip(1));
+                var launchResult = Launcher.LaunchVanilla(Environment.GetCommandLineArgs().Skip(1));
                 CanClick = false;
-                Window.Close();
+
+                launchResult.Match(
+                    Left: error => {
+                        MessageBox.Show("Failed to launch Chivalry 2 Unchained. Check the logs for details.");
+                        CanClick = true;
+                    },
+                    Right: process => {
+                        new Thread(async () => {
+                            await process.WaitForExitAsync();
+                            CanClick = true;
+
+                            if (process.ExitCode != 0) {
+                                logger.Error($"Chivalry 2 exited with code {process.ExitCode}.");
+                                logger.Info(process.StandardOutput.ReadToEnd().ToList());
+                                logger.Error(process.StandardError.ReadToEnd().ToList());
+
+                                MessageBox.Show($"Chivalry 2 exited with code {process.ExitCode}. Check the logs for details.");
+                            }
+                        }).Start();
+                    }
+                                                                         );
             } catch (Exception ex) {
                 MessageBox.Show(ex.ToString());
             }
         }
 
-        public async Task LaunchModded(Option<ServerLaunchOptions> serverOpts) {
+        public void LaunchModded(Option<ServerLaunchOptions> serverOpts) {
             CanClick = false;
 
             var options = new ModdedLaunchOptions(

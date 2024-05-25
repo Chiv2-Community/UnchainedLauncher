@@ -11,6 +11,7 @@ using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 namespace UnchainedLauncher.Core {
     public class Chivalry2Launcher {
         private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2Launcher));
+
         public static readonly string GameBinPath = FilePaths.BinDir + "\\Chivalry2-Win64-Shipping.exe";
         public static readonly string OriginalLauncherPath = "Chivalry2Launcher-ORIGINAL.exe";
 
@@ -32,7 +33,17 @@ namespace UnchainedLauncher.Core {
         public Either<ProcessLaunchFailure, Process> LaunchVanilla(IEnumerable<string> args) {
             logger.Info("Attempting to launch vanilla game.");
             logger.LogListInfo("Launch args: ", args);
-            return VanillaLauncher.Launch(string.Join(" ", args));
+            var launchResult = VanillaLauncher.Launch(string.Join(" ", args));
+
+            launchResult.Match(
+                Left: error => error.Match(
+                    LaunchFailedError: e => logger.Error($"Failed to launch Chivalry 2. {e.ExecutablePath} {e.Args}", e.Underlying),
+                    InjectionFailedError: e => logger.Error($"This should be impossible. Report a bug please", e.Underlying)
+                ),
+                Right: _ => logger.Info("Successfully launched Chivalry 2.")
+            );
+
+            return launchResult;
         }
 
         /// <summary>
@@ -56,8 +67,8 @@ namespace UnchainedLauncher.Core {
             var moddedLaunchArgs = extraArgs.ToList();
             var tblLoc = moddedLaunchArgs.IndexOf("TBL") + 1;
 
-            var serverLaunchOpts = serverLaunchOptions.ToList().Bind(opts => opts.toCLIArgs());
-            var launchOpts = launchOptions.toCLIArgs();
+            var serverLaunchOpts = serverLaunchOptions.ToList().Bind(opts => opts.ToCLIArgs());
+            var launchOpts = launchOptions.ToCLIArgs();
 
             moddedLaunchArgs.InsertRange(tblLoc, serverLaunchOpts);
             moddedLaunchArgs.InsertRange(tblLoc, launchOpts);
@@ -67,21 +78,20 @@ namespace UnchainedLauncher.Core {
             var launchResult = ModdedLauncher.Launch(string.Join(" ", moddedLaunchArgs));
 
 
-            launchResult.IfLeft(error => error.Match(
-                LaunchFailedError: e => {
-                    logger.Error($"Failed to launch Chivalry 2 Unchained. {e.ExecutablePath} {e.Args}", e.Underlying);
-                },
-                InjectionFailedError: e => {
-                    logger.Error($"Failed to inject DLLs into Chivalry 2 Unchained. {e.DllPaths}", e.Underlying);
-                }
-            ));
+            launchResult.Match(
+                Left: error => error.Match(
+                    LaunchFailedError: e => logger.Error($"Failed to launch Chivalry 2 Unchained. {e.ExecutablePath} {e.Args}", e.Underlying),
+                    InjectionFailedError: e => logger.Error($"Failed to inject DLLs into Chivalry 2 Unchained. {e.DllPaths}", e.Underlying)
+                ),
+                Right: _ => logger.Info("Successfully launched Chivalry 2 Unchained")
+            );
 
             return Prelude.Some(launchResult);
         }
     }
 
     public record ServerLaunchOptions(
-        bool headless,
+        bool Headless,
         Option<string> Password,
         Option<string> Map,
         Option<int> GamePort,
@@ -89,9 +99,9 @@ namespace UnchainedLauncher.Core {
         Option<int> QueryPort,
         Option<int> RconPort
     ) {
-        public IEnumerable<String> toCLIArgs() {
+        public IEnumerable<String> ToCLIArgs() {
             var args = new List<string>();
-            if (headless) {
+            if (Headless) {
                 args.Add("-nullrhi");
                 args.Add("-unattended");
                 args.Add("-nosound");
@@ -116,7 +126,7 @@ namespace UnchainedLauncher.Core {
         Option<IEnumerable<Release>> EnabledMods,
         Option<string> SavedDirSuffix
     ) {
-        public IEnumerable<string> toCLIArgs() {
+        public IEnumerable<string> ToCLIArgs() {
             var args = new List<string>();
             ServerBrowserBackend.IfSome(backend => args.Add($"--server-browser-backend {backend}"));
             EnabledMods.IfSome(mods => args.AddRange(mods.Select(mod => $"--mod {mod.Manifest.RepoUrl}")));

@@ -5,7 +5,7 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.Core.Mods.Registry.Resolver
 {
     public class HttpPakDownloader : IModRegistryDownloader {
-        public static HttpPakDownloader GithubPakDownloader = new HttpPakDownloader(target =>
+        public static HttpPakDownloader GithubPakDownloader => new HttpPakDownloader(target =>
             $"https://github.com/{target.Org}/{target.RepoName}/releases/download/{target.ReleaseTag}/{target.FileName}"
         );
 

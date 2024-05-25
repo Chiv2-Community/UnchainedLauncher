@@ -175,7 +175,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     RconPort
                 );
 
-                await LauncherViewModel.LaunchModded(Prelude.Some(serverLaunchOptions));
+                LauncherViewModel.LaunchModded(Prelude.Some(serverLaunchOptions));
                 CanClick = LauncherViewModel.CanClick;
 
             } catch (Exception ex) {

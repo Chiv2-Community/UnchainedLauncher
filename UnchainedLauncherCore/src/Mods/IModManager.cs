@@ -63,7 +63,7 @@ namespace UnchainedLauncher.Core.Mods {
         public EitherAsync<DisableModFailure, Unit> DisableMod(Mod mod) {
             return GetCurrentlyEnabledReleaseForMod(mod).Match(
                 Some: release => DisableModRelease(release),
-                None: () => EitherAsync<Error, Unit>.Right(default)
+                None: () => EitherAsync<DisableModFailure, Unit>.Right(default)
             );
         }
 

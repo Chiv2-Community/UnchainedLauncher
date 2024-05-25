@@ -37,7 +37,7 @@
     <EmbeddedResource Include="Resources\log4net.config" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="LanguageExt.Core" Version="4.4.6" />
+    <PackageReference Include="LanguageExt.Core" Version="4.4.8" />
     <PackageReference Include="log4net" Version="2.0.15" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.1" />

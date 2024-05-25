@@ -110,10 +110,10 @@ namespace UnchainedLauncher.GUI.ViewModels
                 EnabledRelease = null;
         }
 
-        private async Task UpdateCurrentlyEnabledVersion(Option<Release> newVersion) {
-            await newVersion.Match(
-                None: async () => await ModManager.DisableMod(Mod),
-                Some: async x => await ModManager.EnableModRelease(x, Prelude.None, CancellationToken.None)
+        private EitherAsync<Either<DisableModFailure, EnableModFailure>, Unit> UpdateCurrentlyEnabledVersion(Option<Release> newVersion) {
+            return newVersion.Match(
+                None: () => ModManager.DisableMod(Mod).MapLeft<Either<DisableModFailure, EnableModFailure>>(e => Prelude.Left(e)),
+                Some: x => ModManager.EnableModRelease(x, Prelude.None, CancellationToken.None).MapLeft<Either<DisableModFailure, EnableModFailure>>(e => Prelude.Right(e))
             );
         }
     }

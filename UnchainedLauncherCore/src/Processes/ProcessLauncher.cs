@@ -1,9 +1,7 @@
 ﻿using LanguageExt;
-using LanguageExt.ClassInstances.Pred;
 using log4net;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
-using UnchainedLauncher.Core.Processes;
+using System.Runtime.InteropServices;
 
 namespace UnchainedLauncher.Core.Processes
 {
@@ -17,15 +15,12 @@ namespace UnchainedLauncher.Core.Processes
 
         public string WorkingDirectory { get; }
 
-        public IEnumerable<string>? Dlls { get; set; }
+        public Eff<IEnumerable<string>> FetchDLLs { get; }
 
-        public Option<RestartPolicy> RestartPolicy { get; }
-
-        public ProcessLauncher(string executableLocation, string workingDirectory, Option<RestartPolicy> restartPolicy, IEnumerable<string>? dlls = null) {
+        public ProcessLauncher(string executableLocation, string workingDirectory, Eff<IEnumerable<String>> fetchDLLs) {
             ExecutableLocation = executableLocation;
             WorkingDirectory = workingDirectory;
-            Dlls = dlls;
-            RestartPolicy = restartPolicy;
+            FetchDLLs = fetchDLLs;
         }
 
         /// <summary>
@@ -36,94 +31,75 @@ namespace UnchainedLauncher.Core.Processes
         /// <returns>
         /// The process that was created.
         /// </returns>
-        public void Launch(string args) {
-            Process runAndInject() {
-                // Initialize a process
-                var proc = new Process {
-                    // Build the process start info
-                    StartInfo = new ProcessStartInfo() {
-                        FileName = ExecutableLocation,
-                        Arguments = args,
-                        WorkingDirectory = Path.GetFullPath(WorkingDirectory),
-                    }
-                };
-
-                // Execute the process
-                try {
-                    proc.Start();
-                } catch (Exception e) {
-                    throw new LaunchFailedException(proc.StartInfo.FileName, proc.StartInfo.Arguments, e);
+        public Either<ProcessLaunchFailure, Process> Launch(string args) {
+            // Initialize a process
+            var proc = new Process {
+                // Build the process start info
+                StartInfo = new ProcessStartInfo() {
+                    FileName = ExecutableLocation,
+                    Arguments = args,
+                    WorkingDirectory = Path.GetFullPath(WorkingDirectory),
                 }
+            };
 
-                // If dlls are present inject them
-                if (Dlls != null && Dlls.Any()) {
-                    try {
-                        Inject.InjectAll(proc, Dlls);
-                    } catch (Exception e) {
-                        throw new InjectionFailedException(Dlls, e);
-                    }
-                }
-
-                return proc;
+            // Execute the process
+            try {
+                proc.Start();
+            } catch (Exception e) {
+                return Prelude.Left(ProcessLaunchFailure.LaunchFailed(proc.StartInfo.FileName, proc.StartInfo.Arguments, e));
             }
 
-            var retries = 0ul;
+            var dllsResult = FetchDLLs.Run();
 
-            Func<bool> keepGoing = () =>
-                RestartPolicy
-                    .Map(p =>
-                        p.MaxAttempts.Match(
-                            Some: maxAttempts => maxAttempts < retries,
-                            None: true
-                        )
-                    )
-                    .FirstOrDefault(retries == 0);
-
-
-            while (keepGoing()) {
-                var proc = runAndInject();
-                proc.WaitForExit();
-                var exitCode = proc.ExitCode;
-
-                var shouldRestart = 
-                    RestartPolicy
-                        .Map(policy => policy.ShouldRestart(exitCode))
-                        .FirstOrDefault(false);
-
-                if (!shouldRestart)
-                    break;
-
-                var delay = RestartPolicy.Map(policy => policy.DelayMs).IfNone(0);
-
-                logger.Info($"Restarting process in {delay / 1000}seconds. Exit code: {exitCode}");
-                Thread.Sleep(delay);
-
-                retries++;
-            }
+            return dllsResult.Match<Either<ProcessLaunchFailure, Process>>(
+                Fail: e => Prelude.Left(ProcessLaunchFailure.InjectionFailed(Prelude.None, e)),
+                Succ: dlls => {
+                    if (dlls.Any()) {
+                        try {
+                            Inject.InjectAll(proc, dlls);
+                        } catch (Exception e) {
+                            return Prelude.Left(ProcessLaunchFailure.InjectionFailed(Prelude.Some(dlls), e));
+                        }
+                    }
+                    return Prelude.Right(proc);
+                }
+            );
         }
     }
 
-    class LaunchFailedException : Exception {
-        public string ExecutablePath { get; }
-        public string Args { get; }
-        public Exception Underlying { get; }
+    public abstract record ProcessLaunchFailure {
+        private ProcessLaunchFailure() { }
+        public static ProcessLaunchFailure LaunchFailed(string executablePath, string args, Exception underlying) => new LaunchFailedError(executablePath, args, underlying);
+        public static ProcessLaunchFailure InjectionFailed(Option<IEnumerable<string>> dllPaths, Exception underlying) => new InjectionFailedError(dllPaths, underlying);
 
-        public LaunchFailedException(string executablePath, string args, Exception underlying) : base($"Failed to launch executable '{executablePath} {args}'\n\n{underlying.Message}") {
-            ExecutablePath = executablePath;
-            Args = args;
-            Underlying = underlying;
+
+        public record LaunchFailedError(string ExecutablePath, string Args, Exception Underlying) : ProcessLaunchFailure;
+        public record InjectionFailedError(Option<IEnumerable<string>> DllPaths, Exception Underlying) : ProcessLaunchFailure;
+
+        public T Match<T>(
+                    Func<LaunchFailedError, T> LaunchFailedError,
+                    Func<InjectionFailedError, T> InjectionFailedError
+                   ) => this switch {
+            LaunchFailedError launchFailed => LaunchFailedError(launchFailed),
+            InjectionFailedError injectionFailed => InjectionFailedError(injectionFailed),
+            _ => throw new Exception("Unreachable")
+        };
+
+        public void Match(
+                       Action<LaunchFailedError> LaunchFailedError,
+                                  Action<InjectionFailedError> InjectionFailedError
+                   ) {
+            Match<Unit>(
+                launchFailed => {
+                    LaunchFailedError(launchFailed);
+                    return default(Unit);
+                },
+                injectionFailed => {
+                    InjectionFailedError(injectionFailed);
+                    return default(Unit);
+                }
+            );
+
         }
     }
-
-    class InjectionFailedException : Exception {
-        public IEnumerable<string> DllPaths { get; }
-        public Exception Underlying { get; }
-
-        public InjectionFailedException(IEnumerable<string> dllPaths, Exception underlying) : base($"Failed to inject DLLs '{dllPaths.Aggregate((l, r) => l + ", " + r)}'\n\n{underlying.Message}") {
-            DllPaths = dllPaths;
-            Underlying = underlying;
-        }
-    }
-
-    public record RestartPolicy(Option<ulong> MaxAttempts, int DelayMs, Func<int, bool> ShouldRestart);
 }

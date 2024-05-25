@@ -17,7 +17,7 @@ namespace UnchainedLauncher.Core.Mods.Registry.Resolver
             PakReleasesDir = pakReleasesDir;
         }
 
-        public override EitherAsync<ModPakStreamAcquisitionFailure, Stream> ModPakStream(PakTarget target)
+        public EitherAsync<ModPakStreamAcquisitionFailure, Stream> ModPakStream(PakTarget target)
         {
             // Paks will be found in PakReleasesDir/org/repoName/releaseTag/fileName
             var path = Path.Combine(PakReleasesDir, target.Org, target.RepoName, target.ReleaseTag, target.FileName);

@@ -15,7 +15,7 @@ namespace UnchainedLauncher.Core.Mods.Registry.Resolver
             GetDownloadURL = getDownloadUrl;
         }
 
-        public override EitherAsync<ModPakStreamAcquisitionFailure, Stream> ModPakStream(PakTarget target)
+        public EitherAsync<ModPakStreamAcquisitionFailure, Stream> ModPakStream(PakTarget target)
         {
             var url = GetDownloadURL(target);
             var streamDownloadTask = HttpHelpers.GetByteContentsAsync(url).Task;

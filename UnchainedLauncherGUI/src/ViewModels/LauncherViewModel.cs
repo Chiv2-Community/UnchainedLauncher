@@ -16,6 +16,7 @@ using System.Threading;
 using LanguageExt;
 using System.Collections.Immutable;
 using LanguageExt.SomeHelp;
+using UnchainedLauncher.Core.Processes;
 
 namespace UnchainedLauncher.GUI.ViewModels {
 
@@ -42,7 +43,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             ModManager = modManager;
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
-            this.LaunchModdedCommand = new RelayCommand(async () => await LaunchModded());
+            this.LaunchModdedCommand = new RelayCommand(async () => await LaunchModded(Prelude.None));
 
             Window = window;
 
@@ -61,7 +62,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
         }
 
-        public async Task LaunchModded(IEnumerable<string>? exArgs = null) {
+        public async Task LaunchModded(Option<ServerLaunchOptions> serverOpts) {
             CanClick = false;
 
             var options = new ModdedLaunchOptions(
@@ -70,9 +71,39 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 Prelude.None
             );
 
+            var exArgs = new List<string>();
+
             try {
-                new Chivalry2Launcher()
-                    .LaunchModded(InstallationType.Steam, options, Prelude.None, exArgs ?? new List<string>());
+                var launchResult = Launcher.LaunchModded(InstallationType.Steam, options, serverOpts, exArgs ?? new List<string>());
+
+                launchResult.Match(
+                    None: () => {
+                        MessageBox.Show("Installation type not set. Please set it in the settings tab.");
+                    },
+                    Some: errorOrSuccess => {
+                        errorOrSuccess.Match(
+                            Left: error => {
+                                MessageBox.Show($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
+                                CanClick = true;
+                            },
+                            Right: process => {
+                                new Thread(async () => {
+                                    await process.WaitForExitAsync();
+                                    CanClick = true;
+
+                                    if (process.ExitCode != 0) {
+                                        logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
+                                        logger.Info(process.StandardOutput.ReadToEnd().ToList());
+                                        logger.Error(process.StandardError.ReadToEnd().ToList());
+
+
+                                        MessageBox.Show($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
+                                    }
+                                }).Start();
+                            }
+                        );
+                    }
+                );
             } catch (Exception) {
                 MessageBox.Show("Failed to launch Chivalry 2 Uncahined. Check the logs for details.");
                 return;

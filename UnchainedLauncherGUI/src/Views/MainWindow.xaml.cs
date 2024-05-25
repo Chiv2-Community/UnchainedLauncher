@@ -154,7 +154,7 @@ namespace UnchainedLauncher.GUI
                     new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
                 );
 
-                var chiv2Launcher = new Chivalry2Launcher(ModManager);
+                var chiv2Launcher = new Chivalry2Launcher();
 
                 this.SettingsViewModel = SettingsViewModel.LoadSettings(this);
                 if (this.SettingsViewModel.InstallationType == InstallationType.NotSet) {

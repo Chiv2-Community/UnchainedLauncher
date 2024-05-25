@@ -17,6 +17,7 @@ using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core;
+using LanguageExt;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
@@ -51,7 +52,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public ServerLauncherViewModel(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
             CanClick = true;
-            
+
             ServerName = serverName;
             ServerDescription = serverDescription;
             ServerPassword = serverPassword;
@@ -93,7 +94,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         private void ProcessEnabledModsChanged(object? sender, NotifyCollectionChangedEventArgs e) {
-            if(e.OldItems != null) {
+            if (e.OldItems != null) {
                 foreach (Release modRelease in e.OldItems) {
                     modRelease.Manifest.Maps.ForEach(x => MapsList.Remove(x));
                 }
@@ -130,13 +131,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public void SaveSettings() {
             SettingsFile.SaveSettings(
                 new ServerSettings(
-                    ServerName, 
-                    ServerDescription, 
+                    ServerName,
+                    ServerDescription,
                     ServerPassword,
                     SelectedMap,
-                    GamePort, 
-                    RconPort, 
-                    A2sPort, 
+                    GamePort,
+                    RconPort,
+                    A2sPort,
                     PingPort,
                     ShowInServerBrowser
                 )
@@ -144,88 +145,43 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         private async void LaunchServer() {
+            await RunServerLaunch(false);
+
+        }
+
+        private async void LaunchServerHeadless() {
+            await RunServerLaunch(true);
+        }
+
+        private async Task RunServerLaunch(bool headless) {
             CanClick = false;
             try {
                 var serverMods = ModManager.EnabledModReleases
-    .Select(mod => mod.Manifest)
-    .Where(manifest => manifest.ModType == ModType.Server || manifest.ModType == ModType.Shared);
-
-                string modActorsListString =
-                    BuildCommaSeparatedArgsList(
-                        "all-mod-actors",
-                        serverMods
-                            .Where(manifest => manifest.OptionFlags.ActorMod)
-                            .Select(manifest => manifest.Name.Replace(" ", "")),
-                        Settings.AdditionalModActors
-                    );
-
-                // same as modActorsListString for now. Just turn on all the enabled mods for first map.
-                string nextMapModActors =
-                    BuildCommaSeparatedArgsList(
-                        "next-map-mod-actors",
-                        serverMods
-                            .Where(manifest => manifest.OptionFlags.ActorMod)
-                            .Select(manifest => manifest.Name.Replace(" ", "")),
-                        Settings.AdditionalModActors
-                    );
+                    .Select(mod => mod.Manifest)
+                    .Where(manifest => manifest.ModType == ModType.Server || manifest.ModType == ModType.Shared);
 
                 Process? serverRegister = await MakeRegistrationProcess();
                 if (serverRegister == null) {
                     return;
                 }
 
-                var exArgs = new List<string>(){ 
-                    $"Port={GamePort}", 
-                    $"GameServerPingPort={PingPort}", 
-                    $"GameServerQueryPort={A2sPort}",
-                    $"-rcon {RconPort}",
-                };
+                var serverLaunchOptions = new ServerLaunchOptions(
+                    headless,
+                    Prelude.Some(ServerPassword).Map(pw => pw.Trim()).Filter(pw => pw == ""),
+                    SelectedMap,
+                    GamePort,
+                    PingPort,
+                    A2sPort,
+                    RconPort
+                );
 
-                if(ServerPassword.Trim() != "") {
-                    exArgs.Add($"ServerPassword={ServerPassword.Trim()}");
-                }
-
-                await LauncherViewModel.LaunchModded(exArgs, serverRegister);
+                await LauncherViewModel.LaunchModded(Prelude.Some(serverLaunchOptions));
+                CanClick = LauncherViewModel.CanClick;
 
             } catch (Exception ex) {
                 MessageBox.Show("Failed to launch. Check the logs for details.");
                 logger.Error("Failed to launch.", ex);
-                CanClick = true;
-            }
-
-        }
-
-        private async void LaunchServerHeadless() {
-            CanClick = false;
-
-            Process? serverRegister = await MakeRegistrationProcess();
-            if (serverRegister == null) {
-                return;
-            }
-
-            try {
-                var exArgs = new List<string>(){
-                    $"Port={GamePort}", //specify server port
-                    $"GameServerPingPort={PingPort}",
-                    $"GameServerQueryPort={A2sPort}",
-                    "-nullrhi", //disable rendering
-                    //Note the distinction here with the other ports.
-                    //The rcon flag DOES NOT support the equals sign syntax
-                    $"-rcon {RconPort}", //let the serverplugin know that we want RCON running on the given port
-                    "-RenderOffScreen", //super-disable rendering
-                    "-unattended", //let it know no one's around to help
-                    "-nosound", //disable sound
-                    "--next-map-name " + SelectedMap
-                };
-
-                if (ServerPassword.Trim() != "") {
-                    exArgs.Add($"ServerPassword={ServerPassword.Trim()}");
-                }
-
-                await LauncherViewModel.LaunchModded(exArgs, serverRegister);
-            } catch (Exception ex) {
-                MessageBox.Show(ex.ToString());
-                CanClick = true;
+                CanClick = LauncherViewModel.CanClick;
             }
         }
 
@@ -264,7 +220,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 registerCommand += "--no-register ";
             }
 
-            if(ServerPassword.Trim() != "") {
+            if (ServerPassword.Trim() != "") {
                 registerCommand += $"-x ";
             }
 

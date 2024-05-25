@@ -9,6 +9,7 @@ using System.Linq;
 using System.Windows;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Processes;
+using LanguageExt;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     // This isn't a view model in the normal sense that we hold on to a view of data and bind to it.
@@ -109,7 +110,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
             if (File.Exists(hashPath)) {
                 logger.Info("Hash file from previous install found. Checking current launcher against hash...");
                 string hash = File.ReadAllText(hashPath).Trim().ToUpper();
-                string currentHash = FileHelpers.Sha512(launcherDefaultPath).Trim().ToUpper();
+                string currentHash = FileHelpers.Sha512(launcherDefaultPath).Match<string>(
+                    Right: r => r,
+                    Left: e => {
+                        logger.Error($"Failed to hash launcher at {e.FilePath}", e.Error);
+                        logger.Warn("asd");
+                        return "";
+                });
 
                 logger.Info("Launcher hash: " + currentHash);
                 logger.Info("Cached hash: " + hash);

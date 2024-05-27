@@ -55,7 +55,7 @@ namespace UnchainedLauncher.Core.API.A2S
         }
         private static async Task<A2S_INFO> infoAsync_impl(IPEndPoint ep)
         {
-            CancellationTokenSource cs = new(timeOutMillis);
+            using CancellationTokenSource cs = new(timeOutMillis);
             //BinaryPrimitives
             //see A2S_INFO section of https://developer.valvesoftware.com/wiki/Server_queries
             //request structure is defined by https://developer.valvesoftware.com/wiki/Server_queries

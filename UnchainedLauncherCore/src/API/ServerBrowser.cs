@@ -136,7 +136,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
 
         private static async Task<RegisterServerResponse> registerServerAsync_impl(Uri uri, String localIp, ServerInfo info)
         {
-            CancellationTokenSource cs = new(timeOutMillis);
+            using CancellationTokenSource cs = new(timeOutMillis);
             var reqContent = RegisterServerRequest.from(info, localIp);
             var content = JsonContent.Create(reqContent, options: sOptions);
             var httpResponse = await httpc.PostAsync(uri + "/servers", content, cs.Token);
@@ -155,7 +155,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
 
         private static async Task<UpdateServerResponse> updateServerAsync_impl(Uri uri, UniqueServerInfo info, String key)
         {
-            CancellationTokenSource cs = new(timeOutMillis);
+            using CancellationTokenSource cs = new(timeOutMillis);
             var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
             var content = JsonContent.Create(reqContent, options: sOptions);
             content.Headers.Add("x-chiv2-server-browser-key", key);
@@ -175,7 +175,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
 
         private static async Task<UpdateServerResponse> heartbeatAsync_impl(Uri uri, UniqueServerInfo info, String key)
         {
-            CancellationTokenSource cs = new(timeOutMillis);
+            using CancellationTokenSource cs = new(timeOutMillis);
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
             var content = new StringContent("");
             content.Headers.Add("x-chiv2-server-browser-key", key);
@@ -195,7 +195,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
 
         private static async Task<HttpResponseMessage> deleteServerAsync_impl(Uri uri, UniqueServerInfo info, String key)
         {
-            CancellationTokenSource cs = new(timeOutMillis);
+            using CancellationTokenSource cs = new(timeOutMillis);
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, uri + $"/servers/{info.uniqueId}");
             request.Headers.Add("x-chiv2-server-browser-key", key);

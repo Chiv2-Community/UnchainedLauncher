@@ -7,7 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Buffers.Binary;
 
-namespace UnchainedLauncher.Core.API.A2S
+namespace UnchainedLauncher.Core.API
 {
     public record A2S_INFO (
         byte protocolVersion, 

@@ -1,4 +1,4 @@
-﻿using UnchainedLauncher.Core.API.A2S;
+﻿using UnchainedLauncher.Core.API;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net;
 
-namespace UnchainedLauncher.Core.API.A2S.Tests
+namespace UnchainedLauncher.Core.API.Tests
 {
     // Should have a chivalry/A2S server running on 127.0.0.1:7071 for these to
     // test against
@@ -15,11 +15,9 @@ namespace UnchainedLauncher.Core.API.A2S.Tests
     {
         private static readonly IPEndPoint endpoint = IPEndPoint.Parse("127.0.0.1:7071");
         [TestMethod()]
-        public void infoAsyncTest()
+        public async Task infoAsyncTest()
         {
-            var infoTask = A2S.infoAsync(endpoint);
-            infoTask.Wait();
-            var info = infoTask.Result;
+            var info = await A2S.infoAsync(endpoint);
 
             Assert.IsNotNull(info);
             Assert.AreEqual(info.game, "Chivalry 2");

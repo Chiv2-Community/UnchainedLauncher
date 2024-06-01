@@ -10,60 +10,75 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using System.Runtime.Loader;
 
-namespace UnchainedLauncher.Core.API.ServerBrowser
+namespace UnchainedLauncher.Core.API
 {
-    // TODO: This part of the API should be stabilized
-    // as-is, there are numerous different kinds of "server" objects depending
-    // on where they're coming from/where they're going
-    public record ServerInfo {
-        public Ports ports;
-        public String name;
-        public String description;
-        public bool passwordProtected;
-        public String currentMap;
-        public int playerCount;
-        public int maxPlayers;
-        //TODO: Make this reference the latest version always
-        public JsonModels.Metadata.V3.Mod[] mods;
-    }
-    public record UniqueServerInfo : ServerInfo {
-        public String uniqueId;
-        public float lastHeartbeat;
-    };
-    
-    public record RegisterServerRequest : ServerInfo
-    {
-        public String localIpAddress;
-        public static RegisterServerRequest from(ServerInfo info, String localIPAddress)
-        {
-            return new RegisterServerRequest()
-            {
-                ports = info.ports,
-                name = info.name,
-                description = info.description,
-                passwordProtected = info.passwordProtected,
-                currentMap = info.currentMap,
-                playerCount = info.playerCount,
-                maxPlayers = info.maxPlayers,
-                mods = info.mods,
-                localIpAddress = localIPAddress
-            };
-        }
-    }
-
-    public record ResponseServer : UniqueServerInfo
-    {
-        String localIpAddress;
-        String ipAddress;
-    }
     public record Ports(
         int game,
         int ping,
         int a2s
     );
+    public record C2ServerInfo {
+        public bool passwordProtected = false;
+        public string name = "";
+        public string description = "";
+        public Ports ports = new(7777, 3075, 7071);
+        public Mod[] mods = Array.Empty<Mod>();
+    };
+    // TODO: This part of the API should be stabilized
+    // as-is, there are numerous different kinds of "server" objects depending
+    // on where they're coming from/where they're going
+    public record ServerInfo : C2ServerInfo{
+        public String currentMap = "";
+        public int playerCount = 0;
+        public int maxPlayers = 0;
+        public ServerInfo() { }
+        public ServerInfo(C2ServerInfo info, A2S_INFO a2s) : base(info) {
+            update(a2s);
+        }
+        public bool update(A2S_INFO a2s)
+        {
+            bool wasChanged = (
+                maxPlayers != a2s.maxPlayers
+                || playerCount != a2s.players
+                || currentMap != a2s.map);
+            maxPlayers = a2s.maxPlayers;
+            playerCount = a2s.players;
+            currentMap = a2s.map;
+            return wasChanged;
+        }
+    }
+
+    public record UniqueServerInfo : ServerInfo {
+        public String uniqueId = "";
+        public double lastHeartbeat = 0;
+    };
+    
+    public record RegisterServerRequest : ServerInfo
+    {
+        public String localIpAddress;
+        public RegisterServerRequest(ServerInfo info, string localIpAddress) : base(info)
+        {
+            this.localIpAddress = localIpAddress;
+        }
+    }
+
+    public record ResponseServer : UniqueServerInfo
+    {
+        public String localIpAddress = "";
+        public String ipAddress = "";
+        public ResponseServer() { }
+        public ResponseServer(UniqueServerInfo info, string localIpAddress, string ipAddress) : base(info)
+        {
+            this.localIpAddress=localIpAddress;
+            this.ipAddress=ipAddress;
+        }
+    }
     public record RegisterServerResponse(
-        float refreshBefore,
+        double refreshBefore,
         String key,
         ResponseServer server
     );
@@ -73,7 +88,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
         String currentMap
     );
 
-    public record UpdateServerResponse(float refreshBefore, ResponseServer server);
+    public record UpdateServerResponse(double refreshBefore, ResponseServer server);
 
     record getServersResponse(
         UniqueServerInfo[] servers  
@@ -98,7 +113,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
                 throw new TimeoutException("Request timed out.");
             }
         }
-        public static async Task<UpdateServerResponse> updateServerAsync(Uri uri, UniqueServerInfo info, String key)
+        public static async Task<double> updateServerAsync(Uri uri, UniqueServerInfo info, String key)
         {
             try
             {
@@ -110,7 +125,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
             }
         }
 
-        public static async Task<UpdateServerResponse> heartbeatAsync(Uri uri, UniqueServerInfo info, String key)
+        public static async Task<double> heartbeatAsync(Uri uri, UniqueServerInfo info, String key)
         {
             try
             {
@@ -122,11 +137,11 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
             }
         }
 
-        public static async Task<HttpResponseMessage> deleteServerAsync(Uri uri, UniqueServerInfo info, String key)
+        public static async Task deleteServerAsync(Uri uri, UniqueServerInfo info, String key)
         {
             try
             {
-                return await deleteServerAsync_impl(uri, info, key);
+                await deleteServerAsync_impl(uri, info, key);
             }
             catch (TaskCanceledException)
             {
@@ -137,63 +152,84 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
         private static async Task<RegisterServerResponse> registerServerAsync_impl(Uri uri, String localIp, ServerInfo info)
         {
             using CancellationTokenSource cs = new(timeOutMillis);
-            var reqContent = RegisterServerRequest.from(info, localIp);
+            var reqContent = new RegisterServerRequest(info, localIp);
             var content = JsonContent.Create(reqContent, options: sOptions);
             var httpResponse = await httpc.PostAsync(uri + "/servers", content, cs.Token);
-            RegisterServerResponse? response = await httpResponse.EnsureSuccessStatusCode()
+            try
+            {
+                var res = await httpResponse.EnsureSuccessStatusCode()
                             .Content
                             .ReadFromJsonAsync<RegisterServerResponse>(sOptions, cs.Token);
-            if(response == null)
-            {
-                throw new InvalidDataException("Failed to parse response from server");
+                if(res == null)
+                {
+                    throw new InvalidDataException("Failed to parse response from server");
+                }
+                else
+                {
+                    return res;
+                }
             }
-            else
+            catch (InvalidOperationException e)
             {
-                return response;
+                throw new InvalidDataException("Failed to parse response from server", e);
             }
         }
 
-        private static async Task<UpdateServerResponse> updateServerAsync_impl(Uri uri, UniqueServerInfo info, String key)
+        private static async Task<double> updateServerAsync_impl(Uri uri, UniqueServerInfo info, String key)
         {
             using CancellationTokenSource cs = new(timeOutMillis);
             var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
             var content = JsonContent.Create(reqContent, options: sOptions);
             content.Headers.Add("x-chiv2-server-browser-key", key);
             var httpResponse = await httpc.PutAsync(uri + $"/servers/{info.uniqueId}", content, cs.Token);
-            UpdateServerResponse? response = await httpResponse.EnsureSuccessStatusCode()
+            try
+            {
+                var res = await httpResponse.EnsureSuccessStatusCode()
                             .Content
                             .ReadFromJsonAsync<UpdateServerResponse>(sOptions, cs.Token);
-            if (response == null)
-            {
-                throw new InvalidDataException("Failed to parse response from server");
+                if (res == null)
+                {
+                    throw new InvalidDataException("Failed to parse response from server");
+                }
+                else
+                {
+                    return res.refreshBefore;
+                }
             }
-            else
+            catch (InvalidOperationException e)
             {
-                return response;
+                throw new InvalidDataException("Failed to parse response from server", e);
             }
         }
 
-        private static async Task<UpdateServerResponse> heartbeatAsync_impl(Uri uri, UniqueServerInfo info, String key)
+        private static async Task<double> heartbeatAsync_impl(Uri uri, UniqueServerInfo info, String key)
         {
             using CancellationTokenSource cs = new(timeOutMillis);
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
             var content = new StringContent("");
             content.Headers.Add("x-chiv2-server-browser-key", key);
             var httpResponse = await httpc.PostAsync(uri + $"/servers/{info.uniqueId}/heartbeat", content, cs.Token);
-            UpdateServerResponse? response = await httpResponse.EnsureSuccessStatusCode()
+            try
+            {
+                var res = await httpResponse.EnsureSuccessStatusCode()
                             .Content
                             .ReadFromJsonAsync<UpdateServerResponse>(sOptions, cs.Token);
-            if (response == null)
-            {
-                throw new InvalidDataException("Failed to parse response from server");
+                if (res == null)
+                {
+                    throw new InvalidDataException("Failed to parse response from server");
+                }
+                else
+                {
+                    return res.refreshBefore;
+                }
             }
-            else
+            catch (InvalidOperationException e)
             {
-                return response;
+                throw new InvalidDataException("Failed to parse response from server", e);
             }
         }
 
-        private static async Task<HttpResponseMessage> deleteServerAsync_impl(Uri uri, UniqueServerInfo info, String key)
+        private static async Task deleteServerAsync_impl(Uri uri, UniqueServerInfo info, String key)
         {
             using CancellationTokenSource cs = new(timeOutMillis);
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
@@ -202,7 +238,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
             //the DeleteAsync method does not take a content parameter
             //that's a problem, since that's the only way to set headers
             //without setting state on the HttpClient
-            return await httpc.SendAsync(request, cs.Token);
+            (await httpc.SendAsync(request, cs.Token)).EnsureSuccessStatusCode();
         }
     }
 }

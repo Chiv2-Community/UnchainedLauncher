@@ -20,7 +20,7 @@ namespace UnchainedLauncher.Core.API.Tests
         [TestMethod()]
         public async Task sendCommandTest()
         {
-            await RCON.SendCommand(endpoint, "tbsaddstagetime 10");
+            await RCON.SendCommandTo(endpoint, "tbsaddstagetime 10");
         }
     }
 }

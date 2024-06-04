@@ -10,7 +10,7 @@ namespace UnchainedLauncher.Core.API
 {
     public class RCON
     {
-        public static async Task sendCommand(IPEndPoint rconLocation, string command)
+        public static async Task SendCommand(IPEndPoint rconLocation, string command)
         {
             try
             {

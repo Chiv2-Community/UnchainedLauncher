@@ -29,7 +29,7 @@ namespace UnchainedLauncher.Core.API.Tests
         private static readonly String localIP = "127.0.0.1";
 
         [TestMethod()]
-        public async Task registerServerTest()
+        public async Task RegisterServerTest()
         {
             RegisterServerResponse res = await ServerBrowser.registerServerAsync(endpoint, localIP, testServerInfo); ;
             //not exhaustive
@@ -44,9 +44,9 @@ namespace UnchainedLauncher.Core.API.Tests
         }
 
         [TestMethod()]
-        public async Task updateServerTest()
+        public async Task UpdateServerTest()
         {
-            var (refreshBefore, key, server) = await ServerBrowser.registerServerAsync(endpoint, localIP, testServerInfo);
+            var (_, key, server) = await ServerBrowser.registerServerAsync(endpoint, localIP, testServerInfo);
             await Task.Delay(1000); //wait a bit before updating
             double refreshBefore2 = await ServerBrowser.updateServerAsync(endpoint, server, key);
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
@@ -54,9 +54,9 @@ namespace UnchainedLauncher.Core.API.Tests
         }
 
         [TestMethod()]
-        public async Task heartbeatTest()
+        public async Task HeartbeatTest()
         {
-            var (refreshBefore, key, server) = await ServerBrowser.registerServerAsync(endpoint, localIP, testServerInfo);
+            var (_, key, server) = await ServerBrowser.registerServerAsync(endpoint, localIP, testServerInfo);
             Thread.Sleep(1000); //give it time to sit before sending a heartbeat
             double refreshBefore2 = await ServerBrowser.heartbeatAsync(endpoint, server, key);
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
@@ -64,9 +64,9 @@ namespace UnchainedLauncher.Core.API.Tests
         }
 
         [TestMethod()]
-        public async Task deleteServerTest()
+        public async Task DeleteServerTest()
         {
-            var (refreshBefore, key, server) = await ServerBrowser.registerServerAsync(endpoint, localIP, testServerInfo);
+            var (_, key, server) = await ServerBrowser.registerServerAsync(endpoint, localIP, testServerInfo);
             await ServerBrowser.deleteServerAsync(endpoint, server, key);
         }
     }

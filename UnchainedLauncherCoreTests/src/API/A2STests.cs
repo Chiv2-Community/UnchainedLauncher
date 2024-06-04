@@ -17,7 +17,7 @@ namespace UnchainedLauncher.Core.API.Tests
         [TestMethod()]
         public async Task infoAsyncTest()
         {
-            var info = await A2S.infoAsync(endpoint);
+            var info = await A2S.InfoAsync(endpoint);
 
             Assert.IsNotNull(info);
             Assert.AreEqual(info.game, "Chivalry 2");

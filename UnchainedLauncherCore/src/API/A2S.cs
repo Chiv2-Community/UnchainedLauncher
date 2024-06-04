@@ -10,19 +10,19 @@ using System.Buffers.Binary;
 namespace UnchainedLauncher.Core.API
 {
     public record A2S_INFO (
-        byte protocolVersion, 
-        String name,
-        String map,
-        String folder,
-        String game, 
-        UInt16 gameID, 
-        byte players,
-        byte maxPlayers,
-        byte bots, 
-        ServerType serverType, 
-        Environment environment, 
-        bool isPublic, 
-        bool vac
+        byte ProtocolVersion, 
+        String Name,
+        String Map,
+        String Folder,
+        String Game, 
+        UInt16 GameID, 
+        byte Players,
+        byte MaxPlayers,
+        byte Bots, 
+        ServerType ServerType, 
+        Environment Environment, 
+        bool IsPublic, 
+        bool Vac
         );
 
     public enum ServerType : byte
@@ -42,18 +42,18 @@ namespace UnchainedLauncher.Core.API
     public static class A2S
     {
         const int timeOutMillis = 1000;
-        public static async Task<A2S_INFO> infoAsync(IPEndPoint ep)
+        public static async Task<A2S_INFO> InfoAsync(IPEndPoint ep)
         {
             try
             {
-                return await infoAsync_impl(ep);
+                return await InfoAsync_impl(ep);
             }
             catch(TaskCanceledException)
             {
                 throw new TimeoutException("A2S connection timed out");
             }
         }
-        private static async Task<A2S_INFO> infoAsync_impl(IPEndPoint ep)
+        private static async Task<A2S_INFO> InfoAsync_impl(IPEndPoint ep)
         {
             using CancellationTokenSource cs = new(timeOutMillis);
             //BinaryPrimitives
@@ -75,7 +75,7 @@ namespace UnchainedLauncher.Core.API
                 throw new InvalidDataException("Invalid response header");
             }
             byte protocolVersion = br.ReadByte();
-            var (name, map, folder, game) = (readString(ref br), readString(ref br), readString(ref br), readString(ref br));
+            var (name, map, folder, game) = (ReadString(ref br), ReadString(ref br), ReadString(ref br), ReadString(ref br));
             UInt16 gameID = BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2));
             var (players, maxPlayers, bots) = (br.ReadByte(), br.ReadByte(), br.ReadByte());
             var serverType = (ServerType)br.ReadByte();
@@ -94,7 +94,7 @@ namespace UnchainedLauncher.Core.API
             }
             return new A2S_INFO(protocolVersion, name, map, folder, game, gameID, players, maxPlayers, bots, serverType, environment, isPublic, vac);
         }
-        private static String readString(ref BinaryReader reader)
+        private static String ReadString(ref BinaryReader reader)
         {
             StringBuilder sb = new();
             char n = reader.ReadChar();

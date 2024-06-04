@@ -141,7 +141,7 @@ namespace UnchainedLauncher.Core.API
                 token.ThrowIfCancellationRequested();
                 try
                 {
-                    var res = await A2S.infoAsync(a2sLocation);
+                    var res = await A2S.InfoAsync(a2sLocation);
                     isA2SOk = true;
                     return res;
                 }

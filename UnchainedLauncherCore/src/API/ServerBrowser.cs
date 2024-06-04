@@ -17,81 +17,81 @@ using System.Runtime.Loader;
 namespace UnchainedLauncher.Core.API
 {
     public record Ports(
-        int game,
-        int ping,
-        int a2s
+        int Game,
+        int Ping,
+        int A2s
     );
     public record C2ServerInfo {
-        public bool passwordProtected = false;
-        public string name = "";
-        public string description = "";
-        public Ports ports = new(7777, 3075, 7071);
-        public Mod[] mods = Array.Empty<Mod>();
+        public bool PasswordProtected = false;
+        public string Name = "";
+        public string Description = "";
+        public Ports Ports = new(7777, 3075, 7071);
+        public Mod[] Mods = Array.Empty<Mod>();
     };
     // TODO: This part of the API should be stabilized
     // as-is, there are numerous different kinds of "server" objects depending
     // on where they're coming from/where they're going
     public record ServerInfo : C2ServerInfo{
-        public String currentMap = "";
-        public int playerCount = 0;
-        public int maxPlayers = 0;
+        public String CurrentMap = "";
+        public int PlayerCount = 0;
+        public int MaxPlayers = 0;
         public ServerInfo() { }
         public ServerInfo(C2ServerInfo info, A2S_INFO a2s) : base(info) {
-            update(a2s);
+            Update(a2s);
         }
-        public bool update(A2S_INFO a2s)
+        public bool Update(A2S_INFO a2s)
         {
             bool wasChanged = (
-                maxPlayers != a2s.maxPlayers
-                || playerCount != a2s.players
-                || currentMap != a2s.map);
-            maxPlayers = a2s.maxPlayers;
-            playerCount = a2s.players;
-            currentMap = a2s.map;
+                MaxPlayers != a2s.MaxPlayers
+                || PlayerCount != a2s.Players
+                || CurrentMap != a2s.Map);
+            MaxPlayers = a2s.MaxPlayers;
+            PlayerCount = a2s.Players;
+            CurrentMap = a2s.Map;
             return wasChanged;
         }
     }
 
     public record UniqueServerInfo : ServerInfo {
-        public String uniqueId = "";
-        public double lastHeartbeat = 0;
+        public String UniqueId = "";
+        public double LastHeartbeat = 0;
     };
     
     public record RegisterServerRequest : ServerInfo
     {
-        public String localIpAddress;
+        public String LocalIpAddress;
         public RegisterServerRequest(ServerInfo info, string localIpAddress) : base(info)
         {
-            this.localIpAddress = localIpAddress;
+            this.LocalIpAddress = localIpAddress;
         }
     }
 
     public record ResponseServer : UniqueServerInfo
     {
-        public String localIpAddress = "";
-        public String ipAddress = "";
+        public String LocalIpAddress = "";
+        public String IpAddress = "";
         public ResponseServer() { }
         public ResponseServer(UniqueServerInfo info, string localIpAddress, string ipAddress) : base(info)
         {
-            this.localIpAddress=localIpAddress;
-            this.ipAddress=ipAddress;
+            this.LocalIpAddress=localIpAddress;
+            this.IpAddress=ipAddress;
         }
     }
     public record RegisterServerResponse(
-        double refreshBefore,
-        String key,
-        ResponseServer server
+        double RefreshBefore,
+        String Key,
+        ResponseServer Server
     );
     public record UpdateServerRequest(
-        int playerCount,
-        int maxPlayers,
-        String currentMap
+        int PlayerCount,
+        int MaxPlayers,
+        String CurrentMap
     );
 
-    public record UpdateServerResponse(double refreshBefore, ResponseServer server);
+    public record UpdateServerResponse(double RefreshBefore, ResponseServer Server);
 
-    record getServersResponse(
-        UniqueServerInfo[] servers  
+    record GetServersResponse(
+        UniqueServerInfo[] Servers  
     );
     //URI is expected to have the /api/v1/ stuff. These functions only append the immediately relevant paths
     public static class ServerBrowser
@@ -101,23 +101,23 @@ namespace UnchainedLauncher.Core.API
                 PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
                 IncludeFields = true
             };
-        const int timeOutMillis = 1000;
+        const int TimeOutMillis = 1000;
 
-        public static async Task<RegisterServerResponse> registerServerAsync(Uri uri, String localIp, ServerInfo info)
+        public static async Task<RegisterServerResponse> RegisterServerAsync(Uri uri, String localIp, ServerInfo info)
         {
             try
             {
-                return await registerServerAsync_impl(uri, localIp, info);
+                return await RegisterServerAsync_impl(uri, localIp, info);
             }catch(TaskCanceledException)
             {
                 throw new TimeoutException("Request timed out.");
             }
         }
-        public static async Task<double> updateServerAsync(Uri uri, UniqueServerInfo info, String key)
+        public static async Task<double> UpdateServerAsync(Uri uri, UniqueServerInfo info, String key)
         {
             try
             {
-                return await updateServerAsync_impl(uri, info, key);
+                return await UpdateServerAsync_impl(uri, info, key);
             }
             catch (TaskCanceledException)
             {
@@ -125,11 +125,11 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        public static async Task<double> heartbeatAsync(Uri uri, UniqueServerInfo info, String key)
+        public static async Task<double> HeartbeatAsync(Uri uri, UniqueServerInfo info, String key)
         {
             try
             {
-                return await heartbeatAsync_impl(uri, info, key);
+                return await HeartbeatAsync_impl(uri, info, key);
             }
             catch (TaskCanceledException)
             {
@@ -137,11 +137,11 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        public static async Task deleteServerAsync(Uri uri, UniqueServerInfo info, String key)
+        public static async Task DeleteServerAsync(Uri uri, UniqueServerInfo info, String key)
         {
             try
             {
-                await deleteServerAsync_impl(uri, info, key);
+                await DeleteServerAsync_impl(uri, info, key);
             }
             catch (TaskCanceledException)
             {
@@ -149,9 +149,9 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        private static async Task<RegisterServerResponse> registerServerAsync_impl(Uri uri, String localIp, ServerInfo info)
+        private static async Task<RegisterServerResponse> RegisterServerAsync_impl(Uri uri, String localIp, ServerInfo info)
         {
-            using CancellationTokenSource cs = new(timeOutMillis);
+            using CancellationTokenSource cs = new(TimeOutMillis);
             var reqContent = new RegisterServerRequest(info, localIp);
             var content = JsonContent.Create(reqContent, options: sOptions);
             var httpResponse = await httpc.PostAsync(uri + "/servers", content, cs.Token);
@@ -175,13 +175,13 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        private static async Task<double> updateServerAsync_impl(Uri uri, UniqueServerInfo info, String key)
+        private static async Task<double> UpdateServerAsync_impl(Uri uri, UniqueServerInfo info, String key)
         {
-            using CancellationTokenSource cs = new(timeOutMillis);
-            var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
+            using CancellationTokenSource cs = new(TimeOutMillis);
+            var reqContent = new UpdateServerRequest(info.PlayerCount, info.MaxPlayers, info.CurrentMap);
             var content = JsonContent.Create(reqContent, options: sOptions);
             content.Headers.Add("x-chiv2-server-browser-key", key);
-            var httpResponse = await httpc.PutAsync(uri + $"/servers/{info.uniqueId}", content, cs.Token);
+            var httpResponse = await httpc.PutAsync(uri + $"/servers/{info.UniqueId}", content, cs.Token);
             try
             {
                 var res = await httpResponse.EnsureSuccessStatusCode()
@@ -193,7 +193,7 @@ namespace UnchainedLauncher.Core.API
                 }
                 else
                 {
-                    return res.refreshBefore;
+                    return res.RefreshBefore;
                 }
             }
             catch (InvalidOperationException e)
@@ -202,13 +202,13 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        private static async Task<double> heartbeatAsync_impl(Uri uri, UniqueServerInfo info, String key)
+        private static async Task<double> HeartbeatAsync_impl(Uri uri, UniqueServerInfo info, String key)
         {
-            using CancellationTokenSource cs = new(timeOutMillis);
+            using CancellationTokenSource cs = new(TimeOutMillis);
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
             var content = new StringContent("");
             content.Headers.Add("x-chiv2-server-browser-key", key);
-            var httpResponse = await httpc.PostAsync(uri + $"/servers/{info.uniqueId}/heartbeat", content, cs.Token);
+            var httpResponse = await httpc.PostAsync(uri + $"/servers/{info.UniqueId}/heartbeat", content, cs.Token);
             try
             {
                 var res = await httpResponse.EnsureSuccessStatusCode()
@@ -220,7 +220,7 @@ namespace UnchainedLauncher.Core.API
                 }
                 else
                 {
-                    return res.refreshBefore;
+                    return res.RefreshBefore;
                 }
             }
             catch (InvalidOperationException e)
@@ -229,11 +229,11 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        private static async Task deleteServerAsync_impl(Uri uri, UniqueServerInfo info, String key)
+        private static async Task DeleteServerAsync_impl(Uri uri, UniqueServerInfo info, String key)
         {
-            using CancellationTokenSource cs = new(timeOutMillis);
+            using CancellationTokenSource cs = new(TimeOutMillis);
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, uri + $"/servers/{info.uniqueId}");
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, uri + $"/servers/{info.UniqueId}");
             request.Headers.Add("x-chiv2-server-browser-key", key);
             //the DeleteAsync method does not take a content parameter
             //that's a problem, since that's the only way to set headers

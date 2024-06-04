@@ -13,12 +13,11 @@ namespace UnchainedLauncher.Core.API.Tests
     [TestClass()]
     public class RegisteredServerTests
     {
-        private static readonly IPEndPoint endpoint = IPEndPoint.Parse("127.0.0.1:7071");
         private static readonly Uri backend = new("http://localhost:8080/api/v1");
         private static readonly C2ServerInfo testServerC2Info = new()
         {
-            name = "Test server",
-            description = "Test description"
+            Name = "Test server",
+            Description = "Test description"
         };
         //you might want to watch this test case run using wireshark
         [TestMethod()]
@@ -26,9 +25,9 @@ namespace UnchainedLauncher.Core.API.Tests
         {
             using RegisteredServer l = new(backend, testServerC2Info, "127.0.0.1");
             await Task.Delay(70000); //give time for a heartbeat to occur
-            var reg = l.registeredServer;
+            var reg = l.RemoteInfo;
             Assert.IsNotNull(reg);
-            Assert.AreNotEqual(reg.uniqueId, "");
+            Assert.AreNotEqual(reg.UniqueId, "");
         }
     }
 }

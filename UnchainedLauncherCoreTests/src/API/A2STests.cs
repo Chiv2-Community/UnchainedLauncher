@@ -15,12 +15,12 @@ namespace UnchainedLauncher.Core.API.Tests
     {
         private static readonly IPEndPoint endpoint = IPEndPoint.Parse("127.0.0.1:7071");
         [TestMethod()]
-        public async Task infoAsyncTest()
+        public async Task InfoAsyncTest()
         {
             var info = await A2S.InfoAsync(endpoint);
 
             Assert.IsNotNull(info);
-            Assert.AreEqual(info.game, "Chivalry 2");
+            Assert.AreEqual(info.Game, "Chivalry 2");
         }
     }
 }

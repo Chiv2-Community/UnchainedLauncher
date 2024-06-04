@@ -31,7 +31,7 @@ namespace UnchainedLauncher.Core.API
     public class RegisteredServer : IDisposable
     {
         // this thread object is used as the mutex
-        private readonly Thread registrationThread;
+        private readonly Thread RegistrationThread;
         private readonly CancellationTokenSource shutDownSource;
         private bool disposed;
         public readonly C2ServerInfo serverInfo;
@@ -42,23 +42,23 @@ namespace UnchainedLauncher.Core.API
         //thread-safe accessors
         // see also https://stackoverflow.com/a/541348
         // not used to avoid locking on this
-        private ResponseServer? _registeredServer;
-        public ResponseServer? registeredServer
+        private ResponseServer? _RemoteInfo;
+        public ResponseServer? RemoteInfo
         {
-            get { lock (registrationThread) { return _registeredServer; } }
-            private set { lock (registrationThread) { _registeredServer = value; } }
+            get { lock (RegistrationThread) { return _RemoteInfo; } }
+            private set { lock (RegistrationThread) { _RemoteInfo = value; } }
         }
-        private Exception? _lastException;
-        public Exception? lastException
+        private Exception? _LastException;
+        public Exception? LastException
         {
-            get { lock (registrationThread) { return _lastException; } }
-            private set { lock (registrationThread) { _lastException = value; } }
+            get { lock (RegistrationThread) { return _LastException; } }
+            private set { lock (RegistrationThread) { _LastException = value; } }
         }
-        private bool _isA2SOk = false;
-        public bool isA2SOk
+        private bool _IsA2SOk = false;
+        public bool IsA2SOk
         {
-            get { lock (registrationThread) { return _isA2SOk; } }
-            private set { lock (registrationThread) { _isA2SOk = value; } }
+            get { lock (RegistrationThread) { return _IsA2SOk; } }
+            private set { lock (RegistrationThread) { _IsA2SOk = value; } }
         }
 
         public RegisteredServer(Uri backend,
@@ -69,45 +69,46 @@ namespace UnchainedLauncher.Core.API
             this.serverInfo = serverInfo;
             this.updateIntervalMillis = updateIntervalMillis;
             this.localIp = localIp;
-            this.a2sLocation = new(IPAddress.Parse("127.0.0.1"), serverInfo.ports.a2s);
+            this.a2sLocation = new(IPAddress.Parse("127.0.0.1"), serverInfo.Ports.A2s);
             shutDownSource = new();
 
-            registrationThread = new(
+            RegistrationThread = new(
                     () => Run(shutDownSource.Token)
                     )
             {
                 IsBackground = true
             };
-            registrationThread.Start();
+            RegistrationThread.Start();
         }
 
-        private async Task maintainRegistration(CancellationToken token)
+        private async Task MaintainRegistration(CancellationToken token)
         {
-            A2S_INFO a2sRes = await getServerState(token);
-            var res = await ServerBrowser.registerServerAsync(backend, localIp, new(serverInfo, a2sRes));
-            double refreshBefore = res.refreshBefore;
-            string key = res.key;
-            registeredServer = res.server;
+            A2S_INFO a2sRes = await GetServerState(token);
+            var res = await ServerBrowser.RegisterServerAsync(backend, localIp, new(serverInfo, a2sRes));
+            double refreshBefore = res.RefreshBefore;
+            string key = res.Key;
+            RemoteInfo = res.Server;
             int heartBeatAfterSeconds = (int)(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5);
-            Task heartBeatDelay = Task.Delay(1000*heartBeatAfterSeconds);
-            Task updateDelay = Task.Delay(updateIntervalMillis);
+            Task heartBeatDelay = Task.Delay(1000*heartBeatAfterSeconds, token);
+            Task updateDelay = Task.Delay(updateIntervalMillis, token);
             while (true)
             {
                 var fin = await Task.WhenAny(heartBeatDelay, updateDelay, token.WhenCanceled());
                 token.ThrowIfCancellationRequested();
                 if(fin == heartBeatDelay)
                 {
-                    refreshBefore = await ServerBrowser.heartbeatAsync(backend, registeredServer, key);
+                    refreshBefore = await ServerBrowser.HeartbeatAsync(backend, RemoteInfo, key);
                     heartBeatAfterSeconds = (int)(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5);
-                    heartBeatDelay = Task.Delay(1000 * heartBeatAfterSeconds);
+                    heartBeatDelay = Task.Delay(1000 * heartBeatAfterSeconds, token);
                 }
                 else if(fin == updateDelay)
                 {
-                    if(registeredServer.update(await getServerState(token)))
+                    if(RemoteInfo.Update(await GetServerState(token)))
                     {
-                        refreshBefore = await ServerBrowser.updateServerAsync(backend, registeredServer, key);
+                        //this is NOT an unnecessary assignment
+                        refreshBefore = await ServerBrowser.UpdateServerAsync(backend, RemoteInfo, key);
                     }
-                    updateDelay = Task.Delay(updateIntervalMillis);
+                    updateDelay = Task.Delay(updateIntervalMillis, token);
                 }
             }
         }
@@ -117,7 +118,7 @@ namespace UnchainedLauncher.Core.API
             {
                 try
                 {
-                    await maintainRegistration(token);
+                    await MaintainRegistration(token);
                 }
                 catch (HttpRequestException e) //if something goes wrong and the registration dies
                 {
@@ -134,7 +135,7 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        private async Task<A2S_INFO> getServerState(CancellationToken token)
+        private async Task<A2S_INFO> GetServerState(CancellationToken token)
         {
             while (true)
             {
@@ -142,13 +143,13 @@ namespace UnchainedLauncher.Core.API
                 try
                 {
                     var res = await A2S.InfoAsync(a2sLocation);
-                    isA2SOk = true;
+                    IsA2SOk = true;
                     return res;
                 }
                 catch (Exception e)
                 {
-                    isA2SOk = false;
-                    lastException = e;
+                    IsA2SOk = false;
+                    LastException = e;
                 }
             }
         }
@@ -168,9 +169,9 @@ namespace UnchainedLauncher.Core.API
             {
                 // Signal the thread to stop and wait for it to finish
                 shutDownSource.Cancel();
-                if (registrationThread != null && registrationThread.IsAlive)
+                if (RegistrationThread != null && RegistrationThread.IsAlive)
                 {
-                    registrationThread.Join(); // Optional: You might want to add a timeout here
+                    RegistrationThread.Join(); // Optional: You might want to add a timeout here
                 }
 
                 // Dispose managed resources

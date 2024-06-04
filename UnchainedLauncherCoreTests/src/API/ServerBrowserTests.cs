@@ -16,8 +16,8 @@ namespace UnchainedLauncher.Core.API.Tests
     {
         private static readonly C2ServerInfo testServerC2Info = new()
         {
-            name = "Test server",
-            description = "Test description"
+            Name = "Test server",
+            Description = "Test description"
         };
         //test a2s response to use where it would be useless/inconvenient to actually make such a query
         private static readonly A2S_INFO testA2SInfo =
@@ -31,24 +31,24 @@ namespace UnchainedLauncher.Core.API.Tests
         [TestMethod()]
         public async Task RegisterServerTest()
         {
-            RegisterServerResponse res = await ServerBrowser.registerServerAsync(endpoint, localIP, testServerInfo); ;
+            RegisterServerResponse res = await ServerBrowser.RegisterServerAsync(endpoint, localIP, testServerInfo); ;
             //not exhaustive
             //it's not possible to up-cast and compare using equals
             //because the result will still retain the fields and cause a not-equal
             //also, the server modifies certain fields so they will never be equal
             //Server does "Unverified" stuff so this won't be true
             //Assert.AreEqual(res.server.name, testServerInfo.name); 
-            Assert.AreEqual(res.server.description, testServerInfo.description);
-            Assert.AreEqual(res.server.ports, testServerInfo.ports);
-            Assert.AreEqual(res.server.currentMap, testServerInfo.currentMap);
+            Assert.AreEqual(res.Server.Description, testServerInfo.Description);
+            Assert.AreEqual(res.Server.Ports, testServerInfo.Ports);
+            Assert.AreEqual(res.Server.CurrentMap, testServerInfo.CurrentMap);
         }
 
         [TestMethod()]
         public async Task UpdateServerTest()
         {
-            var (_, key, server) = await ServerBrowser.registerServerAsync(endpoint, localIP, testServerInfo);
+            var (_, key, server) = await ServerBrowser.RegisterServerAsync(endpoint, localIP, testServerInfo);
             await Task.Delay(1000); //wait a bit before updating
-            double refreshBefore2 = await ServerBrowser.updateServerAsync(endpoint, server, key);
+            double refreshBefore2 = await ServerBrowser.UpdateServerAsync(endpoint, server, key);
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
             Assert.IsTrue(refreshBefore2 > now);
         }
@@ -56,9 +56,9 @@ namespace UnchainedLauncher.Core.API.Tests
         [TestMethod()]
         public async Task HeartbeatTest()
         {
-            var (_, key, server) = await ServerBrowser.registerServerAsync(endpoint, localIP, testServerInfo);
+            var (_, key, server) = await ServerBrowser.RegisterServerAsync(endpoint, localIP, testServerInfo);
             Thread.Sleep(1000); //give it time to sit before sending a heartbeat
-            double refreshBefore2 = await ServerBrowser.heartbeatAsync(endpoint, server, key);
+            double refreshBefore2 = await ServerBrowser.HeartbeatAsync(endpoint, server, key);
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
             Assert.IsTrue(refreshBefore2 > now);
         }
@@ -66,8 +66,8 @@ namespace UnchainedLauncher.Core.API.Tests
         [TestMethod()]
         public async Task DeleteServerTest()
         {
-            var (_, key, server) = await ServerBrowser.registerServerAsync(endpoint, localIP, testServerInfo);
-            await ServerBrowser.deleteServerAsync(endpoint, server, key);
+            var (_, key, server) = await ServerBrowser.RegisterServerAsync(endpoint, localIP, testServerInfo);
+            await ServerBrowser.DeleteServerAsync(endpoint, server, key);
         }
     }
 }

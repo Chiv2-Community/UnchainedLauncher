@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using LanguageExt.Pipes;
+using PropertyChanged;
 
 namespace UnchainedLauncher.Core.API
 {
@@ -28,6 +29,7 @@ namespace UnchainedLauncher.Core.API
     }
 
     //TODO? Implement IObservableProperty here for GUI bindings
+    [AddINotifyPropertyChangedInterface]
     public class RegisteredServer : IDisposable
     {
         // this thread object is used as the mutex
@@ -150,6 +152,7 @@ namespace UnchainedLauncher.Core.API
                 {
                     IsA2SOk = false;
                     LastException = e;
+                    await Task.Delay(1000, token); // try not to spam the network
                 }
             }
         }

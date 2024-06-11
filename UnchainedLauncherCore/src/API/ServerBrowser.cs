@@ -105,7 +105,7 @@ namespace UnchainedLauncher.Core.API
                 PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
                 IncludeFields = true
             };
-        const int TimeOutMillis = 1000;
+        const int TimeOutMillis = 4000;
 
         public static async Task<RegisterServerResponse> RegisterServerAsync(Uri uri, String localIp, ServerInfo info)
         {

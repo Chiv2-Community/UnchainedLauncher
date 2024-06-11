@@ -125,7 +125,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     }
                 );
             } catch (Exception) {
-                MessageBox.Show("Failed to launch Chivalry 2 Uncahined. Check the logs for details.");
+                MessageBox.Show("Failed to launch Chivalry 2 Unchained. Check the logs for details.");
                 return;
             } finally {
                 CanClick = true;

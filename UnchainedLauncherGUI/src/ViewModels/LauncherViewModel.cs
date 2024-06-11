@@ -93,10 +93,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 Prelude.None
             );
 
-            var exArgs = new List<string>();
+            var exArgs = Window.SettingsViewModel.CLIArgs.Split(" ");
 
             try {
-                var launchResult = Launcher.LaunchModded(InstallationType.Steam, options, serverOpts, exArgs ?? new List<string>());
+                var launchResult = Launcher.LaunchModded(Settings.InstallationType, options, serverOpts, exArgs);
 
                 launchResult.Match(
                     None: () => {

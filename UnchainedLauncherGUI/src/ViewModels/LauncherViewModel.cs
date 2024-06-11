@@ -152,9 +152,11 @@ namespace UnchainedLauncher.GUI.ViewModels {
                                     // This may involve changing the Mod datatype to something else.
                                     Mods = Array.Empty<Mod>(),
                                 };
+                                // TODO: unify the base uri vs api version uri differences introduced
+                                // by this implementation
                                 Uri backend = options.ServerBrowserBackend.Match(
-                                    Some: backend => new Uri(backend),
-                                    None: () => new Uri(Settings.ServerBrowserBackend)
+                                    Some: backend => new Uri(backend + "/api/v1"),
+                                    None: () => new Uri(Settings.ServerBrowserBackend + "/api/v1")
                                 );
                                 RegisteredServer registered = new(backend, serverInfo, "127.0.0.1");
                                 Window.ServersViewModel.Servers.Add(

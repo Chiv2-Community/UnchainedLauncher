@@ -65,6 +65,9 @@ namespace UnchainedLauncher.GUI.ViewModels
     // 1. send listplayers to rcon
     // 2. get response from system clipboard
     // 3. neatly display response information in-window
+
+    // TODO: add output node for errors relating to server
+    // registration. Similar to what A2S has right now
     [AddINotifyPropertyChangedInterface]
     public class ServerViewModel : IDisposable
     {

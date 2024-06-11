@@ -29,7 +29,6 @@ namespace UnchainedLauncher.Core.API
 
     }
 
-    // TODO? Implement IObservableProperty here for GUI bindings
     // TODO? separate this out a little bit so that maintaining A2S information doesn't
     // require being registered with a backend. this is definitely doable, but not super
     // critical because you need a backend to connect to a server properly anyways.
@@ -65,6 +64,18 @@ namespace UnchainedLauncher.Core.API
         {
             get { lock (RegistrationThread) { return _LastException; } }
             private set { lock (RegistrationThread) { _LastException = value; } }
+        }
+        private Exception? _LastHttpException;
+        public Exception? LastHttpException
+        {
+            get { lock (RegistrationThread) { return _LastHttpException; } }
+            private set { lock (RegistrationThread) { _LastHttpException = value; } }
+        }
+        private bool _IsRegistrationOk = false;
+        public bool IsRegistrationOk
+        {
+            get { lock (RegistrationThread) { return _IsRegistrationOk; } }
+            private set { lock (RegistrationThread) { _IsRegistrationOk = value; } }
         }
 
         TaskCompletionSource<bool> _IsA2SOkTCS;
@@ -122,28 +133,26 @@ namespace UnchainedLauncher.Core.API
         {
             A2S_INFO a2sRes = await GetServerState(token);
             var res = await ServerBrowser.RegisterServerAsync(backend, localIp, new(serverInfo, a2sRes));
+            this.IsRegistrationOk = true;
             double refreshBefore = res.RefreshBefore;
             string key = res.Key;
             this.key = key;
             RemoteInfo = res.Server;
-            int heartBeatAfterSeconds = (int)(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5);
-            Task heartBeatDelay = Task.Delay(1000*heartBeatAfterSeconds, token);
             Task updateDelay = Task.Delay(updateIntervalMillis, token);
             while (true)
             {
+                int heartBeatAfterSeconds = (int)(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5);
+                Task heartBeatDelay = Task.Delay(1000 * heartBeatAfterSeconds, token);
                 var fin = await Task.WhenAny(heartBeatDelay, updateDelay, token.WhenCanceled());
                 token.ThrowIfCancellationRequested();
                 if(fin == heartBeatDelay)
                 {
                     refreshBefore = await ServerBrowser.HeartbeatAsync(backend, RemoteInfo, key);
-                    heartBeatAfterSeconds = (int)(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5);
-                    heartBeatDelay = Task.Delay(1000 * heartBeatAfterSeconds, token);
                 }
                 else if(fin == updateDelay)
                 {
                     if(RemoteInfo.Update(await GetServerState(token)))
                     {
-                        //this is NOT an unnecessary assignment
                         refreshBefore = await ServerBrowser.UpdateServerAsync(backend, RemoteInfo, key);
                     }
                     updateDelay = Task.Delay(updateIntervalMillis, token);
@@ -160,10 +169,15 @@ namespace UnchainedLauncher.Core.API
                 }
                 catch (HttpRequestException e) //if something goes wrong and the registration dies
                 {
-                    if(e.StatusCode != HttpStatusCode.NotFound)
+                    this.LastHttpException = e;
+                    if (e.StatusCode != HttpStatusCode.NotFound)
                     {
                         break;
                     }
+                }
+                catch (TimeoutException e)
+                {
+                    this.LastHttpException = e;
                 }
                 catch (OperationCanceledException) //propagate cancellation
                 {
@@ -181,7 +195,11 @@ namespace UnchainedLauncher.Core.API
                     }
                     break;
                 }
-                
+                finally
+                {
+                    this.IsRegistrationOk = false;
+                    this.IsA2SOk = false;
+                }
             }
         }
 

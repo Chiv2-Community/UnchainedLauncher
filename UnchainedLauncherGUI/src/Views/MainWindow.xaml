@@ -302,6 +302,29 @@
                                             </Ellipse>
                                         </InlineUIContainer>
                                     </TextBlock>
+                                    <!-- HTTP status display -->
+                                    <TextBlock>
+                                        <Run Text="Backend Status (hover for errors): "/>
+                                        <InlineUIContainer BaselineAlignment="Center">
+                                            <Ellipse Width="13" Height="13">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="Ellipse">
+                                                        <Setter Property="Fill" Value="Green"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Server.IsRegistrationOk}" Value="False">
+                                                                <Setter Property="Fill" Value="Red"/>
+                                                                <Setter Property="ToolTip">
+                                                                    <Setter.Value>
+                                                                        <ToolTip Content="{Binding Server.LastHttpException.Message}"/>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                        </InlineUIContainer>
+                                    </TextBlock>
                                     <TextBlock Text=""/>
                                     <TextBlock Text="Ports:"/>
                                     <!-- Ports outline -->

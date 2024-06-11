@@ -280,7 +280,7 @@
                                         <Run Text="{Binding Server.RemoteInfo.MaxPlayers}"/>
                                     </TextBlock>
                                     <!-- A2S status display -->
-                                    <TextBlock>
+                                    <TextBlock ToolTip="{Binding Server.LastException.Message}">
                                         <Run Text="A2S Status (hover for errors): "/>
                                         <InlineUIContainer BaselineAlignment="Center">
                                             <Ellipse Width="13" Height="13">
@@ -290,11 +290,6 @@
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding Server.IsA2SOk}" Value="False">
                                                                 <Setter Property="Fill" Value="Red"/>
-                                                                <Setter Property="ToolTip">
-                                                                    <Setter.Value>
-                                                                        <ToolTip Content="{Binding Server.LastException.Message}"/>
-                                                                    </Setter.Value>
-                                                                </Setter>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -303,7 +298,7 @@
                                         </InlineUIContainer>
                                     </TextBlock>
                                     <!-- HTTP status display -->
-                                    <TextBlock>
+                                    <TextBlock ToolTip="{Binding Server.LastHttpException.Message}">
                                         <Run Text="Backend Status (hover for errors): "/>
                                         <InlineUIContainer BaselineAlignment="Center">
                                             <Ellipse Width="13" Height="13">
@@ -313,11 +308,6 @@
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding Server.IsRegistrationOk}" Value="False">
                                                                 <Setter Property="Fill" Value="Red"/>
-                                                                <Setter Property="ToolTip">
-                                                                    <Setter.Value>
-                                                                        <ToolTip Content="{Binding Server.LastHttpException.Message}"/>
-                                                                    </Setter.Value>
-                                                                </Setter>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>

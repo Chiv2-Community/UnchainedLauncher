@@ -13,6 +13,7 @@ using System.Text.Json.Serialization;
 using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using System.Runtime.Loader;
+using PropertyChanged;
 
 namespace UnchainedLauncher.Core.API
 {
@@ -21,20 +22,23 @@ namespace UnchainedLauncher.Core.API
         int Ping,
         int A2s
     );
+    [AddINotifyPropertyChangedInterface]
     public record C2ServerInfo {
-        public bool PasswordProtected = false;
-        public string Name = "";
-        public string Description = "";
-        public Ports Ports = new(7777, 3075, 7071);
-        public Mod[] Mods = Array.Empty<Mod>();
+        public bool PasswordProtected { get; set; } = false;
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+        public Ports Ports { get; set; } = new(7777, 3075, 7071);
+        // TODO: The selection of the Mod datatype here is potentially
+        // incorrect. Change it to whatever is easier and works with the backend
+        public Mod[] Mods { get; set; } = Array.Empty<Mod>(); 
     };
     // TODO: This part of the API should be stabilized
     // as-is, there are numerous different kinds of "server" objects depending
     // on where they're coming from/where they're going
     public record ServerInfo : C2ServerInfo{
-        public String CurrentMap = "";
-        public int PlayerCount = 0;
-        public int MaxPlayers = 0;
+        public String CurrentMap { get; set; } = "";
+        public int PlayerCount { get; set; } = 0;
+        public int MaxPlayers { get; set; } = 0;
         public ServerInfo() { }
         public ServerInfo(C2ServerInfo info, A2S_INFO a2s) : base(info) {
             Update(a2s);
@@ -53,13 +57,13 @@ namespace UnchainedLauncher.Core.API
     }
 
     public record UniqueServerInfo : ServerInfo {
-        public String UniqueId = "";
-        public double LastHeartbeat = 0;
+        public String UniqueId { get; set; } = "";
+        public double LastHeartbeat { get; set; } = 0;
     };
     
     public record RegisterServerRequest : ServerInfo
     {
-        public String LocalIpAddress;
+        public String LocalIpAddress { get; set; }
         public RegisterServerRequest(ServerInfo info, string localIpAddress) : base(info)
         {
             this.LocalIpAddress = localIpAddress;
@@ -68,8 +72,8 @@ namespace UnchainedLauncher.Core.API
 
     public record ResponseServer : UniqueServerInfo
     {
-        public String LocalIpAddress = "";
-        public String IpAddress = "";
+        public String LocalIpAddress { get; set; } = "";
+        public String IpAddress { get; set; } = "";
         public ResponseServer() { }
         public ResponseServer(UniqueServerInfo info, string localIpAddress, string ipAddress) : base(info)
         {

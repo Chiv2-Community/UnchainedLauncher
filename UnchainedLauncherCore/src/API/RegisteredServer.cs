@@ -12,6 +12,7 @@ using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using LanguageExt.Pipes;
 using PropertyChanged;
+using System.ComponentModel;
 
 namespace UnchainedLauncher.Core.API
 {
@@ -28,7 +29,10 @@ namespace UnchainedLauncher.Core.API
 
     }
 
-    //TODO? Implement IObservableProperty here for GUI bindings
+    // TODO? Implement IObservableProperty here for GUI bindings
+    // TODO? separate this out a little bit so that maintaining A2S information doesn't
+    // require being registered with a backend. this is definitely doable, but not super
+    // critical because you need a backend to connect to a server properly anyways.
     [AddINotifyPropertyChangedInterface]
     public class RegisteredServer : IDisposable
     {
@@ -36,7 +40,9 @@ namespace UnchainedLauncher.Core.API
         private readonly Thread RegistrationThread;
         private readonly CancellationTokenSource shutDownSource;
         private bool disposed;
-        public readonly C2ServerInfo serverInfo;
+        //TODO: make these all properties.
+        //WPF can only bind properties
+        public C2ServerInfo serverInfo { get; private set; }
         public readonly int updateIntervalMillis;
         public readonly Uri backend;
         public readonly IPEndPoint a2sLocation;
@@ -50,17 +56,38 @@ namespace UnchainedLauncher.Core.API
             get { lock (RegistrationThread) { return _RemoteInfo; } }
             private set { lock (RegistrationThread) { _RemoteInfo = value; } }
         }
+        // I don't like this property because it's only used to delete a server
+        // after the stack unwinds up to a point where it's convenient
+        // after the cancellation token is signaled
+        private string? key;
         private Exception? _LastException;
         public Exception? LastException
         {
             get { lock (RegistrationThread) { return _LastException; } }
             private set { lock (RegistrationThread) { _LastException = value; } }
         }
+
+        TaskCompletionSource<bool> _IsA2SOkTCS;
         private bool _IsA2SOk = false;
         public bool IsA2SOk
         {
             get { lock (RegistrationThread) { return _IsA2SOk; } }
-            private set { lock (RegistrationThread) { _IsA2SOk = value; } }
+            private set { 
+                lock (RegistrationThread) {
+                    bool oldV = _IsA2SOk;
+                    _IsA2SOk = value;
+                    if (_IsA2SOk) // if it became true, then signal the tasks
+                    {
+                        _IsA2SOkTCS.TrySetResult(true);
+                    }
+                    else if(oldV != value) 
+                    {
+                        // if it became false, AND it was previously true, reset the task
+                        // so that future requestors have to wait
+                        _IsA2SOkTCS = new(shutDownSource);
+                    }
+                }
+            }
         }
 
         public RegisteredServer(Uri backend,
@@ -72,7 +99,9 @@ namespace UnchainedLauncher.Core.API
             this.updateIntervalMillis = updateIntervalMillis;
             this.localIp = localIp;
             this.a2sLocation = new(IPAddress.Parse("127.0.0.1"), serverInfo.Ports.A2s);
-            shutDownSource = new();
+            this.shutDownSource = new();
+            this._IsA2SOkTCS = new(shutDownSource);
+
 
             RegistrationThread = new(
                     () => Run(shutDownSource.Token)
@@ -83,12 +112,19 @@ namespace UnchainedLauncher.Core.API
             RegistrationThread.Start();
         }
 
+        // return a task that completes when IsA2SOk is true
+        public Task WhenA2SOk()
+        {
+            return _IsA2SOkTCS.Task;
+        }
+
         private async Task MaintainRegistration(CancellationToken token)
         {
             A2S_INFO a2sRes = await GetServerState(token);
             var res = await ServerBrowser.RegisterServerAsync(backend, localIp, new(serverInfo, a2sRes));
             double refreshBefore = res.RefreshBefore;
             string key = res.Key;
+            this.key = key;
             RemoteInfo = res.Server;
             int heartBeatAfterSeconds = (int)(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5);
             Task heartBeatDelay = Task.Delay(1000*heartBeatAfterSeconds, token);
@@ -131,6 +167,18 @@ namespace UnchainedLauncher.Core.API
                 }
                 catch (OperationCanceledException) //propagate cancellation
                 {
+                    if (RemoteInfo != null && this.key != null)
+                    {
+                        try
+                        {
+                            await ServerBrowser.DeleteServerAsync(backend, RemoteInfo, this.key);
+                        }
+                        catch { }
+                        // we want to try to be nice and neat, but if anything goes wrong then
+                        // just give up here and let the heartbeat timeout clean things up on the
+                        // server-side
+
+                    }
                     break;
                 }
                 
@@ -152,7 +200,7 @@ namespace UnchainedLauncher.Core.API
                 {
                     IsA2SOk = false;
                     LastException = e;
-                    await Task.Delay(1000, token); // try not to spam the network
+                    await Task.Delay(500, token); // try not to spam the network
                 }
             }
         }
@@ -174,7 +222,10 @@ namespace UnchainedLauncher.Core.API
                 shutDownSource.Cancel();
                 if (RegistrationThread != null && RegistrationThread.IsAlive)
                 {
-                    RegistrationThread.Join(); // Optional: You might want to add a timeout here
+                    // TODO? might want to add a timeout here
+                    // we handle cancelation pretty cleanly within the thread, though,
+                    // so it should be fine
+                    RegistrationThread.Join(); 
                 }
 
                 // Dispose managed resources

@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -31,14 +32,16 @@ namespace UnchainedLauncher.GUI.ViewModels
             ShutdownCurrentTabCommand = new RelayCommand(ShutdownCurrentTab);
             this.Window = window;
             window.Closed += ShutdownAllServers;
-            //Servers = new List<RegisteredServer>(); //TODO: use this to replace test values
+            Servers = new ObservableCollection<ServerViewModel>();
             //initialize with test servers
+            /*
             Servers = new ObservableCollection<ServerViewModel>{ 
                 new(window, new RegisteredServer(backend, new C2ServerInfo(){ Name="test1", Description="test1"}, "127.0.0.1")),
                 new(window, new RegisteredServer(backend, new C2ServerInfo(){ Name="test2", Description="test2"}, "127.0.0.1")),
                 new(window, new RegisteredServer(backend, new C2ServerInfo(){ Name="test3", Description="test3"}, "127.0.0.1")),
                 new(window, new RegisteredServer(backend, new C2ServerInfo(){ Name="test4", Description="test4"}, "127.0.0.1")),
             };
+            */
         }
 
         public void ShutdownAllServers(object? sender, EventArgs e)
@@ -76,6 +79,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         public ICommand SubmitRconCommand { get; private set; }
         public string RconHistory { get; set; }
         private static readonly IPAddress LocalHost = IPAddress.Parse("127.0.0.1");
+        private IPEndPoint RconEndPoint;
         private Process? ServerProcess;
 
         private bool disposed = false;
@@ -86,6 +90,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             this.RconPort = rconPort;
             this.RconHistory = "";
             this.ServerProcess = serverProcess;
+            this.RconEndPoint = new IPEndPoint(LocalHost, RconPort);
             SubmitRconCommand = new RelayCommand(SubmitCommand);
         }
 
@@ -105,7 +110,7 @@ namespace UnchainedLauncher.GUI.ViewModels
                     RconHistory += $"INF: Command will be sent when A2S is good\n";
                     await Server.WhenA2SOk();
                 }
-                await RCON.SendCommandTo(new IPEndPoint(LocalHost, RconPort), commandToSend);
+                await RCON.SendCommandTo(RconEndPoint, commandToSend);
                 RconHistory += $"{commandToSend}\n";
             }
             catch(Exception e)
@@ -120,9 +125,9 @@ namespace UnchainedLauncher.GUI.ViewModels
         {
             if (!disposed && disposing)
             {
-                // TODO: make this close the process too
-                // might help to send an `exit` rcon command
+                // TODO: might help to send an `exit` rcon command
                 Server.Dispose();
+                ServerProcess?.Kill();
                 ServerProcess?.Close();
                 ServerProcess?.Dispose();
             }

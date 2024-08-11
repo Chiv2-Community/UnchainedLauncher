@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Buffers.Binary;
 using log4net;
+using LanguageExt.TypeClasses;
 
 namespace UnchainedLauncher.Core.API
 {
@@ -36,25 +37,22 @@ namespace UnchainedLauncher.Core.API
         MAC = (byte)'M'
     }
 
-    // TODO: make this instantiable
-    public static class A2S
+    public interface IA2S
     {
-        const int TimeOutMillis = 1000;
-        public static async Task<A2sInfo> InfoAsync(IPEndPoint ep)
+        public Task<A2sInfo> InfoAsync();
+    }
+    public class A2S : IA2S
+    {
+        protected readonly IPEndPoint ep;
+        protected readonly int TimeOutMillis;
+        public A2S(IPEndPoint ep, int TimeOutMillis = 1000)
         {
-            try
-            {
-                return await InfoAsync_impl(ep);
-            }
-            catch(TaskCanceledException)
-            {
-                throw new TimeoutException("A2S connection timed out");
-            }
+            this.ep = ep;
+            this.TimeOutMillis = TimeOutMillis;
         }
-        private static async Task<A2sInfo> InfoAsync_impl(IPEndPoint ep)
+
+        private async Task<UdpReceiveResult> DoInfoRequest()
         {
-            using CancellationTokenSource cs = new(TimeOutMillis);
-            //BinaryPrimitives
             //see A2S_INFO section of https://developer.valvesoftware.com/wiki/Server_queries
             //request structure is defined by https://developer.valvesoftware.com/wiki/Server_queries
             byte[] request = {0xFF, 0xFF, 0xFF, 0xFF,
@@ -62,10 +60,22 @@ namespace UnchainedLauncher.Core.API
                                 0x65, 0x20, 0x45, 0x6E, 0x67, 0x69,
                                 0x6E, 0x65, 0x20, 0x51, 0x75, 0x65, 0x72, 0x79, 0x00
                                 };
-            using UdpClient client = new();
-            client.Connect(ep);
-            await client.SendAsync(request, cs.Token);
-            UdpReceiveResult response = await client.ReceiveAsync(cs.Token);
+            try
+            {
+                using UdpClient client = new();
+                using CancellationTokenSource cs = new(TimeOutMillis);
+                client.Connect(ep);
+                await client.SendAsync(request, cs.Token);
+                return await client.ReceiveAsync(cs.Token);
+            }
+            catch (TaskCanceledException)
+            {
+                throw new TimeoutException("A2S request timed out");
+            }
+        }
+        public async Task<A2sInfo> InfoAsync()
+        {
+            UdpReceiveResult response = await DoInfoRequest();
             BinaryReader br = new(new MemoryStream(response.Buffer), Encoding.UTF8);
             // ensure header is correct
             if (!br.ReadBytes(5).SequenceEqual(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x49 }))

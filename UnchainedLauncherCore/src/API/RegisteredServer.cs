@@ -32,10 +32,9 @@ namespace UnchainedLauncher.Core.API
         //WPF can only bind properties
         public C2ServerInfo serverInfo { get; private set; }
         public readonly int updateIntervalMillis;
-        public readonly Uri backend_uri;
-        public readonly IPEndPoint a2sLocation;
         public readonly string localIp;
         public readonly ServerBrowser backend;
+        public readonly IA2S A2sEndpoint;
         //thread-safe accessors
         // see also https://stackoverflow.com/a/541348
         // not used to avoid locking on this
@@ -90,17 +89,18 @@ namespace UnchainedLauncher.Core.API
 
         public RegisteredServer(Uri backend_uri,
             C2ServerInfo serverInfo, string localIp,
-            int updateIntervalMillis = 1000)
+            int updateIntervalMillis = 1000,
+            IA2S? a2sEndpoint = null // port should match the one passed in via C2ServerInfo
+            )
         {
-            this.backend_uri = backend_uri;
             this.serverInfo = serverInfo;
             this.updateIntervalMillis = updateIntervalMillis;
             this.localIp = localIp;
-            this.a2sLocation = new(IPAddress.Parse("127.0.0.1"), serverInfo.Ports.A2s);
             this.shutDownSource = new();
             this._IsA2SOkTCS = new(shutDownSource);
 
             this.backend = new ServerBrowser(backend_uri);
+            this.A2sEndpoint = a2sEndpoint ?? new A2S(new(IPAddress.Parse("127.0.0.1"), serverInfo.Ports.A2s));
 
             logger.Info(
                 $"Server '{serverInfo.Name}' will use backend at '{backend_uri.ToString()}'\nPorts:"
@@ -213,7 +213,7 @@ namespace UnchainedLauncher.Core.API
                 try
                 {
                     logger.Debug($"Server '{this.serverInfo.Name}' is requesting the A2S state");
-                    var res = await A2S.InfoAsync(a2sLocation);
+                    var res = await A2sEndpoint.InfoAsync();
                     IsA2SOk = true;
                     return res;
                 }

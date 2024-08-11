@@ -12,7 +12,6 @@ namespace UnchainedLauncher.Core.API
                         (x, i) => i > 0 && char.IsUpper(x) ? "_" + x.ToString() : x.ToString()
                     )
                 ).ToLower();
-            // Conversion to other naming convention goes here. Like SnakeCase, KebabCase etc.
             return convertedName;
         }
     }

@@ -33,13 +33,8 @@ namespace UnchainedLauncher.Core.API
         }
         public bool Update(A2S_INFO a2s)
         {
-            bool wasChanged = (
-                MaxPlayers != a2s.MaxPlayers
-                || PlayerCount != a2s.Players
-                || CurrentMap != a2s.Map);
-            MaxPlayers = a2s.MaxPlayers;
-            PlayerCount = a2s.Players;
-            CurrentMap = a2s.Map;
+            bool wasChanged = (MaxPlayers, PlayerCount, CurrentMap) != (a2s.MaxPlayers, a2s.Players, a2s.Map);
+            (MaxPlayers, PlayerCount, CurrentMap) = (a2s.MaxPlayers, a2s.Players, a2s.Map);
             return wasChanged;
         }
     }

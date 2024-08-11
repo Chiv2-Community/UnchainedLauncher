@@ -13,7 +13,7 @@ namespace C2GUILauncher.Mods
         private static string PakDirectory => FilePaths.PakDir;
         private static string DefaultSigFile => Path.Combine(PakDirectory, "pakchunk0-WindowsNoEditor.sig");
 
-        private static Dictionary<string, (bool HasPak, bool HasSig)> GetPakAndSigFiles()
+        private static Dictionary<string, (bool HasPak, bool HasSig)>? GetPakAndSigFiles()
         {
             try
             {

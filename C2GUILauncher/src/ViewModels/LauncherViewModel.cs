@@ -43,7 +43,7 @@ namespace C2GUILauncher.ViewModels {
             ModManager = modManager;
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
-            this.LaunchModdedVanillaCommand = new RelayCommand(LaunchModdedVanilla);
+            this.LaunchModdedVanillaCommand = new RelayCommand(() => LaunchModdedVanilla());
             this.LaunchModdedCommand = new RelayCommand(() => LaunchModded());
 
             Window = window;
@@ -63,13 +63,13 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
-        public void LaunchModdedVanilla()
+        public async void LaunchModdedVanilla()
         {
             try
             {
                 // For a vanilla launch we need to pass the args through to the vanilla launcher.
                 // Skip the first arg which is the path to the exe.
-                Launcher.LaunchModdedVanilla(Environment.GetCommandLineArgs().Skip(1));
+                await Launcher.LaunchModdedVanilla(Window, Environment.GetCommandLineArgs().Skip(1));
                 CanClick = false;
                 Window.Close();
             }

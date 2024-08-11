@@ -81,17 +81,26 @@ namespace UnchainedLauncher.Core.API
     record GetServersResponse(
         UniqueServerInfo[] Servers  
     );
-    // URI is expected to have the /api/v1/ stuff. These functions only append the immediately relevant paths
-    // always uses the key of the last server it was used to register. Does not support touching servers that it
-    // didn't register itself
+
+    public interface IServerBrowser
+    {
+        public Task<RegisterServerResponse> RegisterServerAsync(String localIp, ServerInfo info, CancellationToken? ct = null);
+        public Task<double> UpdateServerAsync(UniqueServerInfo info, CancellationToken? ct = null);
+        public Task<double> HeartbeatAsync(UniqueServerInfo info, CancellationToken? ct = null);
+        public Task DeleteServerAsync(UniqueServerInfo info, CancellationToken? ct = null);
+    }
+
     /// <summary>
     /// Allows communication with the server browser backend for registering and updating server entries
     /// Should only be used with one server. The auth key sent with requests is the one received from the
-    /// most recent RegisterServer call.
+    /// most recent RegisterServer call. Does not support touching servers that it
+    /// didn't register itself.
+    /// 
+    /// URI is expected to have the /api/v1/ stuff.
     /// 
     /// NOT thread-safe
     /// </summary>
-    public class ServerBrowser
+    public class ServerBrowser : IServerBrowser
     {
         protected HttpClient httpc;
         protected Uri backend_uri;

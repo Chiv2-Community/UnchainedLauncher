@@ -33,7 +33,7 @@ namespace UnchainedLauncher.Core.API
         public C2ServerInfo serverInfo { get; private set; }
         public readonly int updateIntervalMillis;
         public readonly string localIp;
-        public readonly ServerBrowser backend;
+        public readonly IServerBrowser backend;
         public readonly IA2S A2sEndpoint;
         //thread-safe accessors
         // see also https://stackoverflow.com/a/541348
@@ -90,6 +90,7 @@ namespace UnchainedLauncher.Core.API
         public RegisteredServer(Uri backend_uri,
             C2ServerInfo serverInfo, string localIp,
             int updateIntervalMillis = 1000,
+            IServerBrowser? backend = null,
             IA2S? a2sEndpoint = null // port should match the one passed in via C2ServerInfo
             )
         {
@@ -99,7 +100,7 @@ namespace UnchainedLauncher.Core.API
             this.shutDownSource = new();
             this._IsA2SOkTCS = new(shutDownSource);
 
-            this.backend = new ServerBrowser(backend_uri);
+            this.backend = backend ?? new ServerBrowser(backend_uri);
             this.A2sEndpoint = a2sEndpoint ?? new A2S(new(IPAddress.Parse("127.0.0.1"), serverInfo.Ports.A2s));
 
             logger.Info(

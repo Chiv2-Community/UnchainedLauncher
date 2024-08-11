@@ -2,6 +2,7 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Buffers.Binary;
+using log4net;
 
 namespace UnchainedLauncher.Core.API
 {

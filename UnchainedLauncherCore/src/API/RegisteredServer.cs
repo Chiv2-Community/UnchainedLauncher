@@ -1,9 +1,10 @@
 ﻿using System.Net;
+using log4net;
 using PropertyChanged;
 
 namespace UnchainedLauncher.Core.API
 {
-
+    
     public static class TaskExtensions{
         public static Task WhenCanceled(this CancellationToken cancellationToken)
         {
@@ -22,6 +23,7 @@ namespace UnchainedLauncher.Core.API
     [AddINotifyPropertyChangedInterface]
     public class RegisteredServer : IDisposable
     {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(RegisteredServer));
         // this thread object is used as the mutex
         private readonly Thread RegistrationThread;
         private readonly CancellationTokenSource shutDownSource;
@@ -100,6 +102,10 @@ namespace UnchainedLauncher.Core.API
             this.shutDownSource = new();
             this._IsA2SOkTCS = new(shutDownSource);
 
+            logger.Info(
+                $"Server '{serverInfo.Name}' will use backend at '{backend.ToString()}'\nPorts:"
+                + serverInfo.Ports.ToString()
+            );
 
             RegistrationThread = new(
                     () => Run(shutDownSource.Token)
@@ -110,7 +116,12 @@ namespace UnchainedLauncher.Core.API
             RegistrationThread.Start();
         }
 
-        // return a task that completes when IsA2SOk is true
+        /// <summary>
+        /// wait until IsA2SOk is true
+        /// </summary>
+        /// <returns>
+        /// A task that completes when IsA2SOk is true.
+        /// </returns>
         public Task WhenA2SOk()
         {
             return _IsA2SOkTCS.Task;
@@ -120,6 +131,7 @@ namespace UnchainedLauncher.Core.API
         {
             A2S_INFO a2sRes = await GetServerState(token);
             var res = await ServerBrowser.RegisterServerAsync(backend, localIp, new(serverInfo, a2sRes));
+            logger.Info($"Server '{this.serverInfo.Name}' registered with backend.");
             this.IsRegistrationOk = true;
             double refreshBefore = res.RefreshBefore;
             string key = res.Key;
@@ -134,12 +146,14 @@ namespace UnchainedLauncher.Core.API
                 token.ThrowIfCancellationRequested();
                 if(fin == heartBeatDelay)
                 {
+                    logger.Info($"Server '{this.serverInfo.Name}' doing heartbeat.");
                     refreshBefore = await ServerBrowser.HeartbeatAsync(backend, RemoteInfo, key);
                 }
                 else if(fin == updateDelay)
                 {
                     if(RemoteInfo.Update(await GetServerState(token)))
                     {
+                        logger.Info($"Server '{this.serverInfo.Name}' updating the backend with new state.");
                         refreshBefore = await ServerBrowser.UpdateServerAsync(backend, RemoteInfo, key);
                     }
                     updateDelay = Task.Delay(updateIntervalMillis, token);
@@ -159,26 +173,29 @@ namespace UnchainedLauncher.Core.API
                     this.LastHttpException = e;
                     if (e.StatusCode != HttpStatusCode.NotFound)
                     {
+                        logger.Error($"Server '{this.serverInfo.Name}' got HTTP 404. Probably a missed heartbeat.", e);
                         break;
                     }
                 }
                 catch (TimeoutException e)
                 {
+                    logger.Error($"Server '{this.serverInfo.Name}' timed out.", e);
                     this.LastHttpException = e;
                 }
                 catch (OperationCanceledException) //propagate cancellation
                 {
                     if (RemoteInfo != null && this.key != null)
                     {
+                        // we want to try to be nice and neat, but if anything goes wrong then
+                        // just give up here and let the heartbeat timeout clean things up on the
+                        // server-side
                         try
                         {
                             await ServerBrowser.DeleteServerAsync(backend, RemoteInfo, this.key);
                         }
-                        catch { }
-                        // we want to try to be nice and neat, but if anything goes wrong then
-                        // just give up here and let the heartbeat timeout clean things up on the
-                        // server-side
-
+                        catch(Exception e) {
+                            logger.Error($"Server '{this.serverInfo.Name}' failed to delete itself on backend.", e);
+                        }
                     }
                     break;
                 }
@@ -197,6 +214,7 @@ namespace UnchainedLauncher.Core.API
                 token.ThrowIfCancellationRequested();
                 try
                 {
+                    logger.Debug($"Server '{this.serverInfo.Name}' is requesting the A2S state");
                     var res = await A2S.InfoAsync(a2sLocation);
                     IsA2SOk = true;
                     return res;

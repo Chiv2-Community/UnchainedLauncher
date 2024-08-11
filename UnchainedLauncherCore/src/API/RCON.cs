@@ -1,10 +1,12 @@
-﻿using System.Net;
+﻿using log4net;
+using System.Net;
 using System.Net.Sockets;
 
 namespace UnchainedLauncher.Core.API
 {
     public class RCON
     {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(RCON));
         protected IPEndPoint RconLocation;
         public RCON(IPEndPoint rconLocation)
         {
@@ -25,6 +27,7 @@ namespace UnchainedLauncher.Core.API
             await client.GetStream().WriteAsync(
                 (command+"\n").Map((c)=>(byte)c).ToArray() // string -> byte[]
             );
+            logger.Info($"Sent command '{command}' to '{rconLocation.ToString()}'");
         }
     }
 }

@@ -6,6 +6,7 @@ using PropertyChanged;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
@@ -175,6 +176,17 @@ namespace C2GUILauncher {
 
                 DisableSaveSettings = false;
                 this.Closed += MainWindow_Closed;
+
+                var EnvArgs = Environment.GetCommandLineArgs();
+
+                if (EnvArgs.Contains("--startvanilla"))
+                    LauncherViewModel.LaunchVanilla();
+                else if (EnvArgs.Contains("--startmodded"))
+                    LauncherViewModel.LaunchModdedVanilla();
+                else if (EnvArgs.Contains("--startunchained"))
+                    LauncherViewModel.LaunchModded();
+
+
             } catch (Exception e) {
                 logger.Error("Initialization Failed", e);
                 throw;

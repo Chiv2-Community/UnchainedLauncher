@@ -20,7 +20,7 @@ namespace UnchainedLauncher.Core.API.Tests
             Description = "Test description"
         };
         //test a2s response to use where it would be useless/inconvenient to actually make such a query
-        private static readonly A2S_INFO testA2SInfo =
+        private static readonly A2sInfo testA2SInfo =
             new(0, "", "test map", "", "Chivalry 2", 0, 10, 100, 5, ServerType.NONDEDICATED, Environment.WINDOWS, true, false);
 
         private static readonly ServerInfo testServerInfo = new(testServerC2Info, testA2SInfo);

@@ -6,7 +6,7 @@ using log4net;
 
 namespace UnchainedLauncher.Core.API
 {
-    public record A2S_INFO (
+    public record A2sInfo (
         byte ProtocolVersion, 
         String Name,
         String Map,
@@ -40,7 +40,7 @@ namespace UnchainedLauncher.Core.API
     public static class A2S
     {
         const int TimeOutMillis = 1000;
-        public static async Task<A2S_INFO> InfoAsync(IPEndPoint ep)
+        public static async Task<A2sInfo> InfoAsync(IPEndPoint ep)
         {
             try
             {
@@ -51,7 +51,7 @@ namespace UnchainedLauncher.Core.API
                 throw new TimeoutException("A2S connection timed out");
             }
         }
-        private static async Task<A2S_INFO> InfoAsync_impl(IPEndPoint ep)
+        private static async Task<A2sInfo> InfoAsync_impl(IPEndPoint ep)
         {
             using CancellationTokenSource cs = new(TimeOutMillis);
             //BinaryPrimitives
@@ -90,7 +90,7 @@ namespace UnchainedLauncher.Core.API
             {
                 throw new InvalidDataException("Invalid environment type");
             }
-            return new A2S_INFO(protocolVersion, name, map, folder, game, gameID, players, maxPlayers, bots, serverType, environment, isPublic, vac);
+            return new A2sInfo(protocolVersion, name, map, folder, game, gameID, players, maxPlayers, bots, serverType, environment, isPublic, vac);
         }
         private static String ReadString(ref BinaryReader reader)
         {

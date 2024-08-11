@@ -129,7 +129,7 @@ namespace UnchainedLauncher.Core.API
 
         private async Task MaintainRegistration(CancellationToken token)
         {
-            A2S_INFO a2sRes = await GetServerState(token);
+            A2sInfo a2sRes = await GetServerState(token);
             var res = await backend.RegisterServerAsync(localIp, new(serverInfo, a2sRes));
             logger.Info($"Server '{this.serverInfo.Name}' registered with backend.");
             this.IsRegistrationOk = true;
@@ -205,7 +205,7 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        private async Task<A2S_INFO> GetServerState(CancellationToken token)
+        private async Task<A2sInfo> GetServerState(CancellationToken token)
         {
             while (true)
             {

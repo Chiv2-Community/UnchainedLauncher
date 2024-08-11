@@ -29,10 +29,10 @@ namespace UnchainedLauncher.Core.API
         public int PlayerCount { get; set; } = 0;
         public int MaxPlayers { get; set; } = 0;
         public ServerInfo() { }
-        public ServerInfo(C2ServerInfo info, A2S_INFO a2s) : base(info) {
+        public ServerInfo(C2ServerInfo info, A2sInfo a2s) : base(info) {
             Update(a2s);
         }
-        public bool Update(A2S_INFO a2s)
+        public bool Update(A2sInfo a2s)
         {
             bool wasChanged = (MaxPlayers, PlayerCount, CurrentMap) != (a2s.MaxPlayers, a2s.Players, a2s.Map);
             (MaxPlayers, PlayerCount, CurrentMap) = (a2s.MaxPlayers, a2s.Players, a2s.Map);

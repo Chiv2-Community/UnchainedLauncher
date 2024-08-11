@@ -2,6 +2,7 @@
 using System.Text.Json;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using PropertyChanged;
+using static System.Net.WebRequestMethods;
 
 namespace UnchainedLauncher.Core.API
 {
@@ -80,79 +81,69 @@ namespace UnchainedLauncher.Core.API
     record GetServersResponse(
         UniqueServerInfo[] Servers  
     );
-    //URI is expected to have the /api/v1/ stuff. These functions only append the immediately relevant paths
-    public static class ServerBrowser
+    // URI is expected to have the /api/v1/ stuff. These functions only append the immediately relevant paths
+    // always uses the key of the last server it was used to register. Does not support touching servers that it
+    // didn't register itself
+    /// <summary>
+    /// Allows communication with the server browser backend for registering and updating server entries
+    /// Should only be used with one server. The auth key sent with requests is the one received from the
+    /// most recent RegisterServer call.
+    /// 
+    /// NOT thread-safe
+    /// </summary>
+    public class ServerBrowser
     {
-        static readonly HttpClient httpc = new();
-        private static readonly JsonSerializerOptions sOptions = new(){
+        protected HttpClient httpc;
+        protected Uri backend_uri;
+        protected string? _LastKey;
+        public string? LastKey { 
+            get { return _LastKey; }
+            set { 
+                _LastKey = value;
+                httpc.DefaultRequestHeaders.Remove("x-chiv2-server-browser-key"); // remove old
+                httpc.DefaultRequestHeaders.Add("x-chiv2-server-browser-key", value); // set new
+            } 
+        }
+        protected static readonly JsonSerializerOptions sOptions = new(){
                 PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
                 IncludeFields = true
             };
-        const int TimeOutMillis = 4000;
-
-        public static async Task<RegisterServerResponse> RegisterServerAsync(Uri uri, String localIp, ServerInfo info)
+        public TimeSpan TimeOutMillis
         {
-            try
-            {
-                return await RegisterServerAsync_impl(uri, localIp, info);
-            }catch(TaskCanceledException)
-            {
-                throw new TimeoutException("Request timed out.");
-            }
-        }
-        public static async Task<double> UpdateServerAsync(Uri uri, UniqueServerInfo info, String key)
-        {
-            try
-            {
-                return await UpdateServerAsync_impl(uri, info, key);
-            }
-            catch (TaskCanceledException)
-            {
-                throw new TimeoutException("Request timed out.");
-            }
+            get { return httpc.Timeout; }
+            set { httpc.Timeout = value; }
         }
 
-        public static async Task<double> HeartbeatAsync(Uri uri, UniqueServerInfo info, String key)
-        {
-            try
+        public ServerBrowser(Uri backend_uri, int TimeOutMillis = 4000, HttpClient? client = null) {
+            if(client != null)
             {
-                return await HeartbeatAsync_impl(uri, info, key);
+                httpc = client;
             }
-            catch (TaskCanceledException)
+            else
             {
-                throw new TimeoutException("Request timed out.");
+                httpc = new();
             }
+            this.TimeOutMillis = TimeSpan.FromMilliseconds(TimeOutMillis);
+            this.backend_uri = backend_uri;
         }
 
-        public static async Task DeleteServerAsync(Uri uri, UniqueServerInfo info, String key)
+        public async Task<RegisterServerResponse> RegisterServerAsync(String localIp, ServerInfo info, CancellationToken? ct = null)
         {
-            try
-            {
-                await DeleteServerAsync_impl(uri, info, key);
-            }
-            catch (TaskCanceledException)
-            {
-                throw new TimeoutException("Request timed out.");
-            }
-        }
-
-        private static async Task<RegisterServerResponse> RegisterServerAsync_impl(Uri uri, String localIp, ServerInfo info)
-        {
-            using CancellationTokenSource cs = new(TimeOutMillis);
             var reqContent = new RegisterServerRequest(info, localIp);
             var content = JsonContent.Create(reqContent, options: sOptions);
-            var httpResponse = await httpc.PostAsync(uri + "/servers", content, cs.Token);
+            var httpResponse = await httpc.PostAsync(backend_uri + "/servers", content, ct ?? CancellationToken.None);
             try
             {
                 var res = await httpResponse.EnsureSuccessStatusCode()
                             .Content
-                            .ReadFromJsonAsync<RegisterServerResponse>(sOptions, cs.Token);
+                            .ReadFromJsonAsync<RegisterServerResponse>(sOptions, ct ?? CancellationToken.None);
                 if(res == null)
                 {
                     throw new InvalidDataException("Failed to parse response from server");
                 }
                 else
                 {
+                    LastKey = res.Key; // hold onto the key for later requests
                     return res;
                 }
             }
@@ -162,18 +153,17 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        private static async Task<double> UpdateServerAsync_impl(Uri uri, UniqueServerInfo info, String key)
+        public async Task<double> UpdateServerAsync(UniqueServerInfo info, CancellationToken? ct = null)
         {
-            using CancellationTokenSource cs = new(TimeOutMillis);
+            
             var reqContent = new UpdateServerRequest(info.PlayerCount, info.MaxPlayers, info.CurrentMap);
             var content = JsonContent.Create(reqContent, options: sOptions);
-            content.Headers.Add("x-chiv2-server-browser-key", key);
-            var httpResponse = await httpc.PutAsync(uri + $"/servers/{info.UniqueId}", content, cs.Token);
+            var httpResponse = await httpc.PutAsync(backend_uri + $"/servers/{info.UniqueId}", content, ct ?? CancellationToken.None);
             try
             {
                 var res = await httpResponse.EnsureSuccessStatusCode()
                             .Content
-                            .ReadFromJsonAsync<UpdateServerResponse>(sOptions, cs.Token);
+                            .ReadFromJsonAsync<UpdateServerResponse>(sOptions, ct ?? CancellationToken.None);
                 if (res == null)
                 {
                     throw new InvalidDataException("Failed to parse response from server");
@@ -189,18 +179,17 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        private static async Task<double> HeartbeatAsync_impl(Uri uri, UniqueServerInfo info, String key)
+        public async Task<double> HeartbeatAsync(UniqueServerInfo info, CancellationToken? ct = null)
         {
-            using CancellationTokenSource cs = new(TimeOutMillis);
+            
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
             var content = new StringContent("");
-            content.Headers.Add("x-chiv2-server-browser-key", key);
-            var httpResponse = await httpc.PostAsync(uri + $"/servers/{info.UniqueId}/heartbeat", content, cs.Token);
+            var httpResponse = await httpc.PostAsync(backend_uri + $"/servers/{info.UniqueId}/heartbeat", content, ct ?? CancellationToken.None);
             try
             {
                 var res = await httpResponse.EnsureSuccessStatusCode()
                             .Content
-                            .ReadFromJsonAsync<UpdateServerResponse>(sOptions, cs.Token);
+                            .ReadFromJsonAsync<UpdateServerResponse>(sOptions, ct ?? CancellationToken.None);
                 if (res == null)
                 {
                     throw new InvalidDataException("Failed to parse response from server");
@@ -216,16 +205,15 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        private static async Task DeleteServerAsync_impl(Uri uri, UniqueServerInfo info, String key)
+        public async Task DeleteServerAsync(UniqueServerInfo info, CancellationToken? ct = null)
         {
-            using CancellationTokenSource cs = new(TimeOutMillis);
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, uri + $"/servers/{info.UniqueId}");
-            request.Headers.Add("x-chiv2-server-browser-key", key);
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, backend_uri + $"/servers/{info.UniqueId}");
             //the DeleteAsync method does not take a content parameter
             //that's a problem, since that's the only way to set headers
             //without setting state on the HttpClient
-            (await httpc.SendAsync(request, cs.Token)).EnsureSuccessStatusCode();
+            //TODO: make this DeleteAsync
+            (await httpc.SendAsync(request, ct ?? CancellationToken.None)).EnsureSuccessStatusCode();
         }
     }
 }

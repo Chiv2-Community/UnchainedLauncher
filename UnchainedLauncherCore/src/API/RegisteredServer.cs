@@ -32,9 +32,10 @@ namespace UnchainedLauncher.Core.API
         //WPF can only bind properties
         public C2ServerInfo serverInfo { get; private set; }
         public readonly int updateIntervalMillis;
-        public readonly Uri backend;
+        public readonly Uri backend_uri;
         public readonly IPEndPoint a2sLocation;
         public readonly string localIp;
+        public readonly ServerBrowser backend;
         //thread-safe accessors
         // see also https://stackoverflow.com/a/541348
         // not used to avoid locking on this
@@ -44,10 +45,7 @@ namespace UnchainedLauncher.Core.API
             get { lock (RegistrationThread) { return _RemoteInfo; } }
             private set { lock (RegistrationThread) { _RemoteInfo = value; } }
         }
-        // I don't like this property because it's only used to delete a server
-        // after the stack unwinds up to a point where it's convenient
-        // after the cancellation token is signaled
-        private string? key;
+
         private Exception? _LastException;
         public Exception? LastException
         {
@@ -90,11 +88,11 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        public RegisteredServer(Uri backend,
+        public RegisteredServer(Uri backend_uri,
             C2ServerInfo serverInfo, string localIp,
             int updateIntervalMillis = 1000)
         {
-            this.backend = backend;
+            this.backend_uri = backend_uri;
             this.serverInfo = serverInfo;
             this.updateIntervalMillis = updateIntervalMillis;
             this.localIp = localIp;
@@ -102,8 +100,10 @@ namespace UnchainedLauncher.Core.API
             this.shutDownSource = new();
             this._IsA2SOkTCS = new(shutDownSource);
 
+            this.backend = new ServerBrowser(backend_uri);
+
             logger.Info(
-                $"Server '{serverInfo.Name}' will use backend at '{backend.ToString()}'\nPorts:"
+                $"Server '{serverInfo.Name}' will use backend at '{backend_uri.ToString()}'\nPorts:"
                 + serverInfo.Ports.ToString()
             );
 
@@ -130,12 +130,10 @@ namespace UnchainedLauncher.Core.API
         private async Task MaintainRegistration(CancellationToken token)
         {
             A2S_INFO a2sRes = await GetServerState(token);
-            var res = await ServerBrowser.RegisterServerAsync(backend, localIp, new(serverInfo, a2sRes));
+            var res = await backend.RegisterServerAsync(localIp, new(serverInfo, a2sRes));
             logger.Info($"Server '{this.serverInfo.Name}' registered with backend.");
             this.IsRegistrationOk = true;
             double refreshBefore = res.RefreshBefore;
-            string key = res.Key;
-            this.key = key;
             RemoteInfo = res.Server;
             Task updateDelay = Task.Delay(updateIntervalMillis, token);
             while (true)
@@ -147,14 +145,14 @@ namespace UnchainedLauncher.Core.API
                 if(fin == heartBeatDelay)
                 {
                     logger.Info($"Server '{this.serverInfo.Name}' doing heartbeat.");
-                    refreshBefore = await ServerBrowser.HeartbeatAsync(backend, RemoteInfo, key);
+                    refreshBefore = await backend.HeartbeatAsync(RemoteInfo);
                 }
                 else if(fin == updateDelay)
                 {
                     if(RemoteInfo.Update(await GetServerState(token)))
                     {
                         logger.Info($"Server '{this.serverInfo.Name}' updating the backend with new state.");
-                        refreshBefore = await ServerBrowser.UpdateServerAsync(backend, RemoteInfo, key);
+                        refreshBefore = await backend.UpdateServerAsync(RemoteInfo);
                     }
                     updateDelay = Task.Delay(updateIntervalMillis, token);
                 }
@@ -184,14 +182,14 @@ namespace UnchainedLauncher.Core.API
                 }
                 catch (OperationCanceledException) //propagate cancellation
                 {
-                    if (RemoteInfo != null && this.key != null)
+                    if (RemoteInfo != null)
                     {
                         // we want to try to be nice and neat, but if anything goes wrong then
                         // just give up here and let the heartbeat timeout clean things up on the
                         // server-side
                         try
                         {
-                            await ServerBrowser.DeleteServerAsync(backend, RemoteInfo, this.key);
+                            await backend.DeleteServerAsync(RemoteInfo);
                         }
                         catch(Exception e) {
                             logger.Error($"Server '{this.serverInfo.Name}' failed to delete itself on backend.", e);

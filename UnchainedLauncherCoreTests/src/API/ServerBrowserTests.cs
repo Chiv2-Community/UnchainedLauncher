@@ -31,7 +31,8 @@ namespace UnchainedLauncher.Core.API.Tests
         [TestMethod()]
         public async Task RegisterServerTest()
         {
-            RegisterServerResponse res = await ServerBrowser.RegisterServerAsync(endpoint, localIP, testServerInfo); ;
+            ServerBrowser backend = new(endpoint);
+            RegisterServerResponse res = await backend.RegisterServerAsync(localIP, testServerInfo); ;
             //not exhaustive
             //it's not possible to up-cast and compare using equals
             //because the result will still retain the fields and cause a not-equal
@@ -46,9 +47,10 @@ namespace UnchainedLauncher.Core.API.Tests
         [TestMethod()]
         public async Task UpdateServerTest()
         {
-            var (_, key, server) = await ServerBrowser.RegisterServerAsync(endpoint, localIP, testServerInfo);
+            ServerBrowser backend = new(endpoint);
+            var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
             await Task.Delay(1000); //wait a bit before updating
-            double refreshBefore2 = await ServerBrowser.UpdateServerAsync(endpoint, server, key);
+            double refreshBefore2 = await backend.UpdateServerAsync(server);
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
             Assert.IsTrue(refreshBefore2 > now);
         }
@@ -56,9 +58,10 @@ namespace UnchainedLauncher.Core.API.Tests
         [TestMethod()]
         public async Task HeartbeatTest()
         {
-            var (_, key, server) = await ServerBrowser.RegisterServerAsync(endpoint, localIP, testServerInfo);
+            ServerBrowser backend = new(endpoint);
+            var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
             Thread.Sleep(1000); //give it time to sit before sending a heartbeat
-            double refreshBefore2 = await ServerBrowser.HeartbeatAsync(endpoint, server, key);
+            double refreshBefore2 = await backend.HeartbeatAsync(server);
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
             Assert.IsTrue(refreshBefore2 > now);
         }
@@ -66,8 +69,9 @@ namespace UnchainedLauncher.Core.API.Tests
         [TestMethod()]
         public async Task DeleteServerTest()
         {
-            var (_, key, server) = await ServerBrowser.RegisterServerAsync(endpoint, localIP, testServerInfo);
-            await ServerBrowser.DeleteServerAsync(endpoint, server, key);
+            ServerBrowser backend = new(endpoint);
+            var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
+            await backend.DeleteServerAsync(server);
         }
     }
 }

@@ -36,6 +36,7 @@ namespace UnchainedLauncher.Core.API
         MAC = (byte)'M'
     }
 
+    // TODO: make this instantiable
     public static class A2S
     {
         const int TimeOutMillis = 1000;

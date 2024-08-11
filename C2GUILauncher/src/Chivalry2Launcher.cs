@@ -54,12 +54,15 @@ namespace C2GUILauncher {
             return VanillaLauncher.Launch(string.Join(" ", args));
         }
 
-        public Process LaunchModdedVanilla(IEnumerable<string> args)
+        public async Task<Process?> LaunchModdedVanilla(Window window, IEnumerable<string> args)
         {
             logger.Info("Attempting to launch vanilla game with pak loading.");
             LogList("Launch args: ", args);
             SigFileHelper.CheckAndCopySigFiles();
             SigFileHelper.DeleteOrphanedSigFiles();
+
+            await PrepareFilesystem(window, true);
+
             return VanillaLauncher.Launch(string.Join(" ", args));
         }
 

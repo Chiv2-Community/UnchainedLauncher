@@ -18,21 +18,13 @@ namespace UnchainedLauncher.Core.API
 
         public static async Task SendCommandTo(IPEndPoint rconLocation, string command)
         {
-            try
-            {
-                CancellationTokenSource cts = new(1000);
-                using TcpClient client = new TcpClient();
-                await client.ConnectAsync(rconLocation);
-                await client.GetStream().WriteAsync(
-                    (command+"\n").Map((c)=>(byte)c).ToArray(), // string -> char[]
-                    cts.Token
-                );
-            }
-            catch (OperationCanceledException)
-            {
-                throw new TimeoutException("RCON connection timed out");
-            }
-            
+            using TcpClient client = new TcpClient();
+            client.SendTimeout = 1000;
+            client.ReceiveTimeout = 1000;
+            await client.ConnectAsync(rconLocation);
+            await client.GetStream().WriteAsync(
+                (command+"\n").Map((c)=>(byte)c).ToArray() // string -> byte[]
+            );
         }
     }
 }

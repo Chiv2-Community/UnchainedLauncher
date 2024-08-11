@@ -1,18 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Net;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using System.Runtime.Loader;
 using PropertyChanged;
 
 namespace UnchainedLauncher.Core.API

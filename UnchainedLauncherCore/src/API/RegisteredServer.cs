@@ -1,18 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
-using Octokit;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Threading;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using UnchainedLauncher.Core.API;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using LanguageExt.Pipes;
+﻿using System.Net;
 using PropertyChanged;
-using System.ComponentModel;
 
 namespace UnchainedLauncher.Core.API
 {

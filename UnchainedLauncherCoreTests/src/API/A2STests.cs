@@ -16,9 +16,8 @@ namespace UnchainedLauncher.Core.API.Tests
         public int NumRequests { get { return resultsPosition; } }
         public MockA2S()
         {
-            results = new A2sInfo[1] { 
-                new(2, "Some Server Name", "ffa_Courtyard", "", "Chivalry 2",
-                    42, 1, 30, 0, ServerType.DEDICATED, Environment.WINDOWS, true, false)
+            results = new A2sInfo[1] {
+                new(0, "", "test map", "", "Chivalry 2", 0, 10, 100, 5, ServerType.NONDEDICATED, Environment.WINDOWS, true, false)
             };
         }
 

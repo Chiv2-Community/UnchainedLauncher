@@ -23,6 +23,7 @@ namespace C2GUILauncher.ViewModels {
     public class LauncherViewModel {
         private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherViewModel));
         public ICommand LaunchVanillaCommand { get; }
+        public ICommand LaunchModdedVanillaCommand { get; }
         public ICommand LaunchModdedCommand { get; }
 
         private SettingsViewModel Settings { get; }
@@ -42,6 +43,7 @@ namespace C2GUILauncher.ViewModels {
             ModManager = modManager;
 
             this.LaunchVanillaCommand = new RelayCommand(LaunchVanilla);
+            this.LaunchModdedVanillaCommand = new RelayCommand(LaunchModdedVanilla);
             this.LaunchModdedCommand = new RelayCommand(() => LaunchModded());
 
             Window = window;
@@ -61,6 +63,22 @@ namespace C2GUILauncher.ViewModels {
             }
         }
 
+        public void LaunchModdedVanilla()
+        {
+            try
+            {
+                // For a vanilla launch we need to pass the args through to the vanilla launcher.
+                // Skip the first arg which is the path to the exe.
+                Launcher.LaunchModdedVanilla(Environment.GetCommandLineArgs().Skip(1));
+                CanClick = false;
+                Window.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+        }
+
         public Task LaunchModded(IEnumerable<string>? exArgs = null, Process? serverRegister = null) {
             CanClick = false;
 
@@ -75,12 +93,13 @@ namespace C2GUILauncher.ViewModels {
             //setup necessary cli args for a modded launch
             List<string> cliArgs = args.Split(" ").ToList();
             int TBLloc = cliArgs.IndexOf("TBL") + 1;
+            cliArgs.Insert(TBLloc, serverBrowserBackendArg);
+            cliArgs.Insert(TBLloc, "-unchained");
 
             BuildModArgs().ToList().ForEach(arg => cliArgs.Insert(TBLloc, arg));
             if (exArgs != null) {
                 cliArgs.AddRange(exArgs);
             }
-            cliArgs.Add(serverBrowserBackendArg);
             cliArgs = cliArgs.Where(x => x != null).Select(x => x.Trim()).Where(x => x.Any()).ToList();
             return Launcher.LaunchModded(Window, Settings.InstallationType, cliArgs, Settings.EnablePluginAutomaticUpdates, serverRegister).ContinueWith(x => {
                 if (x.Result == null) {

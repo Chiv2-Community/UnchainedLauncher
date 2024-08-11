@@ -54,6 +54,15 @@ namespace C2GUILauncher {
             return VanillaLauncher.Launch(string.Join(" ", args));
         }
 
+        public Process LaunchModdedVanilla(IEnumerable<string> args)
+        {
+            logger.Info("Attempting to launch vanilla game with pak loading.");
+            LogList("Launch args: ", args);
+            SigFileHelper.CheckAndCopySigFiles();
+            SigFileHelper.DeleteOrphanedSigFiles();
+            return VanillaLauncher.Launch(string.Join(" ", args));
+        }
+
         public async Task<Thread?> LaunchModded(Window window, InstallationType installationType, List<string> args, bool checkForPluginUpdates, Process? serverRegister = null) {
             if (installationType == InstallationType.NotSet) return null;
             

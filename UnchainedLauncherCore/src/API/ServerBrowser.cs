@@ -3,6 +3,7 @@ using System.Text.Json;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using PropertyChanged;
 using static System.Net.WebRequestMethods;
+using System.Security.Policy;
 
 namespace UnchainedLauncher.Core.API
 {
@@ -41,6 +42,11 @@ namespace UnchainedLauncher.Core.API
     }
 
     public record UniqueServerInfo : ServerInfo {
+        public UniqueServerInfo(String UniqueId, double LastHeartbeat) { 
+            this.UniqueId = UniqueId;
+            this.LastHeartbeat = LastHeartbeat;
+        }
+        public UniqueServerInfo() { }
         public String UniqueId { get; set; } = "";
         public double LastHeartbeat { get; set; } = 0;
     };

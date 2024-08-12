@@ -139,7 +139,9 @@ namespace UnchainedLauncher.Core.API
             Task updateDelay = Task.Delay(updateIntervalMillis, token);
             while (true)
             {
-                int heartBeatAfterSeconds = (int)(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5);
+                double secondsUntilExpiry = refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds();
+                // do a heartbeat with half the time remaining
+                int heartBeatAfterSeconds = (int)Math.Ceiling(secondsUntilExpiry/2);
                 Task heartBeatDelay = Task.Delay(1000 * heartBeatAfterSeconds, token);
                 var fin = await Task.WhenAny(heartBeatDelay, updateDelay, token.WhenCanceled());
                 token.ThrowIfCancellationRequested();

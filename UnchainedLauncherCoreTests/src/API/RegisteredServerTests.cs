@@ -1,12 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using UnchainedLauncher.Core.API;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Net;
-using Microsoft.VisualBasic;
+﻿using UnchainedLauncher.Core.API.Mocks;
 
 namespace UnchainedLauncher.Core.API.Tests
 {

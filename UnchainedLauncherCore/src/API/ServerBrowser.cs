@@ -2,8 +2,6 @@
 using System.Text.Json;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using PropertyChanged;
-using static System.Net.WebRequestMethods;
-using System.Security.Policy;
 
 namespace UnchainedLauncher.Core.API
 {

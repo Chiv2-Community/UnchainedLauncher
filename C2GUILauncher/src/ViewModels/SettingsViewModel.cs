@@ -120,12 +120,12 @@ namespace C2GUILauncher.ViewModels {
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
             FileHelpers.DeleteDirectory(FilePaths.PluginDir); 
 
-            var vanillaPaks = new List<string>() { "pakchunk0-WindowsNoEditor.pak" };
+            var vanillaPaks = new List<string>() { "pakchunk0-WindowsNoEditor" };
             var filePaths =
                 Directory
                     .GetFiles(FilePaths.PakDir)
                     .Where(pakName => {
-                        if (vanillaPaks.Any(vanillaPak => pakName.EndsWith(vanillaPak))) {
+                        if (vanillaPaks.Any(vanillaPak => (pakName.EndsWith(vanillaPak+".pak") || pakName.EndsWith(vanillaPak + ".sig")))) {
                             logger.Info($"Skipping vanilla pak {pakName}");
                             return false;
                         }

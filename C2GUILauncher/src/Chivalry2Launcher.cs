@@ -49,6 +49,8 @@ namespace C2GUILauncher {
         public Process LaunchVanilla(IEnumerable<string> args) {
             logger.Info("Attempting to launch vanilla game.");
             LogList("Launch args: ", args);
+            logger.Info("Removing .sig files");
+            SigFileHelper.RemoveAllNonDefaultSigFiles();
             return VanillaLauncher.Launch(string.Join(" ", args));
         }
 
@@ -60,6 +62,9 @@ namespace C2GUILauncher {
             if(!shouldContinue) 
                 return new Thread(() => logger.Info("Cancelling launch."));
 
+            logger.Info("Verifying .sig file presence");
+            SigFileHelper.CheckAndCopySigFiles();
+            SigFileHelper.DeleteOrphanedSigFiles();
             logger.Info("Attempting to launch modded game.");
             
             var launchThread = new Thread(() => {

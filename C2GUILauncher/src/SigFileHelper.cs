@@ -13,7 +13,7 @@ namespace C2GUILauncher.Mods
         private static string PakDirectory => FilePaths.PakDir;
         private static string DefaultSigFile => Path.Combine(PakDirectory, "pakchunk0-WindowsNoEditor.sig");
 
-        private static Dictionary<string, (bool HasPak, bool HasSig)> GetPakAndSigFiles()
+        private static Dictionary<string, (bool HasPak, bool HasSig)>? GetPakAndSigFiles()
         {
             try
             {
@@ -25,13 +25,16 @@ namespace C2GUILauncher.Mods
 
                 var pakFiles = Directory.EnumerateFiles(PakDirectory, "*.pak")
                                         .Select(Path.GetFileNameWithoutExtension)
+                                        .OfType<string>()
                                         .ToHashSet();
 
-                var sigFiles = Directory.EnumerateFiles(PakDirectory, "*.sig")
+                HashSet<string> sigFiles = Directory.EnumerateFiles(PakDirectory, "*.sig")
                                         .Select(Path.GetFileNameWithoutExtension)
+                                        .OfType<string>()
                                         .ToHashSet();
 
                 var allFiles = pakFiles.Union(sigFiles).Distinct();
+
 
                 return allFiles.ToDictionary(
                     fileName => fileName,

@@ -33,6 +33,7 @@ namespace UnchainedLauncher.GUI
         public SettingsViewModel SettingsViewModel { get; }
         public LauncherViewModel LauncherViewModel { get; }
         public ServerLauncherViewModel ServerSettingsViewModel { get; }
+        public ServersViewModel ServersViewModel { get; }
         public bool DisableSaveSettings { get; set; }
 
         private readonly ModManager ModManager;
@@ -168,7 +169,9 @@ namespace UnchainedLauncher.GUI
                 this.ServerSettingsViewModel = ServerLauncherViewModel.LoadSettings(LauncherViewModel, SettingsViewModel, ModManager);
 
                 this.ModManagerViewModel = new ModListViewModel(ModManager);
+                this.ServersViewModel = new ServersViewModel(this);
 
+                this.ServersTab.DataContext = this.ServersViewModel;
                 this.SettingsTab.DataContext = this.SettingsViewModel;
                 this.ModManagerTab.DataContext = this.ModManagerViewModel;
                 this.LauncherTab.DataContext = this.LauncherViewModel;

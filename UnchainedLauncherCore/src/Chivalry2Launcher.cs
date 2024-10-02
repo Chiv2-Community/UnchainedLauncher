@@ -3,7 +3,6 @@ using log4net;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Processes;
-using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Extensions;
 using LanguageExt;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;

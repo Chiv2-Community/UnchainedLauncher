@@ -167,7 +167,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                 var serverLaunchOptions = new ServerLaunchOptions(
                     headless,
-                    Prelude.Some(ServerPassword).Map(pw => pw.Trim()).Filter(pw => pw == ""),
+                    Prelude.Some(ServerPassword).Map(pw => pw.Trim()).Filter(pw => pw != ""),
                     SelectedMap,
                     GamePort,
                     PingPort,

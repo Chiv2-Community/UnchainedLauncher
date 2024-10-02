@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:av="http://schemas.microsoft.com/expression/blend/2008" 
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-        x:Name="Unchained_Launcher" 
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    x:Name="Unchained_Launcher" 
         mc:Ignorable="av" 
         x:Class="UnchainedLauncher.GUI.MainWindow"   
         Title="Unchained Launcher" Height="280" Width="650"
@@ -234,5 +234,159 @@
             </Grid>
         </TabItem>
 
+        <TabItem x:Name="ServersTab" DataContext="{Binding ServersViewModel}" Header="Running Servers">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition/>
+                    <RowDefinition Height="auto"/>
+                </Grid.RowDefinitions>
+                <!-- Global layout -->
+                <TextBlock Text="Select one of your running servers" Grid.Row="0"/>
+                <!-- servers as tabs -->
+                <TabControl ItemsSource="{Binding Servers}" 
+                            SelectedIndex="{Binding Index, Mode=OneWayToSource}"
+                            Grid.Row="1">
+                    <TabControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Server.serverInfo.Name}" />
+                        </DataTemplate>
+                    </TabControl.ItemTemplate>
+                    <TabControl.ContentTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="4*"/>
+                                    <ColumnDefinition Width="6*"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- Data display -->
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock>
+                                        <Run Text="ID: "/>
+                                        <Run Text="{Binding Server.RemoteInfo.UniqueId}"/>
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <Run Text="Name: "/>
+                                        <Run Text="{Binding Server.RemoteInfo.Name}"/>
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <Run Text="Map: "/>
+                                        <Run Text="{Binding Server.RemoteInfo.CurrentMap}"/>
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <Run Text="Players: "/>
+                                        <Run Text="{Binding Server.RemoteInfo.PlayerCount}"/>
+                                        /
+                                        <Run Text="{Binding Server.RemoteInfo.MaxPlayers}"/>
+                                    </TextBlock>
+                                    <!-- A2S status display -->
+                                    <TextBlock ToolTip="{Binding Server.LastException.Message}">
+                                        <Run Text="A2S Status (hover for errors): "/>
+                                        <InlineUIContainer BaselineAlignment="Center">
+                                            <Ellipse Width="13" Height="13">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="Ellipse">
+                                                        <Setter Property="Fill" Value="Green"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Server.IsA2SOk}" Value="False">
+                                                                <Setter Property="Fill" Value="Red"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                        </InlineUIContainer>
+                                    </TextBlock>
+                                    <!-- HTTP status display -->
+                                    <TextBlock ToolTip="{Binding Server.LastHttpException.Message}">
+                                        <Run Text="Backend Status (hover for errors): "/>
+                                        <InlineUIContainer BaselineAlignment="Center">
+                                            <Ellipse Width="13" Height="13">
+                                                <Ellipse.Style>
+                                                    <Style TargetType="Ellipse">
+                                                        <Setter Property="Fill" Value="Green"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Server.IsRegistrationOk}" Value="False">
+                                                                <Setter Property="Fill" Value="Red"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Style>
+                                            </Ellipse>
+                                        </InlineUIContainer>
+                                    </TextBlock>
+                                    <TextBlock Text=""/>
+                                    <TextBlock Text="Ports:"/>
+                                    <!-- Ports outline -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="30"/>
+                                            <ColumnDefinition Width="auto"/>
+                                            <ColumnDefinition Width="auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition/>
+                                            <RowDefinition/>
+                                            <RowDefinition/>
+                                            <RowDefinition/>
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" Text="Game: "/>
+                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Server.serverInfo.Ports.Game}"/>
+
+                                        <TextBlock Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" Text="Ping: "/>
+                                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Server.serverInfo.Ports.Ping}"/>
+
+                                        <TextBlock Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" Text="A2S: "/>
+                                        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Server.serverInfo.Ports.A2s}"/>
+
+                                        <TextBlock Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Text="RCON: "/>
+                                        <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding RconPort}"/>
+
+                                    </Grid>
+                                </StackPanel>
+                                <!-- RCON console -->
+                                <Grid Grid.Column="1">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="auto"/>
+                                        <RowDefinition/>
+                                        <RowDefinition Height="auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Rcon Console:" Grid.Row="0"/>
+                                    <TextBox 
+                                        Text="{Binding RconHistory}" 
+                                        Grid.Row="1"
+                                        IsReadOnly="True" 
+                                        VerticalScrollBarVisibility="Auto" 
+                                        HorizontalScrollBarVisibility="Auto"/>
+                                    <!-- RCON command entry-->
+                                    <Grid Grid.Row="2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition/>
+                                            <ColumnDefinition Width="auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox 
+                                            Grid.Column="0" 
+                                            Margin="5"
+                                            AcceptsReturn="False"
+                                            Text="{Binding CurrentRconCommand, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                            <TextBox.InputBindings>
+                                                <KeyBinding Command="{Binding SubmitRconCommand}" Key="Enter"/>
+                                                <KeyBinding Command="{Binding SubmitRconCommand}" Key="Return"/>
+                                            </TextBox.InputBindings>
+                                        </TextBox>
+                                        <Button Grid.Column="1" Content=" Send " Command="{Binding SubmitRconCommand}"/>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </DataTemplate>
+                    </TabControl.ContentTemplate>
+                </TabControl>
+                <Button Content="Shut down currently selected server"
+                    Grid.Row="2" 
+                    Command="{Binding ShutdownCurrentTabCommand}" 
+                    DockPanel.Dock="Bottom"/>
+            </Grid>
+        </TabItem>
     </TabControl>
+    
 </Window>

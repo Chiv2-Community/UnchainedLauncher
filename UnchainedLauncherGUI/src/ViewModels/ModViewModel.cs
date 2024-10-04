@@ -14,6 +14,13 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.ComponentModel;
 using System.Threading;
+using System.Xml.Serialization;
+using UnchainedLauncher.Core.Extensions;
+using System.CodeDom;
+using LanguageExt.Common;
+using static UnchainedLauncher.Core.Mods.DownloadModFailure;
+using UnchainedLauncher.Core.Mods.Registry.Resolver;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {
@@ -28,6 +35,18 @@ namespace UnchainedLauncher.GUI.ViewModels
             EnabledRelease.Map(x => x.Version).FirstOrDefault(), 
             Mod.LatestManifest.Name
         );
+
+        public bool HasError {
+            get {
+                return ErrorState.Match(
+                    None: () => false,
+                    Some: x => true
+                );
+            }
+        }
+
+        public Option<Either<DisableModFailure, EnableModFailure>> ErrorState { get; set; }
+
 
         public Option<Release> EnabledRelease { get; set; }
 
@@ -48,6 +67,35 @@ namespace UnchainedLauncher.GUI.ViewModels
                             message += $"- {mod.LatestManifest.Name} {dep.Version}\n";
                     }
                 }
+
+                ErrorState.Match(
+                    None: () => { },
+                    Some: x => {
+
+                        message +=
+                            "\n\nError: " +
+                            x.Match(
+                                Left: disableModFailure => disableModFailure.Match(
+                                    deleteFailure => $"Failed to disable mod. Cannot delete currently enabled version: {deleteFailure.Failure.Message}",
+                                    notEnabled => $"Cannot disable mod. Mod is not enabled."
+                                ),
+                                Right: y => y.Match(
+                                    downloadFailure => downloadFailure.Match(
+                                        modPakStreamAcquisitionFailure => $"Failed to download mod file '{modPakStreamAcquisitionFailure.Target.FileName}' @{modPakStreamAcquisitionFailure.Target.ReleaseTag} from {modPakStreamAcquisitionFailure.Target.Org}/{modPakStreamAcquisitionFailure.Target.RepoName}. Reason: ${modPakStreamAcquisitionFailure.Error.Message}",
+                                        hashFailure => $"Failed to hash mod file '{hashFailure.FilePath}'. Reason: " + hashFailure.Error.Message,
+                                        hashMismatchFailure => $"Failed to validate mod hash. Expected '{hashMismatchFailure.Release.ReleaseHash}' Got '{hashMismatchFailure.InvalidHash}'",
+                                        modNotFoundFailure => $"Failed to download mod file. Mod release '{modNotFoundFailure.Release.PakFileName}' @{modNotFoundFailure.Release.Tag} from {modNotFoundFailure.Release.Manifest.RepoUrl} not found.",
+                                        writeFailure => $"Failed to write mod to path '{writeFailure.Path}'. Reason: {writeFailure.Failure.Message}",
+                                        alreadyDownloadedFailure => $"Mod already downloaded. Mod release '{alreadyDownloadedFailure.Release.PakFileName}' @{alreadyDownloadedFailure.Release.Tag} from {alreadyDownloadedFailure.Release.Manifest.RepoUrl}."
+                                    ),
+                                    disableModFailure => disableModFailure.Match(
+                                        deleteFailure => $"Failed to change mod version. Cannot delete currently enabled version: {deleteFailure.Failure.Message}",
+                                        notEnabled => $"Cannot disable currently enabled mod. Mod is not enabled. Something funky is going on."
+                                    )
+                            )
+                        );
+                    }
+                );
 
                 return message;
             }
@@ -111,9 +159,27 @@ namespace UnchainedLauncher.GUI.ViewModels
         }
 
         private EitherAsync<Either<DisableModFailure, EnableModFailure>, Unit> UpdateCurrentlyEnabledVersion(Option<Release> newVersion) {
-            return newVersion.Match(
-                None: () => ModManager.DisableMod(Mod).MapLeft<Either<DisableModFailure, EnableModFailure>>(e => Prelude.Left(e)),
-                Some: x => ModManager.EnableModRelease(x, Prelude.None, CancellationToken.None).MapLeft<Either<DisableModFailure, EnableModFailure>>(e => Prelude.Right(e))
+            var failureOrSuccess =  
+                newVersion.Match(
+                    None: () => ModManager.DisableMod(Mod).MapLeft<Either<DisableModFailure, EnableModFailure>>(e => Prelude.Left(e)),
+                    Some: x =>
+                        ModManager
+                            .EnableModRelease(x, Prelude.None, CancellationToken.None)
+                            .MapLeft<Either<DisableModFailure, EnableModFailure>>(enableModFailure => Prelude.Right(enableModFailure))
+            );
+
+            return failureOrSuccess.Match(
+                Right: _ => {
+                    ErrorState = Prelude.None;
+                    logger.Debug($"Successfully enabled release {EnabledVersion} for {Mod.LatestManifest.Name}");
+                },
+                Left: enableOrDisableError => {
+                    ErrorState = Prelude.Some(enableOrDisableError);
+                    enableOrDisableError.Match(
+                        Left: disableModFailure => logger.Error($"Failed to disable mod {Mod.LatestManifest.Name}"),
+                        Right: enableModFailure => logger.Error($"Failed to enable release {EnabledVersion} for {Mod.LatestManifest.Name}")
+                    );
+                }
             );
         }
     }

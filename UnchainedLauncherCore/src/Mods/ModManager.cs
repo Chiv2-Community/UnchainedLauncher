@@ -186,7 +186,7 @@ namespace UnchainedLauncher.Core.Mods
                                     var allModsResult = tuple.result;
 
                                     logResults(registry, allModsResult);
-                                    ModMap.AddOrUpdate(registry, allModsResult.Mods);
+                                    ModMap = ModMap.AddOrUpdate(registry, allModsResult.Mods);
                                     return allModsResult;
                                 })
                                 .Aggregate((l, r) => l + r);

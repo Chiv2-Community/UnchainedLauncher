@@ -80,10 +80,10 @@
                     <DataGrid.RowStyle>
                         <Style TargetType="DataGridRow">
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding DownloadFailed}" Value="true">
+                                <DataTrigger Binding="{Binding HasError}" Value="true">
                                     <Setter Property="Background" Value="Red"></Setter>
                                 </DataTrigger>
-                                <DataTrigger Binding="{Binding DownloadFailed}" Value="false">
+                                <DataTrigger Binding="{Binding HasError}" Value="false">
                                     <Setter Property="Background" Value="White"></Setter>
                                 </DataTrigger>
                             </Style.Triggers>

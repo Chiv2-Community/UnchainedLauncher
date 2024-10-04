@@ -80,17 +80,17 @@ namespace UnchainedLauncher.Core.Utilities {
               .MapLeft(error => new HashFailure(filePath, error));
         }
 
-        public static EitherAsync<HashFailure, string?> Sha512Async(string filePath) {
+        public static EitherAsync<HashFailure, string> Sha512Async(string filePath) {
             using var sha512 = System.Security.Cryptography.SHA512.Create();
 
             if (!File.Exists(filePath))
-                return EitherAsync<HashFailure, string?>.Right(null);
+                return new HashFailure(filePath, new FileNotFoundException($"File {filePath} not found"));
 
             return
                 Prelude
                     .TryAsync(() => File.ReadAllBytesAsync(filePath))
                     .ToEither()
-                    .Map(bytes => (string?)BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant())
+                    .Map(bytes => BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant())
                     .MapLeft(error => new HashFailure(filePath, error));
         }
     }
@@ -122,8 +122,9 @@ namespace UnchainedLauncher.Core.Utilities {
                         int bytesRead;
 
                         // While there's data to read from the input stream, read and write asynchronously
-                        while ((bytesRead = await InputStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0) {
-                            await outputStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+                        var memory = new Memory<byte>(buffer);
+                        while ((bytesRead = await InputStream.ReadAsync(memory, cancellationToken)) > 0) {
+                            await outputStream.WriteAsync(memory, cancellationToken);
 
                             totalBytesWritten += bytesRead;
                             var percentage = (double)totalBytesWritten / totalBytes * 100;

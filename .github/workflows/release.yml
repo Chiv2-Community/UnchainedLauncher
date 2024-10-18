@@ -53,7 +53,7 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4.4.2
       with:
-        name: Package
+        name: Package_${{ matrix.configuration }}
         path: C2GUILauncher/bin
 
   create_release:
@@ -65,10 +65,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Download Build Artifacts
+      - name: Download Build Artifacts D
         uses: actions/download-artifact@v4.1.8
         with:
-          name: Package
+          name: Package_Debug
+          path: results
+
+      - name: Download Build Artifacts R
+        uses: actions/download-artifact@v4.1.8
+        with:
+          name: Package_Release
           path: results
 
       - name: Create GitHub Release

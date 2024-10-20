@@ -65,6 +65,7 @@ namespace UnchainedLauncher.Core.API.Mocks
         }
 
         public void Dispose() {
+            GC.SuppressFinalize(this);
         }
     }
 }

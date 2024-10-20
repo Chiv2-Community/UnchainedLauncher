@@ -91,12 +91,14 @@ namespace UnchainedLauncher.Core {
 
     public record ServerLaunchOptions(
         bool Headless,
+        string Name,
+        string Description,
         Option<string> Password,
-        Option<string> Map,
-        Option<int> GamePort,
-        Option<int> BeaconPort,
-        Option<int> QueryPort,
-        Option<int> RconPort
+        string Map,
+        int GamePort,
+        int BeaconPort,
+        int QueryPort,
+        int RconPort
     ) {
         public IEnumerable<String> ToCLIArgs() {
             var args = new List<string>();
@@ -107,11 +109,11 @@ namespace UnchainedLauncher.Core {
             }
 
             Password.IfSome(password => args.Add($"ServerPassword={password.Trim()}"));
-            Map.IfSome(map => args.Add($"--next-map-name {map}"));
-            GamePort.IfSome(port => args.Add($"Port={port}"));
-            BeaconPort.IfSome(port => args.Add($"GameServerPingPort={port}"));
-            QueryPort.IfSome(port => args.Add($"GameServerQueryPort={port}"));
-            RconPort.IfSome(port => args.Add($"--rcon {port}"));
+            args.Add($"--next-map-name {Map}");
+            args.Add($"Port={GamePort}");
+            args.Add($"GameServerPingPort={BeaconPort}");
+            args.Add($"GameServerQueryPort={QueryPort}");
+            args.Add($"--rcon {RconPort}");
 
             return args;
         }

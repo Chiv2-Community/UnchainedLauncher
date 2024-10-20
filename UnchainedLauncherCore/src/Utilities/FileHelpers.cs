@@ -139,7 +139,7 @@ namespace UnchainedLauncher.Core.Utilities {
                         var memory = new Memory<byte>(buffer);
                         while ((bytesRead = await InputStream.ReadAsync(memory, cancellationToken)) > 0) {
                             // Write only the portion of the buffer that was read
-                            await outputStream.WriteAsync(memory.Slice(0, bytesRead), cancellationToken);
+                            await outputStream.WriteAsync(memory[..bytesRead], cancellationToken);
 
                             totalBytesWritten += bytesRead;
                             var percentage = (double)totalBytesWritten / Size * 100;

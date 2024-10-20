@@ -87,11 +87,12 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        public RegisteredServer(Uri backend_uri,
-            C2ServerInfo serverInfo, string localIp,
-            int updateIntervalMillis = 1000,
-            IServerBrowser? backend = null,
-            IA2S? a2sEndpoint = null // port should match the one passed in via C2ServerInfo
+        public RegisteredServer(
+            IServerBrowser backend,
+            IA2S a2sEndpoint,
+            C2ServerInfo serverInfo, 
+            string localIp,
+            int updateIntervalMillis = 1000
             )
         {
             this.serverInfo = serverInfo;
@@ -100,11 +101,11 @@ namespace UnchainedLauncher.Core.API
             this.shutDownSource = new();
             this._IsA2SOkTCS = new(shutDownSource);
 
-            this.backend = backend ?? new ServerBrowser(backend_uri);
-            this.A2sEndpoint = a2sEndpoint ?? new A2S(new(IPAddress.Parse("127.0.0.1"), serverInfo.Ports.A2s));
+            this.backend = backend;
+            this.A2sEndpoint = a2sEndpoint;
 
             logger.Info(
-                $"Server '{serverInfo.Name}' will use backend at '{backend_uri.ToString()}'\nPorts:"
+                $"Server '{serverInfo.Name}' will use backend at '{backend.Host}'\nPorts:"
                 + serverInfo.Ports.ToString()
             );
 

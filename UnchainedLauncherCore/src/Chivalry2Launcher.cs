@@ -121,13 +121,13 @@ namespace UnchainedLauncher.Core {
 
 
     public record ModdedLaunchOptions(
-        Option<string> ServerBrowserBackend,
+        string ServerBrowserBackend,
         Option<IEnumerable<Release>> EnabledMods,
         Option<string> SavedDirSuffix
     ) {
         public IEnumerable<string> ToCLIArgs() {
             var args = new List<string>();
-            ServerBrowserBackend.IfSome(backend => args.Add($"--server-browser-backend {backend}"));
+            args.Add($"--server-browser-backend {ServerBrowserBackend}");
             EnabledMods.IfSome(mods => args.AddRange(mods.Select(mod => $"--mod {mod.Manifest.RepoUrl}")));
             SavedDirSuffix.IfSome(suffix => args.Add($"--saved-dir-suffix {suffix}"));
             return args;

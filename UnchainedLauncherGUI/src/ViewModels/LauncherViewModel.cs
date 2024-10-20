@@ -19,6 +19,7 @@ using LanguageExt.SomeHelp;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.Mods.Registry;
+using UnchainedLauncher.GUI.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels {
 
@@ -135,33 +136,26 @@ namespace UnchainedLauncher.GUI.ViewModels {
                                 // Electing to fail hard here rather than make the error
                                 // rarer/harder to find by delegating the problem code
                                 // to a default
-                                int rconPort = Window.ServerSettingsViewModel.RconPort;
-                                Ports ports = new(
+                                PublicPorts ports = new(
                                     Window.ServerSettingsViewModel.GamePort,
                                     Window.ServerSettingsViewModel.PingPort,
                                     Window.ServerSettingsViewModel.A2sPort
                                 );
-                                C2ServerInfo serverInfo = new()
-                                {
+                                C2ServerInfo serverInfo = new() {
                                     Ports = ports,
                                     Name = Window.ServerSettingsViewModel.ServerName,
                                     Description = Window.ServerSettingsViewModel.ServerDescription,
                                     PasswordProtected = Window.ServerSettingsViewModel.ServerPassword.Length == 0,
-                                    // TODO: actually fill this. Mod manager stuff is way too difficult for me
-                                    // to write out all the conversions to get this filled properly lol
-                                    // This may involve changing the Mod datatype to something else.
-                                    Mods = Array.Empty<Mod>(),
+                                    Mods = ModManager.EnabledModReleases.Select(release =>
+                                        new ServerBrowserMod(
+                                            release.Manifest.Name,
+                                            release.Version.ToString(),
+                                            release.Manifest.Organization
+                                        )
+                                    ).ToArray()
                                 };
-                                // TODO: unify the base uri vs api version uri differences introduced
-                                // by this implementation
-                                Uri backend = options.ServerBrowserBackend.Match(
-                                    Some: backend => new Uri(backend + "/api/v1"),
-                                    None: () => new Uri(Settings.ServerBrowserBackend + "/api/v1")
-                                );
-                                RegisteredServer registered = new(backend, serverInfo, "127.0.0.1");
-                                Window.ServersViewModel.Servers.Add(
-                                    new ServerViewModel(Window, registered, process, rconPort)
-                                );
+
+                                Window.ServersViewModel.RegisterServer("127.0.0.1", ports, Window.ServerSettingsViewModel.RconPort, serverInfo, process);
                             }
                         );
                     }

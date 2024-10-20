@@ -3,7 +3,6 @@
 
     // Should have an instance of the backend running on localhost:8080 for this
     // to test against
-    [TestClass()]
     public class ServerBrowserTests
     {
         private static readonly C2ServerInfo testServerC2Info = new()
@@ -20,10 +19,10 @@
         private static readonly Uri endpoint = new("http://localhost:8080/api/v1");
         private static readonly String localIP = "127.0.0.1";
 
-        [TestMethod()]
+        [Fact]
         public async Task RegisterServerTest()
         {
-            ServerBrowser backend = new(endpoint);
+            using ServerBrowser backend = new(endpoint, new HttpClient());
             RegisterServerResponse res = await backend.RegisterServerAsync(localIP, testServerInfo); ;
             //not exhaustive
             //it's not possible to up-cast and compare using equals
@@ -31,37 +30,38 @@
             //also, the server modifies certain fields so they will never be equal
             //Server does "Unverified" stuff so this won't be true
             //Assert.AreEqual(res.server.name, testServerInfo.name); 
-            Assert.AreEqual(res.Server.Description, testServerInfo.Description);
-            Assert.AreEqual(res.Server.Ports, testServerInfo.Ports);
-            Assert.AreEqual(res.Server.CurrentMap, testServerInfo.CurrentMap);
+            Assert.Equal(testServerInfo.Description, res.Server.Description);
+            Assert.Equal(testServerInfo.Ports, res.Server.Ports);
+            Assert.Equal(testServerInfo.CurrentMap, res.Server.CurrentMap);
         }
 
-        [TestMethod()]
+        [Fact]
         public async Task UpdateServerTest()
         {
-            ServerBrowser backend = new(endpoint);
+            using ServerBrowser backend = new(endpoint, new HttpClient());
             var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
             await Task.Delay(1000); //wait a bit before updating
             double refreshBefore2 = await backend.UpdateServerAsync(server);
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
-            Assert.IsTrue(refreshBefore2 > now);
+            Assert.True(refreshBefore2 > now);
         }
 
-        [TestMethod()]
+        [Fact]
         public async Task HeartbeatTest()
-        {
-            ServerBrowser backend = new(endpoint);
+        {   
+            using ServerBrowser backend = new(endpoint, new HttpClient());
             var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
             Thread.Sleep(1000); //give it time to sit before sending a heartbeat
             double refreshBefore2 = await backend.HeartbeatAsync(server);
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
-            Assert.IsTrue(refreshBefore2 > now);
+
+            Assert.True(refreshBefore2 > now);
         }
 
-        [TestMethod()]
+        [Fact]
         public async Task DeleteServerTest()
         {
-            ServerBrowser backend = new(endpoint);
+            using ServerBrowser backend = new(endpoint, new HttpClient());
             var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
             await backend.DeleteServerAsync(server);
         }

@@ -28,10 +28,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string ServerName { get; set; }
         public string ServerDescription { get; set; }
         public string ServerPassword { get; set; }
-        public short GamePort { get; set; }
-        public short RconPort { get; set; }
-        public short A2sPort { get; set; }
-        public short PingPort { get; set; }
+        public int GamePort { get; set; }
+        public int RconPort { get; set; }
+        public int A2sPort { get; set; }
+        public int PingPort { get; set; }
         public string SelectedMap { get; set; }
         public bool ShowInServerBrowser { get; set; }
         public bool CanClick { get; set; }
@@ -50,7 +50,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         //in the hopes of having multiple independent servers running one one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, short gamePort, short rconPort, short a2sPort, short pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
+        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
             CanClick = true;
 
             ServerName = serverName;

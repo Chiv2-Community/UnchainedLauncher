@@ -94,8 +94,8 @@ namespace UnchainedLauncher.GUI
             return InstallResult.Rejected;
         }
 
-        // DESNOTE(2023-09-15, jbarber):ggg
-        //     This is a warning that we aren't initializing all of ourg
+        // DESNOTE(2023-09-15, jbarber):
+        //     This is a warning that we aren't initializing all of our
         //     non-nullable members of this class. The only time we fail to
         //     initialize things is if we're closing immediately, so its not a
         //     problem.
@@ -169,7 +169,7 @@ namespace UnchainedLauncher.GUI
                 this.ServerSettingsViewModel = ServerLauncherViewModel.LoadSettings(LauncherViewModel, SettingsViewModel, ModManager);
 
                 this.ModManagerViewModel = new ModListViewModel(ModManager);
-                this.ServersViewModel = new ServersViewModel(this);
+                this.ServersViewModel = new ServersViewModel(this, this.SettingsViewModel, null);
 
                 this.ServersTab.DataContext = this.ServersViewModel;
                 this.SettingsTab.DataContext = this.SettingsViewModel;

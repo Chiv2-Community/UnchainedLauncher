@@ -4,7 +4,11 @@ using System.Net.Sockets;
 
 namespace UnchainedLauncher.Core.API
 {
-    public class RCON
+    public interface IRCON {
+        public Task SendCommand(string command);
+    }
+
+    public class RCON : IRCON
     {
         private static readonly ILog logger = LogManager.GetLogger(nameof(RCON));
         protected IPEndPoint RconLocation;
@@ -27,7 +31,7 @@ namespace UnchainedLauncher.Core.API
             await client.GetStream().WriteAsync(
                 (command+"\n").Map((c)=>(byte)c).ToArray() // string -> byte[]
             );
-            logger.Info($"Sent command '{command}' to '{rconLocation.ToString()}'");
+            logger.Info($"Sent command '{command}' to '{rconLocation}'");
         }
     }
 }

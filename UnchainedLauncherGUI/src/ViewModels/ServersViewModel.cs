@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,28 +21,33 @@ namespace UnchainedLauncher.GUI.ViewModels
     public class ServersViewModel
     {
         public ObservableCollection<ServerViewModel> Servers { get; set; }
+        public SettingsViewModel SettingsViewModel { get; set; }
         public int Index { get; set; }
-        private Window Window;
+        private readonly Window Window;
         public ICommand ShutdownCurrentTabCommand { get; private set; }
 
-        // TODO: link this up with the global understanding of what the backend is after test
-        private static readonly Uri backend = new("http://localhost:8080/api/v1");
+        private IServerBrowser CurrentBackend { get; set; }
+        private Func<String, IServerBrowser> ServerBrowserBackendInitializer { get; }
+        public IServerBrowser Backend { get {
+            if(CurrentBackend.Host != SettingsViewModel.ServerBrowserBackend) {
+                CurrentBackend.Dispose();
+                    
+                var newBackend = ServerBrowserBackendInitializer(SettingsViewModel.ServerBrowserBackend);
+                CurrentBackend = newBackend;
+            }
 
-        public ServersViewModel(Window window)
+            return CurrentBackend;
+        }}
+
+        public ServersViewModel(Window window, SettingsViewModel settings, Func<string, IServerBrowser>? createServerBrowserBackend)
         {
             ShutdownCurrentTabCommand = new RelayCommand(ShutdownCurrentTab);
             this.Window = window;
             window.Closed += ShutdownAllServers;
             Servers = new ObservableCollection<ServerViewModel>();
-            //initialize with test servers
-            /*
-            Servers = new ObservableCollection<ServerViewModel>{ 
-                new(window, new RegisteredServer(backend, new C2ServerInfo(){ Name="test1", Description="test1"}, "127.0.0.1")),
-                new(window, new RegisteredServer(backend, new C2ServerInfo(){ Name="test2", Description="test2"}, "127.0.0.1")),
-                new(window, new RegisteredServer(backend, new C2ServerInfo(){ Name="test3", Description="test3"}, "127.0.0.1")),
-                new(window, new RegisteredServer(backend, new C2ServerInfo(){ Name="test4", Description="test4"}, "127.0.0.1")),
-            };
-            */
+            SettingsViewModel = settings;
+
+            ServerBrowserBackendInitializer = createServerBrowserBackend ?? DefaultServerBrowserInitializer;
         }
 
         public void ShutdownAllServers(object? sender, EventArgs e)
@@ -62,6 +68,17 @@ namespace UnchainedLauncher.GUI.ViewModels
             toKill.Dispose();
             Servers.Remove(toKill);
         }
+
+        public ServerViewModel RegisterServer(string serverIp, PublicPorts ports, int rconPort, C2ServerInfo serverInfo, Process serverProcess) {
+            var a2s = DefaultA2SConnectionInitializer(serverIp, ports.A2s);
+            var server = new RegisteredServer(Backend, a2s, serverInfo, serverIp);
+            var serverVm = new ServerViewModel(Window, server, serverProcess, rconPort);
+            Servers.Add(serverVm);
+            return serverVm;
+        }
+
+        private static Func<string, IServerBrowser> DefaultServerBrowserInitializer => (host) => new ServerBrowser(new Uri(host), new HttpClient());
+        private static Func<string, int, A2S> DefaultA2SConnectionInitializer => (host, port) => new A2S(new IPEndPoint(IPAddress.Parse(host), port));
     }
 
     // TODO? listplayers integration.
@@ -73,18 +90,18 @@ namespace UnchainedLauncher.GUI.ViewModels
     public class ServerViewModel : IDisposable
     {
         public RegisteredServer Server { get; private set; }
-        public int pid { get; private set; }
+        public int Pid { get; private set; }
         public string CurrentRconCommand { get; set; } = "";
         public int RconPort { get; private set; }
         public ICommand SubmitRconCommand { get; private set; }
         public string RconHistory { get; set; }
         private static readonly IPAddress LocalHost = IPAddress.Parse("127.0.0.1");
-        private IPEndPoint RconEndPoint;
-        private Process? ServerProcess;
+        private readonly IPEndPoint RconEndPoint;
+        private readonly Process? ServerProcess;
 
         private bool disposed = false;
 
-        public ServerViewModel(Window window, RegisteredServer server, Process? serverProcess = null, int rconPort = 9001)
+        public ServerViewModel(Window window, RegisteredServer server, Process serverProcess, int rconPort)
         {
             this.Server = server;
             this.RconPort = rconPort;

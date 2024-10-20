@@ -7,7 +7,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncherGUI", "Unc
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncherCore", "UnchainedLauncherCore\UnchainedLauncherCore.csproj", "{D63BA71A-868F-46F1-82A0-2115808D6A4E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnchainedLauncherCoreTests", "UnchainedLauncherCoreTests\UnchainedLauncherCoreTests.csproj", "{C4921616-E684-45AD-8D9C-FF99A84F5283}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncherCoreUnitTests", "UnchainedLauncherCoreTests\UnchainedLauncherCoreUnitTests.csproj", "{C4921616-E684-45AD-8D9C-FF99A84F5283}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnchainedLauncherCoreIntegrationTests", "UnchainedLauncherCoreIntegrationTests\UnchainedLauncherCoreIntegrationTests.csproj", "{ABBE4710-C988-4C0A-92D8-663271A6AA78}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +43,14 @@ Global
 		{C4921616-E684-45AD-8D9C-FF99A84F5283}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C4921616-E684-45AD-8D9C-FF99A84F5283}.Release|x64.ActiveCfg = Release|Any CPU
 		{C4921616-E684-45AD-8D9C-FF99A84F5283}.Release|x64.Build.0 = Release|Any CPU
+		{ABBE4710-C988-4C0A-92D8-663271A6AA78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABBE4710-C988-4C0A-92D8-663271A6AA78}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABBE4710-C988-4C0A-92D8-663271A6AA78}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{ABBE4710-C988-4C0A-92D8-663271A6AA78}.Debug|x64.Build.0 = Debug|Any CPU
+		{ABBE4710-C988-4C0A-92D8-663271A6AA78}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABBE4710-C988-4C0A-92D8-663271A6AA78}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABBE4710-C988-4C0A-92D8-663271A6AA78}.Release|x64.ActiveCfg = Release|Any CPU
+		{ABBE4710-C988-4C0A-92D8-663271A6AA78}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

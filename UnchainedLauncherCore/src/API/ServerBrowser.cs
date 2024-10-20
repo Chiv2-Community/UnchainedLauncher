@@ -1,25 +1,28 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using PropertyChanged;
 
 namespace UnchainedLauncher.Core.API
 {
-    public record Ports(
+    public record PublicPorts(
         int Game,
         int Ping,
         int A2s
     );
+
+    public record ServerBrowserMod(string Name, string organization, string version);
+
     [AddINotifyPropertyChangedInterface]
     public record C2ServerInfo {
         public bool PasswordProtected { get; set; } = false;
         public string Name { get; set; } = "";
         public string Description { get; set; } = "";
-        public Ports Ports { get; set; } = new(7777, 3075, 7071);
+        public PublicPorts Ports { get; set; } = new(7777, 3075, 7071);
         // TODO: The selection of the Mod datatype here is potentially
         // incorrect. Change it to whatever is easier and works with the backend
-        public Mod[] Mods { get; set; } = Array.Empty<Mod>(); 
+        public ServerBrowserMod[] Mods { get; set; } = Array.Empty<ServerBrowserMod>(); 
     };
+
     // TODO: This part of the API should be stabilized
     // as-is, there are numerous different kinds of "server" objects depending
     // on where they're coming from/where they're going
@@ -86,8 +89,10 @@ namespace UnchainedLauncher.Core.API
         UniqueServerInfo[] Servers  
     );
 
-    public interface IServerBrowser
+    public interface IServerBrowser : IDisposable
     {
+        public string Host { get; }
+
         public Task<RegisterServerResponse> RegisterServerAsync(String localIp, ServerInfo info, CancellationToken? ct = null);
         public Task<double> UpdateServerAsync(UniqueServerInfo info, CancellationToken? ct = null);
         public Task<double> HeartbeatAsync(UniqueServerInfo info, CancellationToken? ct = null);
@@ -106,15 +111,15 @@ namespace UnchainedLauncher.Core.API
     /// </summary>
     public class ServerBrowser : IServerBrowser
     {
-        protected HttpClient httpc;
+        protected HttpClient HttpClient;
         protected Uri backend_uri;
         protected string? _LastKey;
         public string? LastKey { 
             get { return _LastKey; }
             set { 
                 _LastKey = value;
-                httpc.DefaultRequestHeaders.Remove("x-chiv2-server-browser-key"); // remove old
-                httpc.DefaultRequestHeaders.Add("x-chiv2-server-browser-key", value); // set new
+                HttpClient.DefaultRequestHeaders.Remove("x-chiv2-server-browser-key"); // remove old
+                HttpClient.DefaultRequestHeaders.Add("x-chiv2-server-browser-key", value); // set new
             } 
         }
         protected static readonly JsonSerializerOptions sOptions = new(){
@@ -123,19 +128,14 @@ namespace UnchainedLauncher.Core.API
             };
         public TimeSpan TimeOutMillis
         {
-            get { return httpc.Timeout; }
-            set { httpc.Timeout = value; }
+            get { return HttpClient.Timeout; }
+            set { HttpClient.Timeout = value; }
         }
 
-        public ServerBrowser(Uri backend_uri, int TimeOutMillis = 4000, HttpClient? client = null) {
-            if(client != null)
-            {
-                httpc = client;
-            }
-            else
-            {
-                httpc = new();
-            }
+        public string Host => backend_uri.Host;
+
+        public ServerBrowser(Uri backend_uri, HttpClient client, int TimeOutMillis = 4000) {
+            HttpClient = client;
             this.TimeOutMillis = TimeSpan.FromMilliseconds(TimeOutMillis);
             this.backend_uri = backend_uri;
         }
@@ -144,7 +144,7 @@ namespace UnchainedLauncher.Core.API
         {
             var reqContent = new RegisterServerRequest(info, localIp);
             var content = JsonContent.Create(reqContent, options: sOptions);
-            var httpResponse = await httpc.PostAsync(backend_uri + "/servers", content, ct ?? CancellationToken.None);
+            var httpResponse = await HttpClient.PostAsync(backend_uri + "/servers", content, ct ?? CancellationToken.None);
             try
             {
                 var res = await httpResponse.EnsureSuccessStatusCode()
@@ -171,7 +171,7 @@ namespace UnchainedLauncher.Core.API
             
             var reqContent = new UpdateServerRequest(info.PlayerCount, info.MaxPlayers, info.CurrentMap);
             var content = JsonContent.Create(reqContent, options: sOptions);
-            var httpResponse = await httpc.PutAsync(backend_uri + $"/servers/{info.UniqueId}", content, ct ?? CancellationToken.None);
+            var httpResponse = await HttpClient.PutAsync(backend_uri + $"/servers/{info.UniqueId}", content, ct ?? CancellationToken.None);
             try
             {
                 var res = await httpResponse.EnsureSuccessStatusCode()
@@ -197,7 +197,7 @@ namespace UnchainedLauncher.Core.API
             
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
             var content = new StringContent("");
-            var httpResponse = await httpc.PostAsync(backend_uri + $"/servers/{info.UniqueId}/heartbeat", content, ct ?? CancellationToken.None);
+            var httpResponse = await HttpClient.PostAsync(backend_uri + $"/servers/{info.UniqueId}/heartbeat", content, ct ?? CancellationToken.None);
             try
             {
                 var res = await httpResponse.EnsureSuccessStatusCode()
@@ -226,7 +226,11 @@ namespace UnchainedLauncher.Core.API
             //that's a problem, since that's the only way to set headers
             //without setting state on the HttpClient
             //TODO: make this DeleteAsync
-            (await httpc.SendAsync(request, ct ?? CancellationToken.None)).EnsureSuccessStatusCode();
+            (await HttpClient.SendAsync(request, ct ?? CancellationToken.None)).EnsureSuccessStatusCode();
+        }
+
+        public void Dispose() {
+
         }
     }
 }

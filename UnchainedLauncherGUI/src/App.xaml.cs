@@ -10,11 +10,11 @@ namespace UnchainedLauncher.GUI {
     public partial class App : Application {
         public App() : base() {
             var assembly = Assembly.GetExecutingAssembly();
-            // First try to load a local "log4net.config" file, then try to load the embedded one.
-            Console.Out.WriteLine("Loading log4net configuration...");
-            Console.Out.WriteLine("Current working directory: " + Directory.GetCurrentDirectory());
             if (File.Exists("log4net.config")) {
                 log4net.Config.XmlConfigurator.Configure(new FileInfo("log4net.config"));
+            } else if (File.Exists("Resources/log4net.config")) {
+                // for running in Visual Studio
+                log4net.Config.XmlConfigurator.Configure(new FileInfo("Resources/log4net.config"));
             } else {
                 using Stream? configStream = assembly.GetManifestResourceStream("UnchainedLauncherGUI.Resources.log4net.config");
                 if (configStream != null) {

@@ -35,6 +35,24 @@ namespace UnchainedLauncher.Core.Utilities {
             );
         }
 
+        public static async Task<long> GetContentLengthAsync(string url) {
+            try {
+                using (var request = new HttpRequestMessage(HttpMethod.Head, url))
+                using (var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead)) {
+                    response.EnsureSuccessStatusCode();
+                    if (response.Content.Headers.TryGetValues("Content-Length", out var values)) {
+                        if (long.TryParse(values.FirstOrDefault(), out long contentLength)) {
+                            return contentLength;
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                logger.Error($"Error retrieving file size: {ex.Message}");
+            }
+
+            return 0L;
+        }
+
         public static DownloadTask<Stream> GetByteContentsAsync(string url) {
             logger.Info($"Downloading file {url}");
             return new DownloadTask<Stream>(

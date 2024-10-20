@@ -1,5 +1,6 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
+using LanguageExt.TypeClasses;
 using System.ComponentModel;
 
 namespace UnchainedLauncher.Core.Extensions {
@@ -29,8 +30,6 @@ namespace UnchainedLauncher.Core.Extensions {
                 return default(Unit);
             }).ToEither();
         }
-
-
 
         public static EitherAsync<L, R> Tap<L, R>(this EitherAsync<L, R> either, Action<R> f) {
             return either.Map(r => {

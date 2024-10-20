@@ -83,7 +83,7 @@ namespace UnchainedLauncher.GUI.ViewModels
                                     downloadFailure => downloadFailure.Match(
                                         modPakStreamAcquisitionFailure => $"Failed to download mod file '{modPakStreamAcquisitionFailure.Target.FileName}' @{modPakStreamAcquisitionFailure.Target.ReleaseTag} from {modPakStreamAcquisitionFailure.Target.Org}/{modPakStreamAcquisitionFailure.Target.RepoName}. Reason: ${modPakStreamAcquisitionFailure.Error.Message}",
                                         hashFailure => $"Failed to hash mod file '{hashFailure.FilePath}'. Reason: " + hashFailure.Error.Message,
-                                        hashMismatchFailure => $"Failed to validate mod hash. Expected '{hashMismatchFailure.Release.ReleaseHash}' Got '{hashMismatchFailure.InvalidHash}'",
+                                        hashMismatchFailure => $"Failed to validate mod hash. Expected '{hashMismatchFailure.Release.ReleaseHash}' Got '{hashMismatchFailure.InvalidHash.IfNone(() => "NULL")}'",
                                         modNotFoundFailure => $"Failed to download mod file. Mod release '{modNotFoundFailure.Release.PakFileName}' @{modNotFoundFailure.Release.Tag} from {modNotFoundFailure.Release.Manifest.RepoUrl} not found.",
                                         writeFailure => $"Failed to write mod to path '{writeFailure.Path}'. Reason: {writeFailure.Failure.Message}",
                                         alreadyDownloadedFailure => $"Mod already downloaded. Mod release '{alreadyDownloadedFailure.Release.PakFileName}' @{alreadyDownloadedFailure.Release.Tag} from {alreadyDownloadedFailure.Release.Manifest.RepoUrl}."

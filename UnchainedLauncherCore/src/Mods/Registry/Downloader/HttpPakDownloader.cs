@@ -15,13 +15,18 @@ namespace UnchainedLauncher.Core.Mods.Registry.Resolver
             GetDownloadURL = getDownloadUrl;
         }
 
-        public EitherAsync<ModPakStreamAcquisitionFailure, Stream> ModPakStream(PakTarget target)
+        public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(PakTarget target)
         {
             var url = GetDownloadURL(target);
+            var length = HttpHelpers.GetContentLengthAsync(url);
             var streamDownloadTask = HttpHelpers.GetByteContentsAsync(url).Task;
-            return Prelude.TryAsync(streamDownloadTask)
-                .ToEither()
-                .MapLeft(e => new ModPakStreamAcquisitionFailure(target, Error.New($"Failed to fetch pak from {url}.", e)));
+            return
+                Prelude.TryAsync(length)
+                    .Bind(length => Prelude.TryAsync(streamDownloadTask)
+                        .Map(stream => new SizedStream(stream, length))
+                    )
+                    .ToEither()
+                    .MapLeft(e => new ModPakStreamAcquisitionFailure(target, Error.New($"Failed to fetch pak from {url}.", e)));
         }
     }
 }

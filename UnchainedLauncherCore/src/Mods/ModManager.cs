@@ -202,11 +202,14 @@ namespace UnchainedLauncher.Core.Mods
 
             EitherAsync<DownloadModFailure, FileWriter> prepareDownload(IModRegistry registry) {
                 logger.Info($"Downloading {release.Manifest.Name} {release.Tag} to {FilePaths.PakDir}/{release.PakFileName}");
+
+                // If the file already exists and has the correct hash, return early with an "AlreadyDownloaded" error
+                // Otherwise, prepare a FileWriter to download the pak file
                 return
                     FileHelpers
                         .Sha512Async(outputPath)
                         .MapLeft(DownloadModFailure.Wrap)
-                        .Map(hash => hash == release.ReleaseHash)
+                        .Map(hash => hash.Contains(release.ReleaseHash)) // If the hash is correct already, return true. We already have this file.
                         .Bind(isHashCorrect =>
                             isHashCorrect
                                 ? EitherAsync<DownloadModFailure, FileWriter>.Left(DownloadModFailure.AlreadyDownloaded(release))
@@ -220,7 +223,7 @@ namespace UnchainedLauncher.Core.Mods
                     .MapLeft(err => DownloadModFailure.WriteFailed(fileWriter.FilePath, err))
                     .Bind(_ => FileHelpers.Sha512Async(fileWriter.FilePath).MapLeft(DownloadModFailure.Wrap))
                     .Bind(hash =>
-                        (hash == release.ReleaseHash).ToEither(
+                        (hash.Contains(release.ReleaseHash)).ToEither(
                             True: () => default(Unit),
                             False: () => DownloadModFailure.HashMismatch(release, hash)
                         ).ToAsync()
@@ -257,10 +260,17 @@ namespace UnchainedLauncher.Core.Mods
             return maybeResult
                 .ToEitherAsync(() => DownloadModFailure.ModNotFound(release))
                 .Bind(prepareDownload)
-                .BindTap(completeDownload)
+                .Bind(completeDownload)
+                .BindLeft(error => {
+                    // If the download failed because the file was already downloaded, discard the failure
+                    if(error is DownloadModFailure.AlreadyDownloadedFailure)
+                        return EitherAsync<DownloadModFailure, Unit>.Right(default);
+
+                    return EitherAsync<DownloadModFailure, Unit>.Left(error);
+                })
                 .Tap(_ => logger.InfoUnit($"Successfully downloaded mod release {release.Manifest.Name} {release.Tag}"))
                 .Bind(_ => saveEnabledReleaseMetadata())
-                .Map(_ => logger.InfoUnit($"Successfully enabled mod release {release.Manifest.Name} {release.Tag}"));
+                .Tap(_ => logger.InfoUnit($"Successfully enabled mod release {release.Manifest.Name} {release.Tag}"));
         }
 
         private Option<IModRegistry> GetRegistryForRelease(Release release) {

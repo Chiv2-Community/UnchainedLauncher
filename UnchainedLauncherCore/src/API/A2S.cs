@@ -3,7 +3,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Buffers.Binary;
 using log4net;
-using LanguageExt.TypeClasses;
 
 namespace UnchainedLauncher.Core.API
 {

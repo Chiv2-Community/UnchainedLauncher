@@ -17,7 +17,7 @@ namespace UnchainedLauncher.Core.Mods.Registry.Resolver
             PakReleasesDir = pakReleasesDir;
         }
 
-        public EitherAsync<ModPakStreamAcquisitionFailure, Stream> ModPakStream(PakTarget target)
+        public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(PakTarget target)
         {
             // Paks will be found in PakReleasesDir/org/repoName/releaseTag/fileName
             var path = Path.Combine(PakReleasesDir, target.Org, target.RepoName, target.ReleaseTag, target.FileName);
@@ -25,7 +25,7 @@ namespace UnchainedLauncher.Core.Mods.Registry.Resolver
             if (!File.Exists(path))
                 return 
                     Prelude
-                        .LeftAsync<ModPakStreamAcquisitionFailure, Stream>(
+                        .LeftAsync<ModPakStreamAcquisitionFailure, SizedStream>(
                             new ModPakStreamAcquisitionFailure(
                                 target, 
                                 Error.New($"Failed to fetch pak. File not found: {path}")
@@ -34,7 +34,8 @@ namespace UnchainedLauncher.Core.Mods.Registry.Resolver
 
             return 
                 Prelude
-                    .TryAsync(Task.Run(() => (Stream)File.OpenRead(path)))
+                    .TryAsync(Task.Run(() => File.OpenRead(path)))
+                    .Map(stream => new SizedStream((Stream)stream, stream.Length))
                     .ToEither()
                     .MapLeft(e => 
                         new ModPakStreamAcquisitionFailure(

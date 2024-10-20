@@ -64,7 +64,7 @@ namespace UnchainedLauncher.Core.Mods.Registry
             return 
                 ModRegistryDownloader
                     .ModPakStream(coordinates)
-                    .Map(stream => new FileWriter(outputLocation, stream));
+                    .Map(stream => new FileWriter(outputLocation, stream.Stream, stream.Size));
         }
         public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(string org, string repoName, string fileName, string releaseTag, string outputLocation) {
             return DownloadPak(new PakTarget(org, repoName, fileName, releaseTag), outputLocation);

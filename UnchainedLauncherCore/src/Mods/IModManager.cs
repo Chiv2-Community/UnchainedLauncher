@@ -102,7 +102,7 @@ namespace UnchainedLauncher.Core.Mods {
         private DownloadModFailure() { }
         public record ModPakStreamAcquisitionFailureWrapper(ModPakStreamAcquisitionFailure Failure) : DownloadModFailure;
         public record HashFailureWrapper(HashFailure Failure) : DownloadModFailure;
-        public record HashMismatchFailure(Release Release, string? InvalidHash) : DownloadModFailure;
+        public record HashMismatchFailure(Release Release, Option<string> InvalidHash) : DownloadModFailure;
         public record ModNotFoundFailure(Release Release) : DownloadModFailure;
         public record WriteFailure(string Path, Error Failure) : DownloadModFailure;
         public record AlreadyDownloadedFailure(Release Release) : DownloadModFailure;
@@ -111,7 +111,7 @@ namespace UnchainedLauncher.Core.Mods {
         public static DownloadModFailure Wrap(ModPakStreamAcquisitionFailure failure) => new ModPakStreamAcquisitionFailureWrapper(failure).Widen;
         public static DownloadModFailure Wrap(HashFailure failure) => new HashFailureWrapper(failure).Widen;
 
-        public static DownloadModFailure HashMismatch(Release release, string? invalidHash) => new HashMismatchFailure(release, invalidHash).Widen;
+        public static DownloadModFailure HashMismatch(Release release, Option<string> invalidHash) => new HashMismatchFailure(release, invalidHash).Widen;
         public static DownloadModFailure ModNotFound(Release release) => new ModNotFoundFailure(release).Widen;
         public static DownloadModFailure WriteFailed(string path, Error failure) => new WriteFailure(path, failure);
         public static DownloadModFailure AlreadyDownloaded(Release release) => new AlreadyDownloadedFailure(release);
@@ -132,7 +132,6 @@ namespace UnchainedLauncher.Core.Mods {
             AlreadyDownloadedFailure alreadyDownloaded => AlreadyDownloadedFailure(alreadyDownloaded),
             _ => throw new Exception("Unreachable")
         };
-
     }
 
     /// <summary>

@@ -80,17 +80,25 @@ namespace UnchainedLauncher.Core.Utilities {
               .MapLeft(error => new HashFailure(filePath, error));
         }
 
-        public static EitherAsync<HashFailure, string> Sha512Async(string filePath) {
-            using var sha512 = System.Security.Cryptography.SHA512.Create();
+        
+        /// <summary>
+        /// Asynchronously computes the SHA-512 hash of a file.
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <returns>An Either representing a failure on the left, or a hash on the right.  If Right(None), then the file does not exist.</returns>
+        public static EitherAsync<HashFailure, Option<string>> Sha512Async(string filePath) {
 
             if (!File.Exists(filePath))
-                return new HashFailure(filePath, new FileNotFoundException($"File {filePath} not found"));
+                return Prelude.RightAsync<HashFailure, Option<string>>(Prelude.None);
 
             return
                 Prelude
                     .TryAsync(() => File.ReadAllBytesAsync(filePath))
                     .ToEither()
-                    .Map(bytes => BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant())
+                    .Map(bytes => {
+                        using var sha512 = System.Security.Cryptography.SHA512.Create();
+                        return Prelude.Some(BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant());
+                    })
                     .MapLeft(error => new HashFailure(filePath, error));
         }
     }
@@ -99,37 +107,45 @@ namespace UnchainedLauncher.Core.Utilities {
 
 
     public class FileWriter {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(FileWriter));
+
         public string FilePath { get; }
         public Stream InputStream { get; }
+        public long Size { get; }
 
-        public FileWriter(string filePath, Stream inputStream) {
+        public FileWriter(string filePath, Stream inputStream, long size) {
             FilePath = filePath;
             InputStream = inputStream;
+            Size = size;
         }
 
         public EitherAsync<Error, Unit> WriteAsync(Option<IProgress<double>> progress, CancellationToken cancellationToken) {
             return Prelude.TryAsync(
                 async () => {
                     // Ensure the input stream is readable
-                    if (!InputStream.CanRead)
+                    if (!InputStream.CanRead) {
+                        logger.Error($"The input stream for file '{FilePath}' is not readable.");
                         throw new ArgumentException("The input stream is not readable.", nameof(InputStream));
+                    }
 
                     // Create or overwrite the target file
                     using (var outputStream = new FileStream(FilePath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true)) {
-                        var totalBytes = InputStream.Length; // Total bytes to read (if the input stream supports seeking)
+                        logger.Debug($"Writing file '{FilePath}' from input stream.");
                         var totalBytesWritten = 0L; // Total bytes written to the file
-                        var buffer = new byte[8192]; // Buffer to hold data from input stream
+                        var buffer = new byte[8 * 1024 * 1024]; // Buffer to hold data from input stream
                         int bytesRead;
 
                         // While there's data to read from the input stream, read and write asynchronously
                         var memory = new Memory<byte>(buffer);
                         while ((bytesRead = await InputStream.ReadAsync(memory, cancellationToken)) > 0) {
-                            await outputStream.WriteAsync(memory, cancellationToken);
+                            // Write only the portion of the buffer that was read
+                            await outputStream.WriteAsync(memory.Slice(0, bytesRead), cancellationToken);
 
                             totalBytesWritten += bytesRead;
-                            var percentage = (double)totalBytesWritten / totalBytes * 100;
-                            progress.IfSome(p => p.Report(percentage));
+                            var percentage = (double)totalBytesWritten / Size * 100;
 
+                            progress.IfSome(p => p.Report(percentage));
+                            logger.Debug($"Wrote {totalBytesWritten} bytes to file '{FilePath}'. Progress: {percentage}%");
                         }
                     }
 
@@ -137,6 +153,8 @@ namespace UnchainedLauncher.Core.Utilities {
                 })
                 .ToEither();
         }
+
+
 
     }
 }

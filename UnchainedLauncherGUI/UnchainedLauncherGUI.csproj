@@ -34,7 +34,9 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources\DefaultMaps.txt" />
-    <EmbeddedResource Include="Resources\log4net.config" />
+    <EmbeddedResource Include="Resources\log4net.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="LanguageExt.Core" Version="4.4.9" />

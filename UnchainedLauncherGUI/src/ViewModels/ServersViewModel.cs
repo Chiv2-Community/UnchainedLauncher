@@ -48,6 +48,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             SettingsViewModel = settings;
 
             ServerBrowserBackendInitializer = createServerBrowserBackend ?? DefaultServerBrowserInitializer;
+            CurrentBackend = ServerBrowserBackendInitializer(SettingsViewModel.ServerBrowserBackend);
         }
 
         public void ShutdownAllServers(object? sender, EventArgs e)

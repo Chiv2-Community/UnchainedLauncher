@@ -62,7 +62,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                 launchResult.Match(
                     Left: error => {
-                        MessageBox.Show("Failed to launch Chivalry 2 Unchained. Check the logs for details.");
+                        MessageBox.Show("Failed to launch Chivalry 2. Check the logs for details.");
                         CanClick = true;
                     },
                     Right: process => {
@@ -124,44 +124,35 @@ namespace UnchainedLauncher.GUI.ViewModels {
                                     }
                                 }).Start();
 
-                                // look upon this next code and weep, for this is my offering to
-                                // the flying spaghetti monster. this is the only point where
-                                // everything I need in order to do this is available.
+                                serverOpts.IfSome( serverOpts => {
+                                    PublicPorts ports = new(
+                                        serverOpts.GamePort,
+                                        serverOpts.BeaconPort,
+                                        serverOpts.QueryPort
+                                    );
+                                    C2ServerInfo serverInfo = new() {
+                                        Ports = ports,
+                                        Name = serverOpts.Name,
+                                        Description = serverOpts.Description,
+                                        PasswordProtected = serverOpts.Password.IsSome,
+                                        Mods = ModManager.EnabledModReleases.Select(release =>
+                                            new ServerBrowserMod(
+                                                release.Manifest.Name,
+                                                release.Version.ToString(),
+                                                release.Manifest.Organization
+                                            )
+                                        ).ToArray()
+                                    };
 
-                                // if this is a server launch, add it to the servers list page
-
-                                // mega TOCTOU violations incurred by the
-                                // nullability/optionality of serverOpts::GamePort,PingPort,etc
-                                // and general spaghetti.
-                                // Electing to fail hard here rather than make the error
-                                // rarer/harder to find by delegating the problem code
-                                // to a default
-                                PublicPorts ports = new(
-                                    Window.ServerSettingsViewModel.GamePort,
-                                    Window.ServerSettingsViewModel.PingPort,
-                                    Window.ServerSettingsViewModel.A2sPort
-                                );
-                                C2ServerInfo serverInfo = new() {
-                                    Ports = ports,
-                                    Name = Window.ServerSettingsViewModel.ServerName,
-                                    Description = Window.ServerSettingsViewModel.ServerDescription,
-                                    PasswordProtected = Window.ServerSettingsViewModel.ServerPassword.Length == 0,
-                                    Mods = ModManager.EnabledModReleases.Select(release =>
-                                        new ServerBrowserMod(
-                                            release.Manifest.Name,
-                                            release.Version.ToString(),
-                                            release.Manifest.Organization
-                                        )
-                                    ).ToArray()
-                                };
-
-                                Window.ServersViewModel.RegisterServer("127.0.0.1", ports, Window.ServerSettingsViewModel.RconPort, serverInfo, process);
+                                    Window.ServersViewModel.RegisterServer("127.0.0.1", ports, serverOpts.RconPort, serverInfo, process);
+                                });
                             }
                         );
                     }
                 );
-            } catch (Exception) {
+            } catch (Exception e) {
                 MessageBox.Show("Failed to launch Chivalry 2 Unchained. Check the logs for details.");
+                logger.Error("Failed to launch.", e);
                 return;
             } finally {
                 CanClick = true;

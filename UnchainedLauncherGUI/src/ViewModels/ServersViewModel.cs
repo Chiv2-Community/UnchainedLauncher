@@ -78,7 +78,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             return serverVm;
         }
 
-        private static Func<string, IServerBrowser> DefaultServerBrowserInitializer => (host) => new ServerBrowser(new Uri(host), new HttpClient());
+        private static Func<string, IServerBrowser> DefaultServerBrowserInitializer => (host) => new ServerBrowser(new Uri(host + "/api/v1"), new HttpClient());
         private static Func<string, int, A2S> DefaultA2SConnectionInitializer => (host, port) => new A2S(new IPEndPoint(IPAddress.Parse(host), port));
     }
 
@@ -109,30 +109,28 @@ namespace UnchainedLauncher.GUI.ViewModels
             this.RconHistory = "";
             this.ServerProcess = serverProcess;
             this.RconEndPoint = new IPEndPoint(LocalHost, RconPort);
-            SubmitRconCommand = new RelayCommand(SubmitCommand);
+            SubmitRconCommand = new AsyncRelayCommand(SubmitCommand);
         }
 
-        public async void SubmitCommand()
+        public async Task SubmitCommand()
         {
-            if (CurrentRconCommand == "")
-            {
+            var command = CurrentRconCommand;
+            CurrentRconCommand = "";
+            await SendCommand(command);
+        }
+
+        public async Task SendCommand(string command) {
+            if (command == "") {
                 return;
             }
-
-            try
-            {
-                string commandToSend = this.CurrentRconCommand;
-                CurrentRconCommand = "";
-                if (!Server.IsA2SOk)
-                {
+            try {
+                if (!Server.IsA2SOk) {
                     RconHistory += $"INF: Command will be sent when A2S is good\n";
                     await Server.WhenA2SOk();
                 }
-                await RCON.SendCommandTo(RconEndPoint, commandToSend);
-                RconHistory += $"{commandToSend}\n";
-            }
-            catch(Exception e)
-            {
+                await RCON.SendCommandTo(RconEndPoint, command);
+                RconHistory += $"{command}\n";
+            } catch (Exception e) {
                 RconHistory += $"ERR: {e.Message}\n";
             }
         }

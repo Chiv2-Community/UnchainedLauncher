@@ -62,6 +62,9 @@ namespace UnchainedLauncher.Core.Processes
                         logger.Error("Chivalry 2 Stderr: " + e.Data);
                     }
                 };
+
+                proc.BeginErrorReadLine();
+                proc.BeginOutputReadLine();
             } catch (Exception e) {
                 return Prelude.Left(ProcessLaunchFailure.LaunchFailed(proc.StartInfo.FileName, proc.StartInfo.Arguments, e));
             }

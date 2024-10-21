@@ -42,6 +42,7 @@ namespace UnchainedLauncher.Core.API
     }
     public class A2S : IA2S
     {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(A2S));
         protected readonly IPEndPoint ep;
         protected readonly int TimeOutMillis;
         public A2S(IPEndPoint ep, int TimeOutMillis = 1000)
@@ -75,6 +76,7 @@ namespace UnchainedLauncher.Core.API
         public async Task<A2sInfo> InfoAsync()
         {
             UdpReceiveResult response = await DoInfoRequest();
+            logger.Debug($"Received {ByteArrayToHexString(response.Buffer)} bytes from {ep}");
             BinaryReader br = new(new MemoryStream(response.Buffer), Encoding.UTF8);
             // ensure header is correct
             if (!br.ReadBytes(5).SequenceEqual(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x49 }))
@@ -111,6 +113,18 @@ namespace UnchainedLauncher.Core.API
                 n = reader.ReadChar();
             }
             return sb.ToString();
+        }
+
+        private static string ByteArrayToHexString(byte[] byteArray) {
+            // Create a new string array to hold the hexadecimal representations
+            string[] hexArray = new string[byteArray.Length];
+
+            // Convert each byte to a two-character hexadecimal string
+            for (int i = 0; i < byteArray.Length; i++) {
+                hexArray[i] = byteArray[i].ToString("X2"); // X2 formats as two uppercase hex digits
+            }
+
+            return hexArray.Aggregate((carry, newString) => carry + " " + newString);
         }
     }
 }

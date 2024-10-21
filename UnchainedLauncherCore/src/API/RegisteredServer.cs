@@ -30,7 +30,7 @@ namespace UnchainedLauncher.Core.API
         private bool disposed;
         //TODO: make these all properties.
         //WPF can only bind properties
-        public C2ServerInfo serverInfo { get; private set; }
+        public C2ServerInfo ServerInfo { get; private set; }
         public readonly int updateIntervalMillis;
         public readonly string localIp;
         public readonly IServerBrowser backend;
@@ -95,7 +95,7 @@ namespace UnchainedLauncher.Core.API
             int updateIntervalMillis = 1000
             )
         {
-            this.serverInfo = serverInfo;
+            this.ServerInfo = serverInfo;
             this.updateIntervalMillis = updateIntervalMillis;
             this.localIp = localIp;
             this.shutDownSource = new();
@@ -132,36 +132,41 @@ namespace UnchainedLauncher.Core.API
         private async Task MaintainRegistration(CancellationToken token)
         {
             A2sInfo a2sRes = await GetServerState(token);
-            var res = await backend.RegisterServerAsync(localIp, new(serverInfo, a2sRes));
-            logger.Info($"Server '{this.serverInfo.Name}' registered with backend.");
+            var res = await backend.RegisterServerAsync(localIp, new(ServerInfo, a2sRes));
+            logger.Info($"Server '{this.ServerInfo.Name}' registered with backend.");
             this.IsRegistrationOk = true;
             double refreshBefore = res.RefreshBefore;
             RemoteInfo = res.Server;
-            Task updateDelay = Task.Delay(updateIntervalMillis, token);
-            while (true)
-            {
-                double secondsUntilExpiry = refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds();
-                // do a heartbeat with half the time remaining
-                int heartBeatAfterSeconds = (int)Math.Ceiling(secondsUntilExpiry/2);
-                Task heartBeatDelay = Task.Delay(1000 * heartBeatAfterSeconds, token);
-                var fin = await Task.WhenAny(heartBeatDelay, updateDelay, token.WhenCanceled());
+
+            var heartBeatDelay = Task.Delay(TimeSpan.FromSeconds(res.RefreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5), token);
+            var updateDelay = Task.Delay(TimeSpan.FromMilliseconds(updateIntervalMillis), token);
+
+            while (true) {
+                // Wait for the first task to complete (heartbeat, update, or cancellation)
+                var completedTask = await Task.WhenAny(heartBeatDelay, updateDelay, token.WhenCanceled());
+
+                // Check for cancellation before proceeding
                 token.ThrowIfCancellationRequested();
-                if(fin == heartBeatDelay)
-                {
-                    logger.Info($"Server '{this.serverInfo.Name}' doing heartbeat.");
+
+                // Handle the completed task
+                if (completedTask == heartBeatDelay) {
+                    logger.Info($"Server '{this.ServerInfo.Name}' doing heartbeat.");
                     refreshBefore = await backend.HeartbeatAsync(RemoteInfo);
-                }
-                else if(fin == updateDelay)
-                {
-                    if(RemoteInfo.Update(await GetServerState(token)))
-                    {
-                        logger.Info($"Server '{this.serverInfo.Name}' updating the backend with new state.");
+                    heartBeatDelay = Task.Delay(TimeSpan.FromSeconds(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5), token);
+                } else if (completedTask == updateDelay) {
+                    // If the server state has changed, update the backend
+                    if (RemoteInfo.Update(await GetServerState(token))) {
+                        logger.Info($"Server '{this.ServerInfo.Name}' updating the backend with new state.");
                         refreshBefore = await backend.UpdateServerAsync(RemoteInfo);
                     }
-                    updateDelay = Task.Delay(updateIntervalMillis, token);
+                    updateDelay = Task.Delay(TimeSpan.FromMilliseconds(updateIntervalMillis), token);
+                } else {
+                    break; // Cancellation requested
                 }
             }
+
         }
+
         private async void Run(CancellationToken token)
         {
             while (true)
@@ -173,15 +178,17 @@ namespace UnchainedLauncher.Core.API
                 catch (HttpRequestException e) //if something goes wrong and the registration dies
                 {
                     this.LastHttpException = e;
-                    if (e.StatusCode != HttpStatusCode.NotFound)
+                    if (e.StatusCode == HttpStatusCode.NotFound)
                     {
-                        logger.Error($"Server '{this.serverInfo.Name}' got HTTP 404. Probably a missed heartbeat.", e);
+                        logger.Error($"Server '{this.ServerInfo.Name}' got HTTP 404. Probably a missed heartbeat.", e);
                         break;
+                    } else {
+                        logger.Error($"Server '{this.ServerInfo.Name}' got status code {e.StatusCode} during registration loop.", e);
                     }
                 }
                 catch (TimeoutException e)
                 {
-                    logger.Error($"Server '{this.serverInfo.Name}' timed out.", e);
+                    logger.Error($"Server '{this.ServerInfo.Name}' timed out.", e);
                     this.LastHttpException = e;
                 }
                 catch (OperationCanceledException) //propagate cancellation
@@ -196,7 +203,7 @@ namespace UnchainedLauncher.Core.API
                             await backend.DeleteServerAsync(RemoteInfo);
                         }
                         catch(Exception e) {
-                            logger.Error($"Server '{this.serverInfo.Name}' failed to delete itself on backend.", e);
+                            logger.Error($"Server '{this.ServerInfo.Name}' failed to delete itself on backend.", e);
                         }
                     }
                     break;
@@ -205,27 +212,39 @@ namespace UnchainedLauncher.Core.API
                 {
                     this.IsRegistrationOk = false;
                     this.IsA2SOk = false;
+                    await Task.Delay(updateIntervalMillis);
                 }
             }
         }
 
         private async Task<A2sInfo> GetServerState(CancellationToken token)
         {
+            var repeatErrorCount = 0;
             while (true)
             {
                 token.ThrowIfCancellationRequested();
                 try
                 {
-                    logger.Debug($"Server '{this.serverInfo.Name}' is requesting the A2S state");
+                    logger.Debug($"Server '{this.ServerInfo.Name}' is requesting the A2S state");
                     var res = await A2sEndpoint.InfoAsync();
+                    logger.Debug($"Server '{this.ServerInfo.Name}' got A2S state. {res}");
                     IsA2SOk = true;
                     return res;
                 }
                 catch (Exception e)
                 {
                     IsA2SOk = false;
+                    if(e.GetType() != LastException?.GetType() || e.Message != LastException?.Message) {
+                        logger.Error($"Server '{this.ServerInfo.Name}' failed to get A2S state.", e);
+                    } else if(repeatErrorCount < 10){
+                        logger.Debug($"A2S state request failed, but the error was the same as the last one. ({repeatErrorCount})", e);
+                        repeatErrorCount++;
+                    } else if (repeatErrorCount == 10) {
+                        logger.Debug($"A2S state request failed, but the error was the same as the last one. ({repeatErrorCount}). Supressing logs until something changes.");
+                        repeatErrorCount++;
+                    }
                     LastException = e;
-                    await Task.Delay(500, token); // try not to spam the network
+                    await Task.Delay(updateIntervalMillis, token); // try not to spam the network
                 }
             }
         }

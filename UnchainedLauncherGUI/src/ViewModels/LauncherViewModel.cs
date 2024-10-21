@@ -116,10 +116,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                                     if (process.ExitCode != 0) {
                                         logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
-                                        logger.Info(process.StandardOutput.ReadToEnd().ToList());
-                                        logger.Error(process.StandardError.ReadToEnd().ToList());
-
-
                                         MessageBox.Show($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
                                     }
                                 }).Start();

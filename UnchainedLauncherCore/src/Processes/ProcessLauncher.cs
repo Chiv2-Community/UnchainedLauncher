@@ -1,5 +1,6 @@
 ﻿using LanguageExt;
 using log4net;
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using UnchainedLauncher.Core.Extensions;
@@ -40,11 +41,27 @@ namespace UnchainedLauncher.Core.Processes
                     FileName = ExecutableLocation,
                     Arguments = args,
                     WorkingDirectory = Path.GetFullPath(WorkingDirectory),
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true
                 }
             };
             // Execute the process
             try {
                 proc.Start();
+                proc.OutputDataReceived += (sender, e) =>
+                {
+                    if (e.Data != null) // Null data signals end of stream
+                    {
+                        logger.Info("Chivalry 2 Stdout: " + e.Data);
+                    }
+                };
+
+                proc.ErrorDataReceived += (sender, e) =>
+                {
+                    if (e.Data != null) {
+                        logger.Error("Chivalry 2 Stderr: " + e.Data);
+                    }
+                };
             } catch (Exception e) {
                 return Prelude.Left(ProcessLaunchFailure.LaunchFailed(proc.StartInfo.FileName, proc.StartInfo.Arguments, e));
             }

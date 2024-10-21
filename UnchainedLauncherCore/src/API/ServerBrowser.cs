@@ -10,7 +10,7 @@ namespace UnchainedLauncher.Core.API
         int A2s
     );
 
-    public record ServerBrowserMod(string Name, string organization, string version);
+    public record ServerBrowserMod(string Name, string Organization, string Version);
 
     [AddINotifyPropertyChangedInterface]
     public record C2ServerInfo {
@@ -230,7 +230,7 @@ namespace UnchainedLauncher.Core.API
         }
 
         public void Dispose() {
-
+            GC.SuppressFinalize(this);
         }
     }
 }

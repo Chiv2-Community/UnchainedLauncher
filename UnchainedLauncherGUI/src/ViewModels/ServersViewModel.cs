@@ -70,10 +70,10 @@ namespace UnchainedLauncher.GUI.ViewModels
             Servers.Remove(toKill);
         }
 
-        public ServerViewModel RegisterServer(string serverIp, PublicPorts ports, int rconPort, C2ServerInfo serverInfo, Process serverProcess) {
-            var a2s = DefaultA2SConnectionInitializer(serverIp, ports.A2s);
+        public ServerViewModel RegisterServer(string serverIp, int rconPort, C2ServerInfo serverInfo, Process serverProcess) {
+            var a2s = DefaultA2SConnectionInitializer(serverIp, serverInfo.Ports.A2s);
             var server = new RegisteredServer(Backend, a2s, serverInfo, serverIp);
-            var serverVm = new ServerViewModel(Window, server, serverProcess, rconPort);
+            var serverVm = new ServerViewModel(server, serverProcess, rconPort);
             Servers.Add(serverVm);
             return serverVm;
         }
@@ -102,7 +102,7 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         private bool disposed = false;
 
-        public ServerViewModel(Window window, RegisteredServer server, Process serverProcess, int rconPort)
+        public ServerViewModel(RegisteredServer server, Process serverProcess, int rconPort)
         {
             this.Server = server;
             this.RconPort = rconPort;

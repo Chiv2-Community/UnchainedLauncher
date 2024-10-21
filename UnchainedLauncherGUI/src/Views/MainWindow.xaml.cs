@@ -164,12 +164,12 @@ namespace UnchainedLauncher.GUI
                     else if (Path.Equals(curDir, steamDir))
                         this.SettingsViewModel.InstallationType = InstallationType.Steam;
                 }
+                this.ServersViewModel = new ServersViewModel(this, this.SettingsViewModel, null);
 
                 this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, ModManager, chiv2Launcher);
-                this.ServerSettingsViewModel = ServerLauncherViewModel.LoadSettings(LauncherViewModel, SettingsViewModel, ModManager);
+                this.ServerSettingsViewModel = ServerLauncherViewModel.LoadSettings(LauncherViewModel, SettingsViewModel, ServersViewModel, ModManager);
 
                 this.ModManagerViewModel = new ModListViewModel(ModManager);
-                this.ServersViewModel = new ServersViewModel(this, this.SettingsViewModel, null);
 
                 this.ServersTab.DataContext = this.ServersViewModel;
                 this.SettingsTab.DataContext = this.SettingsViewModel;

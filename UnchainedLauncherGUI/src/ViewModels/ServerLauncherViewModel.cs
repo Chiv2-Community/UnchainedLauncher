@@ -18,6 +18,7 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core;
 using LanguageExt;
+using UnchainedLauncher.Core.API;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
@@ -39,6 +40,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public ObservableCollection<string> MapsList { get; set; }
         private LauncherViewModel LauncherViewModel { get; }
         private SettingsViewModel SettingsViewModel { get; }
+        private ServersViewModel ServersViewModel { get; }
         public ICommand LaunchServerCommand { get; }
         public ICommand LaunchServerHeadlessCommand { get; }
 
@@ -50,7 +52,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         //in the hopes of having multiple independent servers running one one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
+        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
             CanClick = true;
 
             ServerName = serverName;
@@ -68,6 +70,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             SettingsFile = settingsFile;
 
             LauncherViewModel = launcherViewModel;
+            ServersViewModel = serversViewModel;
             ModManager = modManager;
 
             LaunchServerCommand = new RelayCommand(() => RunServerLaunch(false));
@@ -107,13 +110,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
         }
 
-        public static ServerLauncherViewModel LoadSettings(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ModManager modManager) {
+        public static ServerLauncherViewModel LoadSettings(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, ModManager modManager) {
             var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
 
             return new ServerLauncherViewModel(
                 launcherViewModel,
                 settingsViewModel,
+                serversViewModel,
                 modManager,
                 loadedSettings?.ServerName ?? "Chivalry 2 server",
                 loadedSettings?.ServerDescription ?? "",
@@ -159,9 +163,31 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     RconPort
                 );
 
-                LauncherViewModel.LaunchModded(Prelude.Some(serverLaunchOptions));
+                var maybeProcess = LauncherViewModel.LaunchModded(Prelude.Some(serverLaunchOptions));
                 CanClick = LauncherViewModel.CanClick;
 
+                maybeProcess.IfSome(process => {
+                    var ports = new PublicPorts(
+                        serverLaunchOptions.GamePort,
+                        serverLaunchOptions.BeaconPort,
+                        serverLaunchOptions.QueryPort
+                    );
+                    var serverInfo = new C2ServerInfo() {
+                        Ports = ports,
+                        Name = serverLaunchOptions.Name,
+                        Description = serverLaunchOptions.Description,
+                        PasswordProtected = serverLaunchOptions.Password.IsSome,
+                        Mods = ModManager.EnabledModReleases.Select(release =>
+                            new ServerBrowserMod(
+                                release.Manifest.Name,
+                                release.Version.ToString(),
+                                release.Manifest.Organization
+                            )
+                        ).ToArray()
+                    };
+
+                    ServersViewModel.RegisterServer("127.0.0.1", serverLaunchOptions.RconPort, serverInfo, process);
+                });
             } catch (Exception ex) {
                 MessageBox.Show("Failed to launch. Check the logs for details.");
                 logger.Error("Failed to launch.", ex);

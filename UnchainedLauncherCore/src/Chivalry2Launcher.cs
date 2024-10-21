@@ -128,8 +128,9 @@ namespace UnchainedLauncher.Core {
         Option<string> SavedDirSuffix
     ) {
         public IEnumerable<string> ToCLIArgs() {
-            var args = new List<string>();
-            args.Add($"--server-browser-backend {ServerBrowserBackend}");
+            var args = new List<string> {
+                $"--server-browser-backend {ServerBrowserBackend}"
+            };
             EnabledMods.IfSome(mods => args.AddRange(mods.Select(mod => $"--mod {mod.Manifest.RepoUrl}")));
             SavedDirSuffix.IfSome(suffix => args.Add($"--saved-dir-suffix {suffix}"));
             return args;

@@ -6,11 +6,6 @@ namespace UnchainedLauncher.Core.API.Tests
     public class RegisteredServerTests
     {
         private static readonly Uri backendUri = new("http://localhost:8080/api/v1");
-        private static readonly C2ServerInfo testServerC2Info = new()
-        {
-            Name = "Test server",
-            Description = "Test description"
-        };
 
         //you might want to watch this test case run using wireshark
         // requires a full setup; a real local backend server, and a real instance of chiv running

@@ -30,7 +30,7 @@ namespace UnchainedLauncher.Core.API
         private bool disposed;
         //TODO: make these all properties.
         //WPF can only bind properties
-        public C2ServerInfo serverInfo { get; private set; }
+        public C2ServerInfo ServerInfo { get; private set; }
         public readonly int updateIntervalMillis;
         public readonly string localIp;
         public readonly IServerBrowser backend;
@@ -95,7 +95,7 @@ namespace UnchainedLauncher.Core.API
             int updateIntervalMillis = 1000
             )
         {
-            this.serverInfo = serverInfo;
+            this.ServerInfo = serverInfo;
             this.updateIntervalMillis = updateIntervalMillis;
             this.localIp = localIp;
             this.shutDownSource = new();
@@ -132,8 +132,8 @@ namespace UnchainedLauncher.Core.API
         private async Task MaintainRegistration(CancellationToken token)
         {
             A2sInfo a2sRes = await GetServerState(token);
-            var res = await backend.RegisterServerAsync(localIp, new(serverInfo, a2sRes));
-            logger.Info($"Server '{this.serverInfo.Name}' registered with backend.");
+            var res = await backend.RegisterServerAsync(localIp, new(ServerInfo, a2sRes));
+            logger.Info($"Server '{this.ServerInfo.Name}' registered with backend.");
             this.IsRegistrationOk = true;
             double refreshBefore = res.RefreshBefore;
             RemoteInfo = res.Server;
@@ -148,14 +148,14 @@ namespace UnchainedLauncher.Core.API
                 token.ThrowIfCancellationRequested();
                 if(fin == heartBeatDelay)
                 {
-                    logger.Info($"Server '{this.serverInfo.Name}' doing heartbeat.");
+                    logger.Info($"Server '{this.ServerInfo.Name}' doing heartbeat.");
                     refreshBefore = await backend.HeartbeatAsync(RemoteInfo);
                 }
                 else if(fin == updateDelay)
                 {
                     if(RemoteInfo.Update(await GetServerState(token)))
                     {
-                        logger.Info($"Server '{this.serverInfo.Name}' updating the backend with new state.");
+                        logger.Info($"Server '{this.ServerInfo.Name}' updating the backend with new state.");
                         refreshBefore = await backend.UpdateServerAsync(RemoteInfo);
                     }
                     updateDelay = Task.Delay(updateIntervalMillis, token);
@@ -175,13 +175,13 @@ namespace UnchainedLauncher.Core.API
                     this.LastHttpException = e;
                     if (e.StatusCode != HttpStatusCode.NotFound)
                     {
-                        logger.Error($"Server '{this.serverInfo.Name}' got HTTP 404. Probably a missed heartbeat.", e);
+                        logger.Error($"Server '{this.ServerInfo.Name}' got HTTP 404. Probably a missed heartbeat.", e);
                         break;
                     }
                 }
                 catch (TimeoutException e)
                 {
-                    logger.Error($"Server '{this.serverInfo.Name}' timed out.", e);
+                    logger.Error($"Server '{this.ServerInfo.Name}' timed out.", e);
                     this.LastHttpException = e;
                 }
                 catch (OperationCanceledException) //propagate cancellation
@@ -196,7 +196,7 @@ namespace UnchainedLauncher.Core.API
                             await backend.DeleteServerAsync(RemoteInfo);
                         }
                         catch(Exception e) {
-                            logger.Error($"Server '{this.serverInfo.Name}' failed to delete itself on backend.", e);
+                            logger.Error($"Server '{this.ServerInfo.Name}' failed to delete itself on backend.", e);
                         }
                     }
                     break;
@@ -216,7 +216,7 @@ namespace UnchainedLauncher.Core.API
                 token.ThrowIfCancellationRequested();
                 try
                 {
-                    logger.Debug($"Server '{this.serverInfo.Name}' is requesting the A2S state");
+                    logger.Debug($"Server '{this.ServerInfo.Name}' is requesting the A2S state");
                     var res = await A2sEndpoint.InfoAsync();
                     IsA2SOk = true;
                     return res;

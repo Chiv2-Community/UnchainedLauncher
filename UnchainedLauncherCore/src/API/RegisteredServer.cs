@@ -135,7 +135,6 @@ namespace UnchainedLauncher.Core.API
             var res = await backend.RegisterServerAsync(localIp, new(ServerInfo, a2sRes));
             logger.Info($"Server '{this.ServerInfo.Name}' registered with backend.");
             this.IsRegistrationOk = true;
-            double refreshBefore = res.RefreshBefore;
             RemoteInfo = res.Server;
 
             var heartBeatDelay = Task.Delay(TimeSpan.FromSeconds(res.RefreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5), token);
@@ -151,13 +150,13 @@ namespace UnchainedLauncher.Core.API
                 // Handle the completed task
                 if (completedTask == heartBeatDelay) {
                     logger.Info($"Server '{this.ServerInfo.Name}' doing heartbeat.");
-                    refreshBefore = await backend.HeartbeatAsync(RemoteInfo);
+                    var refreshBefore = await backend.HeartbeatAsync(RemoteInfo);
                     heartBeatDelay = Task.Delay(TimeSpan.FromSeconds(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5), token);
                 } else if (completedTask == updateDelay) {
                     // If the server state has changed, update the backend
                     if (RemoteInfo.Update(await GetServerState(token))) {
                         logger.Info($"Server '{this.ServerInfo.Name}' updating the backend with new state.");
-                        refreshBefore = await backend.UpdateServerAsync(RemoteInfo);
+                        await backend.UpdateServerAsync(RemoteInfo);
                     }
                     updateDelay = Task.Delay(TimeSpan.FromMilliseconds(updateIntervalMillis), token);
                 } else {

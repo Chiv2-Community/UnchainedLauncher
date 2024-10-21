@@ -18,12 +18,11 @@ using UnchainedLauncher.Core.API;
 namespace UnchainedLauncher.GUI.ViewModels
 {
     [AddINotifyPropertyChangedInterface]
-    public class ServersViewModel
+    public class ServersViewModel : IDisposable
     {
         public ObservableCollection<ServerViewModel> Servers { get; set; }
         public SettingsViewModel SettingsViewModel { get; set; }
         public int Index { get; set; }
-        private readonly Window Window;
         public ICommand ShutdownCurrentTabCommand { get; private set; }
 
         private IServerBrowser CurrentBackend { get; set; }
@@ -39,11 +38,9 @@ namespace UnchainedLauncher.GUI.ViewModels
             return CurrentBackend;
         }}
 
-        public ServersViewModel(Window window, SettingsViewModel settings, Func<string, IServerBrowser>? createServerBrowserBackend)
+        public ServersViewModel(SettingsViewModel settings, Func<string, IServerBrowser>? createServerBrowserBackend)
         {
             ShutdownCurrentTabCommand = new RelayCommand(ShutdownCurrentTab);
-            this.Window = window;
-            window.Closed += ShutdownAllServers;
             Servers = new ObservableCollection<ServerViewModel>();
             SettingsViewModel = settings;
 
@@ -53,11 +50,7 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public void ShutdownAllServers(object? sender, EventArgs e)
         {
-            foreach(ServerViewModel s in Servers)
-            {
-                s.Dispose();
-            }
-            Servers.Clear();
+            Dispose();
         }
 
         public void ShutdownCurrentTab()
@@ -76,6 +69,16 @@ namespace UnchainedLauncher.GUI.ViewModels
             var serverVm = new ServerViewModel(server, serverProcess, rconPort);
             Servers.Add(serverVm);
             return serverVm;
+        }
+
+        public void Dispose() {
+            foreach (ServerViewModel s in Servers) {
+                s.Dispose();
+            }
+            Servers.Clear();
+
+            // backend is initialized by this class, so it should be disposed here.
+            CurrentBackend.Dispose();
         }
 
         private static Func<string, IServerBrowser> DefaultServerBrowserInitializer => (host) => new ServerBrowser(new Uri(host + "/api/v1"), new HttpClient());

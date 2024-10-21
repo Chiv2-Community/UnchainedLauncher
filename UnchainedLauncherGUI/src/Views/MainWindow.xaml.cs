@@ -13,6 +13,7 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Resolver;
+using CommunityToolkit.Mvvm.Input;
 
 namespace UnchainedLauncher.GUI
 {
@@ -164,7 +165,7 @@ namespace UnchainedLauncher.GUI
                     else if (Path.Equals(curDir, steamDir))
                         this.SettingsViewModel.InstallationType = InstallationType.Steam;
                 }
-                this.ServersViewModel = new ServersViewModel(this, this.SettingsViewModel, null);
+                this.ServersViewModel = new ServersViewModel(this.SettingsViewModel, null);
 
                 this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, ModManager, chiv2Launcher);
                 this.ServerSettingsViewModel = ServerLauncherViewModel.LoadSettings(LauncherViewModel, SettingsViewModel, ServersViewModel, ModManager);
@@ -186,10 +187,12 @@ namespace UnchainedLauncher.GUI
         }
 
         private void MainWindow_Closed(object? sender, EventArgs e) {
+            this.ServersViewModel.Dispose();
+
             if (DisableSaveSettings) return;
 
-            this.SettingsViewModel.SaveSettings();
-            this.ServerSettingsViewModel.SaveSettings();
+            this.SettingsViewModel.Dispose();
+            this.ServerSettingsViewModel.Dispose();
         }
 
         private bool modManagerLoaded = false;

@@ -22,7 +22,7 @@ using UnchainedLauncher.Core.API;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
-    public class ServerLauncherViewModel {
+    public class ServerLauncherViewModel : IDisposable {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServerLauncherViewModel));
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_server_settings.json";
 
@@ -193,6 +193,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 logger.Error("Failed to launch.", ex);
                 CanClick = LauncherViewModel.CanClick;
             }
+        }
+
+        public void Dispose() {
+            SaveSettings();
         }
     }
 }

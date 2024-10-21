@@ -18,7 +18,7 @@ using UnchainedLauncher.Core;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
-    public class SettingsViewModel {
+    public class SettingsViewModel : IDisposable {
         private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsViewModel));
         private static readonly Version version = Assembly.GetExecutingAssembly().GetName().Version!;
 
@@ -249,6 +249,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
             } else {
                 MessageBox.Show("You are currently running the latest version.");
             }
+        }
+
+        public void Dispose() {
+            SaveSettings();
         }
 
         private static class InstallationTypeUtils {

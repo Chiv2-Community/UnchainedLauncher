@@ -70,8 +70,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
             LauncherViewModel = launcherViewModel;
             ModManager = modManager;
 
-            LaunchServerCommand = new RelayCommand(LaunchServer);
-            LaunchServerHeadlessCommand = new RelayCommand(LaunchServerHeadless);
+            LaunchServerCommand = new RelayCommand(() => RunServerLaunch(false));
+            LaunchServerHeadlessCommand = new RelayCommand(() => RunServerLaunch(true));
 
             MapsList = new ObservableCollection<string>();
 
@@ -144,27 +144,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
         }
 
-        private async void LaunchServer() {
-            await RunServerLaunch(false);
-
-        }
-
-        private async void LaunchServerHeadless() {
-            await RunServerLaunch(true);
-        }
-
-        private async Task RunServerLaunch(bool headless) {
+        private void RunServerLaunch(bool headless) {
             CanClick = false;
             try {
-                var serverMods = ModManager.EnabledModReleases
-                    .Select(mod => mod.Manifest)
-                    .Where(manifest => manifest.ModType == ModType.Server || manifest.ModType == ModType.Shared);
-
-                Process? serverRegister = await MakeRegistrationProcess();
-                if (serverRegister == null) {
-                    return;
-                }
-
                 var serverLaunchOptions = new ServerLaunchOptions(
                     headless,
                     ServerName,
@@ -185,53 +167,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 logger.Error("Failed to launch.", ex);
                 CanClick = LauncherViewModel.CanClick;
             }
-        }
-
-        private async Task<Process?> MakeRegistrationProcess() {
-            if (!File.Exists("RegisterUnchainedServer.exe")) {
-                DownloadTask serverRegisterDownload = HttpHelpers.DownloadFileAsync(
-                    "https://github.com/Chiv2-Community/C2ServerAPI/releases/latest/download/RegisterUnchainedServer.exe",
-                    "RegisterUnchainedServer.exe"
-                );
-
-                try {
-                    await serverRegisterDownload.Task;
-                } catch (Exception e) {
-                    MessageBox.Show("Failed to download the Unchained server registration program:\n" + e.Message);
-                    return null;
-                }
-            }
-
-            Process serverRegister = new Process();
-            //We *must* use cmd.exe as a wrapper to start RegisterUnchainedServer.exe, otherwise we have no way to
-            //close the window later
-
-            //TODO: Get this to actually be able to be closed
-            serverRegister.StartInfo.FileName = "cmd.exe";
-
-            string registerCommand = $"RegisterUnchainedServer.exe " +
-                $"-n \"{ServerName.Replace("\"", "\"")}\" " +
-                $"-d \"{ServerDescription.Replace("\"", "\"").Replace("\n", "\n")}\" " +
-                $"-r \"{SettingsViewModel.ServerBrowserBackend}\" " +
-                $"-c \"{RconPort}\" " +
-                $"-a \"{A2sPort}\" " +
-                $"-p \"{PingPort}\" " +
-                $"-g \"{GamePort}\" ";
-
-            if (!ShowInServerBrowser) {
-                registerCommand += "--no-register ";
-            }
-
-            if (ServerPassword.Trim() != "") {
-                registerCommand += $"-x ";
-            }
-
-            logger.Info($"Running registration: {registerCommand}");
-
-            serverRegister.StartInfo.Arguments = $"/C \"{registerCommand}\"";
-            serverRegister.StartInfo.CreateNoWindow = false;
-
-            return serverRegister;
         }
     }
 }

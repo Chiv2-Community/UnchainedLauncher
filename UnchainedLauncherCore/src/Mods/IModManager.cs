@@ -99,7 +99,6 @@ namespace UnchainedLauncher.Core.Mods {
     /// Do not invoke the constructors directly, use the static methods instead.
     /// </summary>
     public abstract record DownloadModFailure {
-        private DownloadModFailure() { }
         public record ModPakStreamAcquisitionFailureWrapper(ModPakStreamAcquisitionFailure Failure) : DownloadModFailure;
         public record HashFailureWrapper(HashFailure Failure) : DownloadModFailure;
         public record HashMismatchFailure(Release Release, Option<string> InvalidHash) : DownloadModFailure;

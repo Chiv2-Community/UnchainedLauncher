@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using log4net;
+using Newtonsoft.Json.Linq;
 using PropertyChanged;
 
 namespace UnchainedLauncher.Core.API
@@ -211,7 +212,7 @@ namespace UnchainedLauncher.Core.API
                 {
                     this.IsRegistrationOk = false;
                     this.IsA2SOk = false;
-                    await Task.Delay(updateIntervalMillis);
+                    await Task.Delay(updateIntervalMillis, token);
                 }
             }
         }

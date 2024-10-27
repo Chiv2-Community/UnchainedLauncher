@@ -48,9 +48,12 @@ namespace UnchainedLauncher.GUI.ViewModels
             CurrentBackend = ServerBrowserBackendInitializer(SettingsViewModel.ServerBrowserBackend);
         }
 
-        public void ShutdownAllServers(object? sender, EventArgs e)
+        public void ShutdownAllServers()
         {
-            Dispose();
+            foreach (ServerViewModel s in Servers) {
+                s.Dispose();
+            }
+            Servers.Clear();
         }
 
         public void ShutdownCurrentTab()
@@ -72,10 +75,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         }
 
         public void Dispose() {
-            foreach (ServerViewModel s in Servers) {
-                s.Dispose();
-            }
-            Servers.Clear();
+            ShutdownAllServers();
 
             // backend is initialized by this class, so it should be disposed here.
             CurrentBackend.Dispose();

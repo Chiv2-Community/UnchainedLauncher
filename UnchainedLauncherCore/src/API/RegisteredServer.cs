@@ -180,10 +180,10 @@ namespace UnchainedLauncher.Core.API
                     this.LastHttpException = e;
                     if (e.StatusCode == HttpStatusCode.NotFound)
                     {
-                        logger.Error($"Server '{this.ServerInfo.Name}' got HTTP 404. Probably a missed heartbeat.", e);
-                        break;
+                        logger.Error($"Server '{this.ServerInfo.Name}' got HTTP 404. Probably a missed heartbeat, will attempt to re-register.", e);
                     } else {
                         logger.Error($"Server '{this.ServerInfo.Name}' got status code {e.StatusCode} during registration loop.", e);
+                        break;
                     }
                 }
                 catch (TimeoutException e)

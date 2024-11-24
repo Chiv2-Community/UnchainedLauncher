@@ -18,6 +18,7 @@ using UnchainedLauncher.Core;
 using System.Threading.Tasks;
 using LanguageExt.Common;
 using UnchainedLauncher.GUI.Views;
+using LanguageExt;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -198,7 +199,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             logger.Info($"Latest version: {tagName}, Current version: {CurrentVersion}");
             //if latest is newer than current version
             if (latest > version) {
-                MessageBoxResult? dialogResult = null;
+                Option<MessageBoxResult> dialogResult = None;
                 await Window.Dispatcher.BeginInvoke(delegate () {
                     dialogResult =
                         UpdatesWindow.Show("Chivalry 2 Unchained Launcher Update", "Update the Unchained Launcher?", "Yes", "No", null, List(
@@ -206,10 +207,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         ));
                 });
 
-                if (dialogResult == MessageBoxResult.No) {
+                if (dialogResult.Contains(MessageBoxResult.No)) {
                     logger.Info("User chose not to update.");
                     return;
-                } else if (dialogResult == MessageBoxResult.Yes) {
+                } else if (dialogResult.Contains(MessageBoxResult.Yes)) {
                     logger.Info("User chose to update.");
                     try {
                         var url = latestInfo.Assets.Where(
@@ -254,8 +255,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         logger.Error(ex);
                         MessageBox.Show(ex.Message + "\n" + ex.StackTrace);
                     }
-
-                }
+                } 
             } else {
                 MessageBox.Show("You are currently running the latest version.");
             }

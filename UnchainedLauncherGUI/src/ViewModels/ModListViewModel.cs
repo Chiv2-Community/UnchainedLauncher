@@ -89,7 +89,7 @@ namespace UnchainedLauncher.GUI.ViewModels
                         .Map(displayMod => displayMod.CheckForUpdate().Map(update => (displayMod, update)))
                         .Collect(x => x.AsEnumerable());
 
-                MessageBoxResult res = 
+                Option<MessageBoxResult> res = 
                     UpdatesWindow.Show(
                         "Update Mods?", 
                         $"Mod updates available.", 
@@ -97,7 +97,7 @@ namespace UnchainedLauncher.GUI.ViewModels
                         pendingUpdates.Select(x => DependencyUpdate.FromUpdateCandidate(x.Item2))
                     );
 
-                if (res == MessageBoxResult.Yes) {
+                if (res.Contains(MessageBoxResult.Yes)) {
                     var updatesTask =
                         pendingUpdates.Select(async x => await x.Item1.UpdateCurrentlyEnabledVersion(x.Item2.AvailableUpdate));
 
@@ -108,7 +108,7 @@ namespace UnchainedLauncher.GUI.ViewModels
                             .Collect(r => r.LeftAsEnumerable()) // Get only the errors
                             .Map(disableOrEnableFailure => disableOrEnableFailure.Match<Error>(l => l, r => r)); // Both sides are errors, just errors of a different type. 
 
-                    if (errors.Count() > 0) {
+                    if (errors.Any()) {
                         errors.Iter(e => logger.Error(e));
 
                         var errorMessages = errors.Map(e => "- " + e.Message);
@@ -119,6 +119,8 @@ namespace UnchainedLauncher.GUI.ViewModels
                         logger.Info("Mods updated successfully");
                         MessageBox.Show("Mods updated successfully");
                     }
+                } else if(res.IsNone) {
+                    MessageBox.Show("No updates available.");
                 } else {
                     MessageBox.Show("Mods not updated");
                 }

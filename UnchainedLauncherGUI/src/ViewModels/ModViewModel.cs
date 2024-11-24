@@ -178,11 +178,11 @@ namespace UnchainedLauncher.GUI.ViewModels
 
             return failureOrSuccess.Match(
                 Right: _ => {
-                    ErrorState = Prelude.None;
+                    ErrorState = null;
                     logger.Debug($"Successfully enabled release {EnabledVersion} for {Mod.LatestManifest.Name}");
                 },
                 Left: enableOrDisableError => {
-                    ErrorState = Prelude.Some(enableOrDisableError);
+                    ErrorState = enableOrDisableError;
                     enableOrDisableError.Match(
                         Left: disableModFailure => logger.Error($"Failed to disable mod {Mod.LatestManifest.Name}"),
                         Right: enableModFailure => logger.Error($"Failed to enable release {EnabledVersion} for {Mod.LatestManifest.Name}")

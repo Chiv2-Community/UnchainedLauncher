@@ -17,10 +17,13 @@ using System.Windows.Shapes;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views {
+    using static LanguageExt.Prelude;
+
     /// <summary>
     /// Interaction logic for MessageBoxEx.xaml
     /// </summary>
     public partial class UpdatesWindow : Window {
+
         private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsViewModel));
 
         public UpdatesWindowViewModel ViewModel { get; private set; }
@@ -32,11 +35,10 @@ namespace UnchainedLauncher.GUI.Views {
             DataContext = ViewModel;
         }
 
-        public static MessageBoxResult Show(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates) {
-            MessageBoxResult result;
+        public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates) {
             if (updates.Count() == 0) {
-                result = MessageBox.Show("No updates available");
                 logger.Info("No updates available");
+                return None;
             } else {
                 var message = $"Found {updates.Count()} updates available.\n\n";
                 message += string.Join("\n", updates.Select(x => $"- {x.Name} {x.CurrentVersion} -> {x.LatestVersion}"));
@@ -45,11 +47,12 @@ namespace UnchainedLauncher.GUI.Views {
                 var window = new UpdatesWindow(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates);
                 window.ShowDialog();
 
-                result = window.ViewModel.Result;
+                MessageBoxResult result = window.ViewModel.Result;
                 logger.Info("User Selects: " + result.ToString());
+                return Some(result);
+
             }
 
-            return result;
         }
     }
 }

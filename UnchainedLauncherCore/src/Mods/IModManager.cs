@@ -12,7 +12,7 @@ namespace UnchainedLauncher.Core.Mods {
 
     public record UpdateCandidate(Release CurrentlyEnabled, Release AvailableUpdate) {
         public static Option<UpdateCandidate> CreateIfNewer(Release CurrentlyEnabled, Release AvailableUpdate) {
-            return AvailableUpdate.Version.ComparePrecedenceTo(CurrentlyEnabled.Version) < 0
+            return AvailableUpdate.Version.ComparePrecedenceTo(CurrentlyEnabled.Version) > 0
                 ? Some(new UpdateCandidate(CurrentlyEnabled, AvailableUpdate))
                 : None;
         }
@@ -103,7 +103,7 @@ namespace UnchainedLauncher.Core.Mods {
     /// 
     /// Do not invoke the constructors directly, use the static methods instead.
     /// </summary>
-    public abstract record DownloadModFailure(string message, int code, Option<Error> inner = default(Option<Error>)) : Expected(message, code, inner) {
+    public abstract record DownloadModFailure(string Message, int Code, Option<Error> Inner = default) : Expected(Message, Code, Inner) {
 
         public record ModPakStreamAcquisitionFailureWrapper(ModPakStreamAcquisitionFailure Failure) : DownloadModFailure(Failure.Message, Failure.Code, Failure.Inner);
         public record HashFailureWrapper(HashFailure Failure) : DownloadModFailure(Failure.Message, Failure.Code, Failure.Inner);
@@ -144,7 +144,7 @@ namespace UnchainedLauncher.Core.Mods {
     /// 
     /// Do not invoke the constructors directly, use the static methods instead.
     /// </summary>
-    public abstract record DisableModFailure(string message, int code, Option<Error> inner = default(Option<Error>)) : Expected(message, code, inner) {
+    public abstract record DisableModFailure(string Message, int Code, Option<Error> Inner = default) : Expected(Message, Code, Inner) {
         public record DeleteFailure(string Path, Error Failure) : DisableModFailure($"Failed to delete file at '{Path}'.  Reason: {Failure.Message}", Failure.Code, Some(Failure));
         public record ModNotEnabledFailure(Release Release) : DisableModFailure($"Attempted to disable a mod ('{Release.Manifest.Name}') that is not enabled. Cache may be corrupt.", 4004);
 
@@ -168,9 +168,9 @@ namespace UnchainedLauncher.Core.Mods {
     /// 
     /// Do not invoke the constructors directly, use the static methods instead.
     /// </summary>
-    public abstract record EnableModFailure(string message, int code, Option<Error> inner = default(Option<Error>)) : Expected(message, code, inner) {
-        public record DownloadModFailureWrapper(DownloadModFailure Failure) : EnableModFailure(Failure.Message, Failure.code, Failure.Inner);
-        public record DisableModFailureWrapper(DisableModFailure Failure) : EnableModFailure(Failure.Message, Failure.code, Failure.Inner);
+    public abstract record EnableModFailure(string Message, int Code, Option<Error> Inner = default) : Expected(Message, Code, Inner) {
+        public record DownloadModFailureWrapper(DownloadModFailure Failure) : EnableModFailure(Failure.Message, Failure.Code, Failure.Inner);
+        public record DisableModFailureWrapper(DisableModFailure Failure) : EnableModFailure(Failure.Message, Failure.Code, Failure.Inner);
 
 
         public static EnableModFailure Wrap(DownloadModFailure failure) => new DownloadModFailureWrapper(failure);

@@ -23,6 +23,16 @@
     <AssemblyName>UnchainedLauncher</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="src\NewFolder\**" />
+    <Compile Remove="src\ViewModels\NewFolder\**" />
+    <EmbeddedResource Remove="src\NewFolder\**" />
+    <EmbeddedResource Remove="src\ViewModels\NewFolder\**" />
+    <None Remove="src\NewFolder\**" />
+    <None Remove="src\ViewModels\NewFolder\**" />
+    <Page Remove="src\NewFolder\**" />
+    <Page Remove="src\ViewModels\NewFolder\**" />
+  </ItemGroup>
+  <ItemGroup>
     <None Remove="DefaultMaps.txt" />
     <None Remove="log4net.config" />
   </ItemGroup>
@@ -56,9 +66,5 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="src\NewFolder\" />
-    <Folder Include="src\ViewModels\NewFolder\" />
   </ItemGroup>
 </Project>

@@ -5,7 +5,11 @@ on:
     branches:
         - 'main'
   pull_request:
-    
+    types:
+        - opened
+    branches:
+        - '**'
+
 jobs:
   build:
     runs-on: windows-latest

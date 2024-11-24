@@ -8,6 +8,7 @@ on:
     branches:
         - 'main'
 
+# TODO: Run integration tests. Set up some kind of stubbed environment for the tests to run in.
 jobs:
   build:
     runs-on: windows-latest
@@ -24,4 +25,3 @@ jobs:
     - name: Run Unit Tests
       run: dotnet test .\UnchainedLauncherCoreTests\
 
-    # TODO: Run integration tests. Set up some kind of stubbed environment for the tests to run in.

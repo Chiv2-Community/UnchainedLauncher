@@ -108,6 +108,8 @@ namespace UnchainedLauncher.GUI.ViewModels
                             .Collect(r => r.LeftAsEnumerable()) // Get only the errors
                             .Map(disableOrEnableFailure => disableOrEnableFailure.Match<Error>(l => l, r => r)); // Both sides are errors, just errors of a different type. 
 
+                    await RefreshModListAsync();
+
                     if (errors.Any()) {
                         errors.Iter(e => logger.Error(e));
 

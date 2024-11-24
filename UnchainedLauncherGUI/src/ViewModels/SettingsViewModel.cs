@@ -15,8 +15,13 @@ using System.Windows.Input;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core;
+using System.Threading.Tasks;
+using LanguageExt.Common;
+using UnchainedLauncher.GUI.Views;
 
 namespace UnchainedLauncher.GUI.ViewModels {
+    using static LanguageExt.Prelude;
+
     [AddINotifyPropertyChangedInterface]
     public class SettingsViewModel : IDisposable {
         private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsViewModel));
@@ -65,7 +70,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             _cliArgs = cliArgs;
             CLIArgsModified = false;
 
-            CheckForUpdateCommand = new RelayCommand(CheckForUpdate);
+            CheckForUpdateCommand = new AsyncRelayCommand(CheckForUpdate);
             CleanUpInstallationCommand = new RelayCommand(CleanUpInstallation);
 
             this.Window = window;
@@ -159,16 +164,19 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         // TODO: Somehow generalize the updater and installer
-        private void CheckForUpdate() {
+        private async Task CheckForUpdate() {
             var github = new GitHubClient(new ProductHeaderValue("UnchainedLauncher"));
 
             var repoCall = github.Repository.Release.GetLatest(667470779); //UnchainedLauncher repo id
-            repoCall.Wait();
-            if (!repoCall.IsCompletedSuccessfully) {
-                MessageBox.Show("Could not connect to github to retrieve latest version information:\n" + repoCall?.Exception?.Message);
+            Release latestInfo;
+            try {
+                latestInfo = await repoCall;
+            } catch(Exception e) {
+                logger.Error("Failed to connect to github to retrieve latest version information", e);
+                MessageBox.Show("Failed to check for updates.");
                 return;
             }
-            var latestInfo = repoCall.Result;
+
             string tagName = latestInfo.TagName;
 
             logger.Info($"Latest version tag: {tagName}");
@@ -190,11 +198,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
             logger.Info($"Latest version: {tagName}, Current version: {CurrentVersion}");
             //if latest is newer than current version
             if (latest > version) {
-                MessageBoxResult dialogResult = MessageBox.Show(
-                    $"A newer version was found.\n " +
-                    $"{tagName} > {CurrentVersion}\n\n" +
-                    $"Download the new update?",
-                    "Update?", MessageBoxButton.YesNo);
+                MessageBoxResult? dialogResult = null;
+                await Window.Dispatcher.BeginInvoke(delegate () {
+                    dialogResult =
+                        UpdatesWindow.Show("Chivalry 2 Unchained Launcher Update", "Update the Unchained Launcher?", "Yes", "No", null, List(
+                            new DependencyUpdate("Launcher", Some(CurrentVersion), latest.ToString(), latestInfo.Url, "")
+                        ));
+                });
 
                 if (dialogResult == MessageBoxResult.No) {
                     logger.Info("User chose not to update.");

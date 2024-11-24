@@ -15,7 +15,7 @@ using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Resolver;
 using CommunityToolkit.Mvvm.Input;
 
-namespace UnchainedLauncher.GUI
+namespace UnchainedLauncher.GUI.Views
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml

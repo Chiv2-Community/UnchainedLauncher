@@ -36,6 +36,7 @@ namespace UnchainedLauncher.Core.API
         public readonly string localIp;
         public readonly IServerBrowser backend;
         public readonly IA2S A2sEndpoint;
+        public readonly int HeartbeatSecondsBeforeTimeout;
         //thread-safe accessors
         // see also https://stackoverflow.com/a/541348
         // not used to avoid locking on this
@@ -93,6 +94,7 @@ namespace UnchainedLauncher.Core.API
             IA2S a2sEndpoint,
             C2ServerInfo serverInfo, 
             string localIp,
+            int heartbeatSecondsBeforeTimeout = 5,
             int updateIntervalMillis = 1000
             )
         {
@@ -138,7 +140,7 @@ namespace UnchainedLauncher.Core.API
             this.IsRegistrationOk = true;
             RemoteInfo = res.Server;
 
-            var heartBeatDelay = Task.Delay(TimeSpan.FromSeconds(res.RefreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5), token);
+            var heartBeatDelay = Task.Delay(TimeSpan.FromSeconds(res.RefreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - HeartbeatSecondsBeforeTimeout), token);
             var updateDelay = Task.Delay(TimeSpan.FromMilliseconds(updateIntervalMillis), token);
 
             while (true) {
@@ -152,7 +154,7 @@ namespace UnchainedLauncher.Core.API
                 if (completedTask == heartBeatDelay) {
                     logger.Info($"Server '{this.ServerInfo.Name}' doing heartbeat.");
                     var refreshBefore = await backend.HeartbeatAsync(RemoteInfo);
-                    heartBeatDelay = Task.Delay(TimeSpan.FromSeconds(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - 5), token);
+                    heartBeatDelay = Task.Delay(TimeSpan.FromSeconds(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - HeartbeatSecondsBeforeTimeout), token);
                 } else if (completedTask == updateDelay) {
                     // If the server state has changed, update the backend
                     if (RemoteInfo.Update(await GetServerState(token))) {

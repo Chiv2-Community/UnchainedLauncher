@@ -35,7 +35,7 @@ namespace UnchainedLauncher.Core.API.Mocks
                     new ResponseServer(
                         new UniqueServerInfo(
                             $"Server_ID_{NumServerRegisters++}",
-                            now
+                            now 
                         ),
                         localIp,
                         "127.0.0.1"

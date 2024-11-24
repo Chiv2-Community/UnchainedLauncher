@@ -22,10 +22,12 @@ namespace UnchainedLauncher.Core.API.Tests
                 }
             );
 
-            MockServerBrowser mockSB = new(4);
+            var heartbeatSeconds = 3;
+
+            MockServerBrowser mockSB = new(heartbeatSeconds);
             int updateInterval = 500;
-            int testDuration = 10000;
-            using (RegisteredServer l = new(mockSB, mockA2s, testServerC2Info, "127.0.0.1", updateInterval)) {
+            int testDuration = heartbeatSeconds * 2000;
+            using (RegisteredServer l = new(mockSB, mockA2s, testServerC2Info, "127.0.0.1", 1, updateInterval)) {
                 await Task.Delay(testDuration); //give time for heartbeats to happen
                 var reg = l.RemoteInfo;
                 Assert.NotNull(reg);

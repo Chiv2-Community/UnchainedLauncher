@@ -1,0 +1,25 @@
+name:  Unchained Launcher CI Tests
+
+on:
+  push:
+    branches:
+        - 'main'
+  pull_request:
+    
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '6.x'
+    - name: Install dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build
+    - name: Run Unit Tests
+      run: dotnet test .\UnchainedLauncherCoreTests\
+
+    # TODO: Run integration tests. Set up some kind of stubbed environment for the tests to run in.

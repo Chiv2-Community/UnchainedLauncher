@@ -30,8 +30,12 @@ namespace UnchainedLauncher.Core {
         }
 
         public Either<ProcessLaunchFailure, Process> LaunchVanilla(IEnumerable<string> args) {
+
             logger.Info("Attempting to launch vanilla game.");
             logger.LogListInfo("Launch args: ", args);
+
+            PrepareUnmoddedLaunchSigs();
+
             var launchResult = VanillaLauncher.Launch(string.Join(" ", args));
 
             launchResult.Match(
@@ -45,8 +49,28 @@ namespace UnchainedLauncher.Core {
             return launchResult;
         }
 
+        public Either<ProcessLaunchFailure, Process> LaunchModdedVanilla(IEnumerable<string> args) {
+            logger.Info("Attempting to launch vanilla game with pak loading.");
+            logger.LogListInfo("Launch args: ", args);
+
+            PrepareModdedLaunchSigs();
+
+            var launchResult = VanillaLauncher.Launch(string.Join(" ", args));
+
+            launchResult.Match(
+                Left: error => error.Match(
+                    LaunchFailedError: e => logger.Error($"Failed to launch Chivalry 2. {e.ExecutablePath} {e.Args}", e.Underlying),
+                    InjectionFailedError: e => logger.Error($"This should be impossible. Report a bug please", e.Underlying)
+                ),
+                Right: _ => logger.Info("Successfully launched Chivalry 2.")
+            );
+
+            return launchResult;
+        }
+
+
         /// <summary>
-        /// Launches the game with the provided launch options.
+        /// Launches the game with the provided launch options
         /// </summary>
         /// <param name="installationType"></param>
         /// <param name="launchOptions"></param>
@@ -58,10 +82,12 @@ namespace UnchainedLauncher.Core {
         ///     * Left if the game failed to launch.
         ///     * Right if the game was launched successfully.
         /// </returns>
-        public Option<Either<ProcessLaunchFailure, Process>> LaunchModded(InstallationType installationType, ModdedLaunchOptions launchOptions, Option<ServerLaunchOptions> serverLaunchOptions, IEnumerable<string> extraArgs) {
+        public Option<Either<ProcessLaunchFailure, Process>> LaunchUnchained(InstallationType installationType, ModdedLaunchOptions launchOptions, Option<ServerLaunchOptions> serverLaunchOptions, IEnumerable<string> extraArgs) {
             if (installationType == InstallationType.NotSet) return Prelude.None;
 
+
             logger.Info("Attempting to launch modded game.");
+            
 
             var moddedLaunchArgs = extraArgs.ToList();
             var tblLoc = moddedLaunchArgs.IndexOf("TBL") + 1;
@@ -73,6 +99,8 @@ namespace UnchainedLauncher.Core {
             moddedLaunchArgs.InsertRange(tblLoc, launchOpts);
 
             logger.LogListInfo($"Launch args:", moddedLaunchArgs);
+
+            PrepareModdedLaunchSigs();
 
             var launchResult = ModdedLauncher.Launch(string.Join(" ", moddedLaunchArgs));
 
@@ -86,6 +114,17 @@ namespace UnchainedLauncher.Core {
             );
 
             return Prelude.Some(launchResult);
+        }
+
+        private void PrepareModdedLaunchSigs() {
+            logger.Info("Verifying .sig file presence");
+            SigFileHelper.CheckAndCopySigFiles();
+            SigFileHelper.DeleteOrphanedSigFiles();
+        }
+
+        private void PrepareUnmoddedLaunchSigs() {
+            logger.Info("Removing .sig files");
+            SigFileHelper.RemoveAllNonDefaultSigFiles();
         }
     }
 

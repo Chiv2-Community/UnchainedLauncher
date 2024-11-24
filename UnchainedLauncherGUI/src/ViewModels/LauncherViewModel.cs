@@ -28,7 +28,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
     public class LauncherViewModel {
         private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherViewModel));
         public ICommand LaunchVanillaCommand { get; }
-        public ICommand LaunchModdedCommand { get; }
+        public ICommand LaunchModdedVanillaCommand { get; }
+        public ICommand LaunchUnchainedCommand { get; }
 
         private SettingsViewModel Settings { get; }
         private ModManager ModManager { get; }
@@ -46,18 +47,23 @@ namespace UnchainedLauncher.GUI.ViewModels {
             Settings = settings;
             ModManager = modManager;
 
-            this.LaunchVanillaCommand = new RelayCommand(() => LaunchVanilla());
-            this.LaunchModdedCommand = new RelayCommand(() => LaunchModded(Prelude.None));
+            this.LaunchVanillaCommand = new RelayCommand(() => LaunchVanilla(false));
+            this.LaunchModdedVanillaCommand = new RelayCommand(() => LaunchVanilla(true));
+            this.LaunchUnchainedCommand = new RelayCommand(() => LaunchUnchained(Prelude.None));
 
             Window = window;
 
             Launcher = launcher;
         }
 
-        public Option<Process> LaunchVanilla() {
+        public Option<Process> LaunchVanilla(bool enableMods) {
             // For a vanilla launch we need to pass the args through to the vanilla launcher.
             // Skip the first arg which is the path to the exe.
-            var launchResult = Launcher.LaunchVanilla(System.Environment.GetCommandLineArgs().Skip(1));
+            var args = System.Environment.GetCommandLineArgs().Skip(1);
+            var launchResult = enableMods
+                ? Launcher.LaunchModdedVanilla(args)
+                : Launcher.LaunchVanilla(args);
+
             CanClick = false;
 
             return launchResult.Match(
@@ -85,10 +91,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
         }
 
-        public Option<Process> LaunchModded(Option<ServerLaunchOptions> serverOpts) {
+        public Option<Process> LaunchUnchained(Option<ServerLaunchOptions> serverOpts) {
             CanClick = false;
-
-
 
             var options = new ModdedLaunchOptions(
                 Settings.ServerBrowserBackend,
@@ -98,7 +102,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             var exArgs = Window.SettingsViewModel.CLIArgs.Split(" ");
 
-            var launchResult = Launcher.LaunchModded(Settings.InstallationType, options, serverOpts, exArgs);
+            var launchResult = Launcher.LaunchUnchained(Settings.InstallationType, options, serverOpts, exArgs);
 
             return launchResult.Match(
                 None: () => {

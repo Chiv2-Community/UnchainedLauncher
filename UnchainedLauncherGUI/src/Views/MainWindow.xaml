@@ -40,13 +40,15 @@
                 </Grid.RowDefinitions>
 
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="58*"/>
                     <ColumnDefinition Width="103*"/>
-                    <ColumnDefinition Width="161*"/>
+                    <ColumnDefinition Width="103*"/>
+                    <ColumnDefinition Width="103*"/>
                 </Grid.ColumnDefinitions>
 
-                <Button x:Name="LaunchVanillaButton" Content="Launch Chivalry 2" Grid.Row="0" Grid.ColumnSpan = "3" Command="{Binding LaunchVanillaCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
-                <Button x:Name="LaunchModdedButton" Content="Launch Chivalry 2 Unchained" Grid.Row="1" Grid.ColumnSpan = "3" Command="{Binding LaunchModdedCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
+
+                <Button x:Name="LaunchVanillaButton" Content="Chivalry 2" TextBlock.TextAlignment="Center" Grid.Row="0" Grid.Column="0" Grid.RowSpan = "3" Command="{Binding LaunchVanillaCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
+                <Button x:Name="LaunchModdedVanillaButton" Content="Chivalry 2&#xa;with Mods" TextBlock.TextAlignment="Center" Grid.Row="0" Grid.Column="1" Grid.RowSpan = "3" Command="{Binding LaunchModdedVanillaCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
+                <Button x:Name="LaunchModdedButton" Content="Chivalry 2&#xa;Unchained" TextBlock.TextAlignment="Center" Grid.Row="0" Grid.Column="2" Grid.RowSpan = "3" Command="{Binding LaunchModdedCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
             </Grid>
         </TabItem>
         <TabItem x:Name="ModManagerTab"  DataContext="{Binding ModManagerViewModel}"  Header="Mod Manager">

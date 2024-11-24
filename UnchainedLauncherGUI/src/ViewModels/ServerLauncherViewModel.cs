@@ -163,7 +163,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     RconPort
                 );
 
-                var maybeProcess = LauncherViewModel.LaunchModded(Prelude.Some(serverLaunchOptions));
+                var maybeProcess = LauncherViewModel.LaunchUnchained(Prelude.Some(serverLaunchOptions));
                 CanClick = LauncherViewModel.CanClick;
 
                 maybeProcess.IfSome(process => {

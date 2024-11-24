@@ -14,9 +14,12 @@ using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Resolver;
 using CommunityToolkit.Mvvm.Input;
+using System.Linq;
 
 namespace UnchainedLauncher.GUI.Views
 {
+    using static LanguageExt.Prelude;
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -180,6 +183,16 @@ namespace UnchainedLauncher.GUI.Views
 
                 DisableSaveSettings = false;
                 this.Closed += MainWindow_Closed;
+
+                var EnvArgs = Environment.GetCommandLineArgs().ToList();
+
+                if (EnvArgs.Contains("--startvanilla"))
+                    LauncherViewModel.LaunchVanilla(false);
+                else if (EnvArgs.Contains("--startmodded"))
+                    LauncherViewModel.LaunchVanilla(true);
+                else if (EnvArgs.Contains("--startunchained"))
+                    LauncherViewModel.LaunchUnchained(None);
+
             } catch (Exception e) {
                 logger.Error("Initialization Failed", e);
                 throw;

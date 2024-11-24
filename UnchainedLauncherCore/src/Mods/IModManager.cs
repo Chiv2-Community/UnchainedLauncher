@@ -8,8 +8,15 @@ using UnchainedLauncher.Core.Mods.Registry.Resolver;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Mods {
+    using static LanguageExt.Prelude;
 
-    public record UpdateCandidate(Release CurrentlyEnabled, Release AvailableUpdate);
+    public record UpdateCandidate(Release CurrentlyEnabled, Release AvailableUpdate) {
+        public static Option<UpdateCandidate> CreateIfNewer(Release CurrentlyEnabled, Release AvailableUpdate) {
+            return AvailableUpdate.Version.ComparePrecedenceTo(CurrentlyEnabled.Version) > 0
+                ? Some(new UpdateCandidate(CurrentlyEnabled, AvailableUpdate))
+                : None;
+        }
+    }
 
     public interface IModManager {
 
@@ -74,7 +81,7 @@ namespace UnchainedLauncher.Core.Mods {
         /// <param name="mod"></param>
         /// <returns></returns>
         public Option<Release> GetCurrentlyEnabledReleaseForMod(Mod mod) {
-            return Prelude.Optional(EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl));
+            return Optional(EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl));
         }
 
         /// <summary>
@@ -83,13 +90,11 @@ namespace UnchainedLauncher.Core.Mods {
         /// <returns>A List of all available updates</returns>
         public IEnumerable<UpdateCandidate> GetUpdateCandidates() {
             return Mods
-               .Select(mod =>
+               .SelectMany(mod =>
                    (GetCurrentlyEnabledReleaseForMod(mod), mod.LatestRelease)
                        .Sequence() // Convert (Option<Release>, Option<Release>) to Option<(Release, Release)>
-                       .Map(tuple => new UpdateCandidate(tuple.Item1, tuple.Item2))
-               )
-               .Collect(result => result.ToImmutableList()) // Filter out mods that aren't enabled
-               .Where(tuple => tuple.AvailableUpdate.Version.ComparePrecedenceTo(tuple.CurrentlyEnabled.Version) > 0); // Filter out older releases
+                       .Bind(tuple => UpdateCandidate.CreateIfNewer(tuple.Item1, tuple.Item2))
+               );
         }
     }
 
@@ -98,13 +103,14 @@ namespace UnchainedLauncher.Core.Mods {
     /// 
     /// Do not invoke the constructors directly, use the static methods instead.
     /// </summary>
-    public abstract record DownloadModFailure {
-        public record ModPakStreamAcquisitionFailureWrapper(ModPakStreamAcquisitionFailure Failure) : DownloadModFailure;
-        public record HashFailureWrapper(HashFailure Failure) : DownloadModFailure;
-        public record HashMismatchFailure(Release Release, Option<string> InvalidHash) : DownloadModFailure;
-        public record ModNotFoundFailure(Release Release) : DownloadModFailure;
-        public record WriteFailure(string Path, Error Failure) : DownloadModFailure;
-        public record AlreadyDownloadedFailure(Release Release) : DownloadModFailure;
+    public abstract record DownloadModFailure(string Message, int Code, Option<Error> Inner = default) : Expected(Message, Code, Inner) {
+
+        public record ModPakStreamAcquisitionFailureWrapper(ModPakStreamAcquisitionFailure Failure) : DownloadModFailure(Failure.Message, Failure.Code, Failure.Inner);
+        public record HashFailureWrapper(HashFailure Failure) : DownloadModFailure(Failure.Message, Failure.Code, Failure.Inner);
+        public record HashMismatchFailure(Release Release, Option<string> InvalidHash) : DownloadModFailure($"Mismatched hashes. Got '{InvalidHash.IfNone("None")}', Expected '{Release.ReleaseHash}'", 4001);
+        public record ModNotFoundFailure(Release Release) : DownloadModFailure($"Mod release verion '{Release.Tag}' for '{Release.Manifest.Name}' not found. Please contact the author.", 4002);
+        public record WriteFailure(string Path, Error Failure) : DownloadModFailure($"Failed to write mod to path '{Path}'. Reason: {Failure.Message}", Failure.Code, Some(Failure));
+        public record AlreadyDownloadedFailure(Release Release) : DownloadModFailure($"Mod '{Release.Manifest.Name} {Release.Tag}' already downloaded. Cache may be corrupt.", 4003);
 
         public DownloadModFailure Widen => this;
         public static DownloadModFailure Wrap(ModPakStreamAcquisitionFailure failure) => new ModPakStreamAcquisitionFailureWrapper(failure).Widen;
@@ -138,9 +144,9 @@ namespace UnchainedLauncher.Core.Mods {
     /// 
     /// Do not invoke the constructors directly, use the static methods instead.
     /// </summary>
-    public abstract record DisableModFailure {
-        public record DeleteFailure(string Path, Error Failure) : DisableModFailure;
-        public record ModNotEnabledFailure(Release Release) : DisableModFailure;
+    public abstract record DisableModFailure(string Message, int Code, Option<Error> Inner = default) : Expected(Message, Code, Inner) {
+        public record DeleteFailure(string Path, Error Failure) : DisableModFailure($"Failed to delete file at '{Path}'.  Reason: {Failure.Message}", Failure.Code, Some(Failure));
+        public record ModNotEnabledFailure(Release Release) : DisableModFailure($"Attempted to disable a mod ('{Release.Manifest.Name}') that is not enabled. Cache may be corrupt.", 4004);
 
         public static DisableModFailure DeleteFailed(string path, Error failure) => new DeleteFailure(path, failure);
         public static DisableModFailure ModNotEnabled(Release release) => new ModNotEnabledFailure(release);
@@ -162,9 +168,10 @@ namespace UnchainedLauncher.Core.Mods {
     /// 
     /// Do not invoke the constructors directly, use the static methods instead.
     /// </summary>
-    public abstract record EnableModFailure {
-        public record DownloadModFailureWrapper(DownloadModFailure Failure) : EnableModFailure;
-        public record DisableModFailureWrapper(DisableModFailure Failure) : EnableModFailure;
+    public abstract record EnableModFailure(string Message, int Code, Option<Error> Inner = default) : Expected(Message, Code, Inner) {
+        public record DownloadModFailureWrapper(DownloadModFailure Failure) : EnableModFailure(Failure.Message, Failure.Code, Failure.Inner);
+        public record DisableModFailureWrapper(DisableModFailure Failure) : EnableModFailure(Failure.Message, Failure.Code, Failure.Inner);
+
 
         public static EnableModFailure Wrap(DownloadModFailure failure) => new DownloadModFailureWrapper(failure);
         public static EnableModFailure Wrap(DisableModFailure failure) => new DisableModFailureWrapper(failure);

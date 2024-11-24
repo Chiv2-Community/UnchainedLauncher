@@ -4,6 +4,7 @@ using System.Security.AccessControl;
 using LanguageExt.Common;
 
 namespace UnchainedLauncher.Core.Utilities {
+    using static LanguageExt.Prelude;
     public static class FileHelpers {
         private static readonly ILog logger = LogManager.GetLogger(nameof(FileHelpers));
 
@@ -103,7 +104,7 @@ namespace UnchainedLauncher.Core.Utilities {
         }
     }
 
-    public record HashFailure(string FilePath, Error Error);
+    public record HashFailure(string FilePath, Error Error): Expected($"Failed to hash file at {FilePath}. Reason: {Error.Message}", Error.Code, Some(Error));
 
 
     public class FileWriter {

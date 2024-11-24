@@ -24,6 +24,8 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {
+    using static LanguageExt.Prelude;
+
     [AddINotifyPropertyChangedInterface]
     public partial class ModViewModel : INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModViewModel));
@@ -32,7 +34,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         public Mod Mod { get; }
 
         public VersionNameSort VersionNameSortKey => new VersionNameSort(
-            EnabledRelease.Map(x => x.Version).FirstOrDefault(), 
+            Optional(EnabledRelease).Map(x => x.Version).FirstOrDefault(), 
             Mod.LatestManifest.Name
         );
 
@@ -45,14 +47,14 @@ namespace UnchainedLauncher.GUI.ViewModels
             }
         }
 
-        public Option<Either<DisableModFailure, EnableModFailure>> ErrorState { get; set; }
+        public Either<DisableModFailure, EnableModFailure>? ErrorState { get; set; }
 
 
-        public Option<Release> EnabledRelease { get; set; }
+        public Release? EnabledRelease { get; set; }
 
         public string Description {
             get {
-                var manifest = EnabledRelease.Match(
+                var manifest = Optional(EnabledRelease).Match(
                     None: Mod.LatestManifest,
                     Some: x => x.Manifest
                 );
@@ -68,7 +70,7 @@ namespace UnchainedLauncher.GUI.ViewModels
                     }
                 }
 
-                ErrorState.Match(
+                Optional(ErrorState).Match(
                     None: () => { },
                     Some: x => {
 
@@ -103,7 +105,7 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public string ButtonText {
             get {
-                return EnabledRelease.Match(
+                return Optional(EnabledRelease).Match(
                     None: () => "Enable",
                     Some: _ => "Disable"
                 );
@@ -121,7 +123,7 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public string EnabledVersion {
             get {
-                return EnabledRelease.Match(
+                return Optional(EnabledRelease).Match(
                     None: () => "none",
                     Some: x => x.Tag
                 );
@@ -135,7 +137,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         public ICommand ButtonCommand { get; }
 
         public ModViewModel(Mod mod, Option<Release> enabledRelease, IModManager modManager) {
-            EnabledRelease = enabledRelease;
+            EnabledRelease = enabledRelease.ValueUnsafe();
 
             Mod = mod;
             ModManager = modManager;
@@ -151,6 +153,12 @@ namespace UnchainedLauncher.GUI.ViewModels
             logger.Debug($"Initialized ModViewModel for {mod.LatestManifest.Name}. Currently enabled release: {EnabledVersion}");
         }
 
+        public Option<UpdateCandidate> CheckForUpdate() {
+            return (Optional(EnabledRelease), Mod.LatestRelease)
+                .Sequence()
+                .Bind(x => UpdateCandidate.CreateIfNewer(x.Item1, x.Item2));
+        }
+
         private void DisableOrEnable() {
             if (EnabledRelease == null)
                 EnabledRelease = Mod.Releases.First();
@@ -158,7 +166,7 @@ namespace UnchainedLauncher.GUI.ViewModels
                 EnabledRelease = null;
         }
 
-        private EitherAsync<Either<DisableModFailure, EnableModFailure>, Unit> UpdateCurrentlyEnabledVersion(Option<Release> newVersion) {
+        public EitherAsync<Either<DisableModFailure, EnableModFailure>, Unit> UpdateCurrentlyEnabledVersion(Option<Release> newVersion) {
             var failureOrSuccess =  
                 newVersion.Match(
                     None: () => ModManager.DisableMod(Mod).MapLeft<Either<DisableModFailure, EnableModFailure>>(e => Prelude.Left(e)),
@@ -170,11 +178,11 @@ namespace UnchainedLauncher.GUI.ViewModels
 
             return failureOrSuccess.Match(
                 Right: _ => {
-                    ErrorState = Prelude.None;
+                    ErrorState = null;
                     logger.Debug($"Successfully enabled release {EnabledVersion} for {Mod.LatestManifest.Name}");
                 },
                 Left: enableOrDisableError => {
-                    ErrorState = Prelude.Some(enableOrDisableError);
+                    ErrorState = enableOrDisableError;
                     enableOrDisableError.Match(
                         Left: disableModFailure => logger.Error($"Failed to disable mod {Mod.LatestManifest.Name}"),
                         Right: enableModFailure => logger.Error($"Failed to enable release {EnabledVersion} for {Mod.LatestManifest.Name}")

@@ -13,9 +13,15 @@ using System.Windows.Input;
 using UnchainedLauncher.Core.Mods;
 using LanguageExt;
 using System.Threading;
+using UnchainedLauncher.GUI.Views;
+using System.Collections;
+using System.Collections.Generic;
+using LanguageExt.Common;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {
+    using static LanguageExt.Prelude;
+
     [AddINotifyPropertyChangedInterface]
     public class ModListViewModel {
         private readonly ILog logger = LogManager.GetLogger(nameof(ModListViewModel));
@@ -76,34 +82,47 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         private async Task UpdateModsAsync() {
             try {
-                logger.Info("Checking for updates...");
-                var pendingUpdates = ModManager.GetUpdateCandidates();
-                var updateCount = pendingUpdates.Count();
+                logger.Info("Checking for Mod updates...");
 
-                if (updateCount == 0) {
-                    MessageBox.Show("No updates available");
-                    logger.Info("No updates available");
-                    return;
-                }
+                IEnumerable<(ModViewModel, UpdateCandidate)> pendingUpdates = 
+                    DisplayMods
+                        .Map(displayMod => displayMod.CheckForUpdate().Map(update => (displayMod, update)))
+                        .Collect(x => x.AsEnumerable());
 
-                var message = $"Found {updateCount} updates available.\n\n";
-                message += string.Join("\n", pendingUpdates.Select(x => $"- {x.CurrentlyEnabled.Manifest.Name} {x.CurrentlyEnabled.Tag} -> {x.AvailableUpdate.Tag}"));
-                message += "\n\nWould you like to update these mods now?";
+                Option<MessageBoxResult> res = 
+                    UpdatesWindow.Show(
+                        "Update Mods?", 
+                        $"Mod updates available.", 
+                        "Yes", "No", None, 
+                        pendingUpdates.Select(x => DependencyUpdate.FromUpdateCandidate(x.Item2))
+                    );
 
-                message.Split("\n").ToList().ForEach(x => logger.Info(x));
+                if (res.Contains(MessageBoxResult.Yes)) {
+                    var updatesTask =
+                        pendingUpdates.Select(async x => await x.Item1.UpdateCurrentlyEnabledVersion(x.Item2.AvailableUpdate));
 
-                MessageBoxResult res = MessageBox.Show(message, "Update Mods?", MessageBoxButton.YesNo);
+                    var result = await Task.WhenAll(updatesTask);
 
-                logger.Info("User Selects: " + res.ToString());
-                if (res == MessageBoxResult.Yes) {
-                    logger.Info("Updating mods...");
+                    var errors =
+                        result
+                            .Collect(r => r.LeftAsEnumerable()) // Get only the errors
+                            .Map(disableOrEnableFailure => disableOrEnableFailure.Match<Error>(l => l, r => r)); // Both sides are errors, just errors of a different type. 
 
-                    var updatesTask = pendingUpdates.Select(async x => await ModManager.EnableModRelease(x.AvailableUpdate, Prelude.None, CancellationToken.None));
-                    await Task.WhenAll(updatesTask);
                     await RefreshModListAsync();
 
-                    logger.Info("Mods updated successfully");
-                    MessageBox.Show("Mods updated successfully");
+                    if (errors.Any()) {
+                        errors.Iter(e => logger.Error(e));
+
+                        var errorMessages = errors.Map(e => "- " + e.Message);
+                        var errorMessage = string.Join("\n", errorMessages);
+
+                        MessageBox.Show($"Some errors occurred during update: \n{errorMessage}\n\n Check the logs for more details.");
+                    } else {
+                        logger.Info("Mods updated successfully");
+                        MessageBox.Show("Mods updated successfully");
+                    }
+                } else if(res.IsNone) {
+                    MessageBox.Show("No updates available.");
                 } else {
                     MessageBox.Show("Mods not updated");
                 }

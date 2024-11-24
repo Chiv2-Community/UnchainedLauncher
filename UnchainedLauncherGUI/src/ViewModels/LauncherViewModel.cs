@@ -20,6 +20,7 @@ using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.GUI.JsonModels;
+using UnchainedLauncher.GUI.Views;
 
 namespace UnchainedLauncher.GUI.ViewModels {
 
@@ -86,6 +87,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public Option<Process> LaunchModded(Option<ServerLaunchOptions> serverOpts) {
             CanClick = false;
+
+
 
             var options = new ModdedLaunchOptions(
                 Settings.ServerBrowserBackend,

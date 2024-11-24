@@ -39,6 +39,8 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
             );
         }
 
+        public string ReleaseUrl => $"{Manifest.RepoUrl}/releases/{Tag}";
+
         public SemVersion Version => SemVersion.Parse(Tag, SemVersionStyles.AllowV);
     }
     [JsonConverter(typeof(StringEnumConverter))]

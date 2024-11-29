@@ -28,14 +28,15 @@ namespace UnchainedLauncher.Core.API.Mocks
         public Task<RegisterServerResponse> RegisterServerAsync(String localIp, ServerInfo info, CancellationToken? ct = null)
         {
             var (now, refreshBefore) = GetTimes();
+            this.NumServerRegisters++;
             return Task.FromResult(
                 new RegisterServerResponse(
                     refreshBefore,
                     "Some Arbitrary key",
                     new ResponseServer(
                         new UniqueServerInfo(
-                            $"Server_ID_{NumServerRegisters++}",
-                            now 
+                            info.Name,
+                            now
                         ),
                         localIp,
                         "127.0.0.1"
@@ -44,21 +45,21 @@ namespace UnchainedLauncher.Core.API.Mocks
             );
         }
 
-        public Task<double> UpdateServerAsync(UniqueServerInfo info, CancellationToken? ct = null)
+        public Task<double> UpdateServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null)
         {
             NumServerUpdates++;
             var (_, refreshBefore) = GetTimes();
             return Task.FromResult((double)refreshBefore);
         }
 
-        public Task<double> HeartbeatAsync(UniqueServerInfo info, CancellationToken? ct = null)
+        public Task<double> HeartbeatAsync(UniqueServerInfo info, string key, CancellationToken? ct = null)
         {
             NumServerHeartbeats++;
             var (_, refreshBefore) = GetTimes();
             return Task.FromResult((double)refreshBefore);
         }
 
-        public Task DeleteServerAsync(UniqueServerInfo info, CancellationToken? ct = null)
+        public Task DeleteServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null)
         {
             NumServerDeletes++;
             return Task.CompletedTask;

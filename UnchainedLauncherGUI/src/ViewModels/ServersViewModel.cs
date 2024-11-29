@@ -20,6 +20,8 @@ namespace UnchainedLauncher.GUI.ViewModels
     [AddINotifyPropertyChangedInterface]
     public class ServersViewModel : IDisposable
     {
+        private bool disposedValue;
+
         public ObservableCollection<ServerViewModel> Servers { get; set; }
         public SettingsViewModel SettingsViewModel { get; set; }
         public int Index { get; set; }
@@ -27,16 +29,22 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         private IServerBrowser CurrentBackend { get; set; }
         private Func<String, IServerBrowser> ServerBrowserBackendInitializer { get; }
-        public IServerBrowser Backend { get {
-            if(CurrentBackend.Host != SettingsViewModel.ServerBrowserBackend) {
-                CurrentBackend.Dispose();
-                    
-                var newBackend = ServerBrowserBackendInitializer(SettingsViewModel.ServerBrowserBackend);
-                CurrentBackend = newBackend;
-            }
+        public IServerBrowser Backend { 
+            get {
+                if(CurrentBackend.Host != SettingsViewModel.ServerBrowserBackend) {
+                    var oldBackend = this.CurrentBackend;
+                    var newBackend = ServerBrowserBackendInitializer(SettingsViewModel.ServerBrowserBackend);
+                    CurrentBackend = newBackend;
+                    // TODO: this is not valid because it could dispose a backend before
+                    // the servers using it are disposed. This will cause those servers to
+                    // use a disposed backend. (erroneous behavior) Disposal of the backend
+                    // should be the responsability of the servers which hold references to them.
+                    oldBackend.Dispose();
+                }
 
-            return CurrentBackend;
-        }}
+                return CurrentBackend;
+            }
+        }
 
         public ServersViewModel(SettingsViewModel settings, Func<string, IServerBrowser>? createServerBrowserBackend)
         {
@@ -68,17 +76,33 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public ServerViewModel RegisterServer(string serverIp, int rconPort, C2ServerInfo serverInfo, Process serverProcess) {
             var a2s = DefaultA2SConnectionInitializer(serverIp, serverInfo.Ports.A2s);
-            var server = new RegisteredServer(Backend, a2s, serverInfo, serverIp);
+            A2SBoundRegistration BoundRegistration = new(Backend, a2s, serverInfo, serverIp);
+            var server = new Chivalry2Server(BoundRegistration);
             var serverVm = new ServerViewModel(server, serverProcess, rconPort);
             Servers.Add(serverVm);
             return serverVm;
         }
 
-        public void Dispose() {
-            ShutdownAllServers();
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    ShutdownAllServers();
+                    // backend is initialized by this class, so it should be disposed here.
+                    this.CurrentBackend.Dispose();
+                }
 
-            // backend is initialized by this class, so it should be disposed here.
-            CurrentBackend.Dispose();
+                disposedValue = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
 
         private static Func<string, IServerBrowser> DefaultServerBrowserInitializer => (host) => new ServerBrowser(new Uri(host + "/api/v1"), new HttpClient());
@@ -93,7 +117,9 @@ namespace UnchainedLauncher.GUI.ViewModels
     [AddINotifyPropertyChangedInterface]
     public class ServerViewModel : IDisposable
     {
-        public RegisteredServer Server { get; private set; }
+        // TODO: make Chivalry2Server handle the game process, Pid, and Rcon stuff
+        // instead of having the ViewModel do it
+        public Chivalry2Server Server { get; private set; }
         public int Pid { get; private set; }
         public string CurrentRconCommand { get; set; } = "";
         public int RconPort { get; private set; }
@@ -105,7 +131,7 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         private bool disposed = false;
 
-        public ServerViewModel(RegisteredServer server, Process serverProcess, int rconPort)
+        public ServerViewModel(Chivalry2Server server, Process serverProcess, int rconPort)
         {
             this.Server = server;
             this.RconPort = rconPort;
@@ -127,10 +153,6 @@ namespace UnchainedLauncher.GUI.ViewModels
                 return;
             }
             try {
-                if (!Server.IsA2SOk) {
-                    RconHistory += $"INF: Command will be sent when A2S is good\n";
-                    await Server.WhenA2SOk();
-                }
                 await RCON.SendCommandTo(RconEndPoint, command);
                 RconHistory += $"{command}\n";
             } catch (Exception e) {
@@ -145,10 +167,10 @@ namespace UnchainedLauncher.GUI.ViewModels
             if (!disposed && disposing)
             {
                 // TODO: might help to send an `exit` rcon command
-                Server.Dispose();
                 ServerProcess?.Kill();
                 ServerProcess?.Close();
                 ServerProcess?.Dispose();
+                Server.Dispose();
             }
 
             disposed = true;

@@ -197,6 +197,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public void Dispose() {
             SaveSettings();
+            GC.SuppressFinalize(this);
         }
     }
 }

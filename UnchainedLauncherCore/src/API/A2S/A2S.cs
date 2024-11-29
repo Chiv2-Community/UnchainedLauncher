@@ -6,19 +6,19 @@ using log4net;
 
 namespace UnchainedLauncher.Core.API
 {
-    public record A2sInfo (
-        byte ProtocolVersion, 
-        String Name,
-        String Map,
-        String Folder,
-        String Game, 
-        UInt16 GameID, 
+    public record A2sInfo(
+        byte ProtocolVersion,
+        string Name,
+        string Map,
+        string Folder,
+        string Game,
+        ushort GameID,
         byte Players,
         byte MaxPlayers,
-        byte Bots, 
-        ServerType ServerType, 
-        Environment Environment, 
-        bool IsPublic, 
+        byte Bots,
+        ServerType ServerType,
+        Environment Environment,
+        bool IsPublic,
         bool Vac
         );
 
@@ -85,7 +85,7 @@ namespace UnchainedLauncher.Core.API
             }
             byte protocolVersion = br.ReadByte();
             var (name, map, folder, game) = (ReadString(ref br), ReadString(ref br), ReadString(ref br), ReadString(ref br));
-            UInt16 gameID = BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2));
+            ushort gameID = BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2));
             var (players, maxPlayers, bots) = (br.ReadByte(), br.ReadByte(), br.ReadByte());
             var serverType = (ServerType)br.ReadByte();
             var environment = (Environment)br.ReadByte();
@@ -97,17 +97,17 @@ namespace UnchainedLauncher.Core.API
             {
                 throw new InvalidDataException("Invalid server type");
             }
-            else if(!Enum.IsDefined(typeof(Environment), environment))
+            else if (!Enum.IsDefined(typeof(Environment), environment))
             {
                 throw new InvalidDataException("Invalid environment type");
             }
             return new A2sInfo(protocolVersion, name, map, folder, game, gameID, players, maxPlayers, bots, serverType, environment, isPublic, vac);
         }
-        private static String ReadString(ref BinaryReader reader)
+        private static string ReadString(ref BinaryReader reader)
         {
             StringBuilder sb = new();
             char n = reader.ReadChar();
-            while(n != 0x00)
+            while (n != 0x00)
             {
                 sb.Append(n);
                 n = reader.ReadChar();
@@ -115,12 +115,14 @@ namespace UnchainedLauncher.Core.API
             return sb.ToString();
         }
 
-        private static string ByteArrayToHexString(byte[] byteArray) {
+        private static string ByteArrayToHexString(byte[] byteArray)
+        {
             // Create a new string array to hold the hexadecimal representations
             string[] hexArray = new string[byteArray.Length];
 
             // Convert each byte to a two-character hexadecimal string
-            for (int i = 0; i < byteArray.Length; i++) {
+            for (int i = 0; i < byteArray.Length; i++)
+            {
                 hexArray[i] = byteArray[i].ToString("X2"); // X2 formats as two uppercase hex digits
             }
 

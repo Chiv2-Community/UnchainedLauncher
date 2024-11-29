@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using UnchainedLauncher.Core.API;
 
 namespace UnchainedLauncher.Core.API.Tests
 {

@@ -1,4 +1,6 @@
-﻿namespace UnchainedLauncher.Core.API.Tests
+﻿using UnchainedLauncher.Core.API;
+
+namespace UnchainedLauncher.Core.API.Tests
 {
 
     // Should have an instance of the backend running on localhost:8080 for this
@@ -41,7 +43,7 @@
             using ServerBrowser backend = new(endpoint, new HttpClient());
             var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
             await Task.Delay(1000); //wait a bit before updating
-            double refreshBefore2 = await backend.UpdateServerAsync(server);
+            double refreshBefore2 = await backend.UpdateServerAsync(server, key);
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
             Assert.True(refreshBefore2 > now);
         }
@@ -52,7 +54,7 @@
             using ServerBrowser backend = new(endpoint, new HttpClient());
             var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
             Thread.Sleep(1000); //give it time to sit before sending a heartbeat
-            double refreshBefore2 = await backend.HeartbeatAsync(server);
+            double refreshBefore2 = await backend.HeartbeatAsync(server, key);
             long now = DateTimeOffset.Now.ToUnixTimeSeconds();
 
             Assert.True(refreshBefore2 > now);
@@ -63,7 +65,7 @@
         {
             using ServerBrowser backend = new(endpoint, new HttpClient());
             var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
-            await backend.DeleteServerAsync(server);
+            await backend.DeleteServerAsync(server, key);
         }
     }
 }

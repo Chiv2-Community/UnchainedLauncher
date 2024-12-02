@@ -20,8 +20,8 @@
         <DataTemplate DataType="{x:Type ivms:VersionSelectionPageViewModel}">
             <local:VersionSelectionView />
         </DataTemplate>
-        <DataTemplate DataType="{x:Type ivms:InstallationLogPageViewModel}">
-            <local:InstallationLogView />
+        <DataTemplate DataType="{x:Type ivms:InstallerLogPageViewModel}">
+            <local:InstallerLogView />
         </DataTemplate>
     </Window.Resources>
     

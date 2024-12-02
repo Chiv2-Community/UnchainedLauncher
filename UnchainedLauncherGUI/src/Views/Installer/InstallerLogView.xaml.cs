@@ -15,9 +15,9 @@ using UnchainedLauncher.GUI.ViewModels.Installer;
 
 namespace UnchainedLauncher.GUI.Views.Installer
 {
-    public partial class InstallationLogView : UserControl
+    public partial class InstallerLogView : UserControl
     {
-        public InstallationLogView() {
+        public InstallerLogView() {
             InitializeComponent();
         }
     }

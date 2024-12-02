@@ -10,7 +10,7 @@ using UnchainedLauncher.Core.Installer;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer
 {
-    public partial class InstallationLogPageViewModel: IInstallerPageViewModel, INotifyPropertyChanged
+    public partial class InstallerLogPageViewModel: IInstallerPageViewModel, INotifyPropertyChanged
     {
         public string TitleText => "Installation Log";
         public string? DescriptionText => null;
@@ -25,7 +25,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
         private readonly Func<IEnumerable<DirectoryInfo>> GetInstallationTargets;
         private readonly Func<VersionedRelease> GetSelectedVersion;
 
-        public InstallationLogPageViewModel() : this(
+        public InstallerLogPageViewModel() : this(
             new MockInstaller(),
             () => new List<DirectoryInfo>(),
             () => VersionedRelease.DefaultMockReleases.First()
@@ -34,7 +34,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
             AppendLog("Doing things...");
         }
 
-        public InstallationLogPageViewModel(IUnchainedLauncherInstaller installer, Func<IEnumerable<DirectoryInfo>> getTargets, Func<VersionedRelease> getSelectedVersion) {
+        public InstallerLogPageViewModel(IUnchainedLauncherInstaller installer, Func<IEnumerable<DirectoryInfo>> getTargets, Func<VersionedRelease> getSelectedVersion) {
             Installer = installer;
 
             CanContinue = false;

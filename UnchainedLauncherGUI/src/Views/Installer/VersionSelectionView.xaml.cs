@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Microsoft.Web.WebView2.Core;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,7 +13,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
 using UnchainedLauncher.GUI.ViewModels.Installer;
 
 namespace UnchainedLauncher.GUI.Views.Installer
@@ -19,6 +20,8 @@ namespace UnchainedLauncher.GUI.Views.Installer
     // All of this codebehind exists because WebView doesn't support binding to a string for content
     public partial class VersionSelectionView : UserControl
     {
+        private bool WebViewInitialized = false;
+
         public VersionSelectionView() {
             InitializeComponent();
 
@@ -46,8 +49,27 @@ namespace UnchainedLauncher.GUI.Views.Installer
             };
         }
 
+        private async Task InitWebView() {
+            if (WebViewInitialized) return;
+
+            var userDataFolder = Path.Combine(
+                Path.GetTempPath(),
+                Path.GetRandomFileName()
+            );
+
+            var options = new CoreWebView2EnvironmentOptions();
+            var environment = await CoreWebView2Environment.CreateAsync(
+                null, // Use default browser version
+                userDataFolder,
+                options
+            );
+
+            await WebView.EnsureCoreWebView2Async(environment);
+            WebViewInitialized = true;
+        }
+
         private async Task HandleSelectedVersionChanged(VersionSelectionPageViewModel vm) {
-            await WebView.EnsureCoreWebView2Async();
+            await InitWebView();
             WebView.NavigateToString(vm.SelectedVersionDescriptionHtml);
         }
     }

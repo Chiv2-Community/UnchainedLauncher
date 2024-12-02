@@ -56,7 +56,7 @@ namespace UnchainedLauncher.GUI {
         public static Window InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer) {
             var installationSelectionVM = new InstallationSelectionPageViewModel(installationFinder);
             var versionSelectionVM = new VersionSelectionPageViewModel(installer);
-            var installationLogVM = new InstallationLogPageViewModel(
+            var installationLogVM = new InstallerLogPageViewModel(
                 installer,
                 () => from chiv2Installations in installationSelectionVM.Installations
                       where chiv2Installations.IsSelected

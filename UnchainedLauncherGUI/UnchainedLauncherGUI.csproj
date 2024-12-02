@@ -55,7 +55,7 @@
     <ProjectReference Include="..\UnchainedLauncherCore\UnchainedLauncherCore.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="src\Views\Installer\InstallationLogView.xaml.cs">
+    <Compile Update="src\Views\Installer\InstallerLogView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="src\Views\Installer\InstallerWindow.xaml.cs">

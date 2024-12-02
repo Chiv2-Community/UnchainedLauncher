@@ -20,7 +20,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
         private static readonly ObservableCollection<IInstallerPageViewModel> DefaultPages = new ObservableCollection<IInstallerPageViewModel>() {
             new InstallationSelectionPageViewModel(),
             new VersionSelectionPageViewModel(),
-            new InstallationLogPageViewModel()
+            new InstallerLogPageViewModel()
         };
 
         public ObservableCollection<IInstallerPageViewModel> InstallerPages { get; set; }

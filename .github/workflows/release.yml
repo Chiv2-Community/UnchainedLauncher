@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*.*.*'
 
+permissions:
+  contents: write
+
+
+# TODO: Run integration tests. Set up some kind of stubbed environment for the tests to run in.
 jobs:
   build:
     strategy:
@@ -52,46 +57,23 @@ jobs:
         name: UnchainedLauncher_Release_${{ github.sha }}
         path: results/Release
 
+    - name: Set file names
+      run: |
+        mv results/Debug/UnchainedLauncher.exe UnchainedLauncher_dbg.exe
+        mv results/Debug/UnchainedLauncher.pdb UnchainedLauncher_dbg.pdb
+        mv results/Release/UnchainedLauncher.exe UnchainedLauncher.exe
+
     - name: Create GitHub Release
       id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ github.ref }}
         release_name: "Release ${{ github.ref }}: ${{ env.tag_annotation }}"
         draft: false
         prerelease: true
+        files: |
+          UnchainedLauncher_dbg.exe
+          UnchainedLauncher_dbg.pdb
+          UnchainedLauncher.exe
         body: |
           ${{ github.ref }}
-
-    # Add Release assets
-    - name: Upload Release Launcher
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: results/Release/UnchainedLauncher.exe
-        asset_name: UnchainedLauncher.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload Debug Launcher
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: results/Debug/UnchainedLauncher.exe
-        asset_name: UnchainedLauncher_dbg.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload Debug Launcher PDB
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: results/Debug/UnchainedLauncher.pdb
-        asset_name: UnchainedLauncher.pdb
-        asset_content_type: application/octet-stream

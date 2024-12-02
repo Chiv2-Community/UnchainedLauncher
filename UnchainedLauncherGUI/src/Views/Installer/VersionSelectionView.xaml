@@ -20,12 +20,41 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ComboBox x:Name="VersionComboBox" 
-                  Grid.Row="0"
-                  Margin="0,0,0,10"
-                  ItemsSource="{Binding AvailableVersions}"
+        <Grid Grid.Row="0" Margin="0,0,10,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <ComboBox
+                  x:Name="VersionComboBox"
+                  Margin="0,5,5,5"
+                  Grid.Column="0"
+                  VerticalAlignment="Center"
+                  ItemsSource="{Binding VisibleVersions}"
                   SelectedItem="{Binding SelectedVersion}"
-                  DisplayMemberPath="Release.TagName"/>
+                  DisplayMemberPath="DisplayText"
+                  DropDownOpened="VersionComboBox_DropDownOpened"
+                >
+                <ComboBox.Resources>
+                    <Style TargetType="{x:Type ComboBoxItem}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsLatestStable}" Value="True">
+                                <Setter Property="FontWeight" Value="Bold" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ComboBox.Resources>
+            </ComboBox>
+
+            <CheckBox
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    IsChecked="{Binding ShowDevReleases}"
+                    Margin="10,0,0,0"
+                    Content="Show Dev Releases"/>
+        </Grid>
 
         <TextBlock Grid.Row="1" 
                    Text="{Binding SelectedVersion.Release.Name}"

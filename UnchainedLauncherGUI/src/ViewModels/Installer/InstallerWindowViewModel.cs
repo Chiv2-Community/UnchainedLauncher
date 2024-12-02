@@ -10,6 +10,7 @@ using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer
@@ -36,9 +37,9 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
         public bool CanGoBack { get { return CurrentPage.CanGoBack; } }
         public bool Finished { get; set; }
 
-        public bool DisplayDescription { get; set; }
-        public string DescriptionColumnWidth => DisplayDescription ? "1*" : "0";
-        public string PageColumnWidth => DisplayDescription ? "2*" : "1*";
+        public Visibility DisplayDescription { get; set; }
+        public string DescriptionColumnWidth => DisplayDescription == Visibility.Visible ? "1*" : "0";
+        public string PageColumnWidth => DisplayDescription == Visibility.Visible ? "2*" : "1*";
         public ICommand NextButtonCommand { get; }
         public ICommand BackButtonCommand { get; }
 
@@ -99,7 +100,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
             }
 
             CanContinue = CurrentPage.CanContinue;
-            DisplayDescription = CurrentPage.DescriptionText != null;
+            DisplayDescription = CurrentPage.DescriptionText != null ? Visibility.Visible : Visibility.Hidden;
         }
     }
 }

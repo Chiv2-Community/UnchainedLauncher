@@ -22,13 +22,12 @@
         </Grid.ColumnDefinitions>
 
         <CheckBox Grid.Column="0" 
-                                 IsChecked="{Binding IsSelected}" 
-                                 VerticalAlignment="Center"
-                                 Margin="0,0,10,0"/>
+                  IsChecked="{Binding IsSelected}" 
+                  VerticalAlignment="Center"
+                  Margin="0,0,10,0"/>
 
         <TextBlock Grid.Column="2" 
-                                 Text="{Binding PathString}" 
-                                 VerticalAlignment="Center"
-                                 />
+                   Text="{Binding PathString}" 
+                   VerticalAlignment="Center"/>
     </Grid>
 </UserControl>

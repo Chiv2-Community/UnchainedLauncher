@@ -72,5 +72,21 @@ namespace UnchainedLauncher.GUI.Views.Installer
             await InitWebView();
             WebView.NavigateToString(vm.SelectedVersionDescriptionHtml);
         }
+
+        // And this jank is to make it so the selected dropdown item is
+        // centered, rather than at the top when the dropdown is opened
+        private void VersionComboBox_DropDownOpened(object sender, EventArgs e) {
+            if (VersionComboBox.SelectedItem == null) return;
+
+            VersionComboBox.Dispatcher.BeginInvoke((Action)(() => {
+                if (VersionComboBox.IsDropDownOpen) {
+                    ScrollViewer scrollViewer = VersionComboBox.Template.FindName("DropDownScrollViewer", VersionComboBox) as ScrollViewer;
+                    if (scrollViewer != null) {
+                        double targetOffset = scrollViewer.VerticalOffset - scrollViewer.ViewportHeight / 2;
+                        scrollViewer.ScrollToVerticalOffset(targetOffset);
+                    }
+                }
+            }));
+        }
     }
 }

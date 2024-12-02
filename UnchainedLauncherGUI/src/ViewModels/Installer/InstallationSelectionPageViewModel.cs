@@ -95,8 +95,6 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         private void UpdateCanContinue(object? sender, PropertyChangedEventArgs e) {
             if(e.PropertyName == "IsSelected") {
                 CanContinue = Installations.Any(inst => inst.IsSelected);
-                OnPropertyChanged(nameof(CanContinue));
-                logger.Info("CanContinue: " + CanContinue);
             }
         }
     }

@@ -31,11 +31,17 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public string GoBackButtonText => "Back";
         public bool CanGoBack => true;
 
+        public bool ShowDevReleases { get; set; }
+
         public ObservableCollection<VersionedRelease> AvailableVersions { get; set; }
+        public IEnumerable<VersionedRelease> VisibleVersions => AvailableVersions.Filter(ShouldShowVersion);
+
         public VersionedRelease? SelectedVersion { get; set; }
         public string SelectedVersionDescriptionHtml { get {
                 if (SelectedVersion == null) return "";
-                else return RenderMarkdown(SelectedVersion!.Release.Body); } }
+                else return RenderMarkdown(SelectedVersion!.Release.Body); 
+        } }
+
         public bool IsSelected { get { return SelectedVersion != null; } }
         public ICommand ViewOnGithubCommand { get; }
 
@@ -48,6 +54,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public VersionSelectionPageViewModel(IUnchainedLauncherInstaller installer) {
             Installer = installer;
             AvailableVersions = new ObservableCollection<VersionedRelease>();
+
+            AvailableVersions.CollectionChanged += (_, _) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VisibleVersions)));
 
             ViewOnGithubCommand = new RelayCommand(OpenGithubPage);
         }
@@ -63,13 +71,23 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
                 return;
             }
 
-            releases.ToList().ForEach(AvailableVersions.Add);
-
+            releases.ToList().ForEach(release => AvailableVersions.Add(release));
             SelectLatestVersion();
         }
 
         private void SelectLatestVersion() {
-            SelectedVersion = AvailableVersions.Filter(v => v.Version.IsRelease).First();
+            SelectedVersion = AvailableVersions.Filter(x => x.IsLatestStable).FirstOrDefault();
+        }
+
+        private bool ShouldShowVersion(VersionedRelease release) {
+            if(!ShowDevReleases) {
+                // Github action has an idea of prerelease, and then semver
+                // also does. If ShowDevReleases is false, then we don't show
+                // anything which is considered a prerelease by either.
+                return !release.Release.Prerelease && !release.Version.IsPrerelease;
+            }
+            
+            return true;
         }
 
         private void OpenGithubPage() {

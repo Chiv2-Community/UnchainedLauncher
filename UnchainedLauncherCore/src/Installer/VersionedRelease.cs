@@ -8,7 +8,11 @@ using System.Threading.Tasks;
 
 namespace UnchainedLauncher.Core.Installer
 {
-    public record VersionedRelease(Release Release, SemVersion Version) {
+    public record VersionedRelease(Release Release, SemVersion Version, bool IsLatestStable) {
+        public VersionedRelease AsLatestStable() => this with { IsLatestStable = true };
+        public string DisplayText => $"{Release.TagName} ({Release.CreatedAt.ToString("d")})" + (IsLatestStable ? " Recommended" : "");
+
+
         public static VersionedRelease CreateMockRelease(SemVersion version) =>
             new VersionedRelease(new Release(
                 "http://github.com/chiv2-community/UnchainedLauncher",
@@ -31,7 +35,7 @@ namespace UnchainedLauncher.Core.Installer
                 new List<ReleaseAsset> {
                 new ReleaseAsset()
                 }) {
-            }, version);
+            }, version, false);
 
         public static readonly IEnumerable<VersionedRelease> DefaultMockReleases = new List<VersionedRelease> {
             CreateMockRelease(SemVersion.Parse("1.0.0-RC1", SemVersionStyles.Any)),

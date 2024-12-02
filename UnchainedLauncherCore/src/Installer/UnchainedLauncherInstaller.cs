@@ -63,25 +63,8 @@ namespace UnchainedLauncher.Core.Installer {
                 return LatestRelease;
             }
 
-            if(ReleaseCache.IsSome) {
-                var sortedReleases =
-                    from release in ReleaseCache.ValueUnsafe()
-                    orderby release.Version descending
-                    where release.Version.IsRelease
-                    select release;
-                    
-                LatestRelease = Optional(sortedReleases?.FirstOrDefault());
-                return LatestRelease;
-            }
-
             try {
-                var latestRelease = await GitHubClient.Repository.Release.GetLatest(REPO_ID);
-
-                LatestRelease =
-                    from release in Optional(latestRelease)
-                    from version in ParseTag(release.TagName)
-                    select new VersionedRelease(release, version);
-
+                await GetAllReleases();
                 return LatestRelease;
             } catch(Exception e) {
                 logger.Error("Failed to connect to github to retrieve latest release information", e);
@@ -101,9 +84,18 @@ namespace UnchainedLauncher.Core.Installer {
                     from releases in maybeReleases
                     from release in releases
                     from version in ParseTag(release.TagName)
-                    select new VersionedRelease(release, version);
+                    select new VersionedRelease(release, version, false);
+
+                VersionedRelease? latestRelease = results.Filter(r => !r.Version.IsPrerelease && !r.Release.Prerelease).MaxBy(x => x.Version)?.AsLatestStable();
+
+                logger.Info($"Found {results.Count()} releases, latest stable release is {latestRelease?.Version}");
+
+                if (latestRelease != null)
+                    results = results?.ToList().Select(x => x.Version == latestRelease.Version ? x.AsLatestStable() : x);
 
                 ReleaseCache = Optional(results);
+                LatestRelease = Optional(latestRelease);
+
                 return ReleaseCache.ToList().Flatten();
             } catch (Exception e) {
                 logger.Error("Failed to connect to github to retrieve version information", e);

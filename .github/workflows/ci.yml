@@ -25,7 +25,7 @@ jobs:
       with:
         dotnet-version: '6.x'
     - name: Install dependencies
-      run: dotnet restore -c ${{ matrix.configuration }}
+      run: dotnet restore
     - name: Build
       run: dotnet build -c ${{ matrix.configuration }}
     - name: Run Unit Tests

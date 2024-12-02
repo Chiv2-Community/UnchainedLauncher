@@ -246,7 +246,7 @@
                             Grid.Row="1">
                     <TabControl.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Server.serverInfo.Name}" />
+                            <TextBlock Text="{Binding Server.RegistrationHandler.ServerInfo.Name}" />
                         </DataTemplate>
                     </TabControl.ItemTemplate>
                     <TabControl.ContentTemplate>
@@ -258,26 +258,8 @@
                                 </Grid.ColumnDefinitions>
                                 <!-- Data display -->
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock>
-                                        <Run Text="ID: "/>
-                                        <Run Text="{Binding Server.RemoteInfo.UniqueId}"/>
-                                    </TextBlock>
-                                    <TextBlock>
-                                        <Run Text="Name: "/>
-                                        <Run Text="{Binding Server.RemoteInfo.Name}"/>
-                                    </TextBlock>
-                                    <TextBlock>
-                                        <Run Text="Map: "/>
-                                        <Run Text="{Binding Server.RemoteInfo.CurrentMap}"/>
-                                    </TextBlock>
-                                    <TextBlock>
-                                        <Run Text="Players: "/>
-                                        <Run Text="{Binding Server.RemoteInfo.PlayerCount}"/>
-                                        /
-                                        <Run Text="{Binding Server.RemoteInfo.MaxPlayers}"/>
-                                    </TextBlock>
                                     <!-- A2S status display -->
-                                    <TextBlock ToolTip="{Binding Server.LastException.Message}">
+                                    <TextBlock ToolTip="{Binding Server.RegistrationHandler.A2SWatcher.LastException.Message}">
                                         <Run Text="A2S Status (hover for errors): "/>
                                         <InlineUIContainer BaselineAlignment="Center">
                                             <Ellipse Width="13" Height="13">
@@ -285,7 +267,7 @@
                                                     <Style TargetType="Ellipse">
                                                         <Setter Property="Fill" Value="Green"/>
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Server.IsA2SOk}" Value="False">
+                                                            <DataTrigger Binding="{Binding Server.RegistrationHandler.A2SWatcher.A2sOk}" Value="False">
                                                                 <Setter Property="Fill" Value="Red"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -295,7 +277,7 @@
                                         </InlineUIContainer>
                                     </TextBlock>
                                     <!-- HTTP status display -->
-                                    <TextBlock ToolTip="{Binding Server.LastHttpException.Message}">
+                                    <TextBlock ToolTip="{Binding Server.RegistrationHandler.Registration.LastException.Message}">
                                         <Run Text="Backend Status (hover for errors): "/>
                                         <InlineUIContainer BaselineAlignment="Center">
                                             <Ellipse Width="13" Height="13">
@@ -303,7 +285,10 @@
                                                     <Style TargetType="Ellipse">
                                                         <Setter Property="Fill" Value="Green"/>
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Server.IsRegistrationOk}" Value="False">
+                                                            <DataTrigger Binding="{Binding Server.RegistrationHandler.Registration.IsDead}" Value="True">
+                                                                <Setter Property="Fill" Value="Red"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Server.RegistrationHandler.Registration}" Value="{x:Null}">
                                                                 <Setter Property="Fill" Value="Red"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
@@ -312,6 +297,32 @@
                                             </Ellipse>
                                         </InlineUIContainer>
                                     </TextBlock>
+                                    <ContentControl Content="{Binding Server.RegistrationHandler.Registration}">
+                                        <ContentControl.ContentTemplate>
+                                            <DataTemplate>
+                                                <StackPanel>
+                                                    <TextBlock>
+                                                        <Run Text="ID: "/>
+                                                        <Run Text="{Binding Registration.Server.UniqueId}"/>
+                                                    </TextBlock>
+                                                    <TextBlock>
+                                                        <Run Text="Name: "/>
+                                                        <Run Text="{Binding Registration.Server.Name}"/>
+                                                    </TextBlock>
+                                                    <TextBlock>
+                                                        <Run Text="Map: "/>
+                                                        <Run Text="{Binding Registration.Server.CurrentMap}"/>
+                                                    </TextBlock>
+                                                    <TextBlock>
+                                                        <Run Text="Players: "/>
+                                                        <Run Text="{Binding Registration.Server.PlayerCount}"/>
+                                                        /
+                                                        <Run Text="{Binding Registration.Server.MaxPlayers}"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ContentControl.ContentTemplate>
+                                    </ContentControl>
                                     <TextBlock Text=""/>
                                     <TextBlock Text="Ports:"/>
                                     <!-- Ports outline -->
@@ -328,13 +339,13 @@
                                             <RowDefinition/>
                                         </Grid.RowDefinitions>
                                         <TextBlock Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" Text="Game: "/>
-                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Server.serverInfo.Ports.Game}"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.Game}"/>
 
                                         <TextBlock Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" Text="Ping: "/>
-                                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Server.serverInfo.Ports.Ping}"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.Ping}"/>
 
                                         <TextBlock Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" Text="A2S: "/>
-                                        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Server.serverInfo.Ports.A2s}"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.A2s}"/>
 
                                         <TextBlock Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Text="RCON: "/>
                                         <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding RconPort}"/>

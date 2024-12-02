@@ -10,7 +10,7 @@ namespace UnchainedLauncher.Core.API.Mocks
         public MockA2S()
         {
             results = new A2sInfo[1] {
-                new(0, "", "test map", "", "Chivalry 2", 0, 10, 100, 5, ServerType.NONDEDICATED, UnchainedLauncher.Core.API.Environment.WINDOWS, true, false)
+                new(0, "", "test map", "", "Chivalry 2", 0, 10, 100, 5, ServerType.NONDEDICATED, Environment.WINDOWS, true, false)
             };
         }
 

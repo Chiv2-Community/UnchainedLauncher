@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
         - 'main'
+        - 'series/*'
 
 # TODO: Run integration tests. Set up some kind of stubbed environment for the tests to run in.
 jobs:

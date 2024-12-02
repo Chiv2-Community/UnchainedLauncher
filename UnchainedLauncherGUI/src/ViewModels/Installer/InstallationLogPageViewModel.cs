@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using UnchainedLauncher.Core.Installer;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer
@@ -67,6 +68,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
             AppendLog("Installation complete!");
             AppendLog("You can now launch Chivalry 2 as you normally would and the unchained launcher will handle everything from there.");
 
+            MessageBox.Show("Chivalry 2 Unchained Launcher has been installed successfully!");
             CanContinue = true;
         }
 

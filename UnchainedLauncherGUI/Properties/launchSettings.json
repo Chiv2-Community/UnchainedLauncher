@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "UnchainedLauncherGUI": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}

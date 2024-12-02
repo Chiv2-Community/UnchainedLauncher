@@ -36,7 +36,7 @@ namespace UnchainedLauncher.GUI.Views {
         }
 
         public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates) {
-            if (updates.Count() == 0) {
+            if (updates.Any()) {
                 logger.Info("No updates available");
                 return None;
             } else {

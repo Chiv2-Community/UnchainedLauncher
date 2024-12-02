@@ -9,75 +9,89 @@ jobs:
   build:
     strategy:
       matrix:
-        targetplatform: [x64]
         configuration: [Debug, Release]
-
     runs-on: windows-latest
-
     env:
       GUI_Project_Path: UnchainedLauncherGUI
-
     steps:
-        - uses: actions/checkout@v4
-        - name: Setup dotnet
-          uses: actions/setup-dotnet@v3
-          with:
-            dotnet-version: '6.x'
-        - name: Install dependencies
-          run: dotnet restore
-        - name: Build
-          run: dotnet build
-        - name: Run Unit Tests
-          run: dotnet test .\UnchainedLauncherCoreTests\
+    - uses: actions/checkout@v4
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '6.x'
+    - name: Install dependencies
+      run: dotnet restore -c ${{ matrix.configuration }}
+    - name: Build
+      run: dotnet build -c ${{ matrix.configuration }}
+    - name: Run Unit Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncherCoreTests\
+      
+    # Puts binaries in ${{ env.GUI_Project_Path }}\bin\${{ matrix.configuration }}\net6.0-windows\win-x64\publish\
+    - name: Package ${{ matrix.configuration }} binaries
+      run: dotnet publish -c ${{ matrix.configuration}} 
 
-        # Puts binaries in UnchainedLauncherGUI\bin\Debug\net6.0-windows\win-x64\publish\
-        - name: Package Debug binaries
-          run: dotnet publish -c Debug 
+    - name: Upload ${{ matrix.configuration }} Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: UnchainedLauncher_${{ matrix.configuration }}_${{ github.sha }}
+        path: ${{ env.GUI_Project_Path }}\bin\${{ matrix.configuration }}\net6.0-windows\win-x64\publish\
 
-        # Puts binaries in UnchainedLauncherGUI\bin\Release\net6.0-windows\win-x64\publish\
-        - name: Package Release binaries
-          run: dotnet publish -c Release
+  publish:
+    needs: build
+    runs-on: windows-latest
+    steps:
+    - name: Download Debug Artifacts
+      uses: actions/download-artifact@v4.1.8
+      with:
+        name: UnchainedLauncher_Debug_${{ github.sha }}
+        path: results/Debug
 
-        - name: Create GitHub Release
-          id: create_release
-          uses: actions/create-release@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            tag_name: ${{ github.ref }}
-            release_name: "Release ${{ github.ref }}: ${{ env.tag_annotation }}"
-            draft: false
-            prerelease: true
-            body: |
-              ${{ github.ref }}
+    - name: Download Release Artifacts
+      uses: actions/download-artifact@v4.1.8
+      with:
+        name: UnchainedLauncher_Release_${{ github.sha }}
+        path: results/Release
 
-        # Add Release assets
-        - name: Upload Release Launcher
-          uses: actions/upload-release-asset@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: results/Release/net6.0-windows/win-x64/publish/UnchainedLauncher.exe
-            asset_name: UnchainedLauncher.exe
-            asset_content_type: application/octet-stream
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: "Release ${{ github.ref }}: ${{ env.tag_annotation }}"
+        draft: false
+        prerelease: true
+        body: |
+          ${{ github.ref }}
 
-        - name: Upload Debug Launcher
-          uses: actions/upload-release-asset@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: results/Debug/net6.0-windows/win-x64/publish/UnchainedLauncher.exe
-            asset_name: UnchainedLauncher_dbg.exe
-            asset_content_type: application/octet-stream
+    # Add Release assets
+    - name: Upload Release Launcher
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: results/Release/UnchainedLauncher.exe
+        asset_name: UnchainedLauncher.exe
+        asset_content_type: application/octet-stream
 
-        - name: Upload Debug Launcher PDB
-          uses: actions/upload-release-asset@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            upload_url: ${{ steps.create_release.outputs.upload_url }}
-            asset_path: results/Debug/net6.0-windows/win-x64/publish/UnchainedLauncher.pdb
-            asset_name: UnchainedLauncher.pdb
-            asset_content_type: application/octet-stream
+    - name: Upload Debug Launcher
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: results/Debug/UnchainedLauncher.exe
+        asset_name: UnchainedLauncher_dbg.exe
+        asset_content_type: application/octet-stream
+
+    - name: Upload Debug Launcher PDB
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: results/Debug/UnchainedLauncher.pdb
+        asset_name: UnchainedLauncher.pdb
+        asset_content_type: application/octet-stream

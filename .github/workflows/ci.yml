@@ -12,6 +12,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      GUI_Project_Path: UnchainedLauncherGUI
     steps:
     - uses: actions/checkout@v4
     - name: Setup dotnet
@@ -24,4 +26,25 @@ jobs:
       run: dotnet build
     - name: Run Unit Tests
       run: dotnet test .\UnchainedLauncherCoreTests\
+      
+    # Puts binaries in UnchainedLauncherGUI\bin\Debug\net6.0-windows\win-x64\publish\
+    - name: Package Debug binaries
+      run: dotnet publish -c Debug 
+
+    # Puts binaries in UnchainedLauncherGUI\bin\Release\net6.0-windows\win-x64\publish\
+    - name: Package Release binaries
+      run: dotnet publish -c Release
+
+    - name: Upload Debug Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: UnchainedLauncher_Debug_${{ github.sha }}
+        path: ${{ env.GUI_Project_Path }}\bin\Debug\net6.0-windows\win-x64\publish\
+
+    - name: Upload Release Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: UnchainedLauncher_Release_${{ github.sha }}
+        path: ${{ env.GUI_Project_Path }}\bin\Release\net6.0-windows\win-x64\publish\
+
 

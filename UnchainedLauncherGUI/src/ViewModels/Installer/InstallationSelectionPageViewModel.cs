@@ -92,10 +92,6 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             target.PropertyChanged += UpdateCanContinue;
         }
 
-        private void InstallationSelectionPageViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e) {
-            throw new NotImplementedException();
-        }
-
         private void UpdateCanContinue(object? sender, PropertyChangedEventArgs e) {
             if(e.PropertyName == "IsSelected") {
                 CanContinue = Installations.Any(inst => inst.IsSelected);

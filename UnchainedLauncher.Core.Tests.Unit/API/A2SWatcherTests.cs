@@ -2,9 +2,9 @@
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnchainedLauncher.Core.API;
-using Environment = UnchainedLauncher.Core.API.Environment;
+using Environment = UnchainedLauncher.Core.API.A2S.Environment;
 using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
+using UnchainedLauncher.Core.API.A2S;
 
 namespace UnchainedLauncher.Core.Tests.Unit.API
 {

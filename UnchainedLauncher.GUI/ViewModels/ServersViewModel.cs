@@ -14,6 +14,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.API.A2S;
+using UnchainedLauncher.Core.API.ServerBrowser;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {

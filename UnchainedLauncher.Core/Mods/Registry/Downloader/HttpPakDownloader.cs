@@ -2,9 +2,10 @@
 using LanguageExt.Common;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Mods.Registry.Resolver
+namespace UnchainedLauncher.Core.Mods.Registry.Downloader
 {
-    public class HttpPakDownloader : IModRegistryDownloader {
+    public class HttpPakDownloader : IModRegistryDownloader
+    {
         public static HttpPakDownloader GithubPakDownloader => new HttpPakDownloader(target =>
             $"https://github.com/{target.Org}/{target.RepoName}/releases/download/{target.ReleaseTag}/{target.FileName}"
         );

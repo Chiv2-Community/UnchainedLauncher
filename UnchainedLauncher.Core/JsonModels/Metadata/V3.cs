@@ -3,18 +3,21 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Semver;
 
-namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
+namespace UnchainedLauncher.Core.JsonModels.Metadata.V3
+{
     public record Mod(
         [property: JsonProperty("latest_manifest", Required = Required.Always)] ModManifest LatestManifest,
         [property: JsonProperty("releases", Required = Required.Always)] List<Release> Releases
-    ) {
-        public static Mod FromV2(V2.Mod input) {
+    )
+    {
+        public static Mod FromV2(V2.Mod input)
+        {
             return new Mod(
                 LatestManifest: ModManifest.FromV2(input.LatestManifest),
                 Releases: input.Releases.ConvertAll(Release.FromV2)
             );
         }
-        public Option<Release> LatestRelease => 
+        public Option<Release> LatestRelease =>
             Prelude.Optional(
                 Releases.Where(x => x.Version.IsRelease)
                     .OrderByDescending(x => x.Version)
@@ -28,8 +31,10 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
         [property: JsonProperty("pak_file_name", Required = Required.Always)] string PakFileName,
         [property: JsonProperty("release_date", Required = Required.Always)] DateTime ReleaseDate,
         [property: JsonProperty("manifest", Required = Required.Always)] ModManifest Manifest
-    ) {
-        public static Release FromV2(V2.Release input) {
+    )
+    {
+        public static Release FromV2(V2.Release input)
+        {
             return new Release(
                 Tag: input.Tag,
                 ReleaseHash: input.ReleaseHash,
@@ -44,13 +49,15 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
         public SemVersion Version => SemVersion.Parse(Tag, SemVersionStyles.AllowV);
     }
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum ModType {
+    public enum ModType
+    {
         Client,
         Server,
         Shared
     }
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum ModTag {
+    public enum ModTag
+    {
         Mutator,
         Map,
         Cosmetic,
@@ -64,8 +71,10 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
     public record Dependency(
         [property: JsonProperty("repo_url", Required = Required.Always)] string RepoUrl,
         [property: JsonProperty("version", Required = Required.Always)] string Version
-    ) {
-        public static Dependency FromV2(V2.Dependency input) {
+    )
+    {
+        public static Dependency FromV2(V2.Dependency input)
+        {
             return new Dependency(
                 RepoUrl: input.RepoUrl,
                 Version: input.Version
@@ -89,11 +98,13 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
         [property: JsonProperty("tags", Required = Required.Always)] List<ModTag> Tags,
         [property: JsonProperty("maps", Required = Required.Always)] List<string> Maps,
         [property: JsonProperty("options", Required = Required.Always)] OptionFlags OptionFlags
-    ) {
+    )
+    {
         public string Organization => RepoUrl.Split('/')[^2];
         public string RepoName => RepoUrl.Split('/')[^1];
 
-        public static ModManifest FromV2(V2.ModManifest input) {
+        public static ModManifest FromV2(V2.ModManifest input)
+        {
             return new ModManifest(
                 RepoUrl: input.RepoUrl,
                 Name: input.Name,

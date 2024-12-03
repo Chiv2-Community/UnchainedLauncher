@@ -4,7 +4,7 @@ using System.Net.Sockets;
 using System.Buffers.Binary;
 using log4net;
 
-namespace UnchainedLauncher.Core.API
+namespace UnchainedLauncher.Core.API.A2S
 {
     public record A2sInfo(
         byte ProtocolVersion,

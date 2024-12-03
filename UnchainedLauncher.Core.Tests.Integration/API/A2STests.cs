@@ -1,7 +1,7 @@
 ﻿using System.Net;
-using UnchainedLauncher.Core.API;
 
-namespace UnchainedLauncher.Core.API.Tests
+using UnchainedLauncher.Core.API.A2S;
+namespace UnchainedLauncher.Core.Tests.Integration.API
 {
     // Should have a chivalry/A2S server running on 127.0.0.1:7071 for these to
     // test against

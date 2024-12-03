@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnchainedLauncher.Core.API;
-using Environment = UnchainedLauncher.Core.API.Environment;
+using UnchainedLauncher.Core.API.A2S;
+using UnchainedLauncher.Core.API.ServerBrowser;
+using Environment = UnchainedLauncher.Core.API.A2S.Environment;
 
 namespace UnchainedLauncher.Core.Tests.Integration.API
 {

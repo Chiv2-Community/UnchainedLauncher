@@ -10,9 +10,9 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
-using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.API.A2S;
 
-namespace UnchainedLauncher.Core.API
+namespace UnchainedLauncher.Core.API.ServerBrowser
 {
     /// <summary>
     /// Maintains a registration with a backend by regularly performing heartbeats
@@ -32,25 +32,25 @@ namespace UnchainedLauncher.Core.API
         private readonly PeriodicRunner Runner;
         public Exception? LastException => Runner.LastException;
         private bool disposedValue;
-        public RegisterServerResponse Registration {get; private set;}
+        public RegisterServerResponse Registration { get; private set; }
         public PersistentServerRegistration(IServerBrowser browser,
                                             RegisterServerResponse registration,
                                             RegistrationDied? OnDeath = null,
                                             int heartBeatSecondsBeforeTimeout = 5)
         {
             this.browser = browser;
-            this.IsDead = false;
-            this.OnRegistrationDied = OnDeath ?? DefaultOnRegistrationDied;
-            this.Registration = registration;
-            this.HeartBeatSecondsBeforeTimeout = heartBeatSecondsBeforeTimeout;
-            this.Runner = new PeriodicRunner(this.TryHeartBeat, this.OnException, this.CalcSleepDuration(registration.RefreshBefore));
+            IsDead = false;
+            OnRegistrationDied = OnDeath ?? DefaultOnRegistrationDied;
+            Registration = registration;
+            HeartBeatSecondsBeforeTimeout = heartBeatSecondsBeforeTimeout;
+            Runner = new PeriodicRunner(TryHeartBeat, OnException, CalcSleepDuration(registration.RefreshBefore));
         }
 
         private async Task<bool> OnException(Exception ex)
         {
-            this.IsDead = true;
+            IsDead = true;
             // notify anyone who cares that this registration is dead
-            await this.OnRegistrationDied(ex);
+            await OnRegistrationDied(ex);
             return false;
         }
 
@@ -68,10 +68,10 @@ namespace UnchainedLauncher.Core.API
 
         public async Task UpdateRegistrationA2s(A2sInfo info)
         {
-            var shouldPush = this.Registration.Server.Update(info);
+            var shouldPush = Registration.Server.Update(info);
             if (shouldPush)
             {
-                await this.UpdateRegistration(this.Registration.Server);
+                await UpdateRegistration(Registration.Server);
             }
         }
 
@@ -79,17 +79,17 @@ namespace UnchainedLauncher.Core.API
         {
             if (disposedValue)
             {
-                logger.Error($"Attemped to update disposed server '{this.Registration.Server.Name}'");
+                logger.Error($"Attemped to update disposed server '{Registration.Server.Name}'");
                 throw new ObjectDisposedException("Attempted to update a disposed server");
             }
 
             try
             {
-                await this.browser.UpdateServerAsync(info, this.Registration.Key);
+                await browser.UpdateServerAsync(info, Registration.Key);
             }
             catch (Exception ex)
             {
-                logger.Error($"Server '${this.Registration.Server.Name}' failed to update: {ex.Message}");
+                logger.Error($"Server '${Registration.Server.Name}' failed to update: {ex.Message}");
                 throw;
             }
         }
@@ -98,28 +98,28 @@ namespace UnchainedLauncher.Core.API
         {
             try
             {
-                var refreshBefore = await this.browser.HeartbeatAsync(this.Registration.Server, this.Registration.Key);
+                var refreshBefore = await browser.HeartbeatAsync(Registration.Server, Registration.Key);
                 // update RefreshBefore for visibility
-                this.Registration = this.Registration with { RefreshBefore = refreshBefore };
+                Registration = Registration with { RefreshBefore = refreshBefore };
                 return CalcSleepDuration(refreshBefore);
             }
             catch (HttpRequestException e)
             {
                 if (e.StatusCode == HttpStatusCode.NotFound)
                 {
-                    logger.Error($"Server '{this.Registration.Server.Name}' got HTTP 404. Probably a missed heartbeat.", e);
+                    logger.Error($"Server '{Registration.Server.Name}' got HTTP 404. Probably a missed heartbeat.", e);
                     throw;
                 }
                 else
                 {
-                    logger.Error($"Server '{this.Registration.Server.Name}' got status code {e.StatusCode}.", e);
+                    logger.Error($"Server '{Registration.Server.Name}' got status code {e.StatusCode}.", e);
                     // re-throw exception
                     throw;
                 }
             }
             catch (TimeoutException e)
             {
-                logger.Error($"Server '{this.Registration.Server.Name}' timed out.", e);
+                logger.Error($"Server '{Registration.Server.Name}' timed out.", e);
                 throw;
             }
         }
@@ -130,13 +130,13 @@ namespace UnchainedLauncher.Core.API
             {
                 try
                 {
-                    this.IsDead = true;
-                    this.Runner.Dispose();
-                    this.browser.DeleteServerAsync(this.Registration.Server, this.Registration.Key).Wait();
+                    IsDead = true;
+                    Runner.Dispose();
+                    browser.DeleteServerAsync(Registration.Server, Registration.Key).Wait();
                 }
                 catch (Exception e)
                 {
-                    logger.Error($"Failed to de-register server '{this.Registration.Server.Name}' from backend: {e.Message}");
+                    logger.Error($"Failed to de-register server '{Registration.Server.Name}' from backend: {e.Message}");
                 }
 
                 disposedValue = true;

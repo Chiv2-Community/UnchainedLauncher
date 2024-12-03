@@ -1,10 +1,11 @@
 ﻿using NuGet.Frameworks;
-using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.API.A2S;
+using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
 
 namespace UnchainedLauncher.Core.Tests.Unit.API
 {
-    using Environment = UnchainedLauncher.Core.API.Environment;
+    using Environment = Core.API.A2S.Environment;
 
     public class PersistentServerRegistrationTests
     {

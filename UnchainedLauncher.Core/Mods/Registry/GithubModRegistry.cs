@@ -3,10 +3,11 @@ using LanguageExt.SomeHelp;
 using log4net;
 using Newtonsoft.Json;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Mods.Registry.Resolver;
+using UnchainedLauncher.Core.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Mods.Registry {
+namespace UnchainedLauncher.Core.Mods.Registry
+{
     public class GithubModRegistry : JsonRegistry, IModRegistry {
         public override IModRegistryDownloader ModRegistryDownloader { get; }
         public override string Name => $"Github mod registry at {Organization}/{RepoName}";

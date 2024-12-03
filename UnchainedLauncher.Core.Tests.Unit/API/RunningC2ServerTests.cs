@@ -4,11 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.API.A2S;
+using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
 
 namespace UnchainedLauncher.Core.Tests.Unit.API
 {
-    using Environment = UnchainedLauncher.Core.API.Environment;
+    using Environment = Core.API.A2S.Environment;
 
     public class RunningC2ServerTests
     {

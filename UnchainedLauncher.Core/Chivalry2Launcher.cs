@@ -4,8 +4,8 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Extensions;
 using LanguageExt;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 
 namespace UnchainedLauncher.Core
 {

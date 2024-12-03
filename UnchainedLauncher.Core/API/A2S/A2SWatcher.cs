@@ -6,9 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnchainedLauncher.Core.API;
 
-namespace UnchainedLauncher.Core.API
+namespace UnchainedLauncher.Core.API.A2S
 {
     /// <summary>
     /// Periodically polls an A2S endpoint. Runs a delegate whenever a poll is successful and
@@ -21,7 +20,7 @@ namespace UnchainedLauncher.Core.API
         private readonly OnA2SReceived OnReceived;
         private readonly PeriodicRunner runner;
         public Exception? LastException => runner.LastException;
-        public A2sInfo? LastA2sInfo {get; private set;}
+        public A2sInfo? LastA2sInfo { get; private set; }
         // TODO: add a task completion thing to this
         // so that other things can get async tasks that
         // complete when this becomes true.

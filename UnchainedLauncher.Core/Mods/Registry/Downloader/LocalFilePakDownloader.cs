@@ -7,9 +7,10 @@ using System.Text;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Mods.Registry.Resolver
+namespace UnchainedLauncher.Core.Mods.Registry.Downloader
 {
-    public class LocalFilePakDownloader : IModRegistryDownloader {
+    public class LocalFilePakDownloader : IModRegistryDownloader
+    {
         public string PakReleasesDir;
 
         public LocalFilePakDownloader(string pakReleasesDir)
@@ -23,23 +24,23 @@ namespace UnchainedLauncher.Core.Mods.Registry.Resolver
             var path = Path.Combine(PakReleasesDir, target.Org, target.RepoName, target.ReleaseTag, target.FileName);
 
             if (!File.Exists(path))
-                return 
+                return
                     Prelude
                         .LeftAsync<ModPakStreamAcquisitionFailure, SizedStream>(
                             new ModPakStreamAcquisitionFailure(
-                                target, 
+                                target,
                                 Error.New($"Failed to fetch pak. File not found: {path}")
                             )
                         );
 
-            return 
+            return
                 Prelude
                     .TryAsync(Task.Run(() => File.OpenRead(path)))
-                    .Map(stream => new SizedStream((Stream)stream, stream.Length))
+                    .Map(stream => new SizedStream(stream, stream.Length))
                     .ToEither()
-                    .MapLeft(e => 
+                    .MapLeft(e =>
                         new ModPakStreamAcquisitionFailure(
-                            target, 
+                            target,
                             Error.New($"Failed to fetch pak from {path}.", e)
                         )
                     );

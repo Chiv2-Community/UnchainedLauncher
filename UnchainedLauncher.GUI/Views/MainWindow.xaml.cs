@@ -10,10 +10,10 @@ using System.Windows.Controls;
 using UnchainedLauncher.Core;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
-using UnchainedLauncher.Core.Mods.Registry.Resolver;
 using System.Linq;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Installer;
+using UnchainedLauncher.Core.Mods.Registry.Downloader;
 
 namespace UnchainedLauncher.GUI.Views
 {

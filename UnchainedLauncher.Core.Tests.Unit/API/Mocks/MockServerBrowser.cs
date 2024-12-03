@@ -1,4 +1,4 @@
-﻿using UnchainedLauncher.Core.API;
+﻿using UnchainedLauncher.Core.API.ServerBrowser;
 
 namespace UnchainedLauncher.Core.Tests.Unit.API.Mocks
 {

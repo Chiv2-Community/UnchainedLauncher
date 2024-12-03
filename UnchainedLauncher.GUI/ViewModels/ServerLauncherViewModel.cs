@@ -12,15 +12,17 @@ using System.Reflection;
 using System.Collections.Specialized;
 using System.Collections.ObjectModel;
 using log4net;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core;
 using LanguageExt;
 using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.API.ServerBrowser;
 
-namespace UnchainedLauncher.GUI.ViewModels {
+namespace UnchainedLauncher.GUI.ViewModels
+{
     [AddINotifyPropertyChangedInterface]
     public class ServerLauncherViewModel : IDisposable {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServerLauncherViewModel));

@@ -1,5 +1,4 @@
-﻿using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using log4net;
+﻿using log4net;
 using Newtonsoft.Json;
 using System.Collections.ObjectModel;
 using UnchainedLauncher.Core.Utilities;
@@ -11,7 +10,7 @@ using System;
 using LanguageExt.ClassInstances.Pred;
 using UnchainedLauncher.Core.Extensions;
 using System.Collections.Immutable;
-using UnchainedLauncher.Core.Mods.Registry.Resolver;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 
 namespace UnchainedLauncher.Core.Mods
 {

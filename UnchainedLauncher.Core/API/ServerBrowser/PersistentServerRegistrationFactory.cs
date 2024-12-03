@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.API.A2S;
 
-namespace UnchainedLauncher.Core.API
+namespace UnchainedLauncher.Core.API.ServerBrowser
 {
     /// <summary>
     /// Allows the quick and easy creation of persistent server registration objects.
@@ -21,7 +21,8 @@ namespace UnchainedLauncher.Core.API
         public PersistentServerRegistrationFactory(IServerBrowser Browser,
                                                    C2ServerInfo ServerInfo,
                                                    int HeartBeatSecondsBeforeTimeout,
-                                                   string LocalIp) {
+                                                   string LocalIp)
+        {
             this.Browser = Browser;
             this.ServerInfo = ServerInfo;
             this.HeartBeatSecondsBeforeTimeout = HeartBeatSecondsBeforeTimeout;
@@ -37,9 +38,9 @@ namespace UnchainedLauncher.Core.API
         public async Task<PersistentServerRegistration> MakeRegistration(A2sInfo info,
                                                                          PersistentServerRegistration.RegistrationDied? OnDeath = null)
         {
-            ServerInfo specificInfo = new ServerInfo(this.ServerInfo, info);
-            var response = await this.Browser.RegisterServerAsync(this.LocalIp, specificInfo);
-            return new(this.Browser, response, OnDeath, this.HeartBeatSecondsBeforeTimeout);
+            ServerInfo specificInfo = new ServerInfo(ServerInfo, info);
+            var response = await Browser.RegisterServerAsync(LocalIp, specificInfo);
+            return new(Browser, response, OnDeath, HeartBeatSecondsBeforeTimeout);
         }
 
         protected virtual void Dispose(bool disposing)
@@ -49,7 +50,7 @@ namespace UnchainedLauncher.Core.API
                 if (disposing)
                 {
                     // TODO: should this dispose the browser?
-                    this.Browser.Dispose();
+                    Browser.Dispose();
                 }
 
                 disposedValue = true;

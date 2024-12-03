@@ -1,5 +1,4 @@
-﻿using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
 using log4net;
 using PropertyChanged;
 using System;
@@ -17,6 +16,7 @@ using UnchainedLauncher.GUI.Views;
 using System.Collections;
 using System.Collections.Generic;
 using LanguageExt.Common;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {

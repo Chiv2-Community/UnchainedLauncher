@@ -2,10 +2,10 @@
 using System.Text.Json;
 using System.Timers;
 using PropertyChanged;
-using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.API.A2S;
 using Timer = System.Threading.Timer;
 
-namespace UnchainedLauncher.Core.API
+namespace UnchainedLauncher.Core.API.ServerBrowser
 {
     // NOTE: some of these records have empty constructors that don't really seem useful.
     // They need to be there for serialization to work!
@@ -19,7 +19,8 @@ namespace UnchainedLauncher.Core.API
     public record ServerBrowserMod(string Name, string Organization, string Version);
 
     [AddINotifyPropertyChangedInterface]
-    public record C2ServerInfo {
+    public record C2ServerInfo
+    {
         public bool PasswordProtected { get; set; } = false;
         public string Name { get; set; } = "";
         public string Description { get; set; } = "";
@@ -32,12 +33,14 @@ namespace UnchainedLauncher.Core.API
     // TODO: This part of the API should be stabilized
     // as-is, there are numerous different kinds of "server" objects depending
     // on where they're coming from/where they're going
-    public record ServerInfo : C2ServerInfo {
-        public String CurrentMap { get; set; } = "";
+    public record ServerInfo : C2ServerInfo
+    {
+        public string CurrentMap { get; set; } = "";
         public int PlayerCount { get; set; } = 0;
         public int MaxPlayers { get; set; } = 0;
         public ServerInfo() { }
-        public ServerInfo(C2ServerInfo info, A2sInfo a2s) : base(info) {
+        public ServerInfo(C2ServerInfo info, A2sInfo a2s) : base(info)
+        {
             Update(a2s);
         }
 
@@ -49,52 +52,55 @@ namespace UnchainedLauncher.Core.API
         }
     }
 
-    public record UniqueServerInfo : ServerInfo {
-        public UniqueServerInfo(String UniqueId, double LastHeartbeat) {
+    public record UniqueServerInfo : ServerInfo
+    {
+        public UniqueServerInfo(string UniqueId, double LastHeartbeat)
+        {
             this.UniqueId = UniqueId;
             this.LastHeartbeat = LastHeartbeat;
         }
-        public UniqueServerInfo(ServerInfo info, String UniqueId, double LastHeartbeat) : base(info) {
+        public UniqueServerInfo(ServerInfo info, string UniqueId, double LastHeartbeat) : base(info)
+        {
             this.UniqueId = UniqueId;
             this.LastHeartbeat = LastHeartbeat;
         }
 
         public UniqueServerInfo() { }
-        public String UniqueId { get; set; } = "";
+        public string UniqueId { get; set; } = "";
         public double LastHeartbeat { get; set; } = 0;
     };
 
     public record RegisterServerRequest : ServerInfo
     {
-        public String LocalIpAddress { get; set; }
+        public string LocalIpAddress { get; set; }
         public RegisterServerRequest(ServerInfo info, string localIpAddress) : base(info)
         {
-            this.LocalIpAddress = localIpAddress;
+            LocalIpAddress = localIpAddress;
         }
     }
 
     public record ResponseServer : UniqueServerInfo
     {
-        public String LocalIpAddress { get; set; } = "";
-        public String IpAddress { get; set; } = "";
+        public string LocalIpAddress { get; set; } = "";
+        public string IpAddress { get; set; } = "";
 
-        public ResponseServer(){}
+        public ResponseServer() { }
 
         public ResponseServer(UniqueServerInfo info, string localIpAddress, string ipAddress) : base(info)
         {
-            this.LocalIpAddress = localIpAddress;
-            this.IpAddress = ipAddress;
+            LocalIpAddress = localIpAddress;
+            IpAddress = ipAddress;
         }
     }
     public record RegisterServerResponse(
         double RefreshBefore,
-        String Key,
+        string Key,
         ResponseServer Server
     );
     public record UpdateServerRequest(
         int PlayerCount,
         int MaxPlayers,
-        String CurrentMap
+        string CurrentMap
     );
 
     public record UpdateServerResponse(double RefreshBefore, ResponseServer Server);
@@ -107,7 +113,7 @@ namespace UnchainedLauncher.Core.API
     {
         public string Host { get; }
 
-        public Task<RegisterServerResponse> RegisterServerAsync(String localIp, ServerInfo info, CancellationToken? ct = null);
+        public Task<RegisterServerResponse> RegisterServerAsync(string localIp, ServerInfo info, CancellationToken? ct = null);
         public Task<double> UpdateServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null);
         public Task<double> HeartbeatAsync(UniqueServerInfo info, string key, CancellationToken? ct = null);
         public Task DeleteServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null);
@@ -152,7 +158,7 @@ namespace UnchainedLauncher.Core.API
 
         public ServerBrowser(Uri backend_uri, int TimeOutMillis = 4000) : this(backend_uri, new HttpClient(), TimeOutMillis) { }
 
-        public async Task<RegisterServerResponse> RegisterServerAsync(String localIp, ServerInfo info, CancellationToken? ct = null)
+        public async Task<RegisterServerResponse> RegisterServerAsync(string localIp, ServerInfo info, CancellationToken? ct = null)
         {
             var reqContent = new RegisterServerRequest(info, localIp);
             var content = JsonContent.Create(reqContent, options: sOptions);
@@ -248,7 +254,7 @@ namespace UnchainedLauncher.Core.API
             {
                 if (disposing)
                 {
-                    this.HttpClient.Dispose();
+                    HttpClient.Dispose();
                 }
 
                 disposedValue = true;
@@ -274,14 +280,15 @@ namespace UnchainedLauncher.Core.API
         public double RefreshFrequency;
         private bool disposedValue;
 
-        public NullServerBrowser(double refreshFrequency = 60) {
-            this.RefreshFrequency = refreshFrequency;
+        public NullServerBrowser(double refreshFrequency = 60)
+        {
+            RefreshFrequency = refreshFrequency;
         }
         public string Host => "none";
 
         private double GetRefreshBeforeTime()
         {
-            return (double)(DateTimeOffset.Now.ToUnixTimeSeconds() + this.RefreshFrequency);
+            return (double)(DateTimeOffset.Now.ToUnixTimeSeconds() + RefreshFrequency);
         }
 
         public Task DeleteServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null)
@@ -291,20 +298,20 @@ namespace UnchainedLauncher.Core.API
 
         public Task<double> HeartbeatAsync(UniqueServerInfo info, string key, CancellationToken? ct = null)
         {
-            return Task.FromResult(this.GetRefreshBeforeTime());
+            return Task.FromResult(GetRefreshBeforeTime());
         }
 
         public Task<RegisterServerResponse> RegisterServerAsync(string localIp, ServerInfo info, CancellationToken? ct = null)
         {
-            var uniqueInfo = new UniqueServerInfo(info, "Null_ID", (double)DateTimeOffset.Now.ToUnixTimeSeconds());
+            var uniqueInfo = new UniqueServerInfo(info, "Null_ID", DateTimeOffset.Now.ToUnixTimeSeconds());
             var responseServer = new ResponseServer(uniqueInfo, "127.0.0.1", "127.0.0.1");
-            var response = new RegisterServerResponse(this.GetRefreshBeforeTime(), "backend_key", responseServer);
+            var response = new RegisterServerResponse(GetRefreshBeforeTime(), "backend_key", responseServer);
             return Task.FromResult(response);
         }
 
         public Task<double> UpdateServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null)
         {
-            return Task.FromResult(this.GetRefreshBeforeTime());
+            return Task.FromResult(GetRefreshBeforeTime());
         }
 
         // we don't actually have anything to dispose, but we still have to
@@ -324,7 +331,7 @@ namespace UnchainedLauncher.Core.API
             GC.SuppressFinalize(this);
         }
     }
-    
+
     // TODO: this
     /// <summary>
     /// Throttles requests to a backend so that it's not possible to spam it by accident

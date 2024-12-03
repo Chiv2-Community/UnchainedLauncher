@@ -1,12 +1,15 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 
-namespace UnchainedLauncher.Core.JsonModels.Metadata.V2 {
+namespace UnchainedLauncher.Core.JsonModels.Metadata.V2
+{
     public record Mod(
         [property: JsonProperty("latest_manifest", Required = Required.Always)] ModManifest LatestManifest,
         [property: JsonProperty("releases", Required = Required.Always)] List<Release> Releases
-    ) {
-        public static Mod FromV1(V1.Mod v1Mod) {
+    )
+    {
+        public static Mod FromV1(V1.Mod v1Mod)
+        {
             return new Mod(
                 LatestManifest: ModManifest.FromV1(v1Mod.LatestManifest),
                 Releases: v1Mod.Releases.ConvertAll(Release.FromV1)
@@ -20,8 +23,10 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V2 {
         [property: JsonProperty("pak_file_name", Required = Required.Always)] string PakFileName,
         [property: JsonProperty("release_date", Required = Required.Always)] DateTime ReleaseDate,
         [property: JsonProperty("manifest", Required = Required.Always)] ModManifest Manifest
-    ) {
-        public static Release FromV1(V1.Release input) {
+    )
+    {
+        public static Release FromV1(V1.Release input)
+        {
             return new Release(
                 Tag: input.Tag,
                 ReleaseHash: input.ReleaseHash,
@@ -32,13 +37,15 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V2 {
         }
     }
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum ModType {
+    public enum ModType
+    {
         Client,
         Server,
         Shared
     }
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum ModTag {
+    public enum ModTag
+    {
         Mutator,
         Map,
         Cosmetic,
@@ -51,8 +58,10 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V2 {
     public record Dependency(
         [property: JsonProperty("repo_url", Required = Required.Always)] string RepoUrl,
         [property: JsonProperty("version", Required = Required.Always)] string Version
-    ) {
-        public static Dependency FromV1(V1.Dependency input) {
+    )
+    {
+        public static Dependency FromV1(V1.Dependency input)
+        {
             return new Dependency(
                 RepoUrl: input.RepoUrl,
                 Version: input.Version
@@ -71,8 +80,10 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V2 {
         [property: JsonProperty("dependencies", Required = Required.Always)] List<Dependency> Dependencies,
         [property: JsonProperty("tags", Required = Required.Always)] List<ModTag> Tags,
         [property: JsonProperty("ag_mod", Required = Required.Always)] bool AgMod
-    ) {
-        public static ModManifest FromV1(V1.ModManifest latestManifest) {
+    )
+    {
+        public static ModManifest FromV1(V1.ModManifest latestManifest)
+        {
             return new ModManifest(
                 RepoUrl: latestManifest.RepoUrl,
                 Name: latestManifest.Name,

@@ -1,5 +1,4 @@
-﻿using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
 using log4net;
 using PropertyChanged;
 using Semver;
@@ -19,8 +18,9 @@ using UnchainedLauncher.Core.Extensions;
 using System.CodeDom;
 using LanguageExt.Common;
 using static UnchainedLauncher.Core.Mods.DownloadModFailure;
-using UnchainedLauncher.Core.Mods.Registry.Resolver;
+using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {

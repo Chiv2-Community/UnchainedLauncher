@@ -4,10 +4,11 @@ using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods.Registry;
-using UnchainedLauncher.Core.Mods.Registry.Resolver;
+using UnchainedLauncher.Core.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Mods {
+namespace UnchainedLauncher.Core.Mods
+{
     using static LanguageExt.Prelude;
 
     public record UpdateCandidate(Release CurrentlyEnabled, Release AvailableUpdate) {

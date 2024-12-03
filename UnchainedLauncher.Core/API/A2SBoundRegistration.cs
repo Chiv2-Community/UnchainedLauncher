@@ -6,7 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.API.A2S;
+using UnchainedLauncher.Core.API.ServerBrowser;
 
 namespace UnchainedLauncher.Core.API
 {
@@ -93,7 +94,7 @@ namespace UnchainedLauncher.Core.API
             }
         }
 
-        private Task OnRegistrationDeath(Exception reason)
+        private Task OnRegistrationDeath(Exception _)
         {
             // drop it and let the next A2S poll try to re-create it
             this.DropRegistration();

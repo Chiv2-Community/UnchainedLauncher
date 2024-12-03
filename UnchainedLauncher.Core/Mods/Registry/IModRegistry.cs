@@ -4,7 +4,7 @@ using log4net;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Mods.Registry.Resolver;
+using UnchainedLauncher.Core.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Mods.Registry

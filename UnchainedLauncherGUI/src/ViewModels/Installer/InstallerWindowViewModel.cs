@@ -12,6 +12,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using UnchainedLauncher.GUI.Views.Installer;
+
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer
 {
@@ -34,24 +36,31 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
         public bool CanContinue { get; set; }
 
         public string GoBackButtonText { get { return CurrentPage.GoBackButtonText; } }
-        public bool CanGoBack { get { return CurrentPage.CanGoBack; } }
+        public bool CanGoBack { get; set; }
         public bool Finished { get; set; }
-
+        public Visibility WindowVisibility { get; set; }
         public Visibility DisplayDescription { get; set; }
+
         public string DescriptionColumnWidth => DisplayDescription == Visibility.Visible ? "1*" : "0";
         public string PageColumnWidth => DisplayDescription == Visibility.Visible ? "2*" : "1*";
         public ICommand NextButtonCommand { get; }
         public ICommand BackButtonCommand { get; }
 
+        public ObservableCollection<InstallationTargetViewModel> InstallTargets;
 
-        public InstallerWindowViewModel(): this(DefaultPages) { }
 
-        public InstallerWindowViewModel(ObservableCollection<IInstallerPageViewModel> installerPages) {
+        public InstallerWindowViewModel(): this(DefaultPages, new ObservableCollection<InstallationTargetViewModel> { new()}) { }
+
+        public InstallerWindowViewModel(ObservableCollection<IInstallerPageViewModel> installerPages, ObservableCollection<InstallationTargetViewModel> installTargets) {
             InstallerPages = installerPages;
+            InstallTargets = installTargets;
+
             CurrentPageIndex = 0;
             Finished = false;
             CanContinue = false;
+            CanGoBack = false;
 
+            WindowVisibility = Visibility.Visible;
 
             NextButtonCommand = new AsyncRelayCommand(NextPage);
             BackButtonCommand = new AsyncRelayCommand(PreviousPage);
@@ -68,16 +77,28 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
 
         private async Task NextPage() {
             await CurrentPage.Continue();
+
+            if ((CurrentPageIndex + 1) == InstallerPages.Count) {
+                FinalizeInstallation();
+                return;
+            }
+
             CurrentPageIndex++;
             UpdateCurrentPage();
 
-            if (CurrentPageIndex == InstallerPages.Count) {
-                logger.Info("Installer finished");
-                Finished = true;
-                return;
-            }
+           
             await CurrentPage.Load();
             UpdateCurrentPage();
+        }
+
+        private void FinalizeInstallation() {
+            logger.Info("Installer finished");
+            WindowVisibility = Visibility.Hidden;
+            var result = MessageBox.Show("Chivalry 2 Unchained Launcher has been installed successfully! Would you like to launch it now?", "Installation Complete", MessageBoxButton.YesNo);
+            if (result == MessageBoxResult.Yes) {
+                LaunchUnchainedLauncherWindow.Show(InstallTargets);
+            }
+            Finished = true;
         }
 
         private async Task PreviousPage() {
@@ -88,7 +109,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
 
         private void CurrentPagePropertyChanged(object? sender, PropertyChangedEventArgs e) {
             if (sender != null && sender == CurrentPage){
-                if(e.PropertyName == "CanContinue") {
+                if(e.PropertyName == "CanContinue" || e.PropertyName == "CanGoBack") {
                     UpdateCurrentPage();
                 }   
             }
@@ -100,6 +121,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
             }
 
             CanContinue = CurrentPage.CanContinue;
+            CanGoBack = CurrentPage.CanGoBack;
             DisplayDescription = CurrentPage.DescriptionText != null ? Visibility.Visible : Visibility.Hidden;
         }
     }

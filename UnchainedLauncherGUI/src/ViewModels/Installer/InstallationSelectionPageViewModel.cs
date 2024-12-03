@@ -30,7 +30,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public string DescriptionText => "For each selected installation, the Unchained Launcher will install to Chivalry2Launcher.exe and move the original launcher to Chivalry2Launcher-ORIGINAL.exe";
 
         public IChivalry2InstallationFinder InstallationFinder { get; }
-        public ObservableCollection<InstallationTargetViewModel> Installations { get; set; }
+        public ObservableCollection<InstallationTargetViewModel> Installations { get; }
         public ICommand ScanForInstallationsCommand { get; }
         public ICommand BrowseForInstallationCommand { get; }
         public InstallationSelectionPageViewModel() : this(new Chivalry2InstallationFinder()) { }
@@ -57,11 +57,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             try {
                 InstallationFinder
                     .FindSteamDir()
-                    .IfSome(path => AddInstallation(new InstallationTargetViewModel(path, false)));
+                    .IfSome(path => AddInstallation(new InstallationTargetViewModel(path, InstallationType.Steam, false)));
 
                 InstallationFinder
                     .FindEGSDir()
-                    .IfSome(path => AddInstallation(new InstallationTargetViewModel(path, false)));
+                    .IfSome(path => AddInstallation(new InstallationTargetViewModel(path, InstallationType.EpicGamesStore, false)));
 
             } catch (Exception ex) {
                 logger.Error("Error scanning for installations", ex);
@@ -79,6 +79,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
                 if (dirInfo != null && InstallationFinder.IsValidInstallation(dirInfo)) {
                     AddInstallation(new InstallationTargetViewModel(
                         dirInfo,
+                        InstallationType.Steam,
                         true
                     ));
                 } else {

@@ -3,6 +3,7 @@ using LanguageExt;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Configuration;
 using System.Diagnostics;
 using System.Linq;
@@ -16,9 +17,9 @@ using System.Windows.Input;
 using UnchainedLauncher.Core.Mods;
 
 namespace UnchainedLauncher.GUI.ViewModels {
+    using static LanguageExt.Prelude;
 
-    [AddINotifyPropertyChangedInterface]
-    public class UpdatesWindowViewModel {
+    public partial class UpdatesWindowViewModel : INotifyPropertyChanged {
         public string TitleText { get; }
         public string MessageText { get; }
         public string YesButtonText { get; }
@@ -36,6 +37,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public ICommand NoCommand { get; set; }
         public ICommand CancelCommand { get; set; }
         private Action CloseWindow { get; }
+
+        public UpdatesWindowViewModel(): this("Title", "Message", "Yes", "No", None, new List<DependencyUpdate>(), () => { }) { }
 
         public UpdatesWindowViewModel(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates, Action closeWindow) {
             TitleText = titleText;

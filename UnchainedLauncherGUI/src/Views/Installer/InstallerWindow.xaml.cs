@@ -28,6 +28,11 @@ namespace UnchainedLauncher.GUI.Views.Installer
                     if(installerWindowViewModel.Finished) {
                         Close();
                     }
+                } else if (args.PropertyName == nameof(installerWindowViewModel.WindowVisibility)) {
+                    // This is a janky hack because my visibility binding isn't working
+                    if(installerWindowViewModel.WindowVisibility == Visibility.Hidden) {
+                        Hide();
+                    }
                 }
             };
         }

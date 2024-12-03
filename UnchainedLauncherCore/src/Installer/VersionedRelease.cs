@@ -10,7 +10,7 @@ namespace UnchainedLauncher.Core.Installer
 {
     public record VersionedRelease(Release Release, SemVersion Version, bool IsLatestStable) {
         public VersionedRelease AsLatestStable() => this with { IsLatestStable = true };
-        public string DisplayText => $"{Release.TagName} ({Release.CreatedAt.ToString("d")})" + (IsLatestStable ? " Recommended" : "");
+        public string DisplayText => $"{Release.TagName} ({Release.CreatedAt:d})" + (IsLatestStable ? " Recommended" : "");
 
 
         public static VersionedRelease CreateMockRelease(SemVersion version) =>

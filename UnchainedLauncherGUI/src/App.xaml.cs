@@ -71,7 +71,7 @@ namespace UnchainedLauncher.GUI {
                 installationLogVM
             };
 
-            var installerWindowVM = new InstallerWindowViewModel(installerPageViewModels);
+            var installerWindowVM = new InstallerWindowViewModel(installerPageViewModels, installationSelectionVM.Installations);
             return new InstallerWindow(installerWindowVM);
         }
 

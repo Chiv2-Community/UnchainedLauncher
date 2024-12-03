@@ -78,15 +78,14 @@ namespace UnchainedLauncher.GUI.Views.Installer
         private void VersionComboBox_DropDownOpened(object sender, EventArgs e) {
             if (VersionComboBox.SelectedItem == null) return;
 
-            VersionComboBox.Dispatcher.BeginInvoke((Action)(() => {
+            VersionComboBox.Dispatcher.BeginInvoke(() => {
                 if (VersionComboBox.IsDropDownOpen) {
-                    ScrollViewer scrollViewer = VersionComboBox.Template.FindName("DropDownScrollViewer", VersionComboBox) as ScrollViewer;
-                    if (scrollViewer != null) {
+                    if (VersionComboBox.Template.FindName("DropDownScrollViewer", VersionComboBox) is ScrollViewer scrollViewer) {
                         double targetOffset = scrollViewer.VerticalOffset - scrollViewer.ViewportHeight / 2;
                         scrollViewer.ScrollToVerticalOffset(targetOffset);
                     }
                 }
-            }));
+            });
         }
     }
 }

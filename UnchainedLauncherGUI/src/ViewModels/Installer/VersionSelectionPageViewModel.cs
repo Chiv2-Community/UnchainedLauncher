@@ -71,6 +71,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
                 return;
             }
 
+            AvailableVersions.Clear();
             releases.ToList().ForEach(release => AvailableVersions.Add(release));
             SelectLatestVersion();
         }

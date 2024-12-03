@@ -80,6 +80,7 @@
                     Command="{Binding BackButtonCommand}"
                     Content="{Binding GoBackButtonText}"
                     IsEnabled="{Binding CanGoBack}"
+                    Visibility="{Binding DisplayGoBackButton}"
                     Padding="20,3"
                     Margin="0,0,10,0"
                     HorizontalAlignment="Right">

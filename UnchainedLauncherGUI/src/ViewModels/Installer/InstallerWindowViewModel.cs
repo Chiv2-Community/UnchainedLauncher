@@ -35,11 +35,12 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
         public string ContinueButtonText { get { return CurrentPage.ContinueButtonText; } }
         public bool CanContinue { get; set; }
 
-        public string GoBackButtonText { get { return CurrentPage.GoBackButtonText; } }
+        public string GoBackButtonText { get { return CurrentPage.GoBackButtonText ?? ""; } }
         public bool CanGoBack { get; set; }
         public bool Finished { get; set; }
         public Visibility WindowVisibility { get; set; }
         public Visibility DisplayDescription { get; set; }
+        public Visibility DisplayGoBackButton { get; set; }
 
         public string DescriptionColumnWidth => DisplayDescription == Visibility.Visible ? "1*" : "0";
         public string PageColumnWidth => DisplayDescription == Visibility.Visible ? "2*" : "1*";
@@ -123,6 +124,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
             CanContinue = CurrentPage.CanContinue;
             CanGoBack = CurrentPage.CanGoBack;
             DisplayDescription = CurrentPage.DescriptionText != null ? Visibility.Visible : Visibility.Hidden;
+            DisplayGoBackButton = CurrentPage.GoBackButtonText != null ? Visibility.Visible : Visibility.Hidden;
         }
     }
 }

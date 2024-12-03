@@ -17,7 +17,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public string ContinueButtonText { get; }
 
         public bool CanGoBack { get; }
-        public string GoBackButtonText { get; }
+        public string? GoBackButtonText { get; }
 
 
         public Task Load();

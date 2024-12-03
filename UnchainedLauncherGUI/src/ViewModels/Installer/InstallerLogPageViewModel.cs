@@ -15,7 +15,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
         public string TitleText => "Installation Log";
         public string? DescriptionText => null;
         public string ContinueButtonText => "Finish";
-        public string GoBackButtonText => "Back";
+        public string? GoBackButtonText => null;
         public bool CanContinue { get; set; }
         public bool CanGoBack => false;
 

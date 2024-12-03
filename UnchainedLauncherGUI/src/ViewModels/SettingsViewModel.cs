@@ -172,13 +172,12 @@ namespace UnchainedLauncher.GUI.ViewModels
         public async Task CheckForUpdate() {
             logger.Info("Checking for updates...");
 
-            var maybeLatestRelease = await Installer.GetLatestRelease();
-            if (maybeLatestRelease.IsNone) {
+            var latestRelease = await Installer.GetLatestRelease();
+            if (latestRelease == null) {
                 MessageBox.Show("Failed to check for updates. Check the logs for more details.");
                 return;
             }
 
-            var latestRelease = maybeLatestRelease.ValueUnsafe();
             if (latestRelease.Version.ComparePrecedenceTo(new Semver.SemVersion(version.Major, version.Minor, version.Build)) > 0) {
                 logger.Info($"Latest version: {latestRelease.Version}, Current version: {CurrentVersion}");
                 await ChangeVersion(latestRelease);

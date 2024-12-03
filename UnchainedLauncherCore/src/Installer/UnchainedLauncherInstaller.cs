@@ -28,7 +28,7 @@ namespace UnchainedLauncher.Core.Installer {
         /// Returns the latest stable release of the launcher.
         /// </summary>
         /// <returns></returns>
-        public Task<Option<VersionedRelease>> GetLatestRelease();
+        public Task<VersionedRelease?> GetLatestRelease();
 
         /// <summary>
         /// Returns all releases of the launcher, including pre-releases.
@@ -50,16 +50,16 @@ namespace UnchainedLauncher.Core.Installer {
         public GitHubClient GitHubClient { get; }
         private Action EndProgram { get; }
 
-        private Option<IEnumerable<VersionedRelease>> ReleaseCache { get; set; } = None;
-        private Option<VersionedRelease> LatestRelease { get; set; } = None;
+        private IEnumerable<VersionedRelease>? ReleaseCache { get; set; } = null;
+        private VersionedRelease? LatestRelease { get; set; } = null;
 
         public UnchainedLauncherInstaller(GitHubClient gitHubClient, Action endProgram) {
             GitHubClient = gitHubClient;
             EndProgram = endProgram;
         }
 
-        public async Task<Option<VersionedRelease>> GetLatestRelease() {
-            if(LatestRelease.IsSome) {
+        public async Task<VersionedRelease?> GetLatestRelease() {
+            if(LatestRelease != null) {
                 return LatestRelease;
             }
 
@@ -68,13 +68,13 @@ namespace UnchainedLauncher.Core.Installer {
                 return LatestRelease;
             } catch(Exception e) {
                 logger.Error("Failed to connect to github to retrieve latest release information", e);
-                return None;
+                return null;
             }
         }
 
         public async Task<IEnumerable<VersionedRelease>> GetAllReleases() {
-            if (ReleaseCache.IsSome) {
-                return ReleaseCache.ValueUnsafe();
+            if (ReleaseCache != null) {
+                return ReleaseCache;
             }
 
             var repoCall = GitHubClient.Repository.Release.GetAll(REPO_ID);
@@ -93,10 +93,10 @@ namespace UnchainedLauncher.Core.Installer {
                 if (latestRelease != null)
                     results = results?.ToList().Select(x => x.Version == latestRelease.Version ? x.AsLatestStable() : x);
 
-                ReleaseCache = Optional(results);
-                LatestRelease = Optional(latestRelease);
+                ReleaseCache = results;
+                LatestRelease = latestRelease;
 
-                return ReleaseCache.ToList().Flatten();
+                return Optional(ReleaseCache).ToList().Flatten();
             } catch (Exception e) {
                 logger.Error("Failed to connect to github to retrieve version information", e);
                 return ImmutableList.CreateBuilder<VersionedRelease>().ToImmutableList();
@@ -211,7 +211,7 @@ namespace UnchainedLauncher.Core.Installer {
         /// </summary>
         /// <param name="download">The release to download files from</param>
         /// <param name="assetDownloadTargets">A function returning Some(filePath) whenever an asset should be downloaded</param>
-        /// <returns></returns>
+        /// <returns>A bool returning false if any download targets have a download failure</returns>
         private static async Task<bool> DownloadRelease(VersionedRelease download, Func<ReleaseAsset, Option<string>> assetDownloadTargets, Action<string> log) {
             var results =
                 await download.Release.Assets.ToList().Select(async asset => {
@@ -260,7 +260,7 @@ namespace UnchainedLauncher.Core.Installer {
         }
 
 
-        public Task<Option<VersionedRelease>> GetLatestRelease() => Task.FromResult(Optional(MockReleases.MaxBy(x => x.Version)));
+        public Task<VersionedRelease?> GetLatestRelease() => Task.FromResult(MockReleases.MaxBy(x => x.Version));
         public Task<IEnumerable<VersionedRelease>> GetAllReleases() => Task.FromResult(MockReleases);
         public Task<bool> Install(DirectoryInfo targetDir, VersionedRelease release, bool relaunch, Action<string>? logProgress = null) => Task.FromResult(true);
     }

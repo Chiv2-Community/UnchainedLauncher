@@ -55,13 +55,13 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             Installations.Clear();
 
             try {
-                InstallationFinder
-                    .FindSteamDir()
-                    .IfSome(path => AddInstallation(new InstallationTargetViewModel(path, InstallationType.Steam, false)));
+                var steamDir = InstallationFinder.FindSteamDir();
+                if(steamDir != null)
+                    AddInstallation(new InstallationTargetViewModel(steamDir, InstallationType.Steam, false));
 
-                InstallationFinder
-                    .FindEGSDir()
-                    .IfSome(path => AddInstallation(new InstallationTargetViewModel(path, InstallationType.EpicGamesStore, false)));
+                var egsDir = InstallationFinder.FindEGSDir();
+                if(egsDir != null)
+                    AddInstallation(new InstallationTargetViewModel(egsDir, InstallationType.EpicGamesStore, false));
 
             } catch (Exception ex) {
                 logger.Error("Error scanning for installations", ex);

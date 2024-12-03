@@ -15,11 +15,11 @@ namespace UnchainedLauncher.Core.Installer {
         public abstract bool IsValidInstallation(DirectoryInfo chivInstallDir);
         public abstract bool IsSteamDir(DirectoryInfo chivInstallDir);
         public abstract bool IsEGSDir(DirectoryInfo chivInstallDir);
-        public abstract Option<DirectoryInfo> FindSteamDir();
-        public abstract Option<DirectoryInfo> FindEGSDir();
+        public abstract DirectoryInfo? FindSteamDir();
+        public abstract DirectoryInfo? FindEGSDir();
     }
 
-    public class Chivalry2InstallationFinder: IChivalry2InstallationFinder {
+    public class Chivalry2InstallationFinder : IChivalry2InstallationFinder {
         private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2InstallationFinder));
 
         private static readonly string Chiv2SteamAppID = "1824220";
@@ -31,25 +31,29 @@ namespace UnchainedLauncher.Core.Installer {
         }
 
         public bool IsSteamDir(DirectoryInfo chivInstallDir) {
-            return 
-                chivInstallDir.FullName.Contains("steamapps") || 
-                FindSteamDir().Exists(dir => dir.FullName.Contains(chivInstallDir.FullName));
+            var steamDir = FindEGSDir();
+            var hasSteamAppId = File.Exists(Path.Combine(chivInstallDir.FullName, FilePaths.SteamAppIdPath));
+            var isDefaultSteamLocation = steamDir != null && steamDir.FullName.Contains(chivInstallDir.FullName);
+
+            return IsValidInstallation(chivInstallDir) && (hasSteamAppId || isDefaultSteamLocation);
         }
 
         public bool IsEGSDir(DirectoryInfo chivInstallDir) {
-            return chivInstallDir.FullName.Contains("Epic Games") ||
-                FindEGSDir().Exists(dir => dir.FullName.Contains(chivInstallDir.FullName));
+            var egsDir = FindEGSDir();
+            var isDefaultEGSLocation = egsDir != null && egsDir.FullName.Contains(chivInstallDir.FullName);
+
+            return IsValidInstallation(chivInstallDir) && (isDefaultEGSLocation || !IsSteamDir(chivInstallDir));
         }
 
-        public Option<DirectoryInfo> FindSteamDir() {
+        public DirectoryInfo? FindSteamDir() {
             logger.Info("Searching for Chivalry 2 Steam install directory...");
-            Option<string> maybeSteamPath = GetSteamPath();
-            if(maybeSteamPath.IsNone) {
+            string? maybeSteamPath = GetSteamPath();
+            if(maybeSteamPath == null) {
                 logger.Info("Failed to find Steam path.");
-                return None;
+                return null;
             }
 
-            string SteamPath = maybeSteamPath.ValueUnsafe();
+            string SteamPath = maybeSteamPath;
             string SteamLibFile = Path.Combine(SteamPath, "steamapps", "libraryfolders.vdf");
 
             logger.Info($"Steam library metadata location: {SteamLibFile}");
@@ -82,19 +86,19 @@ namespace UnchainedLauncher.Core.Installer {
 
                         for (int j = 0; j < lines.Length; j += 2)
                             if (lines[j].Equals(Chiv2SteamAppID))
-                                return Some(new DirectoryInfo(Path.Combine(CandidateDir, @"steamapps\common\Chivalry 2")));
+                                return new DirectoryInfo(Path.Combine(CandidateDir, @"steamapps\common\Chivalry 2"));
                     }
                 } catch (Exception e) {
                     logger.Error($"Error reading Steam library metadata file", e);
-                    return None;
+                    return null;
                 }
             }
 
             logger.Info($"Found no Steam library with Chivalry 2 installed.");
-            return None;
+            return null;
         }
 
-        public Option<DirectoryInfo> FindEGSDir() {
+        public DirectoryInfo? FindEGSDir() {
             logger.Info("Searching for Chivalry 2 EGS install directory...");
 
             var ProgramDataDir = Environment.ExpandEnvironmentVariables("%PROGRAMDATA%");
@@ -108,7 +112,7 @@ namespace UnchainedLauncher.Core.Installer {
                     var chivEntry = savedSettings.InstallationList.Where(x => x.AppName == Chiv2EGSAppName);
                     if (chivEntry.Any()) {
                         logger.Info($"Found Chivalry 2 EGS install directory: {chivEntry.First().InstallLocation}");
-                        return Some(new DirectoryInfo(chivEntry.First().InstallLocation));
+                        return new DirectoryInfo(chivEntry.First().InstallLocation);
                     }
                 } else {
                     logger.Warn("Failed to read EGS install list file.");
@@ -116,15 +120,15 @@ namespace UnchainedLauncher.Core.Installer {
             }
 
             logger.Info($"Found no EGS installation with Chivalry 2 installed.");
-            return None;
+            return null;
         }
 
-        private static Option<string> GetSteamPath() {
+        private static string? GetSteamPath() {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 var registrySteamPath = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Valve\Steam", "SteamPath", null);
                 if (registrySteamPath == null) {
                     logger.Info("Steam library metadata location not found in registry.");
-                    return None;
+                    return null;
                 }
 
                 return (string)registrySteamPath;

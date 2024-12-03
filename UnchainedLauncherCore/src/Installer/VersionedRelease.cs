@@ -13,12 +13,13 @@ namespace UnchainedLauncher.Core.Installer
         public string DisplayText => $"{Release.TagName} ({Release.CreatedAt:d})" + (IsLatestStable ? " Recommended" : "");
 
 
-        public static VersionedRelease CreateMockRelease(SemVersion version) =>
-            new VersionedRelease(new Release(
-                "http://github.com/chiv2-community/UnchainedLauncher",
-                "http://github.com/chiv2-community/UnchainedLauncher",
-                $"https://github.com/Chiv2-Community/UnchainedLauncher/releases/download/v{version}/",
-                $"https://github.com/Chiv2-Community/UnchainedLauncher/releases/download/v{version}/UnchainedLauncher.exe",
+        public static VersionedRelease CreateMockRelease(SemVersion version) {
+            var ghRepo = "http://github.com/chiv2-community/UnchainedLauncher";
+            return new VersionedRelease(new Release(
+                ghRepo,
+                ghRepo,
+                $"{ghRepo}/releases/download/v{version}/",
+                $"{ghRepo}/releases/download/v{version}/UnchainedLauncher.exe",
                 1234,
                 "test",
                 $"v{version}",
@@ -30,12 +31,13 @@ namespace UnchainedLauncher.Core.Installer
                 DateTimeOffset.Now,
                 DateTimeOffset.Now,
                 new Author(),
-                $"https://github.com/Chiv2-Community/UnchainedLauncher/archive/refs/tags/v{version}.tar.gz",
-                $"https://github.com/Chiv2-Community/UnchainedLauncher/archive/refs/tags/v{version}.zip",
+                $"{ghRepo}/archive/refs/tags/v{version}.tar.gz",
+                $"{ghRepo}/archive/refs/tags/v{version}.zip",
                 new List<ReleaseAsset> {
                 new ReleaseAsset()
                 }) {
             }, version, false);
+        }
 
         public static readonly IEnumerable<VersionedRelease> DefaultMockReleases = new List<VersionedRelease> {
             CreateMockRelease(SemVersion.Parse("1.0.0-RC1", SemVersionStyles.Any)),

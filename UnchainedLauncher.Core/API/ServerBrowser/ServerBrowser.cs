@@ -19,7 +19,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
     public record ServerBrowserMod(string Name, string Organization, string Version);
 
     [AddINotifyPropertyChangedInterface]
-    public record C2ServerInfo
+    public partial record C2ServerInfo
     {
         public bool PasswordProtected { get; set; } = false;
         public string Name { get; set; } = "";

@@ -17,13 +17,15 @@ using System.Collections;
 using System.Collections.Generic;
 using LanguageExt.Common;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Mods.Registry;
+using System.ComponentModel;
+using UnchainedLauncher.Core.Mods.Registry.Downloader;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {
     using static LanguageExt.Prelude;
 
-    [AddINotifyPropertyChangedInterface]
-    public class ModListViewModel {
+    public partial class ModListViewModel : INotifyPropertyChanged {
         private readonly ILog logger = LogManager.GetLogger(nameof(ModListViewModel));
         private readonly IModManager ModManager;
         private ObservableCollection<ModViewModel> UnfilteredModView { get; }
@@ -34,6 +36,18 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public ModViewModel? SelectedMod { get; set; }
         public ObservableCollection<ModViewModel> DisplayMods { get; }
+
+        public ModListViewModel() : this(
+            new ModManager(
+                new HashMap<IModRegistry, IEnumerable<Mod>> {
+                    { new LocalModRegistry("", new LocalFilePakDownloader("")), new List<Mod> { ModViewModel.DesignViewMod } }
+                },
+                new List<Release> { ModViewModel.DesignViewRelease }
+            )
+        ) {
+            SelectedMod = new ModViewModel();
+            DisplayMods = new ObservableCollection<ModViewModel> { SelectedMod } ;
+        }
 
         public ModListViewModel(ModManager modManager) {
             this.ModManager = modManager;

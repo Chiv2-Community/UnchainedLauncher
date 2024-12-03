@@ -21,11 +21,12 @@ using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.Views;
+using UnchainedLauncher.Core.Installer;
+using System.ComponentModel;
 
 namespace UnchainedLauncher.GUI.ViewModels {
 
-    [AddINotifyPropertyChangedInterface]
-    public class LauncherViewModel {
+    public partial class LauncherViewModel: INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherViewModel));
         public ICommand LaunchVanillaCommand { get; }
         public ICommand LaunchModdedVanillaCommand { get; }
@@ -36,12 +37,15 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public bool CanClick { get; set; }
 
-        private readonly MainWindow Window;
-
         public Chivalry2Launcher Launcher { get; }
 
+        public LauncherViewModel(): this(
+            new SettingsViewModel(), 
+            new ModManager(new HashMap<IModRegistry, IEnumerable<Mod>>(), new List<Release>()),
+            new Chivalry2Launcher()
+        ) { }
 
-        public LauncherViewModel(MainWindow window, SettingsViewModel settings, ModManager modManager, Chivalry2Launcher launcher) {
+        public LauncherViewModel(SettingsViewModel settings, ModManager modManager, Chivalry2Launcher launcher) {
             CanClick = true;
 
             Settings = settings;
@@ -50,8 +54,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
             this.LaunchVanillaCommand = new RelayCommand(() => LaunchVanilla(false));
             this.LaunchModdedVanillaCommand = new RelayCommand(() => LaunchVanilla(true));
             this.LaunchUnchainedCommand = new RelayCommand(() => LaunchUnchained(Prelude.None));
-
-            Window = window;
 
             Launcher = launcher;
         }
@@ -100,7 +102,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 Prelude.None
             );
 
-            var exArgs = Window.SettingsViewModel.CLIArgs.Split(" ");
+            var exArgs = Settings.CLIArgs.Split(" ");
 
             var launchResult = Launcher.LaunchUnchained(Settings.InstallationType, options, serverOpts, exArgs);
 

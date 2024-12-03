@@ -20,11 +20,12 @@ using LanguageExt;
 using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.API.ServerBrowser;
+using UnchainedLauncher.Core.Mods.Registry;
+using System.ComponentModel;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {
-    [AddINotifyPropertyChangedInterface]
-    public class ServerLauncherViewModel : IDisposable {
+    public partial class ServerLauncherViewModel : IDisposable, INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServerLauncherViewModel));
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_server_settings.json";
 
@@ -53,6 +54,23 @@ namespace UnchainedLauncher.GUI.ViewModels
         //may want to add a mods list here as well,
         //in the hopes of having multiple independent servers running one one machine
         //whose settings can be stored/loaded from files
+
+        public ServerLauncherViewModel(): this(
+            new LauncherViewModel(),
+            new SettingsViewModel(),
+            new ServersViewModel(),
+            new ModManager(new HashMap<IModRegistry, IEnumerable<Mod>>(), new List<Release>()),
+            "Chivalry 2 server",
+            "Design time test description",
+            "",
+            "FFA_Courtyard",
+            7777,
+            9001,
+            7071,
+            3075,
+            true,
+            new FileBackedSettings<ServerSettings>("")
+        ) { }
 
         public ServerLauncherViewModel(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
             CanClick = true;

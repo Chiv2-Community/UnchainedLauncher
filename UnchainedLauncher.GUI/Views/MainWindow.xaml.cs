@@ -24,97 +24,18 @@ namespace UnchainedLauncher.GUI.Views
     /// </summary>
     [AddINotifyPropertyChangedInterface]
     public partial class MainWindow : Window {
+        public MainWindowViewModel ViewModel { get; }
 
-        public ModListViewModel ModManagerViewModel { get; }
-        public SettingsViewModel SettingsViewModel { get; }
-        public LauncherViewModel LauncherViewModel { get; }
-        public ServerLauncherViewModel ServerSettingsViewModel { get; }
-        public ServersViewModel ServersViewModel { get; }
-        public bool DisableSaveSettings { get; set; }
+        public MainWindow() : this(new MainWindowViewModel()) { }
 
-        private readonly ModManager ModManager;
-
-        private static readonly ILog logger = LogManager.GetLogger(nameof(MainWindow));
-
-        public MainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer) {
-            try {
-
-                InitializeComponent();
-
-                Assembly assembly = Assembly.GetExecutingAssembly();
-
-                logger.Info("Checking if installation is necessary...");
-                var curDir = Directory.GetParent(assembly.Location);
-
-
-                this.ModManager = ModManager.ForRegistries(
-                    new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
-                );
-
-                var chiv2Launcher = new Chivalry2Launcher();
-
-                this.SettingsViewModel = SettingsViewModel.LoadSettings(this, installer);
-                if (this.SettingsViewModel.InstallationType == InstallationType.NotSet && curDir != null) {
-                    if (installationFinder.IsEGSDir(curDir))
-                        this.SettingsViewModel.InstallationType = InstallationType.EpicGamesStore;
-                    else if (installationFinder.IsSteamDir(curDir))
-                        this.SettingsViewModel.InstallationType = InstallationType.Steam;
-                }
-
-                this.ServersViewModel = new ServersViewModel(SettingsViewModel, null);
-
-                this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, ModManager, chiv2Launcher);
-                this.ServerSettingsViewModel = ServerLauncherViewModel.LoadSettings(LauncherViewModel, SettingsViewModel, ServersViewModel, ModManager);
-
-                this.ModManagerViewModel = new ModListViewModel(ModManager);
-
-                this.ServersTab.DataContext = this.ServersViewModel;
-                this.SettingsTab.DataContext = this.SettingsViewModel;
-                this.ModManagerTab.DataContext = this.ModManagerViewModel;
-                this.LauncherTab.DataContext = this.LauncherViewModel;
-                this.ServerSettingsTab.DataContext = this.ServerSettingsViewModel;
-
-                DisableSaveSettings = false;
-                this.Closed += MainWindow_Closed;
-
-                var EnvArgs = Environment.GetCommandLineArgs().ToList();
-
-                if (EnvArgs.Contains("--startvanilla"))
-                    LauncherViewModel.LaunchVanilla(false);
-                else if (EnvArgs.Contains("--startmodded"))
-                    LauncherViewModel.LaunchVanilla(true);
-                else if (EnvArgs.Contains("--startunchained"))
-                    LauncherViewModel.LaunchUnchained(None);
-
-
-            } catch (Exception e) {
-                logger.Error("Initialization Failed", e);
-                throw;
-            }
+        public MainWindow(MainWindowViewModel vm) {
+            DataContext = ViewModel = vm;
+            InitializeComponent();
+            this.Closed += MainWindow_Closed;
         }
 
         private void MainWindow_Closed(object? sender, EventArgs e) {
-            this.ServersViewModel.Dispose();
-
-            if (DisableSaveSettings) return;
-
-            this.SettingsViewModel.Dispose();
-            this.ServerSettingsViewModel.Dispose();
-        }
-
-        private bool modManagerLoaded = false;
-        private void TabSelectionChanged(object sender, SelectionChangedEventArgs e) {
-            if (Tabs.SelectedItem == null) return;
-
-            logger.Info("Opened Tab: " + ((TabItem)Tabs.SelectedItem).Header.ToString());
-            if (!modManagerLoaded && ModManagerTab.IsSelected) {
-                try {
-                    ModManagerViewModel.RefreshModListCommand.Execute(null);
-                    modManagerLoaded = true;
-                } catch (Exception ex) {
-                    logger.Error(ex);
-                }
-            }
+            ViewModel.Dispose();
         }
     }
 

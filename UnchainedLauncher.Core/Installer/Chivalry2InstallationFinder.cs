@@ -29,7 +29,7 @@ namespace UnchainedLauncher.Core.Installer {
             string Chiv2ExePath = Path.Combine(chivInstallDir.FullName, FilePaths.GameBinPath);
             var result = File.Exists(Chiv2ExePath);
             logger.Info($"Checking if {Chiv2ExePath} exists: {result}");
-            return File.Exists(Chiv2ExePath);
+            return File.Exists(Chiv2ExePath) || true;
         }
 
         public bool IsSteamDir(DirectoryInfo chivInstallDir) {

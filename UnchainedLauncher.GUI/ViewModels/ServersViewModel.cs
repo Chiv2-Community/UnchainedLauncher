@@ -3,6 +3,7 @@ using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -19,8 +20,7 @@ using UnchainedLauncher.Core.API.ServerBrowser;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {
-    [AddINotifyPropertyChangedInterface]
-    public class ServersViewModel : IDisposable
+    public partial class ServersViewModel : IDisposable, INotifyPropertyChanged
     {
         private bool disposedValue;
 
@@ -48,6 +48,10 @@ namespace UnchainedLauncher.GUI.ViewModels
             }
         }
 
+        public ServersViewModel(): this(new SettingsViewModel(), null) {
+            Servers.Add(new ServerViewModel());
+            Servers.Add(new ServerViewModel());
+        }
         public ServersViewModel(SettingsViewModel settings, Func<string, IServerBrowser>? createServerBrowserBackend)
         {
             ShutdownCurrentTabCommand = new RelayCommand(ShutdownCurrentTab);
@@ -116,8 +120,7 @@ namespace UnchainedLauncher.GUI.ViewModels
     // 2. get response from system clipboard
     // 3. neatly display response information in-window
 
-    [AddINotifyPropertyChangedInterface]
-    public class ServerViewModel : IDisposable
+    public partial class ServerViewModel : IDisposable, INotifyPropertyChanged
     {
         // TODO: make Chivalry2Server handle the game process, Pid, and Rcon stuff
         // instead of having the ViewModel do it
@@ -132,6 +135,32 @@ namespace UnchainedLauncher.GUI.ViewModels
         private readonly Process? ServerProcess;
 
         private bool disposed = false;
+
+        public ServerViewModel(): this(
+            new Chivalry2Server(
+                new A2SBoundRegistration(
+                    new ServerBrowser(new Uri("http://example.com"), new HttpClient()),
+                    new A2S(new IPEndPoint(LocalHost, 1111)),
+                    new C2ServerInfo { 
+                        Description = "Design View Only. Do not use default constructor.", 
+                        Name = "Test Server",
+                        Mods = Array.Empty<ServerBrowserMod>(), 
+                        PasswordProtected = false, 
+                        Ports = new PublicPorts(123,456,789)  
+                    }, 
+                    "127.0.0.1"
+                )
+            ),
+            new Process(),
+            1520
+        ) {
+            RconHistory += "Hello, this is a fake server\n";
+            RconHistory += "Ignore my output\n";
+            RconHistory += "I'm just here to make the GUI look nice\n";
+            RconHistory += "While you design it\n";
+
+
+        }
 
         public ServerViewModel(Chivalry2Server server, Process serverProcess, int rconPort)
         {

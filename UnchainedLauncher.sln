@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33815.320
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncherGUI", "UnchainedLauncherGUI\UnchainedLauncherGUI.csproj", "{0C235765-7B68-48BB-A3E5-87E12C512540}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncher.GUI", "UnchainedLauncher.GUI\UnchainedLauncher.GUI.csproj", "{0C235765-7B68-48BB-A3E5-87E12C512540}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncherCore", "UnchainedLauncherCore\UnchainedLauncherCore.csproj", "{D63BA71A-868F-46F1-82A0-2115808D6A4E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncher.Core", "UnchainedLauncher.Core\UnchainedLauncher.Core.csproj", "{D63BA71A-868F-46F1-82A0-2115808D6A4E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncherCoreUnitTests", "UnchainedLauncherCoreTests\UnchainedLauncherCoreUnitTests.csproj", "{C4921616-E684-45AD-8D9C-FF99A84F5283}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncher.Core.Tests.Unit", "UnchainedLauncher.Core.Tests.Unit\UnchainedLauncher.Core.Tests.Unit.csproj", "{C4921616-E684-45AD-8D9C-FF99A84F5283}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnchainedLauncherCoreIntegrationTests", "UnchainedLauncherCoreIntegrationTests\UnchainedLauncherCoreIntegrationTests.csproj", "{ABBE4710-C988-4C0A-92D8-663271A6AA78}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncher.Core.Tests.Integration", "UnchainedLauncher.Core.Tests.Integration\UnchainedLauncher.Core.Tests.Integration.csproj", "{ABBE4710-C988-4C0A-92D8-663271A6AA78}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

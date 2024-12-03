@@ -32,6 +32,7 @@ namespace UnchainedLauncher.GUI.Views.Installer
             // Don't even show the window if there's only 1 valid launch candidate
             if (targets.Filter(x => x.IsSelected).Count() == 1) {
                 vm.Launch();
+                window.Close();
             } else {
                 window.DataContext = vm;
                 window.ShowDialog();

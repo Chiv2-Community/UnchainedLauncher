@@ -42,11 +42,9 @@ namespace UnchainedLauncher.GUI.Views
                 InitializeComponent();
 
                 Assembly assembly = Assembly.GetExecutingAssembly();
-                FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(assembly.Location);
 
                 logger.Info("Checking if installation is necessary...");
                 var curDir = Directory.GetParent(assembly.Location);
-                var exeName = Process.GetCurrentProcess().ProcessName;
 
 
                 this.ModManager = ModManager.ForRegistries(
@@ -62,6 +60,7 @@ namespace UnchainedLauncher.GUI.Views
                     else if (installationFinder.IsSteamDir(curDir))
                         this.SettingsViewModel.InstallationType = InstallationType.Steam;
                 }
+
                 this.ServersViewModel = new ServersViewModel(SettingsViewModel, null);
 
                 this.LauncherViewModel = new LauncherViewModel(this, SettingsViewModel, ModManager, chiv2Launcher);
@@ -77,6 +76,16 @@ namespace UnchainedLauncher.GUI.Views
 
                 DisableSaveSettings = false;
                 this.Closed += MainWindow_Closed;
+
+                var EnvArgs = Environment.GetCommandLineArgs().ToList();
+
+                if (EnvArgs.Contains("--startvanilla"))
+                    LauncherViewModel.LaunchVanilla(false);
+                else if (EnvArgs.Contains("--startmodded"))
+                    LauncherViewModel.LaunchVanilla(true);
+                else if (EnvArgs.Contains("--startunchained"))
+                    LauncherViewModel.LaunchUnchained(None);
+
 
             } catch (Exception e) {
                 logger.Error("Initialization Failed", e);

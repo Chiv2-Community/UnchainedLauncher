@@ -24,7 +24,7 @@
 
 
 	<ItemGroup>
-    <ProjectReference Include="..\UnchainedLauncherCore\UnchainedLauncher.Core.csproj" />
+    <ProjectReference Include="..\UnchainedLauncher.Core\UnchainedLauncher.Core.csproj" />
   </ItemGroup>
 
 </Project>

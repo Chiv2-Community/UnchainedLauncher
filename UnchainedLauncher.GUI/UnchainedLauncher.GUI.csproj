@@ -49,7 +49,7 @@
     <PackageReference Include="Semver" Version="2.3.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\UnchainedLauncherCore\UnchainedLauncher.Core.csproj" />
+    <ProjectReference Include="..\UnchainedLauncher.Core\UnchainedLauncher.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Views\Installer\InstallerLogView.xaml.cs">

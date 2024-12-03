@@ -16,7 +16,10 @@ namespace UnchainedLauncher.GUI {
     /// Interaction logic for App.xaml
     /// </summary>
     public partial class App : Application {
-        public App() : base() {
+        public App() : base() {}
+        protected override void OnStartup(StartupEventArgs e) {
+            base.OnStartup(e);
+
             var assembly = Assembly.GetExecutingAssembly();
             if (File.Exists("log4net.config")) {
                 log4net.Config.XmlConfigurator.Configure(new FileInfo("log4net.config"));
@@ -24,14 +27,11 @@ namespace UnchainedLauncher.GUI {
                 // for running in Visual Studio
                 log4net.Config.XmlConfigurator.Configure(new FileInfo("Resources/log4net.config"));
             } else {
-                using Stream? configStream = assembly.GetManifestResourceStream("UnchainedLauncherGUI.Resources.log4net.config");
+                using Stream? configStream = assembly.GetManifestResourceStream("UnchainedLauncher.GUI.Resources.log4net.config");
                 if (configStream != null) {
                     log4net.Config.XmlConfigurator.Configure(configStream);
                 }
             }
-        }
-        protected override void OnStartup(StartupEventArgs e) {
-            base.OnStartup(e);
 
 
             // Init common dependencies
@@ -40,8 +40,8 @@ namespace UnchainedLauncher.GUI {
             var installationFinder = new Chivalry2InstallationFinder();
             IUnchainedLauncherInstaller installer = new UnchainedLauncherInstaller(githubClient, Current.Shutdown);
 
-            // figure out if we need to install
-            var currentDirectory = Directory.GetParent(Assembly.GetExecutingAssembly().Location);
+            // figure out if we need to install by checking our current working directory
+            var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
             var needsInstallation = currentDirectory != null && !installationFinder.IsValidInstallation(currentDirectory);
 
             // initialize the window

@@ -7,11 +7,17 @@ on:
   pull_request:
     branches:
         - 'main'
+        - 'series/*'
 
 # TODO: Run integration tests. Set up some kind of stubbed environment for the tests to run in.
 jobs:
   build:
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
     runs-on: windows-latest
+    env:
+      GUI_Project_Path: UnchainedLauncherGUI
     steps:
     - uses: actions/checkout@v4
     - name: Setup dotnet
@@ -21,7 +27,17 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build
+      run: dotnet build -c ${{ matrix.configuration }}
     - name: Run Unit Tests
-      run: dotnet test .\UnchainedLauncherCoreTests\
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncherCoreTests\
+      
+    # Puts binaries in ${{ env.GUI_Project_Path }}\bin\${{ matrix.configuration }}\net6.0-windows\win-x64\publish\
+    - name: Package ${{ matrix.configuration }} binaries
+      run: dotnet publish -c ${{ matrix.configuration}} 
+
+    - name: Upload ${{ matrix.configuration }} Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: UnchainedLauncher_${{ matrix.configuration }}_${{ github.sha }}
+        path: ${{ env.GUI_Project_Path }}\bin\${{ matrix.configuration }}\net6.0-windows\win-x64\publish\
 

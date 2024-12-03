@@ -1,13 +1,14 @@
 ﻿using System.Diagnostics;
 using log4net;
-using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Extensions;
 using LanguageExt;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels;
 
-namespace UnchainedLauncher.Core {
+namespace UnchainedLauncher.Core
+{
     public class Chivalry2Launcher {
         private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2Launcher));
 
@@ -116,13 +117,13 @@ namespace UnchainedLauncher.Core {
             return Prelude.Some(launchResult);
         }
 
-        private void PrepareModdedLaunchSigs() {
+        private static void PrepareModdedLaunchSigs() {
             logger.Info("Verifying .sig file presence");
             SigFileHelper.CheckAndCopySigFiles();
             SigFileHelper.DeleteOrphanedSigFiles();
         }
 
-        private void PrepareUnmoddedLaunchSigs() {
+        private static void PrepareUnmoddedLaunchSigs() {
             logger.Info("Removing .sig files");
             SigFileHelper.RemoveAllNonDefaultSigFiles();
         }

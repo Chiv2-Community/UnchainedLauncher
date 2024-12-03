@@ -33,23 +33,7 @@
 
     <TabControl x:Name="Tabs" SelectionChanged="TabSelectionChanged">
         <TabItem x:Name="LauncherTab" Header="Launcher" DataContext="{Binding LauncherViewModel}">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="103*"/>
-                    <ColumnDefinition Width="103*"/>
-                    <ColumnDefinition Width="103*"/>
-                </Grid.ColumnDefinitions>
-
-
-                <Button x:Name="LaunchVanillaButton" Content="Chivalry 2" TextBlock.TextAlignment="Center" Grid.Row="0" Grid.Column="0" Grid.RowSpan = "3" Command="{Binding LaunchVanillaCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
-                <Button x:Name="LaunchModdedVanillaButton" Content="Chivalry 2&#xa;with Mods" TextBlock.TextAlignment="Center" Grid.Row="0" Grid.Column="1" Grid.RowSpan = "3" Command="{Binding LaunchModdedVanillaCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
-                <Button x:Name="LaunchModdedButton" Content="Chivalry 2&#xa;Unchained" TextBlock.TextAlignment="Center" Grid.Row="0" Grid.Column="2" Grid.RowSpan = "3" Command="{Binding LaunchUnchainedCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
-            </Grid>
+            
         </TabItem>
         <TabItem x:Name="ModManagerTab"  DataContext="{Binding ModManagerViewModel}"  Header="Mod Manager">
             <Grid>

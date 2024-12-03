@@ -1,8 +1,9 @@
 ﻿using UnchainedLauncher.Core.API;
 
-namespace UnchainedLauncher.Core.API.Mocks
+namespace UnchainedLauncher.Core.Tests.Unit.API.Mocks
 {
-    public class MockServerBrowser : IServerBrowser {
+    public class MockServerBrowser : IServerBrowser
+    {
         protected int refreshBeforeSeconds;
         public int NumServerRegisters { get; private set; }
         public int NumServerUpdates { get; private set; }
@@ -25,10 +26,10 @@ namespace UnchainedLauncher.Core.API.Mocks
             return (now, rfBefore);
         }
 
-        public Task<RegisterServerResponse> RegisterServerAsync(String localIp, ServerInfo info, CancellationToken? ct = null)
+        public Task<RegisterServerResponse> RegisterServerAsync(string localIp, ServerInfo info, CancellationToken? ct = null)
         {
             var (now, refreshBefore) = GetTimes();
-            this.NumServerRegisters++;
+            NumServerRegisters++;
             return Task.FromResult(
                 new RegisterServerResponse(
                     refreshBefore,
@@ -65,7 +66,8 @@ namespace UnchainedLauncher.Core.API.Mocks
             return Task.CompletedTask;
         }
 
-        public void Dispose() {
+        public void Dispose()
+        {
             GC.SuppressFinalize(this);
         }
     }

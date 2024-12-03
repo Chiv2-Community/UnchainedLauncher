@@ -3,9 +3,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.API;
-using UnchainedLauncher.Core.API.Mocks;
+using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
 
-namespace UnchainedLauncher.Core.API.Tests
+namespace UnchainedLauncher.Core.Tests.Unit.API
 {
     public class PeriodicRunnerTests
     {
@@ -15,14 +15,14 @@ namespace UnchainedLauncher.Core.API.Tests
             int pollCount = 0;
             int testTimeMillis = 2000;
             int expectedPollCount = 10;
-            int delay = (testTimeMillis / expectedPollCount);
+            int delay = testTimeMillis / expectedPollCount;
             Task<TimeSpan> Execute()
             {
                 pollCount++;
                 return Task.FromResult(TimeSpan.FromMilliseconds(delay));
             }
 
-            using(PeriodicRunner runner = new(Execute))
+            using (PeriodicRunner runner = new(Execute))
             {
                 await Task.Delay(testTimeMillis);
             }
@@ -34,9 +34,9 @@ namespace UnchainedLauncher.Core.API.Tests
             catch
             {
                 // sometimes it does an extra poll because of timing stuff
-                Assert.Equal(expectedPollCount+1, pollCount);
+                Assert.Equal(expectedPollCount + 1, pollCount);
             }
-            
+
         }
 
         [Fact]

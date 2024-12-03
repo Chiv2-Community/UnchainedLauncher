@@ -28,9 +28,6 @@
     <None Remove="log4net.config" />
   </ItemGroup>
   <ItemGroup>
-    <ApplicationDefinition Include="src\App.xaml" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="assets\chiv2-unchained-logo.ico" />
   </ItemGroup>
   <ItemGroup>
@@ -52,13 +49,13 @@
     <PackageReference Include="Semver" Version="2.3.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\UnchainedLauncherCore\UnchainedLauncherCore.csproj" />
+    <ProjectReference Include="..\UnchainedLauncherCore\UnchainedLauncher.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Update="src\Views\Installer\InstallerLogView.xaml.cs">
+    <Compile Update="Views\Installer\InstallerLogView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Update="src\Views\Installer\InstallerWindow.xaml.cs">
+    <Compile Update="Views\Installer\InstallerWindow.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -69,7 +66,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Page Update="src\Views\Installer\InstallerWindow.xaml">
+    <Page Update="Views\Installer\InstallerWindow.xaml">
       <SubType>Designer</SubType>
     </Page>
   </ItemGroup>

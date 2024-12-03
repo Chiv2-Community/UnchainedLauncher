@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using UnchainedLauncher.Core.API;
 using Environment = UnchainedLauncher.Core.API.Environment;
 
-namespace UnchainedLauncherCoreIntegrationTests.API
+namespace UnchainedLauncher.Core.Tests.Integration.API
 {
     public class PersistentServerRegistrationTests
     {
@@ -23,8 +23,7 @@ namespace UnchainedLauncherCoreIntegrationTests.API
             var RegistrationFactory = new PersistentServerRegistrationFactory(backend, testServerC2Info, 5, "127.0.0.1");
             var initialA2s = new A2sInfo(0, "", "test map", "", "Chivalry 2", 0, 10, 100, 5, ServerType.NONDEDICATED, Environment.WINDOWS, true, false);
             var secondA2s = initialA2s with { Players = (byte)(initialA2s.Players + 1) };
-            using (var reg = await RegistrationFactory.MakeRegistration(initialA2s))
-            {
+            using (var reg = await RegistrationFactory.MakeRegistration(initialA2s)) {
                 Assert.False(reg.IsDead);
                 Assert.Null(reg.LastException);
                 // wait long enough for some heartbeats to have been required

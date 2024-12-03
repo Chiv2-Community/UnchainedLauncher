@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using UnchainedLauncher.Core.API;
 
-namespace UnchainedLauncher.Core.API.Tests {
+namespace UnchainedLauncher.Core.Tests.Integration.API {
     // make sure there is a Chivalry 2 server running
     // RCON doesn't support sending anything back right now, so this can't return anything
     // use wireshark and watch the game to make sure it's working

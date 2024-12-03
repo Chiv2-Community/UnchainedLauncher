@@ -1,7 +1,9 @@
 ﻿using UnchainedLauncher.Core.API;
 
-namespace UnchainedLauncher.Core.API.Mocks
+namespace UnchainedLauncher.Core.Tests.Unit.API.Mocks
 {
+    using Environment = UnchainedLauncher.Core.API.Environment;
+
     public class MockA2S : IA2S
     {
         protected A2sInfo[] results;

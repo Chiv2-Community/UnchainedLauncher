@@ -1,7 +1,7 @@
 ﻿using UnchainedLauncher.Core.API;
+using Environment = UnchainedLauncher.Core.API.Environment;
 
-namespace UnchainedLauncher.Core.API.Tests
-{
+namespace UnchainedLauncher.Core.Tests.Integration.API {
 
     // Should have an instance of the backend running on localhost:8080 for this
     // to test against

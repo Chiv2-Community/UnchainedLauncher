@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnchainedLauncher.Core.API.Mocks;
 using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
 
-namespace UnchainedLauncher.Core.API.Tests
+namespace UnchainedLauncher.Core.Tests.Unit.API
 {
+    using Environment = UnchainedLauncher.Core.API.Environment;
+
     public class RunningC2ServerTests
     {
         public static readonly C2ServerInfo testServerC2Info = new()
@@ -37,7 +39,7 @@ namespace UnchainedLauncher.Core.API.Tests
             // we just want to make sure things are in the right ballpark here.
             // Small timing variations that we can't control and don't actually
             // matter can throw exact counts off a little
-            int minA2sProbes = (testDurationSeconds * 1000 / A2sUpdateInterval) - 1;
+            int minA2sProbes = testDurationSeconds * 1000 / A2sUpdateInterval - 1;
             int maxA2sProbes = minA2sProbes + 10;
             // say only 1 out of every 5 probes causes an update to be pushed
             var (minUpdatesSent, maxUpdatesSent) = (minA2sProbes / 5, maxA2sProbes + 10);
@@ -45,7 +47,7 @@ namespace UnchainedLauncher.Core.API.Tests
             int maxHeartbeats = minHeartbeats + 10;
 
             MockServerBrowser mockSB = new(heartbeatSeconds);
-            
+
 
             using (var server = new A2SBoundRegistration(mockSB,
                                                     mockA2s,
@@ -57,7 +59,7 @@ namespace UnchainedLauncher.Core.API.Tests
                 await Task.Delay(testDurationSeconds * 1000 + 500);
                 Assert.NotNull(server.Registration);
             }
-            
+
             Assert.Equal(1, mockSB.NumServerRegisters);
             Assert.Equal(1, mockSB.NumServerDeletes);
             Assert.True(mockSB.NumServerHeartbeats >= minHeartbeats && mockSB.NumServerHeartbeats <= maxHeartbeats);

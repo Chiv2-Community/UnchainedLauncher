@@ -1,9 +1,11 @@
 ﻿using NuGet.Frameworks;
-using UnchainedLauncher.Core.API.Mocks;
 using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
 
-namespace UnchainedLauncher.Core.API.Tests
+namespace UnchainedLauncher.Core.Tests.Unit.API
 {
+    using Environment = UnchainedLauncher.Core.API.Environment;
+
     public class PersistentServerRegistrationTests
     {
         public static readonly C2ServerInfo testServerC2Info = new()
@@ -46,10 +48,11 @@ namespace UnchainedLauncher.Core.API.Tests
 
             using (var server = new PersistentServerRegistration(mockSB, registration, OnDeath))
             {
-                await Task.Delay(testDuration*1000);
+                await Task.Delay(testDuration * 1000);
                 // make sure it's doing heartbeats properly
                 Assert.Equal(expectedHeartbeatCount, mockSB.NumServerHeartbeats);
-                foreach (var info in mockA2s) {
+                foreach (var info in mockA2s)
+                {
                     await server.UpdateRegistrationA2s(info);
                 }
                 // see comment above mockA2s to see where this 4 comes from

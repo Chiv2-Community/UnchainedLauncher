@@ -2,11 +2,11 @@
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnchainedLauncher.Core.API.Mocks;
 using UnchainedLauncher.Core.API;
 using Environment = UnchainedLauncher.Core.API.Environment;
+using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
 
-namespace UnchainedLauncher.Core.API.Tests
+namespace UnchainedLauncher.Core.Tests.Unit.API
 {
     public class A2SWatcherTests
     {
@@ -23,8 +23,7 @@ namespace UnchainedLauncher.Core.API.Tests
             );
 
             int receivedCount = 0;
-            A2SWatcher.OnA2SReceived onReceivedAction = a2s =>
-            {
+            A2SWatcher.OnA2SReceived onReceivedAction = a2s => {
                 receivedCount++;
                 return Task.CompletedTask;
             };
@@ -34,7 +33,7 @@ namespace UnchainedLauncher.Core.API.Tests
                 // should be enough time for 8 queries
                 await Task.Delay(4000);
             };
-            
+
             Assert.Equal(mockA2s.NumRequests, receivedCount);
             Assert.Equal(8, receivedCount);
         }

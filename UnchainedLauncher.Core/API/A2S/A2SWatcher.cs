@@ -7,15 +7,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace UnchainedLauncher.Core.API.A2S
-{
+namespace UnchainedLauncher.Core.API.A2S {
     /// <summary>
     /// Periodically polls an A2S endpoint. Runs a delegate whenever a poll is successful and
     /// new A2S information is available.
     /// </summary>
     [AddINotifyPropertyChangedInterface]
-    public class A2SWatcher : IDisposable
-    {
+    public class A2SWatcher : IDisposable {
         public delegate Task OnA2SReceived(A2sInfo info);
         private readonly OnA2SReceived OnReceived;
         private readonly PeriodicRunner runner;
@@ -30,8 +28,7 @@ namespace UnchainedLauncher.Core.API.A2S
         private readonly IA2S source;
         private bool disposedValue;
         public readonly TimeSpan PollingInterval;
-        public A2SWatcher(IA2S source, OnA2SReceived action, int intervalMillis = 1000)
-        {
+        public A2SWatcher(IA2S source, OnA2SReceived action, int intervalMillis = 1000) {
             this.source = source;
             A2sOk = false;
             OnReceived = action;
@@ -39,8 +36,7 @@ namespace UnchainedLauncher.Core.API.A2S
             runner = new PeriodicRunner(FetchA2S, OnException);
         }
 
-        private async Task<TimeSpan> FetchA2S()
-        {
+        private async Task<TimeSpan> FetchA2S() {
             var newInfo = await source.InfoAsync();
             LastA2sInfo = newInfo;
             A2sOk = true;
@@ -48,8 +44,7 @@ namespace UnchainedLauncher.Core.API.A2S
             return PollingInterval;
         }
 
-        private async Task<bool> OnException(Exception ex)
-        {
+        private async Task<bool> OnException(Exception ex) {
             // TODO: find a cleaner way to do this.
             // potentially modify the PeriodicRunner to take
             // a nullable TimeSpan from this function, with the
@@ -65,12 +60,9 @@ namespace UnchainedLauncher.Core.API.A2S
             return true;
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
+        protected virtual void Dispose(bool disposing) {
+            if (!disposedValue) {
+                if (disposing) {
                     runner.Dispose();
                 }
                 A2sOk = false;
@@ -78,8 +70,7 @@ namespace UnchainedLauncher.Core.API.A2S
             }
         }
 
-        public void Dispose()
-        {
+        public void Dispose() {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);

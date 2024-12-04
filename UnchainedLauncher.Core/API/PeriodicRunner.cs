@@ -8,8 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
 
-namespace UnchainedLauncher.Core.API
-{
+namespace UnchainedLauncher.Core.API {
     /// <summary>
     /// Runs a delegate which tells it when it wants to be run next.
     /// Each run of the delegate is called a "tick"
@@ -19,8 +18,7 @@ namespace UnchainedLauncher.Core.API
     /// When a delegate is running, it will NOT be run again until it
     /// finishes. This ensures that it is being run only once simultaneously
     /// </summary>
-    public sealed class PeriodicRunner : IDisposable
-    {
+    public sealed class PeriodicRunner : IDisposable {
         private Timer Timer;
         private bool disposedValue;
 
@@ -44,8 +42,7 @@ namespace UnchainedLauncher.Core.API
             this.IsTicking = true;
         }
 
-        private static Task<bool> DefaultOnException(Exception ex)
-        {
+        private static Task<bool> DefaultOnException(Exception ex) {
             return Task.FromResult(false);
         }
 
@@ -54,74 +51,61 @@ namespace UnchainedLauncher.Core.API
         /// timespan.
         /// </summary>
         /// <param name="after">How long to wait before next tick</param>
-        public void Resume(TimeSpan? after = null)
-        {
-            if (this.IsTicking)
-            {
+        public void Resume(TimeSpan? after = null) {
+            if (this.IsTicking) {
                 return;
             }
 
             this.Timer.Dispose();
-            this.Timer = new Timer(this.Execute_Update, null,  after ?? TimeSpan.Zero, Timeout.InfiniteTimeSpan);
+            this.Timer = new Timer(this.Execute_Update, null, after ?? TimeSpan.Zero, Timeout.InfiniteTimeSpan);
             this.IsTicking = true;
         }
 
         /// <summary>
         /// Stop the timer from ticking. An already scheduled run will not occur after this.
         /// </summary>
-        public void Stop()
-        {
+        public void Stop() {
             this.Timer.Dispose();
             this.IsTicking = false;
         }
 
         // Execute a tick delegate to get when it wants to be run
         // catch any errors and run the OnException delegate as needed
-        private async void Execute_Update(object? state)
-        {
-            try
-            {
+        private async void Execute_Update(object? state) {
+            try {
                 var nextTimeSpan = await _Execute();
                 // saturate negative timespans to run immediately
                 nextTimeSpan = nextTimeSpan < TimeSpan.Zero ? TimeSpan.Zero : nextTimeSpan;
                 this.Timer = new Timer(this.Execute_Update, null, nextTimeSpan, Timeout.InfiniteTimeSpan);
                 return;
             }
-            catch (Exception exception)
-            {
+            catch (Exception exception) {
                 this.LastException = exception;
                 var shouldContinue = await this._OnException(exception);
-                if (shouldContinue)
-                {
+                if (shouldContinue) {
                     this.Stop();
                     this.Resume();
                 }
             }
-            finally
-            {
+            finally {
                 // in case we were disposed after the timeout expired but before
                 // we set the new timer
-                if (this.disposedValue)
-                {
+                if (this.disposedValue) {
                     this.Stop();
                 }
             }
         }
 
-        private void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
+        private void Dispose(bool disposing) {
+            if (!disposedValue) {
+                if (disposing) {
                     this.Stop();
                 }
                 disposedValue = true;
             }
         }
 
-        public void Dispose()
-        {
+        public void Dispose() {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 
 namespace UnchainedLauncher.Core.JsonModels {
-    #pragma warning disable CA1507 // Disable "use nameof to express symbol names". Json structures need to be stable and renaming properties is a breaking change.
+#pragma warning disable CA1507 // Disable "use nameof to express symbol names". Json structures need to be stable and renaming properties is a breaking change.
 
     public record InstallEntry(
         [property: JsonProperty("InstallLocation")] string InstallLocation,
@@ -20,6 +20,6 @@ namespace UnchainedLauncher.Core.JsonModels {
     //{
     //}
 
-    #pragma warning restore CA1507
+#pragma warning restore CA1507
 
 }

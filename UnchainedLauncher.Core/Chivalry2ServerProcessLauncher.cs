@@ -7,10 +7,8 @@ using System.Threading.Tasks;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Processes;
 
-namespace UnchainedLauncher.Core
-{
-    public class Chivalry2ServerProcessLauncher
-    {
+namespace UnchainedLauncher.Core {
+    public class Chivalry2ServerProcessLauncher {
         public Chivalry2Launcher Launcher { get; set; }
         public InstallationType InstallationType { get; set; }
         public ModdedLaunchOptions ModdedLaunchOptions { get; set; }
@@ -20,8 +18,7 @@ namespace UnchainedLauncher.Core
                                            InstallationType installType,
                                            ModdedLaunchOptions options,
                                            LanguageExt.Option<ServerLaunchOptions> serverOptions,
-                                           IEnumerable<string> extraArgs)
-        {
+                                           IEnumerable<string> extraArgs) {
             Launcher = launcher;
             InstallationType = installType;
             ModdedLaunchOptions = options;
@@ -29,8 +26,7 @@ namespace UnchainedLauncher.Core
             ExtraArgs = extraArgs;
         }
 
-        public LanguageExt.Option<LanguageExt.Either<ProcessLaunchFailure, Process>> Launch()
-        {
+        public LanguageExt.Option<LanguageExt.Either<ProcessLaunchFailure, Process>> Launch() {
             var launch = Launcher.LaunchUnchained(InstallationType, ModdedLaunchOptions, ServerLaunchOptions, ExtraArgs);
             return launch;
         }

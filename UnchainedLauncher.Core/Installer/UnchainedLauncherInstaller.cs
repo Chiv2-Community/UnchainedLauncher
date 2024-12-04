@@ -6,6 +6,7 @@ using LanguageExt.TypeClasses;
 using LanguageExt.UnsafeValueAccess;
 using log4net;
 using Octokit;
+using Semver;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -17,7 +18,6 @@ using System.Linq;
 using System.Reflection;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Utilities;
-using Semver;
 
 namespace UnchainedLauncher.Core.Installer {
     using static LanguageExt.Prelude;
@@ -41,7 +41,7 @@ namespace UnchainedLauncher.Core.Installer {
         public Task<bool> Install(DirectoryInfo targetDir, VersionedRelease release, bool relaunch, Action<string>? logProgress = null);
     }
 
-    public class UnchainedLauncherInstaller: IUnchainedLauncherInstaller {
+    public class UnchainedLauncherInstaller : IUnchainedLauncherInstaller {
         public static readonly ILog logger = LogManager.GetLogger(nameof(UnchainedLauncherInstaller));
 
         private static readonly long REPO_ID = 667470779;
@@ -59,14 +59,15 @@ namespace UnchainedLauncher.Core.Installer {
         }
 
         public async Task<VersionedRelease?> GetLatestRelease() {
-            if(LatestRelease != null) {
+            if (LatestRelease != null) {
                 return LatestRelease;
             }
 
             try {
                 await GetAllReleases();
                 return LatestRelease;
-            } catch(Exception e) {
+            }
+            catch (Exception e) {
                 logger.Error("Failed to connect to github to retrieve latest release information", e);
                 return null;
             }
@@ -97,7 +98,8 @@ namespace UnchainedLauncher.Core.Installer {
                 LatestRelease = latestRelease;
 
                 return Optional(ReleaseCache).ToList().Flatten();
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 logger.Error("Failed to connect to github to retrieve version information", e);
                 return ImmutableList.CreateBuilder<VersionedRelease>().ToImmutableList();
             }
@@ -137,7 +139,7 @@ namespace UnchainedLauncher.Core.Installer {
                     log($"Failed to download the launcher version {release.Version}.");
                     return false;
                 }
-                
+
                 var launcherPath = Path.Combine(targetDir.FullName, FilePaths.LauncherPath);
 
                 if (replaceCurrent) {
@@ -166,7 +168,8 @@ namespace UnchainedLauncher.Core.Installer {
 
                     log("Exitting current process to launch new launcher");
                     EndProgram();
-                } else {
+                }
+                else {
                     MoveExistingLauncher(targetDir, log);
 
                     log($"Replacing launcher \n    at {launcherPath} \n    with downloaded launcher from {downloadFilePath}");
@@ -176,7 +179,8 @@ namespace UnchainedLauncher.Core.Installer {
 
 
                 return true;
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 log(ex.ToString());
                 logger.Error(ex);
             }
@@ -201,14 +205,15 @@ namespace UnchainedLauncher.Core.Installer {
 
                 var currentExecutableProductName = FileVersionInfo.GetVersionInfo(currentAssembly?.Location)?.ProductName;
 
-                if(currentExecutableProductName == null) {
+                if (currentExecutableProductName == null) {
                     throw new Exception("Failed to get the product name of the current executable. Aborting");
                 }
 
                 if (launcherProductName != currentExecutableProductName) {
                     log($"Existing launcher is not {currentExecutableProductName}. Moving existing launcher to {originalLauncherPath}");
                     File.Move(launcherPath, originalLauncherPath, true);
-                } else {
+                }
+                else {
                     log("Existing launcher is a modified launcher. Overwriting with version selected in the installer..");
                 }
             }
@@ -236,7 +241,8 @@ namespace UnchainedLauncher.Core.Installer {
                         await HttpHelpers.DownloadFileAsync(asset.BrowserDownloadUrl, downloadTarget.ValueUnsafe()).Task;
                         log($"Downloaded {asset.Name} to {downloadTarget.ValueUnsafe()}");
                         return true;
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         log($"Failed to download launcher\n    from {asset.BrowserDownloadUrl}\n    to {downloadTarget.ValueUnsafe()}");
                         log(e.ToString());
                         return false;
@@ -255,16 +261,17 @@ namespace UnchainedLauncher.Core.Installer {
                     versionString = versionString[1..];
                 }
                 return Some(SemVersion.Parse(versionString, SemVersionStyles.Any));
-            } catch {
+            }
+            catch {
                 logger.Info($"Failed to parse version tag {tag}");
                 return None;
             }
         }
     }
-    public class MockInstaller: IUnchainedLauncherInstaller {
+    public class MockInstaller : IUnchainedLauncherInstaller {
         public IEnumerable<VersionedRelease> MockReleases { get; set; } = VersionedRelease.DefaultMockReleases;
-        
-        public MockInstaller(): this(VersionedRelease.DefaultMockReleases) { }
+
+        public MockInstaller() : this(VersionedRelease.DefaultMockReleases) { }
         public MockInstaller(IEnumerable<VersionedRelease> mockReleases) {
             MockReleases = mockReleases;
         }

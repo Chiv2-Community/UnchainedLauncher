@@ -2,15 +2,12 @@
 using UnchainedLauncher.Core.API.ServerBrowser;
 using Environment = UnchainedLauncher.Core.API.A2S.Environment;
 
-namespace UnchainedLauncher.Core.Tests.Integration.API
-{
+namespace UnchainedLauncher.Core.Tests.Integration.API {
 
     // Should have an instance of the backend running on localhost:8080 for this
     // to test against
-    public class ServerBrowserTests
-    {
-        private static readonly C2ServerInfo testServerC2Info = new()
-        {
+    public class ServerBrowserTests {
+        private static readonly C2ServerInfo testServerC2Info = new() {
             Name = "Test server",
             Description = "Test description"
         };
@@ -24,8 +21,7 @@ namespace UnchainedLauncher.Core.Tests.Integration.API
         private static readonly String localIP = "127.0.0.1";
 
         [Fact]
-        public async Task RegisterServerTest()
-        {
+        public async Task RegisterServerTest() {
             using ServerBrowser backend = new(endpoint, new HttpClient());
             RegisterServerResponse res = await backend.RegisterServerAsync(localIP, testServerInfo); ;
             //not exhaustive
@@ -40,8 +36,7 @@ namespace UnchainedLauncher.Core.Tests.Integration.API
         }
 
         [Fact]
-        public async Task UpdateServerTest()
-        {
+        public async Task UpdateServerTest() {
             using ServerBrowser backend = new(endpoint, new HttpClient());
             var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
             await Task.Delay(1000); //wait a bit before updating
@@ -51,8 +46,7 @@ namespace UnchainedLauncher.Core.Tests.Integration.API
         }
 
         [Fact]
-        public async Task HeartbeatTest()
-        {   
+        public async Task HeartbeatTest() {
             using ServerBrowser backend = new(endpoint, new HttpClient());
             var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
             Thread.Sleep(1000); //give it time to sit before sending a heartbeat
@@ -63,8 +57,7 @@ namespace UnchainedLauncher.Core.Tests.Integration.API
         }
 
         [Fact]
-        public async Task DeleteServerTest()
-        {
+        public async Task DeleteServerTest() {
             using ServerBrowser backend = new(endpoint, new HttpClient());
             var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
             await backend.DeleteServerAsync(server, key);

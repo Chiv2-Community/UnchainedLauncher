@@ -22,10 +22,10 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         private static readonly ILog logger = LogManager.GetLogger(typeof(LaunchUnchainedLauncherWindowViewModel));
 
         public LaunchUnchainedLauncherWindowViewModel() : this(
-            new List<InstallationTargetViewModel> { new InstallationTargetViewModel() }, 
+            new List<InstallationTargetViewModel> { new InstallationTargetViewModel() },
             () => { }
-        ) {}
-       
+        ) { }
+
         public IEnumerable<InstallationTargetViewModel> LaunchTargets { get; }
 
         public InstallationTargetViewModel SelectedTarget { get; set; }
@@ -38,7 +38,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             LaunchTargets = targets.Filter(x => x.IsSelected);
             CloseWindow = closeWindow;
 
-            if(LaunchTargets.Count() < 0) {
+            if (LaunchTargets.Count() < 0) {
                 MessageBox.Show("Error: No installation targets found after installation complete. This is a bug. Please file a report.");
             }
 

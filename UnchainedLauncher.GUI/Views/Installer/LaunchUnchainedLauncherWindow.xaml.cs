@@ -13,15 +13,12 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using UnchainedLauncher.GUI.ViewModels.Installer;
 
-namespace UnchainedLauncher.GUI.Views.Installer
-{
+namespace UnchainedLauncher.GUI.Views.Installer {
     /// <summary>
     /// Interaction logic for LaunchUnchainedLauncherWindow.xaml
     /// </summary>
-    public partial class LaunchUnchainedLauncherWindow : Window
-    {
-        public LaunchUnchainedLauncherWindow()
-        {
+    public partial class LaunchUnchainedLauncherWindow : Window {
+        public LaunchUnchainedLauncherWindow() {
             InitializeComponent();
         }
 
@@ -33,7 +30,8 @@ namespace UnchainedLauncher.GUI.Views.Installer
             if (targets.Filter(x => x.IsSelected).Count() == 1) {
                 vm.Launch();
                 window.Close();
-            } else {
+            }
+            else {
                 window.DataContext = vm;
                 window.ShowDialog();
             }

@@ -6,11 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace UnchainedLauncher.Core.Mods.Registry.Downloader
-{
+namespace UnchainedLauncher.Core.Mods.Registry.Downloader {
     using static LanguageExt.Prelude;
-    public interface IModRegistryDownloader
-    {
+    public interface IModRegistryDownloader {
         public abstract EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(PakTarget target);
     }
 

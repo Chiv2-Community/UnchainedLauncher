@@ -1,28 +1,27 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
+using LanguageExt.Common;
 using log4net;
 using PropertyChanged;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Data;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using UnchainedLauncher.Core.Mods;
-using LanguageExt;
-using System.Threading;
-using UnchainedLauncher.GUI.Views;
-using System.Collections;
-using System.Collections.Generic;
-using LanguageExt.Common;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
-using System.ComponentModel;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
+using UnchainedLauncher.GUI.Views;
 
-namespace UnchainedLauncher.GUI.ViewModels
-{
+namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
     public partial class ModListViewModel : INotifyPropertyChanged {
@@ -64,11 +63,11 @@ namespace UnchainedLauncher.GUI.ViewModels
                 }
                 UnfilteredModView.Clear();
 
-                updatedModsList.ToList().ForEach(mod => 
+                updatedModsList.ToList().ForEach(mod =>
                     UnfilteredModView.Add(
                         new ModViewModel(
-                            mod, 
-                            ModManager.GetCurrentlyEnabledReleaseForMod(mod), 
+                            mod,
+                            ModManager.GetCurrentlyEnabledReleaseForMod(mod),
                             ModManager
                         )
                     )
@@ -76,7 +75,8 @@ namespace UnchainedLauncher.GUI.ViewModels
 
                 logger.Info("Mod list refreshed.");
 
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 logger.Error(ex);
                 MessageBox.Show(ex.ToString());
             }
@@ -86,16 +86,16 @@ namespace UnchainedLauncher.GUI.ViewModels
             try {
                 logger.Info("Checking for Mod updates...");
 
-                IEnumerable<(ModViewModel, UpdateCandidate)> pendingUpdates = 
+                IEnumerable<(ModViewModel, UpdateCandidate)> pendingUpdates =
                     DisplayMods
                         .Map(displayMod => displayMod.CheckForUpdate().Map(update => (displayMod, update)))
                         .Collect(x => x.AsEnumerable());
 
-                Option<MessageBoxResult> res = 
+                Option<MessageBoxResult> res =
                     UpdatesWindow.Show(
-                        "Update Mods?", 
-                        $"Mod updates available.", 
-                        "Yes", "No", None, 
+                        "Update Mods?",
+                        $"Mod updates available.",
+                        "Yes", "No", None,
                         pendingUpdates.Select(x => DependencyUpdate.FromUpdateCandidate(x.Item2))
                     );
 
@@ -119,16 +119,20 @@ namespace UnchainedLauncher.GUI.ViewModels
                         var errorMessage = string.Join("\n", errorMessages);
 
                         MessageBox.Show($"Some errors occurred during update: \n{errorMessage}\n\n Check the logs for more details.");
-                    } else {
+                    }
+                    else {
                         logger.Info("Mods updated successfully");
                         MessageBox.Show("Mods updated successfully");
                     }
-                } else if(res.IsNone) {
+                }
+                else if (res.IsNone) {
                     MessageBox.Show("No updates available.");
-                } else {
+                }
+                else {
                     MessageBox.Show("Mods not updated");
                 }
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 logger.Error(ex.ToString());
                 MessageBox.Show("Failed to check for updates. Check the logs for details.");
             }

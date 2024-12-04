@@ -1,22 +1,22 @@
-﻿using System.IO;
-using System.Reflection;
-using System.Windows;
-using UnchainedLauncher.GUI.ViewModels.Installer;
-using UnchainedLauncher.GUI.ViewModels;
-using UnchainedLauncher.GUI.Views.Installer;
-using UnchainedLauncher.GUI.Views;
-using System.Collections.ObjectModel;
-using System.Threading.Tasks;
+﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using System.Windows;
+using UnchainedLauncher.Core;
 using UnchainedLauncher.Core.Installer;
+using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
-using UnchainedLauncher.Core;
-using System.Runtime.CompilerServices;
-using UnchainedLauncher.Core.Mods;
-using System;
-using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.GUI.ViewModels;
+using UnchainedLauncher.GUI.ViewModels.Installer;
+using UnchainedLauncher.GUI.Views;
+using UnchainedLauncher.GUI.Views.Installer;
 
 namespace UnchainedLauncher.GUI {
     using static LanguageExt.Prelude;
@@ -25,17 +25,19 @@ namespace UnchainedLauncher.GUI {
     /// Interaction logic for App.xaml
     /// </summary>
     public partial class App : Application {
-        public App() : base() {}
+        public App() : base() { }
         protected override void OnStartup(StartupEventArgs e) {
             base.OnStartup(e);
 
             var assembly = Assembly.GetExecutingAssembly();
             if (File.Exists("log4net.config")) {
                 log4net.Config.XmlConfigurator.Configure(new FileInfo("log4net.config"));
-            } else if (File.Exists("Resources/log4net.config")) {
+            }
+            else if (File.Exists("Resources/log4net.config")) {
                 // for running in Visual Studio
                 log4net.Config.XmlConfigurator.Configure(new FileInfo("Resources/log4net.config"));
-            } else {
+            }
+            else {
                 using Stream? configStream = assembly.GetManifestResourceStream("UnchainedLauncher.GUI.Resources.log4net.config");
                 if (configStream != null) {
                     log4net.Config.XmlConfigurator.Configure(configStream);
@@ -54,9 +56,9 @@ namespace UnchainedLauncher.GUI {
             var needsInstallation = currentDirectory != null && !installationFinder.IsValidInstallation(currentDirectory);
 
             // initialize the window
-            Window window = 
-                needsInstallation 
-                    ? InitializeInstallerWindow(installationFinder, installer) 
+            Window window =
+                needsInstallation
+                    ? InitializeInstallerWindow(installationFinder, installer)
                     : InitializeMainWindow(installationFinder, installer);
 
             window.Show();

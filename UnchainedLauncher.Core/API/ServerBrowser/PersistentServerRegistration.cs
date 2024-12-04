@@ -12,8 +12,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using UnchainedLauncher.Core.API.A2S;
 
-namespace UnchainedLauncher.Core.API.ServerBrowser
-{
+namespace UnchainedLauncher.Core.API.ServerBrowser {
     /// <summary>
     /// Maintains a registration with a backend by regularly performing heartbeats
     /// <para>- Runs a delegate whenever the registration dies</para>
@@ -21,8 +20,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
     ///   from that is the responsibility of the caller</para>
     /// </summary>
     [AddINotifyPropertyChangedInterface]
-    public class PersistentServerRegistration : IDisposable
-    {
+    public class PersistentServerRegistration : IDisposable {
         public readonly IServerBrowser browser;
         public readonly int HeartBeatSecondsBeforeTimeout;
         public delegate Task RegistrationDied(Exception reason);
@@ -36,8 +34,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
         public PersistentServerRegistration(IServerBrowser browser,
                                             RegisterServerResponse registration,
                                             RegistrationDied? OnDeath = null,
-                                            int heartBeatSecondsBeforeTimeout = 5)
-        {
+                                            int heartBeatSecondsBeforeTimeout = 5) {
             this.browser = browser;
             IsDead = false;
             OnRegistrationDied = OnDeath ?? DefaultOnRegistrationDied;
@@ -46,96 +43,77 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
             Runner = new PeriodicRunner(TryHeartBeat, OnException, CalcSleepDuration(registration.RefreshBefore));
         }
 
-        private async Task<bool> OnException(Exception ex)
-        {
+        private async Task<bool> OnException(Exception ex) {
             IsDead = true;
             // notify anyone who cares that this registration is dead
             await OnRegistrationDied(ex);
             return false;
         }
 
-        private static Task DefaultOnRegistrationDied(Exception reason)
-        {
+        private static Task DefaultOnRegistrationDied(Exception reason) {
             return Task.CompletedTask;
         }
 
         // TODO: I am pretty sure the double introduces some precision errors, so timespans
         // less than 1 or 2 go negative. This causes extremely fast heartbeats.
-        private TimeSpan CalcSleepDuration(double refreshBefore)
-        {
+        private TimeSpan CalcSleepDuration(double refreshBefore) {
             return TimeSpan.FromSeconds(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - HeartBeatSecondsBeforeTimeout);
         }
 
-        public async Task UpdateRegistrationA2s(A2sInfo info)
-        {
+        public async Task UpdateRegistrationA2s(A2sInfo info) {
             var shouldPush = Registration.Server.Update(info);
-            if (shouldPush)
-            {
+            if (shouldPush) {
                 await UpdateRegistration(Registration.Server);
             }
         }
 
-        public async Task UpdateRegistration(UniqueServerInfo info)
-        {
-            if (disposedValue)
-            {
+        public async Task UpdateRegistration(UniqueServerInfo info) {
+            if (disposedValue) {
                 logger.Error($"Attemped to update disposed server '{Registration.Server.Name}'");
                 throw new ObjectDisposedException("Attempted to update a disposed server");
             }
 
-            try
-            {
+            try {
                 await browser.UpdateServerAsync(info, Registration.Key);
             }
-            catch (Exception ex)
-            {
+            catch (Exception ex) {
                 logger.Error($"Server '${Registration.Server.Name}' failed to update: {ex.Message}");
                 throw;
             }
         }
 
-        protected async Task<TimeSpan> TryHeartBeat()
-        {
-            try
-            {
+        protected async Task<TimeSpan> TryHeartBeat() {
+            try {
                 var refreshBefore = await browser.HeartbeatAsync(Registration.Server, Registration.Key);
                 // update RefreshBefore for visibility
                 Registration = Registration with { RefreshBefore = refreshBefore };
                 return CalcSleepDuration(refreshBefore);
             }
-            catch (HttpRequestException e)
-            {
-                if (e.StatusCode == HttpStatusCode.NotFound)
-                {
+            catch (HttpRequestException e) {
+                if (e.StatusCode == HttpStatusCode.NotFound) {
                     logger.Error($"Server '{Registration.Server.Name}' got HTTP 404. Probably a missed heartbeat.", e);
                     throw;
                 }
-                else
-                {
+                else {
                     logger.Error($"Server '{Registration.Server.Name}' got status code {e.StatusCode}.", e);
                     // re-throw exception
                     throw;
                 }
             }
-            catch (TimeoutException e)
-            {
+            catch (TimeoutException e) {
                 logger.Error($"Server '{Registration.Server.Name}' timed out.", e);
                 throw;
             }
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                try
-                {
+        protected virtual void Dispose(bool disposing) {
+            if (!disposedValue) {
+                try {
                     IsDead = true;
                     Runner.Dispose();
                     browser.DeleteServerAsync(Registration.Server, Registration.Key).Wait();
                 }
-                catch (Exception e)
-                {
+                catch (Exception e) {
                     logger.Error($"Failed to de-register server '{Registration.Server.Name}' from backend: {e.Message}");
                 }
 
@@ -143,8 +121,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
             }
         }
 
-        public void Dispose()
-        {
+        public void Dispose() {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);

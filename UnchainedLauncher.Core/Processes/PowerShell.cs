@@ -20,7 +20,8 @@ namespace UnchainedLauncher.Core.Processes {
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.CreateNoWindow = !createWindow;
                 process.Start();
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 logger.Error($"Failed to execute powershell command.", e);
                 throw;
             }

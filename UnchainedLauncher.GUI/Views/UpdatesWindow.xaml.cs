@@ -30,9 +30,9 @@ namespace UnchainedLauncher.GUI.Views {
         public MessageBoxResult Result => ViewModel.Result;
 
         public UpdatesWindow(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates) {
-            InitializeComponent();
             ViewModel = new UpdatesWindowViewModel(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates, Close);
             DataContext = ViewModel;
+            InitializeComponent();
         }
 
         public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates) {

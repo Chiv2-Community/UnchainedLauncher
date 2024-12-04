@@ -193,7 +193,17 @@ namespace UnchainedLauncher.Core.Installer {
             // Only if the Product Name of the file at the launcher path is not the same as the current executable
             if (File.Exists(launcherPath)) {
                 var launcherProductName = FileVersionInfo.GetVersionInfo(launcherPath)?.ProductName;
-                var currentExecutableProductName = Assembly.GetExecutingAssembly().GetName().Name;
+                var currentAssembly = Assembly.GetEntryAssembly();
+
+                if (currentAssembly == null) {
+                    throw new Exception("Failed to get the product name of the current executable. Aborting");
+                }
+
+                var currentExecutableProductName = FileVersionInfo.GetVersionInfo(currentAssembly?.Location)?.ProductName;
+
+                if(currentExecutableProductName == null) {
+                    throw new Exception("Failed to get the product name of the current executable. Aborting");
+                }
 
                 if (launcherProductName != currentExecutableProductName) {
                     log($"Existing launcher is not {currentExecutableProductName}. Moving existing launcher to {originalLauncherPath}");

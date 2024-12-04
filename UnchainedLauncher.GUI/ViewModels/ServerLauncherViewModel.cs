@@ -20,11 +20,12 @@ using LanguageExt;
 using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.API.ServerBrowser;
+using UnchainedLauncher.Core.Mods.Registry;
+using System.ComponentModel;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {
-    [AddINotifyPropertyChangedInterface]
-    public class ServerLauncherViewModel : IDisposable {
+    public partial class ServerLauncherViewModel : IDisposable, INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServerLauncherViewModel));
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_server_settings.json";
 

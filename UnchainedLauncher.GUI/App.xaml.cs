@@ -10,8 +10,17 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using UnchainedLauncher.Core.Installer;
+using UnchainedLauncher.Core.Mods.Registry;
+using UnchainedLauncher.Core.Mods.Registry.Downloader;
+using UnchainedLauncher.Core;
+using System.Runtime.CompilerServices;
+using UnchainedLauncher.Core.Mods;
+using System;
+using UnchainedLauncher.Core.JsonModels;
 
 namespace UnchainedLauncher.GUI {
+    using static LanguageExt.Prelude;
+
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
@@ -53,7 +62,7 @@ namespace UnchainedLauncher.GUI {
             window.Show();
         }
 
-        public static Window InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer) {
+        public Window InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer) {
             var installationSelectionVM = new InstallationSelectionPageViewModel(installationFinder);
             var versionSelectionVM = new VersionSelectionPageViewModel(installer);
             var installationLogVM = new InstallerLogPageViewModel(
@@ -75,8 +84,41 @@ namespace UnchainedLauncher.GUI {
             return new InstallerWindow(installerWindowVM);
         }
 
-        public static Window InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer) {
-            return new MainWindow(installationFinder, installer);
+        public Window InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer) {
+            var curDir = new DirectoryInfo(Directory.GetCurrentDirectory());
+
+            var settingsViewModel = SettingsViewModel.LoadSettings(installationFinder, installer, Environment.Exit);
+
+            var modManager = ModManager.ForRegistries(
+                new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
+            );
+
+            var chiv2Launcher = new Chivalry2Launcher();
+            var serversViewModel = new ServersViewModel(settingsViewModel, null);
+            var launcherViewModel = new LauncherViewModel(settingsViewModel, modManager, chiv2Launcher);
+            var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(launcherViewModel, settingsViewModel, serversViewModel, modManager);
+            var modListViewModel = new ModListViewModel(modManager);
+
+            modListViewModel.RefreshModListCommand.Execute(null);
+
+            var EnvArgs = Environment.GetCommandLineArgs().ToList();
+
+            if (EnvArgs.Contains("--startvanilla"))
+                launcherViewModel.LaunchVanilla(false);
+            else if (EnvArgs.Contains("--startmodded"))
+                launcherViewModel.LaunchVanilla(true);
+            else if (EnvArgs.Contains("--startunchained"))
+                launcherViewModel.LaunchUnchained(None);
+
+            var mainWindowViewModel = new MainWindowViewModel(
+                launcherViewModel,
+                modListViewModel,
+                settingsViewModel,
+                serverLauncherViewModel,
+                serversViewModel
+            );
+
+            return new MainWindow(mainWindowViewModel);
         }
     }
 }

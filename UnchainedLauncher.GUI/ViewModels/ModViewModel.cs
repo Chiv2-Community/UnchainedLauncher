@@ -26,7 +26,6 @@ namespace UnchainedLauncher.GUI.ViewModels
 {
     using static LanguageExt.Prelude;
 
-    [AddINotifyPropertyChangedInterface]
     public partial class ModViewModel : INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModViewModel));
         // A ModViewModel needs access to the mod manager so that it can enable/disable releases as they get set on the view.

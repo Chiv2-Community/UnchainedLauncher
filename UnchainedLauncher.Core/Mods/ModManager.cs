@@ -58,8 +58,6 @@ namespace UnchainedLauncher.Core.Mods
         }
 
         public static ModManager ForRegistries(params IModRegistry[] registries) {
-
-
             var loadReleaseMetadata = (string path) => {
                 logger.Info("Loading release metadata from " + path);
                 if (!File.Exists(path)) {

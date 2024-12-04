@@ -29,10 +29,6 @@ namespace UnchainedLauncher.GUI.ViewModels
         private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsViewModel));
         private static readonly Version version = Assembly.GetExecutingAssembly().GetName().Version!;
 
-        private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_settings.json";
-
-        private MainWindow Window { get; }
-
         public InstallationType InstallationType { get; set; }
         public bool EnablePluginAutomaticUpdates { get; set; }
         public string AdditionalModActors { get; set; }
@@ -62,41 +58,40 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public FileBackedSettings<LauncherSettings> LauncherSettings { get; set; }
         public IUnchainedLauncherInstaller Installer { get; }
+        public readonly Action<int> ExitProgram;
 
-        public SettingsViewModel(MainWindow window, IUnchainedLauncherInstaller installer, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs) {
+        public SettingsViewModel(IUnchainedLauncherInstaller installer, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
             InstallationType = installationType;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
             AdditionalModActors = additionalModActors;
             LauncherSettings = launcherSettings;
             ServerBrowserBackend = serverBrowserBackend;
             Installer = installer;
+            ExitProgram = exitProgram;
 
             _cliArgs = cliArgs;
             CLIArgsModified = false;
 
             CheckForUpdateCommand = new AsyncRelayCommand(CheckForUpdate);
             CleanUpInstallationCommand = new RelayCommand(CleanUpInstallation);
-
-            this.Window = window;
         }
 
-        public static SettingsViewModel LoadSettings(MainWindow window, IUnchainedLauncherInstaller installer) {
+        public static SettingsViewModel LoadSettings(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, Action<int> exitProgram) {
             var cliArgsList = Environment.GetCommandLineArgs();
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => x + " " + y) : "";
 
-            var fileBackedSettings = new FileBackedSettings<LauncherSettings>(SettingsFilePath);
-
+            var fileBackedSettings = new FileBackedSettings<LauncherSettings>(FilePaths.LauncherSettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
 
             return new SettingsViewModel(
-                window,
                 installer,
-                loadedSettings?.InstallationType ?? InstallationTypeUtils.AutoDetectInstallationType(),
+                loadedSettings?.InstallationType ?? DetectInstallationType(installationFinder),
                 loadedSettings?.EnablePluginAutomaticUpdates ?? true,
                 loadedSettings?.AdditionalModActors ?? "",
                 loadedSettings?.ServerBrowserBackend ?? "https://servers.polehammer.net",
                 fileBackedSettings,
-                cliArgs
+                cliArgs,
+                exitProgram
             );
         }
 
@@ -164,8 +159,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             MessageBox.Show("The launcher will now restart. No further action must be taken.");
 
             logger.Info("Closing");
-            Window.DisableSaveSettings = true;
-            Window.Close(); //close the program
+            ExitProgram(0);
         }
 
         
@@ -214,20 +208,18 @@ namespace UnchainedLauncher.GUI.ViewModels
             GC.SuppressFinalize(this);
         }
 
-        private static class InstallationTypeUtils {
-            const string SteamPathSearchString = "Steam";
-            const string EpicGamesPathSearchString = "Epic Games";
+        private static InstallationType DetectInstallationType(IChivalry2InstallationFinder finder) {
+            var curDir = new DirectoryInfo(Directory.GetCurrentDirectory());
 
-            public static InstallationType AutoDetectInstallationType() {
-                var currentDir = Directory.GetCurrentDirectory();
-                return currentDir switch {
-                    var _ when currentDir.Contains(SteamPathSearchString) => InstallationType.Steam,
-                    var _ when currentDir.Contains(EpicGamesPathSearchString) => InstallationType.EpicGamesStore,
-                    _ => InstallationType.NotSet,
-                };
+            if (finder.IsEGSDir(curDir))
+                return InstallationType.EpicGamesStore;
+            else if (finder.IsSteamDir(curDir))
+                return InstallationType.Steam;
+            else {
+                logger.Warn("Could not detect installation type.");
+                return InstallationType.NotSet;
             }
         }
-
     }
 
 }

@@ -3,6 +3,7 @@ using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -19,8 +20,7 @@ using UnchainedLauncher.Core.API.ServerBrowser;
 
 namespace UnchainedLauncher.GUI.ViewModels
 {
-    [AddINotifyPropertyChangedInterface]
-    public class ServersViewModel : IDisposable
+    public partial class ServersViewModel : IDisposable, INotifyPropertyChanged
     {
         private bool disposedValue;
 
@@ -116,8 +116,7 @@ namespace UnchainedLauncher.GUI.ViewModels
     // 2. get response from system clipboard
     // 3. neatly display response information in-window
 
-    [AddINotifyPropertyChangedInterface]
-    public class ServerViewModel : IDisposable
+    public partial class ServerViewModel : IDisposable, INotifyPropertyChanged
     {
         // TODO: make Chivalry2Server handle the game process, Pid, and Rcon stuff
         // instead of having the ViewModel do it
@@ -132,6 +131,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         private readonly Process? ServerProcess;
 
         private bool disposed = false;
+
 
         public ServerViewModel(Chivalry2Server server, Process serverProcess, int rconPort)
         {

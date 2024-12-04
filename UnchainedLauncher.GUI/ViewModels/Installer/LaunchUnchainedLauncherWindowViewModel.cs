@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using log4net;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
@@ -18,6 +19,8 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
     public partial class LaunchUnchainedLauncherWindowViewModel : INotifyPropertyChanged {
+        private static readonly ILog logger = LogManager.GetLogger(typeof(LaunchUnchainedLauncherWindowViewModel));
+
         public LaunchUnchainedLauncherWindowViewModel() : this(
             new List<InstallationTargetViewModel> { new InstallationTargetViewModel() }, 
             () => { }
@@ -62,8 +65,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
                     return;
             }
 
+            logger.Info($"Launching Chivalry 2 Launcher at {fileName}");
+
             Process.Start(new ProcessStartInfo {
                 FileName = fileName,
+                WorkingDirectory = SelectedTarget.Path.FullName,
                 UseShellExecute = true
             });
 

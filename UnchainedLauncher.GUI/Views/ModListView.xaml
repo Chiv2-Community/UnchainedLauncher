@@ -5,13 +5,10 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views"
              xmlns:vms="clr-namespace:UnchainedLauncher.GUI.ViewModels"
+             xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
              mc:Ignorable="d" 
-             d:DataContext="{d:DesignInstance vms:ModListViewModel}"
+             d:DataContext="{x:Static instances:ModListViewModelInstances.DEFAULT}"
              d:DesignHeight="450" d:DesignWidth="800">
-
-    <d:DesignInstance.DataContext>
-        <vms:ModListViewModel/>
-    </d:DesignInstance.DataContext>
 
     <UserControl.Resources>
         <DataTemplate DataType="{x:Type vms:ModViewModel}">

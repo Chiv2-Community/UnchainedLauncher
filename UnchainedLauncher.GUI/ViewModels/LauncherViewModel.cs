@@ -39,12 +39,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public Chivalry2Launcher Launcher { get; }
 
-        public LauncherViewModel(): this(
-            new SettingsViewModel(), 
-            new ModManager(new HashMap<IModRegistry, IEnumerable<Mod>>(), new List<Release>()),
-            new Chivalry2Launcher()
-        ) { }
-
         public LauncherViewModel(SettingsViewModel settings, ModManager modManager, Chivalry2Launcher launcher) {
             CanClick = true;
 

@@ -48,10 +48,6 @@ namespace UnchainedLauncher.GUI.ViewModels
             }
         }
 
-        public ServersViewModel(): this(new SettingsViewModel(), null) {
-            Servers.Add(new ServerViewModel());
-            Servers.Add(new ServerViewModel());
-        }
         public ServersViewModel(SettingsViewModel settings, Func<string, IServerBrowser>? createServerBrowserBackend)
         {
             ShutdownCurrentTabCommand = new RelayCommand(ShutdownCurrentTab);
@@ -136,31 +132,6 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         private bool disposed = false;
 
-        public ServerViewModel(): this(
-            new Chivalry2Server(
-                new A2SBoundRegistration(
-                    new ServerBrowser(new Uri("http://example.com"), new HttpClient()),
-                    new A2S(new IPEndPoint(LocalHost, 1111)),
-                    new C2ServerInfo { 
-                        Description = "Design View Only. Do not use default constructor.", 
-                        Name = "Test Server",
-                        Mods = Array.Empty<ServerBrowserMod>(), 
-                        PasswordProtected = false, 
-                        Ports = new PublicPorts(123,456,789)  
-                    }, 
-                    "127.0.0.1"
-                )
-            ),
-            new Process(),
-            1520
-        ) {
-            RconHistory += "Hello, this is a fake server\n";
-            RconHistory += "Ignore my output\n";
-            RconHistory += "I'm just here to make the GUI look nice\n";
-            RconHistory += "While you design it\n";
-
-
-        }
 
         public ServerViewModel(Chivalry2Server server, Process serverProcess, int rconPort)
         {

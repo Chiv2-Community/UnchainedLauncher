@@ -13,10 +13,8 @@
         WindowStartupLocation="CenterOwner" 
         xmlns:vms="clr-namespace:UnchainedLauncher.GUI.ViewModels"
         mc:Ignorable="d" 
+        d:DataContext="{d:DesignInstance vms:UpdatesWindowViewModel}"
         FocusManager.FocusedElement="{Binding ElementName=Yes}">
-    <d:DesignProperties.DataContext>
-        <vms:UpdatesWindowViewModel />
-    </d:DesignProperties.DataContext>
 
     <Grid>
         <Grid.Resources>

@@ -26,8 +26,6 @@ namespace UnchainedLauncher.GUI.Views
     public partial class MainWindow : Window {
         public MainWindowViewModel ViewModel { get; }
 
-        public MainWindow() : this(new MainWindowViewModel()) { }
-
         public MainWindow(MainWindowViewModel vm) {
             DataContext = ViewModel = vm;
             InitializeComponent();

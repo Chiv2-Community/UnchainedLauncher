@@ -13,14 +13,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public ServerLauncherViewModel ServerLauncherViewModel { get; }
         public ServersViewModel ServersViewModel { get; }
 
-        public MainWindowViewModel(): this(
-            new LauncherViewModel(), 
-            new ModListViewModel(),
-            new SettingsViewModel(),
-            new ServerLauncherViewModel(),
-            new ServersViewModel()
-        ) { }
-
         public MainWindowViewModel(LauncherViewModel launcherViewModel, ModListViewModel modListViewModel, SettingsViewModel settingsViewModel, ServerLauncherViewModel serverLauncherViewModel, ServersViewModel serversViewModel) {
             LauncherViewModel = launcherViewModel;
             ModListViewModel = modListViewModel;

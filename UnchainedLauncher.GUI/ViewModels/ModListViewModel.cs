@@ -37,18 +37,6 @@ namespace UnchainedLauncher.GUI.ViewModels
         public ModViewModel? SelectedMod { get; set; }
         public ObservableCollection<ModViewModel> DisplayMods { get; }
 
-        public ModListViewModel() : this(
-            new ModManager(
-                new HashMap<IModRegistry, IEnumerable<Mod>> {
-                    { new LocalModRegistry("", new LocalFilePakDownloader("")), new List<Mod> { ModViewModel.DesignViewMod } }
-                },
-                new List<Release> { ModViewModel.DesignViewRelease }
-            )
-        ) {
-            SelectedMod = new ModViewModel();
-            DisplayMods = new ObservableCollection<ModViewModel> { SelectedMod } ;
-        }
-
         public ModListViewModel(ModManager modManager) {
             this.ModManager = modManager;
             this.UnfilteredModView = new ObservableCollection<ModViewModel>();

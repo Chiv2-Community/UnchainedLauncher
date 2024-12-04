@@ -60,15 +60,6 @@ namespace UnchainedLauncher.GUI.ViewModels
         public IUnchainedLauncherInstaller Installer { get; }
         public readonly Action<int> ExitProgram;
 
-        public SettingsViewModel() : this(
-            new MockInstaller(), 
-            InstallationType.Steam, 
-            true, 
-            "--design-time-only-default-constructor", 
-            "https://servers.polehammer.net", 
-            new FileBackedSettings<LauncherSettings>(""), "", (_) => { }
-        ) { }
-
         public SettingsViewModel(IUnchainedLauncherInstaller installer, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
             InstallationType = installationType;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;

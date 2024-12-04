@@ -5,14 +5,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views"
              xmlns:vms="clr-namespace:UnchainedLauncher.GUI.ViewModels"
+             xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
              mc:Ignorable="d" 
-             d:DataContext="{d:DesignInstance vms:SettingsViewModel}"
+             d:DataContext="{x:Static instances:SettingsViewModelInstances.DEFAULT}"
              d:DesignHeight="450" d:DesignWidth="800">
 
-    <d:DesignInstance.DataContext>
-        <vms:SettingsViewModel />
-    </d:DesignInstance.DataContext>
-    
     <Grid HorizontalAlignment="Stretch" Margin="0,0,0,0" Width="NaN" VerticalAlignment="Stretch">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

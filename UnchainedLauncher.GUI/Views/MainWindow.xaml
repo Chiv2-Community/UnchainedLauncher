@@ -5,15 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views"
         xmlns:vms="clr-namespace:UnchainedLauncher.GUI.ViewModels"
+        xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
         mc:Ignorable="d" 
+        d:DataContext="{x:Static instances:MainWindowViewModelInstances.DEFAULT}"
         x:Class="UnchainedLauncher.GUI.Views.MainWindow"
         Title="Unchained Launcher" Height="280" Width="650"
     >
     
-    <d:DesignProperties.DataContext>
-        <vms:MainWindowViewModel />
-    </d:DesignProperties.DataContext>
-
     <Window.Resources>
         <DataTemplate DataType="{x:Type vms:LauncherViewModel}">
             <local:LauncherView />

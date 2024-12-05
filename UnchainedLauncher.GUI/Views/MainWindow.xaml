@@ -13,22 +13,6 @@
     >
     
     <Window.Resources>
-        <DataTemplate DataType="{x:Type vms:LauncherViewModel}">
-            <local:LauncherView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type vms:ModListViewModel}">
-            <local:ModListView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type vms:ServerLauncherViewModel}">
-            <local:ServerLauncherView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type vms:SettingsViewModel}">
-            <local:SettingsView />
-        </DataTemplate>
-        <DataTemplate DataType="{x:Type vms:ServersViewModel}">
-            <local:ServersView />
-        </DataTemplate>
-
         <Style TargetType="Button">
             <Setter Property="Margin" Value="5"/>
             <Setter Property="Background" Value="LightGray"/>
@@ -52,19 +36,19 @@
 
     <TabControl x:Name="Tabs">
         <TabItem Header="Launcher">
-            <ContentControl Content="{Binding LauncherViewModel}" />
+            <local:LauncherView DataContext="{Binding LauncherViewModel}" />
         </TabItem>
         <TabItem Header="Mod Manager">
-            <ContentControl Content="{Binding ModListViewModel}" />
+            <local:ModListView DataContext="{Binding ModListViewModel}" />
         </TabItem>
         <TabItem Header="Server">
-            <ContentControl Content="{Binding ServerLauncherViewModel}" />
+            <local:ServerLauncherView DataContext="{Binding ServerLauncherViewModel}" />
         </TabItem>
         <TabItem Header="Settings">
-            <ContentControl Content="{Binding SettingsViewModel}" />
+            <local:SettingsView DataContext="{Binding SettingsViewModel}" />
         </TabItem>
         <TabItem Header="Running Servers">
-            <ContentControl Content="{Binding ServersViewModel}" />
+            <local:ServersView DataContext="{Binding ServersViewModel}" />
         </TabItem>
     </TabControl>
 

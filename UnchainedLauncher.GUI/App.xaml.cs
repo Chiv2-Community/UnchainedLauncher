@@ -17,6 +17,12 @@ using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.Installer;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
+using UnchainedLauncher.Core;
+using System.Runtime.CompilerServices;
+using UnchainedLauncher.Core.Mods;
+using System;
+using log4net;
+using UnchainedLauncher.Core.JsonModels;
 
 namespace UnchainedLauncher.GUI {
     using static LanguageExt.Prelude;
@@ -25,7 +31,9 @@ namespace UnchainedLauncher.GUI {
     /// Interaction logic for App.xaml
     /// </summary>
     public partial class App : Application {
-        public App() : base() { }
+        private readonly ILog _log = LogManager.GetLogger(typeof(App));
+        
+        public App() : base() {}
         protected override void OnStartup(StartupEventArgs e) {
             base.OnStartup(e);
 
@@ -46,19 +54,22 @@ namespace UnchainedLauncher.GUI {
 
 
             // Init common dependencies
-            Octokit.GitHubClient githubClient = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("UnchainedLauncher"));
-
+            var githubClient = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("UnchainedLauncher"));
             var installationFinder = new Chivalry2InstallationFinder();
-            IUnchainedLauncherInstaller installer = new UnchainedLauncherInstaller(githubClient, Current.Shutdown);
+            var installer = new UnchainedLauncherInstaller(githubClient, Current.Shutdown);
 
             // figure out if we need to install by checking our current working directory
             var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
-            var needsInstallation = currentDirectory != null && !installationFinder.IsValidInstallation(currentDirectory);
-
-            // initialize the window
-            Window window =
-                needsInstallation
-                    ? InitializeInstallerWindow(installationFinder, installer)
+            var needsInstallation = !installationFinder.IsValidInstallation(currentDirectory);
+            
+            var forceSkipInstallation = Environment.GetCommandLineArgs().ToList().Contains("--no-install");
+            
+            if(forceSkipInstallation && needsInstallation)
+                _log.Info("Skipping installation");
+            
+            Window window = 
+                needsInstallation && !forceSkipInstallation
+                    ? InitializeInstallerWindow(installationFinder, installer) 
                     : InitializeMainWindow(installationFinder, installer);
 
             window.Show();
@@ -103,13 +114,13 @@ namespace UnchainedLauncher.GUI {
 
             modListViewModel.RefreshModListCommand.Execute(null);
 
-            var EnvArgs = Environment.GetCommandLineArgs().ToList();
+            var envArgs = Environment.GetCommandLineArgs().ToList();
 
-            if (EnvArgs.Contains("--startvanilla"))
+            if (envArgs.Contains("--startvanilla"))
                 launcherViewModel.LaunchVanilla(false);
-            else if (EnvArgs.Contains("--startmodded"))
+            else if (envArgs.Contains("--startmodded"))
                 launcherViewModel.LaunchVanilla(true);
-            else if (EnvArgs.Contains("--startunchained"))
+            else if (envArgs.Contains("--startunchained"))
                 launcherViewModel.LaunchUnchained(None);
 
             var mainWindowViewModel = new MainWindowViewModel(

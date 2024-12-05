@@ -50,13 +50,22 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                 var message = manifest.Description;
 
-                if (manifest.Dependencies.Count > 0) {
-                    message += "\n\nYou must also enable the dependencies below:\n";
+                if (manifest.Dependencies.Count > 0)
+                {
+                    var depMessage = "";
                     foreach (var dep in manifest.Dependencies) {
                         var mod = ModManager.Mods.FirstOrDefault(x => x.LatestManifest.RepoUrl == dep.RepoUrl);
-                        if (mod != null)
-                            message += $"- {mod.LatestManifest.Name} {dep.Version}\n";
+                        if (mod == null)
+                        {
+                            logger.Warn($"Mod {manifest.Name} depends on {dep.Version}, but it doesn't exist.");
+                            continue;
+                        }
+
+                        depMessage += $"- {mod.LatestManifest.Name} {dep.Version}\n";
                     }
+                    
+                    if(!string.IsNullOrWhiteSpace(depMessage))
+                        message += $"\n\nYou must also enable the dependencies below:\n{depMessage}\n";
                 }
 
                 Optional(ErrorState).Match(

@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using LanguageExt;
 using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
@@ -26,7 +27,7 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public ObservableCollection<ServerViewModel> Servers { get; set; }
         public SettingsViewModel SettingsViewModel { get; set; }
-        public int Index { get; set; }
+        public int? Index { get; set; }
         public ICommand ShutdownCurrentTabCommand { get; private set; }
 
         private IServerBrowser CurrentBackend { get; set; }
@@ -56,6 +57,20 @@ namespace UnchainedLauncher.GUI.ViewModels
 
             ServerBrowserBackendInitializer = createServerBrowserBackend ?? DefaultServerBrowserInitializer;
             CurrentBackend = ServerBrowserBackendInitializer(SettingsViewModel.ServerBrowserBackend);
+
+            Index = null;
+            
+            // Automatically select the first server created
+            Servers.CollectionChanged += (_, _) =>  {
+                if (Index == null && Servers.Count > 0)
+                {
+                    Index = 0;
+                }
+                else if (Index != null && Servers.Count == 0)
+                {
+                    Index = null;
+                }
+            };
         }
 
         public void ShutdownAllServers()
@@ -68,8 +83,8 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public void ShutdownCurrentTab()
         {
-            if(Servers.Length() == 0) { return; }
-            var toKill = Servers[Index];
+            if(Servers.Count == 0 || Index == null) { return; }
+            var toKill = Servers[Index.Value];
             // pulling out the reference like this avoids a
             // potential TOCTOU error between the next two lines
             toKill.Dispose();

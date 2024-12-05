@@ -57,7 +57,8 @@ namespace UnchainedLauncher.GUI {
             
             var forceSkipInstallation = Environment.GetCommandLineArgs().ToList().Contains("--no-install");
             
-            _log.Info(Environment.GetCommandLineArgs().ToList());
+            if(forceSkipInstallation && needsInstallation)
+                _log.Info("Skipping installation");
             
             Window window = 
                 needsInstallation && !forceSkipInstallation

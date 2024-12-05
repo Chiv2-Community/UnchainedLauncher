@@ -1,15 +1,21 @@
-﻿using System;
+﻿using log4net;
+using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core;
+using UnchainedLauncher.Core;
 using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
@@ -17,12 +23,6 @@ using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.Installer;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
-using UnchainedLauncher.Core;
-using System.Runtime.CompilerServices;
-using UnchainedLauncher.Core.Mods;
-using System;
-using log4net;
-using UnchainedLauncher.Core.JsonModels;
 
 namespace UnchainedLauncher.GUI {
     using static LanguageExt.Prelude;
@@ -32,8 +32,8 @@ namespace UnchainedLauncher.GUI {
     /// </summary>
     public partial class App : Application {
         private readonly ILog _log = LogManager.GetLogger(typeof(App));
-        
-        public App() : base() {}
+
+        public App() : base() { }
         protected override void OnStartup(StartupEventArgs e) {
             base.OnStartup(e);
 
@@ -61,15 +61,15 @@ namespace UnchainedLauncher.GUI {
             // figure out if we need to install by checking our current working directory
             var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
             var needsInstallation = !installationFinder.IsValidInstallation(currentDirectory);
-            
+
             var forceSkipInstallation = Environment.GetCommandLineArgs().ToList().Contains("--no-install");
-            
-            if(forceSkipInstallation && needsInstallation)
+
+            if (forceSkipInstallation && needsInstallation)
                 _log.Info("Skipping installation");
-            
-            Window window = 
+
+            Window window =
                 needsInstallation && !forceSkipInstallation
-                    ? InitializeInstallerWindow(installationFinder, installer) 
+                    ? InitializeInstallerWindow(installationFinder, installer)
                     : InitializeMainWindow(installationFinder, installer);
 
             window.Show();

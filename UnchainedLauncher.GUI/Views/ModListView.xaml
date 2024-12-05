@@ -1,5 +1,6 @@
 ﻿<UserControl x:Class="UnchainedLauncher.GUI.Views.ModListView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
@@ -21,7 +22,7 @@
             <ColumnDefinition Width="150*"/>
         </Grid.ColumnDefinitions>
 
-        <DataGrid 
+        <ui:DataGrid 
                     x:Name="ModListDataGrid" 
                     IsReadOnly="True"  
                     Grid.RowSpan="2" 
@@ -33,7 +34,7 @@
                     SelectionMode="Single" 
                     SelectionUnit="FullRow"   
                     >
-            <DataGrid.RowStyle>
+            <ui:DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding HasError}" Value="true">
@@ -44,14 +45,14 @@
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
-            </DataGrid.RowStyle>
-            <DataGrid.Columns>
+            </ui:DataGrid.RowStyle>
+            <ui:DataGrid.Columns>
                 <DataGridTextColumn Header="Name" Binding="{Binding Mod.LatestManifest.Name}"/>
                 <DataGridTextColumn Header="Mod Type" Binding="{Binding Mod.LatestManifest.ModType}"/>
                 <DataGridTextColumn Header="Tags" Binding="{Binding TagsString}"/>
                 <DataGridTextColumn Header="Enabled" Binding="{Binding EnabledVersion}"/>
-            </DataGrid.Columns>
-        </DataGrid>
+            </ui:DataGrid.Columns>
+        </ui:DataGrid>
 
         <Button x:Name="RefreshModListButton" Content="Refresh Mod List" Grid.Row="0" Grid.Column="2" Command="{Binding RefreshModListCommand}" Margin="2,5,1,5"/>
         <Button x:Name="UpdateModsButton" Content="Update Mods" Grid.Row="0" Grid.Column="1" Command="{Binding UpdateModsCommand}" Margin="0,5,2,5"/>

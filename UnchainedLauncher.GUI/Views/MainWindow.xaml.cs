@@ -14,6 +14,7 @@ using System.Linq;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
+using Wpf.Ui.Controls;
 
 namespace UnchainedLauncher.GUI.Views
 {
@@ -23,7 +24,7 @@ namespace UnchainedLauncher.GUI.Views
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     [AddINotifyPropertyChangedInterface]
-    public partial class MainWindow : Window {
+    public partial class MainWindow : FluentWindow {
         public MainWindowViewModel ViewModel { get; }
 
         public MainWindow(MainWindowViewModel vm) {

@@ -1,5 +1,6 @@
-﻿<Window
+﻿<ui:FluentWindow
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -9,47 +10,47 @@
         mc:Ignorable="d" 
         d:DataContext="{x:Static instances:MainWindowViewModelInstances.DEFAULT}"
         x:Class="UnchainedLauncher.GUI.Views.MainWindow"
-        Title="Unchained Launcher" Height="280" Width="650"
+        ExtendsContentIntoTitleBar="False" 
+        Height="280" 
+        Width="650"
     >
-    
-    <Window.Resources>
-        <Style TargetType="Button">
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Background" Value="LightGray"/>
-            <Setter Property="Foreground" Value="Black"/>
-        </Style>
-        <Style TargetType="DataGrid">
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="Black"/>
-        </Style>
-        <Style TargetType="TextBlock">
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Foreground" Value="Black"/>
-        </Style>
-        <Style TargetType="ComboBox">
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="Black"/>
-        </Style>
-    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-    <TabControl x:Name="Tabs">
-        <TabItem Header="Launcher">
-            <local:LauncherView DataContext="{Binding LauncherViewModel}" />
-        </TabItem>
-        <TabItem Header="Mod Manager">
-            <local:ModListView DataContext="{Binding ModListViewModel}" />
-        </TabItem>
-        <TabItem Header="Server">
-            <local:ServerLauncherView DataContext="{Binding ServerLauncherViewModel}" />
-        </TabItem>
-        <TabItem Header="Settings">
-            <local:SettingsView DataContext="{Binding SettingsViewModel}" />
-        </TabItem>
-        <TabItem Header="Running Servers">
-            <local:ServersView DataContext="{Binding ServersViewModel}" />
-        </TabItem>
-    </TabControl>
-
-</Window>
+        <ui:TitleBar Grid.Row="0" Title="Unchained Launcher" ShowClose="True" />
+        <ui:NavigationView Grid.Row="1" x:Name="RootNavigationView" IsBackButtonVisible="Collapsed">
+            <ui:NavigationView.MenuItems>
+                <ui:NavigationViewItem Content="Launcher" TargetPageType="{x:Type local:LauncherView}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Home24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Mod Manager" TargetPageType="{x:Type local:ModListView}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="DataHistogram24" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+            </ui:NavigationView.MenuItems>
+        </ui:NavigationView>
+       <!--<ui:TabView>
+            <ui:TabViewItem Header="Launcher">
+                <local:LauncherView DataContext="{Binding LauncherViewModel}" />
+            </ui:TabViewItem>
+            <ui:TabViewItem Header="Mod Manager">
+                <local:ModListView DataContext="{Binding ModListViewModel}" />
+            </ui:TabViewItem>
+            <ui:TabViewItem Header="Server">
+                <local:ServerLauncherView DataContext="{Binding ServerLauncherViewModel}" />
+            </ui:TabViewItem>
+            <ui:TabViewItem Header="Settings">
+                <local:SettingsView DataContext="{Binding SettingsViewModel}" />
+            </ui:TabViewItem>
+            <ui:TabViewItem Header="Running Servers">
+                <local:ServersView DataContext="{Binding ServersViewModel}" />
+            </ui:TabViewItem>
+        </ui:TabView>-->
+        </Grid>
+</ui:FluentWindow>

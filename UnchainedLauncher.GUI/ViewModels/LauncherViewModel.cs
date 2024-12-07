@@ -66,7 +66,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 ? Launcher.LaunchModdedVanilla(args)
                 : Launcher.LaunchVanilla(args);
             
-            CanClick = false;
+            if(!IsReusable())
+                CanClick = false;
 
             return launchResult.Match(
                 Left: error => {
@@ -84,7 +85,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         public Option<Process> LaunchUnchained(Option<ServerLaunchOptions> serverOpts) {
-            if(serverOpts.IsNone || !IsReusable())
+            if(!IsReusable())
                 CanClick = false;
 
             var options = new ModdedLaunchOptions(

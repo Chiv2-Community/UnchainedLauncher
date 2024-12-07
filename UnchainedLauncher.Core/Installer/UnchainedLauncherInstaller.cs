@@ -195,11 +195,11 @@ namespace UnchainedLauncher.Core.Installer {
                 var launcherProductName = FileVersionInfo.GetVersionInfo(launcherPath)?.ProductName;
                 var currentAssembly = Assembly.GetEntryAssembly();
 
-                if (currentAssembly == null) {
+                if (currentAssembly?.Location == null) {
                     throw new Exception("Failed to get the product name of the current executable. Aborting");
                 }
 
-                var currentExecutableProductName = FileVersionInfo.GetVersionInfo(currentAssembly?.Location)?.ProductName;
+                var currentExecutableProductName = FileVersionInfo.GetVersionInfo(currentAssembly!.Location)?.ProductName;
 
                 if(currentExecutableProductName == null) {
                     throw new Exception("Failed to get the product name of the current executable. Aborting");

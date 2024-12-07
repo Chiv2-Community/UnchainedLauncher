@@ -44,6 +44,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         private LauncherViewModel LauncherViewModel { get; }
         private SettingsViewModel SettingsViewModel { get; }
         private ServersViewModel ServersViewModel { get; }
+        public string ButtonToolTip => LauncherViewModel.ButtonToolTip;
         public ICommand LaunchServerCommand { get; }
         public ICommand LaunchServerHeadlessCommand { get; }
 

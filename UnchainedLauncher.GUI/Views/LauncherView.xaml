@@ -7,15 +7,10 @@
              xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
              xmlns:vms="clr-namespace:UnchainedLauncher.GUI.ViewModels"
              mc:Ignorable="d" 
-             d:DataContext="{x:Static instances:LauncherViewModelInstances.DEFAULT}"
+             DataContext="{x:Static instances:LauncherViewModelInstances.DEFAULT}"
              d:DesignHeight="450" d:DesignWidth="800">
     
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="103*"/>
             <ColumnDefinition Width="103*"/>
@@ -23,8 +18,26 @@
         </Grid.ColumnDefinitions>
 
 
-        <Button x:Name="LaunchVanillaButton" Content="Chivalry 2" TextBlock.TextAlignment="Center" Grid.Row="0" Grid.Column="0" Grid.RowSpan = "3" Command="{Binding LaunchVanillaCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
-        <Button x:Name="LaunchModdedVanillaButton" Content="Chivalry 2&#xa;with Mods" TextBlock.TextAlignment="Center" Grid.Row="0" Grid.Column="1" Grid.RowSpan = "3" Command="{Binding LaunchModdedVanillaCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
-        <Button x:Name="LaunchModdedButton" Content="Chivalry 2&#xa;Unchained" TextBlock.TextAlignment="Center" Grid.Row="0" Grid.Column="2" Grid.RowSpan = "3" Command="{Binding LaunchUnchainedCommand}" IsEnabled="{Binding CanClick}" Margin="5,5,5,5" />
+        <Button Grid.Column="0" 
+                TextBlock.TextAlignment="Center" 
+                Margin="5"
+                Content="Chivalry 2" 
+                ToolTip="{Binding ButtonToolTip}" 
+                Command="{Binding LaunchVanillaCommand}" 
+                IsEnabled="{Binding CanClick}" />
+        
+        <Button Grid.Column="1" 
+                TextBlock.TextAlignment="Center" 
+                Margin="5" Content="Chivalry 2&#xa;with Mods"   
+                ToolTip="{Binding ButtonToolTip}" 
+                Command="{Binding LaunchModdedVanillaCommand}" 
+                IsEnabled="{Binding CanClick}" />
+        
+        <Button Grid.Column="2" 
+                TextBlock.TextAlignment="Center" 
+                Margin="5" Content="Chivalry 2&#xa;Unchained"   
+                ToolTip="{Binding ButtonToolTip}" 
+                Command="{Binding LaunchUnchainedCommand}" 
+                IsEnabled="{Binding CanClick}" />
     </Grid>
 </UserControl>

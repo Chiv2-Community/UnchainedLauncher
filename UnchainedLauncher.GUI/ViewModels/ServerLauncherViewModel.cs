@@ -44,6 +44,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         private LauncherViewModel LauncherViewModel { get; }
         private SettingsViewModel SettingsViewModel { get; }
         private ServersViewModel ServersViewModel { get; }
+        public string ButtonToolTip { get; set; }
         public ICommand LaunchServerCommand { get; }
         public ICommand LaunchServerHeadlessCommand { get; }
 
@@ -76,6 +77,8 @@ namespace UnchainedLauncher.GUI.ViewModels
             ServersViewModel = serversViewModel;
             ModManager = modManager;
 
+            ButtonToolTip = "";
+
             LaunchServerCommand = new RelayCommand(() => RunServerLaunch(false));
             LaunchServerHeadlessCommand = new RelayCommand(() => RunServerLaunch(true));
 
@@ -97,6 +100,19 @@ namespace UnchainedLauncher.GUI.ViewModels
             ModManager.EnabledModReleases.SelectMany(x => x.Manifest.Maps).ToList().ForEach(MapsList.Add);
 
             ModManager.EnabledModReleases.CollectionChanged += ProcessEnabledModsChanged;
+
+            LauncherViewModel.PropertyChanged += (_, args) =>
+            {
+                switch (args.PropertyName)
+                {
+                    case nameof(LauncherViewModel.CanClick):
+                        CanClick = LauncherViewModel.CanClick;
+                        break;
+                    case nameof(LauncherViewModel.ButtonToolTip):
+                        ButtonToolTip = LauncherViewModel.ButtonToolTip;
+                        break;
+                }
+            };
         }
 
         private void ProcessEnabledModsChanged(object? sender, NotifyCollectionChangedEventArgs e) {

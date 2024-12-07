@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using LanguageExt;
 using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
@@ -56,15 +56,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
             CurrentBackend = ServerBrowserBackendInitializer(SettingsViewModel.ServerBrowserBackend);
 
             Index = null;
-            
+
             // Automatically select the first server created
-            Servers.CollectionChanged += (_, _) =>  {
-                if (Index == null && Servers.Count > 0)
-                {
+            Servers.CollectionChanged += (_, _) => {
+                if (Index == null && Servers.Count > 0) {
                     Index = 0;
                 }
-                else if (Index != null && Servers.Count == 0)
-                {
+                else if (Index != null && Servers.Count == 0) {
                     Index = null;
                 }
             };
@@ -77,11 +75,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
             Servers.Clear();
         }
 
-        public void ShutdownCurrentTab()
-        {
-            if(Servers.Count == 0 || Index == null) { return; }
+        public void ShutdownCurrentTab() {
+            if (Servers.Count == 0 || Index == null) { return; }
             var toKill = Servers[Index.Value];
-          
+
             // pulling out the reference like this avoids a
             // potential TOCTOU error between the next two lines
             toKill.Dispose();

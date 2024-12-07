@@ -65,19 +65,18 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var launchResult = enableMods
                 ? Launcher.LaunchModdedVanilla(args)
                 : Launcher.LaunchVanilla(args);
-            
-            if(!IsReusable())
+
+            if (!IsReusable())
                 CanClick = false;
 
             return launchResult.Match(
                 Left: error => {
                     MessageBox.Show("Failed to launch Chivalry 2. Check the logs for details.");
                     CanClick = true;
-                    
+
                     return Prelude.None;
                 },
-                Right: process =>
-                {
+                Right: process => {
                     CreateChivalryProcessWatcher(process);
                     return Prelude.Some(process);
                 }
@@ -85,7 +84,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         public Option<Process> LaunchUnchained(Option<ServerLaunchOptions> serverOpts) {
-            if(!IsReusable())
+            if (!IsReusable())
                 CanClick = false;
 
             var options = new ModdedLaunchOptions(
@@ -107,11 +106,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         Left: error => {
                             MessageBox.Show($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
                             CanClick = true;
-                            
+
                             return Prelude.None;
                         },
-                        Right: process =>
-                        {
+                        Right: process => {
                             CreateChivalryProcessWatcher(process);
                             return Prelude.Some(process);
                         }
@@ -120,21 +118,20 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
 
-        private Thread CreateChivalryProcessWatcher(Process process)
-        {
+        private Thread CreateChivalryProcessWatcher(Process process) {
             var thread = new Thread(async void () => {
                 await process.WaitForExitAsync();
-            
-                if(IsReusable()) CanClick = true;
-            
+
+                if (IsReusable()) CanClick = true;
+
                 if (process.ExitCode == 0) return;
-            
+
                 logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
                 MessageBox.Show($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
             });
 
             thread.Start();
-            
+
             return thread;
         }
     }

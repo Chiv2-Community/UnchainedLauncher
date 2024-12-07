@@ -100,10 +100,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             ModManager.EnabledModReleases.CollectionChanged += ProcessEnabledModsChanged;
 
-            LauncherViewModel.PropertyChanged += (_, args) =>
-            {
-                switch (args.PropertyName)
-                {
+            LauncherViewModel.PropertyChanged += (_, args) => {
+                switch (args.PropertyName) {
                     case nameof(LauncherViewModel.CanClick):
                         CanClick = LauncherViewModel.CanClick;
                         break;

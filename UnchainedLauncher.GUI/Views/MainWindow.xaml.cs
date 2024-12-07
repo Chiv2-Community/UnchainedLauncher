@@ -2,6 +2,7 @@
 using log4net;
 using PropertyChanged;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -11,9 +12,12 @@ using UnchainedLauncher.Core;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using System.Linq;
+using LanguageExt;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
+using Wpf.Ui;
+using Wpf.Ui.Abstractions;
 using Wpf.Ui.Controls;
 
 namespace UnchainedLauncher.GUI.Views
@@ -33,9 +37,9 @@ namespace UnchainedLauncher.GUI.Views
             this.Closed += MainWindow_Closed;
         }
 
-        private void MainWindow_Closed(object? sender, EventArgs e) {
+        private void MainWindow_Closed(object? sender, EventArgs e)
+        {
             ViewModel.Dispose();
         }
     }
-
 }

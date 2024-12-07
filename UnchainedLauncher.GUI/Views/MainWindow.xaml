@@ -21,7 +21,7 @@
         </Grid.RowDefinitions>
 
         <ui:TitleBar Grid.Row="0" Title="Unchained Launcher" ShowClose="True" />
-        <ui:NavigationView Grid.Row="1" x:Name="RootNavigationView" IsBackButtonVisible="Collapsed">
+        <ui:NavigationView x:Name="Navigation" Grid.Row="1" IsBackButtonVisible="Collapsed">
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem Content="Launcher" TargetPageType="{x:Type local:LauncherView}">
                     <ui:NavigationViewItem.Icon>

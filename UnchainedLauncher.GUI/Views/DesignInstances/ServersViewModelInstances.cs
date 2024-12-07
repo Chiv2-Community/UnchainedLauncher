@@ -18,10 +18,8 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
 
         private static ServersViewModel CreateDefaultServersViewModel() {
             var instance = new ServersViewModel(SettingsViewModelInstances.DEFAULT, null);
-
             instance.Servers.Add(ServerViewModelInstances.DEFAULT);
             instance.Servers.Add(ServerViewModelInstances.DEFAULT);
-
             return instance;
         }
     }

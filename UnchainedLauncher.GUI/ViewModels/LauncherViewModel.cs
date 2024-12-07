@@ -128,12 +128,11 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 
                 if(IsReusable())
                     CanClick = true;
+
+                if (process.ExitCode == 0) return;
                 
-                if (process.ExitCode != 0)
-                {
-                    logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
-                    MessageBox.Show($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
-                }
+                logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
+                MessageBox.Show($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
             });
 
             thread.Start();

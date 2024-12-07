@@ -1,8 +1,13 @@
 ﻿using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using Wpf.Ui.Controls;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     public partial class MainWindowViewModel : INotifyPropertyChanged, IDisposable {
+
+        private ObservableCollection<INavigationViewItem> NavigationItems { get; set; }
+
         public LauncherViewModel LauncherViewModel { get; }
         public ModListViewModel ModListViewModel { get; }
         public SettingsViewModel SettingsViewModel { get; }

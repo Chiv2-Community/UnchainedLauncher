@@ -1,15 +1,6 @@
 ﻿using PropertyChanged;
 using System;
-using System.Windows;
 using UnchainedLauncher.GUI.ViewModels;
-using System.Windows.Controls;
-using UnchainedLauncher.Core;
-using UnchainedLauncher.Core.Mods;
-using UnchainedLauncher.Core.Mods.Registry;
-using System.Linq;
-using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.Installer;
-using UnchainedLauncher.Core.Mods.Registry.Downloader;
 using Wpf.Ui.Controls;
 
 namespace UnchainedLauncher.GUI.Views {
@@ -30,5 +21,4 @@ namespace UnchainedLauncher.GUI.Views {
             ViewModel.Dispose();
         }
     }
-
 }

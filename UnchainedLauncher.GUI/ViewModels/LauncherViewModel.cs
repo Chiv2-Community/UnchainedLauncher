@@ -122,15 +122,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private Thread CreateChivalryProcessWatcher(Process process)
         {
-            var thread = new Thread(async () =>
-            {
+            var thread = new Thread(async void () => {
                 await process.WaitForExitAsync();
-                
-                if(IsReusable())
-                    CanClick = true;
-
+            
+                if(IsReusable()) CanClick = true;
+            
                 if (process.ExitCode == 0) return;
-                
+            
                 logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
                 MessageBox.Show($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
             });

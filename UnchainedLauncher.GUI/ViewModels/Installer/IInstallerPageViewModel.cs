@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
-    public interface IInstallerPageViewModel: INotifyPropertyChanged {
+    public interface IInstallerPageViewModel : INotifyPropertyChanged {
 
         public string TitleText { get; }
         public string? DescriptionText { get; }

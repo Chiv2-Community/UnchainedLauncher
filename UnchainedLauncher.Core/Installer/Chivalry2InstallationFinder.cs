@@ -1,12 +1,12 @@
-﻿using log4net;
+﻿using LanguageExt;
+using LanguageExt.UnsafeValueAccess;
+using log4net;
 using Microsoft.Win32;
 using Newtonsoft.Json;
-using System.Text.RegularExpressions;
-using UnchainedLauncher.Core.Utilities;
-using LanguageExt;
-using UnchainedLauncher.Core.JsonModels;
 using System.Runtime.InteropServices;
-using LanguageExt.UnsafeValueAccess;
+using System.Text.RegularExpressions;
+using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Installer {
     using static LanguageExt.Prelude;
@@ -50,7 +50,7 @@ namespace UnchainedLauncher.Core.Installer {
         public DirectoryInfo? FindSteamDir() {
             logger.Info("Searching for Chivalry 2 Steam install directory...");
             string? maybeSteamPath = GetSteamPath();
-            if(maybeSteamPath == null) {
+            if (maybeSteamPath == null) {
                 logger.Info("Failed to find Steam path.");
                 return null;
             }
@@ -90,7 +90,8 @@ namespace UnchainedLauncher.Core.Installer {
                             if (lines[j].Equals(Chiv2SteamAppID))
                                 return new DirectoryInfo(Path.Combine(CandidateDir, @"steamapps\common\Chivalry 2"));
                     }
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     logger.Error($"Error reading Steam library metadata file", e);
                     return null;
                 }
@@ -116,7 +117,8 @@ namespace UnchainedLauncher.Core.Installer {
                         logger.Info($"Found Chivalry 2 EGS install directory: {chivEntry.First().InstallLocation}");
                         return new DirectoryInfo(chivEntry.First().InstallLocation);
                     }
-                } else {
+                }
+                else {
                     logger.Warn("Failed to read EGS install list file.");
                 }
             }
@@ -134,9 +136,11 @@ namespace UnchainedLauncher.Core.Installer {
                 }
 
                 return (string)registrySteamPath;
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
                 return Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? "", ".steam/steam");
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
                 return Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? "", "Library/Application Support/Steam");
             }
 

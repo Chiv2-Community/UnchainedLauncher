@@ -1,14 +1,13 @@
-﻿using System.Diagnostics;
+﻿using LanguageExt;
 using log4net;
-using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.Core.Processes;
+using System.Diagnostics;
 using UnchainedLauncher.Core.Extensions;
-using LanguageExt;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core
-{
+namespace UnchainedLauncher.Core {
     public class Chivalry2Launcher {
         private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2Launcher));
 
@@ -88,7 +87,7 @@ namespace UnchainedLauncher.Core
 
 
             logger.Info("Attempting to launch modded game.");
-            
+
 
             var moddedLaunchArgs = extraArgs.ToList();
             var tblLoc = moddedLaunchArgs.IndexOf("TBL") + 1;

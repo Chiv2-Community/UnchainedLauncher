@@ -15,9 +15,8 @@ using System.Windows.Input;
 using UnchainedLauncher.GUI.Views.Installer;
 
 
-namespace UnchainedLauncher.GUI.ViewModels.Installer
-{
-    public partial class InstallerWindowViewModel: INotifyPropertyChanged {
+namespace UnchainedLauncher.GUI.ViewModels.Installer {
+    public partial class InstallerWindowViewModel : INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(typeof(VersionSelectionPageViewModel));
 
         private static readonly ObservableCollection<IInstallerPageViewModel> DefaultPages = new ObservableCollection<IInstallerPageViewModel>() {
@@ -50,7 +49,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
         public ObservableCollection<InstallationTargetViewModel> InstallTargets;
 
 
-        public InstallerWindowViewModel(): this(DefaultPages, new ObservableCollection<InstallationTargetViewModel> { new()}) { }
+        public InstallerWindowViewModel() : this(DefaultPages, new ObservableCollection<InstallationTargetViewModel> { new() }) { }
 
         public InstallerWindowViewModel(ObservableCollection<IInstallerPageViewModel> installerPages, ObservableCollection<InstallationTargetViewModel> installTargets) {
             InstallerPages = installerPages;
@@ -87,7 +86,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
             CurrentPageIndex++;
             UpdateCurrentPage();
 
-           
+
             await CurrentPage.Load();
             UpdateCurrentPage();
         }
@@ -109,15 +108,15 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
         }
 
         private void CurrentPagePropertyChanged(object? sender, PropertyChangedEventArgs e) {
-            if (sender != null && sender == CurrentPage){
-                if(e.PropertyName == "CanContinue" || e.PropertyName == "CanGoBack") {
+            if (sender != null && sender == CurrentPage) {
+                if (e.PropertyName == "CanContinue" || e.PropertyName == "CanGoBack") {
                     UpdateCurrentPage();
-                }   
+                }
             }
         }
 
         private void UpdateCurrentPage() {
-            if(CurrentPageIndex < 0 || CurrentPageIndex >= InstallerPages.Count) {
+            if (CurrentPageIndex < 0 || CurrentPageIndex >= InstallerPages.Count) {
                 return;
             }
 

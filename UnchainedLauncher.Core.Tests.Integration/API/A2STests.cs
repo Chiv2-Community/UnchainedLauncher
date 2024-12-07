@@ -1,17 +1,14 @@
 ﻿using System.Net;
 
 using UnchainedLauncher.Core.API.A2S;
-namespace UnchainedLauncher.Core.Tests.Integration.API
-{
+namespace UnchainedLauncher.Core.Tests.Integration.API {
     // Should have a chivalry/A2S server running on 127.0.0.1:7071 for these to
     // test against
-    public class A2STests
-    {
+    public class A2STests {
         private static readonly IPEndPoint endpoint = IPEndPoint.Parse("127.0.0.1:7071");
 
         [Fact]
-        public async Task InfoAsyncTest()
-        {
+        public async Task InfoAsyncTest() {
             A2S A2sEndpoint = new(endpoint);
             var info = await A2sEndpoint.InfoAsync();
 

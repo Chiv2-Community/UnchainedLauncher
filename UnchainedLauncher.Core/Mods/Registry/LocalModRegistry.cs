@@ -7,12 +7,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
+using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Mods.Registry
-{
+namespace UnchainedLauncher.Core.Mods.Registry {
     public class LocalModRegistry : JsonRegistry {
         public override string Name => $"Local registry at {RegistryPath}";
         public override IModRegistryDownloader ModRegistryDownloader { get; }

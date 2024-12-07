@@ -8,10 +8,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.Installer;
 
-namespace UnchainedLauncher.GUI.ViewModels.Installer
-{
-    public partial class InstallerLogPageViewModel: IInstallerPageViewModel, INotifyPropertyChanged
-    {
+namespace UnchainedLauncher.GUI.ViewModels.Installer {
+    public partial class InstallerLogPageViewModel : IInstallerPageViewModel, INotifyPropertyChanged {
         public string TitleText => "Installation Log";
         public string? DescriptionText => null;
         public string ContinueButtonText => "Finish";
@@ -29,7 +27,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
             new MockInstaller(),
             () => new List<DirectoryInfo>(),
             () => VersionedRelease.DefaultMockReleases.First()
-        ) { 
+        ) {
             AppendLog("Mocking installation log...");
             AppendLog("Doing things...");
         }
@@ -52,12 +50,12 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
             AppendLog("Installation targets:\n    " + string.Join("\n    ", targets.Select(t => t.FullName)));
             AppendLog("");
 
-            if(targets == null || version == null) {
+            if (targets == null || version == null) {
                 AppendLog("Error: Installation targets or version not found.");
                 return;
             }
 
-            foreach(var target in targets!) {
+            foreach (var target in targets!) {
                 AppendLog("-----------------------------------------------------");
                 AppendLog($"Installing {version.Release.TagName} to {target}");
                 await Installer.Install(target, version, false, AppendLog);

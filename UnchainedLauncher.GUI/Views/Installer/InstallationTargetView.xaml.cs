@@ -13,12 +13,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace UnchainedLauncher.GUI.Views.Installer
-{
-    public partial class InstallationTargetView : UserControl
-    {
-        public InstallationTargetView()
-        {
+namespace UnchainedLauncher.GUI.Views.Installer {
+    public partial class InstallationTargetView : UserControl {
+        public InstallationTargetView() {
             InitializeComponent();
         }
     }

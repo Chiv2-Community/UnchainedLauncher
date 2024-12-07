@@ -7,19 +7,15 @@ using System.Text;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Mods.Registry.Downloader
-{
-    public class LocalFilePakDownloader : IModRegistryDownloader
-    {
+namespace UnchainedLauncher.Core.Mods.Registry.Downloader {
+    public class LocalFilePakDownloader : IModRegistryDownloader {
         public string PakReleasesDir;
 
-        public LocalFilePakDownloader(string pakReleasesDir)
-        {
+        public LocalFilePakDownloader(string pakReleasesDir) {
             PakReleasesDir = pakReleasesDir;
         }
 
-        public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(PakTarget target)
-        {
+        public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(PakTarget target) {
             // Paks will be found in PakReleasesDir/org/repoName/releaseTag/fileName
             var path = Path.Combine(PakReleasesDir, target.Org, target.RepoName, target.ReleaseTag, target.FileName);
 

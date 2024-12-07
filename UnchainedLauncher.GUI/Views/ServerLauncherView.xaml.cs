@@ -13,15 +13,12 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace UnchainedLauncher.GUI.Views
-{
+namespace UnchainedLauncher.GUI.Views {
     /// <summary>
     /// Interaction logic for ServerLauncherView.xaml
     /// </summary>
-    public partial class ServerLauncherView : UserControl
-    {
-        public ServerLauncherView()
-        {
+    public partial class ServerLauncherView : UserControl {
+        public ServerLauncherView() {
             InitializeComponent();
         }
     }

@@ -1,12 +1,11 @@
-﻿using System.Net.Http.Json;
+﻿using PropertyChanged;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Timers;
-using PropertyChanged;
 using UnchainedLauncher.Core.API.A2S;
 using Timer = System.Threading.Timer;
 
-namespace UnchainedLauncher.Core.API.ServerBrowser
-{
+namespace UnchainedLauncher.Core.API.ServerBrowser {
     // NOTE: some of these records have empty constructors that don't really seem useful.
     // They need to be there for serialization to work!
 
@@ -19,8 +18,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
     public record ServerBrowserMod(string Name, string Organization, string Version);
 
     [AddINotifyPropertyChangedInterface]
-    public partial record C2ServerInfo
-    {
+    public partial record C2ServerInfo {
         public bool PasswordProtected { get; set; } = false;
         public string Name { get; set; } = "";
         public string Description { get; set; } = "";
@@ -33,34 +31,28 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
     // TODO: This part of the API should be stabilized
     // as-is, there are numerous different kinds of "server" objects depending
     // on where they're coming from/where they're going
-    public record ServerInfo : C2ServerInfo
-    {
+    public record ServerInfo : C2ServerInfo {
         public string CurrentMap { get; set; } = "";
         public int PlayerCount { get; set; } = 0;
         public int MaxPlayers { get; set; } = 0;
         public ServerInfo() { }
-        public ServerInfo(C2ServerInfo info, A2sInfo a2s) : base(info)
-        {
+        public ServerInfo(C2ServerInfo info, A2sInfo a2s) : base(info) {
             Update(a2s);
         }
 
-        public bool Update(A2sInfo a2s)
-        {
+        public bool Update(A2sInfo a2s) {
             bool wasChanged = (MaxPlayers, PlayerCount, CurrentMap) != (a2s.MaxPlayers, a2s.Players, a2s.Map);
             (MaxPlayers, PlayerCount, CurrentMap) = (a2s.MaxPlayers, a2s.Players, a2s.Map);
             return wasChanged;
         }
     }
 
-    public record UniqueServerInfo : ServerInfo
-    {
-        public UniqueServerInfo(string UniqueId, double LastHeartbeat)
-        {
+    public record UniqueServerInfo : ServerInfo {
+        public UniqueServerInfo(string UniqueId, double LastHeartbeat) {
             this.UniqueId = UniqueId;
             this.LastHeartbeat = LastHeartbeat;
         }
-        public UniqueServerInfo(ServerInfo info, string UniqueId, double LastHeartbeat) : base(info)
-        {
+        public UniqueServerInfo(ServerInfo info, string UniqueId, double LastHeartbeat) : base(info) {
             this.UniqueId = UniqueId;
             this.LastHeartbeat = LastHeartbeat;
         }
@@ -70,24 +62,20 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
         public double LastHeartbeat { get; set; } = 0;
     };
 
-    public record RegisterServerRequest : ServerInfo
-    {
+    public record RegisterServerRequest : ServerInfo {
         public string LocalIpAddress { get; set; }
-        public RegisterServerRequest(ServerInfo info, string localIpAddress) : base(info)
-        {
+        public RegisterServerRequest(ServerInfo info, string localIpAddress) : base(info) {
             LocalIpAddress = localIpAddress;
         }
     }
 
-    public record ResponseServer : UniqueServerInfo
-    {
+    public record ResponseServer : UniqueServerInfo {
         public string LocalIpAddress { get; set; } = "";
         public string IpAddress { get; set; } = "";
 
         public ResponseServer() { }
 
-        public ResponseServer(UniqueServerInfo info, string localIpAddress, string ipAddress) : base(info)
-        {
+        public ResponseServer(UniqueServerInfo info, string localIpAddress, string ipAddress) : base(info) {
             LocalIpAddress = localIpAddress;
             IpAddress = ipAddress;
         }
@@ -109,8 +97,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
         UniqueServerInfo[] Servers
     );
 
-    public interface IServerBrowser : IDisposable
-    {
+    public interface IServerBrowser : IDisposable {
         public string Host { get; }
 
         public Task<RegisterServerResponse> RegisterServerAsync(string localIp, ServerInfo info, CancellationToken? ct = null);
@@ -129,27 +116,23 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
     /// 
     /// IS thread-safe
     /// </summary>
-    public class ServerBrowser : IServerBrowser
-    {
+    public class ServerBrowser : IServerBrowser {
         public const string KEY_HEADER = "x-chiv2-server-browser-key";
         protected HttpClient HttpClient;
         protected Uri backend_uri;
         private bool disposedValue;
-        protected static readonly JsonSerializerOptions sOptions = new()
-        {
+        protected static readonly JsonSerializerOptions sOptions = new() {
             PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
             IncludeFields = true
         };
-        public TimeSpan TimeOutMillis
-        {
+        public TimeSpan TimeOutMillis {
             get { return HttpClient.Timeout; }
             set { HttpClient.Timeout = value; }
         }
 
         public string Host => backend_uri.Host;
 
-        public ServerBrowser(Uri backend_uri, HttpClient client, int TimeOutMillis = 4000)
-        {
+        public ServerBrowser(Uri backend_uri, HttpClient client, int TimeOutMillis = 4000) {
             HttpClient = client;
             client.Timeout = TimeSpan.FromMilliseconds(TimeOutMillis);
             this.TimeOutMillis = TimeSpan.FromMilliseconds(TimeOutMillis);
@@ -158,87 +141,71 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
 
         public ServerBrowser(Uri backend_uri, int TimeOutMillis = 4000) : this(backend_uri, new HttpClient(), TimeOutMillis) { }
 
-        public async Task<RegisterServerResponse> RegisterServerAsync(string localIp, ServerInfo info, CancellationToken? ct = null)
-        {
+        public async Task<RegisterServerResponse> RegisterServerAsync(string localIp, ServerInfo info, CancellationToken? ct = null) {
             var reqContent = new RegisterServerRequest(info, localIp);
             var content = JsonContent.Create(reqContent, options: sOptions);
             var httpResponse = await HttpClient.PostAsync(backend_uri + "/servers", content, ct ?? CancellationToken.None);
-            try
-            {
+            try {
                 var res = await httpResponse.EnsureSuccessStatusCode()
                             .Content
                             .ReadFromJsonAsync<RegisterServerResponse>(sOptions, ct ?? CancellationToken.None);
-                if (res == null)
-                {
+                if (res == null) {
                     throw new InvalidDataException("Failed to parse RegisterServer response from server");
                 }
-                else
-                {
+                else {
                     return res;
                 }
             }
-            catch (InvalidOperationException e)
-            {
+            catch (InvalidOperationException e) {
                 throw new InvalidDataException("Failed to parse RegisterServer response from server", e);
             }
         }
 
-        public async Task<double> UpdateServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null)
-        {
+        public async Task<double> UpdateServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null) {
 
             var reqContent = new UpdateServerRequest(info.PlayerCount, info.MaxPlayers, info.CurrentMap);
             var content = JsonContent.Create(reqContent, options: sOptions);
             content.Headers.Add(KEY_HEADER, key);
             var httpResponse = await HttpClient.PutAsync(backend_uri + $"/servers/{info.UniqueId}", content, ct ?? CancellationToken.None);
-            try
-            {
+            try {
                 var res = await httpResponse.EnsureSuccessStatusCode()
                             .Content
                             .ReadFromJsonAsync<UpdateServerResponse>(sOptions, ct ?? CancellationToken.None);
-                if (res == null)
-                {
+                if (res == null) {
                     throw new InvalidDataException("Failed to parse Update response from server");
                 }
-                else
-                {
+                else {
                     return res.RefreshBefore;
                 }
             }
-            catch (InvalidOperationException e)
-            {
+            catch (InvalidOperationException e) {
                 throw new InvalidDataException("Failed to parse Update response from server", e);
             }
         }
 
-        public async Task<double> HeartbeatAsync(UniqueServerInfo info, string key, CancellationToken? ct = null)
-        {
+        public async Task<double> HeartbeatAsync(UniqueServerInfo info, string key, CancellationToken? ct = null) {
 
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
             var content = new StringContent("");
             content.Headers.Add(KEY_HEADER, key);
             var httpResponse = await HttpClient.PostAsync(backend_uri + $"/servers/{info.UniqueId}/heartbeat", content, ct ?? CancellationToken.None);
-            try
-            {
+            try {
                 var res = await httpResponse.EnsureSuccessStatusCode()
                             .Content
                             .ReadFromJsonAsync<UpdateServerResponse>(sOptions, ct ?? CancellationToken.None);
-                if (res == null)
-                {
+                if (res == null) {
                     throw new InvalidDataException("Failed to parse Heartbeat response from server");
                 }
-                else
-                {
+                else {
                     return res.RefreshBefore;
                 }
             }
-            catch (InvalidOperationException e)
-            {
+            catch (InvalidOperationException e) {
                 throw new InvalidDataException("Failed to parse Heartbeat response from server", e);
             }
         }
 
-        public async Task DeleteServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null)
-        {
+        public async Task DeleteServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null) {
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, backend_uri + $"/servers/{info.UniqueId}");
             request.Headers.Add(KEY_HEADER, key);
@@ -248,12 +215,9 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
             (await HttpClient.SendAsync(request, ct ?? CancellationToken.None)).EnsureSuccessStatusCode();
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
+        protected virtual void Dispose(bool disposing) {
+            if (!disposedValue) {
+                if (disposing) {
                     HttpClient.Dispose();
                 }
 
@@ -261,8 +225,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
             }
         }
 
-        public void Dispose()
-        {
+        public void Dispose() {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
@@ -275,57 +238,47 @@ namespace UnchainedLauncher.Core.API.ServerBrowser
     /// Really just a less useful testing mock made for the option of *not* registering
     /// with a server browser in production.
     /// </summary>
-    public class NullServerBrowser : IServerBrowser
-    {
+    public class NullServerBrowser : IServerBrowser {
         public double RefreshFrequency;
         private bool disposedValue;
 
-        public NullServerBrowser(double refreshFrequency = 60)
-        {
+        public NullServerBrowser(double refreshFrequency = 60) {
             RefreshFrequency = refreshFrequency;
         }
         public string Host => "none";
 
-        private double GetRefreshBeforeTime()
-        {
+        private double GetRefreshBeforeTime() {
             return (double)(DateTimeOffset.Now.ToUnixTimeSeconds() + RefreshFrequency);
         }
 
-        public Task DeleteServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null)
-        {
+        public Task DeleteServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null) {
             return Task.CompletedTask;
         }
 
-        public Task<double> HeartbeatAsync(UniqueServerInfo info, string key, CancellationToken? ct = null)
-        {
+        public Task<double> HeartbeatAsync(UniqueServerInfo info, string key, CancellationToken? ct = null) {
             return Task.FromResult(GetRefreshBeforeTime());
         }
 
-        public Task<RegisterServerResponse> RegisterServerAsync(string localIp, ServerInfo info, CancellationToken? ct = null)
-        {
+        public Task<RegisterServerResponse> RegisterServerAsync(string localIp, ServerInfo info, CancellationToken? ct = null) {
             var uniqueInfo = new UniqueServerInfo(info, "Null_ID", DateTimeOffset.Now.ToUnixTimeSeconds());
             var responseServer = new ResponseServer(uniqueInfo, "127.0.0.1", "127.0.0.1");
             var response = new RegisterServerResponse(GetRefreshBeforeTime(), "backend_key", responseServer);
             return Task.FromResult(response);
         }
 
-        public Task<double> UpdateServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null)
-        {
+        public Task<double> UpdateServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null) {
             return Task.FromResult(GetRefreshBeforeTime());
         }
 
         // we don't actually have anything to dispose, but we still have to
         // satisfy the interface
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
+        protected virtual void Dispose(bool disposing) {
+            if (!disposedValue) {
                 disposedValue = true;
             }
         }
 
-        public void Dispose()
-        {
+        public void Dispose() {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);

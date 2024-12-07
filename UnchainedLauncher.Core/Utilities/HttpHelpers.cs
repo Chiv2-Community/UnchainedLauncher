@@ -45,7 +45,8 @@ namespace UnchainedLauncher.Core.Utilities {
                         return contentLength;
                     }
                 }
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 logger.Error($"Error retrieving file size: {ex.Message}");
             }
 
@@ -103,7 +104,8 @@ namespace UnchainedLauncher.Core.Utilities {
             Task.ContinueWith(t => {
                 if (t.Exception != null) {
                     return recover(t.Exception);
-                } else {
+                }
+                else {
                     return this;
                 }
             });

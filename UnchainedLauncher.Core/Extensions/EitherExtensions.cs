@@ -17,7 +17,7 @@ namespace UnchainedLauncher.Core.Extensions {
             return Prelude.Try(() => {
                 action.Invoke();
                 return default(Unit);
-             }).ToAsync().ToEither();
+            }).ToAsync().ToEither();
         }
 
         public static Either<Exception, T> Attempt<T>(Func<T> action) {
@@ -54,7 +54,7 @@ namespace UnchainedLauncher.Core.Extensions {
                 return f(r).Map(_ => r);
             });
         }
-        
+
         public static EitherAsync<L, R> BindTapRight<L, R, R2>(this EitherAsync<L, R> either, Func<R, EitherAsync<L, R2>> f) {
             return BindTap(either, f);
         }

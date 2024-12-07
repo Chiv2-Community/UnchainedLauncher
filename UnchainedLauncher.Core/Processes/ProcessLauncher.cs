@@ -5,8 +5,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using UnchainedLauncher.Core.Extensions;
 
-namespace UnchainedLauncher.Core.Processes
-{
+namespace UnchainedLauncher.Core.Processes {
     /// <summary>
     /// Launches an executable with the provided working directory and DLLs to inject.
     /// </summary>
@@ -48,16 +47,14 @@ namespace UnchainedLauncher.Core.Processes
             // Execute the process
             try {
                 proc.Start();
-                proc.OutputDataReceived += (sender, e) =>
-                {
+                proc.OutputDataReceived += (sender, e) => {
                     if (e.Data != null) // Null data signals end of stream
                     {
                         logger.Info("Chivalry 2 Stdout: " + e.Data);
                     }
                 };
 
-                proc.ErrorDataReceived += (sender, e) =>
-                {
+                proc.ErrorDataReceived += (sender, e) => {
                     if (e.Data != null) {
                         logger.Error("Chivalry 2 Stderr: " + e.Data);
                     }
@@ -65,7 +62,8 @@ namespace UnchainedLauncher.Core.Processes
 
                 proc.BeginErrorReadLine();
                 proc.BeginOutputReadLine();
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 return Prelude.Left(ProcessLaunchFailure.LaunchFailed(proc.StartInfo.FileName, proc.StartInfo.Arguments, e));
             }
 
@@ -77,7 +75,8 @@ namespace UnchainedLauncher.Core.Processes
                     if (dlls.Any()) {
                         try {
                             Inject.InjectAll(proc, dlls);
-                        } catch (Exception e) {
+                        }
+                        catch (Exception e) {
                             return Prelude.Left(ProcessLaunchFailure.InjectionFailed(Prelude.Some(dlls), e));
                         }
                     }
@@ -100,10 +99,10 @@ namespace UnchainedLauncher.Core.Processes
                     Func<LaunchFailedError, T> LaunchFailedError,
                     Func<InjectionFailedError, T> InjectionFailedError
                    ) => this switch {
-            LaunchFailedError launchFailed => LaunchFailedError(launchFailed),
-            InjectionFailedError injectionFailed => InjectionFailedError(injectionFailed),
-            _ => throw new Exception("Unreachable")
-        };
+                       LaunchFailedError launchFailed => LaunchFailedError(launchFailed),
+                       InjectionFailedError injectionFailed => InjectionFailedError(injectionFailed),
+                       _ => throw new Exception("Unreachable")
+                   };
 
         public void Match(
                        Action<LaunchFailedError> LaunchFailedError,

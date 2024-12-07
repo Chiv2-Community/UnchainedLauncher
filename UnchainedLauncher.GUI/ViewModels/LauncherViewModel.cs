@@ -1,32 +1,32 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
+using LanguageExt.SomeHelp;
 using log4net;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using UnchainedLauncher.Core;
+using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
-using UnchainedLauncher.Core;
-using System.Threading;
-using LanguageExt;
-using System.Collections.Immutable;
-using LanguageExt.SomeHelp;
-using UnchainedLauncher.Core.Processes;
-using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.Mods.Registry;
+using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.Views;
-using UnchainedLauncher.Core.Installer;
-using System.ComponentModel;
 
 namespace UnchainedLauncher.GUI.ViewModels {
 
-    public partial class LauncherViewModel: INotifyPropertyChanged {
+    public partial class LauncherViewModel : INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherViewModel));
         public ICommand LaunchVanillaCommand { get; }
         public ICommand LaunchModdedVanillaCommand { get; }
@@ -65,19 +65,18 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var launchResult = enableMods
                 ? Launcher.LaunchModdedVanilla(args)
                 : Launcher.LaunchVanilla(args);
-            
-            if(!IsReusable())
+
+            if (!IsReusable())
                 CanClick = false;
 
             return launchResult.Match(
                 Left: error => {
                     MessageBox.Show("Failed to launch Chivalry 2. Check the logs for details.");
                     CanClick = true;
-                    
+
                     return Prelude.None;
                 },
-                Right: process =>
-                {
+                Right: process => {
                     CreateChivalryProcessWatcher(process);
                     return Prelude.Some(process);
                 }
@@ -85,7 +84,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         public Option<Process> LaunchUnchained(Option<ServerLaunchOptions> serverOpts) {
-            if(!IsReusable())
+            if (!IsReusable())
                 CanClick = false;
 
             var options = new ModdedLaunchOptions(
@@ -107,11 +106,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         Left: error => {
                             MessageBox.Show($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
                             CanClick = true;
-                            
+
                             return Prelude.None;
                         },
-                        Right: process =>
-                        {
+                        Right: process => {
                             CreateChivalryProcessWatcher(process);
                             return Prelude.Some(process);
                         }
@@ -120,21 +118,20 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
 
-        private Thread CreateChivalryProcessWatcher(Process process)
-        {
+        private Thread CreateChivalryProcessWatcher(Process process) {
             var thread = new Thread(async void () => {
                 await process.WaitForExitAsync();
-            
-                if(IsReusable()) CanClick = true;
-            
+
+                if (IsReusable()) CanClick = true;
+
                 if (process.ExitCode == 0) return;
-            
+
                 logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
                 MessageBox.Show($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
             });
 
             thread.Start();
-            
+
             return thread;
         }
     }

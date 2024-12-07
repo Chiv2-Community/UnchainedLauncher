@@ -1,29 +1,28 @@
-﻿using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
+using LanguageExt.Common;
+using LanguageExt.UnsafeValueAccess;
 using log4net;
 using PropertyChanged;
 using Semver;
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
-using System.Linq;
-using System.Windows.Input;
-using UnchainedLauncher.Core.Mods;
-using LanguageExt;
-using LanguageExt.UnsafeValueAccess;
-using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Input;
 using System.Xml.Serialization;
 using UnchainedLauncher.Core.Extensions;
-using System.CodeDom;
-using LanguageExt.Common;
-using static UnchainedLauncher.Core.Mods.DownloadModFailure;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using static UnchainedLauncher.Core.Mods.DownloadModFailure;
 
-namespace UnchainedLauncher.GUI.ViewModels
-{
+namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
     public partial class ModViewModel : INotifyPropertyChanged {
@@ -33,7 +32,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         public Mod Mod { get; }
 
         public VersionNameSort VersionNameSortKey => new VersionNameSort(
-            Optional(EnabledRelease).Map(x => x.Version).FirstOrDefault(), 
+            Optional(EnabledRelease).Map(x => x.Version).FirstOrDefault(),
             Mod.LatestManifest.Name
         );
 
@@ -148,7 +147,7 @@ namespace UnchainedLauncher.GUI.ViewModels
                     await UpdateCurrentlyEnabledVersion(EnabledRelease);
                 }
             }, nameof(EnabledRelease));
-            
+
             logger.Debug($"Initialized ModViewModel for {mod.LatestManifest.Name}. Currently enabled release: {EnabledVersion}");
         }
 
@@ -166,7 +165,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         }
 
         public EitherAsync<Either<DisableModFailure, EnableModFailure>, Unit> UpdateCurrentlyEnabledVersion(Option<Release> newVersion) {
-            var failureOrSuccess =  
+            var failureOrSuccess =
                 newVersion.Match(
                     None: () => ModManager.DisableMod(Mod).MapLeft<Either<DisableModFailure, EnableModFailure>>(e => Prelude.Left(e)),
                     Some: x =>
@@ -193,7 +192,7 @@ namespace UnchainedLauncher.GUI.ViewModels
 
     public record VersionNameSort(SemVersion? Version, string Name) : IComparable<VersionNameSort> {
         public int CompareTo(VersionNameSort? other) {
-            if(other == null)
+            if (other == null)
                 return 1;
 
             if (Version == null)

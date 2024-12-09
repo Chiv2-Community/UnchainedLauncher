@@ -83,10 +83,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             MapsList = new ObservableCollection<string>();
 
-            using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UnchainedLauncherGUI.Resources.DefaultMaps.txt")) {
+            using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UnchainedLauncher.GUI.Resources.DefaultMaps.txt")) {
                 if (defaultMapsListStream != null) {
                     using StreamReader reader = new StreamReader(defaultMapsListStream!);
-
+        
                     var defaultMapsString = reader.ReadToEnd();
                     defaultMapsString
                         .Split("\n")

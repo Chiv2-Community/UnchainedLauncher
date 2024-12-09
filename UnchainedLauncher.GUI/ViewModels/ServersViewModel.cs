@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
@@ -14,15 +15,12 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using LanguageExt;
 using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
 
-namespace UnchainedLauncher.GUI.ViewModels
-{
-    public partial class ServersViewModel : IDisposable, INotifyPropertyChanged
-    {
+namespace UnchainedLauncher.GUI.ViewModels {
+    public partial class ServersViewModel : IDisposable, INotifyPropertyChanged {
         private bool disposedValue;
 
         public ObservableCollection<ServerViewModel> Servers { get; set; }
@@ -32,9 +30,9 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         private IServerBrowser CurrentBackend { get; set; }
         private Func<String, IServerBrowser> ServerBrowserBackendInitializer { get; }
-        public IServerBrowser Backend { 
+        public IServerBrowser Backend {
             get {
-                if(CurrentBackend.Host != SettingsViewModel.ServerBrowserBackend) {
+                if (CurrentBackend.Host != SettingsViewModel.ServerBrowserBackend) {
                     var oldBackend = this.CurrentBackend;
                     var newBackend = ServerBrowserBackendInitializer(SettingsViewModel.ServerBrowserBackend);
                     CurrentBackend = newBackend;
@@ -49,8 +47,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             }
         }
 
-        public ServersViewModel(SettingsViewModel settings, Func<string, IServerBrowser>? createServerBrowserBackend)
-        {
+        public ServersViewModel(SettingsViewModel settings, Func<string, IServerBrowser>? createServerBrowserBackend) {
             ShutdownCurrentTabCommand = new RelayCommand(ShutdownCurrentTab);
             Servers = new ObservableCollection<ServerViewModel>();
             SettingsViewModel = settings;
@@ -59,32 +56,29 @@ namespace UnchainedLauncher.GUI.ViewModels
             CurrentBackend = ServerBrowserBackendInitializer(SettingsViewModel.ServerBrowserBackend);
 
             Index = null;
-            
+
             // Automatically select the first server created
-            Servers.CollectionChanged += (_, _) =>  {
-                if (Index == null && Servers.Count > 0)
-                {
+            Servers.CollectionChanged += (_, _) => {
+                if (Index == null && Servers.Count > 0) {
                     Index = 0;
                 }
-                else if (Index != null && Servers.Count == 0)
-                {
+                else if (Index != null && Servers.Count == 0) {
                     Index = null;
                 }
             };
         }
 
-        public void ShutdownAllServers()
-        {
+        public void ShutdownAllServers() {
             foreach (ServerViewModel s in Servers) {
                 s.Dispose();
             }
             Servers.Clear();
         }
 
-        public void ShutdownCurrentTab()
-        {
-            if(Servers.Count == 0 || Index == null) { return; }
+        public void ShutdownCurrentTab() {
+            if (Servers.Count == 0 || Index == null) { return; }
             var toKill = Servers[Index.Value];
+
             // pulling out the reference like this avoids a
             // potential TOCTOU error between the next two lines
             toKill.Dispose();
@@ -100,12 +94,9 @@ namespace UnchainedLauncher.GUI.ViewModels
             return serverVm;
         }
 
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
+        protected virtual void Dispose(bool disposing) {
+            if (!disposedValue) {
+                if (disposing) {
                     ShutdownAllServers();
                     // backend is initialized by this class, so it should be disposed here.
                     this.CurrentBackend.Dispose();
@@ -115,8 +106,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             }
         }
 
-        public void Dispose()
-        {
+        public void Dispose() {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
@@ -131,8 +121,7 @@ namespace UnchainedLauncher.GUI.ViewModels
     // 2. get response from system clipboard
     // 3. neatly display response information in-window
 
-    public partial class ServerViewModel : IDisposable, INotifyPropertyChanged
-    {
+    public partial class ServerViewModel : IDisposable, INotifyPropertyChanged {
         // TODO: make Chivalry2Server handle the game process, Pid, and Rcon stuff
         // instead of having the ViewModel do it
         public Chivalry2Server Server { get; private set; }
@@ -148,8 +137,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         private bool disposed = false;
 
 
-        public ServerViewModel(Chivalry2Server server, Process serverProcess, int rconPort)
-        {
+        public ServerViewModel(Chivalry2Server server, Process serverProcess, int rconPort) {
             this.Server = server;
             this.RconPort = rconPort;
             this.RconHistory = "";
@@ -158,8 +146,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             SubmitRconCommand = new AsyncRelayCommand(SubmitCommand);
         }
 
-        public async Task SubmitCommand()
-        {
+        public async Task SubmitCommand() {
             var command = CurrentRconCommand;
             CurrentRconCommand = "";
             await SendCommand(command);
@@ -172,17 +159,16 @@ namespace UnchainedLauncher.GUI.ViewModels
             try {
                 await RCON.SendCommandTo(RconEndPoint, command);
                 RconHistory += $"{command}\n";
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 RconHistory += $"ERR: {e.Message}\n";
             }
         }
 
         // IDisposable stuff ensures timely DELETE request to backend
         // and closing of the chiv process associated with the server
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposed && disposing)
-            {
+        protected virtual void Dispose(bool disposing) {
+            if (!disposed && disposing) {
                 // TODO: might help to send an `exit` rcon command
                 ServerProcess?.Kill();
                 ServerProcess?.Close();
@@ -193,14 +179,12 @@ namespace UnchainedLauncher.GUI.ViewModels
             disposed = true;
         }
 
-        public void Dispose()
-        {
+        public void Dispose() {
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 
-        ~ServerViewModel()
-        {
+        ~ServerViewModel() {
             Dispose(disposing: false);
         }
     }

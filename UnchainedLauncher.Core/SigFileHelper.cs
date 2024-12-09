@@ -37,7 +37,8 @@ namespace UnchainedLauncher.Core {
                     fileName => fileName,
                     fileName => (pakFiles.Contains(fileName), sigFiles.Contains(fileName))
                 );
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 log.Error("An error occurred while gathering pak and sig files.", ex);
                 return null;
             }
@@ -62,7 +63,8 @@ namespace UnchainedLauncher.Core {
                 }
 
                 log.Info("Process completed.");
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 log.Error("An error occurred during the sig file checking process.", ex);
             }
         }
@@ -81,7 +83,8 @@ namespace UnchainedLauncher.Core {
                 }
 
                 log.Info("Orphaned sig files deletion completed.");
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 log.Error("An error occurred during the deletion of orphaned sig files.", ex);
             }
         }
@@ -100,7 +103,8 @@ namespace UnchainedLauncher.Core {
                 }
 
                 log.Info("Non-default sig files deletion completed.");
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 log.Error("An error occurred during the deletion of non-default sig files.", ex);
             }
         }

@@ -39,7 +39,8 @@ namespace UnchainedLauncher.GUI.Views {
             if (updates.Any()) {
                 logger.Info("No updates available");
                 return None;
-            } else {
+            }
+            else {
                 var message = $"Found {updates.Count()} updates available.\n\n";
                 message += string.Join("\n", updates.Select(x => $"- {x.Name} {x.CurrentVersion} -> {x.LatestVersion}"));
                 message.Split("\n").ToList().ForEach(x => logger.Info(x));

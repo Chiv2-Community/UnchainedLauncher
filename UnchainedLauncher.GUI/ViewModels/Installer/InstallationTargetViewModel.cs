@@ -10,7 +10,7 @@ using UnchainedLauncher.Core.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
-    public partial class InstallationTargetViewModel: INotifyPropertyChanged {
+    public partial class InstallationTargetViewModel : INotifyPropertyChanged {
         public static List<InstallationType> AvailableInstallationTypes => new List<InstallationType> {
             InstallationType.Steam,
             InstallationType.EpicGamesStore
@@ -22,12 +22,12 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         public string DisplayText => $"{InstallationType.ToFriendlyString()} ({Path.FullName})";
 
-       public InstallationTargetViewModel(): this(
-            new DirectoryInfo("C:/Testing/purposes/only/do/not/use/default/constructor"),
-            InstallationType.Steam,
-            false
-       ) {}
-       
+        public InstallationTargetViewModel() : this(
+             new DirectoryInfo("C:/Testing/purposes/only/do/not/use/default/constructor"),
+             InstallationType.Steam,
+             false
+        ) { }
+
 
         public InstallationTargetViewModel(DirectoryInfo path, InstallationType type, bool isSelected) {
             Path = path;

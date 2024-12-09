@@ -1,11 +1,10 @@
-﻿using System.Text;
+﻿using log4net;
+using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
-using System.Buffers.Binary;
-using log4net;
+using System.Text;
 
-namespace UnchainedLauncher.Core.API.A2S
-{
+namespace UnchainedLauncher.Core.API.A2S {
     public record A2sInfo(
         byte ProtocolVersion,
         string Name,
@@ -22,37 +21,31 @@ namespace UnchainedLauncher.Core.API.A2S
         bool Vac
         );
 
-    public enum ServerType : byte
-    {
+    public enum ServerType : byte {
         DEDICATED = (byte)'D',
         NONDEDICATED = (byte)'L',
         PROXY = (byte)'P'
     }
 
-    public enum Environment : byte
-    {
+    public enum Environment : byte {
         LINUX = (byte)'L',
         WINDOWS = (byte)'W',
         MAC = (byte)'M'
     }
 
-    public interface IA2S
-    {
+    public interface IA2S {
         public Task<A2sInfo> InfoAsync();
     }
-    public class A2S : IA2S
-    {
+    public class A2S : IA2S {
         private static readonly ILog logger = LogManager.GetLogger(nameof(A2S));
         protected readonly IPEndPoint ep;
         protected readonly int TimeOutMillis;
-        public A2S(IPEndPoint ep, int TimeOutMillis = 1000)
-        {
+        public A2S(IPEndPoint ep, int TimeOutMillis = 1000) {
             this.ep = ep;
             this.TimeOutMillis = TimeOutMillis;
         }
 
-        private async Task<UdpReceiveResult> DoInfoRequest()
-        {
+        private async Task<UdpReceiveResult> DoInfoRequest() {
             //see A2S_INFO section of https://developer.valvesoftware.com/wiki/Server_queries
             //request structure is defined by https://developer.valvesoftware.com/wiki/Server_queries
             byte[] request = {0xFF, 0xFF, 0xFF, 0xFF,
@@ -60,27 +53,23 @@ namespace UnchainedLauncher.Core.API.A2S
                                 0x65, 0x20, 0x45, 0x6E, 0x67, 0x69,
                                 0x6E, 0x65, 0x20, 0x51, 0x75, 0x65, 0x72, 0x79, 0x00
                                 };
-            try
-            {
+            try {
                 using UdpClient client = new();
                 using CancellationTokenSource cs = new(TimeOutMillis);
                 client.Connect(ep);
                 await client.SendAsync(request, cs.Token);
                 return await client.ReceiveAsync(cs.Token);
             }
-            catch (TaskCanceledException)
-            {
+            catch (TaskCanceledException) {
                 throw new TimeoutException("A2S request timed out");
             }
         }
-        public async Task<A2sInfo> InfoAsync()
-        {
+        public async Task<A2sInfo> InfoAsync() {
             UdpReceiveResult response = await DoInfoRequest();
             logger.Debug($"Received {ByteArrayToHexString(response.Buffer)} bytes from {ep}");
             BinaryReader br = new(new MemoryStream(response.Buffer), Encoding.UTF8);
             // ensure header is correct
-            if (!br.ReadBytes(5).SequenceEqual(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x49 }))
-            {
+            if (!br.ReadBytes(5).SequenceEqual(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x49 })) {
                 throw new InvalidDataException("Invalid response header");
             }
             byte protocolVersion = br.ReadByte();
@@ -93,36 +82,30 @@ namespace UnchainedLauncher.Core.API.A2S
             environment = (byte)environment == (byte)'O' ? Environment.MAC : environment;
             var (isPublic, vac) = (br.ReadByte() == 0, br.ReadByte() == 1);
             // validate enum values
-            if (!Enum.IsDefined(typeof(ServerType), serverType))
-            {
+            if (!Enum.IsDefined(typeof(ServerType), serverType)) {
                 throw new InvalidDataException("Invalid server type");
             }
-            else if (!Enum.IsDefined(typeof(Environment), environment))
-            {
+            else if (!Enum.IsDefined(typeof(Environment), environment)) {
                 throw new InvalidDataException("Invalid environment type");
             }
             return new A2sInfo(protocolVersion, name, map, folder, game, gameID, players, maxPlayers, bots, serverType, environment, isPublic, vac);
         }
-        private static string ReadString(ref BinaryReader reader)
-        {
+        private static string ReadString(ref BinaryReader reader) {
             StringBuilder sb = new();
             char n = reader.ReadChar();
-            while (n != 0x00)
-            {
+            while (n != 0x00) {
                 sb.Append(n);
                 n = reader.ReadChar();
             }
             return sb.ToString();
         }
 
-        private static string ByteArrayToHexString(byte[] byteArray)
-        {
+        private static string ByteArrayToHexString(byte[] byteArray) {
             // Create a new string array to hold the hexadecimal representations
             string[] hexArray = new string[byteArray.Length];
 
             // Convert each byte to a two-character hexadecimal string
-            for (int i = 0; i < byteArray.Length; i++)
-            {
+            for (int i = 0; i < byteArray.Length; i++) {
                 hexArray[i] = byteArray[i].ToString("X2"); // X2 formats as two uppercase hex digits
             }
 

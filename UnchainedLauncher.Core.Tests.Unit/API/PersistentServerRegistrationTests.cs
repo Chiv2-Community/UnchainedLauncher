@@ -3,21 +3,17 @@ using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
 
-namespace UnchainedLauncher.Core.Tests.Unit.API
-{
+namespace UnchainedLauncher.Core.Tests.Unit.API {
     using Environment = Core.API.A2S.Environment;
 
-    public class PersistentServerRegistrationTests
-    {
-        public static readonly C2ServerInfo testServerC2Info = new()
-        {
+    public class PersistentServerRegistrationTests {
+        public static readonly C2ServerInfo testServerC2Info = new() {
             Name = "Test server",
             Description = "Test description"
         };
 
         [Fact]
-        public async Task PersistentServerRegistrationTest()
-        {
+        public async Task PersistentServerRegistrationTest() {
             // fake series of A2S responses to invoke some update calls
             // if applied in order, these infos should cause updates ONLY at indexes 2, 3 and 4
             // additionally, because our mock is lacking, index 0 will also cause an update.
@@ -41,19 +37,16 @@ namespace UnchainedLauncher.Core.Tests.Unit.API
             ServerInfo serverInfo = new(testServerC2Info, mockA2s[0]);
             var registration = await mockSB.RegisterServerAsync("127.0.0.1", serverInfo);
             bool hasDied = false;
-            Task OnDeath(Exception ex)
-            {
+            Task OnDeath(Exception ex) {
                 hasDied = true;
                 return Task.CompletedTask;
             }
 
-            using (var server = new PersistentServerRegistration(mockSB, registration, OnDeath))
-            {
+            using (var server = new PersistentServerRegistration(mockSB, registration, OnDeath)) {
                 await Task.Delay(testDuration * 1000);
                 // make sure it's doing heartbeats properly
                 Assert.Equal(expectedHeartbeatCount, mockSB.NumServerHeartbeats);
-                foreach (var info in mockA2s)
-                {
+                foreach (var info in mockA2s) {
                     await server.UpdateRegistrationA2s(info);
                 }
                 // see comment above mockA2s to see where this 4 comes from

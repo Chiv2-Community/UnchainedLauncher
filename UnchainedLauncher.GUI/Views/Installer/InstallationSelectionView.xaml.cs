@@ -13,10 +13,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using UnchainedLauncher.GUI.ViewModels.Installer;
 
-namespace UnchainedLauncher.GUI.Views.Installer
-{
-    public partial class InstallationSelectionView : UserControl
-    {
+namespace UnchainedLauncher.GUI.Views.Installer {
+    public partial class InstallationSelectionView : UserControl {
         public InstallationSelectionView() {
             InitializeComponent();
         }

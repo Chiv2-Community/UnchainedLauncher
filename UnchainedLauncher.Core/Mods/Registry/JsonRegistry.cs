@@ -4,8 +4,7 @@ using UnchainedLauncher.Core.JsonModels.Metadata;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Mods.Registry
-{
+namespace UnchainedLauncher.Core.Mods.Registry {
     public abstract class JsonRegistry : IModRegistry {
         protected static readonly ILog logger = LogManager.GetLogger(nameof(JsonRegistry));
 

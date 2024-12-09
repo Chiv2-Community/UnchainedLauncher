@@ -2,17 +2,14 @@
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Environment = UnchainedLauncher.Core.API.A2S.Environment;
-using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
 using UnchainedLauncher.Core.API.A2S;
+using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
+using Environment = UnchainedLauncher.Core.API.A2S.Environment;
 
-namespace UnchainedLauncher.Core.Tests.Unit.API
-{
-    public class A2SWatcherTests
-    {
+namespace UnchainedLauncher.Core.Tests.Unit.API {
+    public class A2SWatcherTests {
         [Fact]
-        public async Task TestWatcher()
-        {
+        public async Task TestWatcher() {
             MockA2S mockA2s = new(
                 new A2sInfo[]{
                     new(0, "", "test map", "", "Chivalry 2", 0, 10, 100, 5, ServerType.NONDEDICATED, Environment.WINDOWS, true, false),
@@ -28,8 +25,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.API
                 return Task.CompletedTask;
             };
 
-            using (var watcher = new A2SWatcher(mockA2s, onReceivedAction, 500))
-            {
+            using (var watcher = new A2SWatcher(mockA2s, onReceivedAction, 500)) {
                 // should be enough time for 8 queries
                 await Task.Delay(4000);
             };

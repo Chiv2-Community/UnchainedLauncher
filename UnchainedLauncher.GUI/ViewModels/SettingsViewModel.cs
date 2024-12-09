@@ -1,5 +1,6 @@
-﻿using UnchainedLauncher.GUI.JsonModels;
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
+using LanguageExt.UnsafeValueAccess;
 using log4net;
 using Octokit;
 using PropertyChanged;
@@ -9,19 +10,17 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.Core.Processes;
-using System.Threading.Tasks;
-using UnchainedLauncher.GUI.Views;
-using LanguageExt;
-using UnchainedLauncher.Core.JsonModels;
-using LanguageExt.UnsafeValueAccess;
 using UnchainedLauncher.Core.Installer;
+using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.JsonModels;
+using UnchainedLauncher.GUI.Views;
 
-namespace UnchainedLauncher.GUI.ViewModels
-{
+namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
     [AddINotifyPropertyChangedInterface]
@@ -123,7 +122,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             if (choice == MessageBoxResult.No) return;
 
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
-            FileHelpers.DeleteDirectory(FilePaths.PluginDir); 
+            FileHelpers.DeleteDirectory(FilePaths.PluginDir);
 
             var vanillaPaks = new List<string>() { "pakchunk0-WindowsNoEditor.pak" };
             var filePaths =
@@ -162,7 +161,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             ExitProgram(0);
         }
 
-        
+
         public async Task CheckForUpdate() {
             logger.Info("Checking for updates...");
 
@@ -175,7 +174,8 @@ namespace UnchainedLauncher.GUI.ViewModels
             if (latestRelease.Version.ComparePrecedenceTo(new Semver.SemVersion(version.Major, version.Minor, version.Build)) > 0) {
                 logger.Info($"Latest version: {latestRelease.Version}, Current version: {CurrentVersion}");
                 await ChangeVersion(latestRelease);
-            } else {
+            }
+            else {
                 MessageBox.Show("You are currently running the latest version.");
                 return;
             }
@@ -197,7 +197,8 @@ namespace UnchainedLauncher.GUI.ViewModels
             if (dialogResult.Contains(MessageBoxResult.No)) {
                 logger.Info("User chose not to update.");
                 return;
-            } else if (dialogResult.Contains(MessageBoxResult.Yes)) {
+            }
+            else if (dialogResult.Contains(MessageBoxResult.Yes)) {
                 logger.Info("User chose to update.");
                 await Installer.Install(new DirectoryInfo(Assembly.GetExecutingAssembly().Location), release, true, logger.Warn);
             }

@@ -2,22 +2,18 @@
 using LanguageExt.Common;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Mods.Registry.Downloader
-{
-    public class HttpPakDownloader : IModRegistryDownloader
-    {
+namespace UnchainedLauncher.Core.Mods.Registry.Downloader {
+    public class HttpPakDownloader : IModRegistryDownloader {
         public static HttpPakDownloader GithubPakDownloader => new HttpPakDownloader(target =>
             $"https://github.com/{target.Org}/{target.RepoName}/releases/download/{target.ReleaseTag}/{target.FileName}"
         );
 
         public Func<PakTarget, string> GetDownloadURL { get; set; }
-        public HttpPakDownloader(Func<PakTarget, string> getDownloadUrl)
-        {
+        public HttpPakDownloader(Func<PakTarget, string> getDownloadUrl) {
             GetDownloadURL = getDownloadUrl;
         }
 
-        public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(PakTarget target)
-        {
+        public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(PakTarget target) {
             var url = GetDownloadURL(target);
             var length = HttpHelpers.GetContentLengthAsync(url);
             var streamDownloadTask = HttpHelpers.GetByteContentsAsync(url).Task;

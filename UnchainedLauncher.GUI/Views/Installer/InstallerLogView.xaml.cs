@@ -13,10 +13,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using UnchainedLauncher.GUI.ViewModels.Installer;
 
-namespace UnchainedLauncher.GUI.Views.Installer
-{
-    public partial class InstallerLogView : UserControl
-    {
+namespace UnchainedLauncher.GUI.Views.Installer {
+    public partial class InstallerLogView : UserControl {
         public InstallerLogView() {
             InitializeComponent();
         }

@@ -15,11 +15,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using UnchainedLauncher.GUI.ViewModels.Installer;
 
-namespace UnchainedLauncher.GUI.Views.Installer
-{
+namespace UnchainedLauncher.GUI.Views.Installer {
     // All of this codebehind exists because WebView doesn't support binding to a string for content
-    public partial class VersionSelectionView : UserControl
-    {
+    public partial class VersionSelectionView : UserControl {
         private bool WebViewInitialized = false;
 
         public VersionSelectionView() {

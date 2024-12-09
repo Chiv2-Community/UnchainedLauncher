@@ -8,21 +8,17 @@ using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
 
-namespace UnchainedLauncher.Core.Tests.Unit.API
-{
+namespace UnchainedLauncher.Core.Tests.Unit.API {
     using Environment = Core.API.A2S.Environment;
 
-    public class RunningC2ServerTests
-    {
-        public static readonly C2ServerInfo testServerC2Info = new()
-        {
+    public class RunningC2ServerTests {
+        public static readonly C2ServerInfo testServerC2Info = new() {
             Name = "Test server",
             Description = "Test description"
         };
 
         [Fact]
-        public async Task BackendMaintenanceTest()
-        {
+        public async Task BackendMaintenanceTest() {
             // fake series of A2S responses to invoke some update calls
             MockA2S mockA2s = new(
                 new A2sInfo[]{
@@ -56,8 +52,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.API
                                                     testServerC2Info,
                                                     "127.0.0.1",
                                                     heartbeatSecondsBeforeTimeout,
-                                                    A2sUpdateInterval))
-            {
+                                                    A2sUpdateInterval)) {
                 await Task.Delay(testDurationSeconds * 1000 + 500);
                 Assert.NotNull(server.Registration);
             }

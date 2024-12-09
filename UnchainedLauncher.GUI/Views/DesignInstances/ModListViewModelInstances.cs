@@ -1,20 +1,18 @@
 ﻿using LanguageExt;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnchainedLauncher.Core.Mods.Registry.Downloader;
-using UnchainedLauncher.Core.Mods.Registry;
-using UnchainedLauncher.Core.Mods;
-using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using System.Collections.ObjectModel;
+using UnchainedLauncher.Core.Mods;
+using UnchainedLauncher.Core.Mods.Registry;
+using UnchainedLauncher.Core.Mods.Registry.Downloader;
+using UnchainedLauncher.GUI.ViewModels;
 
-namespace UnchainedLauncher.GUI.Views.DesignInstances
-{
-    public static class ModListViewModelInstances
-    {
+namespace UnchainedLauncher.GUI.Views.DesignInstances {
+    public static class ModListViewModelInstances {
         public static ModListViewModel DEFAULT => CreateDefaultModListViewModel();
 
         private static ModListViewModel CreateDefaultModListViewModel() {

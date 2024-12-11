@@ -18,6 +18,7 @@ using UnchainedLauncher.Core.Mods;
 using System;
 using log4net;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI {
     using static LanguageExt.Prelude;
@@ -48,8 +49,10 @@ namespace UnchainedLauncher.GUI {
 
             // Init common dependencies
             var githubClient = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("UnchainedLauncher"));
+            var unchainedLauncherReleaseFinder = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedLauncher");
+
             var installationFinder = new Chivalry2InstallationFinder();
-            var installer = new UnchainedLauncherInstaller(githubClient, Current.Shutdown);
+            var installer = new UnchainedLauncherInstaller(Environment.Exit);
 
             // figure out if we need to install by checking our current working directory
             var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -62,15 +65,15 @@ namespace UnchainedLauncher.GUI {
             
             Window window = 
                 needsInstallation && !forceSkipInstallation
-                    ? InitializeInstallerWindow(installationFinder, installer) 
-                    : InitializeMainWindow(installationFinder, installer);
+                    ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseFinder) 
+                    : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseFinder);
 
             window.Show();
         }
 
-        public Window InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer) {
+        public Window InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
             var installationSelectionVM = new InstallationSelectionPageViewModel(installationFinder);
-            var versionSelectionVM = new VersionSelectionPageViewModel(installer);
+            var versionSelectionVM = new VersionSelectionPageViewModel(launcherReleaseLocator);
             var installationLogVM = new InstallerLogPageViewModel(
                 installer,
                 () => from chiv2Installations in installationSelectionVM.Installations
@@ -80,7 +83,7 @@ namespace UnchainedLauncher.GUI {
                 () => versionSelectionVM.SelectedVersion!
             );
 
-            ObservableCollection<IInstallerPageViewModel> installerPageViewModels = new ObservableCollection<IInstallerPageViewModel> {
+            var installerPageViewModels = new ObservableCollection<IInstallerPageViewModel> {
                 installationSelectionVM,
                 versionSelectionVM,
                 installationLogVM
@@ -90,10 +93,8 @@ namespace UnchainedLauncher.GUI {
             return new InstallerWindow(installerWindowVM);
         }
 
-        public Window InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer) {
-            var curDir = new DirectoryInfo(Directory.GetCurrentDirectory());
-
-            var settingsViewModel = SettingsViewModel.LoadSettings(installationFinder, installer, Environment.Exit);
+        public Window InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
+            var settingsViewModel = SettingsViewModel.LoadSettings(installationFinder, installer, launcherReleaseLocator, Environment.Exit);
 
             var modManager = ModManager.ForRegistries(
                 new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)

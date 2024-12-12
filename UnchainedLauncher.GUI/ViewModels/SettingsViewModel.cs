@@ -154,7 +154,7 @@ namespace UnchainedLauncher.GUI.ViewModels
 
             var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
             var powershellCommands = new List<string>() {
-                $"Wait-Process -Id {Environment.ProcessId}",
+                $"Wait-Process -Id {Environment.ProcessId} -ErrorAction 'Ignore'",
                 $"Start-Sleep -Milliseconds 500",
                 $".\\{currentExecutableName} {commandLinePass}"
             };
@@ -205,7 +205,7 @@ namespace UnchainedLauncher.GUI.ViewModels
 
             if (dialogResult.Contains(MessageBoxResult.Yes)) {
                 logger.Info("User chose to update.");
-                await Installer.Install(new DirectoryInfo(Assembly.GetExecutingAssembly().Location), release, true, logger.Warn);
+                await Installer.Install(new DirectoryInfo(Environment.CurrentDirectory), release, true, (_) => { });
             }
         }
 

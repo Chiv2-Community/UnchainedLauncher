@@ -35,24 +35,23 @@ namespace UnchainedLauncher.GUI.Views {
             InitializeComponent();
         }
 
-        public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates) {
-            if (updates.Any()) {
+        public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates)
+        {
+            if (!updates.Any()) {
                 logger.Info("No updates available");
                 return None;
-            } else {
-                var message = $"Found {updates.Count()} updates available.\n\n";
-                message += string.Join("\n", updates.Select(x => $"- {x.Name} {x.CurrentVersion} -> {x.LatestVersion}"));
-                message.Split("\n").ToList().ForEach(x => logger.Info(x));
-
-                var window = new UpdatesWindow(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates);
-                window.ShowDialog();
-
-                MessageBoxResult result = window.ViewModel.Result;
-                logger.Info("User Selects: " + result.ToString());
-                return Some(result);
-
             }
 
+            var message = $"Found {updates.Count()} updates available.\n\n";
+            message += string.Join("\n", updates.Select(x => $"- {x.Name} {x.CurrentVersion} -> {x.LatestVersion}"));
+            message.Split("\n").ToList().ForEach(x => logger.Info(x));
+
+            var window = new UpdatesWindow(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates);
+            window.ShowDialog();
+
+            MessageBoxResult result = window.ViewModel.Result;
+            logger.Info("User Selects: " + result);
+            return Some(result);
         }
     }
 }

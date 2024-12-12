@@ -84,36 +84,34 @@ namespace UnchainedLauncher.Core.Installer {
                 }
                 
                 var launcherPath = Path.Combine(targetDir.FullName, FilePaths.LauncherPath);
+                MoveExistingLauncher(targetDir, log);
 
                 if (replaceCurrent) {
                     var currentExecutableName = Process.GetCurrentProcess().ProcessName;
+                    var currentExecutablePath = Path.Combine(targetDir.FullName, currentExecutableName);
 
-                    if (!currentExecutableName.EndsWith(".exe")) {
-                        currentExecutableName += ".exe";
+                    if (!currentExecutablePath.EndsWith(".exe")) {
+                        currentExecutablePath += ".exe";
                     }
 
-                    log($"Replacing current executable {currentExecutableName} with downloaded launcher {downloadFilePath}");
+                    log($"Replacing current executable \"{currentExecutablePath}\" with downloaded launcher \"{downloadFilePath}\"");
+
+                    
 
                     var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
-
                     var powershellCommand = new List<string>() {
-                        $"Wait-Process -Id {Environment.ProcessId}",
+                        $"Wait-Process -Id {Environment.ProcessId} -ErrorAction 'Ignore'",
                         $"Start-Sleep -Milliseconds 1000",
-                        $"Move-Item -Force {downloadFilePath} {currentExecutableName}",
+                        $"Move-Item -Force '{downloadFilePath}' '{currentExecutablePath}'",
                         $"Start-Sleep -Milliseconds 500",
-                        $"{launcherPath} {commandLinePass}"
+                        $"& '{launcherPath}' {commandLinePass}"
                     };
 
-                    MoveExistingLauncher(targetDir, log);
+                    var proc = PowerShell.Run(powershellCommand, createWindow: true);
 
-                    log($"Executing powershell command: \n  {string.Join(";\n  ", powershellCommand)};");
-                    PowerShell.Run(powershellCommand);
-
-                    log("Exitting current process to launch new launcher");
+                    log("Exiting current process to launch new launcher");
                     EndProgram(0);
                 } else {
-                    MoveExistingLauncher(targetDir, log);
-
                     log($"Replacing launcher \n    at {launcherPath} \n    with downloaded launcher from {downloadFilePath}");
                     File.Move(downloadFilePath, launcherPath, true);
                     log($"Successfully installed launcher version {release.Version}");

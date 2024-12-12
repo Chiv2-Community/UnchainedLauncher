@@ -48,16 +48,16 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer
 
         public async Task Load() {
             var targets = GetInstallationTargets();
-            var version = GetSelectedRelease();
+            var release = GetSelectedRelease();
 
-            AppendLog("Selected version: v" + version.ToString());
+            AppendLog("Selected version: v" + release.Version);
             AppendLog("Installation targets:\n    " + string.Join("\n    ", from t in targets select t.FullName));
             AppendLog("");
 
             foreach(var target in targets!) {
                 AppendLog("-----------------------------------------------------");
-                AppendLog($"Installing v{version.Version} to {target}");
-                await Installer.Install(target, version, false, AppendLog);
+                AppendLog($"Installing v{release.Version} to {target}");
+                await Installer.Install(target, release, false, AppendLog);
                 AppendLog("-----------------------------------------------------");
                 AppendLog("");
             }

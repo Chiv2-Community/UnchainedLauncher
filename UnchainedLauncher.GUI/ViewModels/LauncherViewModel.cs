@@ -148,7 +148,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
             if (pluginExists)
             {
                 var fileInfo = FileVersionInfo.GetVersionInfo(pluginPath);
-                currentPluginVersion = SemVersion.Parse(fileInfo.ProductVersion ?? fileInfo.FileVersion, SemVersionStyles.Any);
+                var successful = SemVersion.TryParse(
+                    fileInfo.ProductVersion ?? fileInfo.FileVersion, 
+                    SemVersionStyles.Any, 
+                    out currentPluginVersion
+                );
+                
+                // If new version is the same as or less than current, don't download anything
+                if (successful && currentPluginVersion.ComparePrecedenceTo(latestPlugin.Version) > 0) return true;
             }
             
             var titleString = pluginExists 
@@ -171,9 +178,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     Optional(currentPluginVersion?.ToString()), 
                     latestPlugin.Version.ToString(), 
                     latestPlugin.PageUrl, 
-                    "The unchained plugin is used for hosting and connecting " + 
-                    "to player owned and hosted servers, and is required to run " +
-                    "Chivalry 2 Unchained."
+                    "Used for hosting and connecting to player owned servers. Required to run Chivalry 2 Unchained."
                 )
             );
 

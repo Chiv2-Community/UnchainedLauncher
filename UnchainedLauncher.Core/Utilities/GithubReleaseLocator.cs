@@ -117,16 +117,15 @@ namespace UnchainedLauncher.Core.Utilities
         }
 
         private static Option<SemVersion> ParseTag(string tag) {
-            try {
-                var versionString = tag;
-                if (versionString.StartsWith("v")) {
-                    versionString = versionString[1..];
-                }
-                return Some(SemVersion.Parse(versionString, SemVersionStyles.Any));
-            } catch {
-                logger.Info($"Failed to parse version tag {tag}");
-                return None;
+            var versionString = tag;
+            if (versionString.StartsWith("v")) {
+                versionString = versionString[1..];
             }
+
+            SemVersion.TryParse(versionString, SemVersionStyles.Any, out var parsedVersion);
+            if (parsedVersion == null) logger.Error($"Failed to parse git tag {tag}");
+            
+            return Optional(parsedVersion);
         }
     }
 }

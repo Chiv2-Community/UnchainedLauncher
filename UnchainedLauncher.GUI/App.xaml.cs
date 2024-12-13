@@ -26,6 +26,10 @@ using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.ViewModels;
+using UnchainedLauncher.GUI.ViewModels.Installer;
+using UnchainedLauncher.GUI.Views;
+using UnchainedLauncher.GUI.Views.Installer;
 
 namespace UnchainedLauncher.GUI {
     using static LanguageExt.Prelude;

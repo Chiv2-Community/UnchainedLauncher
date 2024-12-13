@@ -93,9 +93,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                 Option<MessageBoxResult> res =
                     UpdatesWindow.Show(
-                        "Update Mods?", 
-                        $"Mod updates available.", 
-                        "Yes", "No", null, 
+                        "Update Mods?",
+                        $"Mod updates available.",
+                        "Yes", "No", null,
                         pendingUpdates.Select(x => DependencyUpdate.FromUpdateCandidate(x.Item2))
                     );
 

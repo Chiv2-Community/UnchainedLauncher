@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Semver;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -6,7 +7,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using Semver;
 using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.Utilities;
 
@@ -28,8 +28,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public InstallerLogPageViewModel() : this(
             new MockInstaller(),
             () => new List<DirectoryInfo>(),
-            () => new ReleaseTarget("", "", new SemVersion(0,0), Array.Empty<ReleaseAsset>(), DateTimeOffset.Now, true, false)
-        ) { 
+            () => new ReleaseTarget("", "", new SemVersion(0, 0), Array.Empty<ReleaseAsset>(), DateTimeOffset.Now, true, false)
+        ) {
             AppendLog("Mocking installation log...");
             AppendLog("Doing things...");
         }
@@ -52,7 +52,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             AppendLog("Installation targets:\n    " + string.Join("\n    ", from t in targets select t.FullName));
             AppendLog("");
 
-            foreach(var target in targets!) {
+            foreach (var target in targets!) {
                 AppendLog("-----------------------------------------------------");
                 AppendLog($"Installing v{release.Version} to {target}");
                 await Installer.Install(target, release, false, AppendLog);

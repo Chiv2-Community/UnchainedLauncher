@@ -1,4 +1,6 @@
 ﻿using log4net;
+using log4net;
+using System;
 using System;
 using System;
 using System.Collections.Generic;
@@ -8,23 +10,21 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
+using UnchainedLauncher.Core;
 using UnchainedLauncher.Core;
 using UnchainedLauncher.Core;
 using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
-using UnchainedLauncher.Core;
-using System.Runtime.CompilerServices;
-using UnchainedLauncher.Core.Mods;
-using System;
-using log4net;
-using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI {
@@ -61,7 +61,7 @@ namespace UnchainedLauncher.GUI {
             var unchainedLauncherReleaseLocator = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedLauncher");
             var pluginReleaseLocator = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedPlugin");
 
-            
+
             var installationFinder = new Chivalry2InstallationFinder();
             var installer = new UnchainedLauncherInstaller(Environment.Exit);
 
@@ -76,7 +76,7 @@ namespace UnchainedLauncher.GUI {
 
             Window window =
                 needsInstallation && !forceSkipInstallation
-                    ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator) 
+                    ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
                     : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator, pluginReleaseLocator);
 
             window.Show();
@@ -110,7 +110,7 @@ namespace UnchainedLauncher.GUI {
             var modManager = ModManager.ForRegistries(
                 new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
             );
-            
+
 
             var chiv2Launcher = new Chivalry2Launcher();
             var serversViewModel = new ServersViewModel(settingsViewModel, null);

@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
+using LanguageExt.UnsafeValueAccess;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -14,7 +15,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using LanguageExt.UnsafeValueAccess;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views {
@@ -36,8 +36,7 @@ namespace UnchainedLauncher.GUI.Views {
             InitializeComponent();
         }
 
-        public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates)
-        {
+        public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates) {
             if (!updates.Any()) {
                 logger.Info("No updates available");
                 return None;
@@ -54,9 +53,8 @@ namespace UnchainedLauncher.GUI.Views {
             logger.Info("User Selects: " + result);
             return Some(result);
         }
-        
-        public static MessageBoxResult Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, DependencyUpdate update)
-        {
+
+        public static MessageBoxResult Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, DependencyUpdate update) {
             return Show(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, new[] { update }).ValueUnsafe();
         }
     }

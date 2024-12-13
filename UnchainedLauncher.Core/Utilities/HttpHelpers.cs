@@ -3,7 +3,7 @@ using log4net;
 
 namespace UnchainedLauncher.Core.Utilities {
     using static LanguageExt.Prelude;
-    
+
     public static class HttpHelpers {
         private static readonly ILog logger = LogManager.GetLogger(nameof(HttpHelpers));
 
@@ -98,40 +98,34 @@ namespace UnchainedLauncher.Core.Utilities {
         /// <param name="logResult">An Action which does something to handle a log string.
         /// <returns>A bool returning false if any download targets have a download failure</returns>
         public static async Task<bool> DownloadReleaseTarget(ReleaseTarget download,
-            Func<ReleaseAsset, string?> assetMapping, 
+            Func<ReleaseAsset, string?> assetMapping,
             Action<string>? logResult = null
-        )
-        {
-            Action<string> log = message =>
-            {
+        ) {
+            Action<string> log = message => {
                 logger.Info(message);
                 logResult?.Invoke(message);
             };
 
             var results =
-                await download.Assets.ToList().Select(async asset =>
-                    {
-                        var downloadTarget = assetMapping(asset);
+                await download.Assets.ToList().Select(async asset => {
+                    var downloadTarget = assetMapping(asset);
 
-                        if (downloadTarget == null)
-                        {
-                            logger.Debug($"Skipping asset with no download target {asset.Name}");
-                            return true;
-                        }
+                    if (downloadTarget == null) {
+                        logger.Debug($"Skipping asset with no download target {asset.Name}");
+                        return true;
+                    }
 
-                        try
-                        {
-                            await HttpHelpers.DownloadFileAsync(asset.DownloadUrl, downloadTarget!).Task;
-                            log($"Downloaded {asset.Name} to {downloadTarget!}");
-                            return true;
-                        }
-                        catch (Exception e)
-                        {
-                            log($"Failed to download launcher\n    from {asset.DownloadUrl}\n    to {downloadTarget!}");
-                            log(e.ToString());
-                            return false;
-                        }
-                    })
+                    try {
+                        await HttpHelpers.DownloadFileAsync(asset.DownloadUrl, downloadTarget!).Task;
+                        log($"Downloaded {asset.Name} to {downloadTarget!}");
+                        return true;
+                    }
+                    catch (Exception e) {
+                        log($"Failed to download launcher\n    from {asset.DownloadUrl}\n    to {downloadTarget!}");
+                        log(e.ToString());
+                        return false;
+                    }
+                })
                     .SequenceParallel();
 
             return results.ForAll(identity);
@@ -155,8 +149,7 @@ namespace UnchainedLauncher.Core.Utilities {
         }
 
         public DownloadTask<T> RecoverWith(Func<Exception?, DownloadTask<T>> recover) {
-            Task.ContinueWith(t =>
-            {
+            Task.ContinueWith(t => {
                 if (t.Exception != null) {
                     return recover(t.Exception);
                 }

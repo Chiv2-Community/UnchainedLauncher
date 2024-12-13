@@ -38,7 +38,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public ICommand CancelCommand { get; set; }
         private Action CloseWindow { get; }
 
-        public UpdatesWindowViewModel(): this("Title", "Message", "Yes", "No", null, new List<DependencyUpdate>(), () => { }) { }
+        public UpdatesWindowViewModel() : this("Title", "Message", "Yes", "No", null, new List<DependencyUpdate>(), () => { }) { }
 
         public UpdatesWindowViewModel(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates, Action closeWindow) {
             TitleText = titleText;

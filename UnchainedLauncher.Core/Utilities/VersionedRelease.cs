@@ -6,9 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace UnchainedLauncher.Core.Installer
-{
-    
+namespace UnchainedLauncher.Core.Installer {
+
     public record VersionedRelease(Release Release, SemVersion Version, bool IsLatestStable) {
         public VersionedRelease AsLatestStable() => this with { IsLatestStable = true };
         public string DisplayText => $"{Release.TagName} ({Release.CreatedAt:d})" + (IsLatestStable ? " Recommended" : "");

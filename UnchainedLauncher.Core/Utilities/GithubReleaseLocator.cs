@@ -1,16 +1,15 @@
 ﻿
 
-using System.Collections.Immutable;
 using LanguageExt;
 using log4net;
 using Octokit;
 using Semver;
+using System.Collections.Immutable;
 using UnchainedLauncher.Core.Installer;
 
-namespace UnchainedLauncher.Core.Utilities
-{
+namespace UnchainedLauncher.Core.Utilities {
     using static LanguageExt.Prelude;
-    
+
     public record ReleaseTarget(
         string PageUrl,
         string DescriptionMarkdown,
@@ -18,17 +17,15 @@ namespace UnchainedLauncher.Core.Utilities
         IEnumerable<ReleaseAsset> Assets,
         DateTimeOffset CreatedDate,
         bool IsLatestStable,
-        bool IsPrerelease)
-    {
+        bool IsPrerelease) {
         public ReleaseTarget AsLatestStable() => this with { IsLatestStable = true };
-        
+
         public string DisplayText => $"v{Version} ({CreatedDate:d})" + (IsLatestStable ? " Recommended" : "");
 
     }
     public record ReleaseAsset(string Name, string DownloadUrl);
 
-    public interface IReleaseLocator
-    {
+    public interface IReleaseLocator {
         /// <summary>
         /// Returns the latest stable release of the target application.
         /// </summary>
@@ -41,38 +38,35 @@ namespace UnchainedLauncher.Core.Utilities
         /// <returns></returns>
         public Task<IEnumerable<ReleaseTarget>> GetAllReleases();
     }
-    
-    public class GithubReleaseLocator: IReleaseLocator
-    {
+
+    public class GithubReleaseLocator : IReleaseLocator {
         public static readonly ILog logger = LogManager.GetLogger(nameof(GithubReleaseLocator));
-        
+
         public GitHubClient GitHubClient { get; }
         private string RepoOwner;
         private string RepoName;
-        
+
         private IEnumerable<ReleaseTarget>? ReleaseCache { get; set; } = null;
         private ReleaseTarget? LatestRelease { get; set; } = null;
 
-        public GithubReleaseLocator(GitHubClient githubClient, string repoOwner, string repoName)
-        {
+        public GithubReleaseLocator(GitHubClient githubClient, string repoOwner, string repoName) {
             GitHubClient = githubClient;
-            RepoName = repoName;    
+            RepoName = repoName;
             RepoOwner = repoOwner;
         }
-        
-        
+
+
         public async Task<ReleaseTarget?> GetLatestRelease() {
-            if(LatestRelease != null) {
+            if (LatestRelease != null) {
                 return LatestRelease;
             }
 
             await ProcessGithubReleases();
-            
+
             return LatestRelease;
         }
 
-        public async Task<IEnumerable<ReleaseTarget>> GetAllReleases()
-        {
+        public async Task<IEnumerable<ReleaseTarget>> GetAllReleases() {
             if (ReleaseCache != null) {
                 return ReleaseCache;
             }
@@ -80,8 +74,7 @@ namespace UnchainedLauncher.Core.Utilities
             return await ProcessGithubReleases();
         }
 
-        private async Task<IEnumerable<ReleaseTarget>> ProcessGithubReleases()
-        {
+        private async Task<IEnumerable<ReleaseTarget>> ProcessGithubReleases() {
             try {
                 var maybeReleases = Optional(await GitHubClient.Repository.Release.GetAll(RepoOwner, RepoName));
                 var results =
@@ -89,12 +82,12 @@ namespace UnchainedLauncher.Core.Utilities
                     from release in releases
                     from version in ParseTag(release.TagName)
                     select new ReleaseTarget(
-                        release.HtmlUrl, 
+                        release.HtmlUrl,
                         release.Body,
-                        version, 
+                        version,
                         from asset in release.Assets
-                        select new ReleaseAsset(asset.Name, asset.BrowserDownloadUrl), 
-                        release.CreatedAt, 
+                        select new ReleaseAsset(asset.Name, asset.BrowserDownloadUrl),
+                        release.CreatedAt,
                         false,
                         version.IsPrerelease || release.Prerelease);
 
@@ -109,8 +102,8 @@ namespace UnchainedLauncher.Core.Utilities
                 LatestRelease = latestRelease;
 
                 return Optional(ReleaseCache).ToList().Flatten();
-            } catch (Exception e)
-            {
+            }
+            catch (Exception e) {
                 logger.Error("Failed to connect to github to retrieve version information", e);
                 return ImmutableList.CreateBuilder<ReleaseTarget>().ToImmutableList();
             }
@@ -124,7 +117,7 @@ namespace UnchainedLauncher.Core.Utilities
 
             SemVersion.TryParse(versionString, SemVersionStyles.Any, out var parsedVersion);
             if (parsedVersion == null) logger.Error($"Failed to parse git tag {tag}");
-            
+
             return Optional(parsedVersion);
         }
     }

@@ -7,8 +7,7 @@ using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Mods.Registry
-{
+namespace UnchainedLauncher.Core.Mods.Registry {
 
     public record GetAllModsResult(IEnumerable<RegistryMetadataException> Errors, IEnumerable<Mod> Mods) {
         public bool HasErrors => Errors.Any();
@@ -26,14 +25,13 @@ namespace UnchainedLauncher.Core.Mods.Registry
         }
     };
 
-        /// <summary>
-        /// A ModRegistry contains all relevant metadata for a repository of mods
-        /// A ModRegistry does not necessarily know how to download the mods, however
-        /// it will provide the coordinates which can be used to download the mods via
-        /// ModRegistryPakFetcher
-        /// </summary>
-    public interface IModRegistry
-    {
+    /// <summary>
+    /// A ModRegistry contains all relevant metadata for a repository of mods
+    /// A ModRegistry does not necessarily know how to download the mods, however
+    /// it will provide the coordinates which can be used to download the mods via
+    /// ModRegistryPakFetcher
+    /// </summary>
+    public interface IModRegistry {
         protected static readonly ILog logger = LogManager.GetLogger(nameof(IModRegistry));
         public IModRegistryDownloader ModRegistryDownloader { get; }
         public string Name { get; }
@@ -61,7 +59,7 @@ namespace UnchainedLauncher.Core.Mods.Registry
 
 
         public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(PakTarget coordinates, string outputLocation) {
-            return 
+            return
                 ModRegistryDownloader
                     .ModPakStream(coordinates)
                     .Map(stream => new FileWriter(outputLocation, stream.Stream, stream.Size));
@@ -77,7 +75,7 @@ namespace UnchainedLauncher.Core.Mods.Registry
 
     public class RegistryMetadataException : Exception {
         public string ModPath { get; }
-        public RegistryMetadataException(string modPath, Exception underlying) : base($"Failed to get mod metadata at {modPath}", underlying) { 
+        public RegistryMetadataException(string modPath, Exception underlying) : base($"Failed to get mod metadata at {modPath}", underlying) {
             ModPath = modPath;
         }
     }

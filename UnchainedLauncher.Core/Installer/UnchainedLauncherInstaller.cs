@@ -5,6 +5,7 @@ using LanguageExt.Thunks;
 using LanguageExt.TypeClasses;
 using LanguageExt.UnsafeValueAccess;
 using log4net;
+using Semver;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -16,7 +17,6 @@ using System.Linq;
 using System.Reflection;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Utilities;
-using Semver;
 using ReleaseAsset = UnchainedLauncher.Core.Utilities.ReleaseAsset;
 
 namespace UnchainedLauncher.Core.Installer {
@@ -36,9 +36,9 @@ namespace UnchainedLauncher.Core.Installer {
         public Task<bool> Install(DirectoryInfo targetDir, ReleaseTarget release, bool replaceCurrent, Action<string>? logProgress = null);
     }
 
-    public class UnchainedLauncherInstaller: IUnchainedLauncherInstaller {
+    public class UnchainedLauncherInstaller : IUnchainedLauncherInstaller {
         public static readonly ILog logger = LogManager.GetLogger(nameof(UnchainedLauncherInstaller));
-        
+
         private Action<int> EndProgram { get; }
 
 
@@ -82,7 +82,7 @@ namespace UnchainedLauncher.Core.Installer {
                     log($"Failed to download the launcher version {release.Version}.");
                     return false;
                 }
-                
+
                 var launcherPath = Path.Combine(targetDir.FullName, FilePaths.LauncherPath);
                 MoveExistingLauncher(targetDir, log);
 
@@ -96,7 +96,7 @@ namespace UnchainedLauncher.Core.Installer {
 
                     log($"Replacing current executable \"{currentExecutablePath}\" with downloaded launcher \"{downloadFilePath}\"");
 
-                    
+
 
                     var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
                     var powershellCommand = new List<string>() {
@@ -111,7 +111,8 @@ namespace UnchainedLauncher.Core.Installer {
 
                     log("Exiting current process to launch new launcher");
                     EndProgram(0);
-                } else {
+                }
+                else {
                     log($"Replacing launcher \n    at {launcherPath} \n    with downloaded launcher from {downloadFilePath}");
                     File.Move(downloadFilePath, launcherPath, true);
                     log($"Successfully installed launcher version {release.Version}");
@@ -119,7 +120,8 @@ namespace UnchainedLauncher.Core.Installer {
 
 
                 return true;
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 log(ex.ToString());
                 logger.Error(ex);
             }
@@ -144,21 +146,22 @@ namespace UnchainedLauncher.Core.Installer {
 
                 var currentExecutableProductName = FileVersionInfo.GetVersionInfo(currentAssembly!.Location)?.ProductName;
 
-                if(currentExecutableProductName == null) {
+                if (currentExecutableProductName == null) {
                     throw new Exception("Failed to get the product name of the current executable. Aborting");
                 }
 
                 if (launcherProductName != currentExecutableProductName) {
                     log($"Existing launcher is not {currentExecutableProductName}. Moving existing launcher to {originalLauncherPath}");
                     File.Move(launcherPath, originalLauncherPath, true);
-                } else {
+                }
+                else {
                     log("Existing launcher is a modified launcher. Overwriting with version selected in the installer..");
                 }
             }
         }
     }
-    public class MockInstaller: IUnchainedLauncherInstaller {
+    public class MockInstaller : IUnchainedLauncherInstaller {
         public Task<bool> Install(DirectoryInfo targetDir, ReleaseTarget release, bool replaceCurrent, Action<string>? logProgress = null) => Task.FromResult(true);
-        
+
     }
 }

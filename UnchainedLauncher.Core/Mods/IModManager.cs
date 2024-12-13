@@ -7,8 +7,7 @@ using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Mods
-{
+namespace UnchainedLauncher.Core.Mods {
     using static LanguageExt.Prelude;
 
     public record UpdateCandidate(Release CurrentlyEnabled, Release AvailableUpdate) {

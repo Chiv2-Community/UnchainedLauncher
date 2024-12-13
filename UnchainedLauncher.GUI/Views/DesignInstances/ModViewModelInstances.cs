@@ -5,16 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods;
+using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.GUI.ViewModels;
 
-namespace UnchainedLauncher.GUI.Views.DesignInstances
-{
+namespace UnchainedLauncher.GUI.Views.DesignInstances {
     using static LanguageExt.Prelude;
 
-    public static class ModViewModelInstances
-    {
+    public static class ModViewModelInstances {
         public static ModViewModel DEFAULT => CreateDefaultModViewModel();
 
         public static readonly ModManifest DesignViewManifest = new ModManifest(

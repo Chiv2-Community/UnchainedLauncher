@@ -1,30 +1,29 @@
-﻿using PropertyChanged;
+﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
+using log4net;
+using PropertyChanged;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Linq;
-using CommunityToolkit.Mvvm.Input;
 using System.Windows.Input;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Collections.Specialized;
-using System.Collections.ObjectModel;
-using log4net;
-using UnchainedLauncher.GUI.JsonModels;
-using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core;
-using LanguageExt;
 using UnchainedLauncher.Core.API;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.API.ServerBrowser;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
-using System.ComponentModel;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.JsonModels;
 
-namespace UnchainedLauncher.GUI.ViewModels
-{
+namespace UnchainedLauncher.GUI.ViewModels {
     public partial class ServerLauncherViewModel : IDisposable, INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServerLauncherViewModel));
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_server_settings.json";
@@ -87,7 +86,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UnchainedLauncher.GUI.Resources.DefaultMaps.txt")) {
                 if (defaultMapsListStream != null) {
                     using StreamReader reader = new StreamReader(defaultMapsListStream!);
-        
+
                     var defaultMapsString = reader.ReadToEnd();
                     defaultMapsString
                         .Split("\n")
@@ -101,10 +100,8 @@ namespace UnchainedLauncher.GUI.ViewModels
 
             ModManager.EnabledModReleases.CollectionChanged += ProcessEnabledModsChanged;
 
-            LauncherViewModel.PropertyChanged += (_, args) =>
-            {
-                switch (args.PropertyName)
-                {
+            LauncherViewModel.PropertyChanged += (_, args) => {
+                switch (args.PropertyName) {
                     case nameof(LauncherViewModel.CanClick):
                         CanClick = LauncherViewModel.CanClick;
                         break;
@@ -207,7 +204,8 @@ namespace UnchainedLauncher.GUI.ViewModels
 
                     ServersViewModel.RegisterServer("127.0.0.1", serverLaunchOptions.RconPort, serverInfo, process);
                 });
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 MessageBox.Show("Failed to launch. Check the logs for details.");
                 logger.Error("Failed to launch.", ex);
                 CanClick = LauncherViewModel.CanClick;

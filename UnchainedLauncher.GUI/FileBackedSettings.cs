@@ -1,7 +1,7 @@
-﻿using Newtonsoft.Json;
-using log4net;
-using UnchainedLauncher.Core.Utilities;
+﻿using log4net;
+using Newtonsoft.Json;
 using System.IO;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI {
     public class FileBackedSettings<T> {
@@ -21,7 +21,8 @@ namespace UnchainedLauncher.GUI {
 
             if (savedSettings.Success) {
                 return savedSettings.Result!;
-            } else {
+            }
+            else {
                 var cause = savedSettings.Exception?.Message ?? "Schema does not match";
                 logger.Error($"Settings malformed or from an unsupported old version.");
 

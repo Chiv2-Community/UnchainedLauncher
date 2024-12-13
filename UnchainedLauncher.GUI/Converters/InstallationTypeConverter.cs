@@ -9,8 +9,7 @@ using System.Windows.Data;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.GUI.ViewModels.Installer;
 
-namespace UnchainedLauncher.GUI.Converters
-{
+namespace UnchainedLauncher.GUI.Converters {
 
     [ValueConversion(typeof(InstallationType), typeof(string))]
     public class InstallationTypeConverter : IValueConverter {

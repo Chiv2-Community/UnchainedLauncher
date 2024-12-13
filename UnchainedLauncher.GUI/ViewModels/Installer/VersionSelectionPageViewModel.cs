@@ -1,22 +1,23 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
+using log4net;
+using log4net;
+using Markdig;
+using Markdig;
+using Microsoft.Win32;
+using PropertyChanged;
+using PropertyChanged;
+using Semver;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using LanguageExt;
-using System.Collections.ObjectModel;
-using System.Windows.Input;
-using CommunityToolkit.Mvvm.Input;
-using UnchainedLauncher.Core.JsonModels;
-using System.ComponentModel;
-using Microsoft.Win32;
-using System.Xaml.Schema;
 using System.Threading.Tasks;
 using System.Windows;
-using PropertyChanged;
-using log4net;
-using System.Diagnostics;
-using Markdig;
-using Semver;
 using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.Utilities;
 
@@ -44,14 +45,13 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public bool IsSelected { get { return SelectedVersion != null; } }
         public ICommand ViewOnGithubCommand { get; }
 
-        public VersionSelectionPageViewModel() : this(null) { 
-            AvailableVersions.Add(new ReleaseTarget("test", "#foo\n\nBar.", new SemVersion(1,2), new List<ReleaseAsset>(), DateTimeOffset.Now, true, false));
+        public VersionSelectionPageViewModel() : this(null) {
+            AvailableVersions.Add(new ReleaseTarget("test", "#foo\n\nBar.", new SemVersion(1, 2), new List<ReleaseAsset>(), DateTimeOffset.Now, true, false));
             SelectLatestVersion();
         }
 
 
-        public VersionSelectionPageViewModel(IReleaseLocator releaseLocator)
-        {
+        public VersionSelectionPageViewModel(IReleaseLocator releaseLocator) {
             ReleaseLocator = releaseLocator;
             AvailableVersions = new ObservableCollection<ReleaseTarget>();
 
@@ -66,7 +66,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         public async Task Load() {
             var releases = await ReleaseLocator.GetAllReleases();
-            if(!releases.Any()) {
+            if (!releases.Any()) {
                 MessageBox.Show("Failed to fetch UnchainedLauncher releases. Please check your internet connection and try again.");
                 return;
             }
@@ -81,18 +81,18 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         }
 
         private bool ShouldShowVersion(ReleaseTarget release) {
-            if(!ShowDevReleases) {
+            if (!ShowDevReleases) {
                 // Github releases have an idea of prerelease, and then semver
                 // also does. If ShowDevReleases is false, then we don't show
                 // anything which is considered a prerelease by either.
                 return !release.IsPrerelease;
             }
-            
+
             return true;
         }
 
         private void OpenGithubPage() {
-            if(SelectedVersion == null) {
+            if (SelectedVersion == null) {
                 MessageBox.Show("Please select a version to view.");
                 return;
             }

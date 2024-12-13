@@ -1,20 +1,20 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
+using log4net;
+using Microsoft.Win32;
+using PropertyChanged;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using LanguageExt;
-using System.Collections.ObjectModel;
-using System.Windows.Input;
-using CommunityToolkit.Mvvm.Input;
-using UnchainedLauncher.Core.JsonModels;
-using System.ComponentModel;
-using Microsoft.Win32;
-using System.Xaml.Schema;
 using System.Threading.Tasks;
-using log4net;
 using System.Windows;
-using PropertyChanged;
+using System.Windows.Input;
+using System.Xaml.Schema;
 using UnchainedLauncher.Core.Installer;
+using UnchainedLauncher.Core.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
@@ -56,14 +56,15 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
             try {
                 var steamDir = InstallationFinder.FindSteamDir();
-                if(steamDir != null)
+                if (steamDir != null)
                     AddInstallation(new InstallationTargetViewModel(steamDir, InstallationType.Steam, false));
 
                 var egsDir = InstallationFinder.FindEGSDir();
-                if(egsDir != null)
+                if (egsDir != null)
                     AddInstallation(new InstallationTargetViewModel(egsDir, InstallationType.EpicGamesStore, false));
 
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 logger.Error("Error scanning for installations", ex);
                 MessageBox.Show("Error scanning for installations: " + ex.Message);
             }
@@ -82,7 +83,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
                         InstallationType.Steam,
                         true
                     ));
-                } else {
+                }
+                else {
                     MessageBox.Show("Selected folder is not a valid Chivalry 2 installation");
                 }
             }
@@ -94,7 +96,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         }
 
         private void UpdateCanContinue(object? sender, PropertyChangedEventArgs e) {
-            if(e.PropertyName == "IsSelected") {
+            if (e.PropertyName == "IsSelected") {
                 CanContinue = Installations.Any(inst => inst.IsSelected);
             }
         }

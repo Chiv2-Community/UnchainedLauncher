@@ -8,10 +8,8 @@ using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.ViewModels;
 
-namespace UnchainedLauncher.GUI.Views.DesignInstances
-{
-    public static class SettingsViewModelInstances
-    {
+namespace UnchainedLauncher.GUI.Views.DesignInstances {
+    public static class SettingsViewModelInstances {
         public static SettingsViewModel DEFAULT => new SettingsViewModel(
             new MockInstaller(),
             null,

@@ -1,23 +1,30 @@
-﻿using System.IO;
-using System.Reflection;
-using System.Windows;
-using UnchainedLauncher.GUI.ViewModels.Installer;
-using UnchainedLauncher.GUI.ViewModels;
-using UnchainedLauncher.GUI.Views.Installer;
-using UnchainedLauncher.GUI.Views;
-using System.Collections.ObjectModel;
-using System.Threading.Tasks;
+﻿using log4net;
+using log4net;
+using System;
+using System;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
+using System.Windows;
+using UnchainedLauncher.Core;
+using UnchainedLauncher.Core;
+using UnchainedLauncher.Core;
 using UnchainedLauncher.Core.Installer;
+using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Mods;
+using UnchainedLauncher.Core.Mods;
+using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
-using UnchainedLauncher.Core;
-using System.Runtime.CompilerServices;
-using UnchainedLauncher.Core.Mods;
-using System;
-using log4net;
-using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI {
@@ -28,18 +35,20 @@ namespace UnchainedLauncher.GUI {
     /// </summary>
     public partial class App : Application {
         private readonly ILog _log = LogManager.GetLogger(typeof(App));
-        
-        public App() : base() {}
+
+        public App() : base() { }
         protected override void OnStartup(StartupEventArgs e) {
             base.OnStartup(e);
 
             var assembly = Assembly.GetExecutingAssembly();
             if (File.Exists("log4net.config")) {
                 log4net.Config.XmlConfigurator.Configure(new FileInfo("log4net.config"));
-            } else if (File.Exists("Resources/log4net.config")) {
+            }
+            else if (File.Exists("Resources/log4net.config")) {
                 // for running in Visual Studio
                 log4net.Config.XmlConfigurator.Configure(new FileInfo("Resources/log4net.config"));
-            } else {
+            }
+            else {
                 using Stream? configStream = assembly.GetManifestResourceStream("UnchainedLauncher.GUI.Resources.log4net.config");
                 if (configStream != null) {
                     log4net.Config.XmlConfigurator.Configure(configStream);
@@ -52,22 +61,22 @@ namespace UnchainedLauncher.GUI {
             var unchainedLauncherReleaseLocator = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedLauncher");
             var pluginReleaseLocator = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedPlugin");
 
-            
+
             var installationFinder = new Chivalry2InstallationFinder();
             var installer = new UnchainedLauncherInstaller(Environment.Exit);
 
             // figure out if we need to install by checking our current working directory
             var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
             var needsInstallation = !installationFinder.IsValidInstallation(currentDirectory);
-            
+
             var forceSkipInstallation = Environment.GetCommandLineArgs().ToList().Contains("--no-install");
-            
-            if(forceSkipInstallation && needsInstallation)
+
+            if (forceSkipInstallation && needsInstallation)
                 _log.Info("Skipping installation");
-            
-            Window window = 
+
+            Window window =
                 needsInstallation && !forceSkipInstallation
-                    ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator) 
+                    ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
                     : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator, pluginReleaseLocator);
 
             window.Show();
@@ -101,7 +110,7 @@ namespace UnchainedLauncher.GUI {
             var modManager = ModManager.ForRegistries(
                 new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
             );
-            
+
 
             var chiv2Launcher = new Chivalry2Launcher();
             var serversViewModel = new ServersViewModel(settingsViewModel, null);

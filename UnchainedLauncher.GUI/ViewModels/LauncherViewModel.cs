@@ -148,14 +148,21 @@ namespace UnchainedLauncher.GUI.ViewModels {
             if (pluginExists)
             {
                 var fileInfo = FileVersionInfo.GetVersionInfo(pluginPath);
+                
+                var versionString = fileInfo.ProductVersion ?? fileInfo.FileVersion;
+                logger.Debug("Raw plugin version: " + versionString);
+                var splitVersionString = versionString.Split('.');
+                versionString = String.Join('.', splitVersionString.Take(3));
+                logger.Debug("Cleaned plugin version: " + versionString);
+                
                 var successful = SemVersion.TryParse(
-                    fileInfo.ProductVersion ?? fileInfo.FileVersion, 
+                    versionString, 
                     SemVersionStyles.Any, 
                     out currentPluginVersion
                 );
                 
                 // If new version is the same as or less than current, don't download anything
-                if (successful && currentPluginVersion.ComparePrecedenceTo(latestPlugin.Version) > 0) return true;
+                if (successful && currentPluginVersion.ComparePrecedenceTo(latestPlugin.Version) >= 0) return true;
             }
             
             var titleString = pluginExists 

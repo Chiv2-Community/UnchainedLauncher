@@ -148,7 +148,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             if (pluginExists)
             {
                 var fileInfo = FileVersionInfo.GetVersionInfo(pluginPath);
-                currentPluginVersion = SemVersion.Parse(fileInfo.ProductVersion ?? fileInfo.FileVersion, false);
+                currentPluginVersion = SemVersion.Parse(fileInfo.ProductVersion ?? fileInfo.FileVersion, SemVersionStyles.Any);
             }
             
             var titleString = pluginExists 

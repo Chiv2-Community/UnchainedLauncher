@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "Installer": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    },
+    "Main": {
+      "commandName": "Project",
+      "nativeDebugging": false,
+      "commandLineArgs": "--no-install"
+    }
+  }
+}

@@ -49,8 +49,10 @@ namespace UnchainedLauncher.GUI {
 
             // Init common dependencies
             var githubClient = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("UnchainedLauncher"));
-            var unchainedLauncherReleaseFinder = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedLauncher");
+            var unchainedLauncherReleaseLocator = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedLauncher");
+            var pluginReleaseLocator = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedPlugin");
 
+            
             var installationFinder = new Chivalry2InstallationFinder();
             var installer = new UnchainedLauncherInstaller(Environment.Exit);
 
@@ -65,8 +67,8 @@ namespace UnchainedLauncher.GUI {
             
             Window window = 
                 needsInstallation && !forceSkipInstallation
-                    ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseFinder) 
-                    : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseFinder);
+                    ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator) 
+                    : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator, pluginReleaseLocator);
 
             window.Show();
         }
@@ -93,16 +95,17 @@ namespace UnchainedLauncher.GUI {
             return new InstallerWindow(installerWindowVM);
         }
 
-        public Window InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
+        public Window InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
             var settingsViewModel = SettingsViewModel.LoadSettings(installationFinder, installer, launcherReleaseLocator, Environment.Exit);
 
             var modManager = ModManager.ForRegistries(
                 new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
             );
+            
 
             var chiv2Launcher = new Chivalry2Launcher();
             var serversViewModel = new ServersViewModel(settingsViewModel, null);
-            var launcherViewModel = new LauncherViewModel(settingsViewModel, modManager, chiv2Launcher);
+            var launcherViewModel = new LauncherViewModel(settingsViewModel, modManager, chiv2Launcher, pluginReleaseLocator);
             var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(launcherViewModel, settingsViewModel, serversViewModel, modManager);
             var modListViewModel = new ModListViewModel(modManager);
 

@@ -14,6 +14,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using LanguageExt.UnsafeValueAccess;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views {
@@ -52,6 +53,11 @@ namespace UnchainedLauncher.GUI.Views {
             MessageBoxResult result = window.ViewModel.Result;
             logger.Info("User Selects: " + result);
             return Some(result);
+        }
+        
+        public static MessageBoxResult Show(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, DependencyUpdate update)
+        {
+            return Show(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, new[] { update }).ValueUnsafe();
         }
     }
 }

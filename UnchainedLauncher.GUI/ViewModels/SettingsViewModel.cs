@@ -59,6 +59,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         public FileBackedSettings<LauncherSettings> LauncherSettings { get; set; }
         public IUnchainedLauncherInstaller Installer { get; }
         public readonly Action<int> ExitProgram;
+        public bool CanClick { get; set; }
 
         public SettingsViewModel(IUnchainedLauncherInstaller installer, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
             InstallationType = installationType;
@@ -68,6 +69,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             ServerBrowserBackend = serverBrowserBackend;
             Installer = installer;
             ExitProgram = exitProgram;
+            CanClick = true;
 
             _cliArgs = cliArgs;
             CLIArgsModified = false;

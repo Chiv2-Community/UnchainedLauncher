@@ -38,10 +38,8 @@ namespace UnchainedLauncher.GUI.ViewModels
         public int PingPort { get; set; }
         public string SelectedMap { get; set; }
         public bool ShowInServerBrowser { get; set; }
-        public bool CanClick { get; set; }
-
         public ObservableCollection<string> MapsList { get; set; }
-        private LauncherViewModel LauncherViewModel { get; }
+        private IChivalry2Launcher Launcher { get; }
         private SettingsViewModel SettingsViewModel { get; }
         private ServersViewModel ServersViewModel { get; }
         public string ButtonToolTip { get; set; }
@@ -56,8 +54,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         //in the hopes of having multiple independent servers running one one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
-            CanClick = true;
+        public ServerLauncherViewModel(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IChivalry2Launcher launcher, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
 
             ServerName = serverName;
             ServerDescription = serverDescription;
@@ -72,8 +69,9 @@ namespace UnchainedLauncher.GUI.ViewModels
             SettingsViewModel = settingsViewModel;
 
             SettingsFile = settingsFile;
+            
+            Launcher = launcher;
 
-            LauncherViewModel = launcherViewModel;
             ServersViewModel = serversViewModel;
             ModManager = modManager;
 
@@ -105,9 +103,6 @@ namespace UnchainedLauncher.GUI.ViewModels
             {
                 switch (args.PropertyName)
                 {
-                    case nameof(LauncherViewModel.CanClick):
-                        CanClick = LauncherViewModel.CanClick;
-                        break;
                     case nameof(LauncherViewModel.ButtonToolTip):
                         ButtonToolTip = LauncherViewModel.ButtonToolTip;
                         break;
@@ -129,14 +124,15 @@ namespace UnchainedLauncher.GUI.ViewModels
             }
         }
 
-        public static ServerLauncherViewModel LoadSettings(LauncherViewModel launcherViewModel, SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, ModManager modManager) {
+        public static ServerLauncherViewModel LoadSettings(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IChivalry2Launcher chivalry2Launcher, ModManager modManager) {
             var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
+            
 
             return new ServerLauncherViewModel(
-                launcherViewModel,
                 settingsViewModel,
                 serversViewModel,
+                chivalry2Launcher,
                 modManager,
                 loadedSettings?.ServerName ?? "Chivalry 2 server",
                 loadedSettings?.ServerDescription ?? "",
@@ -168,7 +164,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         }
 
         private void RunServerLaunch(bool headless) {
-            CanClick = false;
+            SettingsViewModel.CanClick = false;
             try {
                 var serverLaunchOptions = new ServerLaunchOptions(
                     headless,
@@ -182,8 +178,7 @@ namespace UnchainedLauncher.GUI.ViewModels
                     RconPort
                 );
 
-                var maybeProcess = LauncherViewModel.LaunchUnchained(Prelude.Some(serverLaunchOptions));
-                CanClick = LauncherViewModel.CanClick;
+                var maybeProcess = Launcher.LaunchUnchainedServer(serverLaunchOptions);
 
                 maybeProcess.IfSome(process => {
                     var ports = new PublicPorts(

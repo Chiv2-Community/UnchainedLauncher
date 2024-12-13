@@ -4,30 +4,57 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Extensions;
 using LanguageExt;
-using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 
 namespace UnchainedLauncher.Core
 {
-    public class Chivalry2Launcher {
+    using static Prelude;
+    public interface IChivalry2Launcher
+    {
+        /// <summary>
+        /// Launches an unmodified vanilla game
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns>
+        /// Left if the game failed to launch.
+        /// Right if the game was launched successfully.
+        /// </returns>
+        public Either<ProcessLaunchFailure, Process> LaunchVanilla(IEnumerable<string> args);
+        
+        /// <summary>
+        /// Launches a vanilla game with pak loading enabled
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns>
+        /// Left if the game failed to launch.
+        /// Right if the game was launched successfully.
+        /// </returns>
+        public Either<ProcessLaunchFailure, Process> LaunchModdedVanilla(IEnumerable<string> args);
+
+        /// <summary>
+        /// Launches the game with the provided launch options
+        /// </summary>
+        /// <param name="launchOptions"></param>
+        /// <param name="args"></param>
+        /// <returns>
+        /// Left if the game failed to launch.
+        /// Right if the game was launched successfully.
+        /// </returns>
+        public Either<ProcessLaunchFailure, Process> LaunchUnchained(ModdedLaunchOptions launchOptions, IEnumerable<string> args);
+    }
+    
+    
+    public class Chivalry2Launcher: IChivalry2Launcher {
         private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2Launcher));
 
-        public static readonly string GameBinPath = FilePaths.BinDir + "\\Chivalry2-Win64-Shipping.exe";
-        public static readonly string OriginalLauncherPath = "Chivalry2Launcher-ORIGINAL.exe";
+        private IProcessLauncher Launcher { get; }
+        private IEnumerable<string> DLLs { get; }
+        private string InstallationRootDir { get; }
 
-        private static readonly LanguageExt.HashSet<int> GracefulExitCodes = new LanguageExt.HashSet<int> { 0, -1073741510 };
-
-        /// <summary>
-        /// The original launcher is used to launch the game with no mods.
-        /// </summary>
-        private static ProcessLauncher VanillaLauncher { get; } = new ProcessLauncher(OriginalLauncherPath, Directory.GetCurrentDirectory(), Prelude.Eff<IEnumerable<string>>(() => new List<string>()));
-
-        /// <summary>
-        /// The modded launcher is used to launch the game with mods. The DLLs here are the relative paths to the DLLs that are to be injected.
-        /// </summary>
-        private static ProcessLauncher ModdedLauncher { get; } = new ProcessLauncher(GameBinPath, FilePaths.BinDir, Prelude.Eff(() => Directory.EnumerateFiles(FilePaths.PluginDir, "*.dll")));
-
-        public Chivalry2Launcher() {
+        public Chivalry2Launcher(IProcessLauncher processLauncher, string installationRootDir, IEnumerable<string> dlls) {
+            DLLs = dlls;
+            InstallationRootDir = installationRootDir;
+            Launcher = processLauncher;
         }
 
         public Either<ProcessLaunchFailure, Process> LaunchVanilla(IEnumerable<string> args) {
@@ -37,7 +64,7 @@ namespace UnchainedLauncher.Core
 
             PrepareUnmoddedLaunchSigs();
 
-            var launchResult = VanillaLauncher.Launch(string.Join(" ", args));
+            var launchResult = Launcher.Launch(InstallationRootDir, string.Join(" ", args));
 
             launchResult.Match(
                 Left: error => error.Match(
@@ -56,7 +83,7 @@ namespace UnchainedLauncher.Core
 
             PrepareModdedLaunchSigs();
 
-            var launchResult = VanillaLauncher.Launch(string.Join(" ", args));
+            var launchResult = Launcher.Launch(InstallationRootDir, string.Join(" ", args));
 
             launchResult.Match(
                 Left: error => error.Match(
@@ -68,53 +95,52 @@ namespace UnchainedLauncher.Core
 
             return launchResult;
         }
-
-
-        /// <summary>
-        /// Launches the game with the provided launch options
-        /// </summary>
-        /// <param name="installationType"></param>
-        /// <param name="launchOptions"></param>
-        /// <param name="serverLaunchOptions"></param>
-        /// <param name="extraArgs"></param>
-        /// <returns>
-        /// None if the installation type is not set.
-        /// Some if the game was launched successfully.
-        ///     * Left if the game failed to launch.
-        ///     * Right if the game was launched successfully.
-        /// </returns>
-        public Option<Either<ProcessLaunchFailure, Process>> LaunchUnchained(InstallationType installationType, ModdedLaunchOptions launchOptions, Option<ServerLaunchOptions> serverLaunchOptions, IEnumerable<string> extraArgs) {
-            if (installationType == InstallationType.NotSet) return Prelude.None;
-
-
+        
+        public Either<ProcessLaunchFailure, Process> LaunchUnchained(ModdedLaunchOptions launchOptions, IEnumerable<string> args) {
             logger.Info("Attempting to launch modded game.");
-            
 
-            var moddedLaunchArgs = extraArgs.ToList();
+            var moddedLaunchArgs = args.ToList();
             var tblLoc = moddedLaunchArgs.IndexOf("TBL") + 1;
 
-            var serverLaunchOpts = serverLaunchOptions.ToList().Bind(opts => opts.ToCLIArgs());
             var launchOpts = launchOptions.ToCLIArgs();
 
-            moddedLaunchArgs.InsertRange(tblLoc, serverLaunchOpts);
             moddedLaunchArgs.InsertRange(tblLoc, launchOpts);
 
             logger.LogListInfo($"Launch args:", moddedLaunchArgs);
 
             PrepareModdedLaunchSigs();
 
-            var launchResult = ModdedLauncher.Launch(string.Join(" ", moddedLaunchArgs));
+            var launchResult = Launcher.Launch(Path.Combine(InstallationRootDir, FilePaths.BinDir), string.Join(" ", moddedLaunchArgs));
 
-
-            launchResult.Match(
-                Left: error => error.Match(
-                    LaunchFailedError: e => logger.Error($"Failed to launch Chivalry 2 Unchained. {e.ExecutablePath} {e.Args}", e.Underlying),
-                    InjectionFailedError: e => logger.Error($"Failed to inject DLLs into Chivalry 2 Unchained. {e.DllPaths}", e.Underlying)
-                ),
-                Right: _ => logger.Info("Successfully launched Chivalry 2 Unchained")
+            return launchResult.Match(
+                Left: error => {
+                    error.Match(
+                        LaunchFailedError: e =>
+                            logger.Error($"Failed to launch Chivalry 2 Unchained. {e.ExecutablePath} {e.Args}",
+                                e.Underlying),
+                        InjectionFailedError: e =>
+                            logger.Error($"Failed to inject DLLs into Chivalry 2 Unchained. {e.DllPaths}", e.Underlying)
+                    );
+                    return Left(error);
+                },
+                Right: proc => {
+                    logger.Info("Successfully launched Chivalry 2 Unchained");
+                    return InjectDLLs(proc);
+                }
             );
+        }
 
-            return Prelude.Some(launchResult);
+        private Either<ProcessLaunchFailure,Process> InjectDLLs(Process process)
+        {
+            if (!DLLs.Any()) return Right(process);
+            
+            try {
+                logger.LogListInfo("Injecting DLLs:", DLLs);
+                Inject.InjectAll(process, DLLs);
+            } catch (Exception e) {
+                return Left(ProcessLaunchFailure.InjectionFailed(Some(DLLs), e));
+            }
+            return Right(process);
         }
 
         private static void PrepareModdedLaunchSigs() {
@@ -165,12 +191,14 @@ namespace UnchainedLauncher.Core
     public record ModdedLaunchOptions(
         string ServerBrowserBackend,
         Option<IEnumerable<Release>> EnabledMods,
-        Option<string> SavedDirSuffix
+        Option<string> SavedDirSuffix,
+        Option<ServerLaunchOptions> ServerLaunchOptions
     ) {
         public IEnumerable<string> ToCLIArgs() {
             var args = new List<string> {
                 $"--server-browser-backend {ServerBrowserBackend}"
             };
+            ServerLaunchOptions.IfSome(opts => args.AddRange(opts.ToCLIArgs()));
             EnabledMods.IfSome(mods => args.AddRange(mods.Select(mod => $"--mod {mod.Manifest.RepoUrl}")));
             SavedDirSuffix.IfSome(suffix => args.Add($"--saved-dir-suffix {suffix}"));
             return args;

@@ -10,6 +10,7 @@ using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.GUI.ViewModels;
 
+#if DEBUG
 namespace UnchainedLauncher.GUI.Views.DesignInstances
 {
     public static class LauncherViewModelInstances
@@ -17,7 +18,8 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances
         public static LauncherViewModel DEFAULT => new LauncherViewModel(
             SettingsViewModelInstances.DEFAULT,
             new ModManager(new HashMap<IModRegistry, IEnumerable<Mod>>(), new List<Release>()),
-            new Chivalry2Launcher()
+            new Chivalry2Launcher(null, null, null)
         );
     }
 }
+#endif

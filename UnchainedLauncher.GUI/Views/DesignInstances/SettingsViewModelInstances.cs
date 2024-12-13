@@ -13,7 +13,8 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances
     public static class SettingsViewModelInstances
     {
         public static SettingsViewModel DEFAULT => new SettingsViewModel(
-             new MockInstaller(),
+            new MockInstaller(),
+            null,
             InstallationType.Steam,
             true,
             "--design-time-only-default-constructor",

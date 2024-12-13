@@ -95,7 +95,7 @@ namespace UnchainedLauncher.GUI.ViewModels
                     UpdatesWindow.Show(
                         "Update Mods?", 
                         $"Mod updates available.", 
-                        "Yes", "No", None, 
+                        "Yes", "No", null, 
                         pendingUpdates.Select(x => DependencyUpdate.FromUpdateCandidate(x.Item2))
                     );
 

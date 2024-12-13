@@ -5,7 +5,6 @@ using LanguageExt.Thunks;
 using LanguageExt.TypeClasses;
 using LanguageExt.UnsafeValueAccess;
 using log4net;
-using Octokit;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -18,89 +17,33 @@ using System.Reflection;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Utilities;
 using Semver;
+using ReleaseAsset = UnchainedLauncher.Core.Utilities.ReleaseAsset;
 
 namespace UnchainedLauncher.Core.Installer {
     using static LanguageExt.Prelude;
 
     public interface IUnchainedLauncherInstaller {
-
         /// <summary>
-        /// Returns the latest stable release of the launcher.
+        /// Installs the launcher by downloading the latest release and replacing the current executable with the new one.
         /// </summary>
-        /// <returns></returns>
-        public Task<VersionedRelease?> GetLatestRelease();
-
-        /// <summary>
-        /// Returns all releases of the launcher, including pre-releases.
-        /// </summary>
-        /// <returns></returns>
-        public Task<IEnumerable<VersionedRelease>> GetAllReleases();
-        // public Task<Option<VersionedRelease>> CheckForUpdate();
-
-
-        public Task<bool> Install(DirectoryInfo targetDir, VersionedRelease release, bool relaunch, Action<string>? logProgress = null);
+        /// <param name="targetDir"></param>
+        /// <param name="release"></param>
+        /// <param name="replaceCurrent">If true, closes the current executable and launches the installed executable with the same args used to launch the current executable.</param>
+        /// <param name="logProgress">When set, reports all logs to the provided action
+        /// <returns>
+        /// Task of bool indicating success or failure
+        /// </returns>
+        public Task<bool> Install(DirectoryInfo targetDir, ReleaseTarget release, bool replaceCurrent, Action<string>? logProgress = null);
     }
 
     public class UnchainedLauncherInstaller: IUnchainedLauncherInstaller {
         public static readonly ILog logger = LogManager.GetLogger(nameof(UnchainedLauncherInstaller));
+        
+        private Action<int> EndProgram { get; }
 
-        private static readonly long REPO_ID = 667470779;
-        // private static readonly Version CurrentVersion = Assembly.GetExecutingAssembly().GetName().Version!;
 
-        public GitHubClient GitHubClient { get; }
-        private Action EndProgram { get; }
-
-        private IEnumerable<VersionedRelease>? ReleaseCache { get; set; } = null;
-        private VersionedRelease? LatestRelease { get; set; } = null;
-
-        public UnchainedLauncherInstaller(GitHubClient gitHubClient, Action endProgram) {
-            GitHubClient = gitHubClient;
+        public UnchainedLauncherInstaller(Action<int> endProgram) {
             EndProgram = endProgram;
-        }
-
-        public async Task<VersionedRelease?> GetLatestRelease() {
-            if(LatestRelease != null) {
-                return LatestRelease;
-            }
-
-            try {
-                await GetAllReleases();
-                return LatestRelease;
-            } catch(Exception e) {
-                logger.Error("Failed to connect to github to retrieve latest release information", e);
-                return null;
-            }
-        }
-
-        public async Task<IEnumerable<VersionedRelease>> GetAllReleases() {
-            if (ReleaseCache != null) {
-                return ReleaseCache;
-            }
-
-            var repoCall = GitHubClient.Repository.Release.GetAll(REPO_ID);
-            try {
-                var maybeReleases = Optional(await repoCall);
-                var results =
-                    from releases in maybeReleases
-                    from release in releases
-                    from version in ParseTag(release.TagName)
-                    select new VersionedRelease(release, version, false);
-
-                VersionedRelease? latestRelease = results.Filter(r => !r.Version.IsPrerelease && !r.Release.Prerelease).MaxBy(x => x.Version)?.AsLatestStable();
-
-                logger.Info($"Found {results.Count()} releases, latest stable release is {latestRelease?.Version}");
-
-                if (latestRelease != null)
-                    results = results?.ToList().Select(x => x.Version == latestRelease.Version ? x.AsLatestStable() : x);
-
-                ReleaseCache = results;
-                LatestRelease = latestRelease;
-
-                return Optional(ReleaseCache).ToList().Flatten();
-            } catch (Exception e) {
-                logger.Error("Failed to connect to github to retrieve version information", e);
-                return ImmutableList.CreateBuilder<VersionedRelease>().ToImmutableList();
-            }
         }
 
         /// <summary>
@@ -109,9 +52,11 @@ namespace UnchainedLauncher.Core.Installer {
         /// <param name="targetDir"></param>
         /// <param name="release"></param>
         /// <param name="replaceCurrent">If true, closes the current executable and launches the installed executable with the same args used to launch the current executable.</param>
+        /// <param name="logProgress">When set, reports all logs to the provided action
         /// <returns>
+        /// Task of bool indicating success or failure
         /// </returns>
-        public async Task<bool> Install(DirectoryInfo targetDir, VersionedRelease release, bool replaceCurrent, Action<string>? logProgress = null) {
+        public async Task<bool> Install(DirectoryInfo targetDir, ReleaseTarget release, bool replaceCurrent, Action<string>? logProgress = null) {
             var log = new Action<string>(s => {
                 logProgress?.Invoke(s);
                 logger.Info(s);
@@ -119,19 +64,19 @@ namespace UnchainedLauncher.Core.Installer {
 
             try {
                 var url =
-                    (from releaseAssets in release.Release.Assets
+                    (from releaseAssets in release.Assets
                      where releaseAssets.Name.Contains("Launcher.exe")
-                     select releaseAssets.BrowserDownloadUrl).First();
+                     select releaseAssets.DownloadUrl).First();
 
 
                 var fileName = $"UnchainedLauncher-{release.Version}.exe";
                 var downloadFilePath = Path.Combine(targetDir.FullName, fileName);
 
-                log($"Downloading release {release.Release.TagName}\n    from {url}\n    to {downloadFilePath}");
+                log($"Downloading release 'v{release.Version}'\n    from {url}\n    to {downloadFilePath}");
 
                 // We only want to download the Launcher executable, even if the release contains multiple assets
-                var assetFilter = (ReleaseAsset asset) => asset.Name.Contains("Launcher.exe") ? Some(downloadFilePath) : None;
-                var downloadResult = await DownloadRelease(release, assetFilter, log);
+                string? AssetFilter(ReleaseAsset asset) => (asset.Name.Contains("Launcher.exe") ? downloadFilePath : null);
+                var downloadResult = await HttpHelpers.DownloadReleaseTarget(release, AssetFilter, log);
 
                 if (!downloadResult) {
                     log($"Failed to download the launcher version {release.Version}.");
@@ -139,36 +84,34 @@ namespace UnchainedLauncher.Core.Installer {
                 }
                 
                 var launcherPath = Path.Combine(targetDir.FullName, FilePaths.LauncherPath);
+                MoveExistingLauncher(targetDir, log);
 
                 if (replaceCurrent) {
                     var currentExecutableName = Process.GetCurrentProcess().ProcessName;
+                    var currentExecutablePath = Path.Combine(targetDir.FullName, currentExecutableName);
 
-                    if (!currentExecutableName.EndsWith(".exe")) {
-                        currentExecutableName += ".exe";
+                    if (!currentExecutablePath.EndsWith(".exe")) {
+                        currentExecutablePath += ".exe";
                     }
 
-                    log($"Replacing current executable {currentExecutableName} with downloaded launcher {downloadFilePath}");
+                    log($"Replacing current executable \"{currentExecutablePath}\" with downloaded launcher \"{downloadFilePath}\"");
+
+                    
 
                     var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
-
                     var powershellCommand = new List<string>() {
-                        $"Wait-Process -Id {Environment.ProcessId}",
+                        $"Wait-Process -Id {Environment.ProcessId} -ErrorAction 'Ignore'",
                         $"Start-Sleep -Milliseconds 1000",
-                        $"Move-Item -Force {downloadFilePath} {currentExecutableName}",
+                        $"Move-Item -Force '{downloadFilePath}' '{currentExecutablePath}'",
                         $"Start-Sleep -Milliseconds 500",
-                        $"{launcherPath} {commandLinePass}"
+                        $"& '{launcherPath}' {commandLinePass}"
                     };
 
-                    MoveExistingLauncher(targetDir, log);
+                    var proc = PowerShell.Run(powershellCommand, createWindow: true);
 
-                    log($"Executing powershell command: \n  {string.Join(";\n  ", powershellCommand)};");
-                    PowerShell.Run(powershellCommand);
-
-                    log("Exitting current process to launch new launcher");
-                    EndProgram();
+                    log("Exiting current process to launch new launcher");
+                    EndProgram(0);
                 } else {
-                    MoveExistingLauncher(targetDir, log);
-
                     log($"Replacing launcher \n    at {launcherPath} \n    with downloaded launcher from {downloadFilePath}");
                     File.Move(downloadFilePath, launcherPath, true);
                     log($"Successfully installed launcher version {release.Version}");
@@ -213,65 +156,9 @@ namespace UnchainedLauncher.Core.Installer {
                 }
             }
         }
-
-        /// <summary>
-        /// Downloads the assets of a release to the specified download targets.
-        /// 
-        /// The assetDownloadTargets thing is probably overkill, but may come in handy if we ever split out the installer and launcher in to separate exes.
-        /// </summary>
-        /// <param name="download">The release to download files from</param>
-        /// <param name="assetDownloadTargets">A function returning Some(filePath) whenever an asset should be downloaded</param>
-        /// <returns>A bool returning false if any download targets have a download failure</returns>
-        private static async Task<bool> DownloadRelease(VersionedRelease download, Func<ReleaseAsset, Option<string>> assetDownloadTargets, Action<string> log) {
-            var results =
-                await download.Release.Assets.ToList().Select(async asset => {
-                    var downloadTarget = assetDownloadTargets(asset);
-
-                    if (downloadTarget.IsNone) {
-                        logger.Debug($"Skipping asset with no download target {asset.Name}");
-                        return true;
-                    }
-
-                    try {
-                        await HttpHelpers.DownloadFileAsync(asset.BrowserDownloadUrl, downloadTarget.ValueUnsafe()).Task;
-                        log($"Downloaded {asset.Name} to {downloadTarget.ValueUnsafe()}");
-                        return true;
-                    } catch (Exception e) {
-                        log($"Failed to download launcher\n    from {asset.BrowserDownloadUrl}\n    to {downloadTarget.ValueUnsafe()}");
-                        log(e.ToString());
-                        return false;
-                    }
-                })
-                .SequenceParallel();
-
-            return results.ForAll(identity);
-        }
-
-
-        private static Option<SemVersion> ParseTag(string tag) {
-            try {
-                var versionString = tag;
-                if (versionString.StartsWith("v")) {
-                    versionString = versionString[1..];
-                }
-                return Some(SemVersion.Parse(versionString, SemVersionStyles.Any));
-            } catch {
-                logger.Info($"Failed to parse version tag {tag}");
-                return None;
-            }
-        }
     }
     public class MockInstaller: IUnchainedLauncherInstaller {
-        public IEnumerable<VersionedRelease> MockReleases { get; set; } = VersionedRelease.DefaultMockReleases;
+        public Task<bool> Install(DirectoryInfo targetDir, ReleaseTarget release, bool replaceCurrent, Action<string>? logProgress = null) => Task.FromResult(true);
         
-        public MockInstaller(): this(VersionedRelease.DefaultMockReleases) { }
-        public MockInstaller(IEnumerable<VersionedRelease> mockReleases) {
-            MockReleases = mockReleases;
-        }
-
-
-        public Task<VersionedRelease?> GetLatestRelease() => Task.FromResult(MockReleases.MaxBy(x => x.Version));
-        public Task<IEnumerable<VersionedRelease>> GetAllReleases() => Task.FromResult(MockReleases);
-        public Task<bool> Install(DirectoryInfo targetDir, VersionedRelease release, bool relaunch, Action<string>? logProgress = null) => Task.FromResult(true);
     }
 }

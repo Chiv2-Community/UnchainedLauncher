@@ -14,6 +14,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using LanguageExt.UnsafeValueAccess;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views {
@@ -29,30 +30,34 @@ namespace UnchainedLauncher.GUI.Views {
         public UpdatesWindowViewModel ViewModel { get; private set; }
         public MessageBoxResult Result => ViewModel.Result;
 
-        public UpdatesWindow(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates) {
+        public UpdatesWindow(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates) {
             ViewModel = new UpdatesWindowViewModel(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates, Close);
             DataContext = ViewModel;
             InitializeComponent();
         }
 
-        public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates) {
-            if (updates.Any()) {
+        public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates)
+        {
+            if (!updates.Any()) {
                 logger.Info("No updates available");
                 return None;
-            } else {
-                var message = $"Found {updates.Count()} updates available.\n\n";
-                message += string.Join("\n", updates.Select(x => $"- {x.Name} {x.CurrentVersion} -> {x.LatestVersion}"));
-                message.Split("\n").ToList().ForEach(x => logger.Info(x));
-
-                var window = new UpdatesWindow(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates);
-                window.ShowDialog();
-
-                MessageBoxResult result = window.ViewModel.Result;
-                logger.Info("User Selects: " + result.ToString());
-                return Some(result);
-
             }
 
+            var message = $"Found {updates.Count()} updates available.\n\n";
+            message += string.Join("\n", updates.Select(x => $"- {x.Name} {x.CurrentVersion} -> {x.LatestVersion}"));
+            message.Split("\n").ToList().ForEach(x => logger.Info(x));
+
+            var window = new UpdatesWindow(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates);
+            window.ShowDialog();
+
+            MessageBoxResult result = window.ViewModel.Result;
+            logger.Info("User Selects: " + result);
+            return Some(result);
+        }
+        
+        public static MessageBoxResult Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, DependencyUpdate update)
+        {
+            return Show(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, new[] { update }).ValueUnsafe();
         }
     }
 }

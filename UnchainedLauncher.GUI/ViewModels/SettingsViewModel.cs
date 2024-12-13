@@ -58,15 +58,17 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public FileBackedSettings<LauncherSettings> LauncherSettings { get; set; }
         public IUnchainedLauncherInstaller Installer { get; }
+        public IReleaseLocator UnchainedReleaseLocator { get; set; }
         public readonly Action<int> ExitProgram;
 
-        public SettingsViewModel(IUnchainedLauncherInstaller installer, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
+        public SettingsViewModel(IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
+            Installer = installer;
+            UnchainedReleaseLocator = unchainedReleaseLocator;
             InstallationType = installationType;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
             AdditionalModActors = additionalModActors;
             LauncherSettings = launcherSettings;
             ServerBrowserBackend = serverBrowserBackend;
-            Installer = installer;
             ExitProgram = exitProgram;
 
             _cliArgs = cliArgs;
@@ -76,15 +78,17 @@ namespace UnchainedLauncher.GUI.ViewModels
             CleanUpInstallationCommand = new RelayCommand(CleanUpInstallation);
         }
 
-        public static SettingsViewModel LoadSettings(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, Action<int> exitProgram) {
+
+        public static SettingsViewModel LoadSettings(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, Action<int> exitProgram) {
             var cliArgsList = Environment.GetCommandLineArgs();
-            var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => x + " " + y) : "";
+            var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => $"{x} {y}") : "";
 
             var fileBackedSettings = new FileBackedSettings<LauncherSettings>(FilePaths.LauncherSettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
 
             return new SettingsViewModel(
                 installer,
+                unchainedReleaseLocator,
                 loadedSettings?.InstallationType ?? DetectInstallationType(installationFinder),
                 loadedSettings?.EnablePluginAutomaticUpdates ?? true,
                 loadedSettings?.AdditionalModActors ?? "",
@@ -150,7 +154,7 @@ namespace UnchainedLauncher.GUI.ViewModels
 
             var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
             var powershellCommands = new List<string>() {
-                $"Wait-Process -Id {Environment.ProcessId}",
+                $"Wait-Process -Id {Environment.ProcessId} -ErrorAction 'Ignore'",
                 $"Start-Sleep -Milliseconds 500",
                 $".\\{currentExecutableName} {commandLinePass}"
             };
@@ -166,7 +170,7 @@ namespace UnchainedLauncher.GUI.ViewModels
         public async Task CheckForUpdate() {
             logger.Info("Checking for updates...");
 
-            var latestRelease = await Installer.GetLatestRelease();
+            var latestRelease = await UnchainedReleaseLocator.GetLatestRelease();
             if (latestRelease == null) {
                 MessageBox.Show("Failed to check for updates. Check the logs for more details.");
                 return;
@@ -181,7 +185,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             }
         }
 
-        private async Task ChangeVersion(VersionedRelease release) {
+        private async Task ChangeVersion(ReleaseTarget release) {
             Option<MessageBoxResult> dialogResult =
                 UpdatesWindow.Show(
                     "Chivalry 2 Unchained Launcher Update",
@@ -190,16 +194,18 @@ namespace UnchainedLauncher.GUI.ViewModels
                     "No",
                     null,
                     List(
-                        new DependencyUpdate("Launcher", Some(CurrentVersion.ToString()), release.Version.ToString(), release.Release.Url, "")
+                        new DependencyUpdate("Launcher", Some(CurrentVersion.ToString()), release.Version.ToString(), release.PageUrl, "")
                     )
                 );
 
             if (dialogResult.Contains(MessageBoxResult.No)) {
                 logger.Info("User chose not to update.");
                 return;
-            } else if (dialogResult.Contains(MessageBoxResult.Yes)) {
+            }
+
+            if (dialogResult.Contains(MessageBoxResult.Yes)) {
                 logger.Info("User chose to update.");
-                await Installer.Install(new DirectoryInfo(Assembly.GetExecutingAssembly().Location), release, true, logger.Warn);
+                await Installer.Install(new DirectoryInfo(Environment.CurrentDirectory), release, true, (_) => { });
             }
         }
 

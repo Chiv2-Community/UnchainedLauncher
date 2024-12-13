@@ -24,8 +24,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string MessageText { get; }
         public string YesButtonText { get; }
         public string NoButtonText { get; }
-        public Option<string> CancelButtonText { get; }
-        public bool ShowCancelButton => CancelButtonText.IsSome;
+        public string? CancelButtonText { get; }
+        public bool ShowCancelButton => CancelButtonText != null;
         public string CancelColumnWidth => ShowCancelButton ? "40*" : "0";
         public string NoButtonMargin => ShowCancelButton ? "5,10,0,10" : "5,10,10,10";
 
@@ -38,9 +38,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public ICommand CancelCommand { get; set; }
         private Action CloseWindow { get; }
 
-        public UpdatesWindowViewModel(): this("Title", "Message", "Yes", "No", None, new List<DependencyUpdate>(), () => { }) { }
+        public UpdatesWindowViewModel(): this("Title", "Message", "Yes", "No", null, new List<DependencyUpdate>(), () => { }) { }
 
-        public UpdatesWindowViewModel(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates, Action closeWindow) {
+        public UpdatesWindowViewModel(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates, Action closeWindow) {
             TitleText = titleText;
             MessageText = messageText;
             YesButtonText = yesButtonText;

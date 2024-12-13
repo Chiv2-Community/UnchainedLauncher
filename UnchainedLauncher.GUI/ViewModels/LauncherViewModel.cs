@@ -172,7 +172,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 messageText, 
                 "Yes", 
                 "No", 
-                Some("Cancel"),
+                "Cancel",
                 new DependencyUpdate(
                     "UnchainedPlugin.dll", 
                     Optional(currentPluginVersion?.ToString()), 

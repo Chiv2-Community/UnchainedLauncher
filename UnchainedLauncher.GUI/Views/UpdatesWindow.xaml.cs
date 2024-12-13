@@ -30,13 +30,13 @@ namespace UnchainedLauncher.GUI.Views {
         public UpdatesWindowViewModel ViewModel { get; private set; }
         public MessageBoxResult Result => ViewModel.Result;
 
-        public UpdatesWindow(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates) {
+        public UpdatesWindow(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates) {
             ViewModel = new UpdatesWindowViewModel(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates, Close);
             DataContext = ViewModel;
             InitializeComponent();
         }
 
-        public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, IEnumerable<DependencyUpdate> updates)
+        public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates)
         {
             if (!updates.Any()) {
                 logger.Info("No updates available");
@@ -55,7 +55,7 @@ namespace UnchainedLauncher.GUI.Views {
             return Some(result);
         }
         
-        public static MessageBoxResult Show(string titleText, string messageText, string yesButtonText, string noButtonText, Option<string> cancelButtonText, DependencyUpdate update)
+        public static MessageBoxResult Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, DependencyUpdate update)
         {
             return Show(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, new[] { update }).ValueUnsafe();
         }

@@ -6,7 +6,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using Semver;
 using UnchainedLauncher.Core.Installer;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer {
     public partial class InstallerLogPageViewModel : IInstallerPageViewModel, INotifyPropertyChanged {
@@ -21,44 +23,39 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         private readonly IUnchainedLauncherInstaller Installer;
         private readonly Func<IEnumerable<DirectoryInfo>> GetInstallationTargets;
-        private readonly Func<VersionedRelease> GetSelectedVersion;
+        private readonly Func<ReleaseTarget> GetSelectedRelease;
 
         public InstallerLogPageViewModel() : this(
             new MockInstaller(),
             () => new List<DirectoryInfo>(),
-            () => VersionedRelease.DefaultMockReleases.First()
-        ) {
+            () => new ReleaseTarget("", "", new SemVersion(0,0), Array.Empty<ReleaseAsset>(), DateTimeOffset.Now, true, false)
+        ) { 
             AppendLog("Mocking installation log...");
             AppendLog("Doing things...");
         }
 
-        public InstallerLogPageViewModel(IUnchainedLauncherInstaller installer, Func<IEnumerable<DirectoryInfo>> getTargets, Func<VersionedRelease> getSelectedVersion) {
+        public InstallerLogPageViewModel(IUnchainedLauncherInstaller installer, Func<IEnumerable<DirectoryInfo>> getTargets, Func<ReleaseTarget> getSelectedRelease) {
             Installer = installer;
 
             CanContinue = false;
             Log = "";
 
             GetInstallationTargets = getTargets;
-            GetSelectedVersion = getSelectedVersion;
+            GetSelectedRelease = getSelectedRelease;
         }
 
         public async Task Load() {
             var targets = GetInstallationTargets();
-            var version = GetSelectedVersion();
+            var release = GetSelectedRelease();
 
-            AppendLog("Selected version: " + version.Release.TagName);
-            AppendLog("Installation targets:\n    " + string.Join("\n    ", targets.Select(t => t.FullName)));
+            AppendLog("Selected version: v" + release.Version);
+            AppendLog("Installation targets:\n    " + string.Join("\n    ", from t in targets select t.FullName));
             AppendLog("");
 
-            if (targets == null || version == null) {
-                AppendLog("Error: Installation targets or version not found.");
-                return;
-            }
-
-            foreach (var target in targets!) {
+            foreach(var target in targets!) {
                 AppendLog("-----------------------------------------------------");
-                AppendLog($"Installing {version.Release.TagName} to {target}");
-                await Installer.Install(target, version, false, AppendLog);
+                AppendLog($"Installing v{release.Version} to {target}");
+                await Installer.Install(target, release, false, AppendLog);
                 AppendLog("-----------------------------------------------------");
                 AppendLog("");
             }

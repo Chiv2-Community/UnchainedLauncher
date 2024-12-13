@@ -78,8 +78,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             ButtonToolTip = "";
 
-            LaunchServerCommand = new RelayCommand(() => RunServerLaunch(false));
-            LaunchServerHeadlessCommand = new RelayCommand(() => RunServerLaunch(true));
+            LaunchServerCommand = new AsyncRelayCommand(() => RunServerLaunch(false));
+            LaunchServerHeadlessCommand = new AsyncRelayCommand(() => RunServerLaunch(true));
 
             MapsList = new ObservableCollection<string>();
 
@@ -164,7 +164,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
         }
 
-        private void RunServerLaunch(bool headless) {
+        private async Task RunServerLaunch(bool headless) {
             CanClick = false;
             try {
                 var serverLaunchOptions = new ServerLaunchOptions(
@@ -179,7 +179,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     RconPort
                 );
 
-                var maybeProcess = LauncherViewModel.LaunchUnchained(Prelude.Some(serverLaunchOptions));
+                var maybeProcess = await LauncherViewModel.LaunchUnchained(Prelude.Some(serverLaunchOptions));
                 CanClick = LauncherViewModel.CanClick;
 
                 maybeProcess.IfSome(process => {

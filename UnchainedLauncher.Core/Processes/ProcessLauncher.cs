@@ -1,45 +1,41 @@
 ﻿using LanguageExt;
 using log4net;
-using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-using UnchainedLauncher.Core.Extensions;
 
 namespace UnchainedLauncher.Core.Processes {
+    using static LanguageExt.Prelude;
+
+    public interface IProcessLauncher {
+        public Either<ProcessLaunchFailure, Process> Launch(string workingDirectory, string args);
+    }
+
     /// <summary>
     /// Launches an executable with the provided working directory and DLLs to inject.
     /// </summary>
-    public class ProcessLauncher {
+    public class ProcessLauncher : IProcessLauncher {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ProcessLauncher));
 
         public string ExecutableLocation { get; }
 
-        public string WorkingDirectory { get; }
-
-        public Eff<IEnumerable<string>> FetchDLLs { get; }
-
-        public ProcessLauncher(string executableLocation, string workingDirectory, Eff<IEnumerable<String>> fetchDLLs) {
+        public ProcessLauncher(string executableLocation) {
             ExecutableLocation = executableLocation;
-            WorkingDirectory = workingDirectory;
-            FetchDLLs = fetchDLLs;
         }
 
         /// <summary>
         /// Creates a new process with the provided arguments and injects the DLLs.
-        /// Retries the process according to the retry policy. Performs no retries if no retry policy is provided.
         /// </summary>
+        /// <param name="workingDirectory"></param>
         /// <param name="args"></param>
+        /// 
         /// <returns>
         /// The process that was created.
         /// </returns>
-        public Either<ProcessLaunchFailure, Process> Launch(string args) {
-            // Initialize a process
+        public Either<ProcessLaunchFailure, Process> Launch(string workingDirectory, string args) {
             var proc = new Process {
-                // Build the process start info
                 StartInfo = new ProcessStartInfo() {
                     FileName = ExecutableLocation,
                     Arguments = args,
-                    WorkingDirectory = Path.GetFullPath(WorkingDirectory),
+                    WorkingDirectory = Path.GetFullPath(workingDirectory),
                     RedirectStandardError = true,
                     RedirectStandardOutput = true
                 }
@@ -48,51 +44,39 @@ namespace UnchainedLauncher.Core.Processes {
             try {
                 proc.Start();
                 proc.OutputDataReceived += (sender, e) => {
-                    if (e.Data != null) // Null data signals end of stream
-                    {
-                        logger.Info("Chivalry 2 Stdout: " + e.Data);
+                    if (e.Data != null) {
+                        logger.Info("Stdout: " + e.Data);
                     }
                 };
 
                 proc.ErrorDataReceived += (sender, e) => {
                     if (e.Data != null) {
-                        logger.Error("Chivalry 2 Stderr: " + e.Data);
+                        logger.Error("Stderr: " + e.Data);
                     }
                 };
 
                 proc.BeginErrorReadLine();
                 proc.BeginOutputReadLine();
+
+                return Right(proc);
             }
             catch (Exception e) {
-                return Prelude.Left(ProcessLaunchFailure.LaunchFailed(proc.StartInfo.FileName, proc.StartInfo.Arguments, e));
+                return Left(ProcessLaunchFailure.LaunchFailed(proc.StartInfo.FileName, proc.StartInfo.Arguments, e));
             }
-
-            var dllsResult = FetchDLLs.Run();
-
-            return dllsResult.Match<Either<ProcessLaunchFailure, Process>>(
-                Fail: e => Prelude.Left(ProcessLaunchFailure.InjectionFailed(Prelude.None, e)),
-                Succ: dlls => {
-                    if (dlls.Any()) {
-                        try {
-                            Inject.InjectAll(proc, dlls);
-                        }
-                        catch (Exception e) {
-                            return Prelude.Left(ProcessLaunchFailure.InjectionFailed(Prelude.Some(dlls), e));
-                        }
-                    }
-                    return Prelude.Right(proc);
-                }
-            );
         }
     }
 
     public abstract record ProcessLaunchFailure {
         private ProcessLaunchFailure() { }
         public static ProcessLaunchFailure LaunchFailed(string executablePath, string args, Exception underlying) => new LaunchFailedError(executablePath, args, underlying);
+
+        // TODO: Move this error type to Chivalry2 Launcher
         public static ProcessLaunchFailure InjectionFailed(Option<IEnumerable<string>> dllPaths, Exception underlying) => new InjectionFailedError(dllPaths, underlying);
 
 
         public record LaunchFailedError(string ExecutablePath, string Args, Exception Underlying) : ProcessLaunchFailure;
+
+        // TODO: Move this error type to Chivalry2 Launcher
         public record InjectionFailedError(Option<IEnumerable<string>> DllPaths, Exception Underlying) : ProcessLaunchFailure;
 
         public T Match<T>(

@@ -1,8 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
-using LanguageExt.UnsafeValueAccess;
 using log4net;
-using Octokit;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
@@ -48,6 +46,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
             get => "v" + version.ToString(3);
         }
 
+        public bool IsLauncherReusable() => InstallationType == InstallationType.Steam;
+
+
         public ICommand CheckForUpdateCommand { get; }
         public ICommand CleanUpInstallationCommand { get; }
 
@@ -59,6 +60,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public IUnchainedLauncherInstaller Installer { get; }
         public IReleaseLocator UnchainedReleaseLocator { get; set; }
         public readonly Action<int> ExitProgram;
+        public bool CanClick { get; set; }
 
         public SettingsViewModel(IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
             Installer = installer;
@@ -69,6 +71,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             LauncherSettings = launcherSettings;
             ServerBrowserBackend = serverBrowserBackend;
             ExitProgram = exitProgram;
+            CanClick = true;
 
             _cliArgs = cliArgs;
             CLIArgsModified = false;

@@ -1,11 +1,4 @@
 ﻿using PropertyChanged;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using UnchainedLauncher.Core.API;
 
 namespace UnchainedLauncher.Core.API {
     /// <summary>

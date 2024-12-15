@@ -1,7 +1,5 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
-using LanguageExt.TypeClasses;
-using System.ComponentModel;
 
 namespace UnchainedLauncher.Core.Extensions {
     public static class UnchainedEitherExtensions {

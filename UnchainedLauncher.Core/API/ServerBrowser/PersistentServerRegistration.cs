@@ -1,15 +1,6 @@
 ﻿using log4net;
-using log4net.Repository.Hierarchy;
-using Octokit;
 using PropertyChanged;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Timers;
 using UnchainedLauncher.Core.API.A2S;
 
 namespace UnchainedLauncher.Core.API.ServerBrowser {

@@ -1,25 +1,16 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
-using log4net;
-using log4net;
 using Markdig;
-using Markdig;
-using Microsoft.Win32;
-using PropertyChanged;
-using PropertyChanged;
 using Semver;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer {

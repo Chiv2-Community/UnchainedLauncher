@@ -1,6 +1,5 @@
 ﻿using LanguageExt;
 using log4net;
-using log4net.Core;
 
 namespace UnchainedLauncher.Core.Extensions {
     public static class LoggerExtensions {

@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnchainedLauncher.Core.API.A2S;
+﻿using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
 using Environment = UnchainedLauncher.Core.API.A2S.Environment;
 

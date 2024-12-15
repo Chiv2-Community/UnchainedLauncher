@@ -2,12 +2,8 @@
 using LanguageExt;
 using LanguageExt.SomeHelp;
 using log4net;
-using PropertyChanged;
 using Semver;
 using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.ComponentModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -16,19 +12,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using UnchainedLauncher.Core;
-using UnchainedLauncher.Core.API;
-using UnchainedLauncher.Core.Installer;
-using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
-using UnchainedLauncher.Core.Mods.Registry;
-using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.Views;
-using Environment = UnchainedLauncher.Core.API.A2S.Environment;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -39,50 +27,84 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public ICommand LaunchModdedVanillaCommand { get; }
         public ICommand LaunchUnchainedCommand { get; }
 
-        private SettingsViewModel Settings { get; }
-        private ModManager ModManager { get; }
+        public SettingsViewModel Settings { get; }
 
-        public bool CanClick { get; set; }
+        private IModManager ModManager { get; }
 
         public string ButtonToolTip =>
-            (!CanClick && !IsReusable())
+            (!Settings.CanClick && !IsReusable())
                 ? "Unchained cannot launch an EGS installation more than once.  Restart the launcher if you wish to launch the game again."
                 : "";
-        public Chivalry2Launcher Launcher { get; }
+        public IOfficialChivalry2Launcher VanillaLauncher { get; }
+        public IOfficialChivalry2Launcher ClientSideModdedLauncher { get; }
+        public IUnchainedChivalry2Launcher UnchainedLauncher { get; }
 
         public IReleaseLocator PluginReleaseLocator { get; }
 
         public bool IsReusable() => Settings.InstallationType == InstallationType.Steam;
 
-        public LauncherViewModel(SettingsViewModel settings, ModManager modManager, Chivalry2Launcher launcher, IReleaseLocator pluginReleaseLocator) {
-            CanClick = true;
-
+        public LauncherViewModel(SettingsViewModel settings, IModManager modManager, IOfficialChivalry2Launcher vanillaLauncher, IOfficialChivalry2Launcher clientSideModdedLauncher, IUnchainedChivalry2Launcher moddedLauncher, IReleaseLocator pluginReleaseLocator) {
             Settings = settings;
             ModManager = modManager;
 
-            LaunchVanillaCommand = new RelayCommand(() => LaunchVanilla(false));
-            LaunchModdedVanillaCommand = new RelayCommand(() => LaunchVanilla(true));
-            LaunchUnchainedCommand = new AsyncRelayCommand(() => LaunchUnchained(Prelude.None));
+            VanillaLauncher = vanillaLauncher;
+            ClientSideModdedLauncher = clientSideModdedLauncher;
+            UnchainedLauncher = moddedLauncher;
 
-            Launcher = launcher;
+
+            this.LaunchVanillaCommand = new RelayCommand(() => LaunchVanilla(false));
+            this.LaunchModdedVanillaCommand = new RelayCommand(() => LaunchVanilla(true));
+            this.LaunchUnchainedCommand = new RelayCommand(() => LaunchUnchained());
+
             PluginReleaseLocator = pluginReleaseLocator;
         }
 
         public Option<Process> LaunchVanilla(bool enableMods) {
             // For a vanilla launch we need to pass the args through to the vanilla launcher.
             // Skip the first arg which is the path to the exe.
-            var args = System.Environment.GetCommandLineArgs().Skip(1);
+            var args = Settings.CLIArgs;
             var launchResult = enableMods
-                ? Launcher.LaunchModdedVanilla(args)
-                : Launcher.LaunchVanilla(args);
+                ? VanillaLauncher.Launch(args)
+                : ClientSideModdedLauncher.Launch(args);
 
             if (!IsReusable())
-                CanClick = false;
+                Settings.CanClick = false;
 
             return launchResult.Match(
                 Left: error => {
                     MessageBox.Show("Failed to launch Chivalry 2. Check the logs for details.");
-                    CanClick = true;
+                    Settings.CanClick = true;
+                    return None;
+                },
+                Right: process => {
+                    CreateChivalryProcessWatcher(process);
+                    return Some(process);
+                }
+            );
+        }
+
+        public async Task<Option<Process>> LaunchUnchained() {
+            var shouldContinue = await UpdatePlugin();
+
+            if (!shouldContinue)
+                return None;
+
+            if (!IsReusable()) Settings.CanClick = false;
+
+
+            var options = new ModdedLaunchOptions(
+                Settings.ServerBrowserBackend,
+                ModManager.EnabledModReleases.AsEnumerable().ToSome(),
+                None,
+                None
+            );
+
+            var launchResult = UnchainedLauncher.Launch(options, Settings.CLIArgs);
+
+            return launchResult.Match(
+                Left: error => {
+                    MessageBox.Show($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
+                    Settings.CanClick = true;
 
                     return Prelude.None;
                 },
@@ -93,47 +115,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
         }
 
-        public async Task<Option<Process>> LaunchUnchained(Option<ServerLaunchOptions> serverOpts) {
-            var shouldContinue = await UpdatePlugin();
-
-            if (!shouldContinue)
-                return None;
-
-            if (!IsReusable())
-                CanClick = false;
-
-            var options = new ModdedLaunchOptions(
-                Settings.ServerBrowserBackend,
-                ModManager.EnabledModReleases.AsEnumerable().ToSome(),
-                Prelude.None
-            );
-
-            var exArgs = Settings.CLIArgs.Split(" ");
-
-            var launchResult = Launcher.LaunchUnchained(Settings.InstallationType, options, serverOpts, exArgs);
-
-            return launchResult.Match(
-                None: () => {
-                    MessageBox.Show("Installation type not set. Please set it in the settings tab.");
-                    return Prelude.None;
-                },
-                Some: errorOrSuccess => errorOrSuccess.Match(
-                        Left: error => {
-                            MessageBox.Show($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
-                            CanClick = true;
-
-                            return Prelude.None;
-                        },
-                        Right: process => {
-                            CreateChivalryProcessWatcher(process);
-                            return Prelude.Some(process);
-                        }
-                    )
-                );
-        }
-
         private async Task<bool> UpdatePlugin() {
-
             var pluginPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.UnchainedPluginPath);
             var pluginExists = File.Exists(pluginPath);
 
@@ -211,14 +193,18 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private Thread CreateChivalryProcessWatcher(Process process) {
             var thread = new Thread(async void () => {
-                await process.WaitForExitAsync();
+                try {
+                    await process.WaitForExitAsync();
+                    if (IsReusable()) Settings.CanClick = true;
 
-                if (IsReusable()) CanClick = true;
+                    if (process.ExitCode == 0) return;
 
-                if (process.ExitCode == 0) return;
-
-                logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
-                MessageBox.Show($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
+                    logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
+                    MessageBox.Show($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
+                }
+                catch (Exception e) {
+                    logger.Error("Failure occured while waiting for Chivalry process to exit", e);
+                }
             });
 
             thread.Start();

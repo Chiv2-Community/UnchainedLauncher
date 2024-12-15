@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using UnchainedLauncher.Core.Installer;
+﻿using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.ViewModels;

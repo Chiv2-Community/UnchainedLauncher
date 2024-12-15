@@ -1,5 +1,6 @@
-﻿using UnchainedLauncher.GUI.JsonModels;
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
+using LanguageExt.UnsafeValueAccess;
 using log4net;
 using Octokit;
 using PropertyChanged;
@@ -9,19 +10,17 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.Core.Processes;
-using System.Threading.Tasks;
-using UnchainedLauncher.GUI.Views;
-using LanguageExt;
-using UnchainedLauncher.Core.JsonModels;
-using LanguageExt.UnsafeValueAccess;
 using UnchainedLauncher.Core.Installer;
+using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.JsonModels;
+using UnchainedLauncher.GUI.Views;
 
-namespace UnchainedLauncher.GUI.ViewModels
-{
+namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
     [AddINotifyPropertyChangedInterface]
@@ -48,6 +47,9 @@ namespace UnchainedLauncher.GUI.ViewModels
         public string CurrentVersion {
             get => "v" + version.ToString(3);
         }
+        
+        public bool IsLauncherReusable() => InstallationType == InstallationType.Steam;
+
 
         public ICommand CheckForUpdateCommand { get; }
         public ICommand CleanUpInstallationCommand { get; }
@@ -58,16 +60,18 @@ namespace UnchainedLauncher.GUI.ViewModels
 
         public FileBackedSettings<LauncherSettings> LauncherSettings { get; set; }
         public IUnchainedLauncherInstaller Installer { get; }
+        public IReleaseLocator UnchainedReleaseLocator { get; set; }
         public readonly Action<int> ExitProgram;
         public bool CanClick { get; set; }
 
-        public SettingsViewModel(IUnchainedLauncherInstaller installer, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
+        public SettingsViewModel(IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
+            Installer = installer;
+            UnchainedReleaseLocator = unchainedReleaseLocator;
             InstallationType = installationType;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
             AdditionalModActors = additionalModActors;
             LauncherSettings = launcherSettings;
             ServerBrowserBackend = serverBrowserBackend;
-            Installer = installer;
             ExitProgram = exitProgram;
             CanClick = true;
 
@@ -78,15 +82,17 @@ namespace UnchainedLauncher.GUI.ViewModels
             CleanUpInstallationCommand = new RelayCommand(CleanUpInstallation);
         }
 
-        public static SettingsViewModel LoadSettings(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, Action<int> exitProgram) {
+
+        public static SettingsViewModel LoadSettings(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, Action<int> exitProgram) {
             var cliArgsList = Environment.GetCommandLineArgs();
-            var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => x + " " + y) : "";
+            var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => $"{x} {y}") : "";
 
             var fileBackedSettings = new FileBackedSettings<LauncherSettings>(FilePaths.LauncherSettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
 
             return new SettingsViewModel(
                 installer,
+                unchainedReleaseLocator,
                 loadedSettings?.InstallationType ?? DetectInstallationType(installationFinder),
                 loadedSettings?.EnablePluginAutomaticUpdates ?? true,
                 loadedSettings?.AdditionalModActors ?? "",
@@ -125,7 +131,7 @@ namespace UnchainedLauncher.GUI.ViewModels
             if (choice == MessageBoxResult.No) return;
 
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
-            FileHelpers.DeleteDirectory(FilePaths.PluginDir); 
+            FileHelpers.DeleteDirectory(FilePaths.PluginDir);
 
             var vanillaPaks = new List<string>() { "pakchunk0-WindowsNoEditor.pak" };
             var filePaths =
@@ -152,7 +158,7 @@ namespace UnchainedLauncher.GUI.ViewModels
 
             var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
             var powershellCommands = new List<string>() {
-                $"Wait-Process -Id {Environment.ProcessId}",
+                $"Wait-Process -Id {Environment.ProcessId} -ErrorAction 'Ignore'",
                 $"Start-Sleep -Milliseconds 500",
                 $".\\{currentExecutableName} {commandLinePass}"
             };
@@ -164,11 +170,11 @@ namespace UnchainedLauncher.GUI.ViewModels
             ExitProgram(0);
         }
 
-        
+
         public async Task CheckForUpdate() {
             logger.Info("Checking for updates...");
 
-            var latestRelease = await Installer.GetLatestRelease();
+            var latestRelease = await UnchainedReleaseLocator.GetLatestRelease();
             if (latestRelease == null) {
                 MessageBox.Show("Failed to check for updates. Check the logs for more details.");
                 return;
@@ -177,13 +183,14 @@ namespace UnchainedLauncher.GUI.ViewModels
             if (latestRelease.Version.ComparePrecedenceTo(new Semver.SemVersion(version.Major, version.Minor, version.Build)) > 0) {
                 logger.Info($"Latest version: {latestRelease.Version}, Current version: {CurrentVersion}");
                 await ChangeVersion(latestRelease);
-            } else {
+            }
+            else {
                 MessageBox.Show("You are currently running the latest version.");
                 return;
             }
         }
 
-        private async Task ChangeVersion(VersionedRelease release) {
+        private async Task ChangeVersion(ReleaseTarget release) {
             Option<MessageBoxResult> dialogResult =
                 UpdatesWindow.Show(
                     "Chivalry 2 Unchained Launcher Update",
@@ -192,16 +199,18 @@ namespace UnchainedLauncher.GUI.ViewModels
                     "No",
                     null,
                     List(
-                        new DependencyUpdate("Launcher", Some(CurrentVersion.ToString()), release.Version.ToString(), release.Release.Url, "")
+                        new DependencyUpdate("Launcher", Some(CurrentVersion.ToString()), release.Version.ToString(), release.PageUrl, "")
                     )
                 );
 
             if (dialogResult.Contains(MessageBoxResult.No)) {
                 logger.Info("User chose not to update.");
                 return;
-            } else if (dialogResult.Contains(MessageBoxResult.Yes)) {
+            }
+
+            if (dialogResult.Contains(MessageBoxResult.Yes)) {
                 logger.Info("User chose to update.");
-                await Installer.Install(new DirectoryInfo(Assembly.GetExecutingAssembly().Location), release, true, logger.Warn);
+                await Installer.Install(new DirectoryInfo(Environment.CurrentDirectory), release, true, (_) => { });
             }
         }
 

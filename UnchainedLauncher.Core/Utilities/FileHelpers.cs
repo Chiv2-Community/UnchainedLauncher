@@ -1,7 +1,7 @@
 ﻿using LanguageExt;
+using LanguageExt.Common;
 using log4net;
 using System.Security.AccessControl;
-using LanguageExt.Common;
 
 namespace UnchainedLauncher.Core.Utilities {
     using static LanguageExt.Prelude;
@@ -81,7 +81,7 @@ namespace UnchainedLauncher.Core.Utilities {
               .MapLeft(error => new HashFailure(filePath, error));
         }
 
-        
+
         /// <summary>
         /// Asynchronously computes the SHA-512 hash of a file.
         /// </summary>
@@ -104,7 +104,7 @@ namespace UnchainedLauncher.Core.Utilities {
         }
     }
 
-    public record HashFailure(string FilePath, Error Error): Expected($"Failed to hash file at {FilePath}. Reason: {Error.Message}", Error.Code, Some(Error));
+    public record HashFailure(string FilePath, Error Error) : Expected($"Failed to hash file at {FilePath}. Reason: {Error.Message}", Error.Code, Some(Error));
 
 
     public class FileWriter {

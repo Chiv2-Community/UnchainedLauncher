@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace UnchainedLauncher.Core.JsonModels.Metadata.V1
-{
+namespace UnchainedLauncher.Core.JsonModels.Metadata.V1 {
     public record Mod(
         [property: JsonProperty("latest_manifest", Required = Required.Always)] ModManifest LatestManifest,
         [property: JsonProperty("releases", Required = Required.Always)] List<Release> Releases

@@ -1,6 +1,9 @@
-﻿using log4net;
+﻿using LanguageExt;
+using log4net;
 
 namespace UnchainedLauncher.Core.Utilities {
+    using static LanguageExt.Prelude;
+
     public static class HttpHelpers {
         private static readonly ILog logger = LogManager.GetLogger(nameof(HttpHelpers));
 
@@ -45,7 +48,8 @@ namespace UnchainedLauncher.Core.Utilities {
                         return contentLength;
                     }
                 }
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 logger.Error($"Error retrieving file size: {ex.Message}");
             }
 
@@ -82,6 +86,51 @@ namespace UnchainedLauncher.Core.Utilities {
                     : DownloadFileAsync(x.Url, x.OutputPath!)
             );
         }
+
+
+        /// <summary>
+        /// Downloads the assets of a release to the specified download targets.
+        /// 
+        /// The assetDownloadTargets thing is probably overkill, but may come in handy if we ever split out the installer and launcher in to separate exes.
+        /// </summary>
+        /// <param name="download">The release to download files from</param>
+        /// <param name="assetMapping">A function returning Some(filePath) whenever an asset should be downloaded</param>
+        /// <param name="logResult">An Action which does something to handle a log string.
+        /// <returns>A bool returning false if any download targets have a download failure</returns>
+        public static async Task<bool> DownloadReleaseTarget(ReleaseTarget download,
+            Func<ReleaseAsset, string?> assetMapping,
+            Action<string>? logResult = null
+        ) {
+            Action<string> log = message => {
+                logger.Info(message);
+                logResult?.Invoke(message);
+            };
+
+            var results =
+                await download.Assets.ToList().Select(async asset => {
+                    var downloadTarget = assetMapping(asset);
+
+                    if (downloadTarget == null) {
+                        logger.Debug($"Skipping asset with no download target {asset.Name}");
+                        return true;
+                    }
+
+                    try {
+                        await HttpHelpers.DownloadFileAsync(asset.DownloadUrl, downloadTarget!).Task;
+                        log($"Downloaded {asset.Name} to {downloadTarget!}");
+                        return true;
+                    }
+                    catch (Exception e) {
+                        log($"Failed to download launcher\n    from {asset.DownloadUrl}\n    to {downloadTarget!}");
+                        log(e.ToString());
+                        return false;
+                    }
+                })
+                    .SequenceParallel();
+
+            return results.ForAll(identity);
+
+        }
     }
 
     public record DownloadTarget(string Url, string? OutputPath);
@@ -103,9 +152,9 @@ namespace UnchainedLauncher.Core.Utilities {
             Task.ContinueWith(t => {
                 if (t.Exception != null) {
                     return recover(t.Exception);
-                } else {
-                    return this;
                 }
+
+                return this;
             });
             return this;
         }

@@ -2,19 +2,17 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net.Http;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
-using UnchainedLauncher.Core.API;
 using UnchainedLauncher.GUI.ViewModels;
 
-namespace UnchainedLauncher.GUI.Views.DesignInstances
-{
-    public static class ServerViewModelInstances
-    {
+namespace UnchainedLauncher.GUI.Views.DesignInstances {
+    public static class ServerViewModelInstances {
         public static ServerViewModel DEFAULT => CreateDefaultServerViewModel();
 
         private static ServerViewModel CreateDefaultServerViewModel() {

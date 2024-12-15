@@ -50,14 +50,12 @@ namespace UnchainedLauncher.Core.Processes
                 proc.Start();
                 proc.OutputDataReceived += (sender, e) =>
                 {
-                    if (e.Data != null)
-                    {
+                    if (e.Data != null) {
                         logger.Info("Stdout: " + e.Data);
                     }
                 };
 
-                proc.ErrorDataReceived += (sender, e) =>
-                {
+                proc.ErrorDataReceived += (sender, e) => {
                     if (e.Data != null) {
                         logger.Error("Stderr: " + e.Data);
                     }
@@ -90,10 +88,10 @@ namespace UnchainedLauncher.Core.Processes
                     Func<LaunchFailedError, T> LaunchFailedError,
                     Func<InjectionFailedError, T> InjectionFailedError
                    ) => this switch {
-            LaunchFailedError launchFailed => LaunchFailedError(launchFailed),
-            InjectionFailedError injectionFailed => InjectionFailedError(injectionFailed),
-            _ => throw new Exception("Unreachable")
-        };
+                       LaunchFailedError launchFailed => LaunchFailedError(launchFailed),
+                       InjectionFailedError injectionFailed => InjectionFailedError(injectionFailed),
+                       _ => throw new Exception("Unreachable")
+                   };
 
         public void Match(
                        Action<LaunchFailedError> LaunchFailedError,

@@ -1,30 +1,33 @@
-﻿using PropertyChanged;
+﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
+using LanguageExt.SomeHelp;
+using log4net;
+using PropertyChanged;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Linq;
-using CommunityToolkit.Mvvm.Input;
 using System.Windows.Input;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Collections.Specialized;
-using System.Collections.ObjectModel;
-using log4net;
-using UnchainedLauncher.GUI.JsonModels;
-using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core;
-using LanguageExt;
 using UnchainedLauncher.Core.API;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.API.ServerBrowser;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
-using System.ComponentModel;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.JsonModels;
 
-namespace UnchainedLauncher.GUI.ViewModels
-{
+namespace UnchainedLauncher.GUI.ViewModels {
+    using static LanguageExt.Prelude;
+    
     public partial class ServerLauncherViewModel : IDisposable, INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServerLauncherViewModel));
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_server_settings.json";
@@ -77,12 +80,12 @@ namespace UnchainedLauncher.GUI.ViewModels
 
             ButtonToolTip = "";
 
-            LaunchServerCommand = new RelayCommand(() => RunServerLaunch(false));
-            LaunchServerHeadlessCommand = new RelayCommand(() => RunServerLaunch(true));
+            LaunchServerCommand = new AsyncRelayCommand(() => RunServerLaunch(false));
+            LaunchServerHeadlessCommand = new AsyncRelayCommand(() => RunServerLaunch(true));
 
             MapsList = new ObservableCollection<string>();
 
-            using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UnchainedLauncherGUI.Resources.DefaultMaps.txt")) {
+            using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UnchainedLauncher.GUI.Resources.DefaultMaps.txt")) {
                 if (defaultMapsListStream != null) {
                     using StreamReader reader = new StreamReader(defaultMapsListStream!);
 
@@ -98,16 +101,6 @@ namespace UnchainedLauncher.GUI.ViewModels
             ModManager.EnabledModReleases.SelectMany(x => x.Manifest.Maps).ToList().ForEach(MapsList.Add);
 
             ModManager.EnabledModReleases.CollectionChanged += ProcessEnabledModsChanged;
-
-            LauncherViewModel.PropertyChanged += (_, args) =>
-            {
-                switch (args.PropertyName)
-                {
-                    case nameof(LauncherViewModel.ButtonToolTip):
-                        ButtonToolTip = LauncherViewModel.ButtonToolTip;
-                        break;
-                }
-            };
         }
 
         private void ProcessEnabledModsChanged(object? sender, NotifyCollectionChangedEventArgs e) {
@@ -163,55 +156,92 @@ namespace UnchainedLauncher.GUI.ViewModels
             );
         }
 
-        private void RunServerLaunch(bool headless) {
-            SettingsViewModel.CanClick = false;
+        private async Task RunServerLaunch(bool headless) {
+            if(!SettingsViewModel.IsLauncherReusable())
+                SettingsViewModel.CanClick = false;
+            
             try {
                 var serverLaunchOptions = new ServerLaunchOptions(
                     headless,
                     ServerName,
                     ServerDescription,
-                    Prelude.Some(ServerPassword).Map(pw => pw.Trim()).Filter(pw => pw != ""),
+                    Some(ServerPassword).Map(pw => pw.Trim()).Filter(pw => pw != ""),
                     SelectedMap,
                     GamePort,
                     PingPort,
                     A2sPort,
                     RconPort
                 );
+                
+                var options = new ModdedLaunchOptions(
+                    SettingsViewModel.ServerBrowserBackend,
+                    ModManager.EnabledModReleases.AsEnumerable().ToSome(),
+                    None,
+                    Some(serverLaunchOptions)
+                );
 
-                var maybeProcess = Launcher.LaunchUnchainedServer(serverLaunchOptions);
+                var launchResult = Launcher.LaunchUnchained(options, SettingsViewModel.CLIArgs);
 
-                maybeProcess.IfSome(process => {
-                    var ports = new PublicPorts(
-                        serverLaunchOptions.GamePort,
-                        serverLaunchOptions.BeaconPort,
-                        serverLaunchOptions.QueryPort
-                    );
-                    var serverInfo = new C2ServerInfo() {
-                        Ports = ports,
-                        Name = serverLaunchOptions.Name,
-                        Description = serverLaunchOptions.Description,
-                        PasswordProtected = serverLaunchOptions.Password.IsSome,
-                        Mods = ModManager.EnabledModReleases.Select(release =>
-                            new ServerBrowserMod(
-                                release.Manifest.Name,
-                                release.Version.ToString(),
-                                release.Manifest.Organization
-                            )
-                        ).ToArray()
-                    };
+                launchResult.Match(
+                    Left: error => {
+                        MessageBox.Show($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
+                        SettingsViewModel.CanClick = true;
 
-                    ServersViewModel.RegisterServer("127.0.0.1", serverLaunchOptions.RconPort, serverInfo, process);
-                });
-            } catch (Exception ex) {
+                        return None;
+                    },
+                    Right: process => {
+                        CreateChivalryProcessWatcher(process);
+
+                        var ports = new PublicPorts(
+                            serverLaunchOptions.GamePort,
+                            serverLaunchOptions.BeaconPort,
+                            serverLaunchOptions.QueryPort
+                        );
+                        var serverInfo = new C2ServerInfo() {
+                            Ports = ports,
+                            Name = serverLaunchOptions.Name,
+                            Description = serverLaunchOptions.Description,
+                            PasswordProtected = serverLaunchOptions.Password.IsSome,
+                            Mods = ModManager.EnabledModReleases.Select(release =>
+                                new ServerBrowserMod(
+                                    release.Manifest.Name,
+                                    release.Version.ToString(),
+                                    release.Manifest.Organization
+                                )
+                            ).ToArray()
+                        };
+
+                        ServersViewModel.RegisterServer("127.0.0.1", serverLaunchOptions.RconPort, serverInfo, process);
+
+                        return Prelude.Some(process);
+                    }
+                );
+            }
+            catch (Exception ex) {
                 MessageBox.Show("Failed to launch. Check the logs for details.");
                 logger.Error("Failed to launch.", ex);
-                CanClick = LauncherViewModel.CanClick;
             }
         }
 
         public void Dispose() {
             SaveSettings();
             GC.SuppressFinalize(this);
+        }
+        
+        private Thread CreateChivalryProcessWatcher(Process process) {
+            var thread = new Thread(async void () => {
+                await process.WaitForExitAsync();
+                if(SettingsViewModel.IsLauncherReusable()) SettingsViewModel.CanClick = true;
+                
+                if (process.ExitCode == 0) return;
+
+                logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
+                MessageBox.Show($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
+            });
+
+            thread.Start();
+
+            return thread;
         }
     }
 }

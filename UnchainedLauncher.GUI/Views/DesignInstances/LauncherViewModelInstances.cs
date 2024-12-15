@@ -18,7 +18,8 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances
         public static LauncherViewModel DEFAULT => new LauncherViewModel(
             SettingsViewModelInstances.DEFAULT,
             new ModManager(new HashMap<IModRegistry, IEnumerable<Mod>>(), new List<Release>()),
-            new Chivalry2Launcher(null, null, null)
+            new Chivalry2Launcher(null, null, null),
+            null
         );
     }
 }

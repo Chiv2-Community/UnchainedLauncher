@@ -1,10 +1,12 @@
-﻿using System.Diagnostics;
+﻿using LanguageExt;
 using log4net;
-using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.Core.Processes;
+using System.Diagnostics;
 using UnchainedLauncher.Core.Extensions;
 using LanguageExt;
+using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core
 {
@@ -19,7 +21,7 @@ namespace UnchainedLauncher.Core
         /// Left if the game failed to launch.
         /// Right if the game was launched successfully.
         /// </returns>
-        public Either<ProcessLaunchFailure, Process> LaunchVanilla(IEnumerable<string> args);
+        public Either<ProcessLaunchFailure, Process> LaunchVanilla(string args);
         
         /// <summary>
         /// Launches a vanilla game with pak loading enabled
@@ -29,7 +31,7 @@ namespace UnchainedLauncher.Core
         /// Left if the game failed to launch.
         /// Right if the game was launched successfully.
         /// </returns>
-        public Either<ProcessLaunchFailure, Process> LaunchModdedVanilla(IEnumerable<string> args);
+        public Either<ProcessLaunchFailure, Process> LaunchModdedVanilla(string args);
 
         /// <summary>
         /// Launches the game with the provided launch options
@@ -40,7 +42,7 @@ namespace UnchainedLauncher.Core
         /// Left if the game failed to launch.
         /// Right if the game was launched successfully.
         /// </returns>
-        public Either<ProcessLaunchFailure, Process> LaunchUnchained(ModdedLaunchOptions launchOptions, IEnumerable<string> args);
+        public Either<ProcessLaunchFailure, Process> LaunchUnchained(ModdedLaunchOptions launchOptions, string args);
     }
     
     
@@ -57,7 +59,7 @@ namespace UnchainedLauncher.Core
             Launcher = processLauncher;
         }
 
-        public Either<ProcessLaunchFailure, Process> LaunchVanilla(IEnumerable<string> args) {
+        public Either<ProcessLaunchFailure, Process> LaunchVanilla(string args) {
 
             logger.Info("Attempting to launch vanilla game.");
             logger.LogListInfo("Launch args: ", args);
@@ -77,13 +79,13 @@ namespace UnchainedLauncher.Core
             return launchResult;
         }
 
-        public Either<ProcessLaunchFailure, Process> LaunchModdedVanilla(IEnumerable<string> args) {
+        public Either<ProcessLaunchFailure, Process> LaunchModdedVanilla(string args) {
             logger.Info("Attempting to launch vanilla game with pak loading.");
             logger.LogListInfo("Launch args: ", args);
 
             PrepareModdedLaunchSigs();
 
-            var launchResult = Launcher.Launch(InstallationRootDir, string.Join(" ", args));
+            var launchResult = Launcher.Launch(InstallationRootDir, args);
 
             launchResult.Match(
                 Left: error => error.Match(
@@ -96,21 +98,22 @@ namespace UnchainedLauncher.Core
             return launchResult;
         }
         
-        public Either<ProcessLaunchFailure, Process> LaunchUnchained(ModdedLaunchOptions launchOptions, IEnumerable<string> args) {
+        public Either<ProcessLaunchFailure, Process> LaunchUnchained(ModdedLaunchOptions launchOptions, string args) {
             logger.Info("Attempting to launch modded game.");
 
-            var moddedLaunchArgs = args.ToList();
-            var tblLoc = moddedLaunchArgs.IndexOf("TBL") + 1;
+            var moddedLaunchArgs = args;
+            var tblLoc = moddedLaunchArgs.IndexOf("TBL");
+            var offsetIndex = tblLoc == - 1 ? 0 : tblLoc + 3;
 
             var launchOpts = launchOptions.ToCLIArgs();
 
-            moddedLaunchArgs.InsertRange(tblLoc, launchOpts);
+            moddedLaunchArgs.Insert(offsetIndex, " " + launchOpts);
 
-            logger.LogListInfo($"Launch args:", moddedLaunchArgs);
+            logger.Info($"Launch args: {moddedLaunchArgs}");
 
             PrepareModdedLaunchSigs();
 
-            var launchResult = Launcher.Launch(Path.Combine(InstallationRootDir, FilePaths.BinDir), string.Join(" ", moddedLaunchArgs));
+            var launchResult = Launcher.Launch(Path.Combine(InstallationRootDir, FilePaths.BinDir), moddedLaunchArgs);
 
             return launchResult.Match(
                 Left: error => {

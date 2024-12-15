@@ -1,22 +1,20 @@
-﻿using log4net;
-using Newtonsoft.Json;
-using System.Collections.ObjectModel;
-using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.Core.Mods.Registry;
-using LanguageExt;
+﻿using LanguageExt;
+using LanguageExt.ClassInstances.Pred;
 using LanguageExt.Common;
 using LanguageExt.TypeClasses;
+using log4net;
+using Newtonsoft.Json;
 using System;
-using LanguageExt.ClassInstances.Pred;
-using UnchainedLauncher.Core.Extensions;
 using System.Collections.Immutable;
+using System.Collections.ObjectModel;
+using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Mods.Registry;
+using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Mods
-{
+namespace UnchainedLauncher.Core.Mods {
 
-    class CoreMods
-    {
+    class CoreMods {
         public const string GithubBaseURL = "https://github.com";
 
         public const string EnabledModsCacheDir = $"{FilePaths.ModCachePath}\\enabled_mods";
@@ -260,7 +258,7 @@ namespace UnchainedLauncher.Core.Mods
                 .Bind(completeDownload)
                 .BindLeft(error => {
                     // If the download failed because the file was already downloaded, discard the failure
-                    if(error is DownloadModFailure.AlreadyDownloadedFailure)
+                    if (error is DownloadModFailure.AlreadyDownloadedFailure)
                         return EitherAsync<DownloadModFailure, Unit>.Right(default);
 
                     return EitherAsync<DownloadModFailure, Unit>.Left(error);

@@ -5,34 +5,27 @@ using System.Threading.Tasks;
 using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
 
-namespace UnchainedLauncher.Core.Tests.Unit.API
-{
-    public class PeriodicRunnerTests
-    {
+namespace UnchainedLauncher.Core.Tests.Unit.API {
+    public class PeriodicRunnerTests {
         [Fact]
-        public async Task TestPolling()
-        {
+        public async Task TestPolling() {
             int pollCount = 0;
             int testTimeMillis = 2000;
             int expectedPollCount = 10;
             int delay = testTimeMillis / expectedPollCount;
-            Task<TimeSpan> Execute()
-            {
+            Task<TimeSpan> Execute() {
                 pollCount++;
                 return Task.FromResult(TimeSpan.FromMilliseconds(delay));
             }
 
-            using (PeriodicRunner runner = new(Execute))
-            {
+            using (PeriodicRunner runner = new(Execute)) {
                 await Task.Delay(testTimeMillis);
             }
 
-            try
-            {
+            try {
                 Assert.Equal(expectedPollCount, pollCount);
             }
-            catch
-            {
+            catch {
                 // sometimes it does an extra poll because of timing stuff
                 Assert.Equal(expectedPollCount + 1, pollCount);
             }
@@ -40,25 +33,21 @@ namespace UnchainedLauncher.Core.Tests.Unit.API
         }
 
         [Fact]
-        public async Task TestExceptions()
-        {
+        public async Task TestExceptions() {
             int pollCount = 0;
             int testTimeMillis = 200;
-            Task<TimeSpan> Execute()
-            {
+            Task<TimeSpan> Execute() {
                 pollCount++;
                 throw new NotImplementedException();
             }
 
             bool exceptionHandled = false;
-            Task<bool> OnException(Exception e)
-            {
+            Task<bool> OnException(Exception e) {
                 exceptionHandled = true;
                 return Task.FromResult(false);
             }
 
-            using (PeriodicRunner runner = new(Execute, OnException))
-            {
+            using (PeriodicRunner runner = new(Execute, OnException)) {
                 await Task.Delay(testTimeMillis);
                 Assert.Equal(1, pollCount);
                 Assert.True(exceptionHandled);
@@ -67,25 +56,21 @@ namespace UnchainedLauncher.Core.Tests.Unit.API
         }
 
         [Fact]
-        public async Task TestExceptionRetries()
-        {
+        public async Task TestExceptionRetries() {
             int pollCount = 0;
             int testTimeMillis = 200;
-            Task<TimeSpan> Execute()
-            {
+            Task<TimeSpan> Execute() {
                 pollCount++;
                 throw new NotImplementedException();
             }
 
             bool exceptionHandled = false;
-            Task<bool> OnException(Exception e)
-            {
+            Task<bool> OnException(Exception e) {
                 exceptionHandled = true;
                 return Task.FromResult(true);
             }
 
-            using (PeriodicRunner runner = new(Execute, OnException))
-            {
+            using (PeriodicRunner runner = new(Execute, OnException)) {
                 await Task.Delay(testTimeMillis);
                 Assert.NotEqual(1, pollCount);
                 Assert.True(exceptionHandled);

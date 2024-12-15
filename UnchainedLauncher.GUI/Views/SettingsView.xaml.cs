@@ -13,15 +13,12 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace UnchainedLauncher.GUI.Views
-{
+namespace UnchainedLauncher.GUI.Views {
     /// <summary>
     /// Interaction logic for SettingsView.xaml
     /// </summary>
-    public partial class SettingsView : UserControl
-    {
-        public SettingsView()
-        {
+    public partial class SettingsView : UserControl {
+        public SettingsView() {
             InitializeComponent();
         }
     }

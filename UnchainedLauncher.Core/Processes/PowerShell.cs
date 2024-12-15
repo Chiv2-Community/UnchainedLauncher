@@ -17,10 +17,12 @@ namespace UnchainedLauncher.Core.Processes {
                 process.StartInfo.FileName = "powershell.exe";
                 process.StartInfo.Arguments = $"-Command \"{commandString}\"";
                 process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardOutput = !createWindow;
+                process.StartInfo.RedirectStandardError = !createWindow;
                 process.StartInfo.CreateNoWindow = !createWindow;
                 process.Start();
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 logger.Error($"Failed to execute powershell command.", e);
                 throw;
             }

@@ -27,6 +27,7 @@ using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.Installer;
@@ -117,19 +118,33 @@ namespace UnchainedLauncher.GUI {
             var modManager = ModManager.ForRegistries(
                 new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
             );
-            
-            var processLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 
+            var officialProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.OriginalLauncherPath));
+            var unchainedProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 
-            var chiv2Launcher = new Chivalry2Launcher(
-                processLauncher, 
-                Directory.GetCurrentDirectory(), 
-                Directory.EnumerateFiles(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir))
+            var vanillaLauncher = new OfficialChivalry2Launcher(
+                officialProcessLauncher, 
+                Directory.GetCurrentDirectory()
             );
             
+            var clientsideModdedLauncher = new ClientSideModdedOfficialChivalry2Launcher(
+                officialProcessLauncher, 
+                Directory.GetCurrentDirectory()
+            );
+
+            var unchainedLauncher = new UnchainedChivalry2Launcher(
+                unchainedProcessLauncher,
+                Directory.GetCurrentDirectory(),
+                () => {
+                    var dllPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath);
+                    if(!Directory.Exists(dllPath))
+                        Directory.CreateDirectory(dllPath);
+                    return Directory.EnumerateFiles(dllPath);
+                });
+            
             var serversViewModel = new ServersViewModel(settingsViewModel, null);
-            var launcherViewModel = new LauncherViewModel(settingsViewModel, modManager, chiv2Launcher, pluginReleaseLocator);
-            var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(settingsViewModel, serversViewModel, chiv2Launcher, modManager);
+            var launcherViewModel = new LauncherViewModel(settingsViewModel, modManager, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, pluginReleaseLocator);
+            var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(settingsViewModel, serversViewModel, unchainedLauncher, modManager);
             var modListViewModel = new ModListViewModel(modManager);
 
             modListViewModel.RefreshModListCommand.Execute(null);

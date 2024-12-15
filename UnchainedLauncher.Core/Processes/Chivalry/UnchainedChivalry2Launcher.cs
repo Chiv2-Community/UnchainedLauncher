@@ -6,16 +6,18 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Processes.Chivalry
 {
+    using static Prelude;
+    
     public class UnchainedChivalry2Launcher: IUnchainedChivalry2Launcher {
         private static readonly ILog logger = LogManager.GetLogger(nameof(UnchainedLauncher));
 
         private IProcessLauncher Launcher { get; }
-        private IEnumerable<string> DLLs { get; }
+        private Func<IEnumerable<string>> FetchDLLs { get; }
         private string InstallationRootDir { get; }
 
         public UnchainedChivalry2Launcher(IProcessLauncher processLauncher, string installationRootDir,
-            IEnumerable<string> dlls) {
-            DLLs = dlls;
+            Func<IEnumerable<string>> dlls) {
+            FetchDLLs = dlls;
             InstallationRootDir = installationRootDir;
             Launcher = processLauncher;
         }
@@ -57,13 +59,14 @@ namespace UnchainedLauncher.Core.Processes.Chivalry
 
         private Either<ProcessLaunchFailure,Process> InjectDLLs(Process process)
         {
-            if (!DLLs.Any()) return Prelude.Right(process);
-            
+            IEnumerable<string>? dlls = null;
             try {
-                logger.LogListInfo("Injecting DLLs:", DLLs);
-                Inject.InjectAll(process, DLLs);
+                dlls = FetchDLLs();
+                if (!dlls.Any()) return Prelude.Right(process);
+                logger.LogListInfo("Injecting DLLs:", dlls);
+                Inject.InjectAll(process, dlls);
             } catch (Exception e) {
-                return Prelude.Left(ProcessLaunchFailure.InjectionFailed(Prelude.Some(DLLs), e));
+                return Prelude.Left(ProcessLaunchFailure.InjectionFailed(Optional(dlls), e));
             }
             return Prelude.Right(process);
         }

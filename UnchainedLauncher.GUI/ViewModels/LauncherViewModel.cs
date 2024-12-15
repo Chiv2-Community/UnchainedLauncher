@@ -48,23 +48,27 @@ namespace UnchainedLauncher.GUI.ViewModels {
             (!Settings.CanClick && !IsReusable())
                 ? "Unchained cannot launch an EGS installation more than once.  Restart the launcher if you wish to launch the game again."
                 : "";
-        public IOfficialChivalry2Launcher OfficialLauncher { get; }
-        public IOfficialChivalry2Launcher ClientSideModdedOfficialLauncher { get; }
-        public IUnchainedChivalry2Launcher ClientSideUnchainedVanillaLauncher { get; }
+        public IOfficialChivalry2Launcher VanillaLauncher { get; }
+        public IOfficialChivalry2Launcher ClientSideModdedLauncher { get; }
+        public IUnchainedChivalry2Launcher UnchainedLauncher { get; }
 
         public IReleaseLocator PluginReleaseLocator { get; }
 
         public bool IsReusable() => Settings.InstallationType == InstallationType.Steam;
 
-        public LauncherViewModel(SettingsViewModel settings, IModManager modManager, IChivalry2Launcher launcher, IReleaseLocator pluginReleaseLocator) {
+        public LauncherViewModel(SettingsViewModel settings, IModManager modManager, IOfficialChivalry2Launcher vanillaLauncher, IOfficialChivalry2Launcher clientSideModdedLauncher, IUnchainedChivalry2Launcher moddedLauncher, IReleaseLocator pluginReleaseLocator) {
             Settings = settings;
             ModManager = modManager;
+
+            VanillaLauncher = vanillaLauncher;
+            ClientSideModdedLauncher = clientSideModdedLauncher;
+            UnchainedLauncher = moddedLauncher;
+
 
             this.LaunchVanillaCommand = new RelayCommand(() => LaunchVanilla(false));
             this.LaunchModdedVanillaCommand = new RelayCommand(() => LaunchVanilla(true));
             this.LaunchUnchainedCommand = new RelayCommand(() => LaunchUnchained());
 
-            Launcher = launcher;
             PluginReleaseLocator = pluginReleaseLocator;
         }
 
@@ -73,8 +77,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
             // Skip the first arg which is the path to the exe.
             var args = Settings.CLIArgs;
             var launchResult = enableMods
-                ? Launcher.LaunchModdedVanilla(Settings.CLIArgs)
-                : Launcher.LaunchVanilla(Settings.CLIArgs);
+                ? VanillaLauncher.Launch(args)
+                : ClientSideModdedLauncher.Launch(args);
             
             if(!IsReusable())
                 Settings.CanClick = false;
@@ -108,7 +112,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 None
             );
 
-            var launchResult = Launcher.LaunchUnchained(options, Settings.CLIArgs);
+            var launchResult = UnchainedLauncher.Launch(options, Settings.CLIArgs);
 
             return launchResult.Match(
                 Left: error => {

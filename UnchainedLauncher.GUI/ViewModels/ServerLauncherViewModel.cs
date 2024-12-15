@@ -43,7 +43,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string SelectedMap { get; set; }
         public bool ShowInServerBrowser { get; set; }
         public ObservableCollection<string> MapsList { get; set; }
-        private IChivalry2Launcher Launcher { get; }
+        private IUnchainedChivalry2Launcher Launcher { get; }
         private SettingsViewModel SettingsViewModel { get; }
         private ServersViewModel ServersViewModel { get; }
         public string ButtonToolTip { get; set; }
@@ -55,10 +55,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private ModManager ModManager { get; }
         //may want to add a mods list here as well,
-        //in the hopes of having multiple independent servers running one one machine
+        //in the hopes of having multiple independent servers running one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IChivalry2Launcher launcher, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
+        public ServerLauncherViewModel(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IUnchainedChivalry2Launcher launcher, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
 
             ServerName = serverName;
             ServerDescription = serverDescription;
@@ -86,9 +86,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             MapsList = new ObservableCollection<string>();
 
-            using (Stream? defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UnchainedLauncher.GUI.Resources.DefaultMaps.txt")) {
+            using (var defaultMapsListStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("UnchainedLauncher.GUI.Resources.DefaultMaps.txt")) {
                 if (defaultMapsListStream != null) {
-                    using StreamReader reader = new StreamReader(defaultMapsListStream!);
+                    using var reader = new StreamReader(defaultMapsListStream);
 
                     var defaultMapsString = reader.ReadToEnd();
                     defaultMapsString
@@ -118,7 +118,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
         }
 
-        public static ServerLauncherViewModel LoadSettings(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IChivalry2Launcher chivalry2Launcher, ModManager modManager) {
+        public static ServerLauncherViewModel LoadSettings(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IUnchainedChivalry2Launcher chivalry2Launcher, ModManager modManager) {
             var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
             
@@ -181,7 +181,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     Some(serverLaunchOptions)
                 );
 
-                var launchResult = Launcher.LaunchUnchained(options, SettingsViewModel.CLIArgs);
+                var launchResult = Launcher.Launch(options, SettingsViewModel.CLIArgs);
 
                 launchResult.Match(
                     Left: error => {

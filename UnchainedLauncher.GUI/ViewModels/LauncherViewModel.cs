@@ -25,6 +25,7 @@ using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.Views;
@@ -47,7 +48,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
             (!Settings.CanClick && !IsReusable())
                 ? "Unchained cannot launch an EGS installation more than once.  Restart the launcher if you wish to launch the game again."
                 : "";
-        public IChivalry2Launcher Launcher { get; }
+        public IOfficialChivalry2Launcher OfficialLauncher { get; }
+        public IOfficialChivalry2Launcher ClientSideModdedOfficialLauncher { get; }
+        public IUnchainedChivalry2Launcher ClientSideUnchainedVanillaLauncher { get; }
 
         public IReleaseLocator PluginReleaseLocator { get; }
 

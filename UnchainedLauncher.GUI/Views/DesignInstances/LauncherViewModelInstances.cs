@@ -10,7 +10,6 @@ using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.GUI.ViewModels;
 
-#if DEBUG
 namespace UnchainedLauncher.GUI.Views.DesignInstances
 {
     public static class LauncherViewModelInstances
@@ -23,4 +22,3 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances
         );
     }
 }
-#endif

@@ -28,7 +28,7 @@ using UnchainedLauncher.GUI.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
-    
+
     public partial class ServerLauncherViewModel : IDisposable, INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServerLauncherViewModel));
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_server_settings.json";
@@ -73,7 +73,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             SettingsViewModel = settingsViewModel;
 
             SettingsFile = settingsFile;
-            
+
             Launcher = launcher;
 
             ServersViewModel = serversViewModel;
@@ -121,7 +121,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public static ServerLauncherViewModel LoadSettings(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IUnchainedChivalry2Launcher chivalry2Launcher, ModManager modManager) {
             var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
-            
+
 
             return new ServerLauncherViewModel(
                 settingsViewModel,
@@ -158,9 +158,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         private async Task RunServerLaunch(bool headless) {
-            if(!SettingsViewModel.IsLauncherReusable())
+            if (!SettingsViewModel.IsLauncherReusable())
                 SettingsViewModel.CanClick = false;
-            
+
             try {
                 var serverLaunchOptions = new ServerLaunchOptions(
                     headless,
@@ -173,7 +173,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     A2sPort,
                     RconPort
                 );
-                
+
                 var options = new ModdedLaunchOptions(
                     SettingsViewModel.ServerBrowserBackend,
                     ModManager.EnabledModReleases.AsEnumerable().ToSome(),
@@ -228,12 +228,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
             SaveSettings();
             GC.SuppressFinalize(this);
         }
-        
+
         private Thread CreateChivalryProcessWatcher(Process process) {
             var thread = new Thread(async void () => {
                 await process.WaitForExitAsync();
-                if(SettingsViewModel.IsLauncherReusable()) SettingsViewModel.CanClick = true;
-                
+                if (SettingsViewModel.IsLauncherReusable()) SettingsViewModel.CanClick = true;
+
                 if (process.ExitCode == 0) return;
 
                 logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");

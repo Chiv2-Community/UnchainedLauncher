@@ -1,7 +1,6 @@
 ﻿using LanguageExt;
 
-namespace UnchainedLauncher.Core.Processes.Chivalry
-{
+namespace UnchainedLauncher.Core.Processes.Chivalry {
     public record ServerLaunchOptions(
         bool Headless,
         string Name,

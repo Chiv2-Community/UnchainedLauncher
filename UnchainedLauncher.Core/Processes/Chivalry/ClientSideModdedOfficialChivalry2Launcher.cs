@@ -3,9 +3,8 @@ using log4net;
 using System.Diagnostics;
 using UnchainedLauncher.Core.Extensions;
 
-namespace UnchainedLauncher.Core.Processes.Chivalry
-{
-    public class ClientSideModdedOfficialChivalry2Launcher : IOfficialChivalry2Launcher  {
+namespace UnchainedLauncher.Core.Processes.Chivalry {
+    public class ClientSideModdedOfficialChivalry2Launcher : IOfficialChivalry2Launcher {
         private static readonly ILog logger = LogManager.GetLogger(typeof(ClientSideModdedOfficialChivalry2Launcher));
         private IProcessLauncher Launcher { get; }
         private string WorkingDirectory { get; }
@@ -14,7 +13,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry
             WorkingDirectory = workingDirectory;
             Launcher = processLauncher;
         }
-        
+
         public Either<ProcessLaunchFailure, Process> Launch(string args) {
             logger.Info("Attempting to launch vanilla game with pak loading.");
             logger.LogListInfo("Launch args: ", args);

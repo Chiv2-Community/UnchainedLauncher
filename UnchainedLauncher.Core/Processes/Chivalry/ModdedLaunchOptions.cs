@@ -1,8 +1,7 @@
 ﻿using LanguageExt;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 
-namespace UnchainedLauncher.Core.Processes.Chivalry
-{
+namespace UnchainedLauncher.Core.Processes.Chivalry {
     public record ModdedLaunchOptions(
         string ServerBrowserBackend,
         Option<IEnumerable<Release>> EnabledMods,

@@ -47,7 +47,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string CurrentVersion {
             get => "v" + version.ToString(3);
         }
-        
+
         public bool IsLauncherReusable() => InstallationType == InstallationType.Steam;
 
 

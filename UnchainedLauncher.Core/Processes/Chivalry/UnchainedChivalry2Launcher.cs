@@ -4,11 +4,10 @@ using System.Diagnostics;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Processes.Chivalry
-{
+namespace UnchainedLauncher.Core.Processes.Chivalry {
     using static Prelude;
-    
-    public class UnchainedChivalry2Launcher: IUnchainedChivalry2Launcher {
+
+    public class UnchainedChivalry2Launcher : IUnchainedChivalry2Launcher {
         private static readonly ILog logger = LogManager.GetLogger(nameof(UnchainedLauncher));
 
         private IProcessLauncher Launcher { get; }
@@ -27,12 +26,12 @@ namespace UnchainedLauncher.Core.Processes.Chivalry
 
             var moddedLaunchArgs = args;
             var tblLoc = moddedLaunchArgs.IndexOf("TBL", StringComparison.Ordinal);
-            var offsetIndex = tblLoc == - 1 ? 0 : tblLoc + 3;
+            var offsetIndex = tblLoc == -1 ? 0 : tblLoc + 3;
 
             var launchOpts = launchOptions.ToCLIArgs();
 
             moddedLaunchArgs.Insert(offsetIndex, " " + launchOpts);
-            
+
             PrepareModdedLaunchSigs();
 
             logger.Info($"Launch args: {moddedLaunchArgs}");
@@ -57,20 +56,20 @@ namespace UnchainedLauncher.Core.Processes.Chivalry
             );
         }
 
-        private Either<ProcessLaunchFailure,Process> InjectDLLs(Process process)
-        {
+        private Either<ProcessLaunchFailure, Process> InjectDLLs(Process process) {
             IEnumerable<string>? dlls = null;
             try {
                 dlls = FetchDLLs();
                 if (!dlls.Any()) return Prelude.Right(process);
                 logger.LogListInfo("Injecting DLLs:", dlls);
                 Inject.InjectAll(process, dlls);
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 return Prelude.Left(ProcessLaunchFailure.InjectionFailed(Optional(dlls), e));
             }
             return Prelude.Right(process);
         }
-        
+
         private static void PrepareModdedLaunchSigs() {
             logger.Info("Verifying .sig file presence");
             SigFileHelper.CheckAndCopySigFiles();

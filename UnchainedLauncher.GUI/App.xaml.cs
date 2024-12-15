@@ -85,7 +85,7 @@ namespace UnchainedLauncher.GUI {
                 needsInstallation && !forceSkipInstallation
                     ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
                     : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator, pluginReleaseLocator);
-            
+
             createWindowTask.RunSynchronously();
             createWindowTask.Result?.Show();
         }
@@ -123,12 +123,12 @@ namespace UnchainedLauncher.GUI {
             var unchainedProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 
             var vanillaLauncher = new OfficialChivalry2Launcher(
-                officialProcessLauncher, 
+                officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
-            
+
             var clientsideModdedLauncher = new ClientSideModdedOfficialChivalry2Launcher(
-                officialProcessLauncher, 
+                officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
 
@@ -137,11 +137,11 @@ namespace UnchainedLauncher.GUI {
                 Directory.GetCurrentDirectory(),
                 () => {
                     var dllPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath);
-                    if(!Directory.Exists(dllPath))
+                    if (!Directory.Exists(dllPath))
                         Directory.CreateDirectory(dllPath);
                     return Directory.EnumerateFiles(dllPath);
                 });
-            
+
             var serversViewModel = new ServersViewModel(settingsViewModel, null);
             var launcherViewModel = new LauncherViewModel(settingsViewModel, modManager, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, pluginReleaseLocator);
             var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(settingsViewModel, serversViewModel, unchainedLauncher, modManager);

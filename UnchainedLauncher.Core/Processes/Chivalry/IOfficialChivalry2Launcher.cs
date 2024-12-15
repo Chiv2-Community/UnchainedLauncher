@@ -1,8 +1,7 @@
 ﻿using LanguageExt;
 using System.Diagnostics;
 
-namespace UnchainedLauncher.Core.Processes.Chivalry
-{
+namespace UnchainedLauncher.Core.Processes.Chivalry {
     public interface IOfficialChivalry2Launcher {
         /// <summary>
         /// Launches a vanilla game. Implementations may do extra work to enable client side pak file loading

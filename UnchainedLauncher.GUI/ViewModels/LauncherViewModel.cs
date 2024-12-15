@@ -41,7 +41,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public ICommand LaunchUnchainedCommand { get; }
 
         public SettingsViewModel Settings { get; }
-        
+
         private IModManager ModManager { get; }
 
         public string ButtonToolTip =>
@@ -79,8 +79,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var launchResult = enableMods
                 ? VanillaLauncher.Launch(args)
                 : ClientSideModdedLauncher.Launch(args);
-            
-            if(!IsReusable())
+
+            if (!IsReusable())
                 Settings.CanClick = false;
 
             return launchResult.Match(
@@ -206,18 +206,16 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private Thread CreateChivalryProcessWatcher(Process process) {
             var thread = new Thread(async void () => {
-                try
-                {
+                try {
                     await process.WaitForExitAsync();
-                    if(IsReusable()) Settings.CanClick = true;
-                
+                    if (IsReusable()) Settings.CanClick = true;
+
                     if (process.ExitCode == 0) return;
 
                     logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
                     MessageBox.Show($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
                 }
-                catch (Exception e)
-                {
+                catch (Exception e) {
                     logger.Error("Failure occured while waiting for Chivalry process to exit", e);
                 }
             });

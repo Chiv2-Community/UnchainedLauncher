@@ -3,8 +3,7 @@ using log4net;
 using System.Diagnostics;
 using UnchainedLauncher.Core.Extensions;
 
-namespace UnchainedLauncher.Core.Processes.Chivalry
-{
+namespace UnchainedLauncher.Core.Processes.Chivalry {
     public class OfficialChivalry2Launcher : IOfficialChivalry2Launcher {
         private static readonly ILog logger = LogManager.GetLogger(typeof(OfficialChivalry2Launcher));
         private IProcessLauncher Launcher { get; }
@@ -14,7 +13,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry
             WorkingDirectory = workingDirectory;
             Launcher = processLauncher;
         }
-        
+
         public Either<ProcessLaunchFailure, Process> Launch(string args) {
 
             logger.Info("Attempting to launch vanilla game.");
@@ -34,7 +33,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry
 
             return launchResult;
         }
-        
+
         private static void PrepareUnmoddedLaunchSigs() {
             logger.Info("Removing .sig files");
             SigFileHelper.RemoveAllNonDefaultSigFiles();

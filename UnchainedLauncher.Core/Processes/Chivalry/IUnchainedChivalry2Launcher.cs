@@ -1,8 +1,7 @@
 ﻿using LanguageExt;
 using System.Diagnostics;
 
-namespace UnchainedLauncher.Core.Processes.Chivalry
-{
+namespace UnchainedLauncher.Core.Processes.Chivalry {
     public interface IUnchainedChivalry2Launcher {
         /// <summary>
         /// Launches a modded instance of the game with additional parameters, supporting server hosting and potentially

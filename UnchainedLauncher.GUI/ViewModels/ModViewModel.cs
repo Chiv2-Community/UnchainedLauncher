@@ -1,26 +1,17 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
-using LanguageExt.Common;
 using LanguageExt.UnsafeValueAccess;
 using log4net;
-using PropertyChanged;
 using Semver;
 using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Input;
-using System.Xml.Serialization;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
-using UnchainedLauncher.Core.Mods.Registry;
-using UnchainedLauncher.Core.Utilities;
-using static UnchainedLauncher.Core.Mods.DownloadModFailure;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;

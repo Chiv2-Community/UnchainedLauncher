@@ -1,8 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
-using LanguageExt.UnsafeValueAccess;
 using log4net;
-using Octokit;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;

@@ -1,9 +1,6 @@
 ﻿using LanguageExt;
 using log4net;
-using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
-using UnchainedLauncher.Core.Extensions;
 
 namespace UnchainedLauncher.Core.Processes {
     using static LanguageExt.Prelude;

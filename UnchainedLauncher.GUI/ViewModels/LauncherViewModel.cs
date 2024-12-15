@@ -2,12 +2,8 @@
 using LanguageExt;
 using LanguageExt.SomeHelp;
 using log4net;
-using PropertyChanged;
 using Semver;
 using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.ComponentModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -16,20 +12,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using UnchainedLauncher.Core;
-using UnchainedLauncher.Core.API;
-using UnchainedLauncher.Core.Installer;
-using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
-using UnchainedLauncher.Core.Mods.Registry;
-using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.Views;
-using Environment = UnchainedLauncher.Core.API.A2S.Environment;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;

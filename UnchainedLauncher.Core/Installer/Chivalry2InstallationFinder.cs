@@ -1,5 +1,4 @@
 ﻿using LanguageExt;
-using LanguageExt.UnsafeValueAccess;
 using log4net;
 using Microsoft.Win32;
 using Newtonsoft.Json;

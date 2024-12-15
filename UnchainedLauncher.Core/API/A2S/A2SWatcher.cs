@@ -1,11 +1,4 @@
-﻿using log4net;
-using Microsoft.VisualBasic;
-using PropertyChanged;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using PropertyChanged;
 
 namespace UnchainedLauncher.Core.API.A2S {
     /// <summary>

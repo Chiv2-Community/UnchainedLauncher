@@ -5,118 +5,75 @@ on:
     tags:
       - 'v*.*.*'
 
+permissions:
+  contents: write
+
+
+# TODO: Run integration tests. Set up some kind of stubbed environment for the tests to run in.
 jobs:
   build:
     strategy:
       matrix:
-        targetplatform: [x64]
         configuration: [Debug, Release]
-
     runs-on: windows-latest
-
     env:
-      Solution_Path: C2GUILauncher.sln
-      Wpf_Project_Path: C2GUILauncher\C2GUILauncher.csproj 
-      Actions_Allow_Unsecure_Commands: true # Allows AddPAth and SetEnv commands
-
+      GUI_Project_Path: UnchainedLauncher.GUI
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4.2.1
-      with:
-        fetch-depth: 0 # avoid shallow clone to get tag info
-
-    # Install the .NET Core workload
-    - name: Install .NET Core
+    - uses: actions/checkout@v4
+    - name: Setup dotnet
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '6.x'
+    - name: Install dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build -c ${{ matrix.configuration }}
+    - name: Run Unit Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Core.Tests.Unit\
+      
+    # Puts binaries in ${{ env.GUI_Project_Path }}\bin\${{ matrix.configuration }}\net6.0-windows\win-x64\publish\
+    - name: Package ${{ matrix.configuration }} binaries
+      run: dotnet publish -c ${{ matrix.configuration}} 
 
-    # Add  MsBuild to the PATH: https://github.com/microsoft/setup-msbuild
-    - name: Setup MSBuild.exe
-      uses: microsoft/setup-msbuild@v1.1
-
-    # Restore the application
-    - name:  Restore the Wpf application to populate the obj folder
-      run: msbuild $env:Solution_Path /t:Restore /p:Configuration=$env:Configuration /p:RuntimeIdentifier=$env:RuntimeIdentifier
-      env:
-        Configuration: ${{ matrix.configuration }}
-        RuntimeIdentifier: win-${{ matrix.targetplatform }}
-
-    # Build the Windows Application Packaging project
-    - name: Build UnchainedLauncher
-      run: msbuild $env:Solution_Path /p:Platform=$env:TargetPlatform /t:publish /p:Configuration=$env:Configuration
-      env:
-        Configuration: ${{ matrix.configuration }}
-        TargetPlatform: ${{ matrix.targetplatform }}
-
-    # Upload build result + release package
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4.4.2
+    - name: Upload ${{ matrix.configuration }} Artifacts
+      uses: actions/upload-artifact@v4
       with:
-        name: Package_${{ matrix.configuration }}
-        path: C2GUILauncher/bin
+        name: UnchainedLauncher_${{ matrix.configuration }}_${{ github.sha }}
+        path: ${{ env.GUI_Project_Path }}\bin\${{ matrix.configuration }}\net6.0-windows\win-x64\publish\
 
-  create_release:
+  publish:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4.2.1
-        with:
-          fetch-depth: 0
+    - name: Download Debug Artifacts
+      uses: actions/download-artifact@v4.1.8
+      with:
+        name: UnchainedLauncher_Debug_${{ github.sha }}
+        path: results/Debug
 
-      - name: Download Build Artifacts D
-        uses: actions/download-artifact@v4.1.8
-        with:
-          name: Package_Debug
-          path: results
+    - name: Download Release Artifacts
+      uses: actions/download-artifact@v4.1.8
+      with:
+        name: UnchainedLauncher_Release_${{ github.sha }}
+        path: results/Release
 
-      - name: Download Build Artifacts R
-        uses: actions/download-artifact@v4.1.8
-        with:
-          name: Package_Release
-          path: results
+    - name: Set file names
+      run: |
+        mv results/Debug/UnchainedLauncher.exe UnchainedLauncher_dbg.exe
+        mv results/Debug/UnchainedLauncher.pdb UnchainedLauncher_dbg.pdb
+        mv results/Release/UnchainedLauncher.exe UnchainedLauncher.exe
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: "Release ${{ github.ref }}: ${{ env.tag_annotation }}"
-          draft: false
-          prerelease: false
-          body: |
-            ${{ github.ref }}
-
-      # Add Release assets
-      - name: Upload Release Launcher
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: results/Release/net6.0-windows/win-x64/publish/UnchainedLauncher.exe
-          asset_name: UnchainedLauncher.exe
-          asset_content_type: application/octet-stream
-
-      - name: Upload Debug Launcher
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: results/Debug/net6.0-windows/win-x64/publish/UnchainedLauncher.exe
-          asset_name: UnchainedLauncher_dbg.exe
-          asset_content_type: application/octet-stream
-
-      - name: Upload Debug Launcher PDB
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: results/Debug/net6.0-windows/win-x64/publish/UnchainedLauncher.pdb
-          asset_name: UnchainedLauncher.pdb
-          asset_content_type: application/octet-stream
+    - name: Create GitHub Release
+      id: create_release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: "Release ${{ github.ref }}: ${{ env.tag_annotation }}"
+        draft: false
+        prerelease: true
+        files: |
+          UnchainedLauncher_dbg.exe
+          UnchainedLauncher_dbg.pdb
+          UnchainedLauncher.exe
+        body: |
+          ${{ github.ref }}

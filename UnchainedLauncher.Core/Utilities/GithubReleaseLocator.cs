@@ -5,7 +5,6 @@ using log4net;
 using Octokit;
 using Semver;
 using System.Collections.Immutable;
-using UnchainedLauncher.Core.Installer;
 
 namespace UnchainedLauncher.Core.Utilities {
     using static LanguageExt.Prelude;

@@ -58,11 +58,11 @@
                 Content="Launch Server"  
                 ToolTip="{Binding ButtonToolTip}"
                 Command="{Binding LaunchServerCommand}" 
-                IsEnabled="{Binding CanClick}" />
+                IsEnabled="{Binding Settings.CanClick}" />
         <Button Grid.Column="2" Grid.Row="6" Grid.ColumnSpan="2" 
                 Content="Launch Headless Server" 
                 ToolTip="{Binding ButtonToolTip}"
                 Command="{Binding LaunchServerHeadlessCommand}" 
-                IsEnabled="{Binding CanClick}"/>
+                IsEnabled="{Binding Settings.CanClick}"/>
     </Grid>
 </UserControl>

@@ -1,5 +1,4 @@
 ﻿using Newtonsoft.Json;
-using System.Collections.Generic;
 
 namespace UnchainedLauncher.Core.JsonModels {
 #pragma warning disable CA1507 // Disable "use nameof to express symbol names". Json structures need to be stable and renaming properties is a breaking change.

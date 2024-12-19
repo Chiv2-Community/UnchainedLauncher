@@ -1,5 +1,4 @@
-﻿using NuGet.Frameworks;
-using UnchainedLauncher.Core.API.A2S;
+﻿using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.Tests.Unit.API.Mocks;
 

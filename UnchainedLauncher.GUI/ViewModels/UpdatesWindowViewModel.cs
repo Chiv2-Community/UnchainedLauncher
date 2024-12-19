@@ -1,24 +1,14 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
-using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Configuration;
 using System.Diagnostics;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using UnchainedLauncher.Core.Mods;
 
 namespace UnchainedLauncher.GUI.ViewModels {
-    using static LanguageExt.Prelude;
-
     public partial class UpdatesWindowViewModel : INotifyPropertyChanged {
         public string TitleText { get; }
         public string MessageText { get; }

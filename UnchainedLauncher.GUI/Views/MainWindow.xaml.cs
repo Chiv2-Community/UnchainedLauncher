@@ -1,23 +1,9 @@
-﻿using log4net;
-using PropertyChanged;
+﻿using PropertyChanged;
 using System;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Windows;
-using System.Windows.Controls;
-using UnchainedLauncher.Core;
-using UnchainedLauncher.Core.Installer;
-using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.Mods;
-using UnchainedLauncher.Core.Mods.Registry;
-using UnchainedLauncher.Core.Mods.Registry.Downloader;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views {
-    using static LanguageExt.Prelude;
-
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>

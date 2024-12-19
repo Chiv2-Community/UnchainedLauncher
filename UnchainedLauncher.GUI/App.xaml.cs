@@ -1,30 +1,18 @@
-﻿using log4net;
+﻿using LanguageExt;
 using log4net;
 using System;
-using System;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.CompilerServices;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
-using UnchainedLauncher.Core;
-using UnchainedLauncher.Core;
-using UnchainedLauncher.Core;
 using UnchainedLauncher.Core.Installer;
-using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.Mods;
-using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
+using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.Installer;
@@ -78,15 +66,16 @@ namespace UnchainedLauncher.GUI {
             if (forceSkipInstallation && needsInstallation)
                 _log.Info("Skipping installation");
 
-            Window window =
+            var createWindowTask =
                 needsInstallation && !forceSkipInstallation
                     ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
                     : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator, pluginReleaseLocator);
 
-            window.Show();
+            createWindowTask.RunSynchronously();
+            createWindowTask.Result?.Show();
         }
 
-        public Window InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
+        public async Task<Window?> InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
             var installationSelectionVM = new InstallationSelectionPageViewModel(installationFinder);
             var versionSelectionVM = new VersionSelectionPageViewModel(launcherReleaseLocator);
             var installationLogVM = new InstallerLogPageViewModel(
@@ -108,30 +97,58 @@ namespace UnchainedLauncher.GUI {
             return new InstallerWindow(installerWindowVM);
         }
 
-        public Window InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
+        public async Task<Window?> InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
             var settingsViewModel = SettingsViewModel.LoadSettings(installationFinder, installer, launcherReleaseLocator, Environment.Exit);
 
             var modManager = ModManager.ForRegistries(
                 new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
             );
 
+            var officialProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.OriginalLauncherPath));
+            var unchainedProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 
-            var chiv2Launcher = new Chivalry2Launcher();
+            var vanillaLauncher = new OfficialChivalry2Launcher(
+                officialProcessLauncher,
+                Directory.GetCurrentDirectory()
+            );
+
+            var clientsideModdedLauncher = new ClientSideModdedOfficialChivalry2Launcher(
+                officialProcessLauncher,
+                Directory.GetCurrentDirectory()
+            );
+
+            var unchainedLauncher = new UnchainedChivalry2Launcher(
+                unchainedProcessLauncher,
+                Directory.GetCurrentDirectory(),
+                () => {
+                    var dllPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath);
+                    if (!Directory.Exists(dllPath))
+                        Directory.CreateDirectory(dllPath);
+                    return Directory.EnumerateFiles(dllPath);
+                });
+
             var serversViewModel = new ServersViewModel(settingsViewModel, null);
-            var launcherViewModel = new LauncherViewModel(settingsViewModel, modManager, chiv2Launcher, pluginReleaseLocator);
-            var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(launcherViewModel, settingsViewModel, serversViewModel, modManager);
+            var launcherViewModel = new LauncherViewModel(settingsViewModel, modManager, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, pluginReleaseLocator);
+            var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(settingsViewModel, serversViewModel, unchainedLauncher, modManager);
             var modListViewModel = new ModListViewModel(modManager);
 
             modListViewModel.RefreshModListCommand.Execute(null);
 
             var envArgs = Environment.GetCommandLineArgs().ToList();
 
-            if (envArgs.Contains("--startvanilla"))
+            // TODO: Replace this if/else chain with a real CLI
+            if (envArgs.Contains("--startvanilla")) {
                 launcherViewModel.LaunchVanilla(false);
-            else if (envArgs.Contains("--startmodded"))
+                return null;
+            }
+            else if (envArgs.Contains("--startmodded")) {
                 launcherViewModel.LaunchVanilla(true);
-            else if (envArgs.Contains("--startunchained"))
-                launcherViewModel.LaunchUnchained(None);
+                return null;
+            }
+            else if (envArgs.Contains("--startunchained")) {
+                await launcherViewModel.LaunchUnchained();
+                return null;
+            }
 
             var mainWindowViewModel = new MainWindowViewModel(
                 launcherViewModel,

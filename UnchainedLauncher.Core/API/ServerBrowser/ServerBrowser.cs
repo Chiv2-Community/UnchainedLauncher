@@ -1,9 +1,7 @@
 ﻿using PropertyChanged;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Timers;
 using UnchainedLauncher.Core.API.A2S;
-using Timer = System.Threading.Timer;
 
 namespace UnchainedLauncher.Core.API.ServerBrowser {
     // NOTE: some of these records have empty constructors that don't really seem useful.

@@ -1,14 +1,4 @@
-﻿using PropertyChanged;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.Metrics;
-using System.Linq;
-using System.Reflection.Metadata.Ecma335;
-using System.Text;
-using System.Threading.Tasks;
-using System.Transactions;
-
-namespace UnchainedLauncher.Core.API {
+﻿namespace UnchainedLauncher.Core.API {
     /// <summary>
     /// Runs a delegate which tells it when it wants to be run next.
     /// Each run of the delegate is called a "tick"

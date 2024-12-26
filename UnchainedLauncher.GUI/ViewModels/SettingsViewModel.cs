@@ -17,8 +17,10 @@ using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.Utilities.Releases;
 using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.Views;
+using ReleaseUpdate = UnchainedLauncher.Core.Utilities.Releases.ReleaseUpdate;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -194,7 +196,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     "No",
                     null,
                     List(
-                        new DependencyUpdate("Launcher", Some(CurrentVersion.ToString()), release.Version.ToString(), release.PageUrl, "")
+                        new ReleaseUpdate(
+                            "Launcher", 
+                            Some(CurrentVersion.ToString()), release.Version.ToString(), release.PageUrl, "")
                     )
                 );
 

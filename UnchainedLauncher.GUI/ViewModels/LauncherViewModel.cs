@@ -26,6 +26,7 @@ using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.Utilities.Releases;
 using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.Views;
 using Environment = UnchainedLauncher.Core.API.A2S.Environment;
@@ -133,80 +134,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         private async Task<bool> UpdatePlugin() {
-
-            var pluginPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.UnchainedPluginPath);
-            var pluginExists = File.Exists(pluginPath);
-
             if (!Settings.EnablePluginAutomaticUpdates && pluginExists) return true;
 
-            var latestPlugin = await PluginReleaseLocator.GetLatestRelease();
-            if (latestPlugin == null) return false;
-
-            SemVersion? currentPluginVersion = null;
-            if (pluginExists) {
-                var fileInfo = FileVersionInfo.GetVersionInfo(pluginPath);
-
-                var versionString = fileInfo.ProductVersion ?? fileInfo.FileVersion;
-                logger.Debug("Raw plugin version: " + versionString);
-                var splitVersionString = versionString.Split('.');
-                versionString = String.Join('.', splitVersionString.Take(3));
-                logger.Debug("Cleaned plugin version: " + versionString);
-
-                var successful = SemVersion.TryParse(
-                    versionString,
-                    SemVersionStyles.Any,
-                    out currentPluginVersion
-                );
-
-                // If new version is the same as or less than current, don't download anything
-                if (successful && currentPluginVersion.ComparePrecedenceTo(latestPlugin.Version) >= 0) return true;
-            }
-
-            var titleString = pluginExists
-                ? "Update Unchained Plugin"
-                : "Install Unchained Plugin";
-
-            var messageText = pluginExists
-                ? "Updates for the Unchained Plugin are available."
-                : "The unchained plugin is not installed.";
-
-
-            var userResponse = UpdatesWindow.Show(
-                titleString,
-                messageText,
-                "Yes",
-                "No",
-                "Cancel",
-                new DependencyUpdate(
-                    "UnchainedPlugin.dll",
-                    Optional(currentPluginVersion?.ToString()),
-                    latestPlugin.Version.ToString(),
-                    latestPlugin.PageUrl,
-                    "Used for hosting and connecting to player owned servers. Required to run Chivalry 2 Unchained."
-                )
-            );
-
-            // The cases in here are all for exiting early.
-            switch (userResponse) {
-                // Continue launch, don't download or install anything
-                case MessageBoxResult.No:
-                    return true;
-                // Do not continue launch, don't download or install anything
-                case MessageBoxResult.Cancel:
-                case MessageBoxResult.None:
-                    return false;
-
-            }
-
-            var downloadResult = await HttpHelpers.DownloadReleaseTarget(
-                latestPlugin,
-                asset => (asset.Name == "UnchainedPlugin.dll") ? pluginPath : null
-            );
-
-            if (downloadResult == false)
-                MessageBox.Show("Failed to download Unchained Plugin. Aborting launch. Check the logs for more details.");
-
-            return downloadResult;
+          
         }
 
         private Thread CreateChivalryProcessWatcher(Process process) {

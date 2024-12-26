@@ -17,7 +17,8 @@ using System.Linq;
 using System.Reflection;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Utilities;
-using ReleaseAsset = UnchainedLauncher.Core.Utilities.ReleaseAsset;
+using UnchainedLauncher.Core.Utilities.Releases;
+using ReleaseAsset = UnchainedLauncher.Core.Utilities.Releases.ReleaseAsset;
 
 namespace UnchainedLauncher.Core.Installer {
     using static LanguageExt.Prelude;

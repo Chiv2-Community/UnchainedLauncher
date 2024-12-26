@@ -1,5 +1,6 @@
 ﻿using LanguageExt;
 using log4net;
+using UnchainedLauncher.Core.Utilities.Releases;
 
 namespace UnchainedLauncher.Core.Utilities {
     using static LanguageExt.Prelude;
@@ -116,7 +117,7 @@ namespace UnchainedLauncher.Core.Utilities {
                     }
 
                     try {
-                        await HttpHelpers.DownloadFileAsync(asset.DownloadUrl, downloadTarget!).Task;
+                        await DownloadFileAsync(asset.DownloadUrl, downloadTarget!).Task;
                         log($"Downloaded {asset.Name} to {downloadTarget!}");
                         return true;
                     }

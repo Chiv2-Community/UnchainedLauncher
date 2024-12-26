@@ -19,6 +19,7 @@ using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
+using UnchainedLauncher.Core.Utilities.Releases;
 using UnchainedLauncher.GUI.Views;
 
 namespace UnchainedLauncher.GUI.ViewModels {
@@ -96,7 +97,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         "Update Mods?",
                         $"Mod updates available.",
                         "Yes", "No", null,
-                        pendingUpdates.Select(x => DependencyUpdate.FromUpdateCandidate(x.Item2))
+                        pendingUpdates.Select(x => ReleaseUpdate.FromUpdateCandidate(x.Item2))
                     );
 
                 if (res.Contains(MessageBoxResult.Yes)) {

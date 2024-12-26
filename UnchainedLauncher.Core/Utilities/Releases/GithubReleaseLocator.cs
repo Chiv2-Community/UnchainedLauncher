@@ -1,43 +1,11 @@
-﻿
-
-using LanguageExt;
+﻿using LanguageExt;
 using log4net;
 using Octokit;
 using Semver;
 using System.Collections.Immutable;
-using UnchainedLauncher.Core.Installer;
 
-namespace UnchainedLauncher.Core.Utilities {
+namespace UnchainedLauncher.Core.Utilities.Releases {
     using static LanguageExt.Prelude;
-
-    public record ReleaseTarget(
-        string PageUrl,
-        string DescriptionMarkdown,
-        SemVersion Version,
-        IEnumerable<ReleaseAsset> Assets,
-        DateTimeOffset CreatedDate,
-        bool IsLatestStable,
-        bool IsPrerelease) {
-        public ReleaseTarget AsLatestStable() => this with { IsLatestStable = true };
-
-        public string DisplayText => $"v{Version} ({CreatedDate:d})" + (IsLatestStable ? " Recommended" : "");
-
-    }
-    public record ReleaseAsset(string Name, string DownloadUrl);
-
-    public interface IReleaseLocator {
-        /// <summary>
-        /// Returns the latest stable release of the target application.
-        /// </summary>
-        /// <returns></returns>
-        public Task<ReleaseTarget?> GetLatestRelease();
-
-        /// <summary>
-        /// Returns all releases of the target application, including pre-releases.
-        /// </summary>
-        /// <returns></returns>
-        public Task<IEnumerable<ReleaseTarget>> GetAllReleases();
-    }
 
     public class GithubReleaseLocator : IReleaseLocator {
         public static readonly ILog logger = LogManager.GetLogger(nameof(GithubReleaseLocator));
@@ -84,6 +52,7 @@ namespace UnchainedLauncher.Core.Utilities {
                     select new ReleaseTarget(
                         release.HtmlUrl,
                         release.Body,
+                        release.TagName,
                         version,
                         from asset in release.Assets
                         select new ReleaseAsset(asset.Name, asset.BrowserDownloadUrl),

@@ -21,6 +21,7 @@ using System.Windows;
 using System.Windows.Input;
 using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.Utilities.Releases;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
@@ -47,7 +48,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public ICommand ViewOnGithubCommand { get; }
 
         public VersionSelectionPageViewModel() : this(null) {
-            AvailableVersions.Add(new ReleaseTarget("test", "#foo\n\nBar.", new SemVersion(1, 2), new List<ReleaseAsset>(), DateTimeOffset.Now, true, false));
+            AvailableVersions.Add(new ReleaseTarget("test", "#foo\n\nBar.", "v1.2.0", new SemVersion(1, 2), new List<ReleaseAsset>(), DateTimeOffset.Now, true, false));
             SelectLatestVersion();
         }
 

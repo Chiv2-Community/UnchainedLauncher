@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.Utilities.Releases;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer {
     public partial class InstallerLogPageViewModel : IInstallerPageViewModel, INotifyPropertyChanged {
@@ -28,7 +29,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public InstallerLogPageViewModel() : this(
             new MockInstaller(),
             () => new List<DirectoryInfo>(),
-            () => new ReleaseTarget("", "", new SemVersion(0, 0), Array.Empty<ReleaseAsset>(), DateTimeOffset.Now, true, false)
+            () => new ReleaseTarget("", "", "v0.0.0", new SemVersion(0, 0), Array.Empty<ReleaseAsset>(), DateTimeOffset.Now, true, false)
         ) {
             AppendLog("Mocking installation log...");
             AppendLog("Doing things...");

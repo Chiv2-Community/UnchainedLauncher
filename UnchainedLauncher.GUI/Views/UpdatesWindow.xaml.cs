@@ -15,6 +15,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using UnchainedLauncher.Core.Utilities.Releases;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views {
@@ -30,13 +31,13 @@ namespace UnchainedLauncher.GUI.Views {
         public UpdatesWindowViewModel ViewModel { get; private set; }
         public MessageBoxResult Result => ViewModel.Result;
 
-        public UpdatesWindow(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates) {
+        public UpdatesWindow(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<ReleaseUpdate> updates) {
             ViewModel = new UpdatesWindowViewModel(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates, Close);
             DataContext = ViewModel;
             InitializeComponent();
         }
 
-        public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates) {
+        public static Option<MessageBoxResult> Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<ReleaseUpdate> updates) {
             if (!updates.Any()) {
                 logger.Info("No updates available");
                 return None;
@@ -54,7 +55,7 @@ namespace UnchainedLauncher.GUI.Views {
             return Some(result);
         }
 
-        public static MessageBoxResult Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, DependencyUpdate update) {
+        public static MessageBoxResult Show(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, ReleaseUpdate update) {
             return Show(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, new[] { update }).ValueUnsafe();
         }
     }

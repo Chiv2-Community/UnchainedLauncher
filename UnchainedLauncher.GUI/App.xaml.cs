@@ -71,8 +71,8 @@ namespace UnchainedLauncher.GUI {
                     ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
                     : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator, pluginReleaseLocator);
 
-            if(!createWindowTask.IsCompleted) createWindowTask.RunSynchronously();
-            
+            if (!createWindowTask.IsCompleted) createWindowTask.RunSynchronously();
+
             createWindowTask.Result?.Show();
         }
 
@@ -156,8 +156,8 @@ namespace UnchainedLauncher.GUI {
                 serverLauncherViewModel,
                 serversViewModel
             );
-            
-            var navigationPageProvider = 
+
+            var navigationPageProvider =
                 DictionaryBackedNavigationPageProvider.Builder()
                     .AddPage(new ModListView(), modListViewModel)
                     .AddPage(new SettingsView(), settingsViewModel)
@@ -165,9 +165,9 @@ namespace UnchainedLauncher.GUI {
                     .AddPage(new LauncherView(), launcherViewModel)
                     .AddPage(new ServerLauncherView(), serverLauncherViewModel)
                     .Build();
-            
+
             var navigationService = new NavigationService(navigationPageProvider);
-                
+
             return new MainWindow(navigationService, mainWindowViewModel);
         }
     }

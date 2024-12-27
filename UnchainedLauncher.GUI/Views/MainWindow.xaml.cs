@@ -2,8 +2,8 @@
 using System;
 using System.Windows;
 using UnchainedLauncher.GUI.ViewModels;
-using Wpf.Ui.Controls;
 using Wpf.Ui;
+using Wpf.Ui.Controls;
 
 namespace UnchainedLauncher.GUI.Views {
     /// <summary>
@@ -12,12 +12,12 @@ namespace UnchainedLauncher.GUI.Views {
     [AddINotifyPropertyChangedInterface]
     public partial class MainWindow : FluentWindow {
         public MainWindowViewModel ViewModel { get; }
-        
+
         public MainWindow(INavigationService navigationService, MainWindowViewModel vm) {
             DataContext = ViewModel = vm;
             InitializeComponent();
             Closed += MainWindow_Closed;
-            
+
             navigationService.SetNavigationControl(Navigation);
 
         }

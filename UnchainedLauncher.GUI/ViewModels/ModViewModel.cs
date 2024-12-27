@@ -50,9 +50,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public string Description {
             get {
-                var manifest = 
-                    EnabledRelease == null 
-                        ? Mod.LatestManifest 
+                var manifest =
+                    EnabledRelease == null
+                        ? Mod.LatestManifest
                         : EnabledRelease.Manifest;
 
                 var message = manifest.Description;

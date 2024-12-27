@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Controls;
 
@@ -13,21 +12,21 @@ namespace UnchainedLauncher.GUI.Services {
     // elements
     record NavigationPageEntry<T>(string Title, SymbolRegular Icon, T Page, object DataContext) where T : FrameworkElement;
 
-    public interface IUsefulNavigationPageViewProvider: INavigationViewPageProvider {
-        
+    public interface IUsefulNavigationPageViewProvider : INavigationViewPageProvider {
+
     }
 
-    public class DictionaryBackedNavigationPageProvider: INavigationViewPageProvider {
+    public class DictionaryBackedNavigationPageProvider : INavigationViewPageProvider {
         private IDictionary<Type, FrameworkElement> PageDictionary { get; }
-        
+
         private DictionaryBackedNavigationPageProvider(IDictionary<Type, FrameworkElement> pageDictionary) {
             PageDictionary = pageDictionary;
         }
-        
+
         public object? GetPage(Type pageType) {
             return PageDictionary.TryGetValue(pageType).FirstOrDefault();
         }
-        
+
         public static DictionaryBackedNavigationPageProviderBuilder Builder() {
             return new DictionaryBackedNavigationPageProviderBuilder(
                 new Dictionary<Type, (FrameworkElement, object)>()
@@ -41,14 +40,14 @@ namespace UnchainedLauncher.GUI.Services {
                 PageDictionary = pageDictionary;
             }
 
-            public DictionaryBackedNavigationPageProviderBuilder AddPage<T>(T page, object dataContext) where T: FrameworkElement {
+            public DictionaryBackedNavigationPageProviderBuilder AddPage<T>(T page, object dataContext) where T : FrameworkElement {
                 PageDictionary.Add(typeof(T), (page, dataContext));
                 return this;
             }
 
             public DictionaryBackedNavigationPageProvider Build() {
-                var dict  = new Dictionary<Type, FrameworkElement>();
-                
+                var dict = new Dictionary<Type, FrameworkElement>();
+
                 foreach (var (k, (page, dataContext)) in PageDictionary) {
                     page.DataContext = dataContext;
                     dict.Add(k, page);

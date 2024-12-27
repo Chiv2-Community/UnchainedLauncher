@@ -3,10 +3,8 @@ using System.Globalization;
 using System.Windows.Data;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 
-namespace UnchainedLauncher.GUI.Converters
-{
-    public class ReleaseToTagConverter : IValueConverter
-    {
+namespace UnchainedLauncher.GUI.Converters {
+    public class ReleaseToTagConverter : IValueConverter {
         public object Convert(object? value, Type targetType, object parameter, CultureInfo culture) {
             return value switch {
                 Release release => release.Tag,
@@ -15,8 +13,7 @@ namespace UnchainedLauncher.GUI.Converters
             };
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        {
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) {
             throw new NotImplementedException();
         }
     }

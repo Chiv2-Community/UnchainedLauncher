@@ -1,13 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 using UnchainedLauncher.GUI.ViewModels.Installer;
+using Wpf.Ui.Controls;
 
 namespace UnchainedLauncher.GUI.Views.Installer {
     /// <summary>
     /// Interaction logic for LaunchUnchainedLauncherWindow.xaml
     /// </summary>
-    public partial class LaunchUnchainedLauncherWindow : Window {
+    public partial class LaunchUnchainedLauncherWindow : FluentWindow {
         public LaunchUnchainedLauncherWindow() {
             InitializeComponent();
         }

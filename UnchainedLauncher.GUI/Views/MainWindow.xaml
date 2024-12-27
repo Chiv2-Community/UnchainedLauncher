@@ -21,36 +21,34 @@
         </Grid.RowDefinitions>
 
         <ui:TitleBar Grid.Row="0" Title="Unchained Launcher" ShowClose="True" />
-        <ui:NavigationView x:Name="Navigation" Grid.Row="1" IsBackButtonVisible="Collapsed">
+        <ui:NavigationView x:Name="Navigation" Grid.Row="1" IsBackButtonVisible="Collapsed" Padding="0" FrameMargin="0" OpenPaneLength="160">
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem Content="Launcher" TargetPageType="{x:Type local:LauncherView}">
                     <ui:NavigationViewItem.Icon>
-                        <ui:SymbolIcon Symbol="Home24" />
+                        <ui:SymbolIcon Symbol="Rocket24" Filled="True"  />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
                 <ui:NavigationViewItem Content="Mod Manager" TargetPageType="{x:Type local:ModListView}">
                     <ui:NavigationViewItem.Icon>
-                        <ui:SymbolIcon Symbol="DataHistogram24" />
+                        <ui:SymbolIcon Symbol="BoxEdit24" Filled="True"  />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Server Launcher" TargetPageType="{x:Type local:ServerLauncherView}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="ServerPlay20" Filled="True"  />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Server Manager" TargetPageType="{x:Type local:ServersView}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="ServerMultiple20"  Filled="True" />
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+                <ui:NavigationViewItem Content="Launcher Settings" TargetPageType="{x:Type local:SettingsView}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:SymbolIcon Symbol="Settings48" />
                     </ui:NavigationViewItem.Icon>
                 </ui:NavigationViewItem>
             </ui:NavigationView.MenuItems>
         </ui:NavigationView>
-       <!--<ui:TabView>
-            <ui:TabViewItem Header="Launcher">
-                <local:LauncherView DataContext="{Binding LauncherViewModel}" />
-            </ui:TabViewItem>
-            <ui:TabViewItem Header="Mod Manager">
-                <local:ModListView DataContext="{Binding ModListViewModel}" />
-            </ui:TabViewItem>
-            <ui:TabViewItem Header="Server">
-                <local:ServerLauncherView DataContext="{Binding ServerLauncherViewModel}" />
-            </ui:TabViewItem>
-            <ui:TabViewItem Header="Settings">
-                <local:SettingsView DataContext="{Binding SettingsViewModel}" />
-            </ui:TabViewItem>
-            <ui:TabViewItem Header="Running Servers">
-                <local:ServersView DataContext="{Binding ServersViewModel}" />
-            </ui:TabViewItem>
-        </ui:TabView>-->
-        </Grid>
+    </Grid>
 </ui:FluentWindow>

@@ -67,8 +67,8 @@ namespace UnchainedLauncher.Core.Mods {
         /// <param name="release">The release to disable</param>
         /// <returns>Either an error containing information about why this failed, or nothing if it was successful.</returns>
         public EitherAsync<DisableModFailure, Unit> DisableMod(Mod mod) {
-            return GetCurrentlyEnabledReleaseForMod(mod).Match(
-                Some: release => DisableModRelease(release),
+            return Optional(GetCurrentlyEnabledReleaseForMod(mod)).Match(
+                Some: DisableModRelease,
                 None: () => EitherAsync<DisableModFailure, Unit>.Right(default)
             );
         }
@@ -79,8 +79,8 @@ namespace UnchainedLauncher.Core.Mods {
         /// </summary>
         /// <param name="mod"></param>
         /// <returns></returns>
-        public Option<Release> GetCurrentlyEnabledReleaseForMod(Mod mod) {
-            return Optional(EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl));
+        public Release? GetCurrentlyEnabledReleaseForMod(Mod mod) {
+            return EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl);
         }
 
         /// <summary>
@@ -90,7 +90,7 @@ namespace UnchainedLauncher.Core.Mods {
         public IEnumerable<UpdateCandidate> GetUpdateCandidates() {
             return Mods
                .SelectMany(mod =>
-                   (GetCurrentlyEnabledReleaseForMod(mod), mod.LatestRelease)
+                   (Optional(GetCurrentlyEnabledReleaseForMod(mod)), mod.LatestRelease)
                        .Sequence() // Convert (Option<Release>, Option<Release>) to Option<(Release, Release)>
                        .Bind(tuple => UpdateCandidate.CreateIfNewer(tuple.Item1, tuple.Item2))
                );

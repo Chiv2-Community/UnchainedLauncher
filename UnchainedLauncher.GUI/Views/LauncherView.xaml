@@ -19,26 +19,26 @@
         </Grid.ColumnDefinitions>
 
 
-        <Button Grid.Column="0" 
+        <ui:Button Grid.Column="0" 
                 TextBlock.TextAlignment="Center" 
                 Margin="5"
                 Content="Chivalry 2" 
                 ToolTip="{Binding ButtonToolTip}" 
                 Command="{Binding LaunchVanillaCommand}" 
-                IsEnabled="{Binding CanClick}" />
+                IsEnabled="{Binding Settings.CanClick}" />
         
-        <Button Grid.Column="1" 
+        <ui:Button Grid.Column="1" 
                 TextBlock.TextAlignment="Center" 
                 Margin="5" Content="Chivalry 2&#xa;with Mods"   
                 ToolTip="{Binding ButtonToolTip}" 
                 Command="{Binding LaunchModdedVanillaCommand}" 
-                IsEnabled="{Binding CanClick}" />
+                IsEnabled="{Binding Settings.CanClick}" />
         
-        <Button Grid.Column="2" 
+        <ui:Button Grid.Column="2" 
                 TextBlock.TextAlignment="Center" 
                 Margin="5" Content="Chivalry 2&#xa;Unchained"   
                 ToolTip="{Binding ButtonToolTip}" 
                 Command="{Binding LaunchUnchainedCommand}" 
-                IsEnabled="{Binding CanClick}" />
+                IsEnabled="{Binding Settings.CanClick}" />
     </Grid>
 </UserControl>

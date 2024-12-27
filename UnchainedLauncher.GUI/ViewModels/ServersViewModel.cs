@@ -31,7 +31,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     // TODO: this is not valid because it could dispose a backend before
                     // the servers using it are disposed. This will cause those servers to
                     // use a disposed backend. (erroneous behavior) Disposal of the backend
-                    // should be the responsability of the servers which hold references to them.
+                    // should be the responsibility of the servers which hold references to them.
                     oldBackend.Dispose();
                 }
 

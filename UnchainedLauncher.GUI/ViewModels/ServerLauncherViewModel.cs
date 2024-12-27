@@ -39,7 +39,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public bool ShowInServerBrowser { get; set; }
         public ObservableCollection<string> MapsList { get; set; }
         private IUnchainedChivalry2Launcher Launcher { get; }
-        private SettingsViewModel SettingsViewModel { get; }
+        public SettingsViewModel SettingsViewModel { get; }
         private ServersViewModel ServersViewModel { get; }
         public string ButtonToolTip { get; set; }
         public ICommand LaunchServerCommand { get; }

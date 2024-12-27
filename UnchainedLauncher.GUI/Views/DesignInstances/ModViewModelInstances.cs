@@ -7,14 +7,13 @@ using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
-    using static LanguageExt.Prelude;
 
     public static class ModViewModelInstances {
         public static ModViewModel DEFAULT => CreateDefaultModViewModel();
 
         public static readonly ModManifest DesignViewManifest = new ModManifest(
             "https://github.com/Gooner/FinallyMod",
-            "FinallyMod",
+            "Big Mod",
             "It has finally been done",
             "https://example.com",
             "https://avatars.githubusercontent.com/u/108312122?s=96&v=4",
@@ -40,7 +39,7 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
         private static ModViewModel CreateDefaultModViewModel() {
             return new ModViewModel(
                 DesignViewMod,
-                Some(DesignViewRelease),
+                DesignViewRelease,
                 new ModManager(new HashMap<IModRegistry, IEnumerable<Mod>>(), new List<Release>())
             );
         }

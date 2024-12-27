@@ -18,14 +18,14 @@
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
         <!-- Global layout -->
-        <TextBlock Text="Select one of your running servers" Grid.Row="0"/>
+        <ui:TextBlock Text="Select one of your running servers" Grid.Row="0"/>
         <!-- servers as tabs -->
         <TabControl ItemsSource="{Binding Servers}" 
                     SelectedIndex="{Binding Index, Mode=OneWayToSource}"
                     Grid.Row="1">
             <TabControl.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock Text="{Binding Server.RegistrationHandler.ServerInfo.Name}" />
+                    <ui:TextBlock Text="{Binding Server.RegistrationHandler.ServerInfo.Name}" />
                 </DataTemplate>
             </TabControl.ItemTemplate>
             <TabControl.ContentTemplate>
@@ -38,7 +38,7 @@
                         <!-- Data display -->
                         <StackPanel Grid.Column="0">
                             <!-- A2S status display -->
-                            <TextBlock ToolTip="{Binding Server.RegistrationHandler.A2SWatcher.LastException.Message}">
+                            <ui:TextBlock ToolTip="{Binding Server.RegistrationHandler.A2SWatcher.LastException.Message}">
                                         <Run Text="A2S Status (hover for errors): "/>
                                         <InlineUIContainer BaselineAlignment="Center">
                                             <Ellipse Width="13" Height="13">
@@ -54,9 +54,9 @@
                                                 </Ellipse.Style>
                                             </Ellipse>
                                         </InlineUIContainer>
-                            </TextBlock>
+                            </ui:TextBlock>
                             <!-- HTTP status display -->
-                            <TextBlock ToolTip="{Binding Server.RegistrationHandler.Registration.LastException.Message}">
+                            <ui:TextBlock ToolTip="{Binding Server.RegistrationHandler.Registration.LastException.Message}">
                                         <Run Text="Backend Status (hover for errors): "/>
                                         <InlineUIContainer BaselineAlignment="Center">
                                             <Ellipse Width="13" Height="13">
@@ -75,35 +75,35 @@
                                                 </Ellipse.Style>
                                             </Ellipse>
                                         </InlineUIContainer>
-                            </TextBlock>
+                            </ui:TextBlock>
                             <ContentControl Content="{Binding Server.RegistrationHandler.Registration}">
                                 <ContentControl.ContentTemplate>
                                     <DataTemplate>
                                         <StackPanel>
-                                            <TextBlock>
+                                            <ui:TextBlock>
                                                         <Run Text="ID: "/>
                                                         <Run Text="{Binding Registration.Server.UniqueId}"/>
-                                            </TextBlock>
-                                            <TextBlock>
+                                            </ui:TextBlock>
+                                            <ui:TextBlock>
                                                         <Run Text="Name: "/>
                                                         <Run Text="{Binding Registration.Server.Name}"/>
-                                            </TextBlock>
-                                            <TextBlock>
+                                            </ui:TextBlock>
+                                            <ui:TextBlock>
                                                         <Run Text="Map: "/>
                                                         <Run Text="{Binding Registration.Server.CurrentMap}"/>
-                                            </TextBlock>
-                                            <TextBlock>
+                                            </ui:TextBlock>
+                                            <ui:TextBlock>
                                                         <Run Text="Players: "/>
                                                         <Run Text="{Binding Registration.Server.PlayerCount}"/>
                                                         /
                                                         <Run Text="{Binding Registration.Server.MaxPlayers}"/>
-                                            </TextBlock>
+                                            </ui:TextBlock>
                                         </StackPanel>
                                     </DataTemplate>
                                 </ContentControl.ContentTemplate>
                             </ContentControl>
-                            <TextBlock Text=""/>
-                            <TextBlock Text="Ports:"/>
+                            <ui:TextBlock Text=""/>
+                            <ui:TextBlock Text="Ports:"/>
                             <!-- Ports outline -->
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -117,17 +117,17 @@
                                     <RowDefinition/>
                                     <RowDefinition/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" Text="Game: "/>
-                                <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.Game}"/>
+                                <ui:TextBlock Grid.Row="0" Grid.Column="1" HorizontalAlignment="Right" Text="Game: "/>
+                                <ui:TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.Game}"/>
 
-                                <TextBlock Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" Text="Ping: "/>
-                                <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.Ping}"/>
+                                <ui:TextBlock Grid.Row="1" Grid.Column="1" HorizontalAlignment="Right" Text="Ping: "/>
+                                <ui:TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.Ping}"/>
 
-                                <TextBlock Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" Text="A2S: "/>
-                                <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.A2s}"/>
+                                <ui:TextBlock Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" Text="A2S: "/>
+                                <ui:TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.A2s}"/>
 
-                                <TextBlock Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Text="RCON: "/>
-                                <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding RconPort}"/>
+                                <ui:TextBlock Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Text="RCON: "/>
+                                <ui:TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding RconPort}"/>
 
                             </Grid>
                         </StackPanel>
@@ -138,8 +138,8 @@
                                 <RowDefinition/>
                                 <RowDefinition Height="auto"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Text="Rcon Console:" Grid.Row="0"/>
-                            <TextBox 
+                            <ui:TextBlock Text="Rcon Console:" Grid.Row="0"/>
+                            <ui:TextBox 
                                         Text="{Binding RconHistory}" 
                                         Grid.Row="1"
                                         IsReadOnly="True" 
@@ -151,24 +151,24 @@
                                     <ColumnDefinition/>
                                     <ColumnDefinition Width="auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBox 
+                                <ui:TextBox 
                                             Grid.Column="0" 
                                             Margin="5"
                                             AcceptsReturn="False"
                                             Text="{Binding CurrentRconCommand, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                    <TextBox.InputBindings>
+                                    <ui:TextBox.InputBindings>
                                         <KeyBinding Command="{Binding SubmitRconCommand}" Key="Enter"/>
                                         <KeyBinding Command="{Binding SubmitRconCommand}" Key="Return"/>
-                                    </TextBox.InputBindings>
-                                </TextBox>
-                                <Button Grid.Column="1" Content=" Send " Command="{Binding SubmitRconCommand}"/>
+                                    </ui:TextBox.InputBindings>
+                                </ui:TextBox>
+                                <ui:Button Grid.Column="1" Content=" Send " Command="{Binding SubmitRconCommand}"/>
                             </Grid>
                         </Grid>
                     </Grid>
                 </DataTemplate>
             </TabControl.ContentTemplate>
         </TabControl>
-        <Button Content="Shut down currently selected server"
+        <ui:Button Content="Shut down currently selected server"
                     Grid.Row="2" 
                     Command="{Binding ShutdownCurrentTabCommand}" 
                     DockPanel.Dock="Bottom"/>

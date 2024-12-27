@@ -1,7 +1,9 @@
 ﻿using PropertyChanged;
 using System;
+using System.Windows;
 using UnchainedLauncher.GUI.ViewModels;
 using Wpf.Ui.Controls;
+using Wpf.Ui;
 
 namespace UnchainedLauncher.GUI.Views {
     /// <summary>
@@ -10,15 +12,19 @@ namespace UnchainedLauncher.GUI.Views {
     [AddINotifyPropertyChangedInterface]
     public partial class MainWindow : FluentWindow {
         public MainWindowViewModel ViewModel { get; }
-
-        public MainWindow(MainWindowViewModel vm) {
+        
+        public MainWindow(INavigationService navigationService, MainWindowViewModel vm) {
             DataContext = ViewModel = vm;
             InitializeComponent();
             Closed += MainWindow_Closed;
+            
+            navigationService.SetNavigationControl(Navigation);
+
         }
 
         private void MainWindow_Closed(object? sender, EventArgs e) {
             ViewModel.Dispose();
+            Application.Current.Shutdown();
         }
     }
 }

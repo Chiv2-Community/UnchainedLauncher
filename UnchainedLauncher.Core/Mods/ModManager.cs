@@ -7,6 +7,7 @@ using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
+using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Mods {
 
@@ -129,8 +130,8 @@ namespace UnchainedLauncher.Core.Mods {
         }
 
         public EitherAsync<EnableModFailure, Unit> EnableModRelease(Release release, Option<IProgress<double>> progress, CancellationToken cancellationToken) {
-            var associatedMod = Mods.First(Mods => Mods.Releases.Contains(release));
-            var maybeCurrentlyEnabledRelease = AsIModManager.GetCurrentlyEnabledReleaseForMod(associatedMod);
+            var associatedMod = Optional(Mods.FirstOrDefault(Mods => Mods.Releases.Contains(release)));
+            var maybeCurrentlyEnabledRelease = associatedMod.Bind(x => Optional(AsIModManager.GetCurrentlyEnabledReleaseForMod(x)));
 
             var whenNone = () => {
                 logger.Info($"Enabling {release.Manifest.Name} version {release.Tag}");

@@ -1,5 +1,4 @@
-﻿using LanguageExt;
-using log4net;
+﻿using log4net;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -14,13 +13,14 @@ using UnchainedLauncher.Core.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.Installer;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
+using Wpf.Ui;
 
 namespace UnchainedLauncher.GUI {
-    using static LanguageExt.Prelude;
 
     /// <summary>
     /// Interaction logic for App.xaml
@@ -71,7 +71,8 @@ namespace UnchainedLauncher.GUI {
                     ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
                     : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator, pluginReleaseLocator);
 
-            createWindowTask.RunSynchronously();
+            if(!createWindowTask.IsCompleted) createWindowTask.RunSynchronously();
+            
             createWindowTask.Result?.Show();
         }
 
@@ -151,14 +152,23 @@ namespace UnchainedLauncher.GUI {
             }
 
             var mainWindowViewModel = new MainWindowViewModel(
-                launcherViewModel,
-                modListViewModel,
                 settingsViewModel,
                 serverLauncherViewModel,
                 serversViewModel
             );
-
-            return new MainWindow(mainWindowViewModel);
+            
+            var navigationPageProvider = 
+                DictionaryBackedNavigationPageProvider.Builder()
+                    .AddPage(new ModListView(), modListViewModel)
+                    .AddPage(new SettingsView(), settingsViewModel)
+                    .AddPage(new ServersView(), serversViewModel)
+                    .AddPage(new LauncherView(), launcherViewModel)
+                    .AddPage(new ServerLauncherView(), serverLauncherViewModel)
+                    .Build();
+            
+            var navigationService = new NavigationService(navigationPageProvider);
+                
+            return new MainWindow(navigationService, mainWindowViewModel);
         }
     }
 }

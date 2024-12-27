@@ -35,7 +35,7 @@
 
 
 
-            <TextBlock Text="Installation Type:" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" />
+            <ui:TextBlock Text="Installation Type:" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" />
             <ComboBox SelectedItem="{Binding InstallationType,Mode=TwoWay}" ItemsSource="{Binding AllInstallationTypes}" Margin="5" Grid.Column="1" VerticalAlignment="Center" Width="NaN" />
         </Grid>
 
@@ -44,8 +44,8 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Text="Additional Mod Actors:" Margin="5" Grid.Column="0" Grid.ColumnSpan="2"/>
-            <TextBox Text="{Binding AdditionalModActors, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
+            <ui:TextBlock Text="Additional Mod Actors:" Margin="5" Grid.Column="0" Grid.ColumnSpan="2"/>
+            <ui:TextBox Text="{Binding AdditionalModActors, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
         </Grid>
 
         <Grid Grid.Row="1" Grid.Column="1">
@@ -53,18 +53,18 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <TextBlock Text="Server Browser Backend:" Margin="5" Grid.Column="0" Grid.ColumnSpan="2"/>
-            <TextBox Text="{Binding ServerBrowserBackend, Mode=TwoWay}" IsEnabled="False" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
+            <ui:TextBlock Text="Server Browser Backend:" Margin="5" Grid.Column="0" Grid.ColumnSpan="2"/>
+            <ui:TextBox Text="{Binding ServerBrowserBackend, Mode=TwoWay}" IsEnabled="False" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
         </Grid>
 
         <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Column="1" Content="Enable Automatic Plugin Updates and Downloads" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Center" />
 
-        <TextBlock Text="CLI Args:" Grid.Row="2" Grid.ColumnSpan ="3" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>
-        <TextBox Text="{Binding CLIArgs}" Grid.Row="4" Grid.ColumnSpan ="3" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
+        <ui:TextBlock Text="CLI Args:" Grid.Row="2" Grid.ColumnSpan ="3" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>
+        <ui:TextBox Text="{Binding CLIArgs}" Grid.Row="4" Grid.ColumnSpan ="3" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
 
-        <Button Content="Clean Up Installation" Grid.Row="5" Grid.Column="0" Margin="5" Command="{Binding CleanUpInstallationCommand}" />
-        <Button Content="Check for updates" Grid.Row="5" Grid.Column="1" Margin="5" Command="{Binding CheckForUpdateCommand}" />
+        <ui:Button Content="Clean Up Installation" Grid.Row="5" Grid.Column="0" Margin="5" Command="{Binding CleanUpInstallationCommand}" />
+        <ui:Button Content="Check for updates" Grid.Row="5" Grid.Column="1" Margin="5" Command="{Binding CheckForUpdateCommand}" />
 
-        <TextBlock Text="{Binding CurrentVersion}" Grid.Row="5" Grid.ColumnSpan ="2" Grid.Column="2" HorizontalAlignment="Center" Height="NaN" Margin="0,0,0,0" VerticalAlignment="Center" Width="NaN" />
+        <ui:TextBlock Text="{Binding CurrentVersion}" Grid.Row="5" Grid.ColumnSpan ="2" Grid.Column="2" HorizontalAlignment="Center" Height="NaN" Margin="0,0,0,0" VerticalAlignment="Center" Width="NaN" />
     </Grid>
 </UserControl>

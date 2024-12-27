@@ -9,56 +9,67 @@
              xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
              mc:Ignorable="d" 
              d:DataContext="{x:Static instances:ModListViewModelInstances.DEFAULT}"
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="450" d:DesignWidth="800"
+             >
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="40"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="345*"/>
-            <ColumnDefinition Width="149*"/>
-            <ColumnDefinition Width="150*"/>
-        </Grid.ColumnDefinitions>
+        <!-- Button Panel -->
+        <StackPanel Grid.Row="0" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right" 
+                    Margin="0,5,10,5">
+            <ui:Button x:Name="UpdateModsButton" 
+                      Content="Update Mods" 
+                      Command="{Binding UpdateModsCommand}" 
+                      Margin="0,0,10,0"/>
+            <ui:Button x:Name="RefreshModListButton" 
+                      Content="Refresh Mod List" 
+                      Command="{Binding RefreshModListCommand}" 
+                      Margin="0,0,0,0"/>
+        </StackPanel>
 
-        <ui:DataGrid 
-                    x:Name="ModListDataGrid" 
-                    IsReadOnly="True"  
-                    Grid.RowSpan="2" 
-                    Grid.ColumnSpan="1" 
-                    ItemsSource="{Binding DisplayMods}" 
-                    SelectedValue="{Binding SelectedMod}" 
-                    AutoGenerateColumns="False" 
-                    Margin="0,5,5,0" 
-                    SelectionMode="Single" 
-                    SelectionUnit="FullRow"   
-                    >
-            <ui:DataGrid.RowStyle>
-                <Style TargetType="DataGridRow">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding HasError}" Value="true">
-                            <Setter Property="Background" Value="Red"></Setter>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding HasError}" Value="false">
-                            <Setter Property="Background" Value="White"></Setter>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </ui:DataGrid.RowStyle>
-            <ui:DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Mod.LatestManifest.Name}"/>
-                <DataGridTextColumn Header="Mod Type" Binding="{Binding Mod.LatestManifest.ModType}"/>
-                <DataGridTextColumn Header="Tags" Binding="{Binding TagsString}"/>
-                <DataGridTextColumn Header="Enabled" Binding="{Binding EnabledVersion}"/>
-            </ui:DataGrid.Columns>
-        </ui:DataGrid>
-
-        <Button x:Name="RefreshModListButton" Content="Refresh Mod List" Grid.Row="0" Grid.Column="2" Command="{Binding RefreshModListCommand}" Margin="2,5,1,5"/>
-        <Button x:Name="UpdateModsButton" Content="Update Mods" Grid.Row="0" Grid.Column="1" Command="{Binding UpdateModsCommand}" Margin="0,5,2,5"/>
-
-        <Border BorderBrush="Black" BorderThickness="1" Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="1" />
-        
-        <local:ModView DataContext="{Binding SelectedMod}" Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="1" />
+        <!-- Vertical List Container -->
+        <Grid Grid.Row="1" Margin="0,0,10,0">
+            <ListBox ItemsSource="{Binding DisplayMods}"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    VirtualizingPanel.IsVirtualizing="True"
+                    VirtualizingPanel.VirtualizationMode="Recycling"
+                    ScrollViewer.VerticalScrollBarVisibility="Visible"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <ContentPresenter/>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <local:ModView DataContext="{Binding}"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                <ListBox.Template>
+                    <ControlTemplate TargetType="ListBox">
+                        <ScrollViewer Padding="0,0,10,0" 
+                                    VerticalScrollBarVisibility="Visible" 
+                                    HorizontalScrollBarVisibility="Disabled">
+                            <ItemsPresenter />
+                        </ScrollViewer>
+                    </ControlTemplate>
+                </ListBox.Template>
+            </ListBox>
+        </Grid>
     </Grid>
 </UserControl>

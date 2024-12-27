@@ -7,30 +7,75 @@
              xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views"
              xmlns:vms="clr-namespace:UnchainedLauncher.GUI.ViewModels"
              xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
+             xmlns:converters="clr-namespace:UnchainedLauncher.GUI.Converters"
              mc:Ignorable="d" 
              d:DataContext="{x:Static instances:ModViewModelInstances.DEFAULT}"
-             d:DesignHeight="450" d:DesignWidth="800">
+             Height="42"
+             MinWidth="400">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="40"/>
-        </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="80"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
-        
-        <TextBox Text="{Binding Description, Mode=OneWay}" Background="Transparent" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" Margin="5" BorderThickness="0" IsReadOnly="True" TextWrapping="Wrap"  />
-        <Button Content="{Binding ButtonText}" Grid.Row="1" Grid.Column="0" Command="{Binding ButtonCommand}"/>
-        <ComboBox ItemsSource="{Binding Mod.Releases, Mode=TwoWay}" 
-                              SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
-                              DisplayMemberPath="Tag"
-                              Grid.Row="1" 
-                              Grid.Column="1" 
-                              Height="NaN" 
-                              Margin="5" 
-                              VerticalAlignment="Stretch"
-                              Width="NaN" FontSize="18"/>
+
+        <!-- Menu Button -->
+        <ui:Button Grid.Column="0" Width="28" Height="28" Margin="0,0" Padding="0">
+            <ui:SymbolIcon Symbol="CalendarAgenda28"/>
+        </ui:Button>
+
+        <!-- Enabled Checkbox -->
+        <CheckBox Grid.Column="2" IsChecked="{Binding IsEnabled}" Margin="2,0"/>
+
+        <!-- Version Dropdown -->
+        <ComboBox Grid.Column="3" 
+                  ItemsSource="{Binding Mod.Releases}"
+                  SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
+                  Width="80"
+                  Height="24"
+                  Padding="5,0"
+                  Margin="2,0" >
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Tag}"/>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+            <ComboBox.SelectedValuePath>Tag</ComboBox.SelectedValuePath>
+        </ComboBox>
+
+        <!-- Mod Name -->
+        <ui:TextBlock Grid.Column="4" 
+                   Text="{Binding Mod.LatestManifest.Name}" 
+                   VerticalAlignment="Center"
+                   Margin="4,0"/>
+
+        <!-- Dynamic Tags -->
+        <ItemsControl Grid.Column="5" 
+                      ItemsSource="{Binding Mod.LatestManifest.Tags}"
+                      VerticalAlignment="Center">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Background="#FF404040" 
+                            CornerRadius="2" 
+                            Margin="2,0" 
+                            Padding="4,1">
+                        <ui:TextBlock Text="{Binding}"/>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
     </Grid>
 </UserControl>

@@ -32,6 +32,9 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
 
             moddedLaunchArgs.Insert(offsetIndex, " " + launchOpts);
 
+            if (!moddedLaunchArgs.Contains("--saveddirsuffix"))
+                moddedLaunchArgs += " --saveddirsuffix=Unchained";
+
             PrepareModdedLaunchSigs();
 
             logger.Info($"Launch args: {moddedLaunchArgs}");

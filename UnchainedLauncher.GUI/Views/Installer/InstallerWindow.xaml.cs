@@ -1,8 +1,9 @@
 ﻿using System.Windows;
 using UnchainedLauncher.GUI.ViewModels.Installer;
+using Wpf.Ui.Controls;
 
 namespace UnchainedLauncher.GUI.Views.Installer {
-    public partial class InstallerWindow : Window {
+    public partial class InstallerWindow : FluentWindow {
         public InstallerWindow(InstallerWindowViewModel installerWindowViewModel) {
             DataContext = installerWindowViewModel;
             InitializeComponent();

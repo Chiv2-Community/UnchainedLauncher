@@ -54,7 +54,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             this.LaunchVanillaCommand = new RelayCommand(() => LaunchVanilla(false));
             this.LaunchModdedVanillaCommand = new RelayCommand(() => LaunchVanilla(true));
-            this.LaunchUnchainedCommand = new RelayCommand(() => LaunchUnchained());
+            this.LaunchUnchainedCommand = new AsyncRelayCommand(async () => await LaunchUnchained());
 
             PluginReleaseLocator = pluginReleaseLocator;
         }

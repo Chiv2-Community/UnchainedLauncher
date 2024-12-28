@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
         xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="{Binding TitleText}"
         MinHeight="100"
         MinWidth="300"
@@ -39,26 +40,26 @@
             <RowDefinition Height="20*" MinHeight="50" />
         </Grid.RowDefinitions>
 
-        <TextBlock Text="{Binding MessageText}" Grid.ColumnSpan="3" />
+        <ui:TextBlock Text="{Binding MessageText}" Grid.ColumnSpan="3" />
 
         <ListView ItemsSource="{Binding Updates}" Grid.ColumnSpan="3" Grid.Row="1" BorderThickness="0,1,0,1">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Vertical">
                         <StackPanel Orientation="Horizontal" Margin="5,5,5,0">
-                            <TextBlock Text="{Binding Name}" />
-                            <TextBlock Text=": " />
-                            <TextBlock Text="{Binding Reason}" />
+                            <ui:TextBlock Text="{Binding Name}" />
+                            <ui:TextBlock Text=": " />
+                            <ui:TextBlock Text="{Binding Reason}" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="5,0,5,5" >
-                            <TextBlock Text="Version: " />
-                            <TextBlock Text="{Binding VersionString}" />
-                            <TextBlock Text=" " />
-                            <TextBlock>
+                            <ui:TextBlock Text="Version: " />
+                            <ui:TextBlock Text="{Binding VersionString}" />
+                            <ui:TextBlock Text=" " />
+                            <ui:TextBlock>
                                     <Hyperlink NavigateUri="{Binding ReleaseUrl}" Command="{Binding HyperlinkCommand}">
                                         View Release Information
                                     </Hyperlink>
-                            </TextBlock>
+                            </ui:TextBlock>
                         </StackPanel>
                     </StackPanel>
                 </DataTemplate>
@@ -78,8 +79,8 @@
         </ListView>
 
 
-        <Button Name="Yes" IsDefault="True" Grid.Row="2" Content="{Binding YesButtonText}" Command="{Binding YesCommand}" Margin="10,10,0,10" />
-        <Button Grid.Column="1" Grid.Row="2" Content="{Binding NoButtonText}"  Command="{Binding NoCommand}" Margin="{Binding NoButtonMargin}" />
-        <Button Visibility="{Binding ShowCancelButton}" IsCancel="True" Grid.Column="2" Grid.Row="2" Content="{Binding CancelButtonText}"  Command="{Binding CancelCommand}" Margin="5,10,10,10" />
+        <ui:Button Grid.Column="0" Grid.Row="2" Name="Yes" IsDefault="True" Content="{Binding YesButtonText}" Command="{Binding YesCommand}" Margin="10,10,0,10" />
+        <ui:Button Grid.Column="1" Grid.Row="2" Content="{Binding NoButtonText}"  Command="{Binding NoCommand}" Margin="{Binding NoButtonMargin}" />
+        <ui:Button Grid.Column="2" Grid.Row="2" Visibility="{Binding CancelButtonVisibility}" IsCancel="True" Content="{Binding CancelButtonText}"  Command="{Binding CancelCommand}" Margin="5,10,10,10" />
     </Grid >
 </Window>

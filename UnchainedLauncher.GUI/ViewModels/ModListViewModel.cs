@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -15,9 +14,10 @@ using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.GUI.Views;
+using static LanguageExt.Prelude;
+
 
 namespace UnchainedLauncher.GUI.ViewModels {
-    using static LanguageExt.Prelude;
 
     public partial class ModListViewModel : INotifyPropertyChanged {
         private readonly ILog logger = LogManager.GetLogger(nameof(ModListViewModel));

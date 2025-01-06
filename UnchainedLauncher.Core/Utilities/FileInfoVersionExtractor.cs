@@ -3,9 +3,9 @@ using Semver;
 using System.Diagnostics;
 
 namespace UnchainedLauncher.Core.Utilities {
-
+    
     public interface IVersionExtractor<T> {
-
+        
         /// <summary>
         /// Provided some target T (like a file path), output the SemVersion of the associated object.
         /// </summary>
@@ -22,7 +22,7 @@ namespace UnchainedLauncher.Core.Utilities {
 
         public SemVersion? GetVersion(string filePath) {
             if (!File.Exists(filePath)) return null;
-
+            
             var fileInfo = FileVersionInfo.GetVersionInfo(filePath);
 
             var versionString = fileInfo.ProductVersion ?? fileInfo.FileVersion ?? "";
@@ -40,5 +40,5 @@ namespace UnchainedLauncher.Core.Utilities {
             }
         }
     }
-
+    
 }

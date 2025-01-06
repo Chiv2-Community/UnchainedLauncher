@@ -2,15 +2,19 @@
 using LanguageExt;
 using log4net;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.Views;
+using List = System.Windows.Documents.List;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -34,6 +38,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public IUnchainedChivalry2Launcher UnchainedLauncher { get; }
 
         public IReleaseLocator PluginReleaseLocator { get; }
+        
+        private IVersionExtractor<string> FileVersionExtractor { get; }
+        private IUserDialogueSpawner UserDialogueSpawner { get; }
 
         private IVersionExtractor<string> FileVersionExtractor { get; }
         private IUserDialogueSpawner UserDialogueSpawner { get; }
@@ -48,23 +55,23 @@ namespace UnchainedLauncher.GUI.ViewModels {
             ClientSideModdedLauncher = clientSideModdedLauncher;
             UnchainedLauncher = moddedLauncher;
             UserDialogueSpawner = dialogueSpawner;
-
+            
             FileVersionExtractor = fileVersionExtractor;
 
-            LaunchVanillaCommand = new RelayCommand(() => LaunchVanilla(false));
-            LaunchModdedVanillaCommand = new RelayCommand(() => LaunchVanilla(true));
+            LaunchVanillaCommand = new AsyncRelayCommand(async () => await LaunchVanilla(false));
+            LaunchModdedVanillaCommand = new AsyncRelayCommand(async () => await LaunchVanilla(true));
             LaunchUnchainedCommand = new AsyncRelayCommand(async () => await LaunchUnchained());
 
             PluginReleaseLocator = pluginReleaseLocator;
         }
 
-        public Option<Process> LaunchVanilla(bool enableMods) {
+        public async Task<Option<Process>> LaunchVanilla(bool enableMods) {
             // For a vanilla launch we need to pass the args through to the vanilla launcher.
             // Skip the first arg which is the path to the exe.
             var args = Settings.CLIArgs;
             var launchResult = enableMods
-                ? VanillaLauncher.Launch(args)
-                : ClientSideModdedLauncher.Launch(args);
+                ? await VanillaLauncher.Launch(args)
+                : await ClientSideModdedLauncher.Launch(args);
 
             if (!IsReusable())
                 Settings.CanClick = false;
@@ -91,7 +98,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 None
             );
 
-            var launchResult = UnchainedLauncher.Launch(options, Settings.EnablePluginAutomaticUpdates, Settings.CLIArgs);
+            var launchResult = await UnchainedLauncher.Launch(options, Settings.EnablePluginAutomaticUpdates, Settings.CLIArgs);
 
             return launchResult.Match(
                 Left: _ => {

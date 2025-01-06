@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using LanguageExt;
+using System.Diagnostics;
 
 namespace UnchainedLauncher.Core.Processes.Chivalry {
     public class Chivalry2ServerProcessLauncher {
@@ -14,8 +15,8 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             ExtraArgs = extraArgs;
         }
 
-        public LanguageExt.Option<LanguageExt.Either<UnchainedLaunchFailure, Process>> Launch() {
-            var launch = Launcher.Launch(ModdedLaunchOptions, true, ExtraArgs);
+        public async Task<Option<Either<UnchainedLaunchFailure, Process>>> Launch() {
+            var launch = await Launcher.Launch(ModdedLaunchOptions, true, ExtraArgs);
             return launch;
         }
     }

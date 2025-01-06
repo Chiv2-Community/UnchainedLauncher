@@ -23,7 +23,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
         private string InstallationRootDir { get; }
 
         public UnchainedChivalry2Launcher(
-            IProcessLauncher processLauncher,
+            IProcessLauncher processLauncher, 
             IModManager modManager,
             IReleaseLocator pluginReleaseLocator,
             IVersionExtractor<string> fileVersionExtractor,
@@ -31,7 +31,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             IUserDialogueSpawner userDialogueSpawner,
             string installationRootDir,
             Func<IEnumerable<string>> dlls) {
-
+            
             FetchDLLs = dlls;
             InstallationRootDir = installationRootDir;
             Launcher = processLauncher;
@@ -42,7 +42,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             UserDialogueSpawner = userDialogueSpawner;
         }
 
-        public Either<UnchainedLaunchFailure, Process> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args) {
+        public async Task<Either<UnchainedLaunchFailure, Process>> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args) {
             logger.Info("Attempting to launch modded game.");
 
             var moddedLaunchArgs = args;
@@ -54,14 +54,12 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             moddedLaunchArgs.Insert(offsetIndex, " " + launchOpts);
 
             PrepareModdedLaunchSigs();
-            var updateTask = PrepareUnchainedLaunch(updateUnchainedDependencies);
-            updateTask.Wait();
-            var updateResult = updateTask.Result;
+            var updateResult = await PrepareUnchainedLaunch(updateUnchainedDependencies);
 
             if (updateResult == false) {
                 logger.Error("Failed to launch modded game.");
             }
-
+            
 
             logger.Info($"Launch args: {moddedLaunchArgs}");
 
@@ -78,17 +76,17 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
                 }
             );
         }
-
+        
         private async Task<bool> PrepareUnchainedLaunch(bool updateDependencies) {
             var pluginPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.UnchainedPluginPath);
             var pluginExists = File.Exists(pluginPath);
             var isUnchainedModsEnabled = ModManager.EnabledModReleases.Exists(IsUnchainedMods);
-
+            
             if (!updateDependencies && pluginExists && isUnchainedModsEnabled) return true;
 
             var latestPlugin = await PluginReleaseLocator.GetLatestRelease();
             SemVersion? currentPluginVersion = FileVersionExtractor.GetVersion(pluginPath);
-
+            
             var unchainedModsUpdateCandidate = ModManager.GetUpdateCandidates().Find(x => IsUnchainedMods(x.AvailableUpdate)).FirstOrDefault();
 
             var pluginDependencyUpdate =
@@ -110,7 +108,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             IEnumerable<DependencyUpdate> updates =
                 new List<DependencyUpdate?>() { unchainedModsDependencyUpdate, pluginDependencyUpdate }
                     .Filter(x => x != null)!;
-
+            
 
 
             var titleString = pluginExists
@@ -136,20 +134,20 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
                 // No updates available, continue launch
                 case null:
                     return true;
-
+                
                 // Continue launch, don't download or install anything
                 case UserDialogueChoice.No:
                     return true;
-
+                
                 // Do not continue launch, don't download or install anything
                 case UserDialogueChoice.Cancel:
                     return false;
-
+                
                 // User selected yes/ok. Continue to download
                 case UserDialogueChoice.Yes:
                     break;
             }
-
+            
             logger.Info("Updating Unchained Dependencies");
 
             if (pluginDependencyUpdate != null) {

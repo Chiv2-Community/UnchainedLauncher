@@ -1,9 +1,12 @@
-﻿using LanguageExt;
+﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
+using System.Diagnostics;
+using System.Windows.Input;
 using UnchainedLauncher.Core.Mods;
 
 namespace UnchainedLauncher.Core.Utilities {
 
-
+    
     public interface IUpdateNotifier {
         public UserDialogueChoice? Notify(string titleText, string messageText, string yesButtonText,
             string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates);
@@ -12,11 +15,11 @@ namespace UnchainedLauncher.Core.Utilities {
             var allUpdates = new List<DependencyUpdate>();
             allUpdates.Add(firstUpdate);
             allUpdates.AddRange(updates);
-
+            
             return Notify(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, allUpdates);
         }
     }
-
+    
     public record DependencyUpdate(string Name, Option<string> CurrentVersion, string LatestVersion, string ReleaseUrl, string Reason) {
         public string CurrentVersionString => CurrentVersion.IfNone("None");
 

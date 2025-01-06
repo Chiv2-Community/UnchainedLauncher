@@ -15,6 +15,7 @@ using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.Views;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -30,17 +31,17 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public ModViewModel? SelectedMod { get; set; }
         public ObservableCollection<ModViewModel> DisplayMods { get; }
-
+        
         private IUserDialogueSpawner UserDialogueSpawner { get; }
         private IUpdateNotifier UpdateNotifier { get; }
 
         public ModListViewModel(IModManager modManager, IUpdateNotifier updateNotifier, IUserDialogueSpawner userDialogueSpawner) {
             this.ModManager = modManager;
-
+            
             UpdateNotifier = updateNotifier;
             UserDialogueSpawner = userDialogueSpawner;
-
-
+            
+            
             this.UnfilteredModView = new ObservableCollection<ModViewModel>();
             this.DisplayMods = new ObservableCollection<ModViewModel>();
 
@@ -52,8 +53,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             this.RefreshModListCommand = new AsyncRelayCommand(RefreshModListAsync);
             this.UpdateModsCommand = new AsyncRelayCommand(UpdateModsAsync);
-
-
+            
+            
         }
 
         private async Task RefreshModListAsync() {
@@ -111,8 +112,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     else {
                         MessageBox.Show("Mods not updated");
                     }
-                }
-                else {
+                } else {
                     var updatesTask =
                         pendingUpdates.Select(async x =>
                             await x.Item1.UpdateCurrentlyEnabledVersion(x.Item2.AvailableUpdate));

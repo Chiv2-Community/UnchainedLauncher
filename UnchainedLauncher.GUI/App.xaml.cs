@@ -81,7 +81,7 @@ namespace UnchainedLauncher.GUI {
             var versionSelectionVM = new VersionSelectionPageViewModel(launcherReleaseLocator);
             var installationLogVM = new InstallerLogPageViewModel(
                 installer,
-                () =>
+                () => 
                       from chiv2Installations in installationSelectionVM.Installations
                       where chiv2Installations.IsSelected
                       select chiv2Installations.Path
@@ -102,7 +102,7 @@ namespace UnchainedLauncher.GUI {
         public async Task<Window?> InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
             var updateNotifier = new WindowedUpdateNotifier();
             var userDialogueSpawner = new MessageBoxSpawner();
-
+            
             var settingsViewModel = SettingsViewModel.LoadSettings(installationFinder, installer, launcherReleaseLocator, updateNotifier, userDialogueSpawner, Environment.Exit);
 
             var modManager = ModManager.ForRegistries(

@@ -16,7 +16,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
         /// Left if the game failed to launch.
         /// Right if the game was launched successfully.
         /// </returns>
-        public Either<UnchainedLaunchFailure, Process> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args);
+        public Task<Either<UnchainedLaunchFailure, Process>> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args);
     }
 
     public abstract record UnchainedLaunchFailure(string Message, int Code, Option<Error> Underlying): Expected(Message, Code, Underlying) {

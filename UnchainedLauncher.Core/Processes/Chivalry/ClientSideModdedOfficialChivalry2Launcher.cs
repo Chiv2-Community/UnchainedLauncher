@@ -14,7 +14,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             Launcher = processLauncher;
         }
 
-        public Either<LaunchFailed, Process> Launch(string args) {
+        public async Task<Either<LaunchFailed, Process>> Launch(string args) {
             logger.Info("Attempting to launch vanilla game with pak loading.");
             logger.LogListInfo("Launch args: ", args);
 

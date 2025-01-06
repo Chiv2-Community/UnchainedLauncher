@@ -42,7 +42,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             UserDialogueSpawner = userDialogueSpawner;
         }
 
-        public Either<UnchainedLaunchFailure, Process> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args) {
+        public async Task<Either<UnchainedLaunchFailure, Process>> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args) {
             logger.Info("Attempting to launch modded game.");
 
             var moddedLaunchArgs = args;
@@ -54,9 +54,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             moddedLaunchArgs.Insert(offsetIndex, " " + launchOpts);
 
             PrepareModdedLaunchSigs();
-            var updateTask = PrepareUnchainedLaunch(updateUnchainedDependencies);
-            updateTask.Wait();
-            var updateResult = updateTask.Result;
+            var updateResult = await PrepareUnchainedLaunch(updateUnchainedDependencies);
 
             if (updateResult == false) {
                 logger.Error("Failed to launch modded game.");

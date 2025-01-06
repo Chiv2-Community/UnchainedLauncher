@@ -177,7 +177,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     Some(serverLaunchOptions)
                 );
 
-                var launchResult = Launcher.Launch(options, SettingsViewModel.EnablePluginAutomaticUpdates, SettingsViewModel.CLIArgs);
+                var launchResult = await Launcher.Launch(options, SettingsViewModel.EnablePluginAutomaticUpdates, SettingsViewModel.CLIArgs);
 
                 launchResult.Match(
                     Left: _ => {

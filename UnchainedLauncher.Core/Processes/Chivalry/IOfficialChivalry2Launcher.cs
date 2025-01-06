@@ -11,6 +11,6 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
         /// Left if the game failed to launch.
         /// Right if the game was launched successfully.
         /// </returns>
-        public Either<LaunchFailed, Process> Launch(string args);
+        public Task<Either<LaunchFailed, Process>> Launch(string args);
     }
 }

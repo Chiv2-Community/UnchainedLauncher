@@ -14,8 +14,8 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             ExtraArgs = extraArgs;
         }
 
-        public LanguageExt.Option<LanguageExt.Either<ProcessLaunchFailure, Process>> Launch() {
-            var launch = Launcher.Launch(ModdedLaunchOptions, ExtraArgs);
+        public LanguageExt.Option<LanguageExt.Either<UnchainedLaunchFailure, Process>> Launch() {
+            var launch = Launcher.Launch(ModdedLaunchOptions, true, ExtraArgs);
             return launch;
         }
     }

@@ -14,6 +14,7 @@ using System.Windows;
 using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
+using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Views;
 
 namespace UnchainedLauncher.GUI.ViewModels {
@@ -30,9 +31,17 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public ModViewModel? SelectedMod { get; set; }
         public ObservableCollection<ModViewModel> DisplayMods { get; }
+        
+        private IUserDialogueSpawner UserDialogueSpawner { get; }
+        private IUpdateNotifier UpdateNotifier { get; }
 
-        public ModListViewModel(ModManager modManager) {
+        public ModListViewModel(IModManager modManager, IUpdateNotifier updateNotifier, IUserDialogueSpawner userDialogueSpawner) {
             this.ModManager = modManager;
+            
+            UpdateNotifier = updateNotifier;
+            UserDialogueSpawner = userDialogueSpawner;
+            
+            
             this.UnfilteredModView = new ObservableCollection<ModViewModel>();
             this.DisplayMods = new ObservableCollection<ModViewModel>();
 
@@ -44,6 +53,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             this.RefreshModListCommand = new AsyncRelayCommand(RefreshModListAsync);
             this.UpdateModsCommand = new AsyncRelayCommand(UpdateModsAsync);
+            
+            
         }
 
         private async Task RefreshModListAsync() {
@@ -54,7 +65,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 if (errors.Any()) {
                     logger.Warn("Errors encountered while refreshing mod list:");
                     errors.ToList().ForEach(error => logger.Warn(error));
-                    MessageBox.Show("Errors encountered while refreshing mod list. Check the logs for details.");
+                    UserDialogueSpawner.DisplayMessage("Errors encountered while refreshing mod list. Check the logs for details.");
                 }
                 UnfilteredModView.Clear();
 
@@ -73,7 +84,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
             catch (Exception ex) {
                 logger.Error(ex);
-                MessageBox.Show(ex.ToString());
+                UserDialogueSpawner.DisplayMessage(ex.ToString());
             }
         }
 
@@ -86,24 +97,34 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         .Map(displayMod => displayMod.CheckForUpdate().Map(update => (displayMod, update)))
                         .Collect(x => x.AsEnumerable());
 
-                Option<MessageBoxResult> res =
-                    UpdatesWindow.Show(
+                UserDialogueChoice? res =
+                    UpdateNotifier.Notify(
                         "Update Mods?",
                         $"Mod updates available.",
                         "Yes", "No", null,
                         pendingUpdates.Select(x => DependencyUpdate.FromUpdateCandidate(x.Item2))
                     );
 
-                if (res.Contains(MessageBoxResult.Yes)) {
+                if (res != UserDialogueChoice.Yes) {
+                    if (res == null) {
+                        MessageBox.Show("No updates available.");
+                    }
+                    else {
+                        MessageBox.Show("Mods not updated");
+                    }
+                } else {
                     var updatesTask =
-                        pendingUpdates.Select(async x => await x.Item1.UpdateCurrentlyEnabledVersion(x.Item2.AvailableUpdate));
+                        pendingUpdates.Select(async x =>
+                            await x.Item1.UpdateCurrentlyEnabledVersion(x.Item2.AvailableUpdate));
 
                     var result = await Task.WhenAll(updatesTask);
 
                     var errors =
                         result
                             .Collect(r => r.LeftAsEnumerable()) // Get only the errors
-                            .Map(disableOrEnableFailure => disableOrEnableFailure.Match<Error>(l => l, r => r)); // Both sides are errors, just errors of a different type. 
+                            .Map(disableOrEnableFailure =>
+                                disableOrEnableFailure.Match<Error>(l => l,
+                                    r => r)); // Both sides are errors, just errors of a different type. 
 
                     await RefreshModListAsync();
 
@@ -113,18 +134,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         var errorMessages = errors.Map(e => "- " + e.Message);
                         var errorMessage = string.Join("\n", errorMessages);
 
-                        MessageBox.Show($"Some errors occurred during update: \n{errorMessage}\n\n Check the logs for more details.");
+                        MessageBox.Show(
+                            $"Some errors occurred during update: \n{errorMessage}\n\n Check the logs for more details.");
                     }
                     else {
                         logger.Info("Mods updated successfully");
                         MessageBox.Show("Mods updated successfully");
                     }
-                }
-                else if (res.IsNone) {
-                    MessageBox.Show("No updates available.");
-                }
-                else {
-                    MessageBox.Show("Mods not updated");
                 }
             }
             catch (Exception ex) {

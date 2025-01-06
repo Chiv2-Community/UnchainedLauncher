@@ -14,6 +14,7 @@ using UnchainedLauncher.Core.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.Utilities;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.Installer;
 using UnchainedLauncher.GUI.Views;
@@ -71,7 +72,7 @@ namespace UnchainedLauncher.GUI {
                     ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
                     : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator, pluginReleaseLocator);
 
-            createWindowTask.RunSynchronously();
+            createWindowTask.Wait();
             createWindowTask.Result?.Show();
         }
 
@@ -80,7 +81,8 @@ namespace UnchainedLauncher.GUI {
             var versionSelectionVM = new VersionSelectionPageViewModel(launcherReleaseLocator);
             var installationLogVM = new InstallerLogPageViewModel(
                 installer,
-                () => from chiv2Installations in installationSelectionVM.Installations
+                () => 
+                      from chiv2Installations in installationSelectionVM.Installations
                       where chiv2Installations.IsSelected
                       select chiv2Installations.Path
                 ,
@@ -98,7 +100,10 @@ namespace UnchainedLauncher.GUI {
         }
 
         public async Task<Window?> InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
-            var settingsViewModel = SettingsViewModel.LoadSettings(installationFinder, installer, launcherReleaseLocator, Environment.Exit);
+            var updateNotifier = new WindowedUpdateNotifier();
+            var userDialogueSpawner = new MessageBoxSpawner();
+            
+            var settingsViewModel = SettingsViewModel.LoadSettings(installationFinder, installer, launcherReleaseLocator, updateNotifier, userDialogueSpawner, Environment.Exit);
 
             var modManager = ModManager.ForRegistries(
                 new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
@@ -119,6 +124,11 @@ namespace UnchainedLauncher.GUI {
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
                 unchainedProcessLauncher,
+                modManager,
+                pluginReleaseLocator,
+                new FileInfoVersionExtractor(),
+                updateNotifier,
+                userDialogueSpawner,
                 Directory.GetCurrentDirectory(),
                 () => {
                     var dllPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath);
@@ -128,9 +138,9 @@ namespace UnchainedLauncher.GUI {
                 });
 
             var serversViewModel = new ServersViewModel(settingsViewModel, null);
-            var launcherViewModel = new LauncherViewModel(settingsViewModel, modManager, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, pluginReleaseLocator);
-            var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(settingsViewModel, serversViewModel, unchainedLauncher, modManager);
-            var modListViewModel = new ModListViewModel(modManager);
+            var launcherViewModel = new LauncherViewModel(settingsViewModel, modManager, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, pluginReleaseLocator, new FileInfoVersionExtractor(), userDialogueSpawner);
+            var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(settingsViewModel, serversViewModel, unchainedLauncher, modManager, userDialogueSpawner);
+            var modListViewModel = new ModListViewModel(modManager, updateNotifier, userDialogueSpawner);
 
             modListViewModel.RefreshModListCommand.Execute(null);
 

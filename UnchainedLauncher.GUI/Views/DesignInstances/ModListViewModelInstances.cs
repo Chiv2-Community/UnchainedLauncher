@@ -4,6 +4,7 @@ using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.Core.Mods.Registry.Downloader;
+using UnchainedLauncher.GUI.Utilities;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
@@ -17,7 +18,9 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
                         { new LocalModRegistry("", new LocalFilePakDownloader("")), new List<Mod> { ModViewModelInstances.DesignViewMod } }
                     },
                     new List<Release> { ModViewModelInstances.DesignViewRelease }
-                )
+                ),
+                new WindowedUpdateNotifier(),
+                new MessageBoxSpawner()
             );
 
             instance.SelectedMod = ModViewModelInstances.DEFAULT;

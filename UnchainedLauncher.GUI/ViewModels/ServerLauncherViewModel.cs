@@ -44,16 +44,17 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string ButtonToolTip { get; set; }
         public ICommand LaunchServerCommand { get; }
         public ICommand LaunchServerHeadlessCommand { get; }
+        public IUserDialogueSpawner UserDialogueSpawner { get; }
 
 
-        public FileBackedSettings<ServerSettings> SettingsFile { get; set; }
+        public FileBackedSettings<ServerSettings> SettingsFile { get; }
 
-        private ModManager ModManager { get; }
+        private IModManager ModManager { get; }
         //may want to add a mods list here as well,
         //in the hopes of having multiple independent servers running one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IUnchainedChivalry2Launcher launcher, ModManager modManager, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
+        public ServerLauncherViewModel(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IUnchainedChivalry2Launcher launcher, IModManager modManager, IUserDialogueSpawner dialogueSpawner, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
 
             ServerName = serverName;
             ServerDescription = serverDescription;
@@ -73,6 +74,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             ServersViewModel = serversViewModel;
             ModManager = modManager;
+            UserDialogueSpawner = dialogueSpawner;
 
             ButtonToolTip = "";
 
@@ -95,7 +97,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
 
             ModManager.EnabledModReleases.SelectMany(x => x.Manifest.Maps).ToList().ForEach(MapsList.Add);
-
             ModManager.EnabledModReleases.CollectionChanged += ProcessEnabledModsChanged;
         }
 
@@ -113,7 +114,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
         }
 
-        public static ServerLauncherViewModel LoadSettings(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IUnchainedChivalry2Launcher chivalry2Launcher, ModManager modManager) {
+        public static ServerLauncherViewModel LoadSettings(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IUnchainedChivalry2Launcher chivalry2Launcher, IModManager modManager, IUserDialogueSpawner dialogueSpawner) {
             var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
 
@@ -123,6 +124,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 serversViewModel,
                 chivalry2Launcher,
                 modManager,
+                dialogueSpawner,
                 loadedSettings?.ServerName ?? "Chivalry 2 server",
                 loadedSettings?.ServerDescription ?? "",
                 loadedSettings?.ServerPassword ?? "",
@@ -171,18 +173,16 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                 var options = new ModdedLaunchOptions(
                     SettingsViewModel.ServerBrowserBackend,
-                    ModManager.EnabledModReleases.AsEnumerable().ToSome(),
                     None,
                     Some(serverLaunchOptions)
                 );
 
-                var launchResult = Launcher.Launch(options, SettingsViewModel.CLIArgs);
+                var launchResult = Launcher.Launch(options, SettingsViewModel.EnablePluginAutomaticUpdates, SettingsViewModel.CLIArgs);
 
                 launchResult.Match(
-                    Left: error => {
-                        MessageBox.Show($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
+                    Left: _ => {
+                        UserDialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
                         SettingsViewModel.CanClick = true;
-
                         return None;
                     },
                     Right: process => {
@@ -209,12 +209,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                         ServersViewModel.RegisterServer("127.0.0.1", serverLaunchOptions.RconPort, serverInfo, process);
 
-                        return Prelude.Some(process);
+                        return Some(process);
                     }
                 );
             }
             catch (Exception ex) {
-                MessageBox.Show("Failed to launch. Check the logs for details.");
+                UserDialogueSpawner.DisplayMessage("Failed to launch. Check the logs for details.");
                 logger.Error("Failed to launch.", ex);
             }
         }
@@ -232,7 +232,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 if (process.ExitCode == 0) return;
 
                 logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
-                MessageBox.Show($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
+                UserDialogueSpawner.DisplayMessage($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
             });
 
             thread.Start();

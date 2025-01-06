@@ -24,6 +24,11 @@ namespace UnchainedLauncher.Core.Utilities {
     }
     public record ReleaseAsset(string Name, string DownloadUrl);
 
+    /// <summary>
+    /// An IReleaseLocator is used for finding releases for non-mod files.
+    ///
+    /// This means things like the plugin DLL, the launcher itself, or other non-mod files. 
+    /// </summary>
     public interface IReleaseLocator {
         /// <summary>
         /// Returns the latest stable release of the target application.
@@ -38,6 +43,10 @@ namespace UnchainedLauncher.Core.Utilities {
         public Task<IEnumerable<ReleaseTarget>> GetAllReleases();
     }
 
+    /// <summary>
+    /// The GithubReleaseLocator finds all github releases associated with a specified repository and provides targets
+    /// for downloading those releases.
+    /// </summary>
     public class GithubReleaseLocator : IReleaseLocator {
         public static readonly ILog logger = LogManager.GetLogger(nameof(GithubReleaseLocator));
 
@@ -45,15 +54,14 @@ namespace UnchainedLauncher.Core.Utilities {
         private string RepoOwner;
         private string RepoName;
 
-        private IEnumerable<ReleaseTarget>? ReleaseCache { get; set; } = null;
-        private ReleaseTarget? LatestRelease { get; set; } = null;
+        private IEnumerable<ReleaseTarget>? ReleaseCache { get; set; }
+        private ReleaseTarget? LatestRelease { get; set; }
 
         public GithubReleaseLocator(GitHubClient githubClient, string repoOwner, string repoName) {
             GitHubClient = githubClient;
             RepoName = repoName;
             RepoOwner = repoOwner;
         }
-
 
         public async Task<ReleaseTarget?> GetLatestRelease() {
             if (LatestRelease != null) {

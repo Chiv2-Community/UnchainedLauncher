@@ -1,4 +1,5 @@
 ﻿using LanguageExt;
+using LanguageExt.Common;
 using log4net;
 using System.Diagnostics;
 
@@ -6,8 +7,12 @@ namespace UnchainedLauncher.Core.Processes {
     using static LanguageExt.Prelude;
 
     public interface IProcessLauncher {
-        public Either<ProcessLaunchFailure, Process> Launch(string workingDirectory, string args);
+        public Either<LaunchFailed, Process> Launch(string workingDirectory, string args);
     }
+
+    public record LaunchFailed(string ExecutablePath, string Args, Error Underlying)
+        : Expected($"Failed to launch executable '{ExecutablePath}' with args '{Args}'", 0, Underlying);
+
 
     /// <summary>
     /// Launches an executable with the provided working directory and DLLs to inject.
@@ -30,7 +35,7 @@ namespace UnchainedLauncher.Core.Processes {
         /// <returns>
         /// The process that was created.
         /// </returns>
-        public Either<ProcessLaunchFailure, Process> Launch(string workingDirectory, string args) {
+        public Either<LaunchFailed, Process> Launch(string workingDirectory, string args) {
             var proc = new Process {
                 StartInfo = new ProcessStartInfo() {
                     FileName = ExecutableLocation,
@@ -61,48 +66,9 @@ namespace UnchainedLauncher.Core.Processes {
                 return Right(proc);
             }
             catch (Exception e) {
-                return Left(ProcessLaunchFailure.LaunchFailed(proc.StartInfo.FileName, proc.StartInfo.Arguments, e));
+                return Left(new LaunchFailed(proc.StartInfo.FileName, proc.StartInfo.Arguments, e));
             }
         }
     }
 
-    public abstract record ProcessLaunchFailure {
-        private ProcessLaunchFailure() { }
-        public static ProcessLaunchFailure LaunchFailed(string executablePath, string args, Exception underlying) => new LaunchFailedError(executablePath, args, underlying);
-
-        // TODO: Move this error type to Chivalry2 Launcher
-        public static ProcessLaunchFailure InjectionFailed(Option<IEnumerable<string>> dllPaths, Exception underlying) => new InjectionFailedError(dllPaths, underlying);
-
-
-        public record LaunchFailedError(string ExecutablePath, string Args, Exception Underlying) : ProcessLaunchFailure;
-
-        // TODO: Move this error type to Chivalry2 Launcher
-        public record InjectionFailedError(Option<IEnumerable<string>> DllPaths, Exception Underlying) : ProcessLaunchFailure;
-
-        public T Match<T>(
-                    Func<LaunchFailedError, T> LaunchFailedError,
-                    Func<InjectionFailedError, T> InjectionFailedError
-                   ) => this switch {
-                       LaunchFailedError launchFailed => LaunchFailedError(launchFailed),
-                       InjectionFailedError injectionFailed => InjectionFailedError(injectionFailed),
-                       _ => throw new Exception("Unreachable")
-                   };
-
-        public void Match(
-                       Action<LaunchFailedError> LaunchFailedError,
-                                  Action<InjectionFailedError> InjectionFailedError
-                   ) {
-            Match<Unit>(
-                launchFailed => {
-                    LaunchFailedError(launchFailed);
-                    return default;
-                },
-                injectionFailed => {
-                    InjectionFailedError(injectionFailed);
-                    return default;
-                }
-            );
-
-        }
-    }
 }

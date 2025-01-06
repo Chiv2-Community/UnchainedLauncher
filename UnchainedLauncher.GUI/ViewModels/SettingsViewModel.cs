@@ -9,14 +9,12 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
 using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.JsonModels;
-using UnchainedLauncher.GUI.Views;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -51,6 +49,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public ICommand CheckForUpdateCommand { get; }
         public ICommand CleanUpInstallationCommand { get; }
+        private IUpdateNotifier UpdateNotifier { get; }
+        private IUserDialogueSpawner UserDialogueSpawner { get; }
 
         public static IEnumerable<InstallationType> AllInstallationTypes {
             get { return Enum.GetValues(typeof(InstallationType)).Cast<InstallationType>(); }
@@ -62,9 +62,11 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public readonly Action<int> ExitProgram;
         public bool CanClick { get; set; }
 
-        public SettingsViewModel(IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
+        public SettingsViewModel(IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IUpdateNotifier updateNotifier, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
             Installer = installer;
             UnchainedReleaseLocator = unchainedReleaseLocator;
+            UpdateNotifier = updateNotifier;
+            UserDialogueSpawner = dialogueSpawner;
             InstallationType = installationType;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
             AdditionalModActors = additionalModActors;
@@ -81,7 +83,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
 
-        public static SettingsViewModel LoadSettings(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, Action<int> exitProgram) {
+        public static SettingsViewModel LoadSettings(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IUpdateNotifier updateNotifier, IUserDialogueSpawner userDialogueSpawner, Action<int> exitProgram) {
             var cliArgsList = Environment.GetCommandLineArgs();
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => $"{x} {y}") : "";
 
@@ -91,6 +93,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
             return new SettingsViewModel(
                 installer,
                 unchainedReleaseLocator,
+                updateNotifier,
+                userDialogueSpawner,
                 loadedSettings?.InstallationType ?? DetectInstallationType(installationFinder),
                 loadedSettings?.EnablePluginAutomaticUpdates ?? true,
                 loadedSettings?.AdditionalModActors ?? "",
@@ -123,10 +127,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 "After deleting, the launcher will restart itself."
             }.Aggregate((accumulator, next) => accumulator + "\n" + next);
 
-            var choice = MessageBox.Show(message, "Really clean up installation?", MessageBoxButton.YesNo);
+            var choice = UserDialogueSpawner.DisplayYesNoMessage(message, "Really clean up installation?");
             logger.Info($"Are you sure? User selects: {choice}");
 
-            if (choice == MessageBoxResult.No) return;
+            if (choice == UserDialogueChoice.No) return;
 
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
             FileHelpers.DeleteDirectory(FilePaths.PluginDir);
@@ -162,7 +166,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             };
 
             PowerShell.Run(powershellCommands);
-            MessageBox.Show("The launcher will now restart. No further action must be taken.");
+            UserDialogueSpawner.DisplayMessage("The launcher will now restart. No further action must be taken.");
 
             logger.Info("Closing");
             ExitProgram(0);
@@ -174,7 +178,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             var latestRelease = await UnchainedReleaseLocator.GetLatestRelease();
             if (latestRelease == null) {
-                MessageBox.Show("Failed to check for updates. Check the logs for more details.");
+                UserDialogueSpawner.DisplayMessage("Failed to check for updates. Check the logs for more details.");
                 return;
             }
 
@@ -183,30 +187,27 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 await ChangeVersion(latestRelease);
             }
             else {
-                MessageBox.Show("You are currently running the latest version.");
-                return;
+                UserDialogueSpawner.DisplayMessage("You are currently running the latest version.");
             }
         }
 
         private async Task ChangeVersion(ReleaseTarget release) {
-            Option<MessageBoxResult> dialogResult =
-                UpdatesWindow.Show(
+            UserDialogueChoice? dialogResult =
+                UpdateNotifier.Notify(
                     "Chivalry 2 Unchained Launcher Update",
                     "Update the Unchained Launcher?",
                     "Yes",
                     "No",
                     null,
-                    List(
-                        new DependencyUpdate("Launcher", Some(CurrentVersion.ToString()), release.Version.ToString(), release.PageUrl, "")
-                    )
+                    new DependencyUpdate("Launcher", Some(CurrentVersion), release.Version.ToString(), release.PageUrl, "")
                 );
 
-            if (dialogResult.Contains(MessageBoxResult.No)) {
+            if (dialogResult == UserDialogueChoice.No) {
                 logger.Info("User chose not to update.");
                 return;
             }
 
-            if (dialogResult.Contains(MessageBoxResult.Yes)) {
+            if (dialogResult == UserDialogueChoice.Yes) {
                 logger.Info("User chose to update.");
                 await Installer.Install(new DirectoryInfo(Environment.CurrentDirectory), release, true, (_) => { });
             }
@@ -220,14 +221,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private static InstallationType DetectInstallationType(IChivalry2InstallationFinder finder) {
             var curDir = new DirectoryInfo(Directory.GetCurrentDirectory());
 
-            if (finder.IsEGSDir(curDir))
-                return InstallationType.EpicGamesStore;
-            else if (finder.IsSteamDir(curDir))
-                return InstallationType.Steam;
-            else {
-                logger.Warn("Could not detect installation type.");
-                return InstallationType.NotSet;
-            }
+            if (finder.IsEGSDir(curDir)) return InstallationType.EpicGamesStore;
+
+            if (finder.IsSteamDir(curDir)) return InstallationType.Steam;
+
+            logger.Warn("Could not detect installation type.");
+            return InstallationType.NotSet;
         }
     }
 

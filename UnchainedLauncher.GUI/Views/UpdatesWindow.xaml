@@ -46,16 +46,16 @@
                 <DataTemplate>
                     <StackPanel Orientation="Vertical">
                         <StackPanel Orientation="Horizontal" Margin="5,5,5,0">
-                            <TextBlock Text="{Binding Name}" />
+                            <TextBlock Text="{Binding Update.Name}" />
                             <TextBlock Text=": " />
-                            <TextBlock Text="{Binding Reason}" />
+                            <TextBlock Text="{Binding Update.Reason}" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="5,0,5,5" >
                             <TextBlock Text="Version: " />
                             <TextBlock Text="{Binding VersionString}" />
                             <TextBlock Text=" " />
                             <TextBlock>
-                                    <Hyperlink NavigateUri="{Binding ReleaseUrl}" Command="{Binding HyperlinkCommand}">
+                                    <Hyperlink NavigateUri="{Binding Update.ReleaseUrl}" Command="{Binding HyperlinkCommand}">
                                         View Release Information
                                     </Hyperlink>
                             </TextBlock>

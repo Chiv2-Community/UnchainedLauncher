@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.Utilities;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
@@ -11,7 +13,7 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             SettingsViewModelInstances.DEFAULT,
             new ModManager(new HashMap<IModRegistry, IEnumerable<Mod>>(), new List<Release>()),
             null, null, null,
-            null
+            null, new FileInfoVersionExtractor(), new MessageBoxSpawner()
         );
     }
 }

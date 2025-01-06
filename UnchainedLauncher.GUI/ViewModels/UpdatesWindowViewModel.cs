@@ -1,12 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using LanguageExt;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
-using UnchainedLauncher.Core.Mods;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     public partial class UpdatesWindowViewModel : INotifyPropertyChanged {
@@ -19,7 +18,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string CancelColumnWidth => ShowCancelButton ? "40*" : "0";
         public string NoButtonMargin => ShowCancelButton ? "5,10,0,10" : "5,10,10,10";
 
-        public IEnumerable<DependencyUpdate> Updates { get; }
+        public IEnumerable<DependencyUpdateViewModel> Updates { get; }
 
         public MessageBoxResult Result { get; private set; }
 
@@ -28,9 +27,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public ICommand CancelCommand { get; set; }
         private Action CloseWindow { get; }
 
-        public UpdatesWindowViewModel() : this("Title", "Message", "Yes", "No", null, new List<DependencyUpdate>(), () => { }) { }
-
-        public UpdatesWindowViewModel(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates, Action closeWindow) {
+        public UpdatesWindowViewModel(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdateViewModel> updates, Action closeWindow) {
             TitleText = titleText;
             MessageText = messageText;
             YesButtonText = yesButtonText;
@@ -66,17 +63,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
     }
 
-    public record DependencyUpdate(string Name, Option<string> CurrentVersion, string LatestVersion, string ReleaseUrl, string Reason) {
-        public string CurrentVersionString => CurrentVersion.IfNone("None");
-        public string VersionString => CurrentVersion == null ? LatestVersion : $"{CurrentVersionString} -> {LatestVersion}";
+    public record DependencyUpdateViewModel(DependencyUpdate Update) {
+        public string CurrentVersionString => Update.CurrentVersion.IfNone("None");
+        public string VersionString => Update.CurrentVersion == null ? Update.LatestVersion : $"{CurrentVersionString} -> {Update.LatestVersion}";
         public ICommand HyperlinkCommand => new RelayCommand(Hyperlink_Click);
 
         public void Hyperlink_Click() {
-            Process.Start(new ProcessStartInfo { FileName = ReleaseUrl, UseShellExecute = true });
-        }
-
-        public static DependencyUpdate FromUpdateCandidate(UpdateCandidate modUpdate) {
-            return new DependencyUpdate(modUpdate.CurrentlyEnabled.Manifest.Name, modUpdate.CurrentlyEnabled.Tag, modUpdate.AvailableUpdate.Tag, modUpdate.AvailableUpdate.ReleaseUrl, "");
+            Process.Start(new ProcessStartInfo { FileName = Update.ReleaseUrl, UseShellExecute = true });
         }
     };
 

@@ -4,6 +4,7 @@ using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Mods.Registry;
 using UnchainedLauncher.GUI.JsonModels;
+using UnchainedLauncher.GUI.Utilities;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
@@ -13,6 +14,7 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             ServersViewModelInstances.DEFAULT,
             null,
             new ModManager(new HashMap<IModRegistry, IEnumerable<Mod>>(), new List<Release>()),
+            new MessageBoxSpawner(),
             "Chivalry 2 server",
             "Design time test description",
             "",

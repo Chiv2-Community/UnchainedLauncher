@@ -14,7 +14,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             Launcher = processLauncher;
         }
 
-        public Either<ProcessLaunchFailure, Process> Launch(string args) {
+        public Either<LaunchFailed, Process> Launch(string args) {
             logger.Info("Attempting to launch vanilla game with pak loading.");
             logger.LogListInfo("Launch args: ", args);
 
@@ -23,10 +23,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             var launchResult = Launcher.Launch(WorkingDirectory, args);
 
             launchResult.Match(
-                Left: error => error.Match(
-                    LaunchFailedError: e => logger.Error($"Failed to launch Chivalry 2. {e.ExecutablePath} {e.Args}", e.Underlying),
-                    InjectionFailedError: e => logger.Error($"This should be impossible. Report a bug please", e.Underlying)
-                ),
+                Left: error => logger.Error(error),
                 Right: _ => logger.Info("Successfully launched Chivalry 2.")
             );
 

@@ -1,25 +1,16 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
-using LanguageExt.SomeHelp;
 using log4net;
-using Semver;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.GUI.Views;
-using List = System.Windows.Documents.List;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -43,7 +34,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public IUnchainedChivalry2Launcher UnchainedLauncher { get; }
 
         public IReleaseLocator PluginReleaseLocator { get; }
-        
+
         private IVersionExtractor<string> FileVersionExtractor { get; }
         private IUserDialogueSpawner UserDialogueSpawner { get; }
 
@@ -57,7 +48,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             ClientSideModdedLauncher = clientSideModdedLauncher;
             UnchainedLauncher = moddedLauncher;
             UserDialogueSpawner = dialogueSpawner;
-            
+
             FileVersionExtractor = fileVersionExtractor;
 
             LaunchVanillaCommand = new RelayCommand(() => LaunchVanilla(false));

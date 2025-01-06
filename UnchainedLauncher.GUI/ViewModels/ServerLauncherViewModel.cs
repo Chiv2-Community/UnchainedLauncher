@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
-using LanguageExt.SomeHelp;
 using log4net;
 using System;
 using System.Collections.ObjectModel;
@@ -12,7 +11,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
 using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;

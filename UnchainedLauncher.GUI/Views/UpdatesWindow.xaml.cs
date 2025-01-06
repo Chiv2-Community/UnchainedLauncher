@@ -1,10 +1,8 @@
 ﻿using LanguageExt;
-using LanguageExt.UnsafeValueAccess;
 using log4net;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
-using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views {

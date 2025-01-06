@@ -9,14 +9,12 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
 using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.JsonModels;
-using UnchainedLauncher.GUI.Views;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -224,9 +222,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var curDir = new DirectoryInfo(Directory.GetCurrentDirectory());
 
             if (finder.IsEGSDir(curDir)) return InstallationType.EpicGamesStore;
-            
+
             if (finder.IsSteamDir(curDir)) return InstallationType.Steam;
-            
+
             logger.Warn("Could not detect installation type.");
             return InstallationType.NotSet;
         }

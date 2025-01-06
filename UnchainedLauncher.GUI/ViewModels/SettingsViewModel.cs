@@ -222,9 +222,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var curDir = new DirectoryInfo(Directory.GetCurrentDirectory());
 
             if (finder.IsEGSDir(curDir)) return InstallationType.EpicGamesStore;
-            
+
             if (finder.IsSteamDir(curDir)) return InstallationType.Steam;
-            
+
             logger.Warn("Could not detect installation type.");
             return InstallationType.NotSet;
         }

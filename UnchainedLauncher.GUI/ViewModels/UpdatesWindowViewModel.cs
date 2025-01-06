@@ -3,10 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
 using System.Windows;
 using System.Windows.Input;
-using UnchainedLauncher.Core.Mods;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels {

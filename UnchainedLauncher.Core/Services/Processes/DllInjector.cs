@@ -1,5 +1,4 @@
 ﻿using log4net;
-using log4net.Core;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -7,9 +6,9 @@ using UnchainedLauncher.Core.Extensions;
 
 namespace UnchainedLauncher.Core.Services.Processes {
     //Code modified/adapted from https://codingvision.net/c-inject-a-dll-into-a-process-w-createremotethread
-    public class DllInjector: IProcessInjector {
+    public class DllInjector : IProcessInjector {
         private readonly ILog logger = LogManager.GetLogger(nameof(DllInjector));
-        
+
         [DllImport("kernel32.dll")]
         public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
 
@@ -56,7 +55,7 @@ namespace UnchainedLauncher.Core.Services.Processes {
         public DllInjector(string dllDir) {
             DllDir = dllDir;
         }
-        
+
         public bool Inject(Process p) {
             try {
                 var paths =

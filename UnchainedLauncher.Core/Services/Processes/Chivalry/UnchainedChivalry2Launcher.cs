@@ -2,7 +2,6 @@
 using log4net;
 using Semver;
 using System.Diagnostics;
-using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Services.Mods;
@@ -198,7 +197,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
         private Either<UnchainedLaunchFailure, Process> InjectDLLs(Process process) {
             if (ProcessInjector.Inject(process)) return Right(process);
-            
+
             process.Kill();
             return Left(UnchainedLaunchFailure.InjectionFailed());
         }

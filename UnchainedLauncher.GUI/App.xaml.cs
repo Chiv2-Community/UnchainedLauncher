@@ -131,7 +131,7 @@ namespace UnchainedLauncher.GUI {
                 userDialogueSpawner,
                 Directory.GetCurrentDirectory(),
                 () => {
-                    var dllPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath);
+                    var dllPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir);
                     if (!Directory.Exists(dllPath))
                         Directory.CreateDirectory(dllPath);
                     return Directory.EnumerateFiles(dllPath);

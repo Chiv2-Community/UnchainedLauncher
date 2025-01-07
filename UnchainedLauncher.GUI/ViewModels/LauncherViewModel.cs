@@ -92,12 +92,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
 
             var launchResult = await UnchainedLauncher.Launch(options, Settings.EnablePluginAutomaticUpdates, Settings.CLIArgs);
-
+            
             return launchResult.Match(
-                Left: _ => {
-                    UserDialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
-                    Settings.CanClick = true;
+                Left: e => {
+                    logger.Error(e);
+                    if (e is not UnchainedLaunchFailure.LaunchCancelledError)
+                        UserDialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
 
+                    Settings.CanClick = true;
                     return None;
                 },
                 Right: process => {

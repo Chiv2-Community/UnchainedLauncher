@@ -53,12 +53,14 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
 
             moddedLaunchArgs.Insert(offsetIndex, " " + launchOpts);
 
-            PrepareModdedLaunchSigs();
             var updateResult = await PrepareUnchainedLaunch(updateUnchainedDependencies);
-
             if (updateResult == false) {
                 return Left(UnchainedLaunchFailure.LaunchCancelled());
             }
+            
+            PrepareModdedLaunchSigs();
+
+
 
 
             logger.Info($"Launch args: {moddedLaunchArgs}");
@@ -202,14 +204,16 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             IEnumerable<string>? dlls = null;
             try {
                 dlls = FetchDLLs();
-                if (!dlls.Any()) return Prelude.Right(process);
+                if (!dlls.Any()) return Right(process);
                 logger.LogListInfo("Injecting DLLs:", dlls);
                 Inject.InjectAll(process, dlls);
+                return Right(process);
             }
             catch (Exception e) {
+                process.Kill();
+                logger.Error(e);
                 return Left(UnchainedLaunchFailure.InjectionFailed(Optional(dlls), e));
             }
-            return Right(process);
         }
 
         private static void PrepareModdedLaunchSigs() {

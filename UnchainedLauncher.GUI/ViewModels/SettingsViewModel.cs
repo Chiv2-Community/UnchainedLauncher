@@ -10,9 +10,9 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using UnchainedLauncher.Core.Installer;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.JsonModels;
 

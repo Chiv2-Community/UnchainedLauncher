@@ -1,0 +1,17 @@
+﻿using LanguageExt;
+using System.Diagnostics;
+using UnchainedLauncher.Core.Processes;
+
+namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
+    public interface IOfficialChivalry2Launcher {
+        /// <summary>
+        /// Launches a vanilla game. Implementations may do extra work to enable client side pak file loading
+        /// </summary>
+        /// <param name="args"></param>
+        /// <returns>
+        /// Left if the game failed to launch.
+        /// Right if the game was launched successfully.
+        /// </returns>
+        public Task<Either<LaunchFailed, Process>> Launch(string args);
+    }
+}

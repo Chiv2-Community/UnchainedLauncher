@@ -11,7 +11,7 @@ using System.Threading;
 using System.Windows.Input;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Mods;
+using UnchainedLauncher.Core.Services.Mods;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;

@@ -14,8 +14,8 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Mods;
-using UnchainedLauncher.Core.Processes.Chivalry;
+using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.JsonModels;
 

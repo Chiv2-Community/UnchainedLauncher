@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using UnchainedLauncher.Core.Installer;
+using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer {

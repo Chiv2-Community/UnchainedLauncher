@@ -1,12 +1,11 @@
 ﻿using Octokit;
 using Semver;
 
-namespace UnchainedLauncher.Core.Installer {
+namespace UnchainedLauncher.Core.Utilities {
 
     public record VersionedRelease(Release Release, SemVersion Version, bool IsLatestStable) {
         public VersionedRelease AsLatestStable() => this with { IsLatestStable = true };
         public string DisplayText => $"{Release.TagName} ({Release.CreatedAt:d})" + (IsLatestStable ? " Recommended" : "");
-
 
         public static VersionedRelease CreateMockRelease(SemVersion version) {
             var ghRepo = "http://github.com/chiv2-community/UnchainedLauncher";
@@ -28,8 +27,8 @@ namespace UnchainedLauncher.Core.Installer {
                 new Author(),
                 $"{ghRepo}/archive/refs/tags/v{version}.tar.gz",
                 $"{ghRepo}/archive/refs/tags/v{version}.zip",
-                new List<ReleaseAsset> {
-                new ReleaseAsset()
+                new List<Octokit.ReleaseAsset> {
+                new Octokit.ReleaseAsset()
                 }) {
             }, version, false);
         }

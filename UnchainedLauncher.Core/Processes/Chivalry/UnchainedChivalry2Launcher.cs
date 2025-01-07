@@ -57,7 +57,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             var updateResult = await PrepareUnchainedLaunch(updateUnchainedDependencies);
 
             if (updateResult == false) {
-                logger.Error("Failed to launch modded game.");
+                return Left(UnchainedLaunchFailure.LaunchCancelled());
             }
 
 
@@ -83,11 +83,13 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             var isUnchainedModsEnabled = ModManager.EnabledModReleases.Exists(IsUnchainedMods);
 
             if (!updateDependencies && pluginExists && isUnchainedModsEnabled) return true;
+            
+            var latestUnchainedMods = ModManager.Mods.SelectMany(x => x.LatestRelease).Find(IsUnchainedMods).FirstOrDefault();
+
 
             var latestPlugin = await PluginReleaseLocator.GetLatestRelease();
             SemVersion? currentPluginVersion = FileVersionExtractor.GetVersion(pluginPath);
 
-            var unchainedModsUpdateCandidate = ModManager.GetUpdateCandidates().Find(x => IsUnchainedMods(x.AvailableUpdate)).FirstOrDefault();
 
             var pluginDependencyUpdate =
                 (currentPluginVersion != null && currentPluginVersion.ComparePrecedenceTo(latestPlugin.Version) >= 0)
@@ -100,10 +102,24 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
                         "Used for hosting and connecting to player owned servers. Required to run Chivalry 2 Unchained."
                     );
 
-            var unchainedModsDependencyUpdate =
-                (isUnchainedModsEnabled && unchainedModsUpdateCandidate == null)
-                    ? null
-                    : DependencyUpdate.FromUpdateCandidate(unchainedModsUpdateCandidate!);
+            DependencyUpdate? unchainedModsDependencyUpdate = null;
+            if (isUnchainedModsEnabled) {
+                var unchainedModsUpdateCandidate = ModManager.GetUpdateCandidates().Find(x => IsUnchainedMods(x.AvailableUpdate)).FirstOrDefault();
+                if(unchainedModsUpdateCandidate != null)
+                    unchainedModsDependencyUpdate = DependencyUpdate.FromUpdateCandidate(unchainedModsUpdateCandidate);
+            }
+            else if (latestUnchainedMods == null) {
+                    logger.Warn("Could not find any unchained mods release.");
+            } else {
+                unchainedModsDependencyUpdate =
+                    new DependencyUpdate(
+                        latestUnchainedMods.Manifest.Name,
+                        None,
+                        latestUnchainedMods.Version.ToString(),
+                        latestUnchainedMods.ReleaseUrl,
+                        "Adds necessary Unchained content to Chivalry 2"
+                    );
+            }
 
             IEnumerable<DependencyUpdate> updates =
                 new List<DependencyUpdate?>() { unchainedModsDependencyUpdate, pluginDependencyUpdate }
@@ -141,6 +157,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
 
                 // Do not continue launch, don't download or install anything
                 case UserDialogueChoice.Cancel:
+                    logger.Info("User cancelled chivalry 2 launch");
                     return false;
 
                 // User selected yes/ok. Continue to download
@@ -163,8 +180,8 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
                 }
             }
 
-            if (unchainedModsDependencyUpdate != null) {
-                var result = await ModManager.EnableModRelease(unchainedModsUpdateCandidate!.AvailableUpdate, None, CancellationToken.None);
+            if (latestUnchainedMods != null) {
+                var result = await ModManager.EnableModRelease(latestUnchainedMods, None, CancellationToken.None);
 
                 if (result.IsLeft) {
                     var error = result.LeftToSeq().FirstOrDefault()!;

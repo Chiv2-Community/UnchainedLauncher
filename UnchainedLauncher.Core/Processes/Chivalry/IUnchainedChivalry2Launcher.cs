@@ -25,12 +25,16 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
         public record LaunchFailedError(LaunchFailed Failure) : UnchainedLaunchFailure(Failure.Message, Failure.Code, Failure.Underlying);
         public record DependencyDownloadFailedError(IEnumerable<string> DependencyNames)
             : UnchainedLaunchFailure($"Failed to download dependencies '{string.Join("', '", DependencyNames)}'", 0, None);
+        public record LaunchCancelledError(): UnchainedLaunchFailure($"Launch Cancelled", 0, None);
+
 
         public static UnchainedLaunchFailure InjectionFailed(Option<IEnumerable<string>> dllPaths, Error cause) =>
             new InjectionFailedError(dllPaths, cause);
         public static UnchainedLaunchFailure LaunchFailed(LaunchFailed failure) => new LaunchFailedError(failure);
         public static UnchainedLaunchFailure DependencyDownloadFailed(IEnumerable<string> dependencyNames) =>
             new DependencyDownloadFailedError(dependencyNames);
+        
+        public static UnchainedLaunchFailure LaunchCancelled() => new LaunchCancelledError();
     }
 
 

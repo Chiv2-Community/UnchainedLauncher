@@ -64,7 +64,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
     }
 
     public record DependencyUpdateViewModel(DependencyUpdate Update) {
-        public string CurrentVersionString => Update.CurrentVersion.IfNone("None");
+        public string CurrentVersionString => Update.CurrentVersion ?? "None";
         public string VersionString => Update.CurrentVersion == null ? Update.LatestVersion : $"{CurrentVersionString} -> {Update.LatestVersion}";
         public ICommand HyperlinkCommand => new RelayCommand(Hyperlink_Click);
 

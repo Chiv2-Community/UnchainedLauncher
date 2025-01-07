@@ -9,7 +9,6 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
         public static SettingsViewModel DEFAULT => new SettingsViewModel(
             new MockInstaller(),
             null,
-            new WindowedUpdateNotifier(),
             new MessageBoxSpawner(),
             InstallationType.Steam,
             true,

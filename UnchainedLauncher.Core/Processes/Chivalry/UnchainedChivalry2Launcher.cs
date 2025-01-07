@@ -18,7 +18,6 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
         private IReleaseLocator PluginReleaseLocator { get; }
         private Func<IEnumerable<string>> FetchDLLs { get; }
         private IVersionExtractor<string> FileVersionExtractor { get; }
-        private IUpdateNotifier UpdateNotifier { get; }
         private IUserDialogueSpawner UserDialogueSpawner { get; }
         private string InstallationRootDir { get; }
 
@@ -27,7 +26,6 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             IModManager modManager,
             IReleaseLocator pluginReleaseLocator,
             IVersionExtractor<string> fileVersionExtractor,
-            IUpdateNotifier updateNotifier,
             IUserDialogueSpawner userDialogueSpawner,
             string installationRootDir,
             Func<IEnumerable<string>> dlls) {
@@ -38,7 +36,6 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             ModManager = modManager;
             PluginReleaseLocator = pluginReleaseLocator;
             FileVersionExtractor = fileVersionExtractor;
-            UpdateNotifier = updateNotifier;
             UserDialogueSpawner = userDialogueSpawner;
         }
 
@@ -57,11 +54,8 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             if (updateResult == false) {
                 return Left(UnchainedLaunchFailure.LaunchCancelled());
             }
-            
+
             PrepareModdedLaunchSigs();
-
-
-
 
             logger.Info($"Launch args: {moddedLaunchArgs}");
 
@@ -85,7 +79,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             var isUnchainedModsEnabled = ModManager.EnabledModReleases.Exists(IsUnchainedMods);
 
             if (!updateDependencies && pluginExists && isUnchainedModsEnabled) return true;
-            
+
             var latestUnchainedMods = ModManager.Mods.SelectMany(x => x.LatestRelease).Find(IsUnchainedMods).FirstOrDefault();
 
 
@@ -98,7 +92,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
                     ? null
                     : new DependencyUpdate(
                         "UnchainedPlugin.dll",
-                        Optional(currentPluginVersion?.ToString()),
+                        currentPluginVersion?.ToString(),
                         latestPlugin.Version.ToString(),
                         latestPlugin.PageUrl,
                         "Used for hosting and connecting to player owned servers. Required to run Chivalry 2 Unchained."
@@ -107,16 +101,17 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
             DependencyUpdate? unchainedModsDependencyUpdate = null;
             if (isUnchainedModsEnabled) {
                 var unchainedModsUpdateCandidate = ModManager.GetUpdateCandidates().Find(x => IsUnchainedMods(x.AvailableUpdate)).FirstOrDefault();
-                if(unchainedModsUpdateCandidate != null)
+                if (unchainedModsUpdateCandidate != null)
                     unchainedModsDependencyUpdate = DependencyUpdate.FromUpdateCandidate(unchainedModsUpdateCandidate);
             }
             else if (latestUnchainedMods == null) {
-                    logger.Warn("Could not find any unchained mods release.");
-            } else {
+                logger.Warn("Could not find any unchained mods release.");
+            }
+            else {
                 unchainedModsDependencyUpdate =
                     new DependencyUpdate(
                         latestUnchainedMods.Manifest.Name,
-                        None,
+                        null,
                         latestUnchainedMods.Version.ToString(),
                         latestUnchainedMods.ReleaseUrl,
                         "Adds necessary Unchained content to Chivalry 2"
@@ -138,7 +133,7 @@ namespace UnchainedLauncher.Core.Processes.Chivalry {
                 : "The Unchained Dependencies are not installed.";
 
 
-            var userResponse = UpdateNotifier.Notify(
+            var userResponse = UserDialogueSpawner.DisplayUpdateMessage(
                 titleString,
                 messageText,
                 "Yes",

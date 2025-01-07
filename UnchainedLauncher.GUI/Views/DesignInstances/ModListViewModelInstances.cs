@@ -19,7 +19,6 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
                     },
                     new List<Release> { ModViewModelInstances.DesignViewRelease }
                 ),
-                new WindowedUpdateNotifier(),
                 new MessageBoxSpawner()
             );
 

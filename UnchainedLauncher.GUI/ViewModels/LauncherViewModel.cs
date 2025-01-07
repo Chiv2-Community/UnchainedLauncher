@@ -92,7 +92,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
 
             var launchResult = await UnchainedLauncher.Launch(options, Settings.EnablePluginAutomaticUpdates, Settings.CLIArgs);
-            
+
             return launchResult.Match(
                 Left: e => {
                     logger.Error(e);

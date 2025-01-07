@@ -32,12 +32,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public ObservableCollection<ModViewModel> DisplayMods { get; }
 
         private IUserDialogueSpawner UserDialogueSpawner { get; }
-        private IUpdateNotifier UpdateNotifier { get; }
 
-        public ModListViewModel(IModManager modManager, IUpdateNotifier updateNotifier, IUserDialogueSpawner userDialogueSpawner) {
+        public ModListViewModel(IModManager modManager, IUserDialogueSpawner userDialogueSpawner) {
             this.ModManager = modManager;
 
-            UpdateNotifier = updateNotifier;
             UserDialogueSpawner = userDialogueSpawner;
 
 
@@ -97,7 +95,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         .Collect(x => x.AsEnumerable());
 
                 UserDialogueChoice? res =
-                    UpdateNotifier.Notify(
+                    UserDialogueSpawner.DisplayUpdateMessage(
                         "Update Mods?",
                         $"Mod updates available.",
                         "Yes", "No", null,

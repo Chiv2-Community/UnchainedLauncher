@@ -100,10 +100,9 @@ namespace UnchainedLauncher.GUI {
         }
 
         public async Task<Window?> InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
-            var updateNotifier = new WindowedUpdateNotifier();
             var userDialogueSpawner = new MessageBoxSpawner();
 
-            var settingsViewModel = SettingsViewModel.LoadSettings(installationFinder, installer, launcherReleaseLocator, updateNotifier, userDialogueSpawner, Environment.Exit);
+            var settingsViewModel = SettingsViewModel.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
 
             var modManager = ModManager.ForRegistries(
                 new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
@@ -127,7 +126,6 @@ namespace UnchainedLauncher.GUI {
                 modManager,
                 pluginReleaseLocator,
                 new FileInfoVersionExtractor(),
-                updateNotifier,
                 userDialogueSpawner,
                 Directory.GetCurrentDirectory(),
                 () => {
@@ -140,7 +138,7 @@ namespace UnchainedLauncher.GUI {
             var serversViewModel = new ServersViewModel(settingsViewModel, null);
             var launcherViewModel = new LauncherViewModel(settingsViewModel, modManager, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, pluginReleaseLocator, new FileInfoVersionExtractor(), userDialogueSpawner);
             var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(settingsViewModel, serversViewModel, unchainedLauncher, modManager, userDialogueSpawner);
-            var modListViewModel = new ModListViewModel(modManager, updateNotifier, userDialogueSpawner);
+            var modListViewModel = new ModListViewModel(modManager, userDialogueSpawner);
 
             modListViewModel.RefreshModListCommand.Execute(null);
 

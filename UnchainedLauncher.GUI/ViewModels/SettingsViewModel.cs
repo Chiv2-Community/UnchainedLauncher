@@ -49,7 +49,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public ICommand CheckForUpdateCommand { get; }
         public ICommand CleanUpInstallationCommand { get; }
-        private IUpdateNotifier UpdateNotifier { get; }
         private IUserDialogueSpawner UserDialogueSpawner { get; }
 
         public static IEnumerable<InstallationType> AllInstallationTypes {
@@ -62,10 +61,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public readonly Action<int> ExitProgram;
         public bool CanClick { get; set; }
 
-        public SettingsViewModel(IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IUpdateNotifier updateNotifier, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
+        public SettingsViewModel(IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
             Installer = installer;
             UnchainedReleaseLocator = unchainedReleaseLocator;
-            UpdateNotifier = updateNotifier;
             UserDialogueSpawner = dialogueSpawner;
             InstallationType = installationType;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
@@ -83,7 +81,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
 
-        public static SettingsViewModel LoadSettings(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IUpdateNotifier updateNotifier, IUserDialogueSpawner userDialogueSpawner, Action<int> exitProgram) {
+        public static SettingsViewModel LoadSettings(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IUserDialogueSpawner userDialogueSpawner, Action<int> exitProgram) {
             var cliArgsList = Environment.GetCommandLineArgs();
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => $"{x} {y}") : "";
 
@@ -93,7 +91,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
             return new SettingsViewModel(
                 installer,
                 unchainedReleaseLocator,
-                updateNotifier,
                 userDialogueSpawner,
                 loadedSettings?.InstallationType ?? DetectInstallationType(installationFinder),
                 loadedSettings?.EnablePluginAutomaticUpdates ?? true,
@@ -193,13 +190,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private async Task ChangeVersion(ReleaseTarget release) {
             UserDialogueChoice? dialogResult =
-                UpdateNotifier.Notify(
+                UserDialogueSpawner.DisplayUpdateMessage(
                     "Chivalry 2 Unchained Launcher Update",
                     "Update the Unchained Launcher?",
                     "Yes",
                     "No",
                     null,
-                    new DependencyUpdate("Launcher", Some(CurrentVersion), release.Version.ToString(), release.PageUrl, "")
+                    new DependencyUpdate("Launcher", CurrentVersion, release.Version.ToString(), release.PageUrl, "")
                 );
 
             if (dialogResult == UserDialogueChoice.No) {

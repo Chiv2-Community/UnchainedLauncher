@@ -198,7 +198,9 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
         private Either<UnchainedLaunchFailure, Process> InjectDLLs(Process process) {
             if (ProcessInjector.Inject(process)) return Right(process);
-            else return Left(UnchainedLaunchFailure.InjectionFailed());
+            
+            process.Kill();
+            return Left(UnchainedLaunchFailure.InjectionFailed());
         }
 
         private static void PrepareModdedLaunchSigs() {

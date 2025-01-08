@@ -23,8 +23,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public SettingsViewModel Settings { get; }
 
-        private IModManager ModManager { get; }
-
         public string ButtonToolTip =>
             (!Settings.CanClick && !IsReusable())
                 ? "Unchained cannot launch an EGS installation more than once.  Restart the launcher if you wish to launch the game again."
@@ -33,29 +31,21 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public IOfficialChivalry2Launcher ClientSideModdedLauncher { get; }
         public IUnchainedChivalry2Launcher UnchainedLauncher { get; }
 
-        public IReleaseLocator PluginReleaseLocator { get; }
-
-        private IVersionExtractor<string> FileVersionExtractor { get; }
         private IUserDialogueSpawner UserDialogueSpawner { get; }
 
         public bool IsReusable() => Settings.InstallationType == InstallationType.Steam;
 
-        public LauncherViewModel(SettingsViewModel settings, IModManager modManager, IOfficialChivalry2Launcher vanillaLauncher, IOfficialChivalry2Launcher clientSideModdedLauncher, IUnchainedChivalry2Launcher moddedLauncher, IReleaseLocator pluginReleaseLocator, IVersionExtractor<string> fileVersionExtractor, IUserDialogueSpawner dialogueSpawner) {
+        public LauncherViewModel(SettingsViewModel settings, IOfficialChivalry2Launcher vanillaLauncher, IOfficialChivalry2Launcher clientSideModdedLauncher, IUnchainedChivalry2Launcher moddedLauncher, IUserDialogueSpawner dialogueSpawner) {
             Settings = settings;
-            ModManager = modManager;
 
             VanillaLauncher = vanillaLauncher;
             ClientSideModdedLauncher = clientSideModdedLauncher;
             UnchainedLauncher = moddedLauncher;
             UserDialogueSpawner = dialogueSpawner;
 
-            FileVersionExtractor = fileVersionExtractor;
-
             LaunchVanillaCommand = new AsyncRelayCommand(async () => await LaunchVanilla(false));
             LaunchModdedVanillaCommand = new AsyncRelayCommand(async () => await LaunchVanilla(true));
             LaunchUnchainedCommand = new AsyncRelayCommand(async () => await LaunchUnchained());
-
-            PluginReleaseLocator = pluginReleaseLocator;
         }
 
         public async Task<Option<Process>> LaunchVanilla(bool enableMods) {

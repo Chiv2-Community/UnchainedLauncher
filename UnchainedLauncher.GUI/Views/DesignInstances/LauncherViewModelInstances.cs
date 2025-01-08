@@ -11,9 +11,6 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
     public static class LauncherViewModelInstances {
         public static LauncherViewModel DEFAULT => new LauncherViewModel(
             SettingsViewModelInstances.DEFAULT,
-            new ModManager(new HashMap<IModRegistry, IEnumerable<Mod>>(), new List<Release>()),
-            null, null, null,
-            null, new FileInfoVersionExtractor(), new MessageBoxSpawner()
-        );
+            null, null, null, new MessageBoxSpawner());
     }
 }

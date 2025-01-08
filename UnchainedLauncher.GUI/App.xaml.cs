@@ -115,6 +115,13 @@ namespace UnchainedLauncher.GUI {
             var noSigLaunchPreparer = new NoSigPreparer(userDialogueSpawner);
             var sigLaunchPreparer = new SigPreparer(userDialogueSpawner);
             
+            IChivalry2LaunchPreparer unchainedContentPreparer = new UnchainedContentPreparer(
+                () => settingsViewModel.EnablePluginAutomaticUpdates,
+                modManager,
+                pluginReleaseLocator,
+                new FileInfoVersionExtractor(),
+                userDialogueSpawner);
+            
             var vanillaLauncher = new OfficialChivalry2Launcher(
                 noSigLaunchPreparer,
                 officialProcessLauncher,
@@ -128,11 +135,8 @@ namespace UnchainedLauncher.GUI {
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
+                unchainedContentPreparer.AndThen(sigLaunchPreparer),
                 unchainedProcessLauncher,
-                modManager,
-                pluginReleaseLocator,
-                new FileInfoVersionExtractor(),
-                userDialogueSpawner,
                 Directory.GetCurrentDirectory(),
                 () => {
                     var dllPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir);
@@ -142,7 +146,7 @@ namespace UnchainedLauncher.GUI {
                 });
 
             var serversViewModel = new ServersViewModel(settingsViewModel, null);
-            var launcherViewModel = new LauncherViewModel(settingsViewModel, modManager, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, pluginReleaseLocator, new FileInfoVersionExtractor(), userDialogueSpawner);
+            var launcherViewModel = new LauncherViewModel(settingsViewModel, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, userDialogueSpawner);
             var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(settingsViewModel, serversViewModel, unchainedLauncher, modManager, userDialogueSpawner);
             var modListViewModel = new ModListViewModel(modManager, userDialogueSpawner);
 

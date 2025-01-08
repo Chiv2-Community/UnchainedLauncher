@@ -15,29 +15,21 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         private static readonly ILog logger = LogManager.GetLogger(nameof(UnchainedLauncher));
 
         private IProcessLauncher Launcher { get; }
-        private IModManager ModManager { get; }
-        private IReleaseLocator PluginReleaseLocator { get; }
         private Func<IEnumerable<string>> FetchDLLs { get; }
-        private IVersionExtractor<string> FileVersionExtractor { get; }
-        private IUserDialogueSpawner UserDialogueSpawner { get; }
+        private IChivalry2LaunchPreparer LaunchPreparer { get; }
         private string InstallationRootDir { get; }
 
         public UnchainedChivalry2Launcher(
+            IChivalry2LaunchPreparer preparer,
             IProcessLauncher processLauncher,
-            IModManager modManager,
-            IReleaseLocator pluginReleaseLocator,
-            IVersionExtractor<string> fileVersionExtractor,
-            IUserDialogueSpawner userDialogueSpawner,
             string installationRootDir,
             Func<IEnumerable<string>> dlls) {
 
             FetchDLLs = dlls;
             InstallationRootDir = installationRootDir;
+
+            LaunchPreparer = preparer;
             Launcher = processLauncher;
-            ModManager = modManager;
-            PluginReleaseLocator = pluginReleaseLocator;
-            FileVersionExtractor = fileVersionExtractor;
-            UserDialogueSpawner = userDialogueSpawner;
         }
 
         public async Task<Either<UnchainedLaunchFailure, Process>> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args) {
@@ -51,8 +43,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
             moddedLaunchArgs.Insert(offsetIndex, " " + launchOpts);
 
-            var updateResult = await PrepareUnchainedLaunch(updateUnchainedDependencies);
-            if (updateResult == false) {
+            var launchPrepResult = await LaunchPreparer.PrepareLaunch();
+            if (launchPrepResult == false) {
                 return Left(UnchainedLaunchFailure.LaunchCancelled());
             }
 
@@ -73,129 +65,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
                 }
             );
         }
-
-        private async Task<bool> PrepareUnchainedLaunch(bool updateDependencies) {
-            var pluginPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.UnchainedPluginPath);
-            var pluginExists = File.Exists(pluginPath);
-            var isUnchainedModsEnabled = ModManager.EnabledModReleases.Exists(IsUnchainedMods);
-
-            if (!updateDependencies && pluginExists && isUnchainedModsEnabled) return true;
-
-            var latestUnchainedMods = ModManager.Mods.SelectMany(x => x.LatestRelease).Find(IsUnchainedMods).FirstOrDefault();
-
-
-            var latestPlugin = await PluginReleaseLocator.GetLatestRelease();
-            SemVersion? currentPluginVersion = FileVersionExtractor.GetVersion(pluginPath);
-
-
-            var pluginDependencyUpdate =
-                (currentPluginVersion != null && currentPluginVersion.ComparePrecedenceTo(latestPlugin.Version) >= 0)
-                    ? null
-                    : new DependencyUpdate(
-                        "UnchainedPlugin.dll",
-                        currentPluginVersion?.ToString(),
-                        latestPlugin.Version.ToString(),
-                        latestPlugin.PageUrl,
-                        "Used for hosting and connecting to player owned servers. Required to run Chivalry 2 Unchained."
-                    );
-
-            DependencyUpdate? unchainedModsDependencyUpdate = null;
-            if (isUnchainedModsEnabled) {
-                var unchainedModsUpdateCandidate = ModManager.GetUpdateCandidates().Find(x => IsUnchainedMods(x.AvailableUpdate)).FirstOrDefault();
-                if (unchainedModsUpdateCandidate != null)
-                    unchainedModsDependencyUpdate = DependencyUpdate.FromUpdateCandidate(unchainedModsUpdateCandidate);
-            }
-            else if (latestUnchainedMods == null) {
-                logger.Warn("Could not find any unchained mods release.");
-            }
-            else {
-                unchainedModsDependencyUpdate =
-                    new DependencyUpdate(
-                        latestUnchainedMods.Manifest.Name,
-                        null,
-                        latestUnchainedMods.Version.ToString(),
-                        latestUnchainedMods.ReleaseUrl,
-                        "Adds necessary Unchained content to Chivalry 2"
-                    );
-            }
-
-            IEnumerable<DependencyUpdate> updates =
-                new List<DependencyUpdate?>() { unchainedModsDependencyUpdate, pluginDependencyUpdate }
-                    .Filter(x => x != null)!;
-
-
-
-            var titleString = pluginExists
-                ? "Update Required Unchained Dependencies"
-                : "Install Required Unchained Dependencies";
-
-            var messageText = pluginExists
-                ? "Updates for the Unchained Dependencies are available."
-                : "The Unchained Dependencies are not installed.";
-
-
-            var userResponse = UserDialogueSpawner.DisplayUpdateMessage(
-                titleString,
-                messageText,
-                "Yes",
-                "No",
-                "Cancel",
-                updates
-            );
-
-            // The cases in here are all for exiting early.
-            switch (userResponse) {
-                // No updates available, continue launch
-                case null:
-                    return true;
-
-                // Continue launch, don't download or install anything
-                case UserDialogueChoice.No:
-                    return true;
-
-                // Do not continue launch, don't download or install anything
-                case UserDialogueChoice.Cancel:
-                    logger.Info("User cancelled chivalry 2 launch");
-                    return false;
-
-                // User selected yes/ok. Continue to download
-                case UserDialogueChoice.Yes:
-                    break;
-            }
-
-            logger.Info("Updating Unchained Dependencies");
-
-            if (pluginDependencyUpdate != null) {
-                var downloadResult = await HttpHelpers.DownloadReleaseTarget(
-                    latestPlugin,
-                    asset => (asset.Name == "UnchainedPlugin.dll") ? pluginPath : null
-                );
-
-                if (downloadResult == false) {
-                    UserDialogueSpawner.DisplayMessage(
-                        "Failed to download Unchained Plugin. Aborting launch. Check the logs for more details.");
-                    return false;
-                }
-            }
-
-            if (latestUnchainedMods != null) {
-                var result = await ModManager.EnableModRelease(latestUnchainedMods, None, CancellationToken.None);
-
-                if (result.IsLeft) {
-                    var error = result.LeftToSeq().FirstOrDefault()!;
-                    logger.Error("Failed to download latest Unchained-Mods", error);
-                    UserDialogueSpawner.DisplayMessage(
-                        "Failed to download latest Unchained-Mods. Aborting launch. Check the logs for more details.");
-                    return false;
-                }
-            }
-
-            return true;
-
-            bool IsUnchainedMods(Release release) => release.Manifest.RepoName == "Unchained-Mods" &&
-                                                     release.Manifest.Organization == "Chiv2-Community";
-        }
-
+        
         private Either<UnchainedLaunchFailure, Process> InjectDLLs(Process process) {
             IEnumerable<string>? dlls = null;
             try {

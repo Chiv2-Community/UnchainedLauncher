@@ -1,8 +1,6 @@
 using LanguageExt;
 using log4net;
 using System.Diagnostics;
-using UnchainedLauncher.Core.Extensions;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Utilities;
 

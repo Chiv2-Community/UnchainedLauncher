@@ -12,6 +12,7 @@ using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
+using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using UnchainedLauncher.Core.Utilities;
@@ -138,12 +139,8 @@ namespace UnchainedLauncher.GUI {
                 unchainedContentPreparer.AndThen(sigLaunchPreparer),
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
-                () => {
-                    var dllPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir);
-                    if (!Directory.Exists(dllPath))
-                        Directory.CreateDirectory(dllPath);
-                    return Directory.EnumerateFiles(dllPath);
-                });
+                new DllInjector(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir))
+            );
 
             var serversViewModel = new ServersViewModel(settingsViewModel, null);
             var launcherViewModel = new LauncherViewModel(settingsViewModel, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, userDialogueSpawner);

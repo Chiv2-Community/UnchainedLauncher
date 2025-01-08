@@ -1,7 +1,8 @@
-﻿using LanguageExt;
+using LanguageExt;
 using log4net;
 using System.Diagnostics;
 using UnchainedLauncher.Core.Extensions;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Utilities;
 
@@ -12,18 +13,18 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         private static readonly ILog logger = LogManager.GetLogger(nameof(UnchainedLauncher));
 
         private IProcessLauncher Launcher { get; }
-        private Func<IEnumerable<string>> FetchDLLs { get; }
         private IChivalry2LaunchPreparer LaunchPreparer { get; }
         private string InstallationRootDir { get; }
+        private IProcessInjector ProcessInjector { get; }
 
         public UnchainedChivalry2Launcher(
             IChivalry2LaunchPreparer preparer,
             IProcessLauncher processLauncher,
             string installationRootDir,
-            Func<IEnumerable<string>> dlls) {
+            IProcessInjector processInjector) {
 
-            FetchDLLs = dlls;
             InstallationRootDir = installationRootDir;
+            ProcessInjector = processInjector;
 
             LaunchPreparer = preparer;
             Launcher = processLauncher;
@@ -45,8 +46,6 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
                 return Left(UnchainedLaunchFailure.LaunchCancelled());
             }
 
-            PrepareModdedLaunchSigs();
-
             logger.Info($"Launch args: {moddedLaunchArgs}");
 
             var launchResult = Launcher.Launch(Path.Combine(InstallationRootDir, FilePaths.BinDir), moddedLaunchArgs);
@@ -64,25 +63,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         }
 
         private Either<UnchainedLaunchFailure, Process> InjectDLLs(Process process) {
-            IEnumerable<string>? dlls = null;
-            try {
-                dlls = FetchDLLs();
-                if (!dlls.Any()) return Right(process);
-                logger.LogListInfo("Injecting DLLs:", dlls);
-                Inject.InjectAll(process, dlls);
-                return Right(process);
-            }
-            catch (Exception e) {
-                process.Kill();
-                logger.Error(e);
-                return Left(UnchainedLaunchFailure.InjectionFailed(Optional(dlls), e));
-            }
-        }
+            if (ProcessInjector.Inject(process)) return Right(process);
 
-        private static void PrepareModdedLaunchSigs() {
-            logger.Info("Verifying .sig file presence");
-            SigFileHelper.CheckAndCopySigFiles();
-            SigFileHelper.DeleteOrphanedSigFiles();
+            process.Kill();
+            return Left(UnchainedLaunchFailure.InjectionFailed());
         }
     }
 }

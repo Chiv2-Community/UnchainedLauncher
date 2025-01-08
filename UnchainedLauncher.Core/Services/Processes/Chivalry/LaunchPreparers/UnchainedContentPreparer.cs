@@ -1,5 +1,4 @@
 ﻿using log4net;
-using log4net.Core;
 using Semver;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
@@ -7,7 +6,7 @@ using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
-    public class UnchainedContentPreparer: IChivalry2LaunchPreparer {
+    public class UnchainedContentPreparer : IChivalry2LaunchPreparer {
         private readonly ILog logger = LogManager.GetLogger(typeof(UnchainedContentPreparer));
 
         public UnchainedContentPreparer(Func<bool> getShouldUpdateDependencies, IModManager modManager, IReleaseLocator pluginReleaseLocator, IVersionExtractor fileVersionExtractor, IUserDialogueSpawner userDialogueSpawner) {
@@ -23,7 +22,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         private IReleaseLocator PluginReleaseLocator { get; }
         private IVersionExtractor FileVersionExtractor { get; }
         private IUserDialogueSpawner UserDialogueSpawner { get; }
-        
+
         public async Task<bool> PrepareLaunch() {
             var pluginPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.UnchainedPluginPath);
             var pluginExists = File.Exists(pluginPath);

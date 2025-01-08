@@ -114,20 +114,20 @@ namespace UnchainedLauncher.GUI {
 
             var noSigLaunchPreparer = new NoSigPreparer(userDialogueSpawner);
             var sigLaunchPreparer = new SigPreparer(userDialogueSpawner);
-            
+
             IChivalry2LaunchPreparer unchainedContentPreparer = new UnchainedContentPreparer(
                 () => settingsViewModel.EnablePluginAutomaticUpdates,
                 modManager,
                 pluginReleaseLocator,
                 new FileInfoVersionExtractor(),
                 userDialogueSpawner);
-            
+
             var vanillaLauncher = new OfficialChivalry2Launcher(
                 noSigLaunchPreparer,
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
-            
+
             var clientsideModdedLauncher = new OfficialChivalry2Launcher(
                 sigLaunchPreparer,
                 officialProcessLauncher,

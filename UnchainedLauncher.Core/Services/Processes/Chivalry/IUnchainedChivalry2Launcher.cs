@@ -37,7 +37,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
         public static UnchainedLaunchFailure LaunchCancelled() => new LaunchCancelledError();
     }
-    
+
     public record ModdedLaunchOptions(
         string ServerBrowserBackend,
         Option<string> SavedDirSuffix,
@@ -55,7 +55,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             return args;
         }
     };
-    
+
     public record ServerLaunchOptions(
         bool Headless,
         string Name,

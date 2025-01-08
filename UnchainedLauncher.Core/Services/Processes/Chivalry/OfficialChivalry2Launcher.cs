@@ -7,7 +7,7 @@ using UnchainedLauncher.Core.Processes;
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
     public class OfficialChivalry2Launcher : IOfficialChivalry2Launcher {
         private static readonly ILog logger = LogManager.GetLogger(typeof(OfficialChivalry2Launcher));
-        
+
         private IChivalry2LaunchPreparer Chivalry2LaunchPreparer { get; }
         private IProcessLauncher Launcher { get; }
         private string WorkingDirectory { get; }

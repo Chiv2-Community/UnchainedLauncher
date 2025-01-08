@@ -1,5 +1,5 @@
 ﻿namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
-    
+
     /// <summary>
     /// Performs tasks that sets up a proper launch
     /// </summary>
@@ -14,8 +14,8 @@
             return new ComposedChivalry2LaunchPreparer(this, otherLaunchPreparer);
         }
     }
-    
-    public class ComposedChivalry2LaunchPreparer: IChivalry2LaunchPreparer {
+
+    public class ComposedChivalry2LaunchPreparer : IChivalry2LaunchPreparer {
         private readonly IChivalry2LaunchPreparer _launchPreparer1;
         private readonly IChivalry2LaunchPreparer _launchPreparer2;
 
@@ -23,7 +23,7 @@
             _launchPreparer1 = launchPreparer1;
             _launchPreparer2 = launchPreparer2;
         }
-        
+
         public async Task<bool> PrepareLaunch() {
             return (await _launchPreparer1.PrepareLaunch()) && (await _launchPreparer2.PrepareLaunch());
         }

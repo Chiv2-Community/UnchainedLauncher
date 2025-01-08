@@ -13,6 +13,7 @@ using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
+using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
@@ -111,12 +112,17 @@ namespace UnchainedLauncher.GUI {
             var officialProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.OriginalLauncherPath));
             var unchainedProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 
+            var noSigLaunchPreparer = new NoSigPreparer(userDialogueSpawner);
+            var sigLaunchPreparer = new SigPreparer(userDialogueSpawner);
+            
             var vanillaLauncher = new OfficialChivalry2Launcher(
+                noSigLaunchPreparer,
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
-
-            var clientsideModdedLauncher = new ClientSideModdedOfficialChivalry2Launcher(
+            
+            var clientsideModdedLauncher = new OfficialChivalry2Launcher(
+                sigLaunchPreparer,
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
@@ -146,11 +152,11 @@ namespace UnchainedLauncher.GUI {
 
             // TODO: Replace this if/else chain with a real CLI
             if (envArgs.Contains("--startvanilla")) {
-                launcherViewModel.LaunchVanilla(false);
+                await launcherViewModel.LaunchVanilla(false);
                 return null;
             }
             else if (envArgs.Contains("--startmodded")) {
-                launcherViewModel.LaunchVanilla(true);
+                await launcherViewModel.LaunchVanilla(true);
                 return null;
             }
             else if (envArgs.Contains("--startunchained")) {

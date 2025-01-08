@@ -1,5 +1,4 @@
 ﻿using log4net;
-using Semver;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Utilities;
@@ -15,8 +14,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             IModManager modManager,
             IReleaseLocator pluginReleaseLocator,
             IVersionExtractor fileVersionExtractor,
-            IUserDialogueSpawner userDialogueSpawner) 
-        {
+            IUserDialogueSpawner userDialogueSpawner) {
             GetShouldUpdateDependencies = getShouldUpdateDependencies;
             ModManager = modManager;
             PluginReleaseLocator = pluginReleaseLocator;
@@ -31,8 +29,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         private IVersionExtractor FileVersionExtractor { get; }
         private IUserDialogueSpawner UserDialogueSpawner { get; }
 
-        public async Task<bool> PrepareLaunch() 
-        {
+        public async Task<bool> PrepareLaunch() {
             if (!ShouldCheckForUpdate())
                 return true;
 
@@ -41,7 +38,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 return true;
 
             var userChoice = ShowUpdateDialog(updates);
-            
+
             return userChoice switch {
                 UserDialogueChoice.Yes => await PerformUpdates(updates),
                 UserDialogueChoice.No => true, // Don't install anything, continue launch anyway
@@ -49,25 +46,22 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             };
         }
 
-        private bool ShouldCheckForUpdate()
-        {
+        private bool ShouldCheckForUpdate() {
             var pluginExists = File.Exists(pluginPath);
             var isUnchainedModsEnabled = ModManager.EnabledModReleases.Exists(IsUnchainedMods);
             return GetShouldUpdateDependencies() || !pluginExists || !isUnchainedModsEnabled;
         }
 
-        private async Task<IEnumerable<DependencyUpdate>> GetRequiredUpdates()
-        {
+        private async Task<IEnumerable<DependencyUpdate>> GetRequiredUpdates() {
             var updates = new List<DependencyUpdate?>();
-            
+
             updates.Add(await GetPluginUpdate());
             updates.Add(GetModsUpdate());
 
             return updates.Filter(x => x != null)!;
         }
 
-        private async Task<DependencyUpdate?> GetPluginUpdate()
-        {
+        private async Task<DependencyUpdate?> GetPluginUpdate() {
             var latestPlugin = await PluginReleaseLocator.GetLatestRelease();
             if (latestPlugin == null) {
                 logger.Warn("Could not find latest plugin");
@@ -88,16 +82,14 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             );
         }
 
-        private DependencyUpdate? GetModsUpdate()
-        {
+        private DependencyUpdate? GetModsUpdate() {
             var isUnchainedModsEnabled = ModManager.EnabledModReleases.Exists(IsUnchainedMods);
             var latestUnchainedMods = ModManager.Mods
                 .SelectMany(x => x.LatestRelease)
                 .Find(IsUnchainedMods)
                 .FirstOrDefault();
 
-            if (latestUnchainedMods == null)
-            {
+            if (latestUnchainedMods == null) {
                 logger.Warn("Could not find any unchained mods release.");
                 return null;
             }
@@ -116,14 +108,13 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 .Find(x => IsUnchainedMods(x.AvailableUpdate))
                 .FirstOrDefault();
 
-            return updateCandidate != null 
+            return updateCandidate != null
                 ? DependencyUpdate.FromUpdateCandidate(updateCandidate)
                 : null;
 
         }
 
-        private UserDialogueChoice? ShowUpdateDialog(IEnumerable<DependencyUpdate> updates)
-        {
+        private UserDialogueChoice? ShowUpdateDialog(IEnumerable<DependencyUpdate> updates) {
             var pluginExists = File.Exists(pluginPath);
             var title = pluginExists ? "Update Required Unchained Dependencies" : "Install Required Unchained Dependencies";
             var message = pluginExists ? "Updates for the Unchained Dependencies are available." : "The Unchained Dependencies are not installed.";
@@ -138,18 +129,14 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             );
         }
 
-        private async Task<bool> PerformUpdates(IEnumerable<DependencyUpdate> updates)
-        {
-            foreach (var update in updates)
-            {
-                if (update.Name == "UnchainedPlugin.dll")
-                {
+        private async Task<bool> PerformUpdates(IEnumerable<DependencyUpdate> updates) {
+            foreach (var update in updates) {
+                if (update.Name == "UnchainedPlugin.dll") {
                     var latestPlugin = await PluginReleaseLocator.GetLatestRelease();
                     if (!await UpdatePlugin(latestPlugin!))
                         return false;
                 }
-                else
-                {
+                else {
                     var latestMods = ModManager.Mods
                         .SelectMany(x => x.LatestRelease)
                         .Find(IsUnchainedMods)
@@ -162,15 +149,13 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             return true;
         }
 
-        private async Task<bool> UpdatePlugin(ReleaseTarget latestPlugin)
-        {
+        private async Task<bool> UpdatePlugin(ReleaseTarget latestPlugin) {
             var downloadResult = await HttpHelpers.DownloadReleaseTarget(
                 latestPlugin,
                 asset => (asset.Name == "UnchainedPlugin.dll") ? pluginPath : null
             );
 
-            if (!downloadResult)
-            {
+            if (!downloadResult) {
                 UserDialogueSpawner.DisplayMessage(
                     "Failed to download Unchained Plugin. Aborting launch. Check the logs for more details.");
                 return false;
@@ -178,11 +163,9 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             return true;
         }
 
-        private async Task<bool> UpdateMods(Release latestMods)
-        {
+        private async Task<bool> UpdateMods(Release latestMods) {
             var result = await ModManager.EnableModRelease(latestMods, None, CancellationToken.None);
-            if (result.IsLeft)
-            {
+            if (result.IsLeft) {
                 var error = result.LeftToSeq().FirstOrDefault()!;
                 logger.Error("Failed to download latest Unchained-Mods", error);
                 UserDialogueSpawner.DisplayMessage(
@@ -192,8 +175,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             return true;
         }
 
-        private static bool IsUnchainedMods(Release release) => 
-            release.Manifest.RepoName == "Unchained-Mods" && 
+        private static bool IsUnchainedMods(Release release) =>
+            release.Manifest.RepoName == "Unchained-Mods" &&
             release.Manifest.Organization == "Chiv2-Community";
     }
 }

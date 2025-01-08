@@ -2,7 +2,6 @@
 using log4net;
 using Semver;
 using System.Diagnostics;
-using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Services.Mods;
@@ -17,10 +16,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         private IProcessLauncher Launcher { get; }
         private IModManager ModManager { get; }
         private IReleaseLocator PluginReleaseLocator { get; }
-        private Func<IEnumerable<string>> FetchDLLs { get; }
         private IVersionExtractor<string> FileVersionExtractor { get; }
         private IUserDialogueSpawner UserDialogueSpawner { get; }
         private string InstallationRootDir { get; }
+        private IProcessInjector ProcessInjector { get; }
 
         public UnchainedChivalry2Launcher(
             IProcessLauncher processLauncher,
@@ -29,15 +28,15 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             IVersionExtractor<string> fileVersionExtractor,
             IUserDialogueSpawner userDialogueSpawner,
             string installationRootDir,
-            Func<IEnumerable<string>> dlls) {
+            IProcessInjector processInjector) {
 
-            FetchDLLs = dlls;
             InstallationRootDir = installationRootDir;
             Launcher = processLauncher;
             ModManager = modManager;
             PluginReleaseLocator = pluginReleaseLocator;
             FileVersionExtractor = fileVersionExtractor;
             UserDialogueSpawner = userDialogueSpawner;
+            ProcessInjector = processInjector;
         }
 
         public async Task<Either<UnchainedLaunchFailure, Process>> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args) {
@@ -197,19 +196,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         }
 
         private Either<UnchainedLaunchFailure, Process> InjectDLLs(Process process) {
-            IEnumerable<string>? dlls = null;
-            try {
-                dlls = FetchDLLs();
-                if (!dlls.Any()) return Right(process);
-                logger.LogListInfo("Injecting DLLs:", dlls);
-                Inject.InjectAll(process, dlls);
-                return Right(process);
-            }
-            catch (Exception e) {
-                process.Kill();
-                logger.Error(e);
-                return Left(UnchainedLaunchFailure.InjectionFailed(Optional(dlls), e));
-            }
+            if (ProcessInjector.Inject(process)) return Right(process);
+
+            process.Kill();
+            return Left(UnchainedLaunchFailure.InjectionFailed());
         }
 
         private static void PrepareModdedLaunchSigs() {

@@ -22,8 +22,8 @@ using UnchainedLauncher.GUI.JsonModels;
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
-    public partial class ServerLauncherViewModel : IDisposable, INotifyPropertyChanged {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(ServerLauncherViewModel));
+    public partial class ServerLauncherVM : IDisposable, INotifyPropertyChanged {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(ServerLauncherVM));
         private static readonly string SettingsFilePath = $"{FilePaths.ModCachePath}\\unchained_launcher_server_settings.json";
 
         public string ServerName { get; set; }
@@ -37,8 +37,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public bool ShowInServerBrowser { get; set; }
         public ObservableCollection<string> MapsList { get; set; }
         private IUnchainedChivalry2Launcher Launcher { get; }
-        private SettingsViewModel SettingsViewModel { get; }
-        private ServersViewModel ServersViewModel { get; }
+        private SettingsVM SettingsViewModel { get; }
+        private ServersVM ServersViewModel { get; }
         public string ButtonToolTip { get; set; }
         public ICommand LaunchServerCommand { get; }
         public ICommand LaunchServerHeadlessCommand { get; }
@@ -52,7 +52,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         //in the hopes of having multiple independent servers running one machine
         //whose settings can be stored/loaded from files
 
-        public ServerLauncherViewModel(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IUnchainedChivalry2Launcher launcher, IModManager modManager, IUserDialogueSpawner dialogueSpawner, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
+        public ServerLauncherVM(SettingsVM settingsViewModel, ServersVM serversViewModel, IUnchainedChivalry2Launcher launcher, IModManager modManager, IUserDialogueSpawner dialogueSpawner, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
 
             ServerName = serverName;
             ServerDescription = serverDescription;
@@ -112,12 +112,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
         }
 
-        public static ServerLauncherViewModel LoadSettings(SettingsViewModel settingsViewModel, ServersViewModel serversViewModel, IUnchainedChivalry2Launcher chivalry2Launcher, IModManager modManager, IUserDialogueSpawner dialogueSpawner) {
+        public static ServerLauncherVM LoadSettings(SettingsVM settingsViewModel, ServersVM serversViewModel, IUnchainedChivalry2Launcher chivalry2Launcher, IModManager modManager, IUserDialogueSpawner dialogueSpawner) {
             var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
 
 
-            return new ServerLauncherViewModel(
+            return new ServerLauncherVM(
                 settingsViewModel,
                 serversViewModel,
                 chivalry2Launcher,

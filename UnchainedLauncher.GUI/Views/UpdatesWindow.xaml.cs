@@ -13,12 +13,12 @@ namespace UnchainedLauncher.GUI.Views {
     /// </summary>
     public partial class UpdatesWindow : Window {
 
-        private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsViewModel));
+        private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsVM));
 
-        public UpdatesWindowViewModel ViewModel { get; private set; }
+        public UpdatesWindowVM ViewModel { get; private set; }
 
         public UpdatesWindow(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdateViewModel> updates) {
-            ViewModel = new UpdatesWindowViewModel(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates, Close);
+            ViewModel = new UpdatesWindowVM(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates, Close);
             DataContext = ViewModel;
             InitializeComponent();
         }

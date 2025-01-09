@@ -12,11 +12,11 @@ using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
 
 namespace UnchainedLauncher.GUI.ViewModels {
-    public partial class ServersViewModel : IDisposable, INotifyPropertyChanged {
+    public partial class ServersVM : IDisposable, INotifyPropertyChanged {
         private bool disposedValue;
 
         public ObservableCollection<ServerViewModel> Servers { get; set; }
-        public SettingsViewModel SettingsViewModel { get; set; }
+        public SettingsVM SettingsViewModel { get; set; }
         public int? Index { get; set; }
         public ICommand ShutdownCurrentTabCommand { get; private set; }
 
@@ -39,7 +39,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
         }
 
-        public ServersViewModel(SettingsViewModel settings, Func<string, IServerBrowser>? createServerBrowserBackend) {
+        public ServersVM(SettingsVM settings, Func<string, IServerBrowser>? createServerBrowserBackend) {
             ShutdownCurrentTabCommand = new RelayCommand(ShutdownCurrentTab);
             Servers = new ObservableCollection<ServerViewModel>();
             SettingsViewModel = settings;

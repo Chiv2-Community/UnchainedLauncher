@@ -36,19 +36,19 @@
 
     <TabControl x:Name="Tabs">
         <TabItem Header="Launcher">
-            <local:LauncherView DataContext="{Binding LauncherViewModel}" />
+            <local:Launcher DataContext="{Binding LauncherViewModel}" />
         </TabItem>
         <TabItem Header="Mod Manager">
-            <local:ModListView DataContext="{Binding ModListViewModel}" />
+            <local:ModList DataContext="{Binding ModListViewModel}" />
         </TabItem>
         <TabItem Header="Server">
-            <local:ServerLauncherView DataContext="{Binding ServerLauncherViewModel}" />
+            <local:ServerLauncher DataContext="{Binding ServerLauncherViewModel}" />
         </TabItem>
         <TabItem Header="Settings">
-            <local:SettingsView DataContext="{Binding SettingsViewModel}" />
+            <local:Settings DataContext="{Binding SettingsViewModel}" />
         </TabItem>
         <TabItem Header="Running Servers">
-            <local:ServersView DataContext="{Binding ServersViewModel}" />
+            <local:Servers DataContext="{Binding ServersViewModel}" />
         </TabItem>
     </TabControl>
 

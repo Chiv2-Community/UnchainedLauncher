@@ -104,7 +104,7 @@ namespace UnchainedLauncher.GUI {
         public async Task<Window?> InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
             var userDialogueSpawner = new MessageBoxSpawner();
 
-            var settingsViewModel = SettingsViewModel.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
+            var settingsViewModel = SettingsVM.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
 
             var modManager = ModManager.ForRegistries(
                 new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
@@ -142,10 +142,10 @@ namespace UnchainedLauncher.GUI {
                 new DllInjector(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir))
             );
 
-            var serversViewModel = new ServersViewModel(settingsViewModel, null);
-            var launcherViewModel = new LauncherViewModel(settingsViewModel, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, userDialogueSpawner);
-            var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(settingsViewModel, serversViewModel, unchainedLauncher, modManager, userDialogueSpawner);
-            var modListViewModel = new ModListViewModel(modManager, userDialogueSpawner);
+            var serversViewModel = new ServersVM(settingsViewModel, null);
+            var launcherViewModel = new LauncherVM(settingsViewModel, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, userDialogueSpawner);
+            var serverLauncherViewModel = ServerLauncherVM.LoadSettings(settingsViewModel, serversViewModel, unchainedLauncher, modManager, userDialogueSpawner);
+            var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
             modListViewModel.RefreshModListCommand.Execute(null);
 
@@ -165,7 +165,7 @@ namespace UnchainedLauncher.GUI {
                 return null;
             }
 
-            var mainWindowViewModel = new MainWindowViewModel(
+            var mainWindowViewModel = new MainWindowVM(
                 launcherViewModel,
                 modListViewModel,
                 settingsViewModel,

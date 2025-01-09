@@ -2,10 +2,10 @@
 
 namespace UnchainedLauncher.GUI.Views {
     /// <summary>
-    /// Interaction logic for ModView.xaml
+    /// Interaction logic for SettingsView.xaml
     /// </summary>
-    public partial class ModView : UserControl {
-        public ModView() {
+    public partial class Settings : UserControl {
+        public Settings() {
             InitializeComponent();
         }
     }

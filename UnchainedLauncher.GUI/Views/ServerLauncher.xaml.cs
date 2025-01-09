@@ -4,8 +4,8 @@ namespace UnchainedLauncher.GUI.Views {
     /// <summary>
     /// Interaction logic for ServerLauncherView.xaml
     /// </summary>
-    public partial class ServerLauncherView : UserControl {
-        public ServerLauncherView() {
+    public partial class ServerLauncher : UserControl {
+        public ServerLauncher() {
             InitializeComponent();
         }
     }

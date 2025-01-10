@@ -1,7 +1,6 @@
 ﻿using log4net;
-using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core {
+namespace UnchainedLauncher.Core.Utilities {
     public static class SigFileHelper {
         private static readonly ILog log = LogManager.GetLogger(typeof(SigFileHelper));
 

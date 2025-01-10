@@ -31,10 +31,5 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
             return launchResult;
         }
-
-        private static void PrepareUnmoddedLaunchSigs() {
-            logger.Info("Removing .sig files");
-            SigFileHelper.RemoveAllNonDefaultSigFiles();
-        }
     }
 }

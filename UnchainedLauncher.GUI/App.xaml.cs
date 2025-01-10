@@ -19,6 +19,7 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.Installer;
+using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
 
@@ -165,12 +166,15 @@ namespace UnchainedLauncher.GUI {
                 return null;
             }
 
+            var serversTabViewModel = new ServersTabVM(serversViewModel);
+
             var mainWindowViewModel = new MainWindowVM(
                 launcherViewModel,
                 modListViewModel,
                 settingsViewModel,
                 serverLauncherViewModel,
-                serversViewModel
+                serversViewModel,
+                serversTabViewModel
             );
 
             return new MainWindow(mainWindowViewModel);

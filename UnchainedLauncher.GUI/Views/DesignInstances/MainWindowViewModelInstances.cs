@@ -7,7 +7,8 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             ModListViewModelInstances.DEFAULT,
             SettingsViewModelInstances.DEFAULT,
             ServerLauncherViewModelInstances.DEFAULT,
-            ServersViewModelInstances.DEFAULT
+            ServersViewModelInstances.DEFAULT,
+            ServersTabInstances.DEFAULT
         );
     }
 }

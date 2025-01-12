@@ -117,14 +117,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
         // TODO: make Chivalry2Server handle the game process, Pid, and Rcon stuff
         // instead of having the ViewModel do it
         public Chivalry2Server Server { get; private set; }
-        public int Pid { get; private set; }
         public string CurrentRconCommand { get; set; } = "";
         public int RconPort { get; private set; }
         public ICommand SubmitRconCommand { get; private set; }
         public string RconHistory { get; set; }
         private static readonly IPAddress LocalHost = IPAddress.Parse("127.0.0.1");
         private readonly IPEndPoint RconEndPoint;
-        private readonly Process? ServerProcess;
+        public readonly Process? ServerProcess;
 
         private bool disposed = false;
 

@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Net;
 using System.Windows.Controls;
 
 namespace UnchainedLauncher.GUI.Views {
@@ -20,6 +21,18 @@ namespace UnchainedLauncher.GUI.Views {
                     : new ValidationResult(false, "Ports must be in range (0, 65535]");
             }
             return new ValidationResult(false, "Ports must be an integer in range (0, 65535]");
+        }
+    }
+
+    public class IPAddressValidationRule : ValidationRule {
+        public override ValidationResult Validate(object value, CultureInfo cultureInfo) {
+            try {
+                IPAddress addr = IPAddress.Parse((string)value);
+                return ValidationResult.ValidResult;
+            }
+            catch {
+                return new ValidationResult(false, "ip address is not valid");
+            }
         }
     }
 }

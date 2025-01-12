@@ -8,61 +8,73 @@
              d:DataContext="{x:Static instances:ServersTabInstances.DEFAULT}"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-        <TabControl>
-            <TabItem Header="Server">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="auto"/>
-                    </Grid.RowDefinitions>
-                    <Grid Grid.Row="0">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="auto"/>
-                            </Grid.ColumnDefinitions>
-                            <ComboBox 
-                                Grid.Column="0"
-                                ItemsSource="{Binding ServerTemplates}" 
-                                SelectedItem="{Binding SelectedTemplate}">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock><Run Text="{Binding Path=Form.Name, Mode=OneWay}"/></TextBlock>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                            <StackPanel Orientation="Horizontal" Grid.Column="1">
-                                <Button Command="{Binding Add_Template_Command}">
-                                    <Run Text=" + "/>
-                                </Button>
-                                <Button Command="{Binding Remove_Template_Command}">
-                                    <Run Text="  -  "/>
-                                </Button>
-                            </StackPanel>
-                        </Grid>
-                        
-                        <local:ServerTemplate Grid.Row="1" DataContext="{Binding SelectedTemplate}"/>
-                    </Grid>
 
-                    <Grid Grid.Row="1">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="10"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0">Launch server</Button>
-                        <Button Grid.Column="2">Launch Headless Server</Button>
-                    </Grid>
-                </Grid>
-            </TabItem>
-            <TabItem Header="Running Servers">
-                <local:Servers />
-            </TabItem>
-        </TabControl>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <!-- Server selector -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="auto"/>
+            </Grid.ColumnDefinitions>
+            <ComboBox 
+                        Grid.Column="0"
+                        ItemsSource="{Binding ServerTemplates}" 
+                        SelectedItem="{Binding SelectedTemplate}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock><Run Text="{Binding Path=Form.Name, Mode=OneWay}"/></TextBlock>
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+            <StackPanel Orientation="Horizontal" Grid.Column="1">
+                <Button Command="{Binding Add_Template_Command}">
+                    <Run Text=" + "/>
+                </Button>
+                <Button Command="{Binding Remove_Template_Command}">
+                    <Run Text="  -  "/>
+                </Button>
+            </StackPanel>
+        </Grid>
+        <Grid Grid.Row="1">
+            <TextBlock Text="Press the plus above to add a new template"/>
+        </Grid>
+        <!-- Only one of the following is displayed at a time -->
+        
+        <!-- Template editor & launch buttons -->
+        <Grid Grid.Row="1" Background="White" Visibility="{Binding TemplateEditorVisibility}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="auto"/>
+            </Grid.RowDefinitions>
+            <local:ServerTemplate Grid.Row="0" DataContext="{Binding SelectedTemplate}"/>
+            <!-- Launch buttons -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Command="{Binding Launch_Server}">Launch server</Button>
+                <Button Grid.Column="2" Command="{Binding Launch_Headless}">Launch Headless Server</Button>
+            </Grid>
+        </Grid>
+        
+        <!-- Running server stuff-->
+        <Grid Grid.Row="1" Background="White" Visibility="{Binding LiveServerVisibility}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="auto"/>
+            </Grid.RowDefinitions>
+            <local:Server DataContext="{Binding SelectedLive}" Grid.Row="0"/>
+            <Button Grid.Row="1"
+                Command="{Binding Shutdown_Server}" 
+                DockPanel.Dock="Bottom">
+                Shut Down
+            </Button>
+        </Grid>
     </Grid>
 </UserControl>

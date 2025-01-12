@@ -1,31 +1,80 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
+using log4net;
 using PropertyChanged;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows.Input;
+using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.API.ServerBrowser;
+using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Processes.Chivalry;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using LanguageExt.Pipes;
+using UnchainedLauncher.Core.API.A2S;
+using System.Net;
+using System.Windows;
+using System.Threading;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
+    using static LanguageExt.Prelude;
     [AddINotifyPropertyChangedInterface]
     public class ServersTabVM {
-        public ServersVM RunningServers { get; }
+        private static readonly ILog logger = LogManager.GetLogger(nameof(ServersTabVM));
+        public SettingsVM Settings { get; }
+        public readonly IUnchainedChivalry2Launcher Launcher;
+        public Func<IModManager> ModManagerCreator;
+        public IUserDialogueSpawner DialogueSpawner;
         public ObservableCollection<ServerTemplateVM> ServerTemplates { get; }
         public ObservableCollection<(ServerTemplateVM template, ServerViewModel live)> RunningTemplates { get; } = new();
-        public ServerTemplateVM? SelectedTemplate { get; set; }
-        public ServerViewModel? SelectedLive => 
-            RunningTemplates.Choose(
-                (e) => e.template == SelectedTemplate ? e.live : Option<ServerViewModel>.None
-            ).FirstOrDefault();
-        public bool IsSelectedRunning => SelectedLive != null;
+        private ServerTemplateVM? _SelectedTemplate;
+        public ServerTemplateVM? SelectedTemplate { 
+            get => _SelectedTemplate; 
+            set {
+                _SelectedTemplate = value;
+                UpdateVisibility();
+            }
+        }
+        public ServerViewModel? SelectedLive { get; private set; }
         
+        public Visibility TemplateEditorVisibility { get; private set; }
+        public Visibility LiveServerVisibility { get; private set; }
+
         public ICommand Add_Template_Command { get; }
         public ICommand Remove_Template_Command { get; }
-        public ServersTabVM(ServersVM servers, ObservableCollection<ServerTemplateVM>? templates = null) {
+        public ICommand Launch_Server { get; }
+        public ICommand Launch_Headless { get; }
+        public ICommand Shutdown_Server { get; }
+
+        public void UpdateVisibility() {
+            SelectedLive = RunningTemplates.Choose(
+                    (e) => e.template == SelectedTemplate ? e.live : Option<ServerViewModel>.None
+                ).FirstOrDefault();
+            bool isSelectedRunning = SelectedLive != null;
+
+            TemplateEditorVisibility = isSelectedRunning || ServerTemplates.Length() == 0 ? Visibility.Hidden : Visibility.Visible;
+            LiveServerVisibility = !isSelectedRunning ? Visibility.Hidden : Visibility.Visible;
+        }
+
+        public ServersTabVM(SettingsVM settings,
+                            Func<IModManager> modManagerCreator,
+                            IUserDialogueSpawner dialogueSpawner,
+                            IUnchainedChivalry2Launcher launcher,
+                            ObservableCollection<ServerTemplateVM>? templates = null) {
             ServerTemplates = templates ?? new();
+            ServerTemplates.CollectionChanged += (_, _) => UpdateVisibility();
+            RunningTemplates.CollectionChanged += (_, _) => UpdateVisibility();
             SelectedTemplate = ServerTemplates.FirstOrDefault();
-            RunningServers = servers;
+            Settings = settings;
+            Launcher = launcher;
+            DialogueSpawner = dialogueSpawner;
+            ModManagerCreator = modManagerCreator;
             Add_Template_Command = new RelayCommand(Add_Template);
             Remove_Template_Command = new RelayCommand(() => {
                 if (SelectedTemplate != null) {
@@ -33,10 +82,35 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 }
                 SelectedTemplate = ServerTemplates.FirstOrDefault();
             });
+            Shutdown_Server = new RelayCommand(async () => {
+                // this might take a while, so it is actually feasible that
+                // the user could switch selections by the time this completes
+                var heldLive = SelectedLive;
+                if (heldLive == null) {
+                    return;
+                }
+                await heldLive.SendCommand("exit");
+                
+                if (heldLive.ServerProcess != null) {
+                    try {
+                        var cts = new CancellationTokenSource(2000);
+                        await heldLive.ServerProcess.WaitForExitAsync(cts.Token);
+                        return;
+                    }
+                    catch (TaskCanceledException e) {
+                        if (!heldLive.ServerProcess.HasExited) {
+                            heldLive.ServerProcess?.Kill(true);
+                        }
+                    }
+                }
+            });
+            Launch_Server = new RelayCommand(async () => await LaunchSelected(false));
+            Launch_Headless = new RelayCommand(async () => await LaunchSelected(true));
+            UpdateVisibility();
         }
 
         private void Add_Template() {
-            var newTemplate = new ServerTemplateVM();
+            var newTemplate = new ServerTemplateVM(ModManagerCreator());
             var occupiedPorts = ServerTemplates.Select(
                 (e) => new Set<int>( new List<int> {
                     e.Form.A2sPort,
@@ -44,7 +118,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                     e.Form.PingPort,
                     e.Form.GamePort
                 })
-            ).Aggregate(Set<int>.Empty, (s1, s2) => s1.AddRange(s2));
+            ).Aggregate(Set<int>(), (s1, s2) => s1.AddRange(s2));
 
             // try to make the new template nice
             if (SelectedTemplate != null) {
@@ -62,6 +136,80 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             ServerTemplates.Add(newTemplate);
             SelectedTemplate = newTemplate;
+        }
+
+        public async Task LaunchSelected(bool headless = false) {
+            if (SelectedTemplate == null) return;
+
+            ServerInfoFormData formData = SelectedTemplate.Form.Data;
+            var enabledMods = SelectedTemplate.ModManager.EnabledModReleases;
+            var maybeProcess = await LaunchProcessForSelected(formData, headless);
+            maybeProcess.IfSome(process => {
+                var server = new Chivalry2Server(RegisterWithBackend(formData, enabledMods));
+                var serverVm = new ServerViewModel(server, process, formData.RconPort);
+                var RunningTuple = (SelectedTemplate, serverVm);
+                process.Exited += (_, _) => {
+                    RunningTemplates.Remove(RunningTuple);
+                    RunningTuple.serverVm.Dispose();
+                };
+                RunningTemplates.Add(RunningTuple);
+            });
+        }
+
+        private async Task<Option<Process>> LaunchProcessForSelected(ServerInfoFormData formData, bool headless) {
+            if (!Settings.IsLauncherReusable()) {
+                Settings.CanClick = false;
+            }
+
+            if (SelectedTemplate == null) return None;
+
+            var serverLaunchOptions = formData.ToServerLaunchOptions(headless);
+            var options = new ModdedLaunchOptions(
+                Settings.ServerBrowserBackend,
+                None,
+                Some(serverLaunchOptions)
+            );
+
+            var launchResult = await Launcher.Launch(options, Settings.EnablePluginAutomaticUpdates, Settings.CLIArgs);
+            return launchResult.Match(
+                Left: _ => {
+                    DialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
+                    Settings.CanClick = true;
+                    return None;
+                },
+                Right: process => {
+                    process.EnableRaisingEvents = true;
+                    process.Exited += (sender, e) => {
+                        if (process.ExitCode == 0) return;
+                        logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
+                        DialogueSpawner.DisplayMessage($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
+                    };
+                    return Some(process);
+                }
+            );
+        }
+
+        public A2SBoundRegistration RegisterWithBackend(ServerInfoFormData formData, IEnumerable<Release> enabledMods) {
+            var ports = formData.ToPublicPorts();
+            var serverInfo = new C2ServerInfo {
+                Ports = ports,
+                Name = formData.Name,
+                Description = formData.Description,
+                PasswordProtected = formData.Password.Length != 0,
+                Mods = enabledMods.Select(release =>
+                    new ServerBrowserMod(
+                        release.Manifest.Name,
+                        release.Version.ToString(),
+                        release.Manifest.Organization
+                    )
+                ).ToArray()
+            };
+
+            return new A2SBoundRegistration(
+                new ServerBrowser(new Uri(Settings.ServerBrowserBackend)),
+                new A2S(new IPEndPoint(IPAddress.Loopback, ports.A2s)),
+                serverInfo,
+                formData.LocalIp);
         }
 
         public static (int, Set<int>) ReserveRestrictedSuccessor(int number, Set<int> excluded) {

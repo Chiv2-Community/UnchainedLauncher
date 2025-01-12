@@ -10,15 +10,16 @@ using UnchainedLauncher.GUI.ViewModels;
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
     public static class ModListViewModelInstances {
         public static ModListVM DEFAULT => CreateDefaultModListViewModel();
-
-        private static ModListVM CreateDefaultModListViewModel() {
-            var instance = new ModListVM(
-                new ModManager(
+        public static IModManager DEFAULTMODMANAGER => new ModManager(
                     new HashMap<IModRegistry, IEnumerable<Core.JsonModels.Metadata.V3.Mod>> {
                         { new LocalModRegistry("", new LocalFilePakDownloader("")), new List<Core.JsonModels.Metadata.V3.Mod> { ModViewModelInstances.DesignViewMod } }
                     },
                     new List<Release> { ModViewModelInstances.DesignViewRelease }
-                ),
+                );
+
+        private static ModListVM CreateDefaultModListViewModel() {
+            var instance = new ModListVM(
+                DEFAULTMODMANAGER,
                 new MessageBoxSpawner()
             );
 

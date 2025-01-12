@@ -111,8 +111,17 @@ namespace UnchainedLauncher.GUI {
                 new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
             );
 
+#if DEBUG_FAKECHIVALRYLAUNCH
+            var officialProcessLauncher = new PowershellProcessLauncher(
+                "Official Chivalry 2"
+            );
+            var unchainedProcessLauncher = new PowershellProcessLauncher(
+                "Unchained Chivalry 2"
+            );
+#else
             var officialProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.OriginalLauncherPath));
             var unchainedProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
+#endif
 
             var noSigLaunchPreparer = new NoSigPreparer(userDialogueSpawner);
             var sigLaunchPreparer = new SigPreparer(userDialogueSpawner);
@@ -140,7 +149,13 @@ namespace UnchainedLauncher.GUI {
                 unchainedContentPreparer.AndThen(sigLaunchPreparer),
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
+#if DEBUG_FAKECHIVALRYLAUNCH
+                // point to a directory that won't actually have dlls. That way, we
+                // don't shove dlls into processes that don't need them and cause crashes
+                new DllInjector(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir+"/emptydir"))
+#else
                 new DllInjector(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir))
+#endif
             );
 
             var serversViewModel = new ServersVM(settingsViewModel, null);
@@ -166,7 +181,7 @@ namespace UnchainedLauncher.GUI {
                 return null;
             }
 
-            var serversTabViewModel = new ServersTabVM(serversViewModel);
+            var serversTabViewModel = new ServersTabVM(settingsViewModel, () => new ModManager(modManager), userDialogueSpawner, unchainedLauncher);
 
             var mainWindowViewModel = new MainWindowVM(
                 launcherViewModel,

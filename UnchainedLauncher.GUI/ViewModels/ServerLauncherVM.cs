@@ -53,7 +53,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         //whose settings can be stored/loaded from files
 
         public ServerLauncherVM(SettingsVM settingsViewModel, ServersVM serversViewModel, IUnchainedChivalry2Launcher launcher, IModManager modManager, IUserDialogueSpawner dialogueSpawner, string serverName, string serverDescription, string serverPassword, string selectedMap, int gamePort, int rconPort, int a2sPort, int pingPort, bool showInServerBrowser, FileBackedSettings<ServerSettings> settingsFile) {
-
             ServerName = serverName;
             ServerDescription = serverDescription;
             ServerPassword = serverPassword;
@@ -115,7 +114,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public static ServerLauncherVM LoadSettings(SettingsVM settingsViewModel, ServersVM serversViewModel, IUnchainedChivalry2Launcher chivalry2Launcher, IModManager modManager, IUserDialogueSpawner dialogueSpawner) {
             var fileBackedSettings = new FileBackedSettings<ServerSettings>(SettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
-
 
             return new ServerLauncherVM(
                 settingsViewModel,

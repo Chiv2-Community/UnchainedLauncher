@@ -167,6 +167,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             var result = await ModManager.EnableModRelease(latestMods, None, CancellationToken.None);
             if (result.IsLeft) {
                 var error = result.LeftToSeq().FirstOrDefault()!;
+                // TODO: the line below this sometimes explodes with a stack overflow. Don't know why.
                 logger.Error("Failed to download latest Unchained-Mods", error);
                 UserDialogueSpawner.DisplayMessage(
                     "Failed to download latest Unchained-Mods. Aborting launch. Check the logs for more details.");

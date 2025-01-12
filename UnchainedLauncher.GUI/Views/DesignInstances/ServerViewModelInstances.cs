@@ -4,19 +4,19 @@ using System.Net;
 using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
-using UnchainedLauncher.GUI.ViewModels;
+using UnchainedLauncher.GUI.ViewModels.ServersTab;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
     public static class ServerViewModelInstances {
-        public static ServerViewModel DEFAULT => CreateDefaultServerViewModel();
+        public static ServerVM DEFAULT => CreateDefaultServerViewModel();
 
-        private static ServerViewModel CreateDefaultServerViewModel() {
+        private static ServerVM CreateDefaultServerViewModel() {
             var rconHistoryString = "Hello, this is a fake server\n";
             rconHistoryString += "Ignore my output\n";
             rconHistoryString += "I'm just here to make the GUI look nice\n";
             rconHistoryString += "While you design it\n";
 
-            return new ServerViewModel(
+            return new ServerVM(
                 new Chivalry2Server(
                     new A2SBoundRegistration(
                         new NullServerBrowser(),

@@ -32,7 +32,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public Func<IModManager> ModManagerCreator;
         public IUserDialogueSpawner DialogueSpawner;
         public ObservableCollection<ServerTemplateVM> ServerTemplates { get; }
-        public ObservableCollection<(ServerTemplateVM template, ServerViewModel live)> RunningTemplates { get; } = new();
+        public ObservableCollection<(ServerTemplateVM template, ServerVM live)> RunningTemplates { get; } = new();
         private ServerTemplateVM? _SelectedTemplate;
         public ServerTemplateVM? SelectedTemplate { 
             get => _SelectedTemplate; 
@@ -41,7 +41,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 UpdateVisibility();
             }
         }
-        public ServerViewModel? SelectedLive { get; private set; }
+        public ServerVM? SelectedLive { get; private set; }
         
         public Visibility TemplateEditorVisibility { get; private set; }
         public Visibility LiveServerVisibility { get; private set; }
@@ -54,7 +54,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public void UpdateVisibility() {
             SelectedLive = RunningTemplates.Choose(
-                    (e) => e.template == SelectedTemplate ? e.live : Option<ServerViewModel>.None
+                    (e) => e.template == SelectedTemplate ? e.live : Option<ServerVM>.None
                 ).FirstOrDefault();
             bool isSelectedRunning = SelectedLive != null;
 
@@ -146,7 +146,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var maybeProcess = await LaunchProcessForSelected(formData, headless);
             maybeProcess.IfSome(process => {
                 var server = new Chivalry2Server(RegisterWithBackend(formData, enabledMods));
-                var serverVm = new ServerViewModel(server, process, formData.RconPort);
+                var serverVm = new ServerVM(server, process, formData.RconPort);
                 var RunningTuple = (SelectedTemplate, serverVm);
                 process.Exited += (_, _) => {
                     RunningTemplates.Remove(RunningTuple);
@@ -156,6 +156,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             });
         }
 
+        // TODO: this should really be a part of Chivalry2Server
         private async Task<Option<Process>> LaunchProcessForSelected(ServerInfoFormData formData, bool headless) {
             if (!Settings.IsLauncherReusable()) {
                 Settings.CanClick = false;
@@ -189,6 +190,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             );
         }
 
+        // TODO: this should really be a part of Chivalry2Server
         public A2SBoundRegistration RegisterWithBackend(ServerInfoFormData formData, IEnumerable<Release> enabledMods) {
             var ports = formData.ToPublicPorts();
             var serverInfo = new C2ServerInfo {
@@ -206,7 +208,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             };
 
             return new A2SBoundRegistration(
-                new ServerBrowser(new Uri(Settings.ServerBrowserBackend)),
+                new ServerBrowser(new Uri(Settings.ServerBrowserBackend + "/api/v1")),
                 new A2S(new IPEndPoint(IPAddress.Loopback, ports.A2s)),
                 serverInfo,
                 formData.LocalIp);

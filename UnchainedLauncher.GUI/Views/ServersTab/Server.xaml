@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views"
              xmlns:vms="clr-namespace:UnchainedLauncher.GUI.ViewModels"
              xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
-             d:DataContext="{x:Static instances:ServersViewModelInstances.DEFAULT}"
+             d:DataContext="{x:Static instances:ServerViewModelInstances.DEFAULT}"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
 
@@ -16,7 +16,6 @@
             <RowDefinition/>
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
-        <!-- servers as tabs -->
 
         <Grid Background="White">
             <Grid.ColumnDefinitions>
@@ -26,7 +25,7 @@
             <!-- Data display -->
             <StackPanel Grid.Column="0">
                 <!-- A2S status display -->
-                <TextBlock ToolTip="{Binding Server.RegistrationHandler.A2SWatcher.LastException.Message}">
+                <TextBlock ToolTip="{Binding LastA2sExceptionMessage, Mode=OneWay}">
                     <Run Text="A2S Status (hover for errors): "/>
                     <InlineUIContainer BaselineAlignment="Center">
                         <Ellipse Width="13" Height="13">
@@ -34,7 +33,7 @@
                                 <Style TargetType="Ellipse">
                                     <Setter Property="Fill" Value="Green"/>
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Server.RegistrationHandler.A2SWatcher.A2sOk}" Value="False">
+                                        <DataTrigger Binding="{Binding IsA2sOk}" Value="False">
                                             <Setter Property="Fill" Value="Red"/>
                                         </DataTrigger>
                                     </Style.Triggers>
@@ -64,35 +63,36 @@
                                             </Ellipse>
                                         </InlineUIContainer>
                 </TextBlock>
+                <!-- A2S info display -->
                 <ContentControl Content="{Binding Server.RegistrationHandler.Registration}">
                     <ContentControl.ContentTemplate>
                         <DataTemplate>
                             <StackPanel>
                                 <TextBlock>
-                                                        <Run Text="ID: "/>
-                                                        <Run Text="{Binding Registration.Server.UniqueId}"/>
+                                    <Run Text="ID: "/>
+                                    <Run Text="{Binding Registration.Server.UniqueId}"/>
                                 </TextBlock>
                                 <TextBlock>
-                                                        <Run Text="Name: "/>
-                                                        <Run Text="{Binding Registration.Server.Name}"/>
+                                    <Run Text="Name: "/>
+                                    <Run Text="{Binding Registration.Server.Name}"/>
                                 </TextBlock>
                                 <TextBlock>
-                                                        <Run Text="Map: "/>
-                                                        <Run Text="{Binding Registration.Server.CurrentMap}"/>
+                                    <Run Text="Map: "/>
+                                    <Run Text="{Binding Registration.Server.CurrentMap}"/>
                                 </TextBlock>
                                 <TextBlock>
-                                                        <Run Text="Players: "/>
-                                                        <Run Text="{Binding Registration.Server.PlayerCount}"/>
-                                                        /
-                                                        <Run Text="{Binding Registration.Server.MaxPlayers}"/>
+                                    <Run Text="Players: "/>
+                                    <Run Text="{Binding Registration.Server.PlayerCount}"/>
+                                    /
+                                    <Run Text="{Binding Registration.Server.MaxPlayers}"/>
                                 </TextBlock>
                             </StackPanel>
                         </DataTemplate>
                     </ContentControl.ContentTemplate>
                 </ContentControl>
                 <TextBlock Text=""/>
-                <TextBlock Text="Ports:"/>
                 <!-- Ports outline -->
+                <TextBlock Text="Ports:"/>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="30"/>
@@ -128,11 +128,11 @@
                 </Grid.RowDefinitions>
                 <TextBlock Text="Rcon Console:" Grid.Row="0"/>
                 <TextBox 
-                                        Text="{Binding RconHistory}" 
-                                        Grid.Row="1"
-                                        IsReadOnly="True" 
-                                        VerticalScrollBarVisibility="Auto" 
-                                        HorizontalScrollBarVisibility="Auto"/>
+                    Text="{Binding RconHistory}" 
+                    Grid.Row="1"
+                    IsReadOnly="True" 
+                    VerticalScrollBarVisibility="Auto" 
+                    HorizontalScrollBarVisibility="Auto"/>
                 <!-- RCON command entry-->
                 <Grid Grid.Row="2">
                     <Grid.ColumnDefinitions>
@@ -140,10 +140,10 @@
                         <ColumnDefinition Width="auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBox 
-                                            Grid.Column="0" 
-                                            Margin="5"
-                                            AcceptsReturn="False"
-                                            Text="{Binding CurrentRconCommand, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                        Grid.Column="0" 
+                        Margin="5"
+                        AcceptsReturn="False"
+                        Text="{Binding CurrentRconCommand, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                         <TextBox.InputBindings>
                             <KeyBinding Command="{Binding SubmitRconCommand}" Key="Enter"/>
                             <KeyBinding Command="{Binding SubmitRconCommand}" Key="Return"/>

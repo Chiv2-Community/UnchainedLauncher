@@ -158,9 +158,7 @@ namespace UnchainedLauncher.GUI {
 #endif
             );
 
-            var serversViewModel = new ServersVM(settingsViewModel, null);
             var launcherViewModel = new LauncherVM(settingsViewModel, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, userDialogueSpawner);
-            var serverLauncherViewModel = ServerLauncherVM.LoadSettings(settingsViewModel, serversViewModel, unchainedLauncher, modManager, userDialogueSpawner);
             var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
             modListViewModel.RefreshModListCommand.Execute(null);
@@ -187,8 +185,6 @@ namespace UnchainedLauncher.GUI {
                 launcherViewModel,
                 modListViewModel,
                 settingsViewModel,
-                serverLauncherViewModel,
-                serversViewModel,
                 serversTabViewModel
             );
 

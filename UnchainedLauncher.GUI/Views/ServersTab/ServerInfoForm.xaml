@@ -84,9 +84,9 @@
                 <ColumnDefinition Width="auto"/>
             </Grid.ColumnDefinitions>
             <TextBox Grid.Column="0" Margin ="5">
-                <Binding Path="LocalIp">
+                <Binding Path="LocalIp" UpdateSourceTrigger="PropertyChanged">
                     <Binding.ValidationRules>
-                        <local:IPAddressValidationRule/>
+                        <local:IPAddressValidationRule ValidatesOnTargetUpdated="True"/>
                     </Binding.ValidationRules>
                 </Binding>
             </TextBox>

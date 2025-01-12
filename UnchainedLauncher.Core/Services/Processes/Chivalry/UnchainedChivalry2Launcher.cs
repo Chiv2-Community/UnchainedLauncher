@@ -37,7 +37,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
             var launchOpts = launchOptions.ToCLIArgs();
 
-            moddedLaunchArgs.Insert(offsetIndex, " " + launchOpts);
+            moddedLaunchArgs = moddedLaunchArgs.Insert(offsetIndex, $" {string.Join(" ", launchOpts)} ");
 
             var launchPrepResult = await LaunchPreparer.PrepareLaunch();
             if (launchPrepResult == false) {

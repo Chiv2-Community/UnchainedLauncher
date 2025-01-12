@@ -63,6 +63,11 @@ namespace UnchainedLauncher.Core.Services.Processes {
                         ? Directory.EnumerateFiles(DllDir, "*.dll", SearchOption.AllDirectories)
                         : Enumerable.Empty<string>();
 
+                if(paths.Length() == 0) {
+                    logger.Info("No dlls present for injection");
+                    return true;
+                }
+
                 //Paths to be injected MUST be absolute
                 paths = paths.Select(p => Path.GetFullPath(p));
 

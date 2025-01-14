@@ -1,10 +1,10 @@
 ﻿using LanguageExt;
-using static LanguageExt.Prelude;
 using log4net;
 using UnchainedLauncher.Core.Utilities;
+using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
-    
+
     /// <summary>
     /// Removes all non-vanilla sig files.
     /// Ignores the input parameters, returning them unmodified.
@@ -14,10 +14,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         private readonly ILog logger = LogManager.GetLogger(nameof(SigPreparer));
 
         private IUserDialogueSpawner UserDialogueSpawner;
-        
+
         public static IChivalry2LaunchPreparer<Unit> Create(IUserDialogueSpawner userDialogueSpawner) =>
             new SigPreparer(userDialogueSpawner);
-        
+
         private SigPreparer(IUserDialogueSpawner userDialogueSpawner) {
             UserDialogueSpawner = userDialogueSpawner;
         }

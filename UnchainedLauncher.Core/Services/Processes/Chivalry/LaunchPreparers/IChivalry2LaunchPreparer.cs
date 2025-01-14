@@ -19,11 +19,11 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
         public IChivalry2LaunchPreparer<T> AndThen(IChivalry2LaunchPreparer<T> otherLaunchPreparer) {
             return Create<T>(opts => {
-                var result = 
+                var result =
                     from modifiedOpts in OptionalAsync(this.PrepareLaunch(opts))
                     from finalOpts in OptionalAsync(otherLaunchPreparer.PrepareLaunch(opts))
                     select finalOpts;
-                
+
                 return result.Value;
             });
         }
@@ -52,7 +52,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             Func<T2, T> toT) =>
             AndThen(other.InvariantMap(toT2, toT));
 
-        
+
         public IChivalry2LaunchPreparer<T> AndThen(Func<T, Task<Option<T>>> f) => AndThen(Create(f));
         public IChivalry2LaunchPreparer<T> Bind(IChivalry2LaunchPreparer<T> launchPreparer) => AndThen(launchPreparer);
 

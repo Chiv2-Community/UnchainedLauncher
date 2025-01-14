@@ -1,5 +1,4 @@
 ﻿using LanguageExt;
-using static LanguageExt.Prelude;
 using log4net;
 using System.Diagnostics;
 using UnchainedLauncher.Core.Extensions;

@@ -1,10 +1,10 @@
 ﻿using LanguageExt;
-using static LanguageExt.Prelude;
 using log4net;
 using UnchainedLauncher.Core.Utilities;
+using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
-    
+
     /// <summary>
     /// Removes all non-vanilla sig files.
     /// </summary>
@@ -16,7 +16,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
         public static IChivalry2LaunchPreparer<Unit> Create(IUserDialogueSpawner userDialogueSpawner) =>
             new NoSigPreparer(userDialogueSpawner);
-        
+
         private NoSigPreparer(IUserDialogueSpawner userDialogueSpawner) {
             UserDialogueSpawner = userDialogueSpawner;
         }

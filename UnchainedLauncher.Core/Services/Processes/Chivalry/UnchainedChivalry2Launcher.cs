@@ -32,7 +32,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
         public async Task<Either<UnchainedLaunchFailure, Process>> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args) {
             logger.Info("Attempting to launch modded game.");
-            
+
             var updatedLaunchOpts = await LaunchPreparer.PrepareLaunch(launchOptions);
             if (updatedLaunchOpts.IsNone) {
                 return Left(UnchainedLaunchFailure.LaunchCancelled());
@@ -43,7 +43,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             var offsetIndex = tblLoc == -1 ? 0 : tblLoc + 3;
 
             var launchOpts = updatedLaunchOpts.Map(x => x.ToCLIArgs()).ValueUnsafe();
-            
+
             moddedLaunchArgs.Insert(offsetIndex, " " + launchOpts);
 
             logger.Info($"Launch args: {moddedLaunchArgs}");

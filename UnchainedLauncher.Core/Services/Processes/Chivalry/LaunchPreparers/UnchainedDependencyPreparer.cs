@@ -1,13 +1,12 @@
 ﻿using LanguageExt;
 using log4net;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
-    
+
     // TODO: Break up this class further. There are several components in here that should be reusable
     //       - Aggregating a list of pending updates
     //       - Asking user if the new things should be downloaded/updated
@@ -24,7 +23,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     public class UnchainedDependencyPreparer : IChivalry2LaunchPreparer<ModdedLaunchOptions> {
         private readonly ILog logger = LogManager.GetLogger(typeof(UnchainedDependencyPreparer));
         private readonly string pluginPath;
-        
+
         public static IChivalry2LaunchPreparer<ModdedLaunchOptions> Create(
             IModManager modManager,
             IReleaseLocator pluginReleaseLocator,

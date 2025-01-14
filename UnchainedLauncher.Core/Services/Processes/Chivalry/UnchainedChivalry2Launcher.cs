@@ -11,12 +11,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         private static readonly ILog logger = LogManager.GetLogger(nameof(UnchainedLauncher));
 
         private IProcessLauncher Launcher { get; }
-        private IChivalry2LaunchPreparer LaunchPreparer { get; }
+        private KliesliTask<,> LaunchPreparer { get; }
         private string InstallationRootDir { get; }
         private IProcessInjector ProcessInjector { get; }
 
         public UnchainedChivalry2Launcher(
-            IChivalry2LaunchPreparer preparer,
+            KliesliTask<,> preparer,
             IProcessLauncher processLauncher,
             string installationRootDir,
             IProcessInjector processInjector) {

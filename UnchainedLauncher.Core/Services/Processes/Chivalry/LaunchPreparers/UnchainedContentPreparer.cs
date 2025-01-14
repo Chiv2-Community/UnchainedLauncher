@@ -29,7 +29,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         private IVersionExtractor FileVersionExtractor { get; }
         private IUserDialogueSpawner UserDialogueSpawner { get; }
 
-        public async Task<bool> PrepareLaunch() {
+        public async KleisliTask<ModdedLaunchOptions, ModdedLaunchOptions> PrepareLaunch() {
             if (!ShouldCheckForUpdate())
                 return true;
 

@@ -116,7 +116,7 @@ namespace UnchainedLauncher.GUI {
             var noSigLaunchPreparer = new NoSigPreparer(userDialogueSpawner);
             var sigLaunchPreparer = new SigPreparer(userDialogueSpawner);
 
-            IChivalry2LaunchPreparer unchainedContentPreparer = new UnchainedContentPreparer(
+            KliesliTask<,> unchainedContentPreparer = new UnchainedContentPreparer(
                 () => settingsViewModel.EnablePluginAutomaticUpdates,
                 modManager,
                 pluginReleaseLocator,

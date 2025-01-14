@@ -1,17 +1,12 @@
-﻿using log4net;
+﻿using LanguageExt;
+using log4net;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
-    public class SigPreparer : IChivalry2LaunchPreparer {
-        private readonly ILog logger = LogManager.GetLogger(nameof(SigPreparer));
+    public static class SigPreparer {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(SigPreparer));
 
-        private IUserDialogueSpawner UserDialogueSpawner;
-
-        public SigPreparer(IUserDialogueSpawner userDialogueSpawner) {
-            UserDialogueSpawner = userDialogueSpawner;
-        }
-
-        public async Task<bool> PrepareLaunch() {
+        public static KleisliTask<Unit, bool> PrepareLaunch(IUserDialogueSpawner userDialogueSpawner) => async _ => {
             logger.Info("Ensuring sigs are set up for all pak files.");
             var result = await Task.Run(() =>
                 SigFileHelper.CheckAndCopySigFiles() && SigFileHelper.DeleteOrphanedSigFiles()
@@ -19,8 +14,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
             if (result) return true;
 
-            UserDialogueSpawner.DisplayMessage("Failed to prepare sig files. Check the logs for more information.");
+            userDialogueSpawner.DisplayMessage("Failed to prepare sig files. Check the logs for more information.");
             return false;
-        }
+        };
     }
 }

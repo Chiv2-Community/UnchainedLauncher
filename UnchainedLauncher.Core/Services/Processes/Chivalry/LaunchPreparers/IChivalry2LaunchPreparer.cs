@@ -1,7 +1,7 @@
 ﻿using LanguageExt;
 using static LanguageExt.Prelude;
 
-namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
+namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
     /// <summary>
     /// Performs tasks that sets up a proper launch
@@ -27,17 +27,42 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
                 return result.Value;
             });
         }
-        
-        public IChivalry2LaunchPreparer<T> Sub<T2>(IChivalry2LaunchPreparer<T2> other, Func<T, T2> map) => 
-            AndThen(async t => {
-                var result = await other.PrepareLaunch(map(t));
-                return result.Map(_ => t);
-            });
+
+        /// <summary>
+        /// Allows for running some other IChivalry2LaunchPreparer of a different type
+        /// </summary>
+        /// <param name="other"></param>
+        /// <param name="map"></param>
+        /// <typeparam name="T2"></typeparam>
+        /// <returns>If the other launch preparer returns None then the resulting launch preparer will also return None, otherwise it'll return Some containing the original output.</returns>
+        public IChivalry2LaunchPreparer<T> Sub<T2>(IChivalry2LaunchPreparer<T2> other, Func<T, T2> map) =>
+            AndThen(t => other.PrepareLaunch(map(t)).Map(x => x.Map(_ => t)));
+
+        /// <summary>
+        /// Allows for running some other IChivalry2LaunchPreparer of a different type
+        /// </summary>
+        /// <param name="other"></param>
+        /// <param name="toT2"></param>
+        /// <param name="toT"></param>
+        /// <typeparam name="T2"></typeparam>
+        /// <returns>If the other launch preparer returns None, the resulting launch preparer will also return None. Otherwise it'll return Some containing the converted output.</returns>
+        public IChivalry2LaunchPreparer<T> Sub<T2>(
+            IChivalry2LaunchPreparer<T2> other,
+            Func<T, T2> toT2,
+            Func<T2, T> toT) =>
+            AndThen(other.InvariantMap(toT2, toT));
 
         
         public IChivalry2LaunchPreparer<T> AndThen(Func<T, Task<Option<T>>> f) => AndThen(Create(f));
         public IChivalry2LaunchPreparer<T> Bind(IChivalry2LaunchPreparer<T> launchPreparer) => AndThen(launchPreparer);
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="toT"></param>
+        /// <param name="fromT"></param>
+        /// <typeparam name="T2"></typeparam>
+        /// <returns></returns>
         public IChivalry2LaunchPreparer<T2> InvariantMap<T2>(Func<T2, T> toT, Func<T, T2> fromT) =>
             Create<T2>(async t2 => (await PrepareLaunch(toT(t2))).Map(fromT));
     }

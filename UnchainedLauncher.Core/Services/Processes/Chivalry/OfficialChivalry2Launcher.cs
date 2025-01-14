@@ -4,6 +4,7 @@ using log4net;
 using System.Diagnostics;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
     public class OfficialChivalry2Launcher : IOfficialChivalry2Launcher {

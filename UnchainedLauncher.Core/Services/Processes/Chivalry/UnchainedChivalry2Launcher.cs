@@ -3,6 +3,7 @@ using LanguageExt.UnsafeValueAccess;
 using log4net;
 using System.Diagnostics;
 using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry {

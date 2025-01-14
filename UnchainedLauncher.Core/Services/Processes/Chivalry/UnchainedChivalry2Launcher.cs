@@ -1,4 +1,5 @@
 using LanguageExt;
+using LanguageExt.UnsafeValueAccess;
 using log4net;
 using System.Diagnostics;
 using UnchainedLauncher.Core.Processes;
@@ -11,12 +12,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         private static readonly ILog logger = LogManager.GetLogger(nameof(UnchainedLauncher));
 
         private IProcessLauncher Launcher { get; }
-        private IChivalry2LaunchPreparer LaunchPreparer { get; }
+        private IChivalry2LaunchPreparer<ModdedLaunchOptions> LaunchPreparer { get; }
         private string InstallationRootDir { get; }
         private IProcessInjector ProcessInjector { get; }
 
         public UnchainedChivalry2Launcher(
-            IChivalry2LaunchPreparer preparer,
+            IChivalry2LaunchPreparer<ModdedLaunchOptions> preparer,
             IProcessLauncher processLauncher,
             string installationRootDir,
             IProcessInjector processInjector) {
@@ -30,19 +31,19 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
         public async Task<Either<UnchainedLaunchFailure, Process>> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args) {
             logger.Info("Attempting to launch modded game.");
+            
+            var updatedLaunchOpts = await LaunchPreparer.PrepareLaunch(launchOptions);
+            if (updatedLaunchOpts.IsNone) {
+                return Left(UnchainedLaunchFailure.LaunchCancelled());
+            }
 
             var moddedLaunchArgs = args;
             var tblLoc = moddedLaunchArgs.IndexOf("TBL", StringComparison.Ordinal);
             var offsetIndex = tblLoc == -1 ? 0 : tblLoc + 3;
 
-            var launchOpts = launchOptions.ToCLIArgs();
-
+            var launchOpts = updatedLaunchOpts.Map(x => x.ToCLIArgs()).ValueUnsafe();
+            
             moddedLaunchArgs.Insert(offsetIndex, " " + launchOpts);
-
-            var launchPrepResult = await LaunchPreparer.PrepareLaunch();
-            if (launchPrepResult == false) {
-                return Left(UnchainedLaunchFailure.LaunchCancelled());
-            }
 
             logger.Info($"Launch args: {moddedLaunchArgs}");
 

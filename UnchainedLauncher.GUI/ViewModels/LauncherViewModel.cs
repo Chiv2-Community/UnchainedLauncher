@@ -76,6 +76,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             var options = new ModdedLaunchOptions(
                 Settings.ServerBrowserBackend,
+                Settings.EnablePluginAutomaticUpdates,
                 None,
                 None
             );

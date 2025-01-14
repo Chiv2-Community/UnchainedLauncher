@@ -113,11 +113,10 @@ namespace UnchainedLauncher.GUI {
             var officialProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.OriginalLauncherPath));
             var unchainedProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 
-            var noSigLaunchPreparer = new NoSigPreparer(userDialogueSpawner);
-            var sigLaunchPreparer = new SigPreparer(userDialogueSpawner);
+            var noSigLaunchPreparer = NoSigPreparer.Create(userDialogueSpawner);
+            var sigLaunchPreparer = SigPreparer.Create(userDialogueSpawner);
 
-            IChivalry2LaunchPreparer unchainedContentPreparer = new UnchainedContentPreparer(
-                () => settingsViewModel.EnablePluginAutomaticUpdates,
+            var unchainedContentPreparer = UnchainedDependencyPreparer.Create(
                 modManager,
                 pluginReleaseLocator,
                 new FileInfoVersionExtractor(),
@@ -136,7 +135,7 @@ namespace UnchainedLauncher.GUI {
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                unchainedContentPreparer.AndThen(sigLaunchPreparer),
+                unchainedContentPreparer.Sub(sigLaunchPreparer, _ => Unit.Default),
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
                 new DllInjector(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir))

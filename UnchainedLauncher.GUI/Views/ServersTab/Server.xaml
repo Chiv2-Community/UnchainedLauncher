@@ -44,24 +44,24 @@
                 </TextBlock>
                 <!-- HTTP status display -->
                 <TextBlock ToolTip="{Binding Server.RegistrationHandler.Registration.LastException.Message}">
-                                        <Run Text="Backend Status (hover for errors): "/>
-                                        <InlineUIContainer BaselineAlignment="Center">
-                                            <Ellipse Width="13" Height="13">
-                                                <Ellipse.Style>
-                                                    <Style TargetType="Ellipse">
-                                                        <Setter Property="Fill" Value="Green"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Server.RegistrationHandler.Registration.IsDead}" Value="True">
-                                                                <Setter Property="Fill" Value="Red"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Server.RegistrationHandler.Registration}" Value="{x:Null}">
-                                                                <Setter Property="Fill" Value="Red"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Ellipse.Style>
-                                            </Ellipse>
-                                        </InlineUIContainer>
+                    <Run Text="Backend Status (hover for errors): "/>
+                    <InlineUIContainer BaselineAlignment="Center">
+                        <Ellipse Width="13" Height="13">
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Setter Property="Fill" Value="Green"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Server.RegistrationHandler.Registration.IsDead}" Value="True">
+                                            <Setter Property="Fill" Value="Red"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Server.RegistrationHandler.Registration}" Value="{x:Null}">
+                                            <Setter Property="Fill" Value="Red"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                    </InlineUIContainer>
                 </TextBlock>
                 <!-- A2S info display -->
                 <ContentControl Content="{Binding Server.RegistrationHandler.Registration}">
@@ -115,7 +115,7 @@
                     <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.A2s}"/>
 
                     <TextBlock Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Text="RCON: "/>
-                    <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding RconPort}"/>
+                    <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Server.Rcon.RconLocation, FallbackValue=????}"/>
 
                 </Grid>
             </StackPanel>

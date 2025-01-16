@@ -77,27 +77,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 }
                 SelectedTemplate = ServerTemplates.FirstOrDefault();
             });
-            Shutdown_Server = new RelayCommand(async () => {
-                // this might take a while, so it is actually feasible that
-                // the user could switch selections by the time this completes
-                // TODO: move this functionality to Chivalry2Server class.
-                var heldLive = SelectedLive;
-                if (heldLive?.ServerProcess == null) {
-                    return;
-                }
-                await heldLive.SendCommand("exit");
-
-                try {
-                    var cts = new CancellationTokenSource(2000);
-                    await heldLive.ServerProcess.WaitForExitAsync(cts.Token);
-                    return;
-                }
-                catch (TaskCanceledException e) {
-                    if (!heldLive.ServerProcess.HasExited) {
-                        heldLive.ServerProcess?.Kill(true);
-                    }
-                }
-            });
+            Shutdown_Server = new RelayCommand(async () => SelectedLive?.Dispose());
             Launch_Server = new RelayCommand(async () => await LaunchSelected(false));
             Launch_Headless = new RelayCommand(async () => await LaunchSelected(true));
             Save_Command = new RelayCommand(Save);
@@ -142,8 +122,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var enabledMods = SelectedTemplate.ModManager.EnabledModReleases;
             var maybeProcess = await LaunchProcessForSelected(formData, headless);
             maybeProcess.IfSome(process => {
-                var server = new Chivalry2Server(RegisterWithBackend(formData, enabledMods));
-                var serverVm = new ServerVM(server, process, formData.RconPort);
+                var server = new Chivalry2Server(
+                    process,
+                    RegisterWithBackend(formData, enabledMods),
+                    new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort))
+                    );
+                var serverVm = new ServerVM(server);
                 var RunningTuple = (SelectedTemplate, serverVm);
                 process.Exited += (_, _) => {
                     RunningTemplates.Remove(RunningTuple);

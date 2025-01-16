@@ -1,4 +1,6 @@
-﻿using PropertyChanged;
+﻿using log4net;
+using PropertyChanged;
+using System.Diagnostics;
 
 namespace UnchainedLauncher.Core.API {
     /// <summary>
@@ -6,19 +8,49 @@ namespace UnchainedLauncher.Core.API {
     /// </summary>
     [AddINotifyPropertyChangedInterface]
     public class Chivalry2Server : IDisposable {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2Server));
         private bool disposedValue;
-
-        // TODO: add the game process and re-launch logic here
-        // TODO: add RCON endpoint here
+        public Process ServerProcess { get; private set; }
+        public IRCON? Rcon { get; private set; }
+        
         // TODO: add UPnP manager here
         public A2SBoundRegistration RegistrationHandler { get; private set; }
-        public Chivalry2Server(A2SBoundRegistration Registration) {
+        public Chivalry2Server(Process serverProcess, A2SBoundRegistration Registration, IRCON? rcon = null) {
             this.RegistrationHandler = Registration;
+            ServerProcess = serverProcess;
+            Rcon = rcon;
+        }
+
+        public void KillProcess() {
+            if (ServerProcess.HasExited) return;
+            try {
+                Rcon?.SendCommand("exit").Wait(1000);
+            }
+            catch (Exception ex) {
+                logger.Error($"Failed to send exit RCON to process: {ex.Message}");
+            }
+            finally {
+                try {
+                    ServerProcess.Kill();
+                    // Kill does not actually kill immediately.
+                    // We do not want to continue past this point
+                    // until all listeners for the Process.Exited event
+                    // have run. This WaitForExit ensures that happens
+                    // and disposing/closing below does not break things
+                    ServerProcess.WaitForExit();
+                }
+                catch (Exception ex) {
+                    logger.Error($"Failed to kill server process: {ex.Message}");
+                }
+            }
+            ServerProcess.Close();
+            ServerProcess.Dispose();
         }
 
         protected virtual void Dispose(bool disposing) {
             if (!disposedValue) {
                 if (disposing) {
+                    KillProcess();
                     this.RegistrationHandler.Dispose();
                 }
 

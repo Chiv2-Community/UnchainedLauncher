@@ -18,6 +18,7 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
 
             return new ServerVM(
                 new Chivalry2Server(
+                    new Process(),
                     new A2SBoundRegistration(
                         new NullServerBrowser(),
                         new A2S(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1111)),
@@ -29,10 +30,9 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
                             Ports = new PublicPorts(123, 456, 789)
                         },
                         "127.0.0.1"
-                    )
-                ),
-                new Process(),
-                1520
+                    ),
+                    new RCON(new IPEndPoint(IPAddress.Loopback, 1520))
+                )
             ) {
                 RconHistory = rconHistoryString
             };

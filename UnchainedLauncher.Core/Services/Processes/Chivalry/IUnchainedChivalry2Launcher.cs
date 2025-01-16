@@ -40,6 +40,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
     public record ModdedLaunchOptions(
         string ServerBrowserBackend,
+        bool CheckForDependencyUpdates,
         Option<string> SavedDirSuffix,
         Option<ServerLaunchOptions> ServerLaunchOptions
     ) {

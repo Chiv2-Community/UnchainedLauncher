@@ -1,21 +1,41 @@
-﻿using log4net;
+﻿using LanguageExt;
+using log4net;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
-    public class UnchainedContentPreparer : IChivalry2LaunchPreparer {
-        private readonly ILog logger = LogManager.GetLogger(typeof(UnchainedContentPreparer));
+
+    // TODO: Break up this class further. There are several components in here that should be reusable
+    //       - Aggregating a list of pending updates
+    //       - Asking user if the new things should be downloaded/updated
+    //       - Downloading mod manager files
+    //       - Downloading dlls/non-mod manager files
+    //       
+    //       Ideally what would happen is there would be some pipeline, where we could keep on adding mods and other 
+    //       things which require acquisition, append them all in to ModdedLaunchOpts (or some intermediate structure),
+    //       display the notification, then download.
+    //
+    //       Doing that would make this all a lot easier to test while also being much more flexible.
+    //
+    //       See the 'kleisli-stuff' branch for some ideas I had while working toward this.
+    public class UnchainedDependencyPreparer : IChivalry2LaunchPreparer<ModdedLaunchOptions> {
+        private readonly ILog logger = LogManager.GetLogger(typeof(UnchainedDependencyPreparer));
         private readonly string pluginPath;
 
-        public UnchainedContentPreparer(
-            Func<bool> getShouldUpdateDependencies,
+        public static IChivalry2LaunchPreparer<ModdedLaunchOptions> Create(
+            IModManager modManager,
+            IReleaseLocator pluginReleaseLocator,
+            IVersionExtractor fileVersionExtractor,
+            IUserDialogueSpawner userDialogueSpawner
+        ) => new UnchainedDependencyPreparer(modManager, pluginReleaseLocator, fileVersionExtractor, userDialogueSpawner);
+
+        private UnchainedDependencyPreparer(
             IModManager modManager,
             IReleaseLocator pluginReleaseLocator,
             IVersionExtractor fileVersionExtractor,
             IUserDialogueSpawner userDialogueSpawner) {
-            GetShouldUpdateDependencies = getShouldUpdateDependencies;
             ModManager = modManager;
             PluginReleaseLocator = pluginReleaseLocator;
             FileVersionExtractor = fileVersionExtractor;
@@ -23,33 +43,32 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             pluginPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.UnchainedPluginPath);
         }
 
-        private Func<bool> GetShouldUpdateDependencies { get; }
         private IModManager ModManager { get; }
         private IReleaseLocator PluginReleaseLocator { get; }
         private IVersionExtractor FileVersionExtractor { get; }
         private IUserDialogueSpawner UserDialogueSpawner { get; }
 
-        public async Task<bool> PrepareLaunch() {
-            if (!ShouldCheckForUpdate())
-                return true;
+        public async Task<Option<ModdedLaunchOptions>> PrepareLaunch(ModdedLaunchOptions options) {
+            if (!ShouldCheckForUpdate(options))
+                return Some(options);
 
             var updates = await GetRequiredUpdates();
             if (!updates.Any())
-                return true;
+                return Some(options);
 
             var userChoice = ShowUpdateDialog(updates);
 
             return userChoice switch {
-                UserDialogueChoice.Yes => await PerformUpdates(updates),
-                UserDialogueChoice.No => true, // Don't install anything, continue launch anyway
-                UserDialogueChoice.Cancel => false, // Cancel launch
+                UserDialogueChoice.Yes => await PerformUpdates(updates) ? Some(options) : None,
+                UserDialogueChoice.No => Some(options), // Don't install anything, continue launch anyway
+                UserDialogueChoice.Cancel => None, // Cancel launch
             };
         }
 
-        private bool ShouldCheckForUpdate() {
+        private bool ShouldCheckForUpdate(ModdedLaunchOptions options) {
             var pluginExists = File.Exists(pluginPath);
             var isUnchainedModsEnabled = ModManager.EnabledModReleases.Exists(IsUnchainedMods);
-            return GetShouldUpdateDependencies() || !pluginExists || !isUnchainedModsEnabled;
+            return options.CheckForDependencyUpdates || !pluginExists || !isUnchainedModsEnabled;
         }
 
         private async Task<IEnumerable<DependencyUpdate>> GetRequiredUpdates() {

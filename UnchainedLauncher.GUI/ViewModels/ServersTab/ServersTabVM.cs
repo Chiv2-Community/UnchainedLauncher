@@ -24,6 +24,7 @@ using System.Threading;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
+    using static Successors;
     [AddINotifyPropertyChangedInterface]
     public class ServersTabVM : IDisposable {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServersTabVM));
@@ -105,7 +106,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 (newForm.GamePort, occupiedPorts) = ReserveRestrictedSuccessor(oldForm.GamePort, occupiedPorts);
                 (newForm.PingPort, occupiedPorts) = ReserveRestrictedSuccessor(oldForm.PingPort, occupiedPorts);
                 (newForm.A2sPort, occupiedPorts) = ReserveRestrictedSuccessor(oldForm.A2sPort, occupiedPorts);
-                (newForm.RconPort, occupiedPorts) = ReserveRestrictedSuccessor(oldForm.RconPort, occupiedPorts);
+                (newForm.RconPort, _) = ReserveRestrictedSuccessor(oldForm.RconPort, occupiedPorts);
 
                 // increment name in a similar way, so the user doesn't get things confused
                 newForm.Name = TextualSuccessor(oldForm.Name);
@@ -233,7 +234,20 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 serverInfo,
                 formData.LocalIp);
         }
+        
+        public void Dispose() {
+            SelectedLive?.Dispose();
+            foreach (var runningTemplate in RunningTemplates)
+            {
+                runningTemplate.live.Dispose();
+            }
 
+            Save(); // save templates to file
+            GC.SuppressFinalize(this);
+        }
+    }
+
+    public static class Successors {
         public static (int, Set<int>) ReserveRestrictedSuccessor(int number, Set<int> excluded) {
             int next = RestrictedSuccessor(number, excluded);
             return (next, excluded.Add(next));
@@ -272,15 +286,5 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return $"{text} (1)";
         }
 
-        public void Dispose() {
-            SelectedLive?.Dispose();
-            foreach (var runningTemplate in RunningTemplates)
-            {
-                runningTemplate.live.Dispose();
-            }
-
-            Save(); // save templates to file
-            GC.SuppressFinalize(this);
-        }
     }
 }

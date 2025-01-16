@@ -1,10 +1,13 @@
 ﻿using LanguageExt;
 using log4net;
+using Semver;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
+
+    public record ReleaseCoordinates(string Org, string ModuleName, SemVersion Version);
 
     public record GetAllModsResult(IEnumerable<RegistryMetadataException> Errors, IEnumerable<Mod> Mods) {
         public bool HasErrors => Errors.Any();
@@ -30,7 +33,6 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
     /// </summary>
     public interface IModRegistry {
         protected static readonly ILog logger = LogManager.GetLogger(nameof(IModRegistry));
-        public IModRegistryDownloader ModRegistryDownloader { get; }
         public string Name { get; }
 
 
@@ -54,20 +56,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         /// <returns></returns>
         public abstract EitherAsync<RegistryMetadataException, Mod> GetModMetadata(string modPath);
 
-
-        public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(PakTarget coordinates, string outputLocation) {
-            return
-                ModRegistryDownloader
-                    .ModPakStream(coordinates)
-                    .Map(stream => new FileWriter(outputLocation, stream.Stream, stream.Size));
-        }
-        public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(string org, string repoName, string fileName, string releaseTag, string outputLocation) {
-            return DownloadPak(new PakTarget(org, repoName, fileName, releaseTag), outputLocation);
-        }
-
-        public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(Release release, string outputLocation) {
-            return DownloadPak(release.Manifest.Organization, release.Manifest.RepoName, release.PakFileName, release.Tag, outputLocation);
-        }
+        public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation);
     }
 
     public class RegistryMetadataException : Exception {

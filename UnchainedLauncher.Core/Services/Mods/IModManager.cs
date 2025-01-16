@@ -17,12 +17,25 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
     }
 
+    public delegate void ModEnabledHandler(Release enabledRelease);
+    public delegate void ModDisabledHandler(Release disabledRelease);
+
     public interface IModManager {
+        /// <summary>
+        /// Triggered any time the EnabledModReleases collection has an item added
+        /// </summary>
+        event ModEnabledHandler ModEnabled;
+        
+        /// <summary>
+        /// Triggered any time the EnabledModReleases collection has an item removed
+        /// </summary>
+        event ModDisabledHandler ModDisabled;
+        
 
         /// <summary>
         /// A List of all currently enabled mods
         /// </summary>
-        ObservableCollection<Release> EnabledModReleases { get; }
+        IEnumerable<Release> EnabledModReleases { get; }
 
         /// <summary>
         /// A List of all mods which are available to be enabled.
@@ -31,16 +44,19 @@ namespace UnchainedLauncher.Core.Services.Mods {
         IEnumerable<Mod> Mods { get; }
 
         /// <summary>
-        /// Disables the given release. This includes deleting any pak files as well as removing
-        /// any local metadata indicating that this release is enabled.
+        /// Disables the given mod if it is enabled. This may update some local metadata that the mod manager uses to
+        /// keep track of what is enabled, but will not actually delete the mod files.
+        ///
+        /// Disabling an already disabled mod results in a noop
+        /// Disabling the wrong version for an enabled mod will result in a noop
         /// </summary>
         /// <param name="release">The release to disable</param>
         /// <returns>Either an error containing information about why this failed, or nothing if it was successful.</returns>
-        EitherAsync<DisableModFailure, Unit> DisableModRelease(Release release);
-
+        EitherAsync<DisableModFailure, Unit> DisableModRelease(ReleaseCoordinates release);
+        
         /// <summary>
-        /// Enables the given release for the given mod. This includes downloading any pak files
-        /// as well as saving local metadata to indicate that this release is enabled.
+        /// Enables the given release for the given mod. This may update some local metadata that the mod manager uses to
+        /// keep track of what is enabled, but will not actually download the mod.
         /// 
         /// Enabling an already enabled mod results in a noop
         /// Enabling a different version for an already enabled mod will disable the currently enabled version
@@ -49,7 +65,29 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <param name="progress">An optional progress indicator. Progress in percentage will be reported to the provided IProgress instance.</param>
         /// <param name="cancellationToken">An optional cancellation token to stop any downloads</param>
         /// <returns>Either an Error containing information about what went wrong, or nothing if things were successful.</returns>
-        EitherAsync<EnableModFailure, Unit> EnableModRelease(Release release, Option<IProgress<double>> progress, CancellationToken cancellationToken);
+        EitherAsync<EnableModFailure, Unit> EnableModRelease(ReleaseCoordinates coordinates);
+        
+        /// <summary>
+        /// Enables the latest version of a given mod if it is disabled. This may update some local metadata that the
+        /// mod manager uses to keep track of what is enabled, but will not actually download the mod files.
+        ///
+        /// Enabling an already enabled mod results in a noop
+        /// </summary>
+        /// <param name="release">The release to disable</param>
+        /// <returns>Either an error containing information about why this failed, or nothing if it was successful.</returns>
+        EitherAsync<DisableModFailure, Unit> EnableMod(string org, string moduleName);
+
+        
+        /// <summary>
+        /// Disables the given mod if it is enabled. This may update some local metadata that the mod manager uses to
+        /// keep track of what is enabled, but will not actually delete the mod files.
+        ///
+        /// Disabling an already disabled mod results in a noop
+        /// </summary>
+        /// <param name="release">The release to disable</param>
+        /// <returns>Either an error containing information about why this failed, or nothing if it was successful.</returns>
+        EitherAsync<DisableModFailure, Unit> DisableMod(string org, string moduleName);
+
 
         /// <summary>
         /// Fetches all mod metadata from all registries, returning a list of successfully fetched
@@ -61,26 +99,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public Task<GetAllModsResult> UpdateModsList();
 
         /// <summary>
-        /// Disables the given mod if it is enabled. This includes deleting any pak files as well as removing
-        /// any local metadata indicating that this release is enabled.
-        /// </summary>
-        /// <param name="release">The release to disable</param>
-        /// <returns>Either an error containing information about why this failed, or nothing if it was successful.</returns>
-        public EitherAsync<DisableModFailure, Unit> DisableMod(Mod mod) {
-            return GetCurrentlyEnabledReleaseForMod(mod).Match(
-                Some: release => DisableModRelease(release),
-                None: () => EitherAsync<DisableModFailure, Unit>.Right(default)
-            );
-        }
-
-
-        /// <summary>
         /// Finds the currently enabled release for the given mod, if any
         /// </summary>
         /// <param name="mod"></param>
         /// <returns></returns>
-        public Option<Release> GetCurrentlyEnabledReleaseForMod(Mod mod) {
-            return Optional(EnabledModReleases.FirstOrDefault(x => x.Manifest.RepoUrl == mod.LatestManifest.RepoUrl));
+        public Option<Release> GetCurrentlyEnabledReleaseForMod(string org, string moduleName) {
+            return Optional(EnabledModReleases.FirstOrDefault(x => x.Manifest.Organization == org && x.Manifest.Name == moduleName));
         }
 
         /// <summary>
@@ -90,7 +114,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public IEnumerable<UpdateCandidate> GetUpdateCandidates() {
             return Mods
                .SelectMany(mod =>
-                   (GetCurrentlyEnabledReleaseForMod(mod), mod.LatestRelease)
+                   (GetCurrentlyEnabledReleaseForMod(mod.LatestManifest.Organization, mod.LatestManifest.Name), mod.LatestRelease)
                        .Sequence() // Convert (Option<Release>, Option<Release>) to Option<(Release, Release)>
                        .Bind(tuple => UpdateCandidate.CreateIfNewer(tuple.Item1, tuple.Item2))
                );

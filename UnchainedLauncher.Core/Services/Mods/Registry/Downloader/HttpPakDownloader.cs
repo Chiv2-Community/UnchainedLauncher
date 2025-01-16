@@ -4,17 +4,17 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
     public class HttpPakDownloader : IModRegistryDownloader {
-        public static HttpPakDownloader GithubPakDownloader => new HttpPakDownloader(target =>
-            $"https://github.com/{target.Org}/{target.RepoName}/releases/download/{target.ReleaseTag}/{target.FileName}"
+        public static HttpPakDownloader GithubPakDownloader => new HttpPakDownloader((target, pakFileName) =>
+            $"https://github.com/{target.Org}/{target.ModuleName}/releases/download/{target.Version}/{pakFileName}"
         );
 
-        public Func<PakTarget, string> GetDownloadURL { get; set; }
-        public HttpPakDownloader(Func<PakTarget, string> getDownloadUrl) {
+        public Func<ReleaseCoordinates, string, string> GetDownloadURL { get; set; }
+        public HttpPakDownloader(Func<ReleaseCoordinates, string, string> getDownloadUrl) {
             GetDownloadURL = getDownloadUrl;
         }
 
-        public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(PakTarget target) {
-            var url = GetDownloadURL(target);
+        public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(ReleaseCoordinates target, string pakFileName) {
+            var url = GetDownloadURL(target, pakFileName);
             var length = HttpHelpers.GetContentLengthAsync(url);
             var streamDownloadTask = HttpHelpers.GetByteContentsAsync(url).Task;
             return

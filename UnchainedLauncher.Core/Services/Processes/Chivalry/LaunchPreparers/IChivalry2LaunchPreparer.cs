@@ -37,7 +37,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         /// <returns>If the other launch preparer returns None then the resulting launch preparer will also return None, otherwise it'll return Some containing the original output.</returns>
         public IChivalry2LaunchPreparer<T> Sub<T2>(IChivalry2LaunchPreparer<T2> other, Func<T, T2> map) =>
             AndThen(t => other.PrepareLaunch(map(t)).Map(x => x.Map(_ => t)));
-        
+
         /// <summary>
         /// Allows for running some other IChivalry2LaunchPreparer of a different type
         /// </summary>

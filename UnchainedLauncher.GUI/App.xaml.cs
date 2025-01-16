@@ -1,6 +1,7 @@
 ﻿using LanguageExt;
 using log4net;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -178,7 +179,12 @@ namespace UnchainedLauncher.GUI {
                 return null;
             }
 
-            var serversTabViewModel = new ServersTabVM(settingsViewModel, () => new ModManager(modManager), userDialogueSpawner, unchainedLauncher);
+            var serversTabViewModel = new ServersTabVM(
+                settingsViewModel, 
+                () => new ModManager(modManager),
+                userDialogueSpawner, 
+                unchainedLauncher,
+                new FileBackedSettings<IEnumerable<SavedServerTemplate>>(FilePaths.ServerTemplatesFilePath));
 
             var mainWindowViewModel = new MainWindowVM(
                 launcherViewModel,

@@ -37,6 +37,9 @@
                 <Button Command="{Binding Remove_Template_Command}">
                     <Run Text="  -  "/>
                 </Button>
+                <Button Command="{Binding Save_Command}">
+                    <Run Text="Save"/>
+                </Button>
             </StackPanel>
         </Grid>
         <Grid Grid.Row="1">

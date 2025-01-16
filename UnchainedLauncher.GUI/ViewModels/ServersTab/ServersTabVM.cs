@@ -25,12 +25,13 @@ using System.Threading;
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
     [AddINotifyPropertyChangedInterface]
-    public class ServersTabVM {
+    public class ServersTabVM : IDisposable {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServersTabVM));
         public SettingsVM Settings { get; }
         public readonly IUnchainedChivalry2Launcher Launcher;
         public Func<IModManager> ModManagerCreator;
         public IUserDialogueSpawner DialogueSpawner;
+        public FileBackedSettings<IEnumerable<SavedServerTemplate>>? SaveLocation;
         public ObservableCollection<ServerTemplateVM> ServerTemplates { get; }
         public ObservableCollection<(ServerTemplateVM template, ServerVM live)> RunningTemplates { get; } = new();
         private ServerTemplateVM? _SelectedTemplate;
@@ -38,6 +39,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             get => _SelectedTemplate; 
             set {
                 _SelectedTemplate = value;
+                // this is probably too eager. Save should be triggered when the
+                // template changes, but that's tedious to implement. It's fine for now.
+                Save(); 
                 UpdateVisibility();
             }
         }
@@ -51,30 +55,21 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public ICommand Launch_Server { get; }
         public ICommand Launch_Headless { get; }
         public ICommand Shutdown_Server { get; }
-
-        public void UpdateVisibility() {
-            SelectedLive = RunningTemplates.Choose(
-                    (e) => e.template == SelectedTemplate ? e.live : Option<ServerVM>.None
-                ).FirstOrDefault();
-            bool isSelectedRunning = SelectedLive != null;
-
-            TemplateEditorVisibility = isSelectedRunning || ServerTemplates.Length() == 0 ? Visibility.Hidden : Visibility.Visible;
-            LiveServerVisibility = !isSelectedRunning ? Visibility.Hidden : Visibility.Visible;
-        }
+        public ICommand Save_Command { get; }
 
         public ServersTabVM(SettingsVM settings,
                             Func<IModManager> modManagerCreator,
                             IUserDialogueSpawner dialogueSpawner,
                             IUnchainedChivalry2Launcher launcher,
-                            ObservableCollection<ServerTemplateVM>? templates = null) {
-            ServerTemplates = templates ?? new();
+                            FileBackedSettings<IEnumerable<SavedServerTemplate>>? saveLocation = null) {
+            ServerTemplates = new();
             ServerTemplates.CollectionChanged += (_, _) => UpdateVisibility();
             RunningTemplates.CollectionChanged += (_, _) => UpdateVisibility();
-            SelectedTemplate = ServerTemplates.FirstOrDefault();
             Settings = settings;
             Launcher = launcher;
             DialogueSpawner = dialogueSpawner;
             ModManagerCreator = modManagerCreator;
+            SaveLocation = saveLocation;
             Add_Template_Command = new RelayCommand(Add_Template);
             Remove_Template_Command = new RelayCommand(() => {
                 if (SelectedTemplate != null) {
@@ -85,27 +80,29 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             Shutdown_Server = new RelayCommand(async () => {
                 // this might take a while, so it is actually feasible that
                 // the user could switch selections by the time this completes
+                // TODO: move this functionality to Chivalry2Server class.
                 var heldLive = SelectedLive;
-                if (heldLive == null) {
+                if (heldLive?.ServerProcess == null) {
                     return;
                 }
                 await heldLive.SendCommand("exit");
-                
-                if (heldLive.ServerProcess != null) {
-                    try {
-                        var cts = new CancellationTokenSource(2000);
-                        await heldLive.ServerProcess.WaitForExitAsync(cts.Token);
-                        return;
-                    }
-                    catch (TaskCanceledException e) {
-                        if (!heldLive.ServerProcess.HasExited) {
-                            heldLive.ServerProcess?.Kill(true);
-                        }
+
+                try {
+                    var cts = new CancellationTokenSource(2000);
+                    await heldLive.ServerProcess.WaitForExitAsync(cts.Token);
+                    return;
+                }
+                catch (TaskCanceledException e) {
+                    if (!heldLive.ServerProcess.HasExited) {
+                        heldLive.ServerProcess?.Kill(true);
                     }
                 }
             });
             Launch_Server = new RelayCommand(async () => await LaunchSelected(false));
             Launch_Headless = new RelayCommand(async () => await LaunchSelected(true));
+            Save_Command = new RelayCommand(Save);
+            Load();
+            SelectedTemplate = ServerTemplates.FirstOrDefault();
             UpdateVisibility();
         }
 
@@ -154,6 +151,44 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 };
                 RunningTemplates.Add(RunningTuple);
             });
+        }
+        
+        public void Save() {
+            if (SaveLocation == null) {
+                logger.Warn("Tried to save server templates, but no file is selected.");
+                return;
+            }
+            logger.Info("Saving server templates...");
+            SaveLocation.SaveSettings(ServerTemplates.Select(template => template.Saved()));
+            logger.Info($"Saved {ServerTemplates.Count} server templates.");
+        }
+
+        public void Load() {
+            if (SaveLocation == null) {
+                logger.Warn("Tried to load server templates, but no file is selected.");
+                return;
+            }
+            
+            var loaded = SaveLocation.LoadSettings();
+            if (loaded == null) {
+                logger.Warn("Failed to load server templates. Error unavailable, but likely invalid JSON.");
+                return;
+            }
+            
+            foreach (var template in loaded) {
+                ServerTemplates.Add(new ServerTemplateVM(template, ModManagerCreator()));
+            }
+            logger.Info($"Loaded {ServerTemplates.Count} server templates.");
+        }
+        
+        public void UpdateVisibility() {
+            SelectedLive = RunningTemplates.Choose(
+                (e) => e.template == SelectedTemplate ? e.live : Option<ServerVM>.None
+            ).FirstOrDefault();
+            bool isSelectedRunning = SelectedLive != null;
+
+            TemplateEditorVisibility = isSelectedRunning || ServerTemplates.Length() == 0 ? Visibility.Hidden : Visibility.Visible;
+            LiveServerVisibility = !isSelectedRunning ? Visibility.Hidden : Visibility.Visible;
         }
 
         // TODO: this should really be a part of Chivalry2Server
@@ -251,6 +286,17 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 );
             }
             return $"{text} (1)";
+        }
+
+        public void Dispose() {
+            SelectedLive?.Dispose();
+            foreach (var runningTemplate in RunningTemplates)
+            {
+                runningTemplate.live.Dispose();
+            }
+
+            Save(); // save templates to file
+            GC.SuppressFinalize(this);
         }
     }
 }

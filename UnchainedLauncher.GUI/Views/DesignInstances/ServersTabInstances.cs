@@ -1,4 +1,6 @@
-﻿using UnchainedLauncher.GUI.Services;
+﻿using System.Collections.Generic;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
@@ -7,6 +9,7 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             SettingsViewModelInstances.DEFAULT,
             () => ModListViewModelInstances.DEFAULTMODMANAGER,
             new MessageBoxSpawner(),
+            null,
             null);
     }
 }

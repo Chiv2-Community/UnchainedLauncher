@@ -135,7 +135,7 @@ namespace UnchainedLauncher.GUI {
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                unchainedContentPreparer.Sub(sigLaunchPreparer, _ => Unit.Default),
+                unchainedContentPreparer.Sub(sigLaunchPreparer),
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
                 new DllInjector(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir))

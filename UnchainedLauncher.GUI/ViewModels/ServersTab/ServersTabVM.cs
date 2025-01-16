@@ -167,6 +167,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var serverLaunchOptions = formData.ToServerLaunchOptions(headless);
             var options = new ModdedLaunchOptions(
                 Settings.ServerBrowserBackend,
+                Settings.EnablePluginAutomaticUpdates,
                 None,
                 Some(serverLaunchOptions)
             );

@@ -1,7 +1,6 @@
 ﻿using LanguageExt;
 using LanguageExt.SomeHelp;
 using log4net;
-using System.Transactions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;

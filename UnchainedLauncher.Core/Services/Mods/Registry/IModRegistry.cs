@@ -1,7 +1,6 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
 using log4net;
-using Semver;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
@@ -59,7 +58,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         /// <param name="modId"></param>
         /// <returns></returns>
         public EitherAsync<RegistryMetadataException, Mod> GetMod(ModIdentifier modId);
-        
+
         /// <summary>
         /// Download pak
         /// </summary>

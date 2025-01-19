@@ -1,11 +1,10 @@
 ﻿using LanguageExt;
 using LanguageExt.SomeHelp;
-using static LanguageExt.Prelude;
 using log4net;
-using log4net.Core;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
+using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class GithubModRegistry : JsonRegistry, IModRegistry {

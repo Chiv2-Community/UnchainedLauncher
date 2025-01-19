@@ -1,6 +1,5 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
-using System.Collections.ObjectModel;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
@@ -25,12 +24,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// Triggered any time the EnabledModReleases collection has an item added
         /// </summary>
         event ModEnabledHandler ModEnabled;
-        
+
         /// <summary>
         /// Triggered any time the EnabledModReleases collection has an item removed
         /// </summary>
         event ModDisabledHandler ModDisabled;
-        
+
 
         /// <summary>
         /// A List of all currently enabled mods
@@ -53,7 +52,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <param name="release">The release to disable</param>
         /// <returns>Either an error containing information about why this failed, or nothing if it was successful.</returns>
         EitherAsync<DisableModFailure, Unit> DisableModRelease(ReleaseCoordinates release);
-        
+
         /// <summary>
         /// Enables the given release for the given mod. This may update some local metadata that the mod manager uses to
         /// keep track of what is enabled, but will not actually download the mod.
@@ -66,7 +65,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <param name="cancellationToken">An optional cancellation token to stop any downloads</param>
         /// <returns>Either an Error containing information about what went wrong, or nothing if things were successful.</returns>
         EitherAsync<EnableModFailure, Unit> EnableModRelease(ReleaseCoordinates coordinates);
-        
+
         /// <summary>
         /// Enables the latest version of a given mod if it is disabled. This may update some local metadata that the
         /// mod manager uses to keep track of what is enabled, but will not actually download the mod files.
@@ -77,7 +76,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <returns>Either an error containing information about why this failed, or nothing if it was successful.</returns>
         EitherAsync<DisableModFailure, Unit> EnableMod(string org, string moduleName);
 
-        
+
         /// <summary>
         /// Disables the given mod if it is enabled. This may update some local metadata that the mod manager uses to
         /// keep track of what is enabled, but will not actually delete the mod files.

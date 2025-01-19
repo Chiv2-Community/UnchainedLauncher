@@ -1,25 +1,25 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
-using static LanguageExt.Prelude;
 using log4net;
 using Semver;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
+using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
     public record ModIdentifier(string Org, string ModuleName) {
-        public static ModIdentifier FromMod(Mod mod) => 
+        public static ModIdentifier FromMod(Mod mod) =>
             new ModIdentifier(mod.LatestManifest.Organization, mod.LatestManifest.RepoName);
-        
+
         public static ModIdentifier FromReleaseCoordinates(ReleaseCoordinates coords) => new ModIdentifier(coords.Org, coords.ModuleName);
         public static ModIdentifier FromRelease(Release release) => new ModIdentifier(release.Manifest.Organization, release.Manifest.RepoName);
     }
 
     public record ReleaseCoordinates(string Org, string ModuleName, string Version) {
-        public static ReleaseCoordinates FromRelease(Release release) => 
-            new ReleaseCoordinates(release.Manifest.Organization, release.Manifest.RepoName, release.Tag); 
+        public static ReleaseCoordinates FromRelease(Release release) =>
+            new ReleaseCoordinates(release.Manifest.Organization, release.Manifest.RepoName, release.Tag);
     }
 
     public record GetAllModsResult(IEnumerable<RegistryMetadataException> Errors, IEnumerable<Mod> Mods) {
@@ -83,11 +83,11 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 $"Failed to get mod metadata for '{modId.Org}/{modId.ModuleName}" +
                 version.Map(v => $" / {v}'").IfNone("'");
         };
-        public record PackageListRetrievalException(string Message, Option<Error> Underlying): RegistryMetadataException(Message, 0, Underlying);
-        
+        public record PackageListRetrievalException(string Message, Option<Error> Underlying) : RegistryMetadataException(Message, 0, Underlying);
+
         public static RegistryMetadataException Parse(string message, Option<Error> underlying) => new ParseException(message, underlying);
         public static RegistryMetadataException NotFound(ModIdentifier modId, Option<Error> underlying) => new NotFoundException(modId, None, underlying);
-        public static RegistryMetadataException NotFound(ReleaseCoordinates coords , Option<Error> underlying) => 
+        public static RegistryMetadataException NotFound(ReleaseCoordinates coords, Option<Error> underlying) =>
             new NotFoundException(ModIdentifier.FromReleaseCoordinates(coords), Some(coords.Version), underlying);
         public static RegistryMetadataException PackageListRetrieval(string message, Option<Error> underlying) => new PackageListRetrievalException(message, underlying);
 
@@ -100,5 +100,5 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             PackageListRetrievalException packageListRetrievalException => packageListRetrievalFunc(packageListRetrievalException),
             ParseException parseError => parseExceptionFunc(parseError)
         };
-    } 
+    }
 }

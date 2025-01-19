@@ -1,14 +1,14 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
-using static LanguageExt.Prelude;
 using System.Collections.Immutable;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
+using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class LocalModRegistry : JsonRegistry {
-        
+
         private IModRegistryDownloader _downloader;
         private string RegistryPath { get; }
         public LocalModRegistry(string registryPath, IModRegistryDownloader downloader) {
@@ -19,8 +19,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public override EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation) {
             GetModMetadata(ModIdentifier.FromReleaseCoordinates(coordinates))
                 .Bind(releaseMetadata => releaseMetadata.Releases.Find());
-            
-            
+
+
         }
 
         public override Task<GetAllModsResult> GetAllMods() {
@@ -36,9 +36,9 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             EitherAsync<RegistryMetadataException, Mod> InternalGetModMetadata(string jsonManifestPath) {
                 var dir = Path.GetDirectoryName(jsonManifestPath);
                 var parts = dir.Split(Path.DirectorySeparatorChar);
-                if(parts.Length() < 2) return LeftAsync<RegistryMetadataException, Mod>(RegistryMetadataException.PackageListRetrieval($"Failed to determine module id for file at path {jsonManifestPath}", None));
+                if (parts.Length() < 2) return LeftAsync<RegistryMetadataException, Mod>(RegistryMetadataException.PackageListRetrieval($"Failed to determine module id for file at path {jsonManifestPath}", None));
                 var modIdParts = parts.Reverse().Take(2).Reverse();
-                
+
                 return GetModMetadata(new ModIdentifier(modIdParts.First(), modIdParts.Last()));
             }
         }
@@ -52,18 +52,17 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                             .Left(RegistryMetadataException.NotFound(modId, Some(Error.New(new IOException("File not found")))));
 
                     var manifests = Directory.EnumerateFiles(path, "*.json", SearchOption.TopDirectoryOnly);
-                    
-                    switch (manifests.Count())
-                    {
+
+                    switch (manifests.Count()) {
                         case > 1:
-                            logger.Warn($"Found multiple candidates for manifests at {path}. Using the first one." );
+                            logger.Warn($"Found multiple candidates for manifests at {path}. Using the first one.");
                             break;
                         case 0:
                             return LeftAsync<RegistryMetadataException, string>(RegistryMetadataException.NotFound(modId, Some(Error.New("No manifests"))));
                     }
-                    
+
                     var manifest = manifests.Single();
-                    
+
                     return Prelude
                         .TryAsync(Task.Run(() => File.ReadAllText(manifest)))
                         .ToEither()

@@ -1,4 +1,5 @@
 ﻿using LanguageExt;
+using LanguageExt.Common;
 using log4net;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
@@ -6,16 +7,27 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public abstract class JsonRegistry : IModRegistry {
         protected static readonly ILog logger = LogManager.GetLogger(nameof(JsonRegistry));
+        
+        // Re-export IModRegistryMethods that will not be implemented here.
+        public abstract EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation);
+        public abstract Task<GetAllModsResult> GetAllMods();
 
-        public abstract IModRegistryDownloader ModRegistryDownloader { get; }
-        public abstract string Name { get; }
+        /// <summary>
+        /// Gets the mod metadata in a string format.
+        /// 
+        /// Implementations of JsonRegistry need only implement this, and then the JsonRegistry GetModMetadata
+        /// method will handle the parsing of the mod metadata.
+        /// </summary>
+        /// <param name="modId"></param>
+        /// <returns></returns>
+        protected abstract EitherAsync<RegistryMetadataException, string> GetModMetadataString(ModIdentifier modId);
 
         /// <summary>
         /// Gets the mod metadata located at the given path within the registry
         /// </summary>
         /// <param name="modPath"></param>
         /// <returns></returns>
-        public EitherAsync<RegistryMetadataException, JsonModels.Metadata.V3.Mod> GetModMetadata(string modPath) {
+        public EitherAsync<RegistryMetadataException, JsonModels.Metadata.V3.Mod> GetModMetadata(ModIdentifier modPath) {
             return GetModMetadataString(modPath).Bind(json =>
                 // Try to deserialize as V3 first
                 JsonHelpers.Deserialize<JsonModels.Metadata.V3.Mod>(json).RecoverWith(e => {
@@ -32,11 +44,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 })
                 .ToEither()
                 .ToAsync()
-                .MapLeft(err => new RegistryMetadataException(modPath, err))
+                .MapLeft(err => RegistryMetadataException.Parse($"Failed to parse mod manifest at {modPath}", Expected.New(err)))
             );
         }
-
-        public abstract Task<GetAllModsResult> GetAllMods();
-        public abstract EitherAsync<RegistryMetadataException, string> GetModMetadataString(string modPath);
     }
 }

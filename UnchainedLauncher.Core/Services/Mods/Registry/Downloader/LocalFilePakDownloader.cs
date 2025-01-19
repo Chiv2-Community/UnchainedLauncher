@@ -9,9 +9,9 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
             PakReleasesDir = pakReleasesDir;
         }
 
-        public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(PakTarget target) {
+        public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(ReleaseCoordinates target, string releasePakName) {
             // Paks will be found in PakReleasesDir/org/repoName/releaseTag/fileName
-            var path = Path.Combine(PakReleasesDir, target.Org, target.RepoName, target.ReleaseTag, target.FileName);
+            var path = Path.Combine(PakReleasesDir, target.Org, target.ModuleName, target.Version.ToString(), releasePakName);
 
             if (!File.Exists(path))
                 return

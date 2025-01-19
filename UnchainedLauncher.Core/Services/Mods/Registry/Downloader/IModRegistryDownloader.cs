@@ -1,10 +1,11 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
+using static LanguageExt.Prelude;
+
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
-    using static LanguageExt.Prelude;
     public interface IModRegistryDownloader {
-        public abstract EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(ReleaseCoordinates target, String releasePakName);
+        public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(ReleaseCoordinates target, String releasePakName);
     }
     
     public record SizedStream(Stream Stream, long Size);

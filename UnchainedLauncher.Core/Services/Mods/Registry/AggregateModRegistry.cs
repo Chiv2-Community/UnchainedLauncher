@@ -12,13 +12,13 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class AggregateModRegistry : IModRegistry {
         private static readonly ILog _logger = LogManager.GetLogger(typeof(AggregateModRegistry));
 
-        private IOrderedEnumerable<NamedModRegistry> _modRegistries { get; }
+        private IOrderedEnumerable<IModRegistry> _modRegistries { get; }
         public async Task<GetAllModsResult> GetAllMods() {
             // TODO: Switch to SequenceParallel to speed this up
             //       It may produce out-of-order results, so something will need to be done to fix the ordering.
             var allModsFromAllRegistries =
                 await _modRegistries
-                    .Select(namedRegistry => namedRegistry.Registry.GetAllMods())
+                    .Select(reg => reg.GetAllMods())
                     .SequenceSerial();
 
             var allErrors = allModsFromAllRegistries.SelectMany(namedRegistry => namedRegistry.Errors);
@@ -65,13 +65,13 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             }
         }
 
-        public EitherAsync<RegistryMetadataException, Mod> GetModMetadata(ModIdentifier modId) {
+        public EitherAsync<RegistryMetadataException, Mod> GetMod(ModIdentifier modId) {
             return InternalGetModMetadata(modId, _modRegistries, None).ToAsync();
 
             // TODO: Clean this up. All these conversions between EitherAsync<...> and Task<Either<...>> are so ugly.
             async Task<Either<RegistryMetadataException, Mod>> InternalGetModMetadata(
                 ModIdentifier modId,
-                IEnumerable<NamedModRegistry> remainingRegistries, Option<Error> previousError) {
+                IEnumerable<IModRegistry> remainingRegistries, Option<Error> previousError) {
                 var registry = remainingRegistries.FirstOrDefault();
                 if (registry == null)
                     return Left(
@@ -79,7 +79,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                     );
 
                 var result =
-                    await registry.Registry.GetModMetadata(modId);
+                    await registry.GetMod(modId);
 
                 return await result
                     .ToAsync()
@@ -97,15 +97,13 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             // TODO: Clean this up. All these conversions between EitherAsync<...> and Task<Either<...>> are so ugly.
             async Task<Either<ModPakStreamAcquisitionFailure, FileWriter>> InternalDownloadPak(
                 ReleaseCoordinates coordinates,
-                IEnumerable<NamedModRegistry> remainingRegistries, Option<Error> previousError) {
+                IEnumerable<IModRegistry> remainingRegistries, Option<Error> previousError) {
                 var registry = remainingRegistries.FirstOrDefault();
                 if (registry == null)
-                    return Left(
-                        new ModPakStreamAcquisitionFailure(coordinates, Errors.None)
-                    );
+                    return Left(new ModPakStreamAcquisitionFailure(coordinates, previousError.IfNone(Errors.None)));
 
                 var result =
-                    await registry.Registry.DownloadPak(coordinates, outputLocation);
+                    await registry.DownloadPak(coordinates, outputLocation);
 
                 return await result
                     .ToAsync()

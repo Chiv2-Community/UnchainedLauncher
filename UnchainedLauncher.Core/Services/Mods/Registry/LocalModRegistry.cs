@@ -9,6 +9,7 @@ using static LanguageExt.Prelude;
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class LocalModRegistry : JsonRegistry {
 
+        private string Name => "Local filesystem registry at {}";
         private IModRegistryDownloader _downloader;
         private string RegistryPath { get; }
         public LocalModRegistry(string registryPath, IModRegistryDownloader downloader) {
@@ -17,10 +18,11 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         }
 
         public override EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation) {
-            GetModMetadata(ModIdentifier.FromReleaseCoordinates(coordinates))
-                .Bind(releaseMetadata => releaseMetadata.Releases.Find());
-
-
+            return GetMod(ModIdentifier.FromReleaseCoordinates(coordinates))
+                .Map(releaseMetadata => releaseMetadata.Releases.Find(x => x.Tag == coordinates.Version))
+                .MapLeft(e => new ModPakStreamAcquisitionFailure(coordinates, e))
+                .Bind(release => _downloader.ModPakStream(release))
+                .Map(sizedStream => new FileWriter(outputLocation, sizedStream.Stream, sizedStream.Size));
         }
 
         public override Task<GetAllModsResult> GetAllMods() {
@@ -39,7 +41,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 if (parts.Length() < 2) return LeftAsync<RegistryMetadataException, Mod>(RegistryMetadataException.PackageListRetrieval($"Failed to determine module id for file at path {jsonManifestPath}", None));
                 var modIdParts = parts.Reverse().Take(2).Reverse();
 
-                return GetModMetadata(new ModIdentifier(modIdParts.First(), modIdParts.Last()));
+                return GetMod(new ModIdentifier(modIdParts.First(), modIdParts.Last()));
             }
         }
 

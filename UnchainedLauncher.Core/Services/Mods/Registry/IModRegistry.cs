@@ -58,18 +58,14 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         /// </summary>
         /// <param name="modId"></param>
         /// <returns></returns>
-        public EitherAsync<RegistryMetadataException, Mod> GetModMetadata(ModIdentifier modId);
-
-        public EitherAsync<RegistryMetadataException, Release> GetRelease(ReleaseCoordinates coords) {
-            return GetModMetadata(ModIdentifier.FromReleaseCoordinates(coords)).Bind<RegistryMetadataException, Release>(modMetadata => {
-                var release = modMetadata.Releases.Find(x => x.Version == coords.Version);
-
-                return release == null
-                    ? LeftAsync<RegistryMetadataException, Release>(RegistryMetadataException.NotFound(coords, None))
-                    : RightAsync<RegistryMetadataException, Release>(release);
-            });
-        }
-
+        public EitherAsync<RegistryMetadataException, Mod> GetMod(ModIdentifier modId);
+        
+        /// <summary>
+        /// Download pak
+        /// </summary>
+        /// <param name="coordinates"></param>
+        /// <param name="outputLocation"></param>
+        /// <returns></returns>
         public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation);
     }
 
@@ -77,9 +73,9 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public record ParseException(string Message, Option<Error> Underlying)
             : RegistryMetadataException(Message, 0, Underlying);
 
-        public record NotFoundException(ModIdentifier ModId, Option<SemVersion> Version, Option<Error> Underlying)
+        public record NotFoundException(ModIdentifier ModId, Option<string> Version, Option<Error> Underlying)
             : RegistryMetadataException(FormatMessage(ModId, Version), 0, Underlying) {
-            private static string FormatMessage(ModIdentifier modId, Option<SemVersion> version) =>
+            private static string FormatMessage(ModIdentifier modId, Option<string> version) =>
                 $"Failed to get mod metadata for '{modId.Org}/{modId.ModuleName}" +
                 version.Map(v => $" / {v}'").IfNone("'");
         };

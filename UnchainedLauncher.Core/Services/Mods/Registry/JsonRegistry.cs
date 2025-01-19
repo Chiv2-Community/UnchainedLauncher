@@ -27,7 +27,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         /// </summary>
         /// <param name="modPath"></param>
         /// <returns></returns>
-        public EitherAsync<RegistryMetadataException, JsonModels.Metadata.V3.Mod> GetModMetadata(ModIdentifier modPath) {
+        public EitherAsync<RegistryMetadataException, JsonModels.Metadata.V3.Mod> GetMod(ModIdentifier modPath) {
             return GetModMetadataString(modPath).Bind(json =>
                 // Try to deserialize as V3 first
                 JsonHelpers.Deserialize<JsonModels.Metadata.V3.Mod>(json).RecoverWith(e => {

@@ -18,7 +18,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         }
 
         public override EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation) {
-            return GetMod(ModIdentifier.FromReleaseCoordinates(coordinates))
+            return GetMod(coordinates)
                 .Map(releaseMetadata => releaseMetadata.Releases.Find(x => x.Tag == coordinates.Version))
                 .MapLeft(e => new ModPakStreamAcquisitionFailure(coordinates, e))
                 .Bind(release => _downloader.ModPakStream(release))

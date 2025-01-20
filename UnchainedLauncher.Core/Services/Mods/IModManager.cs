@@ -1,5 +1,6 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
+using System.Collections.Immutable;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
@@ -16,7 +17,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
     }
 
-    public delegate void ModEnabledHandler(Release enabledRelease);
+    public delegate void ModEnabledHandler(Release enabledRelease, string? previousVersion);
     public delegate void ModDisabledHandler(Release disabledRelease);
 
     public interface IModManager {
@@ -34,7 +35,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <summary>
         /// A List of all currently enabled mods
         /// </summary>
-        IEnumerable<Release> EnabledModReleases { get; }
+        IEnumerable<ReleaseCoordinates> EnabledModReleases { get; }
 
         /// <summary>
         /// A List of all mods which are available to be enabled.
@@ -50,8 +51,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// Disabling the wrong version for an enabled mod will result in a noop
         /// </summary>
         /// <param name="release">The release to disable</param>
-        /// <returns>Either an error containing information about why this failed, or nothing if it was successful.</returns>
-        EitherAsync<DisableModFailure, Unit> DisableModRelease(ReleaseCoordinates release);
+        /// <returns>bool indicating whether or not the operation was successful</returns>
+        bool DisableModRelease(ReleaseCoordinates release);
 
         /// <summary>
         /// Enables the given release for the given mod. This may update some local metadata that the mod manager uses to
@@ -63,8 +64,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <param name="release">The release to enable</param>
         /// <param name="progress">An optional progress indicator. Progress in percentage will be reported to the provided IProgress instance.</param>
         /// <param name="cancellationToken">An optional cancellation token to stop any downloads</param>
-        /// <returns>Either an Error containing information about what went wrong, or nothing if things were successful.</returns>
-        EitherAsync<EnableModFailure, Unit> EnableModRelease(ReleaseCoordinates coordinates);
+        /// <returns>bool indicating whether or not the operation was successful</returns>
+        bool EnableModRelease(ReleaseCoordinates coordinates);
 
         /// <summary>
         /// Enables the latest version of a given mod if it is disabled. This may update some local metadata that the
@@ -73,8 +74,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// Enabling an already enabled mod results in a noop
         /// </summary>
         /// <param name="release">The release to disable</param>
-        /// <returns>Either an error containing information about why this failed, or nothing if it was successful.</returns>
-        EitherAsync<DisableModFailure, Unit> EnableMod(string org, string moduleName);
+        /// <returns>bool indicating whether or not the operation was successful</returns>
+        bool EnableMod(ModIdentifier identifier);
 
 
         /// <summary>
@@ -84,8 +85,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// Disabling an already disabled mod results in a noop
         /// </summary>
         /// <param name="release">The release to disable</param>
-        /// <returns>Either an error containing information about why this failed, or nothing if it was successful.</returns>
-        EitherAsync<DisableModFailure, Unit> DisableMod(string org, string moduleName);
+        /// <returns>bool indicating whether or not the operation was successful</returns>
+        bool DisableMod(ModIdentifier identifier);
 
 
         /// <summary>
@@ -95,29 +96,106 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// internal state.
         /// </summary>
         /// <returns>A Task containing a GetAllModsResult which has the aggregate list of errors and mods from all registries this ModManager instance has</returns>
-        public Task<GetAllModsResult> UpdateModsList();
+        Task<GetAllModsResult> UpdateModsList();
+    }
 
+    public static class IModManagerExtensions {
         /// <summary>
         /// Finds the currently enabled release for the given mod, if any
         /// </summary>
-        /// <param name="mod"></param>
+        /// <param name="modId"></param>
         /// <returns></returns>
-        public Option<Release> GetCurrentlyEnabledReleaseForMod(string org, string moduleName) {
-            return Optional(EnabledModReleases.FirstOrDefault(x => x.Manifest.Organization == org && x.Manifest.Name == moduleName));
-        }
-
+        public static Option<Release> GetCurrentlyEnabledReleaseForMod(this IModManager modManager, ModIdentifier modId) =>
+            modManager.EnabledModReleases
+                .Find(x => x.Matches(modId))
+                .Bind<Release>(releaseCoords =>
+                    modManager.Mods.Find(modId.Matches)
+                        .Bind<Release>(x => x.Releases.Find(releaseCoords.Matches))
+                );
+        
         /// <summary>
         /// Returns a list of all mods which have updates available
         /// </summary>
         /// <returns>A List of all available updates</returns>
-        public IEnumerable<UpdateCandidate> GetUpdateCandidates() {
-            return Mods
-               .SelectMany(mod =>
-                   (GetCurrentlyEnabledReleaseForMod(mod.LatestManifest.Organization, mod.LatestManifest.Name), mod.LatestRelease)
-                       .Sequence() // Convert (Option<Release>, Option<Release>) to Option<(Release, Release)>
-                       .Bind(tuple => UpdateCandidate.CreateIfNewer(tuple.Item1, tuple.Item2))
-               );
+        public static IEnumerable<UpdateCandidate> GetUpdateCandidates(this IModManager modManager) {
+            return modManager.Mods
+                .SelectMany(mod =>
+                    (modManager.GetCurrentlyEnabledReleaseForMod(ModIdentifier.FromMod(mod)), mod.LatestRelease)
+                    .Sequence() // Convert (Option<Release>, Option<Release>) to Option<(Release, Release)>
+                    .Bind(tuple => UpdateCandidate.CreateIfNewer(tuple.Item1, tuple.Item2))
+                );
         }
+        
+        /// <summary>
+        /// Gets the latest available release for the provided modId
+        /// </summary>
+        /// <param name="modManager"></param>
+        /// <param name="modId"></param>
+        /// <returns></returns>
+        public static Option<Release> GetLatestRelease(this IModManager modManager, ModIdentifier modId) =>
+            modManager.Mods.Find(m => ModIdentifier.FromMod(m) == modId)
+                .Bind(m => m.LatestRelease);
+        
+        /// <summary>
+        /// Gets the specified release from the cached mods list
+        /// </summary>
+        /// <param name="modManager"></param>
+        /// <param name="coordinates"></param>
+        /// <returns></returns>
+        public static Option<Release> GetRelease(this IModManager modManager, ReleaseCoordinates coordinates) =>
+            modManager.Mods.Filter(coordinates.Matches)
+                .Bind(x => x.Releases)
+                .Find(coordinates.Matches);
+
+        /// <summary>
+        /// Traverses all dependencies of the release associated with the provided coordinates
+        /// Returns a list of the found dependencies
+        /// TODO: Return a tree structure so you can tell which dependencies are associated with what. Maybe.
+        /// </summary>
+        /// <param name="modManager"></param>
+        /// <param name="coordinates"></param>
+        /// <returns></returns>
+        public static IEnumerable<Release> GetAllDependenciesForRelease(this IModManager modManager, ReleaseCoordinates coordinates) {
+            return modManager.AggregateUniqueDependencies(coordinates, ImmutableHashSet<Release>.Empty);
+        }
+
+        /// <summary>
+        /// Traverses all dependencies of the release associated with the provided release coordinates.
+        /// Ignores any dependencies contained in the 'existingDependencies' collection as well as their children,
+        /// and does not include them in the result.
+        /// </summary>
+        /// <param name="modManager"></param>
+        /// <param name="coordinates"></param>
+        /// <param name="existingDependencies"></param>
+        /// <returns></returns>
+        public static IEnumerable<Release> GetNewDependenciesForRelease(this IModManager modManager, ReleaseCoordinates coordinates, IEnumerable<Release> existingDependencies) {
+            return modManager.AggregateUniqueDependencies(
+                coordinates, 
+                existingDependencies.ToImmutableHashSet()
+            );            
+        }
+        
+        private static ImmutableHashSet<Release> AggregateUniqueDependencies(this IModManager modManager, ReleaseCoordinates coordinates, ImmutableHashSet<Release> seenDependencies) {
+            var newDependencies =
+                modManager.GetLatestRelease(coordinates)
+                    .ToList()
+                    .Bind(release => release.Manifest.Dependencies)
+                    .Map(ModIdentifier.FromDependency)
+                    .Bind(id => modManager.GetLatestRelease(id).ToList()) // Get the latest release for each dependency (we're ignoring dependency version range requirements currently)
+                    .Filter(dep => !seenDependencies.Contains(dep)) // Filter out any dependency we've already seen
+                    .ToList();
+
+            var updatedSeenDependencies = seenDependencies.Append(newDependencies).ToImmutableHashSet();
+                
+            return newDependencies
+                .Fold(
+                    updatedSeenDependencies, 
+                    (aggregateSeenDependencies, newRelease) => 
+                        modManager.AggregateUniqueDependencies(ReleaseCoordinates.FromRelease(newRelease), aggregateSeenDependencies)
+                );
+        }
+        
+        
     }
 
     /// <summary>

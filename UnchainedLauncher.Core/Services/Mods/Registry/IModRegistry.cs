@@ -11,14 +11,21 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public record ModIdentifier(string Org, string ModuleName) {
         public static ModIdentifier FromMod(Mod mod) =>
             new ModIdentifier(mod.LatestManifest.Organization, mod.LatestManifest.RepoName);
-
-        public static ModIdentifier FromReleaseCoordinates(ReleaseCoordinates coords) => new ModIdentifier(coords.Org, coords.ModuleName);
+        
+        public static ModIdentifier FromDependency(Dependency dependency) => new ModIdentifier(dependency.Organization, dependency.RepoName);
         public static ModIdentifier FromRelease(Release release) => new ModIdentifier(release.Manifest.Organization, release.Manifest.RepoName);
+        
+        public bool Matches(Mod mod) => Org == mod.LatestManifest.Organization && ModuleName == mod.LatestManifest.RepoName;
+        
+        // Intentionally not using equality of this == modId here, because the other ModIdentifier may be a ReleaseCoordinate.
+        public bool Matches(ModIdentifier modId) => Org == modId.Org && ModuleName == modId.ModuleName;
     }
 
-    public record ReleaseCoordinates(string Org, string ModuleName, string Version) {
+    public record ReleaseCoordinates(string Org, string ModuleName, string Version): ModIdentifier(Org, ModuleName) {
         public static ReleaseCoordinates FromRelease(Release release) =>
             new ReleaseCoordinates(release.Manifest.Organization, release.Manifest.RepoName, release.Tag);
+        
+        public bool Matches(Release release) => Org == release.Manifest.Organization && ModuleName == release.Manifest.RepoName && Version == release.Tag;
     }
 
     public record GetAllModsResult(IEnumerable<RegistryMetadataException> Errors, IEnumerable<Mod> Mods) {
@@ -83,7 +90,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public static RegistryMetadataException Parse(string message, Option<Error> underlying) => new ParseException(message, underlying);
         public static RegistryMetadataException NotFound(ModIdentifier modId, Option<Error> underlying) => new NotFoundException(modId, None, underlying);
         public static RegistryMetadataException NotFound(ReleaseCoordinates coords, Option<Error> underlying) =>
-            new NotFoundException(ModIdentifier.FromReleaseCoordinates(coords), Some(coords.Version), underlying);
+            new NotFoundException(coords, Some(coords.Version), underlying);
         public static RegistryMetadataException PackageListRetrieval(string message, Option<Error> underlying) => new PackageListRetrievalException(message, underlying);
 
         public T Match<T>(

@@ -112,7 +112,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     modManager.Mods.Find(modId.Matches)
                         .Bind<Release>(x => x.Releases.Find(releaseCoords.Matches))
                 );
-        
+
         /// <summary>
         /// Returns a list of all mods which have updates available
         /// </summary>
@@ -125,7 +125,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     .Bind(tuple => UpdateCandidate.CreateIfNewer(tuple.Item1, tuple.Item2))
                 );
         }
-        
+
         /// <summary>
         /// Gets the latest available release for the provided modId
         /// </summary>
@@ -135,7 +135,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public static Option<Release> GetLatestRelease(this IModManager modManager, ModIdentifier modId) =>
             modManager.Mods.Find(m => ModIdentifier.FromMod(m) == modId)
                 .Bind(m => m.LatestRelease);
-        
+
         /// <summary>
         /// Gets the specified release from the cached mods list
         /// </summary>
@@ -170,11 +170,11 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <returns></returns>
         public static IEnumerable<Release> GetNewDependenciesForRelease(this IModManager modManager, ReleaseCoordinates coordinates, IEnumerable<Release> existingDependencies) {
             return modManager.AggregateUniqueDependencies(
-                coordinates, 
+                coordinates,
                 existingDependencies.ToImmutableHashSet()
-            );            
+            );
         }
-        
+
         private static ImmutableHashSet<Release> AggregateUniqueDependencies(this IModManager modManager, ReleaseCoordinates coordinates, ImmutableHashSet<Release> seenDependencies) {
             var newDependencies =
                 modManager.GetLatestRelease(coordinates)
@@ -186,16 +186,16 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     .ToList();
 
             var updatedSeenDependencies = seenDependencies.Append(newDependencies).ToImmutableHashSet();
-                
+
             return newDependencies
                 .Fold(
-                    updatedSeenDependencies, 
-                    (aggregateSeenDependencies, newRelease) => 
+                    updatedSeenDependencies,
+                    (aggregateSeenDependencies, newRelease) =>
                         modManager.AggregateUniqueDependencies(ReleaseCoordinates.FromRelease(newRelease), aggregateSeenDependencies)
                 );
         }
-        
-        
+
+
     }
 
     /// <summary>

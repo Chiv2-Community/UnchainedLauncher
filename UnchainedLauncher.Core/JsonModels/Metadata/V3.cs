@@ -67,7 +67,7 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
     ) {
         public string Organization => RepoUrl.Split('/')[^2];
         public string RepoName => RepoUrl.Split('/')[^1];
-        
+
         public static Dependency FromV2(V2.Dependency input) {
             return new Dependency(
                 RepoUrl: input.RepoUrl,

@@ -1,10 +1,6 @@
 ﻿using LanguageExt;
 using LanguageExt.UnsafeValueAccess;
 using log4net;
-using Newtonsoft.Json;
-using System.Collections.Immutable;
-using System.Collections.ObjectModel;
-using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
@@ -38,13 +34,13 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
     public class ModManager : IModManager {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModManager));
-        
+
         public event ModEnabledHandler ModEnabled;
         public event ModDisabledHandler ModDisabled;
-        
+
         public IEnumerable<ReleaseCoordinates> EnabledModReleases => _enabledModReleases;
         private readonly List<ReleaseCoordinates> _enabledModReleases;
-        
+
         public IEnumerable<Mod> Mods => _mods;
         private readonly List<Mod> _mods;
 
@@ -60,7 +56,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public static ModManager ForRegistry(IModRegistry registry, List<ReleaseCoordinates> enabledMods) {
             var enabledModReleases = new List<Release>();
-            
+
             return new ModManager(
                 registry,
                 enabledMods.ToList()
@@ -77,7 +73,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
             return true;
         }
-        
+
         public bool EnableModRelease(ReleaseCoordinates coordinates) {
             var maybeRelease = this.GetRelease(coordinates);
             if (maybeRelease.IsNone || _enabledModReleases.Contains(coordinates)) return false;
@@ -85,15 +81,15 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var existing = this.GetCurrentlyEnabledReleaseForMod(coordinates);
             existing.IfSome(r => _enabledModReleases.Remove(ReleaseCoordinates.FromRelease(r)));
             var existingVersion = existing.Map(x => x.Tag).FirstOrDefault();
-            
+
             _enabledModReleases.Add(coordinates);
             ModEnabled.Invoke(maybeRelease.ValueUnsafe(), existingVersion);
-            
+
             return true;
         }
 
         public bool EnableMod(ModIdentifier modId) {
-            return 
+            return
                 this.GetLatestRelease(modId)
                     .Match(
                       Some: release => {
@@ -102,7 +98,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
                           var otherVersion = this.GetCurrentlyEnabledReleaseForMod(modId);
                           otherVersion.IfSome(other => _enabledModReleases.Remove(ReleaseCoordinates.FromRelease(other)));
-                          
+
                           _enabledModReleases.Add(releaseCoords);
 
                           ModEnabled.Invoke(release, otherVersion.Map(x => x.Tag).SingleOrDefault());
@@ -118,34 +114,33 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
             var releaseToDisable = maybeReleaseToDisable.ValueUnsafe();
             var releaseToDisableCoords = ReleaseCoordinates.FromRelease(releaseToDisable);
-            
+
             _enabledModReleases.Remove(releaseToDisableCoords);
-            
+
             ModDisabled.Invoke(releaseToDisable);
             return true;
         }
-        
+
         public async Task<GetAllModsResult> UpdateModsList() {
             logger.Info("Updating mods list...");
             var result = await _registry.GetAllMods();
             logger.Info($"Got a total of {result.Mods.Count()} mods from all registries");
-            
+
             _mods.Clear();
             _mods.AddRange(result.Mods);
-            
+
             return result;
         }
-        
-        
-        private bool ReleaseExists(ReleaseCoordinates release)
-        {
+
+
+        private bool ReleaseExists(ReleaseCoordinates release) {
             var releaseExists =
                 _mods
                     .Find(release.Matches)?// Find the mod that matches these coords
                     .Releases
                     .Exists(release.Matches) // Find the release that matches these coords 
                 ?? false; // default to false if nothing was found
-            
+
             return releaseExists;
         }
     }

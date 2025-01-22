@@ -1,10 +1,10 @@
 ﻿using LanguageExt;
-using static LanguageExt.Prelude;
 using LanguageExt.Common;
 using log4net;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
+using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public abstract class JsonRegistry : IModRegistry {
@@ -13,7 +13,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         // Re-export IModRegistryMethods that will not be implemented here.
         public abstract string Name { get; }
         public abstract EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation);
-        
+
         public abstract Task<GetAllModsResult> GetAllMods();
 
         /// <summary>
@@ -55,7 +55,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public EitherAsync<RegistryMetadataException, Release> GetModRelease(ReleaseCoordinates coords) =>
             GetMod(coords)
                 .Map(mod => Optional(mod.Releases.Find(coords.Matches)))
-                .Bind<Release>(maybeRelease => 
+                .Bind<Release>(maybeRelease =>
                     maybeRelease.ToEitherAsync(() => RegistryMetadataException.NotFound(coords, None)));
     }
 }

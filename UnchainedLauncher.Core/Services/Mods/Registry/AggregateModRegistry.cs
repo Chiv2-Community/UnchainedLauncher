@@ -15,7 +15,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 string.Join("\n\t", _modRegistries.Select(m => m.Name));
 
         private IOrderedEnumerable<IModRegistry> _modRegistries { get; }
-        
+
         public AggregateModRegistry(IEnumerable<IModRegistry> modRegistries) {
             _modRegistries = modRegistries.OrderBy(m => m.Name);
         }
@@ -44,18 +44,17 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 ModIdentifier modId,
                 List<IModRegistry> remainingRegistries,
                 Option<Mod> previousMod,
-                Option<Error> previousError)
-            {
+                Option<Error> previousError) {
                 if (!remainingRegistries.Any()) {
                     return previousMod.ToEither(() => RegistryMetadataException.NotFound(modId, previousError));
                 }
 
                 var currentRegistry = remainingRegistries[0];
                 var remainingRegistriesTail = remainingRegistries.Tail().ToList();
-    
+
                 var result = await currentRegistry.GetMod(modId);
                 return await result.Match<Task<Either<RegistryMetadataException, Mod>>>(
-                    Left: async error => 
+                    Left: async error =>
                         await InternalGetModMetadata(
                             modId,
                             remainingRegistriesTail,
@@ -106,7 +105,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                     .ToEither();
             }
         }
-        
+
         // Helper methods used to deduplicate all mods and their releases
         private Mod MergeMods(Mod first, Mod second) {
             var firstLatestReleaseDate = first.LatestRelease.Select(x => x.ReleaseDate);
@@ -118,7 +117,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
             return new Mod(latestManifest, releases);
         }
-        
+
         private List<Release> MergeReleases(Mod first, Mod second) {
             var initialReleaseMap =
                 first.Releases.Select(x => (ReleaseCoordinates.FromRelease(x), x)).ToHashMap();

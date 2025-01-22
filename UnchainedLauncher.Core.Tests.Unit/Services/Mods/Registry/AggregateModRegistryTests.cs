@@ -4,13 +4,11 @@ using System.Collections.Immutable;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 
-namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
-{
-    public class AggregateModRegistryTests
-    {
+namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
+    public class AggregateModRegistryTests {
         private static readonly ModIdentifier TEST_MOD_IDENTIFIER =
             new ModIdentifier("Chiv2-Community", "Unchained-Mods");
-        
+
         // These test registries have a couple of different mods, and then also some overlapping mods with both
         // differing and duplicate releases. This lets us test deduplication and merging
         private static AggregateModRegistry AggregateTestRegistry => new AggregateModRegistry(
@@ -19,13 +17,12 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
         );
 
         private static SortedSet<ModIdentifier> ExpectedModIdentifiers = new SortedSet<ModIdentifier>() {
-            new ModIdentifier("Chiv2-Community", "Unchained-Mods"), 
+            new ModIdentifier("Chiv2-Community", "Unchained-Mods"),
             new ModIdentifier("Chiv2-Community", "Test-Mod"),
         };
 
         [Fact]
-        public async Task GetAllMods_WithDuplicateMods_ShouldDeduplicateMods()
-        {
+        public async Task GetAllMods_WithDuplicateMods_ShouldDeduplicateMods() {
             var aggregateRegistry = AggregateTestRegistry;
 
             var result = await aggregateRegistry.GetAllMods();
@@ -36,9 +33,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
 
             var modCount = result.Mods.Count();
             var modIdentifiers = result.Mods.Select(ModIdentifier.FromMod).ToImmutableSortedSet();
-            
+
             var distinctModCount = modIdentifiers.Distinct().Count();
-            
+
             modCount.Should().Be(distinctModCount);
 
             modIdentifiers.Should().ContainInOrder(ExpectedModIdentifiers);
@@ -67,26 +64,23 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
         }
 
         [Fact]
-        public async Task GetMod_WithAllRegistriesFailing_ShouldReturnNotFound()
-        {
+        public async Task GetMod_WithAllRegistriesFailing_ShouldReturnNotFound() {
             // Arrange
             var emptyDirPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             Directory.CreateDirectory(emptyDirPath);
-            
+
             var registry1 = LocalModRegistryFactory.Create(emptyDirPath);
             var registry2 = LocalModRegistryFactory.Create(emptyDirPath);
-            
+
             var aggregateRegistry = new AggregateModRegistry(registry1, registry2);
 
-            try
-            {
+            try {
                 var result = await aggregateRegistry.GetMod(TEST_MOD_IDENTIFIER).ToEither();
 
                 result.IsLeft.Should().BeTrue();
                 result.LeftToSeq().FirstOrDefault().Should().BeOfType<RegistryMetadataException.NotFoundException>();
             }
-            finally
-            {
+            finally {
                 Directory.Delete(emptyDirPath, true);
             }
         }
@@ -100,24 +94,21 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
             name.Should().Contain(LocalModRegistryFactory.DEFAULT_MOD_MANAGER_PATH);
             name.Should().Contain(LocalModRegistryFactory.ALTERNATE_MOD_MANAGER_PATH);
         }
-        
+
         [Fact]
-        public async Task DownloadPak_ForLatestVersionOfEachMod_ShouldDownloadSuccessfully()
-        {
+        public async Task DownloadPak_ForLatestVersionOfEachMod_ShouldDownloadSuccessfully() {
             var aggregateRegistry = AggregateTestRegistry;
             var tempOutputDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             Directory.CreateDirectory(tempOutputDir);
 
-            try
-            {
+            try {
                 // Get all mods and their latest releases
                 var getAllModsResult = await aggregateRegistry.GetAllMods();
                 getAllModsResult.Errors.Should().BeEmpty();
                 getAllModsResult.Mods.Should().NotBeEmpty();
 
                 // Test downloading each mod's latest release
-                foreach (var mod in getAllModsResult.Mods)
-                {
+                foreach (var mod in getAllModsResult.Mods) {
                     var latestRelease = mod.Releases.MaxBy(r => r.ReleaseDate);
                     latestRelease.Should().NotBeNull();
 
@@ -131,30 +122,26 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
                     fileWriter.Should().NotBeNull();
                 }
             }
-            finally
-            {
+            finally {
                 // Cleanup
-                if (Directory.Exists(tempOutputDir))
-                {
+                if (Directory.Exists(tempOutputDir)) {
                     Directory.Delete(tempOutputDir, true);
                 }
             }
         }
 
         [Fact]
-        public async Task DownloadPak_WhenAllRegistriesFail_ShouldReturnFailure()
-        {
+        public async Task DownloadPak_WhenAllRegistriesFail_ShouldReturnFailure() {
             var emptyDirPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             Directory.CreateDirectory(emptyDirPath);
-            
+
             var registry1 = LocalModRegistryFactory.Create(emptyDirPath);
             var registry2 = LocalModRegistryFactory.Create(emptyDirPath);
-            
+
             var aggregateRegistry = new AggregateModRegistry(registry1, registry2);
             var outputPath = Path.Combine(emptyDirPath, "test.pak");
 
-            try
-            {
+            try {
                 var coordinates = new ReleaseCoordinates(
                     TEST_MOD_IDENTIFIER.Org,
                     TEST_MOD_IDENTIFIER.ModuleName,
@@ -169,11 +156,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
                 failure.Should().NotBeNull();
                 failure!.Target.Should().Be(coordinates);
             }
-            finally
-            {
+            finally {
                 // Cleanup
-                if (Directory.Exists(emptyDirPath))
-                {
+                if (Directory.Exists(emptyDirPath)) {
                     Directory.Delete(emptyDirPath, true);
                 }
             }

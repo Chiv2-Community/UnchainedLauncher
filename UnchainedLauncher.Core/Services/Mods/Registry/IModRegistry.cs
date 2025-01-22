@@ -9,7 +9,7 @@ using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
-    public record ModIdentifier(string Org, string ModuleName): IComparable<ModIdentifier> {
+    public record ModIdentifier(string Org, string ModuleName) : IComparable<ModIdentifier> {
         public static ModIdentifier FromMod(Mod mod) =>
             new ModIdentifier(mod.LatestManifest.Organization, mod.LatestManifest.RepoName);
 
@@ -21,7 +21,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         // Intentionally not using equality of this == modId here, because the other ModIdentifier may be a ReleaseCoordinate.
         public bool Matches(ModIdentifier modId) => Org == modId.Org && ModuleName == modId.ModuleName;
         public int CompareTo(ModIdentifier? other) =>
-            other == null 
+            other == null
                 ? -1
                 : (this.Org, this.ModuleName).CompareTo((other.Org, other.ModuleName));
     }
@@ -33,10 +33,10 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public bool Matches(Release release) => Org == release.Manifest.Organization && ModuleName == release.Manifest.RepoName && Version == release.Tag;
         public int CompareTo(ReleaseCoordinates? other) {
             if (other == null) return -1;
-            
+
             SemVersion.TryParse(Version, SemVersionStyles.Any, out var thisVersion);
             SemVersion.TryParse(other.Version, SemVersionStyles.Any, out var otherVersion);
-            
+
             return (thisVersion, otherVersion) switch {
                 (null, null) =>
                     (this.Org, this.ModuleName, this.Version).CompareTo((other.Org, other.ModuleName, other.Version)),
@@ -88,7 +88,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         /// <param name="modId"></param>
         /// <returns></returns>
         public EitherAsync<RegistryMetadataException, Mod> GetMod(ModIdentifier modId);
-        
+
         /// <summary>
         /// Fetches a specific release from the registry
         /// </summary>

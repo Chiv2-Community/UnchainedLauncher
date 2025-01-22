@@ -20,9 +20,9 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             return GetMod(coordinates)
                 .Map(releaseMetadata => Optional(releaseMetadata.Releases.Find(x => x.Tag == coordinates.Version)))
                 .MapLeft(e => new ModPakStreamAcquisitionFailure(coordinates, e))
-                .Bind(maybeRelease => maybeRelease.ToEitherAsync(() => 
+                .Bind(maybeRelease => maybeRelease.ToEitherAsync(() =>
                     new ModPakStreamAcquisitionFailure(
-                        coordinates, 
+                        coordinates,
                         Error.New($"Failed to fetch pak. No releases found for {coordinates.Org} / {coordinates.ModuleName} / {coordinates.Version}.")
                 )))
                 .Bind(release => _downloader.ModPakStream(release))

@@ -6,7 +6,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
     public class LocalModRegistryTests {
         private static readonly ModIdentifier TEST_MOD_IDENTIFIER =
             new ModIdentifier("Chiv2-Community", "Unchained-Mods");
-        
+
         [Fact]
         public async Task GetAllMods_ShouldReturnAllValidMods() {
             var registry = LocalModRegistryFactory.DefaultModRegistry;
@@ -72,16 +72,14 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
             var registry = LocalModRegistryFactory.DefaultModRegistry;
             registry.Name.Should().Contain(LocalModRegistryFactory.DEFAULT_MOD_MANAGER_PATH);
         }
-        
+
         [Fact]
-        public async Task DownloadPak_ForExistingMod_ShouldDownloadSuccessfully()
-        {
+        public async Task DownloadPak_ForExistingMod_ShouldDownloadSuccessfully() {
             var aggregateRegistry = LocalModRegistryFactory.DefaultModRegistry;
             var tempOutputDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             Directory.CreateDirectory(tempOutputDir);
 
-            try
-            {
+            try {
                 var coordinates = new ReleaseCoordinates(
                     TEST_MOD_IDENTIFIER.Org,
                     TEST_MOD_IDENTIFIER.ModuleName,
@@ -95,25 +93,21 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
                 var fileWriter = result.RightToSeq().FirstOrDefault();
                 fileWriter.Should().NotBeNull();
             }
-            finally
-            {
+            finally {
                 // Cleanup
-                if (Directory.Exists(tempOutputDir))
-                {
+                if (Directory.Exists(tempOutputDir)) {
                     Directory.Delete(tempOutputDir, true);
                 }
             }
         }
-        
+
         [Fact]
-        public async Task DownloadPak_WithNonexistentVersion_ShouldReturnFailure()
-        {
+        public async Task DownloadPak_WithNonexistentVersion_ShouldReturnFailure() {
             var registry = LocalModRegistryFactory.DefaultModRegistry;
             var tempOutputDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             Directory.CreateDirectory(tempOutputDir);
 
-            try
-            {
+            try {
                 var coordinates = new ReleaseCoordinates(
                     TEST_MOD_IDENTIFIER.Org,
                     TEST_MOD_IDENTIFIER.ModuleName,
@@ -129,11 +123,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
                 failure.Should().NotBeNull();
                 failure!.Target.Should().Be(coordinates);
             }
-            finally
-            {
+            finally {
                 // Cleanup
-                if (Directory.Exists(tempOutputDir))
-                {
+                if (Directory.Exists(tempOutputDir)) {
                     Directory.Delete(tempOutputDir, true);
                 }
             }

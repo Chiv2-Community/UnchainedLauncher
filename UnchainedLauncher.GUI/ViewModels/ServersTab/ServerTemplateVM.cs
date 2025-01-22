@@ -1,13 +1,12 @@
-﻿using System.Collections.Generic;
-using UnchainedLauncher.Core.Services.Mods;
+﻿using UnchainedLauncher.Core.Services.Mods;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
     public record SavedServerTemplate(
         ServerInfoFormData ServerInfo
-        // TODO: add whatever is required to recreate the mod manager state here
+    // TODO: add whatever is required to recreate the mod manager state here
     );
-    
+
     public class ServerTemplateVM {
         public ServerInfoFormVM Form { get; }
         public IModManager ModManager { get; }

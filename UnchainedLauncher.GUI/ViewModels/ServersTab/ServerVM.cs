@@ -1,8 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using PropertyChanged;
 using System;
-using System.Diagnostics;
-using System.Net;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using UnchainedLauncher.Core.API;

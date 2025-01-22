@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.GUI.Services;
+﻿using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {

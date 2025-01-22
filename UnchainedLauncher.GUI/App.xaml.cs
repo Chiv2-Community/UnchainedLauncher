@@ -180,9 +180,9 @@ namespace UnchainedLauncher.GUI {
             }
 
             var serversTabViewModel = new ServersTabVM(
-                settingsViewModel, 
+                settingsViewModel,
                 () => new ModManager(modManager),
-                userDialogueSpawner, 
+                userDialogueSpawner,
                 unchainedLauncher,
                 new FileBackedSettings<IEnumerable<SavedServerTemplate>>(FilePaths.ServerTemplatesFilePath));
 

@@ -21,7 +21,7 @@ namespace UnchainedLauncher.Core.Processes {
             try {
                 return Right(PowerShell.Run(new List<string> { $"Read-Host -Prompt \'{Tag} args: ({args}). Press enter to close\'" }, true));
             }
-            catch(Exception e) {
+            catch (Exception e) {
                 return Left(new LaunchFailed("powershell.exe", args, e));
             }
         }

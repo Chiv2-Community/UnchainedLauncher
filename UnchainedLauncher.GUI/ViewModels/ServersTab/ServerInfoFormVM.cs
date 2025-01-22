@@ -1,21 +1,21 @@
-﻿using PropertyChanged;
+﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
+using PropertyChanged;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using LanguageExt;
-using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using System.IO;
-using System.Reflection;
-using UnchainedLauncher.Core.API.ServerBrowser;
-using System.Net.Sockets;
+using System.Linq;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Reflection;
 using System.Windows.Input;
-using CommunityToolkit.Mvvm.Input;
+using UnchainedLauncher.Core.API.ServerBrowser;
+using UnchainedLauncher.Core.Services.Processes.Chivalry;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
     [AddINotifyPropertyChangedInterface]
-    public record class ServerInfoFormData (string LocalIp,
+    public record class ServerInfoFormData(string LocalIp,
                                             string Name = "My Server",
                                             string Description = "My Server Description",
                                             string Password = "",
@@ -96,7 +96,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         public ServerInfoFormData Data => new ServerInfoFormData(
-            LocalIp, Name, Description, Password, GamePort, RconPort, 
+            LocalIp, Name, Description, Password, GamePort, RconPort,
             A2sPort, PingPort, SelectedMap, ShowInServerBrowser
         );
 

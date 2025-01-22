@@ -12,7 +12,7 @@ namespace UnchainedLauncher.Core.API {
         private bool disposedValue;
         public Process ServerProcess { get; private set; }
         public IRCON? Rcon { get; private set; }
-        
+
         // TODO: add UPnP manager here
         public A2SBoundRegistration RegistrationHandler { get; private set; }
         public Chivalry2Server(Process serverProcess, A2SBoundRegistration Registration, IRCON? rcon = null) {

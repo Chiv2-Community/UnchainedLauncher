@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
+using LanguageExt.Pipes;
 using log4net;
 using PropertyChanged;
 using System;
@@ -7,20 +8,18 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using LanguageExt.Pipes;
-using UnchainedLauncher.Core.API.A2S;
-using System.Net;
-using System.Windows;
-using System.Threading;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
@@ -36,18 +35,18 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public ObservableCollection<ServerTemplateVM> ServerTemplates { get; }
         public ObservableCollection<(ServerTemplateVM template, ServerVM live)> RunningTemplates { get; } = new();
         private ServerTemplateVM? _SelectedTemplate;
-        public ServerTemplateVM? SelectedTemplate { 
-            get => _SelectedTemplate; 
+        public ServerTemplateVM? SelectedTemplate {
+            get => _SelectedTemplate;
             set {
                 _SelectedTemplate = value;
                 // this is probably too eager. Save should be triggered when the
                 // template changes, but that's tedious to implement. It's fine for now.
-                Save(); 
+                Save();
                 UpdateVisibility();
             }
         }
         public ServerVM? SelectedLive { get; private set; }
-        
+
         public Visibility TemplateEditorVisibility { get; private set; }
         public Visibility LiveServerVisibility { get; private set; }
 
@@ -90,7 +89,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private void Add_Template() {
             var newTemplate = new ServerTemplateVM(ModManagerCreator());
             var occupiedPorts = ServerTemplates.Select(
-                (e) => new Set<int>( new List<int> {
+                (e) => new Set<int>(new List<int> {
                     e.Form.A2sPort,
                     e.Form.RconPort,
                     e.Form.PingPort,
@@ -137,7 +136,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 RunningTemplates.Add(RunningTuple);
             });
         }
-        
+
         public void Save() {
             if (SaveLocation == null) {
                 logger.Warn("Tried to save server templates, but no file is selected.");
@@ -153,19 +152,19 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 logger.Warn("Tried to load server templates, but no file is selected.");
                 return;
             }
-            
+
             var loaded = SaveLocation.LoadSettings();
             if (loaded == null) {
                 logger.Warn("Failed to load server templates. Error unavailable, but likely invalid JSON.");
                 return;
             }
-            
+
             foreach (var template in loaded) {
                 ServerTemplates.Add(new ServerTemplateVM(template, ModManagerCreator()));
             }
             logger.Info($"Loaded {ServerTemplates.Count} server templates.");
         }
-        
+
         public void UpdateVisibility() {
             SelectedLive = RunningTemplates.Choose(
                 (e) => e.template == SelectedTemplate ? e.live : Option<ServerVM>.None
@@ -234,11 +233,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 serverInfo,
                 formData.LocalIp);
         }
-        
+
         public void Dispose() {
             SelectedLive?.Dispose();
-            foreach (var runningTemplate in RunningTemplates)
-            {
+            foreach (var runningTemplate in RunningTemplates) {
                 runningTemplate.live.Dispose();
             }
 

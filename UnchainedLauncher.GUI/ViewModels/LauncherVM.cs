@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 

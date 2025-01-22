@@ -150,9 +150,8 @@ namespace UnchainedLauncher.GUI {
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
 #if DEBUG_FAKECHIVALRYLAUNCH
-                // point to a directory that won't actually have dlls. That way, we
                 // don't shove dlls into processes that don't need them and cause crashes
-                new DllInjector(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir+"/emptydir"))
+                new NullInjector(true)
 #else
                 new DllInjector(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir))
 #endif

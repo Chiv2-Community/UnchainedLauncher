@@ -8,14 +8,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
-    public partial class LauncherVM : INotifyPropertyChanged {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherVM));
+    public partial class LauncherViewModel : INotifyPropertyChanged {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherViewModel));
         public ICommand LaunchVanillaCommand { get; }
         public ICommand LaunchModdedVanillaCommand { get; }
         public ICommand LaunchUnchainedCommand { get; }

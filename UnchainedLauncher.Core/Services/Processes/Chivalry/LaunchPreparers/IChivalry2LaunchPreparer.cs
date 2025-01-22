@@ -42,6 +42,16 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         /// Allows for running some other IChivalry2LaunchPreparer of a different type
         /// </summary>
         /// <param name="other"></param>
+        /// <param name="map"></param>
+        /// <typeparam name="T2"></typeparam>
+        /// <returns>If the other launch preparer returns None then the resulting launch preparer will also return None, otherwise it'll return Some containing the original output.</returns>
+        public IChivalry2LaunchPreparer<T> Sub(IChivalry2LaunchPreparer<Unit> other) =>
+            AndThen(t => other.PrepareLaunch(Unit.Default).Map(x => x.Map(_ => t)));
+
+        /// <summary>
+        /// Allows for running some other IChivalry2LaunchPreparer of a different type
+        /// </summary>
+        /// <param name="other"></param>
         /// <param name="toT2"></param>
         /// <param name="toT"></param>
         /// <typeparam name="T2"></typeparam>

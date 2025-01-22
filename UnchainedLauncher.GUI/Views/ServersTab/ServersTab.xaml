@@ -31,13 +31,13 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
             <StackPanel Orientation="Horizontal" Grid.Column="1">
-                <Button Command="{Binding Add_Template_Command}">
+                <Button Command="{Binding AddTemplateCommand}">
                     <Run Text=" + "/>
                 </Button>
-                <Button Command="{Binding Remove_Template_Command}">
+                <Button Command="{Binding RemoveTemplateCommand}">
                     <Run Text="  -  "/>
                 </Button>
-                <Button Command="{Binding Save_Command}">
+                <Button Command="{Binding SaveCommand}">
                     <Run Text="Save"/>
                 </Button>
             </StackPanel>
@@ -61,8 +61,8 @@
                     <ColumnDefinition Width="10"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Button Grid.Column="0" Command="{Binding Launch_Server}">Launch server</Button>
-                <Button Grid.Column="2" Command="{Binding Launch_Headless}">Launch Headless Server</Button>
+                <Button Grid.Column="0" Command="{Binding LaunchServerCommand}">Launch server</Button>
+                <Button Grid.Column="2" Command="{Binding LaunchHeadlessCommand}">Launch Headless Server</Button>
             </Grid>
         </Grid>
         
@@ -74,7 +74,7 @@
             </Grid.RowDefinitions>
             <local:Server DataContext="{Binding SelectedLive}" Grid.Row="0"/>
             <Button Grid.Row="1"
-                Command="{Binding Shutdown_Server}" 
+                Command="{Binding ShutdownServerCommand}" 
                 DockPanel.Dock="Bottom">
                 Shut Down
             </Button>

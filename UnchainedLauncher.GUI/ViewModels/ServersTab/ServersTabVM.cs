@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
-using LanguageExt.Pipes;
 using log4net;
 using PropertyChanged;
 using System;
@@ -8,24 +7,27 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Input;
 using UnchainedLauncher.Core.API;
-using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using LanguageExt.Pipes;
+using UnchainedLauncher.Core.API.A2S;
+using System.Net;
+using System.Windows;
+using System.Threading;
+using UnchainedLauncher.GUI.Views;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
     using static Successors;
     [AddINotifyPropertyChangedInterface]
-    public class ServersTabVM : IDisposable {
+    public partial class ServersTabVM : IDisposable {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServersTabVM));
         public SettingsVM Settings { get; }
         public readonly IUnchainedChivalry2Launcher Launcher;
@@ -50,19 +52,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public Visibility TemplateEditorVisibility { get; private set; }
         public Visibility LiveServerVisibility { get; private set; }
 
-        public ICommand Add_Template_Command { get; }
-        public ICommand Remove_Template_Command { get; }
-        public ICommand Launch_Server { get; }
-        public ICommand Launch_Headless { get; }
-        public ICommand Shutdown_Server { get; }
-        public ICommand Save_Command { get; }
-
         public ServersTabVM(SettingsVM settings,
                             Func<IModManager> modManagerCreator,
                             IUserDialogueSpawner dialogueSpawner,
                             IUnchainedChivalry2Launcher launcher,
                             FileBackedSettings<IEnumerable<SavedServerTemplate>>? saveLocation = null) {
-            ServerTemplates = new();
+            ServerTemplates = new ObservableCollection<ServerTemplateVM>();
             ServerTemplates.CollectionChanged += (_, _) => UpdateVisibility();
             RunningTemplates.CollectionChanged += (_, _) => UpdateVisibility();
             Settings = settings;
@@ -70,23 +65,22 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             DialogueSpawner = dialogueSpawner;
             ModManagerCreator = modManagerCreator;
             SaveLocation = saveLocation;
-            Add_Template_Command = new RelayCommand(Add_Template);
-            Remove_Template_Command = new RelayCommand(() => {
-                if (SelectedTemplate != null) {
-                    ServerTemplates.Remove(SelectedTemplate);
-                }
-                SelectedTemplate = ServerTemplates.FirstOrDefault();
-            });
-            Shutdown_Server = new RelayCommand(async () => SelectedLive?.Dispose());
-            Launch_Server = new RelayCommand(async () => await LaunchSelected(false));
-            Launch_Headless = new RelayCommand(async () => await LaunchSelected(true));
-            Save_Command = new RelayCommand(Save);
             Load();
             SelectedTemplate = ServerTemplates.FirstOrDefault();
             UpdateVisibility();
         }
 
-        private void Add_Template() {
+        [RelayCommand]
+        public async Task LaunchHeadless() => await LaunchSelected(true);
+        [RelayCommand]
+        public async Task LaunchServer() => await LaunchSelected(false);
+
+        [RelayCommand]
+        // TODO: disposeAsync, since this can hang if the process is feisty
+        public void ShutdownServer() => SelectedLive?.Dispose();
+        
+        [RelayCommand]
+        public void AddTemplate() {
             var newTemplate = new ServerTemplateVM(ModManagerCreator());
             var occupiedPorts = ServerTemplates.Select(
                 (e) => new Set<int>(new List<int> {
@@ -114,6 +108,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             ServerTemplates.Add(newTemplate);
             SelectedTemplate = newTemplate;
         }
+        
+        [RelayCommand]
+        public void RemoveTemplate() {
+            if (SelectedTemplate != null) {
+                ServerTemplates.Remove(SelectedTemplate);
+            }
+            SelectedTemplate = ServerTemplates.FirstOrDefault();
+        }
 
         public async Task LaunchSelected(bool headless = false) {
             if (SelectedTemplate == null) return;
@@ -137,6 +139,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             });
         }
 
+        [RelayCommand]
         public void Save() {
             if (SaveLocation == null) {
                 logger.Warn("Tried to save server templates, but no file is selected.");

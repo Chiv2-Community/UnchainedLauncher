@@ -15,8 +15,8 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
-    public partial class LauncherViewModel : INotifyPropertyChanged {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherViewModel));
+    public partial class LauncherVM : INotifyPropertyChanged {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherVM));
         public ICommand LaunchVanillaCommand { get; }
         public ICommand LaunchModdedVanillaCommand { get; }
         public ICommand LaunchUnchainedCommand { get; }

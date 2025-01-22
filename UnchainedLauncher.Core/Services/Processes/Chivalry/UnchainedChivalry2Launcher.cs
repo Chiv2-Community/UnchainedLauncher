@@ -1,10 +1,12 @@
 using LanguageExt;
+using LanguageExt.UnsafeValueAccess;
 using log4net;
 using Semver;
 using System.Diagnostics;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry {

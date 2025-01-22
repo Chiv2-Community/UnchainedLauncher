@@ -74,7 +74,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
         }
         
         [Fact]
-        public async Task DownloadPak_ForUnchainedModsV002_ShouldDownloadSuccessfully()
+        public async Task DownloadPak_ForExistingMod_ShouldDownloadSuccessfully()
         {
             var aggregateRegistry = LocalModRegistryFactory.DefaultModRegistry;
             var tempOutputDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());

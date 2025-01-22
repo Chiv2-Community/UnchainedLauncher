@@ -115,7 +115,16 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public async Task<GetAllModsResult> UpdateModsList() {
             logger.Info("Updating mods list...");
             var result = await _registry.GetAllMods();
-            logger.Info($"Got a total of {result.Mods.Count()} mods from all registries");
+            logger.Info($"Got a total of {result.Mods.Count()} mods from {_registry.Name}");
+
+            if (result.HasErrors) {
+                var errorCount = result.Errors.Count();
+                logger.Error($"Encountered {errorCount} errors while fetching mod list from registry");
+                result.Errors
+                    .Zip(Enumerable.Range(1, errorCount))
+                    .ToList()
+                    .ForEach(tuple => logger.Error($"Error {tuple.Item2}: ", tuple.Item1));
+            }
 
             _mods.Clear();
             _mods.AddRange(result.Mods);

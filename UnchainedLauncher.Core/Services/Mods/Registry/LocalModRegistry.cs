@@ -18,8 +18,13 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
         public override EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation) {
             return GetMod(coordinates)
-                .Map(releaseMetadata => releaseMetadata.Releases.Find(x => x.Tag == coordinates.Version))
+                .Map(releaseMetadata => Optional(releaseMetadata.Releases.Find(x => x.Tag == coordinates.Version)))
                 .MapLeft(e => new ModPakStreamAcquisitionFailure(coordinates, e))
+                .Bind(maybeRelease => maybeRelease.ToEitherAsync(() => 
+                    new ModPakStreamAcquisitionFailure(
+                        coordinates, 
+                        Error.New($"Failed to fetch pak. No releases found for {coordinates.Org} / {coordinates.ModuleName} / {coordinates.Version}.")
+                )))
                 .Bind(release => _downloader.ModPakStream(release))
                 .Map(sizedStream => new FileWriter(outputLocation, sizedStream.Stream, sizedStream.Size));
         }

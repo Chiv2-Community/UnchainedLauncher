@@ -1,4 +1,5 @@
 ﻿using LanguageExt;
+using static LanguageExt.Prelude;
 using LanguageExt.Common;
 using System.Collections.Immutable;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
@@ -7,7 +8,6 @@ using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods {
-    using static LanguageExt.Prelude;
 
     public record UpdateCandidate(Release CurrentlyEnabled, Release AvailableUpdate) {
         public static Option<UpdateCandidate> CreateIfNewer(Release CurrentlyEnabled, Release AvailableUpdate) {

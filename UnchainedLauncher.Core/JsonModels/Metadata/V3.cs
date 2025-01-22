@@ -41,7 +41,12 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
 
         public string ReleaseUrl => $"{Manifest.RepoUrl}/releases/{Tag}";
 
-        public SemVersion Version => SemVersion.Parse(Tag, SemVersionStyles.AllowV);
+        public SemVersion? Version {
+            get { 
+                SemVersion.TryParse(Tag, SemVersionStyles.AllowV, out var version);
+                return version;
+            }
+        }
     }
     [JsonConverter(typeof(StringEnumConverter))]
     public enum ModType {

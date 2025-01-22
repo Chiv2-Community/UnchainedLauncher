@@ -1,6 +1,8 @@
 ﻿using LanguageExt;
+using static LanguageExt.Prelude;
 using LanguageExt.Common;
 using log4net;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 
@@ -11,6 +13,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         // Re-export IModRegistryMethods that will not be implemented here.
         public abstract string Name { get; }
         public abstract EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation);
+        
         public abstract Task<GetAllModsResult> GetAllMods();
 
         /// <summary>
@@ -48,5 +51,11 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 .MapLeft(err => RegistryMetadataException.Parse($"Failed to parse mod manifest at {modPath}", Expected.New(err)))
             );
         }
+
+        public EitherAsync<RegistryMetadataException, Release> GetModRelease(ReleaseCoordinates coords) =>
+            GetMod(coords)
+                .Map(mod => Optional(mod.Releases.Find(coords.Matches)))
+                .Bind<Release>(maybeRelease => 
+                    maybeRelease.ToEitherAsync(() => RegistryMetadataException.NotFound(coords, None)));
     }
 }

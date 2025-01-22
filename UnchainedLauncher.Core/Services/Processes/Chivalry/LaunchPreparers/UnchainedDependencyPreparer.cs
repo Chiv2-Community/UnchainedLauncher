@@ -24,11 +24,11 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     public class UnchainedDependencyPreparer : IChivalry2LaunchPreparer<ModdedLaunchOptions> {
         private readonly ILog logger = LogManager.GetLogger(typeof(UnchainedDependencyPreparer));
         private readonly string pluginPath;
-        
+
         private static readonly ModIdentifier UnchainedModsIdentifier = new ModIdentifier(
-            "Chiv2-Community", 
+            "Chiv2-Community",
             "Unchained-Mods"
-        ); 
+        );
 
         public static IChivalry2LaunchPreparer<ModdedLaunchOptions> Create(
             IModManager modManager,
@@ -194,7 +194,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             //       on that.
             var result = ModManager.EnableModRelease(ReleaseCoordinates.FromRelease(latestMods));
             if (result) return true;
-            
+
             logger.Error("Failed to download latest Unchained-Mods");
             UserDialogueSpawner.DisplayMessage(
                 "Failed to download latest Unchained-Mods. Aborting launch. Check the logs for more details.");

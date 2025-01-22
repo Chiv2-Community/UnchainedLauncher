@@ -11,9 +11,9 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
     public class AggregateModRegistry : IModRegistry {
         private static readonly ILog _logger = LogManager.GetLogger(typeof(AggregateModRegistry));
-        
-        public string Name => 
-            "AggregateModRegistry of: \n\t" + 
+
+        public string Name =>
+            "AggregateModRegistry of: \n\t" +
                 string.Join("\n\t", _modRegistries.Select(m => m.Name));
 
         private IOrderedEnumerable<IModRegistry> _modRegistries { get; }

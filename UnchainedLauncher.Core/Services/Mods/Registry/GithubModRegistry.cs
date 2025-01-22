@@ -9,7 +9,7 @@ using static LanguageExt.Prelude;
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class GithubModRegistry : JsonRegistry, IModRegistry {
         private static readonly ILog logger = LogManager.GetLogger(typeof(GithubModRegistry));
-        
+
         public override string Name => $"Github mod registry at {Organization}/{RepoName}";
         public IModRegistryDownloader ModRegistryDownloader { get; }
         public string Organization { get; }

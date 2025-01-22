@@ -1,19 +1,13 @@
 ﻿using FluentAssertions;
-using LanguageExt;
-using System.IO;
-using System.Threading.Tasks;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
-using Xunit;
 
-namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
-{
-    public class LocalModRegistryTests
-    {
+namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
+    public class LocalModRegistryTests {
         private const string DEFAULT_MOD_MANAGER_PATH = "TestData/ModRegistries/DefaultModRegistry";
-        private static readonly ModIdentifier TEST_MOD_IDENTIFIER = 
+        private static readonly ModIdentifier TEST_MOD_IDENTIFIER =
             new ModIdentifier("Chiv2-Community", "Unchained-Mods");
-        
+
         private static LocalModRegistry CreateLocalModRegistry(string path) =>
             new LocalModRegistry(
                 path,
@@ -21,8 +15,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
             );
 
         [Fact]
-        public async Task GetAllMods_ShouldReturnAllValidMods()
-        {
+        public async Task GetAllMods_ShouldReturnAllValidMods() {
             var registry = CreateLocalModRegistry(DEFAULT_MOD_MANAGER_PATH);
 
             var result = await registry.GetAllMods();
@@ -30,7 +23,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
             result.Should().NotBeNull();
             result.Mods.Should().NotBeEmpty();
             result.Errors.Should().BeEmpty();
-            
+
             var firstMod = result.Mods.First();
             firstMod.LatestManifest.Name.Should().Be("Unchained-Mods");
             firstMod.LatestManifest.Authors.Should().Contain("Nihi");
@@ -38,29 +31,25 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
         }
 
         [Fact]
-        public async Task GetAllMods_WithEmptyDirectory_ShouldReturnEmptyList()
-        {
+        public async Task GetAllMods_WithEmptyDirectory_ShouldReturnEmptyList() {
             var emptyDirPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             Directory.CreateDirectory(emptyDirPath);
             var registry = CreateLocalModRegistry(emptyDirPath);
 
-            try
-            {
+            try {
                 var result = await registry.GetAllMods();
 
                 result.Should().NotBeNull();
                 result.Mods.Should().BeEmpty();
                 result.Errors.Should().BeEmpty();
             }
-            finally
-            {
+            finally {
                 Directory.Delete(emptyDirPath, true);
             }
         }
 
         [Fact]
-        public async Task GetModMetadataString_WithValidPath_ShouldReturnContent()
-        {
+        public async Task GetModMetadataString_WithValidPath_ShouldReturnContent() {
             var registry = CreateLocalModRegistry(DEFAULT_MOD_MANAGER_PATH);
 
             var result = await registry.GetMod(TEST_MOD_IDENTIFIER).ToEither();
@@ -75,8 +64,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
         }
 
         [Fact]
-        public async Task GetModMetadataString_WithInvalidPath_ShouldReturnLeft()
-        {
+        public async Task GetModMetadataString_WithInvalidPath_ShouldReturnLeft() {
             var registry = CreateLocalModRegistry(DEFAULT_MOD_MANAGER_PATH);
             var nonExistentPath = new ModIdentifier("Bogus", "Mod");
 
@@ -87,8 +75,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
         }
 
         [Fact]
-        public void Registry_Name_ShouldIncludePath()
-        {
+        public void Registry_Name_ShouldIncludePath() {
             var registry = CreateLocalModRegistry(DEFAULT_MOD_MANAGER_PATH);
             registry.Name.Should().Contain(DEFAULT_MOD_MANAGER_PATH);
         }

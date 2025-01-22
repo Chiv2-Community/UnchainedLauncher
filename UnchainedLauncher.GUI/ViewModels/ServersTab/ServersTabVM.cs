@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
+using LanguageExt.Pipes;
 using log4net;
 using PropertyChanged;
 using System;
@@ -7,21 +8,17 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Windows.Input;
+using System.Windows;
 using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using LanguageExt.Pipes;
-using UnchainedLauncher.Core.API.A2S;
-using System.Net;
-using System.Windows;
-using System.Threading;
-using UnchainedLauncher.GUI.Views;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
@@ -78,7 +75,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         [RelayCommand]
         // TODO: disposeAsync, since this can hang if the process is feisty
         public void ShutdownServer() => SelectedLive?.Dispose();
-        
+
         [RelayCommand]
         public void AddTemplate() {
             var newTemplate = new ServerTemplateVM(ModManagerCreator());
@@ -108,7 +105,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             ServerTemplates.Add(newTemplate);
             SelectedTemplate = newTemplate;
         }
-        
+
         [RelayCommand]
         public void RemoveTemplate() {
             if (SelectedTemplate != null) {

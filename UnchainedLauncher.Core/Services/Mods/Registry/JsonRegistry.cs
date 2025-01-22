@@ -9,6 +9,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         protected static readonly ILog logger = LogManager.GetLogger(nameof(JsonRegistry));
 
         // Re-export IModRegistryMethods that will not be implemented here.
+        public abstract string Name { get; }
         public abstract EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation);
         public abstract Task<GetAllModsResult> GetAllMods();
 

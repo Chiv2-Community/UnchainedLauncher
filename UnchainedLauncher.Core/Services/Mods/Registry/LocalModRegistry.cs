@@ -8,8 +8,7 @@ using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class LocalModRegistry : JsonRegistry {
-
-        private string Name => "Local filesystem registry at {}";
+        public override string Name => $"Local filesystem registry at {RegistryPath}";
         private IModRegistryDownloader _downloader;
         private string RegistryPath { get; }
         public LocalModRegistry(string registryPath, IModRegistryDownloader downloader) {

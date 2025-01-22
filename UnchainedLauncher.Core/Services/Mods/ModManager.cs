@@ -48,19 +48,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public ModManager(
             IModRegistry registry,
-            List<ReleaseCoordinates> enabledMods) {
+            IEnumerable<ReleaseCoordinates> enabledMods) {
             _registry = registry;
             _enabledModReleases = enabledMods.ToList();
             _mods = new List<Mod>();
-        }
-
-        public static ModManager ForRegistry(IModRegistry registry, List<ReleaseCoordinates> enabledMods) {
-            var enabledModReleases = new List<Release>();
-
-            return new ModManager(
-                registry,
-                enabledMods.ToList()
-            );
         }
 
         public bool DisableModRelease(ReleaseCoordinates release) {

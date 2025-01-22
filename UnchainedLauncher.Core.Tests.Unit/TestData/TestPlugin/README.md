@@ -1,0 +1,1 @@
+﻿These DLLs are not real DLLs. They are text files with some metadata for file version set on them.

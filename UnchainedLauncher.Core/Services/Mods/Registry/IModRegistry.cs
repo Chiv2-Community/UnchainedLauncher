@@ -52,6 +52,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
     /// </summary>
     public interface IModRegistry {
         protected static readonly ILog logger = LogManager.GetLogger(nameof(IModRegistry));
+        
+        public string Name { get; }
 
         /// <summary>
         /// Get all mod metadata from this registry

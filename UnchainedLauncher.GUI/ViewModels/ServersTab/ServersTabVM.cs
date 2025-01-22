@@ -73,8 +73,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public async Task LaunchServer() => await LaunchSelected(false);
 
         [RelayCommand]
-        // TODO: disposeAsync, since this can hang if the process is feisty
-        public void ShutdownServer() => SelectedLive?.Dispose();
+        public Task ShutdownServer() => Task.Run(() => SelectedLive?.Dispose());
 
         [RelayCommand]
         public void AddTemplate() {

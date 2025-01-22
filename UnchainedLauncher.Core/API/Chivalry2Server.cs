@@ -43,6 +43,7 @@ namespace UnchainedLauncher.Core.API {
                     logger.Error($"Failed to kill server process: {ex.Message}");
                 }
             }
+            ServerProcess.WaitForExit();
             ServerProcess.Close();
             ServerProcess.Dispose();
         }

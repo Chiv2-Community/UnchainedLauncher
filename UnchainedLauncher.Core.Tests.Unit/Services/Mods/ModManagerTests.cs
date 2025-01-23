@@ -5,7 +5,7 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Tests.Unit.Services.Mods;
 using UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry;
 
-namespace UnchainedLauncher.Core.Facts.Unit.Services.Mods {
+namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
     internal class ModManagerFactsFixture {
         public IModManager ModManager;

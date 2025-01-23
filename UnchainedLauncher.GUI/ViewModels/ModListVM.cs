@@ -87,6 +87,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private async Task UpdateModsAsync() {
             try {
+                await RefreshModListAsync();
+                    
                 logger.Info("Checking for Mod updates...");
 
                 IEnumerable<(ModVM, UpdateCandidate)> pendingUpdates =
@@ -111,34 +113,22 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     }
                 }
                 else {
-                    var updatesTask =
-                        pendingUpdates.Select(async x =>
-                            await x.Item1.UpdateCurrentlyEnabledVersion(x.Item2.AvailableUpdate));
+                    var failedUpdates =
+                        pendingUpdates.Select(x =>
+                                (x.Item1, x.Item1.UpdateCurrentlyEnabledVersion(x.Item2.AvailableUpdate))
+                            ).Filter(x => x.Item2 == false)
+                            .Select(x => x.Item1);
+                    
+                    
 
-                    var result = await Task.WhenAll(updatesTask);
-
-                    var errors =
-                        result
-                            .Collect(r => r.LeftAsEnumerable()) // Get only the errors
-                            .Map(disableOrEnableFailure =>
-                                disableOrEnableFailure.Match<Error>(l => l,
-                                    r => r)); // Both sides are errors, just errors of a different type. 
-
-                    await RefreshModListAsync();
-
-                    if (errors.Any()) {
-                        errors.Iter(e => logger.Error(e));
-
-                        var errorMessages = errors.Map(e => "- " + e.Message);
-                        var errorMessage = string.Join("\n", errorMessages);
-
-                        MessageBox.Show(
-                            $"Some errors occurred during update: \n{errorMessage}\n\n Check the logs for more details.");
+                    if (failedUpdates.Any()) {
+                        var failureNames =
+                            string.Join(", ", failedUpdates.Select(vm => vm.Mod.LatestManifest.Name));
+                        MessageBox.Show($"Failed to enable mods: {failureNames}\n\nCheck the logs for more details.");
                     }
-                    else {
-                        logger.Info("Mods updated successfully");
-                        MessageBox.Show("Mods updated successfully");
-                    }
+
+                    logger.Info("Mods updated successfully");
+                    MessageBox.Show("Mods updated successfully");
                 }
             }
             catch (Exception ex) {

@@ -124,6 +124,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
                         .Bind<Release>(x => x.Releases.Find(releaseCoords.Matches))
                 );
 
+        public static Option<Release> GetCurrentlyEnabledReleaseForMod(this IModManager modManager, Mod mod) =>
+            modManager.GetCurrentlyEnabledReleaseForMod(ModIdentifier.FromMod(mod));
+
         /// <summary>
         /// Returns a list of all mods which have updates available
         /// </summary>

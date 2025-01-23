@@ -6,6 +6,7 @@ using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -24,7 +25,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
     using static Successors;
     [AddINotifyPropertyChangedInterface]
-    public partial class ServersTabVM : IDisposable {
+    public partial class ServersTabVM : IDisposable, INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ServersTabVM));
         public SettingsVM Settings { get; }
         public readonly IUnchainedChivalry2Launcher Launcher;
@@ -33,14 +34,29 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public FileBackedSettings<IEnumerable<SavedServerTemplate>>? SaveLocation;
         public ObservableCollection<ServerTemplateVM> ServerTemplates { get; }
         public ObservableCollection<(ServerTemplateVM template, ServerVM live)> RunningTemplates { get; } = new();
+
+        private void OnTemplateChanged(object? o, PropertyChangedEventArgs e) {
+            // this saves all templates, but since we're not using a very complex
+            // file format, there's no real way to save just one without just saving
+            // all of them. Partial updates don't give value since the data size
+            // is so small.
+            Save();
+        }
         private ServerTemplateVM? _SelectedTemplate;
         public ServerTemplateVM? SelectedTemplate {
             get => _SelectedTemplate;
             set {
+                if (_SelectedTemplate != null) {
+                    // TODO: change in mod manager section of template needs to be wired up here too
+                    _SelectedTemplate.Form.PropertyChanged -= OnTemplateChanged;
+                }
+
+                if (value != null) {
+                    // TODO: change in mod manager section of template needs to be wired up here too
+                    value.Form.PropertyChanged += OnTemplateChanged;
+                }
+                
                 _SelectedTemplate = value;
-                // this is probably too eager. Save should be triggered when the
-                // template changes, but that's tedious to implement. It's fine for now.
-                Save();
                 UpdateVisibility();
             }
         }
@@ -55,7 +71,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                             IUnchainedChivalry2Launcher launcher,
                             FileBackedSettings<IEnumerable<SavedServerTemplate>>? saveLocation = null) {
             ServerTemplates = new ObservableCollection<ServerTemplateVM>();
-            ServerTemplates.CollectionChanged += (_, _) => UpdateVisibility();
+            ServerTemplates.CollectionChanged += (_, _) => { 
+                UpdateVisibility();
+                Save();
+            };
             RunningTemplates.CollectionChanged += (_, _) => UpdateVisibility();
             Settings = settings;
             Launcher = launcher;
@@ -69,6 +88,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         [RelayCommand]
         public async Task LaunchHeadless() => await LaunchSelected(true);
+        
         [RelayCommand]
         public async Task LaunchServer() => await LaunchSelected(false);
 

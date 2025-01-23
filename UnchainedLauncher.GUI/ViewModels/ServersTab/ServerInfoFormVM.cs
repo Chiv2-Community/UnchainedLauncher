@@ -3,6 +3,7 @@ using LanguageExt;
 using PropertyChanged;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
@@ -45,7 +46,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     }
 
     [AddINotifyPropertyChangedInterface]
-    public class ServerInfoFormVM {
+    public partial class ServerInfoFormVM : INotifyPropertyChanged {
         public string Name { get; set; }
         public string Description { get; set; }
         public string Password { get; set; }
@@ -58,7 +59,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public string LocalIp { get; set; }
         public ObservableCollection<string> MapsList { get; set; }
 
-        public ICommand AutoFillIPCommand { get; }
         public ServerInfoFormVM(ObservableCollection<string>? mapsList = null,
                                 ServerInfoFormData? data = null) {
             ServerInfoFormData initialData = data ?? new(GetAllLocalIPv4().FirstOrDefault("127.0.0.1"));
@@ -73,9 +73,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             GamePort = initialData.GamePort;
             ShowInServerBrowser = initialData.ShowInServerBrowser;
             LocalIp = initialData.LocalIp;
-            AutoFillIPCommand = new RelayCommand(() => {
-                LocalIp = GetAllLocalIPv4().FirstOrDefault("127.0.0.1");
-            });
+        }
+
+        [RelayCommand]
+        public void AutoFillIP() {
+            LocalIp = GetAllLocalIPv4().FirstOrDefault("127.0.0.1");
         }
 
         private static IEnumerable<string> GetDefaultMaps() {

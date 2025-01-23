@@ -137,7 +137,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             if (SelectedTemplate == null) return;
 
             ServerInfoFormData formData = SelectedTemplate.Form.Data;
-            var enabledMods = 
+            var enabledMods =
                 SelectedTemplate.ModManager.GetEnabledModReleases();
             var maybeProcess = await LaunchProcessForSelected(formData, headless);
             maybeProcess.IfSome(process => {

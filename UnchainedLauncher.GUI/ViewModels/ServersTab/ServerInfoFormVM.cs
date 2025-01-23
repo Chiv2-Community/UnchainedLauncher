@@ -9,7 +9,6 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Windows.Input;
 using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 

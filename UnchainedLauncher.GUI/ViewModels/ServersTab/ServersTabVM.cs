@@ -55,7 +55,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                     // TODO: change in mod manager section of template needs to be wired up here too
                     value.Form.PropertyChanged += OnTemplateChanged;
                 }
-                
+
                 _SelectedTemplate = value;
                 UpdateVisibility();
             }
@@ -71,7 +71,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                             IUnchainedChivalry2Launcher launcher,
                             FileBackedSettings<IEnumerable<SavedServerTemplate>>? saveLocation = null) {
             ServerTemplates = new ObservableCollection<ServerTemplateVM>();
-            ServerTemplates.CollectionChanged += (_, _) => { 
+            ServerTemplates.CollectionChanged += (_, _) => {
                 UpdateVisibility();
                 Save();
             };
@@ -88,7 +88,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         [RelayCommand]
         public async Task LaunchHeadless() => await LaunchSelected(true);
-        
+
         [RelayCommand]
         public async Task LaunchServer() => await LaunchSelected(false);
 

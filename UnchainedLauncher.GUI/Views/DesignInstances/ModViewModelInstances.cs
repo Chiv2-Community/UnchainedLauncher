@@ -1,5 +1,4 @@
-﻿using LanguageExt;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;

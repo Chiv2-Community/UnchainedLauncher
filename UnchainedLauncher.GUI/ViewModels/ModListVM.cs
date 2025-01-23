@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
-using LanguageExt.Common;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -88,7 +87,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private async Task UpdateModsAsync() {
             try {
                 await RefreshModListAsync();
-                    
+
                 logger.Info("Checking for Mod updates...");
 
                 IEnumerable<(ModVM, UpdateCandidate)> pendingUpdates =
@@ -118,8 +117,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
                                 (x.Item1, x.Item1.UpdateCurrentlyEnabledVersion(x.Item2.AvailableUpdate))
                             ).Filter(x => x.Item2 == false)
                             .Select(x => x.Item1);
-                    
-                    
+
+
 
                     if (failedUpdates.Any()) {
                         var failureNames =

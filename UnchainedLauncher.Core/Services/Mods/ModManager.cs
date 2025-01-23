@@ -38,7 +38,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public event ModEnabledHandler ModEnabled;
         public event ModDisabledHandler ModDisabled;
 
-        public IEnumerable<ReleaseCoordinates> EnabledModReleases => _enabledModReleases;
+        public IEnumerable<ReleaseCoordinates> EnabledModReleaseCoordinates => _enabledModReleases;
         private readonly List<ReleaseCoordinates> _enabledModReleases;
 
         public IEnumerable<Mod> Mods => _mods;
@@ -56,7 +56,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         // simply copy constructor
         // assumes Release elements are immutable so the shallow copy is ok
-        public ModManager(ModManager other) : this(other._registry, other.EnabledModReleases) { }
+        public ModManager(ModManager other) : this(other._registry, other.EnabledModReleaseCoordinates) { }
 
         public bool DisableModRelease(ReleaseCoordinates release) {
             var releaseExists = ReleaseExists(release);

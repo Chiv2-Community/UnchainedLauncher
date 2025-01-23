@@ -56,7 +56,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         [Fact]
         public void EnabledModReleases_ShouldBeEmptyInitially() {
             var testFixture = CreateTestFixture();
-            testFixture.ModManager.EnabledModReleases.Should().BeEmpty();
+            testFixture.ModManager.EnabledModReleaseCoordinates.Should().BeEmpty();
         }
 
         [Fact]
@@ -71,7 +71,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             result.Should().BeTrue();
             testFixture.ModEnabledCallCount.Should().Be(1);
             testFixture.LastEnabledRelease.Should().NotBeNull();
-            testFixture.ModManager.EnabledModReleases.Should().NotBeEmpty();
+            testFixture.ModManager.EnabledModReleaseCoordinates.Should().NotBeEmpty();
         }
 
         [Fact]
@@ -83,7 +83,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
             result.Should().BeFalse();
             testFixture.ModEnabledCallCount.Should().Be(0);
-            testFixture.ModManager.EnabledModReleases.Should().BeEmpty();
+            testFixture.ModManager.EnabledModReleaseCoordinates.Should().BeEmpty();
         }
 
         [Fact]
@@ -101,7 +101,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             result.Should().BeTrue();
             testFixture.ModDisabledCallCount.Should().Be(1);
             testFixture.LastDisabledRelease.Should().NotBeNull();
-            testFixture.ModManager.EnabledModReleases.Should().BeEmpty();
+            testFixture.ModManager.EnabledModReleaseCoordinates.Should().BeEmpty();
         }
 
         [Fact]
@@ -113,7 +113,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
             result.Should().BeFalse();
             testFixture.ModDisabledCallCount.Should().Be(0);
-            testFixture.ModManager.EnabledModReleases.Should().BeEmpty();
+            testFixture.ModManager.EnabledModReleaseCoordinates.Should().BeEmpty();
         }
 
         [Fact]
@@ -144,7 +144,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             result.Should().BeTrue();
             testFixture.ModEnabledCallCount.Should().Be(1);
             testFixture.LastEnabledRelease.Should().Be(release);
-            testFixture.ModManager.EnabledModReleases.First().Should().Be(coordinates);
+            testFixture.ModManager.EnabledModReleaseCoordinates.First().Should().Be(coordinates);
         }
 
         [Fact]

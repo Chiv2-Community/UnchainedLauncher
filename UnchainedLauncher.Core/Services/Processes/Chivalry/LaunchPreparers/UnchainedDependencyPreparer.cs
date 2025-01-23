@@ -73,7 +73,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
         private bool ShouldCheckForUpdate(ModdedLaunchOptions options) {
             var pluginExists = File.Exists(pluginPath);
-            var isUnchainedModsEnabled = ModManager.EnabledModReleases.Exists(UnchainedModsIdentifier.Matches);
+            var isUnchainedModsEnabled = ModManager.EnabledModReleaseCoordinates.Exists(UnchainedModsIdentifier.Matches);
             return options.CheckForDependencyUpdates || !pluginExists || !isUnchainedModsEnabled;
         }
 
@@ -108,7 +108,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         private DependencyUpdate? GetModsUpdate() {
-            var isUnchainedModsEnabled = ModManager.EnabledModReleases.Exists(UnchainedModsIdentifier.Matches);
+            var isUnchainedModsEnabled = ModManager.EnabledModReleaseCoordinates.Exists(UnchainedModsIdentifier.Matches);
             var latestUnchainedMods = ModManager.Mods
                 .SelectMany(x => x.LatestRelease)
                 .Find(IsUnchainedMods)

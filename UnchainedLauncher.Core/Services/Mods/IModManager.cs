@@ -35,7 +35,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <summary>
         /// A List of all currently enabled mods
         /// </summary>
-        IEnumerable<ReleaseCoordinates> EnabledModReleases { get; }
+        IEnumerable<ReleaseCoordinates> EnabledModReleaseCoordinates { get; }
 
         /// <summary>
         /// A List of all mods which are available to be enabled.
@@ -112,12 +112,17 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public static bool DisableModRelease(this IModManager modManager, Release release) =>
             modManager.DisableModRelease(ReleaseCoordinates.FromRelease(release));
 
+        public static IEnumerable<Release> GetEnabledModReleases(this IModManager modManager) =>
+            modManager.EnabledModReleaseCoordinates
+                .Map(modManager.GetRelease)
+                .Bind(x => x.ToList());
+
         /// <summary>
         /// Finds the currently enabled release for the given mod, if any
         /// </summary>
         /// <returns></returns>
         public static Option<Release> GetCurrentlyEnabledReleaseForMod(this IModManager modManager, ModIdentifier modId) =>
-            modManager.EnabledModReleases
+            modManager.EnabledModReleaseCoordinates
                 .Find(x => x.Matches(modId))
                 .Bind<Release>(releaseCoords =>
                     modManager.Mods.Find(modId.Matches)

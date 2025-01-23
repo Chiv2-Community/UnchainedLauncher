@@ -1,4 +1,6 @@
-﻿namespace UnchainedLauncher.Core.API {
+﻿using PropertyChanged;
+
+namespace UnchainedLauncher.Core.API {
     /// <summary>
     /// Runs a delegate which tells it when it wants to be run next.
     /// Each run of the delegate is called a "tick"
@@ -8,6 +10,7 @@
     /// When a delegate is running, it will NOT be run again until it
     /// finishes. This ensures that it is being run only once simultaneously
     /// </summary>
+    [AddINotifyPropertyChangedInterface]
     public sealed class PeriodicRunner : IDisposable {
         private Timer Timer;
         private bool disposedValue;

@@ -2,10 +2,10 @@
 
 namespace UnchainedLauncher.GUI.Views {
     /// <summary>
-    /// Interaction logic for ServersView.xaml
+    /// Interaction logic for ModManagerView.xaml
     /// </summary>
-    public partial class ServersView : UserControl {
-        public ServersView() {
+    public partial class ModList : UserControl {
+        public ModList() {
             InitializeComponent();
         }
     }

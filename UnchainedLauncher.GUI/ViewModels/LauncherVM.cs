@@ -14,13 +14,13 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
-    public partial class LauncherViewModel : INotifyPropertyChanged {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherViewModel));
+    public partial class LauncherVM : INotifyPropertyChanged {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherVM));
         public ICommand LaunchVanillaCommand { get; }
         public ICommand LaunchModdedVanillaCommand { get; }
         public ICommand LaunchUnchainedCommand { get; }
 
-        public SettingsViewModel Settings { get; }
+        public SettingsVM Settings { get; }
 
         public string ButtonToolTip =>
             (!Settings.CanClick && !IsReusable())
@@ -34,7 +34,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public bool IsReusable() => Settings.InstallationType == InstallationType.Steam;
 
-        public LauncherViewModel(SettingsViewModel settings, IOfficialChivalry2Launcher vanillaLauncher, IOfficialChivalry2Launcher clientSideModdedLauncher, IUnchainedChivalry2Launcher moddedLauncher, IUserDialogueSpawner dialogueSpawner) {
+        public LauncherVM(SettingsVM settings, IOfficialChivalry2Launcher vanillaLauncher, IOfficialChivalry2Launcher clientSideModdedLauncher, IUnchainedChivalry2Launcher moddedLauncher, IUserDialogueSpawner dialogueSpawner) {
             Settings = settings;
 
             VanillaLauncher = vanillaLauncher;

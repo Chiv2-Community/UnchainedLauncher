@@ -110,7 +110,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
     /// most recent RegisterServer call. Does not support touching servers that it
     /// didn't register itself.
     /// 
-    /// URI is expected to have the /api/v1/ stuff.
+    /// URI is expected to have the /api/v1 stuff.
     /// 
     /// IS thread-safe
     /// </summary>

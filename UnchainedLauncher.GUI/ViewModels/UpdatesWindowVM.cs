@@ -8,7 +8,7 @@ using System.Windows.Input;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels {
-    public partial class UpdatesWindowViewModel : INotifyPropertyChanged {
+    public partial class UpdatesWindowVM : INotifyPropertyChanged {
         public string TitleText { get; }
         public string MessageText { get; }
         public string YesButtonText { get; }
@@ -27,7 +27,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public ICommand CancelCommand { get; set; }
         private Action CloseWindow { get; }
 
-        public UpdatesWindowViewModel(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdateViewModel> updates, Action closeWindow) {
+        public UpdatesWindowVM(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdateViewModel> updates, Action closeWindow) {
             TitleText = titleText;
             MessageText = messageText;
             YesButtonText = yesButtonText;

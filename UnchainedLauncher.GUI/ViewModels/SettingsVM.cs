@@ -20,8 +20,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
     [AddINotifyPropertyChangedInterface]
-    public class SettingsViewModel : IDisposable {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsViewModel));
+    public class SettingsVM : IDisposable {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsVM));
         private static readonly Version version = Assembly.GetExecutingAssembly().GetName().Version!;
 
         public InstallationType InstallationType { get; set; }
@@ -61,7 +61,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public readonly Action<int> ExitProgram;
         public bool CanClick { get; set; }
 
-        public SettingsViewModel(IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
+        public SettingsVM(IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
             Installer = installer;
             UnchainedReleaseLocator = unchainedReleaseLocator;
             UserDialogueSpawner = dialogueSpawner;
@@ -81,14 +81,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
 
-        public static SettingsViewModel LoadSettings(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IUserDialogueSpawner userDialogueSpawner, Action<int> exitProgram) {
+        public static SettingsVM LoadSettings(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IUserDialogueSpawner userDialogueSpawner, Action<int> exitProgram) {
             var cliArgsList = Environment.GetCommandLineArgs();
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => $"{x} {y}") : "";
 
             var fileBackedSettings = new FileBackedSettings<LauncherSettings>(FilePaths.LauncherSettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
 
-            return new SettingsViewModel(
+            return new SettingsVM(
                 installer,
                 unchainedReleaseLocator,
                 userDialogueSpawner,

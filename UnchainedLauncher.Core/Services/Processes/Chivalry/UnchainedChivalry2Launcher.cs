@@ -44,7 +44,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
             var launchOpts = updatedLaunchOpts.Map(x => x.ToCLIArgs()).ValueUnsafe();
 
-            moddedLaunchArgs.Insert(offsetIndex, " " + launchOpts);
+            moddedLaunchArgs = moddedLaunchArgs.Insert(offsetIndex, $" {string.Join(" ", launchOpts)} ");
 
             logger.Info($"Launch args: {moddedLaunchArgs}");
 

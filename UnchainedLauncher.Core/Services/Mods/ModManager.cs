@@ -50,6 +50,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
             EnabledModReleases = new ObservableCollection<Release>(enabledMods);
         }
 
+        // simply copy constructor
+        // assumes Release elements are immutable so the shallow copy is ok
+        public ModManager(ModManager other) : this(other.ModMap, new(other.EnabledModReleases)) { }
+
         public static ModManager ForRegistries(params IModRegistry[] registries) {
             var loadReleaseMetadata = (string path) => {
                 logger.Info("Loading release metadata from " + path);

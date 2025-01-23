@@ -7,12 +7,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Threading;
 using System.Windows.Input;
-using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
-using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -61,7 +58,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
 
 
-        public string TagsString => string.Join(", ", Mod.LatestManifest.Tags); 
+        public string TagsString => string.Join(", ", Mod.LatestManifest.Tags);
 
         public bool IsEnabled => EnabledRelease != null;
 

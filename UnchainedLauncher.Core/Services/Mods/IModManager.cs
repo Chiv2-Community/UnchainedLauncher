@@ -102,16 +102,16 @@ namespace UnchainedLauncher.Core.Services.Mods {
     public static class IModManagerExtensions {
         public static bool EnableMod(this IModManager modManager, Mod mod) =>
             modManager.EnableMod(ModIdentifier.FromMod(mod));
-        
+
         public static bool EnableModRelease(this IModManager modManager, Release release) =>
             modManager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
-        
+
         public static bool DisableMod(this IModManager modManager, Mod mod) =>
             modManager.DisableMod(ModIdentifier.FromMod(mod));
-        
+
         public static bool DisableModRelease(this IModManager modManager, Release release) =>
             modManager.DisableModRelease(ReleaseCoordinates.FromRelease(release));
-        
+
         /// <summary>
         /// Finds the currently enabled release for the given mod, if any
         /// </summary>
@@ -169,7 +169,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public static IEnumerable<Release> GetAllDependenciesForRelease(this IModManager modManager, ReleaseCoordinates coordinates) {
             return modManager.AggregateUniqueDependencies(coordinates, ImmutableHashSet<Release>.Empty);
         }
-        
+
         public static IEnumerable<Release> GetAllDependenciesForRelease(this IModManager modManager, Release release) =>
             modManager.GetAllDependenciesForRelease(ReleaseCoordinates.FromRelease(release));
 
@@ -188,10 +188,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 existingDependencies.ToImmutableHashSet()
             );
         }
-        
+
         public static IEnumerable<Release> GetNewDependenciesForRelease(this IModManager modManager, Release release, IEnumerable<Release> existingDependencies) =>
             modManager.AggregateUniqueDependencies(
-                ReleaseCoordinates.FromRelease(release), 
+                ReleaseCoordinates.FromRelease(release),
                 existingDependencies.ToImmutableHashSet()
             );
 

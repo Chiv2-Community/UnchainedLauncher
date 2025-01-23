@@ -192,7 +192,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             // TODO: This doesn't actually download the mod anymore. The mod manager only tracks what is enabled.
             //       We should probably swap out the ModManager for an IModRegistry, and call the download method
             //       on that.
-            var result = ModManager.EnableModRelease(ReleaseCoordinates.FromRelease(latestMods));
+            var result = ModManager.EnableModRelease(latestMods);
             if (result) return true;
 
             logger.Error("Failed to download latest Unchained-Mods");

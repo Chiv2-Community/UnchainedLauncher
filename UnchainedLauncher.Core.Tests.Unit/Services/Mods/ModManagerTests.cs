@@ -155,10 +155,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             var firstRelease = mod.Releases.First();
             var secondRelease = mod.Releases.Skip(1).First();
 
-            testFixture.ModManager.EnableModRelease(ReleaseCoordinates.FromRelease(firstRelease));
+            testFixture.ModManager.EnableModRelease(firstRelease);
             testFixture.ModEnabledCallCount = 0; // Reset counter after setup
 
-            var result = testFixture.ModManager.EnableModRelease(ReleaseCoordinates.FromRelease(secondRelease));
+            var result = testFixture.ModManager.EnableModRelease(secondRelease);
 
             result.Should().BeTrue();
             testFixture.ModEnabledCallCount.Should().Be(1);

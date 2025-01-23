@@ -12,6 +12,7 @@ using System.Windows.Input;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -27,101 +28,50 @@ namespace UnchainedLauncher.GUI.ViewModels {
             Mod.LatestManifest.Name
         );
 
-        public bool HasError {
-            get {
-                return ErrorState.Match(
-                    None: () => false,
-                    Some: x => true
-                );
-            }
-        }
-
-        public Either<DisableModFailure, EnableModFailure>? ErrorState { get; set; }
-
-
         public Release? EnabledRelease { get; set; }
 
         public string Description {
             get {
-                var manifest = Optional(EnabledRelease).Match(
-                    None: Mod.LatestManifest,
-                    Some: x => x.Manifest
+                var description = Optional(EnabledRelease).Match(
+                    None: Mod.LatestManifest.Description,
+                    Some: x => x.Manifest.Description
                 );
 
-                var message = manifest.Description;
+                var depenencies =
+                    (EnabledRelease ?? Mod.LatestRelease)
+                        .ToList()
+                        .Bind(r => ModManager.GetAllDependenciesForRelease(r));
 
-                if (manifest.Dependencies.Count > 0) {
-                    message += "\n\nYou must also enable the dependencies below:\n";
-                    foreach (var dep in manifest.Dependencies) {
-                        var mod = ModManager.Mods.FirstOrDefault(x => x.LatestManifest.RepoUrl == dep.RepoUrl);
-                        if (mod != null)
-                            message += $"- {mod.LatestManifest.Name} {dep.Version}\n";
-                    }
-                }
-
-                Optional(ErrorState).Match(
-                    None: () => { },
-                    Some: x => {
-
-                        message +=
-                            "\n\nError: " +
-                            x.Match(
-                                Left: disableModFailure => disableModFailure.Match(
-                                    deleteFailure => $"Failed to disable mod. Cannot delete currently enabled version: {deleteFailure.Failure.Message}",
-                                    notEnabled => $"Cannot disable mod. Mod is not enabled."
-                                ),
-                                Right: y => y.Match(
-                                    downloadFailure => downloadFailure.Match(
-                                        modPakStreamAcquisitionFailure => $"Failed to download mod file '{modPakStreamAcquisitionFailure.Target.FileName}' @{modPakStreamAcquisitionFailure.Target.ReleaseTag} from {modPakStreamAcquisitionFailure.Target.Org}/{modPakStreamAcquisitionFailure.Target.RepoName}. Reason: ${modPakStreamAcquisitionFailure.Error.Message}",
-                                        hashFailure => $"Failed to hash mod file '{hashFailure.FilePath}'. Reason: " + hashFailure.Error.Message,
-                                        hashMismatchFailure => $"Failed to validate mod hash. Expected '{hashMismatchFailure.Release.ReleaseHash}' Got '{hashMismatchFailure.InvalidHash.IfNone(() => "NULL")}'",
-                                        modNotFoundFailure => $"Failed to download mod file. Mod release '{modNotFoundFailure.Release.PakFileName}' @{modNotFoundFailure.Release.Tag} from {modNotFoundFailure.Release.Manifest.RepoUrl} not found.",
-                                        writeFailure => $"Failed to write mod to path '{writeFailure.Path}'. Reason: {writeFailure.Failure.Message}",
-                                        alreadyDownloadedFailure => $"Mod already downloaded. Mod release '{alreadyDownloadedFailure.Release.PakFileName}' @{alreadyDownloadedFailure.Release.Tag} from {alreadyDownloadedFailure.Release.Manifest.RepoUrl}."
-                                    ),
-                                    disableModFailure => disableModFailure.Match(
-                                        deleteFailure => $"Failed to change mod version. Cannot delete currently enabled version: {deleteFailure.Failure.Message}",
-                                        notEnabled => $"Cannot disable currently enabled mod. Mod is not enabled. Something funky is going on."
-                                    )
-                            )
+                var depMessage =
+                    !depenencies.Any()
+                        ? ""
+                        : depenencies.Fold(
+                            "You must also enable the dependencies below:\n",
+                            (aggMessage, dep) => aggMessage + $"- {dep.Manifest.Name} {dep.Version}\n"
                         );
-                    }
-                );
 
-                return message;
+                return description + "\n\n" + depMessage;
             }
         }
 
-        public string ButtonText {
-            get {
-                return Optional(EnabledRelease).Match(
-                    None: () => "Enable",
-                    Some: _ => "Disable"
-                );
-            }
-        }
+        public string ButtonText =>
+            Optional(EnabledRelease).Match(
+                None: () => "Enable",
+                Some: _ => "Disable"
+            );
 
 
-        public string TagsString {
-            get { return string.Join(", ", Mod.LatestManifest.Tags); }
-        }
+        public string TagsString => string.Join(", ", Mod.LatestManifest.Tags); 
 
-        public bool IsEnabled {
-            get { return EnabledRelease != null; }
-        }
+        public bool IsEnabled => EnabledRelease != null;
 
-        public string EnabledVersion {
-            get {
-                return Optional(EnabledRelease).Match(
+        public string EnabledVersion =>
+                Optional(EnabledRelease).Match(
                     None: () => "none",
                     Some: x => x.Tag
                 );
-            }
-        }
 
-        public List<string> AvailableVersions {
-            get { return Mod.Releases.Select(x => x.Tag).ToList(); }
-        }
+        public List<string> AvailableVersions => Mod.Releases.Select(x => x.Tag).ToList();
 
         public ICommand ButtonCommand { get; }
 
@@ -135,7 +85,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             PropertyChangedEventManager.AddHandler(this, async (sender, e) => {
                 if (e.PropertyName == nameof(EnabledRelease)) {
-                    await UpdateCurrentlyEnabledVersion(EnabledRelease);
+                    UpdateCurrentlyEnabledVersion(EnabledRelease);
                 }
             }, nameof(EnabledRelease));
 
@@ -155,30 +105,11 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 EnabledRelease = null;
         }
 
-        public EitherAsync<Either<DisableModFailure, EnableModFailure>, Unit> UpdateCurrentlyEnabledVersion(Option<Release> newVersion) {
-            var failureOrSuccess =
-                newVersion.Match(
-                    None: () => ModManager.DisableMod(Mod).MapLeft<Either<DisableModFailure, EnableModFailure>>(e => Prelude.Left(e)),
-                    Some: x =>
-                        ModManager
-                            .EnableModRelease(x, Prelude.None, CancellationToken.None)
-                            .MapLeft<Either<DisableModFailure, EnableModFailure>>(enableModFailure => Prelude.Right(enableModFailure))
+        public bool UpdateCurrentlyEnabledVersion(Option<Release> newVersion) =>
+            newVersion.Match(
+                None: () => ModManager.DisableMod(Mod),
+                Some: ModManager.EnableModRelease
             );
-
-            return failureOrSuccess.Match(
-                Right: _ => {
-                    ErrorState = null;
-                    logger.Debug($"Successfully enabled release {EnabledVersion} for {Mod.LatestManifest.Name}");
-                },
-                Left: enableOrDisableError => {
-                    ErrorState = enableOrDisableError;
-                    enableOrDisableError.Match(
-                        Left: disableModFailure => logger.Error($"Failed to disable mod {Mod.LatestManifest.Name}"),
-                        Right: enableModFailure => logger.Error($"Failed to enable release {EnabledVersion} for {Mod.LatestManifest.Name}")
-                    );
-                }
-            );
-        }
     }
 
     public record VersionNameSort(SemVersion? Version, string Name) : IComparable<VersionNameSort> {

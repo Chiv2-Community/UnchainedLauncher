@@ -19,28 +19,28 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
-    public partial class ModListViewModel : INotifyPropertyChanged {
-        private readonly ILog logger = LogManager.GetLogger(nameof(ModListViewModel));
+    public partial class ModListVM : INotifyPropertyChanged {
+        private readonly ILog logger = LogManager.GetLogger(nameof(ModListVM));
         private readonly IModManager ModManager;
-        private ObservableCollection<ModViewModel> UnfilteredModView { get; }
+        private ObservableCollection<ModVM> UnfilteredModView { get; }
         private ObservableCollection<ModFilter> ModFilters { get; }
 
         public ICommand RefreshModListCommand { get; }
         public ICommand UpdateModsCommand { get; }
 
-        public ModViewModel? SelectedMod { get; set; }
-        public ObservableCollection<ModViewModel> DisplayMods { get; }
+        public ModVM? SelectedMod { get; set; }
+        public ObservableCollection<ModVM> DisplayMods { get; }
 
         private IUserDialogueSpawner UserDialogueSpawner { get; }
 
-        public ModListViewModel(IModManager modManager, IUserDialogueSpawner userDialogueSpawner) {
+        public ModListVM(IModManager modManager, IUserDialogueSpawner userDialogueSpawner) {
             this.ModManager = modManager;
 
             UserDialogueSpawner = userDialogueSpawner;
 
 
-            this.UnfilteredModView = new ObservableCollection<ModViewModel>();
-            this.DisplayMods = new ObservableCollection<ModViewModel>();
+            this.UnfilteredModView = new ObservableCollection<ModVM>();
+            this.DisplayMods = new ObservableCollection<ModVM>();
 
             this.ModFilters = new ObservableCollection<ModFilter>();
 
@@ -68,7 +68,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                 updatedModsList.ToList().ForEach(mod =>
                     UnfilteredModView.Add(
-                        new ModViewModel(
+                        new ModVM(
                             mod,
                             ModManager.GetCurrentlyEnabledReleaseForMod(mod),
                             ModManager
@@ -89,7 +89,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             try {
                 logger.Info("Checking for Mod updates...");
 
-                IEnumerable<(ModViewModel, UpdateCandidate)> pendingUpdates =
+                IEnumerable<(ModVM, UpdateCandidate)> pendingUpdates =
                     DisplayMods
                         .Map(displayMod => displayMod.CheckForUpdate().Map(update => (displayMod, update)))
                         .Collect(x => x.AsEnumerable());
@@ -161,7 +161,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             switch (e.Action) {
                 case NotifyCollectionChangedAction.Add:
                     foreach (Mod mod in e.NewItems!) {
-                        this.UnfilteredModView.Add(new ModViewModel(mod, ModManager.GetCurrentlyEnabledReleaseForMod(mod), ModManager));
+                        this.UnfilteredModView.Add(new ModVM(mod, ModManager.GetCurrentlyEnabledReleaseForMod(mod), ModManager));
                     }
                     break;
 
@@ -182,7 +182,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
     }
 
     public record ModFilter(ModTag Tag, FilterType Type) {
-        public bool ShouldInclude(ModViewModel mod) {
+        public bool ShouldInclude(ModVM mod) {
             return Type switch {
                 FilterType.Include => mod.Mod.LatestManifest.Tags.Contains(Tag),
                 FilterType.Exclude => !mod.Mod.LatestManifest.Tags.Contains(Tag),

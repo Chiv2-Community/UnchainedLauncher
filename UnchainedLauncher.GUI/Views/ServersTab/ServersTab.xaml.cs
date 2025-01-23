@@ -2,10 +2,10 @@
 
 namespace UnchainedLauncher.GUI.Views {
     /// <summary>
-    /// Interaction logic for SettingsView.xaml
+    /// Interaction logic for ServersTab.xaml
     /// </summary>
-    public partial class SettingsView : UserControl {
-        public SettingsView() {
+    public partial class ServersTab : UserControl {
+        public ServersTab() {
             InitializeComponent();
         }
     }

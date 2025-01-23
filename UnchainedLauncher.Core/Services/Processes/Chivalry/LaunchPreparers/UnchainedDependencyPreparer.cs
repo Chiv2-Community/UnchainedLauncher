@@ -198,6 +198,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             logger.Error("Failed to download latest Unchained-Mods");
             UserDialogueSpawner.DisplayMessage(
                 "Failed to download latest Unchained-Mods. Aborting launch. Check the logs for more details.");
+            
             return false;
         }
 

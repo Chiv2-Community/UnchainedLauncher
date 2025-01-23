@@ -9,9 +9,9 @@ namespace UnchainedLauncher.GUI.Views {
     /// </summary>
     [AddINotifyPropertyChangedInterface]
     public partial class MainWindow : Window {
-        public MainWindowViewModel ViewModel { get; }
+        public MainWindowVM ViewModel { get; }
 
-        public MainWindow(MainWindowViewModel vm) {
+        public MainWindow(MainWindowVM vm) {
             DataContext = ViewModel = vm;
             InitializeComponent();
             this.Closed += MainWindow_Closed;

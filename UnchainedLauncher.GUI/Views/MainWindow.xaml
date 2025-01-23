@@ -9,7 +9,7 @@
         mc:Ignorable="d" 
         d:DataContext="{x:Static instances:MainWindowViewModelInstances.DEFAULT}"
         x:Class="UnchainedLauncher.GUI.Views.MainWindow"
-        Title="Unchained Launcher" Height="280" Width="650"
+        Title="Unchained Launcher" Height="500" Width="650"
     >
     
     <Window.Resources>
@@ -36,19 +36,16 @@
 
     <TabControl x:Name="Tabs">
         <TabItem Header="Launcher">
-            <local:LauncherView DataContext="{Binding LauncherViewModel}" />
+            <local:Launcher DataContext="{Binding LauncherViewModel}" />
         </TabItem>
         <TabItem Header="Mod Manager">
-            <local:ModListView DataContext="{Binding ModListViewModel}" />
+            <local:ModList DataContext="{Binding ModListViewModel}" />
         </TabItem>
-        <TabItem Header="Server">
-            <local:ServerLauncherView DataContext="{Binding ServerLauncherViewModel}" />
+        <TabItem Header="Servers">
+            <local:ServersTab DataContext="{Binding ServersTab}" />
         </TabItem>
         <TabItem Header="Settings">
-            <local:SettingsView DataContext="{Binding SettingsViewModel}" />
-        </TabItem>
-        <TabItem Header="Running Servers">
-            <local:ServersView DataContext="{Binding ServersViewModel}" />
+            <local:Settings DataContext="{Binding SettingsViewModel}" />
         </TabItem>
     </TabControl>
 

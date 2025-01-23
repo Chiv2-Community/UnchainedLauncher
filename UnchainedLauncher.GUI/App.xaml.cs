@@ -1,6 +1,7 @@
 ﻿using LanguageExt;
 using log4net;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -19,6 +20,7 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.Installer;
+using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
 
@@ -104,14 +106,23 @@ namespace UnchainedLauncher.GUI {
         public async Task<Window?> InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
             var userDialogueSpawner = new MessageBoxSpawner();
 
-            var settingsViewModel = SettingsViewModel.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
+            var settingsViewModel = SettingsVM.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
 
             var modManager = ModManager.ForRegistries(
                 new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
             );
 
+#if DEBUG_FAKECHIVALRYLAUNCH
+            var officialProcessLauncher = new PowershellProcessLauncher(
+                "Official Chivalry 2"
+            );
+            var unchainedProcessLauncher = new PowershellProcessLauncher(
+                "Unchained Chivalry 2"
+            );
+#else
             var officialProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.OriginalLauncherPath));
             var unchainedProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
+#endif
 
             var noSigLaunchPreparer = NoSigPreparer.Create(userDialogueSpawner);
             var sigLaunchPreparer = SigPreparer.Create(userDialogueSpawner);
@@ -135,16 +146,19 @@ namespace UnchainedLauncher.GUI {
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                unchainedContentPreparer.Sub(sigLaunchPreparer),
+                unchainedContentPreparer.Sub(sigLaunchPreparer, _ => Unit.Default),
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
+#if DEBUG_FAKECHIVALRYLAUNCH
+                // don't shove dlls into processes that don't need them and cause crashes
+                new NullInjector(true)
+#else
                 new DllInjector(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir))
+#endif
             );
 
-            var serversViewModel = new ServersViewModel(settingsViewModel, null);
-            var launcherViewModel = new LauncherViewModel(settingsViewModel, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, userDialogueSpawner);
-            var serverLauncherViewModel = ServerLauncherViewModel.LoadSettings(settingsViewModel, serversViewModel, unchainedLauncher, modManager, userDialogueSpawner);
-            var modListViewModel = new ModListViewModel(modManager, userDialogueSpawner);
+            var launcherViewModel = new LauncherVM(settingsViewModel, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, userDialogueSpawner);
+            var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
             modListViewModel.RefreshModListCommand.Execute(null);
 
@@ -164,12 +178,18 @@ namespace UnchainedLauncher.GUI {
                 return null;
             }
 
-            var mainWindowViewModel = new MainWindowViewModel(
+            var serversTabViewModel = new ServersTabVM(
+                settingsViewModel,
+                () => new ModManager(modManager),
+                userDialogueSpawner,
+                unchainedLauncher,
+                new FileBackedSettings<IEnumerable<SavedServerTemplate>>(FilePaths.ServerTemplatesFilePath));
+
+            var mainWindowViewModel = new MainWindowVM(
                 launcherViewModel,
                 modListViewModel,
                 settingsViewModel,
-                serverLauncherViewModel,
-                serversViewModel
+                serversTabViewModel
             );
 
             return new MainWindow(mainWindowViewModel);

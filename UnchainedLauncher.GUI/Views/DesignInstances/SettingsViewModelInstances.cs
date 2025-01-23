@@ -6,7 +6,7 @@ using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
     public static class SettingsViewModelInstances {
-        public static SettingsViewModel DEFAULT => new SettingsViewModel(
+        public static SettingsVM DEFAULT => new SettingsVM(
             new MockInstaller(),
             null,
             new MessageBoxSpawner(),

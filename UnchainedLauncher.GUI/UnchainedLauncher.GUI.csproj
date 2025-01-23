@@ -23,6 +23,8 @@
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <AssemblyName>UnchainedLauncher</AssemblyName>
     <RootNamespace>UnchainedLauncher.GUI</RootNamespace>
+    <Configurations>Debug;Release;Debug-FakeChivalryLaunch</Configurations>
+	<XamlDebuggingInformation>True</XamlDebuggingInformation>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="DefaultMaps.txt" />

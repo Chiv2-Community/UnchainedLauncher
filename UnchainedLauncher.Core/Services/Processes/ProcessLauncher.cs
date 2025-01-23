@@ -10,6 +10,23 @@ namespace UnchainedLauncher.Core.Processes {
         public Either<LaunchFailed, Process> Launch(string workingDirectory, string args);
     }
 
+    public class PowershellProcessLauncher : IProcessLauncher {
+        private static readonly ILog logger = LogManager.GetLogger(nameof(PowershellProcessLauncher));
+        public string Tag { get; }
+        public PowershellProcessLauncher(string tag) {
+            Tag = tag;
+        }
+
+        public Either<LaunchFailed, Process> Launch(string workingDirectory, string args) {
+            try {
+                return Right(PowerShell.Run(new List<string> { $"Read-Host -Prompt \'{Tag} args: ({args}). Press enter to close\'" }, true));
+            }
+            catch (Exception e) {
+                return Left(new LaunchFailed("powershell.exe", args, e));
+            }
+        }
+    }
+
     public record LaunchFailed(string ExecutablePath, string Args, Error Underlying)
         : Expected($"Failed to launch executable '{ExecutablePath}' with args '{Args}'", 0, Underlying);
 

@@ -10,7 +10,7 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
     using static LanguageExt.Prelude;
 
     public static class ModViewModelInstances {
-        public static ModViewModel DEFAULT => CreateDefaultModViewModel();
+        public static ModVM DEFAULT => CreateDefaultModViewModel();
 
         public static readonly ModManifest DesignViewManifest = new ModManifest(
             "https://github.com/Gooner/FinallyMod",
@@ -30,18 +30,18 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
 
         public static readonly Release DesignViewRelease = new Release("v1.0.0", "abcd", "ExamplePak", DateTime.Now, DesignViewManifest);
 
-        public static readonly Mod DesignViewMod = new Mod(
+        public static readonly Core.JsonModels.Metadata.V3.Mod DesignViewMod = new Core.JsonModels.Metadata.V3.Mod(
             DesignViewManifest,
             new List<Release> {
                 DesignViewRelease
             }
         );
 
-        private static ModViewModel CreateDefaultModViewModel() {
-            return new ModViewModel(
+        private static ModVM CreateDefaultModViewModel() {
+            return new ModVM(
                 DesignViewMod,
                 Some(DesignViewRelease),
-                new ModManager(new HashMap<IModRegistry, IEnumerable<Mod>>(), new List<Release>())
+                new ModManager(new HashMap<IModRegistry, IEnumerable<Core.JsonModels.Metadata.V3.Mod>>(), new List<Release>())
             );
         }
 

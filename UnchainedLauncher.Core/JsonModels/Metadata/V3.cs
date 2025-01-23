@@ -48,7 +48,7 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
         Server,
         Shared
     }
-    
+
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum ModTag {
         Mutator,

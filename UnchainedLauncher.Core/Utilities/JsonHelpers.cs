@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace UnchainedLauncher.Core.Utilities {
     public static class JsonHelpers {
         private static readonly ILog logger = LogManager.GetLogger(nameof(JsonHelpers));
-        
+
         /// <summary>
         /// Returns a composable deserialization result with the result and exception.
         /// </summary>

@@ -229,7 +229,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             }
 
             EitherAsync<DownloadModFailure, Unit> saveEnabledReleaseMetadata() {
-                var enabledModJson = JsonSerializer.Serialize(release); 
+                var enabledModJson = JsonSerializer.Serialize(release);
                 var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
 
                 var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();

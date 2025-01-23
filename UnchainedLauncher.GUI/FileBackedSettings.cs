@@ -1,6 +1,6 @@
 ﻿using log4net;
-using System.Text.Json;
 using System.IO;
+using System.Text.Json;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI {

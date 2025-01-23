@@ -1,5 +1,5 @@
-﻿using UnchainedLauncher.Core.JsonModels;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
+using UnchainedLauncher.Core.JsonModels;
 
 namespace UnchainedLauncher.GUI.JsonModels {
     public record LauncherSettings(

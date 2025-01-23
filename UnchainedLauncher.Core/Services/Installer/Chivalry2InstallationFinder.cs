@@ -1,7 +1,7 @@
 ﻿using log4net;
 using Microsoft.Win32;
-using Newtonsoft.Json;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Utilities;
@@ -106,7 +106,7 @@ namespace UnchainedLauncher.Core.Services.Installer {
             if (File.Exists(EGSDataFile)) {
                 logger.Info($"Reading EGS Install List from {EGSDataFile}...");
 
-                var savedSettings = JsonConvert.DeserializeObject<EGSInstallList>(File.ReadAllText(EGSDataFile));
+                var savedSettings = JsonSerializer.Deserialize<EGSInstallList>(File.ReadAllText(EGSDataFile));
                 if (savedSettings != null && savedSettings.InstallationList.Count > 0) {
                     var chivEntry = savedSettings.InstallationList.Where(x => x.AppName == Chiv2EGSAppName);
                     if (chivEntry.Any()) {

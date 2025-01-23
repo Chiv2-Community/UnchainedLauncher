@@ -1,7 +1,7 @@
 ﻿using LanguageExt;
 using log4net;
-using Newtonsoft.Json;
 using System.Collections.ObjectModel;
+using System.Text.Json;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -229,7 +229,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             }
 
             EitherAsync<DownloadModFailure, Unit> saveEnabledReleaseMetadata() {
-                var enabledModJson = JsonConvert.SerializeObject(release);
+                var enabledModJson = JsonSerializer.Serialize(release); 
                 var urlParts = release.Manifest.RepoUrl.Split("/").TakeLast(2);
 
                 var orgPath = CoreMods.EnabledModsCacheDir + "\\" + urlParts.First();

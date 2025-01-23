@@ -108,8 +108,9 @@ namespace UnchainedLauncher.GUI {
 
             var settingsViewModel = SettingsVM.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
 
-            var modManager = ModManager.ForRegistries(
-                new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
+            var modManager = new ModManager(
+                new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader),
+                new List<ReleaseCoordinates>() // TODO: Load this from somewhere, or something. 
             );
 
 #if DEBUG_FAKECHIVALRYLAUNCH

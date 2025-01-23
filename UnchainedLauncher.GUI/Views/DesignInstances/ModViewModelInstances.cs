@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
@@ -41,7 +42,8 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             return new ModVM(
                 DesignViewMod,
                 Some(DesignViewRelease),
-                new ModManager(new HashMap<IModRegistry, IEnumerable<Core.JsonModels.Metadata.V3.Mod>>(), new List<Release>())
+                // TODO: Set up some kind of in-memory registry for design view purposes
+                new ModManager(new LocalModRegistry("foo", new LocalFilePakDownloader("bar")), new List<ReleaseCoordinates>())
             );
         }
 

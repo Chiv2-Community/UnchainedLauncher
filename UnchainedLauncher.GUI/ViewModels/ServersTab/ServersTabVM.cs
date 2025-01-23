@@ -241,8 +241,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 Mods = enabledMods.Select(release =>
                     new ServerBrowserMod(
                         release.Manifest.Name,
-                        release.Version.ToString(),
-                        release.Manifest.Organization
+                        release.Manifest.Organization,
+                        release.Tag.ToString()
                     )
                 ).ToArray()
             };

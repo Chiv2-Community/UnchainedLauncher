@@ -80,7 +80,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             ButtonCommand = new RelayCommand(DisableOrEnable);
 
-            PropertyChangedEventManager.AddHandler(this, async (sender, e) => {
+            PropertyChangedEventManager.AddHandler(this, (sender, e) => {
                 if (e.PropertyName == nameof(EnabledRelease)) {
                     UpdateCurrentlyEnabledVersion(EnabledRelease);
                 }

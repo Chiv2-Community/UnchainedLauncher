@@ -12,12 +12,12 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
         public string Name =>
             "AggregateModRegistry of: \n\t" +
-                string.Join("\n\t", _modRegistries.Select(m => m.Name));
+                string.Join("\n\t", ModRegistries.Select(m => m.Name));
 
-        private IOrderedEnumerable<IModRegistry> _modRegistries { get; }
+        public IOrderedEnumerable<IModRegistry> ModRegistries { get; }
 
         public AggregateModRegistry(IEnumerable<IModRegistry> modRegistries) {
-            _modRegistries = modRegistries.OrderBy(m => m.Name);
+            ModRegistries = modRegistries.OrderBy(m => m.Name);
         }
 
         public AggregateModRegistry(params IModRegistry[] registries) : this(registries.ToList()) { }
@@ -26,7 +26,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             // TODO: Switch to SequenceParallel to speed this up
             //       It may produce out-of-order results, so something will need to be done to fix the ordering.
             var allModsFromAllRegistries =
-                await _modRegistries
+                await ModRegistries
                     .Select(reg => reg.GetAllMods())
                     .SequenceSerial().Select(x => x.ToList());
 
@@ -38,7 +38,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         }
 
         public EitherAsync<RegistryMetadataException, Mod> GetMod(ModIdentifier modId) {
-            return InternalGetModMetadata(modId, _modRegistries.ToList(), None, None).ToAsync();
+            return InternalGetModMetadata(modId, ModRegistries.ToList(), None, None).ToAsync();
 
             async Task<Either<RegistryMetadataException, Mod>> InternalGetModMetadata(
                 ModIdentifier modId,
@@ -84,7 +84,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                     maybeRelease.ToEitherAsync(() => RegistryMetadataException.NotFound(coords, None)));
 
         public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation) {
-            return InternalDownloadPak(coordinates, _modRegistries, None).ToAsync();
+            return InternalDownloadPak(coordinates, ModRegistries, None).ToAsync();
 
             async Task<Either<ModPakStreamAcquisitionFailure, FileWriter>> InternalDownloadPak(
                 ReleaseCoordinates coordinates,

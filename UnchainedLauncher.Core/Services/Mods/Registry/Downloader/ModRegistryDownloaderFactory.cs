@@ -4,8 +4,11 @@ using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
-    public static class ModRegistryDownloaderFactory {
-        public static IModRegistryDownloader FromMetadata(ModRegistryDownloaderMetadata metadata) =>
+    public class ModRegistryDownloaderFactory {
+        public static readonly JsonFactory<ModRegistryDownloaderMetadata, IModRegistryDownloader> Instance =
+            new JsonFactory<ModRegistryDownloaderMetadata, IModRegistryDownloader>(ToClassType, ToJsonType);
+            
+        public static IModRegistryDownloader ToClassType(ModRegistryDownloaderMetadata metadata) =>
             metadata switch {
                 LocalFilePakDownloaderMetadata m => new LocalFilePakDownloader(m.PakReleaseDir),
                 HttpPakDownloaderMetadata m => new HttpPakDownloader(m.UrlPattern),
@@ -13,21 +16,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
                 _ => throw new ArgumentOutOfRangeException(nameof(metadata), metadata,
                     $"Attempt to initialize unknown IModRegistryDownloader implementation: {metadata}")
             };
-
-        public static DeserializationResult<IModRegistryDownloader> FromJson(string json) =>
-            JsonHelpers.Deserialize<ModRegistryDownloaderMetadata>(json)
-                .Select(FromMetadata);
-
-        public static Option<DeserializationResult<IModRegistryDownloader>> FromJsonFile(string path) {
-            if (!File.Exists(path)) return None;
-
-            var fileContents = File.ReadAllText(path);
-            return FromJson(fileContents);
-        }
-    }
-
-    public static class ModRegistryExtensions {
-        public static ModRegistryDownloaderMetadata ToMetadata(this IModRegistryDownloader downloader) =>
+        
+        public static ModRegistryDownloaderMetadata ToJsonType(IModRegistryDownloader downloader) =>
             downloader switch {
                 LocalFilePakDownloader d => new LocalFilePakDownloaderMetadata(d.PakReleasesDir),
                 HttpPakDownloader d => new HttpPakDownloaderMetadata(d.UrlPattern),
@@ -36,7 +26,6 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
                     $"Attempt to extract metadata from unknown IModRegistryDownloader implementation: {downloader}")
             };
     }
-
 
     [UnionTag(nameof(Kind))]
     [UnionCase(typeof(LocalFilePakDownloaderMetadata), ModRegistryDownloaderMetadataKind.LocalFilePakDownloader)]

@@ -9,11 +9,11 @@ using static LanguageExt.Prelude;
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class LocalModRegistry : JsonRegistry {
         public override string Name => $"Local filesystem registry at {RegistryPath}";
-        private IModRegistryDownloader _downloader;
-        private string RegistryPath { get; }
+        public IModRegistryDownloader ModRegistryDownloader { get; }
+        public string RegistryPath { get; }
         public LocalModRegistry(string registryPath, IModRegistryDownloader downloader) {
             RegistryPath = registryPath;
-            _downloader = downloader;
+            ModRegistryDownloader = downloader;
         }
 
         public override EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation) {
@@ -25,7 +25,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                         coordinates,
                         Error.New($"Failed to fetch pak. No releases found for {coordinates.Org} / {coordinates.ModuleName} / {coordinates.Version}.")
                 )))
-                .Bind(release => _downloader.ModPakStream(release))
+                .Bind(release => ModRegistryDownloader.ModPakStream(release))
                 .Map(sizedStream => new FileWriter(outputLocation, sizedStream.Stream, sizedStream.Size));
         }
 

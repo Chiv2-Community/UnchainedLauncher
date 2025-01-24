@@ -1,7 +1,8 @@
 ﻿using System.Buffers;
 using System.Text.Json;
 
-namespace DefaultNamespace.Extensions {
+namespace DiscriminatedUnions.Extensions {
+    // Shamelessly copied from https://gist.github.com/shadeglare/6b46baa340346e575b2751475733405c#file-complete-cs
     public static class TypeExtensions
     {
         public static Func<Type, Type> CreateConcreteTypeFactory(this Type type)

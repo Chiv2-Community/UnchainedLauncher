@@ -5,14 +5,22 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
     public class HttpPakDownloader : IModRegistryDownloader {
-        public static HttpPakDownloader GithubPakDownloader => new HttpPakDownloader(target =>
-            $"https://github.com/{target.Manifest.Organization}/{target.Manifest.RepoName}/releases/download/{target.Version}/{target.PakFileName}"
+        public static HttpPakDownloader GithubPakDownloader => new HttpPakDownloader(
+            $"https://github.com/<Org>/<Repo>/releases/download/<Version>/<PakFileName>"
         );
 
-        public Func<Release, string> GetDownloadURL { get; set; }
-        public HttpPakDownloader(Func<Release, string> getDownloadUrl) {
-            GetDownloadURL = getDownloadUrl;
+        public string UrlPattern { get; }
+
+        public HttpPakDownloader(string urlPattern) {
+            UrlPattern = urlPattern;
         }
+
+        public string GetDownloadURL(Release r) =>
+            UrlPattern
+                .Replace("<Org>", r.Manifest.Organization)
+                .Replace("<Repo>", r.Manifest.RepoName)
+                .Replace("<Version>", r.Tag)
+                .Replace("<PakFileName>", r.PakFileName);
 
         public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(Release target) {
             var url = GetDownloadURL(target);

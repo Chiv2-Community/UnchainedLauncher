@@ -6,7 +6,7 @@
     {
         public String TagPropertyName { get; }
 
-        public UnionTagAttribute(String tagPropertyName) => this.TagPropertyName = tagPropertyName;
+        public UnionTagAttribute(String tagPropertyName) => TagPropertyName = tagPropertyName;
     }
 
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
@@ -17,6 +17,6 @@
         public String TagPropertyValue { get; }
 
         public UnionCaseAttribute(Type caseType, String tagPropertyValue) =>
-            (this.CaseType, this.TagPropertyValue) = (caseType, tagPropertyValue);
+            (CaseType, TagPropertyValue) = (caseType, tagPropertyValue);
     }
 }

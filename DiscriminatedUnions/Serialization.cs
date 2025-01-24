@@ -1,12 +1,10 @@
-﻿using DefaultNamespace.Extensions;
-using DiscriminatedUnions;
+﻿using DiscriminatedUnions.Extensions;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace DefaultNamespace {
+namespace DiscriminatedUnions {
     // Shamelessly copied from https://gist.github.com/shadeglare/6b46baa340346e575b2751475733405c#file-complete-cs
-
     public sealed class UnionConverter<T> : JsonConverter<T> where T : class
     {
         private String TagPropertyName { get; }

@@ -1,9 +1,11 @@
 ﻿using LanguageExt;
 using log4net;
+using System.Text.Json;
 
 namespace UnchainedLauncher.Core.Utilities {
     public static class JsonHelpers {
         private static readonly ILog logger = LogManager.GetLogger(nameof(JsonHelpers));
+
         /// <summary>
         /// Returns a composable deserialization result with the result and exception.
         /// </summary>
@@ -12,10 +14,10 @@ namespace UnchainedLauncher.Core.Utilities {
         /// <returns></returns>
         public static DeserializationResult<T> Deserialize<T>(string json) {
             try {
-                var result = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(json);
+                var result = JsonSerializer.Deserialize<T>(json);
                 return new DeserializationResult<T>(result, null);
             }
-            catch (Newtonsoft.Json.JsonSerializationException e) {
+            catch (JsonException e) {
                 return new DeserializationResult<T>(default, e);
             }
         }

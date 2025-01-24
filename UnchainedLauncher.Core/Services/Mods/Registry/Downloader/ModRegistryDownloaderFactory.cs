@@ -9,7 +9,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
             metadata switch {
                 LocalFilePakDownloaderMetadata m => new LocalFilePakDownloader(m.PakReleaseDir),
                 HttpPakDownloaderMetadata m => new HttpPakDownloader(m.UrlPattern),
-                
+
                 _ => throw new ArgumentOutOfRangeException(nameof(metadata), metadata,
                     $"Attempt to initialize unknown IModRegistryDownloader implementation: {metadata}")
             };
@@ -19,8 +19,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
                 .Select(FromMetadata);
 
         public static Option<DeserializationResult<IModRegistryDownloader>> FromJsonFile(string path) {
-            if(!File.Exists(path)) return None;
-            
+            if (!File.Exists(path)) return None;
+
             var fileContents = File.ReadAllText(path);
             return FromJson(fileContents);
         }
@@ -31,20 +31,20 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
             downloader switch {
                 LocalFilePakDownloader d => new LocalFilePakDownloaderMetadata(d.PakReleasesDir),
                 HttpPakDownloader d => new HttpPakDownloaderMetadata(d.UrlPattern),
-                
+
                 _ => throw new ArgumentOutOfRangeException(nameof(downloader), downloader,
                     $"Attempt to extract metadata from unknown IModRegistryDownloader implementation: {downloader}")
             };
     }
 
-    
+
     [UnionTag(nameof(Kind))]
     [UnionCase(typeof(LocalFilePakDownloaderMetadata), ModRegistryDownloaderMetadataKind.LocalFilePakDownloader)]
     [UnionCase(typeof(HttpPakDownloaderMetadata), ModRegistryDownloaderMetadataKind.HttpPakDownloader)]
     public abstract record ModRegistryDownloaderMetadata(string Kind);
     public record LocalFilePakDownloaderMetadata(string PakReleaseDir) : ModRegistryDownloaderMetadata(ModRegistryDownloaderMetadataKind.LocalFilePakDownloader);
-    public record HttpPakDownloaderMetadata(string UrlPattern): ModRegistryDownloaderMetadata(ModRegistryDownloaderMetadataKind.HttpPakDownloader);
-    
+    public record HttpPakDownloaderMetadata(string UrlPattern) : ModRegistryDownloaderMetadata(ModRegistryDownloaderMetadataKind.HttpPakDownloader);
+
     internal static class ModRegistryDownloaderMetadataKind {
         public const string LocalFilePakDownloader = "LocalFilePakDownloader";
         public const string HttpPakDownloader = "HttpPakDownloader";

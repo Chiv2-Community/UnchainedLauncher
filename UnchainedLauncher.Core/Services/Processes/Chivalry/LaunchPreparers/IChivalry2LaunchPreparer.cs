@@ -6,7 +6,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     public static class IChivalry2LaunchPreparer {
         public static IChivalry2LaunchPreparer<T> Create<T>(Func<T, Task<Option<T>>> f) =>
             new FunctionalChivalry2LaunchPreparer<T>(f);
-        
+
         public static IChivalry2LaunchPreparer<T> Create<T>(Func<T, Option<T>> f) =>
             new FunctionalChivalry2LaunchPreparer<T>(t => Task.FromResult(f(t)));
     }

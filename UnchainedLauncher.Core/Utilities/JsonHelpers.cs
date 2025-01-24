@@ -8,7 +8,7 @@ namespace UnchainedLauncher.Core.Utilities {
         private static readonly ILog logger = LogManager.GetLogger(nameof(JsonHelpers));
 
         private static readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions {
-            Converters =  { new UnionConverterFactory() }
+            Converters = { new UnionConverterFactory() }
         };
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace UnchainedLauncher.Core.Utilities {
 
         public static string Serialize<T>(T obj) =>
             JsonSerializer.Serialize(obj, _serializerOptions);
-        
+
     }
 
     public record DeserializationResult<T>(T? Result, Exception? Exception) {

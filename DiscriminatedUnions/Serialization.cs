@@ -5,14 +5,12 @@ using System.Text.Json.Serialization;
 
 namespace DiscriminatedUnions {
     // Shamelessly copied from https://gist.github.com/shadeglare/6b46baa340346e575b2751475733405c#file-complete-cs
-    public sealed class UnionConverter<T> : JsonConverter<T> where T : class
-    {
+    public sealed class UnionConverter<T> : JsonConverter<T> where T : class {
         private String TagPropertyName { get; }
 
         private Dictionary<String, Type> UnionTypes { get; }
 
-        public UnionConverter()
-        {
+        public UnionConverter() {
             var type = typeof(T);
             var unionTag = type.GetCustomAttribute<UnionTagAttribute>();
             if (unionTag is null) throw new InvalidOperationException();
@@ -23,8 +21,7 @@ namespace DiscriminatedUnions {
                 .ToDictionary(k => k.TagPropertyValue, e => concreteTypeFactory(e.CaseType));
         }
 
-        public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        {
+        public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
             using var document = JsonDocument.ParseValue(ref reader);
             var propertyName = options.PropertyNamingPolicy?.ConvertName(this.TagPropertyName) ?? this.TagPropertyName;
             var property = document.RootElement.GetProperty(propertyName);
@@ -36,14 +33,12 @@ namespace DiscriminatedUnions {
             JsonSerializer.Serialize(writer, value, value.GetType(), options);
     }
 
-    
-    public sealed class UnionConverterFactory : JsonConverterFactory
-    {
+
+    public sealed class UnionConverterFactory : JsonConverterFactory {
         public override Boolean CanConvert(Type typeToConvert) =>
             typeToConvert.GetCustomAttribute<UnionTagAttribute>(false) is not null;
 
-        public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
-        {
+        public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options) {
             var converterType = typeof(UnionConverter<>).MakeGenericType(typeToConvert);
             return (JsonConverter?)Activator.CreateInstance(converterType);
         }

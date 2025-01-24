@@ -3,6 +3,14 @@ using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
+    public static class IChivalry2LaunchPreparer {
+        public static IChivalry2LaunchPreparer<T> Create<T>(Func<T, Task<Option<T>>> f) =>
+            new FunctionalChivalry2LaunchPreparer<T>(f);
+        
+        public static IChivalry2LaunchPreparer<T> Create<T>(Func<T, Option<T>> f) =>
+            new FunctionalChivalry2LaunchPreparer<T>(t => Task.FromResult(f(t)));
+    }
+
     /// <summary>
     /// Performs tasks that sets up a proper launch
     /// </summary>
@@ -13,12 +21,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         /// <returns>a Task containing None when preparations fail. Some(ModdedLaunchOptions) when successful.</returns>
         public Task<Option<T>> PrepareLaunch(T options);
 
-        public static IChivalry2LaunchPreparer<T> Create<T>(Func<T, Task<Option<T>>> f) =>
-            new FunctionalChivalry2LaunchPreparer<T>(f);
-
-
         public IChivalry2LaunchPreparer<T> AndThen(IChivalry2LaunchPreparer<T> otherLaunchPreparer) {
-            return Create<T>(opts => {
+            return IChivalry2LaunchPreparer.Create<T>(opts => {
                 var result =
                     from modifiedOpts in OptionalAsync(this.PrepareLaunch(opts))
                     from finalOpts in OptionalAsync(otherLaunchPreparer.PrepareLaunch(opts))
@@ -46,7 +50,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         /// <typeparam name="T2"></typeparam>
         /// <returns>If the other launch preparer returns None then the resulting launch preparer will also return None, otherwise it'll return Some containing the original output.</returns>
         public IChivalry2LaunchPreparer<T> Sub(IChivalry2LaunchPreparer<Unit> other) =>
-            AndThen(t => other.PrepareLaunch(Unit.Default).Map(x => x.Map(_ => t)));
+            Sub(other, _ => Unit.Default);
 
         /// <summary>
         /// Allows for running some other IChivalry2LaunchPreparer of a different type
@@ -63,7 +67,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             AndThen(other.InvariantMap(toT2, toT));
 
 
-        public IChivalry2LaunchPreparer<T> AndThen(Func<T, Task<Option<T>>> f) => AndThen(Create(f));
+        public IChivalry2LaunchPreparer<T> AndThen(Func<T, Task<Option<T>>> f) => AndThen(IChivalry2LaunchPreparer.Create(f));
         public IChivalry2LaunchPreparer<T> Bind(IChivalry2LaunchPreparer<T> launchPreparer) => AndThen(launchPreparer);
 
         /// <summary>
@@ -74,7 +78,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         /// <typeparam name="T2"></typeparam>
         /// <returns></returns>
         public IChivalry2LaunchPreparer<T2> InvariantMap<T2>(Func<T2, T> toT, Func<T, T2> fromT) =>
-            Create<T2>(async t2 => (await PrepareLaunch(toT(t2))).Map(fromT));
+            IChivalry2LaunchPreparer.Create<T2>(async t2 => (await PrepareLaunch(toT(t2))).Map(fromT));
     }
 
     public class FunctionalChivalry2LaunchPreparer<T> : IChivalry2LaunchPreparer<T> {

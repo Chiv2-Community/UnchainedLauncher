@@ -1,4 +1,4 @@
-﻿using LanguageExt;
+using LanguageExt;
 using LanguageExt.UnsafeValueAccess;
 using log4net;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
@@ -115,6 +115,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             ModDisabled.Invoke(releaseToDisable);
             return true;
         }
+
 
         public async Task<GetAllModsResult> UpdateModsList() {
             logger.Info("Updating mods list...");

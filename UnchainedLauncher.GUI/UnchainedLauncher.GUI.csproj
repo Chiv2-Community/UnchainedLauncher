@@ -5,6 +5,7 @@
     <TargetFramework>net6.0-windows</TargetFramework>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
 	<SelfContained>false</SelfContained>
 	<PublishSingleFile>true</PublishSingleFile>
 	<Nullable>enable</Nullable>

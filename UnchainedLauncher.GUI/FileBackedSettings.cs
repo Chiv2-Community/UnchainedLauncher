@@ -1,6 +1,6 @@
 ﻿using log4net;
-using Newtonsoft.Json;
 using System.IO;
+using System.Text.Json;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI {
@@ -8,12 +8,15 @@ namespace UnchainedLauncher.GUI {
         public static readonly ILog logger = LogManager.GetLogger(nameof(FileBackedSettings<T>));
         public string SettingsFilePath { get; }
 
+        private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions {
+            WriteIndented = true
+        };
+
         public FileBackedSettings(string settingsFilePath) {
             SettingsFilePath = settingsFilePath;
         }
 
         public T? LoadSettings() {
-
             if (!File.Exists(SettingsFilePath))
                 return default;
 
@@ -34,7 +37,7 @@ namespace UnchainedLauncher.GUI {
         }
 
         public void SaveSettings(T settings) {
-            var json = JsonConvert.SerializeObject(settings, Formatting.Indented);
+            var json = JsonSerializer.Serialize(settings, _jsonOptions);
 
             var settingsDir = Path.GetDirectoryName(SettingsFilePath) ?? "";
             Directory.CreateDirectory(settingsDir);

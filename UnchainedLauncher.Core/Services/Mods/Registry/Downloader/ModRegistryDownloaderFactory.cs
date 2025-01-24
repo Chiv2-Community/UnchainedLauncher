@@ -1,13 +1,11 @@
 ﻿using DiscriminatedUnions;
-using LanguageExt;
 using UnchainedLauncher.Core.Utilities;
-using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
     public class ModRegistryDownloaderFactory {
         public static readonly JsonFactory<ModRegistryDownloaderMetadata, IModRegistryDownloader> Instance =
             new JsonFactory<ModRegistryDownloaderMetadata, IModRegistryDownloader>(ToClassType, ToJsonType);
-            
+
         public static IModRegistryDownloader ToClassType(ModRegistryDownloaderMetadata metadata) =>
             metadata switch {
                 LocalFilePakDownloaderMetadata m => new LocalFilePakDownloader(m.PakReleaseDir),
@@ -16,7 +14,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
                 _ => throw new ArgumentOutOfRangeException(nameof(metadata), metadata,
                     $"Attempt to initialize unknown IModRegistryDownloader implementation: {metadata}")
             };
-        
+
         public static ModRegistryDownloaderMetadata ToJsonType(IModRegistryDownloader downloader) =>
             downloader switch {
                 LocalFilePakDownloader d => new LocalFilePakDownloaderMetadata(d.PakReleasesDir),

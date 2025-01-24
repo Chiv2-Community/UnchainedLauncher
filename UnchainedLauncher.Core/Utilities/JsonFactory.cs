@@ -1,6 +1,5 @@
 using LanguageExt;
 using static LanguageExt.Prelude;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 
 namespace UnchainedLauncher.Core.Utilities {
     /// <summary>
@@ -13,12 +12,12 @@ namespace UnchainedLauncher.Core.Utilities {
     public class JsonFactory<TJson, TClass> {
         public readonly Func<TJson, TClass> ToClassType;
         public readonly Func<TClass, TJson> ToJsonType;
-        
+
         public JsonFactory(Func<TJson, TClass> toClassType, Func<TClass, TJson> toJsonType) {
             ToClassType = toClassType;
             ToJsonType = toJsonType;
         }
-        
+
         public DeserializationResult<TClass> FromJson(string json) =>
             JsonHelpers.Deserialize<TJson>(json)
                 .Select(ToClassType);
@@ -34,16 +33,16 @@ namespace UnchainedLauncher.Core.Utilities {
             (await FromJsonFile(path))
                 .Bind(x => x.ToEither().ToOption())
                 .IfNone(defaultValue);
-        
+
         public Task ToJsonFile(string path, TClass obj) =>
             File.WriteAllTextAsync(path, JsonHelpers.Serialize(ToJsonType(obj)));
-        
+
         public JsonFactory<TJson, TClass2> InvariantMapRight<TClass2>(Func<TClass, TClass2> to, Func<TClass2, TClass> from) =>
             new JsonFactory<TJson, TClass2>(
                 json => to(ToClassType(json)),
                 obj => ToJsonType(from(obj))
         );
-        
+
         public JsonFactory<TJson2, TClass> InvariantMapLeft<TJson2>(Func<TJson, TJson2> to, Func<TJson2, TJson> from) =>
             new JsonFactory<TJson2, TClass>(
                 json => ToClassType(from(json)),

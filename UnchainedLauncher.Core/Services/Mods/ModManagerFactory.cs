@@ -2,7 +2,6 @@
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
-using LanguageExt;
 
 namespace UnchainedLauncher.Core.Services.Mods {
     public class ModManagerFactory {
@@ -42,7 +41,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         ModRegistryMetadata Registry,
         IEnumerable<ReleaseCoordinates> EnabledModReleases,
         IEnumerable<Mod> Mods
-    ): ModManagerMetadata(ModManagerMetadataKind.StandardModManager);
+    ) : ModManagerMetadata(ModManagerMetadataKind.StandardModManager);
 
     internal static class ModManagerMetadataKind {
         public const string StandardModManager = "StandardModManager";

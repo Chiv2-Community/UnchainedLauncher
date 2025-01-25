@@ -35,8 +35,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
     public class ModManager : IModManager {
         private static readonly ILog logger = LogManager.GetLogger(nameof(ModManager));
 
-        public event ModEnabledHandler ModEnabled;
-        public event ModDisabledHandler ModDisabled;
+        public event ModEnabledHandler? ModEnabled;
+        public event ModDisabledHandler? ModDisabled;
 
         public IEnumerable<ReleaseCoordinates> EnabledModReleaseCoordinates => _enabledModReleases;
         private readonly List<ReleaseCoordinates> _enabledModReleases;
@@ -44,29 +44,33 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public IEnumerable<Mod> Mods => _mods;
         private readonly List<Mod> _mods;
 
-        private IModRegistry _registry { get; }
+        public readonly IModRegistry Registry;
 
         public ModManager(
             IModRegistry registry,
-            IEnumerable<ReleaseCoordinates> enabledMods) {
-            _registry = registry;
+            IEnumerable<ReleaseCoordinates> enabledMods,
+            IEnumerable<Mod>? mods = null) {
+            Registry = registry;
             _enabledModReleases = enabledMods.ToList();
-            _mods = new List<Mod>();
+            _mods = mods?.ToList() ?? new List<Mod>();
         }
 
         // simply copy constructor
         // assumes Release elements are immutable so the shallow copy is ok
-        public ModManager(ModManager other) : this(other._registry, other.EnabledModReleaseCoordinates) { }
+        public ModManager(ModManager other) : this(other.Registry, other.EnabledModReleaseCoordinates) { }
 
         public bool DisableModRelease(ReleaseCoordinates release) {
-            var releaseExists = ReleaseExists(release);
+            if (!_enabledModReleases.Contains(release)) return false;
 
-            if (releaseExists && _enabledModReleases.Contains(release)) {
-                _enabledModReleases.Remove(release);
-                return true;
-            }
-
-            return true;
+            return this.GetRelease(release)
+                .Match(
+                    None: false,
+                    Some: r => {
+                        _enabledModReleases.Remove(release);
+                        ModDisabled?.Invoke(r);
+                        return true;
+                    }
+                );
         }
 
         public bool EnableModRelease(ReleaseCoordinates coordinates) {
@@ -78,7 +82,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var existingVersion = existing.Map(x => x.Tag).FirstOrDefault();
 
             _enabledModReleases.Add(coordinates);
-            ModEnabled.Invoke(maybeRelease.ValueUnsafe(), existingVersion);
+            ModEnabled?.Invoke(maybeRelease.ValueUnsafe(), existingVersion);
 
             return true;
         }
@@ -96,7 +100,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
                           _enabledModReleases.Add(releaseCoords);
 
-                          ModEnabled.Invoke(release, otherVersion.Map(x => x.Tag).SingleOrDefault());
+                          ModEnabled?.Invoke(release, otherVersion.Map(x => x.Tag).SingleOrDefault());
                           return true;
                       },
                       None: () => false
@@ -112,15 +116,15 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
             _enabledModReleases.Remove(releaseToDisableCoords);
 
-            ModDisabled.Invoke(releaseToDisable);
+            ModDisabled?.Invoke(releaseToDisable);
             return true;
         }
 
 
         public async Task<GetAllModsResult> UpdateModsList() {
             logger.Info("Updating mods list...");
-            var result = await _registry.GetAllMods();
-            logger.Info($"Got a total of {result.Mods.Count()} mods from {_registry.Name}");
+            var result = await Registry.GetAllMods();
+            logger.Info($"Got a total of {result.Mods.Count()} mods from {Registry.Name}");
 
             if (result.HasErrors) {
                 var errorCount = result.Errors.Count();

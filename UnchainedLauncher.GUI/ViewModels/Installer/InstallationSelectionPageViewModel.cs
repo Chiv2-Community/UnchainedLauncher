@@ -46,7 +46,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         }
 
         public Task Continue() => Task.CompletedTask;
-        public Task Load() => new Task(ScanForInstallations);
+        public Task Load() => Task.Run(ScanForInstallations);
 
         private void ScanForInstallations() {
             Installations.Clear();

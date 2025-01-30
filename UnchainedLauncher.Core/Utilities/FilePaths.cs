@@ -11,5 +11,8 @@
         public const string ModCachePath = ".mod_cache";
         public const string LauncherSettingsFilePath = $"{ModCachePath}\\unchained_launcher_settings.json";
         public const string ServerTemplatesFilePath = $"{ModCachePath}\\server_templates.json";
+        public const string RegistryConfigPath = $"{ModCachePath}\\registry_config.json";
+        public const string ModManagerConfigPath = $"{ModCachePath}\\mod_manager_config.json";
+
     }
 }

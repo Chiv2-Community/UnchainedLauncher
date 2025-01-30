@@ -4,6 +4,44 @@ using log4net;
 using System.Text.Json;
 
 namespace UnchainedLauncher.Core.Utilities {
+    
+
+    public static class TypedJsonSerializer {
+        /// <summary>
+        /// Uses reflection to derive an ISerializer<T>, leveraging System.Text.Json and using the options defined in
+        /// JsonHelpers.
+        /// </summary>
+        public static ISerializer<T> Derive<T>() =>
+            new Serializer<T>(JsonHelpers.Serialize);
+    }
+
+
+    public static class TypedJsonDeserializer {
+        /// <summary>
+        /// Uses reflection to derive an IDeserializer<T>, leveraging System.Text.Json and using the options defined in
+        /// JsonHelpers.
+        /// </summary>
+        public static IDeserializer<T> Derive<T>() =>
+            new Deserializer<T>(JsonHelpers.Deserialize<T>);
+    }
+
+    public static class TypedJsonCodec {
+        /// <summary>
+        /// Uses reflection to derive an ICodec<T>, leveraging System.Text.Json and using the options defined in
+        /// JsonHelpers.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public static ICodec<T> Derive<T>() => new Codec<T>(
+            TypedJsonSerializer.Derive<T>(),
+            TypedJsonDeserializer.Derive<T>()
+        );
+    }
+
+    public class DerivedJsonCodec<TJson, T> : DerivedCodec<TJson, T> {
+        public DerivedJsonCodec(Func<T, TJson> contramap, Func<TJson, T> map): base(TypedJsonCodec.Derive<TJson>(), contramap, map) { }
+    }
+
     public static class JsonHelpers {
         private static readonly ILog logger = LogManager.GetLogger(nameof(JsonHelpers));
 
@@ -19,6 +57,7 @@ namespace UnchainedLauncher.Core.Utilities {
         /// <returns></returns>
         public static DeserializationResult<T> Deserialize<T>(string json) {
             try {
+                logger.Debug($"Deserializing {typeof(T)} from JSON: {json}");
                 var result = JsonSerializer.Deserialize<T>(json, _serializerOptions);
                 return new DeserializationResult<T>(result, null);
             }
@@ -66,6 +105,13 @@ namespace UnchainedLauncher.Core.Utilities {
 
             return new DeserializationResult<T2>(default, Exception);
         }
+
+        public DeserializationResult<T2> Map<T2>(Func<T, T2> func) => Select(func);
+
+        public DeserializationResult<T2> Bind<T2>(Func<T, DeserializationResult<T2>> func) =>
+          Result == null 
+            ? new DeserializationResult<T2>(default, Exception)
+            : func(Result);
 
         private DeserializationResult<T> CombineErrors(DeserializationResult<T> other) {
             Exception? e = null;

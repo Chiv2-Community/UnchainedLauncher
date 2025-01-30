@@ -1,6 +1,8 @@
 ﻿using LanguageExt;
 using log4net;
+using log4net.Repository.Hierarchy;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -23,6 +25,7 @@ using UnchainedLauncher.GUI.ViewModels.Installer;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
+using List = System.Windows.Documents.List;
 
 namespace UnchainedLauncher.GUI {
     using static LanguageExt.Prelude;
@@ -31,7 +34,9 @@ namespace UnchainedLauncher.GUI {
     /// Interaction logic for App.xaml
     /// </summary>
     public partial class App : Application {
-        private readonly ILog _log = LogManager.GetLogger(typeof(App));
+        private static readonly ILog _log = LogManager.GetLogger(typeof(App));
+        
+        
 
         public App() : base() { }
         protected override void OnStartup(StartupEventArgs e) {
@@ -108,11 +113,10 @@ namespace UnchainedLauncher.GUI {
 
             var settingsViewModel = SettingsVM.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
 
-            var modManager = new ModManager(
-                new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader),
-                new List<ReleaseCoordinates>() // TODO: Load this from somewhere, or something. 
-            );
-
+            var modRegistry = await InitializeModRegistry(FilePaths.RegistryConfigPath);
+            var modManager = await InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry); 
+                
+                
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(
                 "Official Chivalry 2"
@@ -170,18 +174,20 @@ namespace UnchainedLauncher.GUI {
                 await launcherViewModel.LaunchVanilla(false);
                 return null;
             }
-            else if (envArgs.Contains("--startmodded")) {
+            
+            if (envArgs.Contains("--startmodded")) {
                 await launcherViewModel.LaunchVanilla(true);
                 return null;
             }
-            else if (envArgs.Contains("--startunchained")) {
+            
+            if (envArgs.Contains("--startunchained")) {
                 await launcherViewModel.LaunchUnchained();
                 return null;
             }
 
             var serversTabViewModel = new ServersTabVM(
                 settingsViewModel,
-                () => new ModManager(modManager),
+                () => new ModManager(modManager.Registry, modManager.EnabledModReleaseCoordinates, modManager.Mods),
                 userDialogueSpawner,
                 unchainedLauncher,
                 new FileBackedSettings<IEnumerable<SavedServerTemplate>>(FilePaths.ServerTemplatesFilePath));
@@ -194,6 +200,69 @@ namespace UnchainedLauncher.GUI {
             );
 
             return new MainWindow(mainWindowViewModel);
+        }
+
+        private async Task<AggregateModRegistry> InitializeModRegistry(string jsonPath) {
+            AggregateModRegistry CreateDefaultModRegistry() => new AggregateModRegistry(
+                new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader));
+
+            var loadedResult =
+                await InitializeFromFileWithCodec(ModRegistryCodec.Instance, jsonPath, CreateDefaultModRegistry);
+            
+            // Ensure that we've got an AggregateModRegistry. The constructor will handle it if we're wrapping 
+            // another AggregateModRegistry, so no worries there.
+            var registry = new AggregateModRegistry(loadedResult);
+
+            RegisterSaveToFileOnExit(registry, ModRegistryCodec.Instance, jsonPath); 
+            return registry;
+        }
+        
+        private async Task<ModManager> InitializeModManager(string jsonPath, IModRegistry registry) {
+            Func<ModManager> initializeDefaultModManager = () => 
+                new ModManager(
+                    registry,
+                    Enumerable.Empty<ReleaseCoordinates>()
+            );
+            
+            var codec = new ModManagerCodec(registry);
+            var modManager = await InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
+            
+            RegisterSaveToFileOnExit(modManager, codec, jsonPath);
+            return modManager;
+        }
+
+
+        private async Task<T> InitializeFromFileWithCodec<T>(ICodec<T> codec, string filePath, Func<T> initializeDefault) {
+            _log.Info($"Loading {typeof(T).Name} from {filePath} using {codec.GetType().Name}({codec})...");
+            return (await codec.DeserializeFile(filePath)).Match(
+                None: initializeDefault,
+                Some: deserializationResult => Optional(deserializationResult.Result).IfNone(() => {
+                        _log.Error(
+                            $"Failed to deserialize saved {typeof(T).Name} data from {filePath} using {codec.GetType().Name}({codec}). Falling back to default.",
+                            deserializationResult.Exception);
+                        return initializeDefault();
+                    }
+                ));
+        }
+
+        private void RegisterSaveToFileOnExit<T>(T t, ICodec<T> codec, string filePath) {
+            Exit += (_, _) => {
+                try {
+                    _log.Info($"Saving {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec})...");
+                    var task = codec.SerializeFile(filePath, t);
+
+                    var finished = task.Wait(TimeSpan.FromSeconds(10));
+                    if (!finished) {
+                        _log.Error(
+                            $"Failed to save configuration for {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec}). Operation timed out after 10 seconds.");
+                    }
+                }
+                catch (Exception ex) {
+                    _log.Error(
+                        $"Failed to save configuration for {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec}).",
+                        ex);
+                }
+            };
         }
     }
 }

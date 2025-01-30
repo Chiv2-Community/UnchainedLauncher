@@ -55,10 +55,6 @@ namespace UnchainedLauncher.Core.Services.Mods {
             _mods = mods?.ToList() ?? new List<Mod>();
         }
 
-        // simply copy constructor
-        // assumes Release elements are immutable so the shallow copy is ok
-        public ModManager(ModManager other) : this(other.Registry, other.EnabledModReleaseCoordinates) { }
-
         public bool DisableModRelease(ReleaseCoordinates release) {
             if (!_enabledModReleases.Contains(release)) return false;
 

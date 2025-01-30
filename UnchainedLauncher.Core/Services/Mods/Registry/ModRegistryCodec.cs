@@ -3,14 +3,15 @@ using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
-    public class ModRegistryFactory {
-        public static readonly JsonFactory<ModRegistryMetadata, IModRegistry> Instance =
-            new JsonFactory<ModRegistryMetadata, IModRegistry>(ToClassType, ToJsonType);
+    public class ModRegistryCodec: DerivedJsonCodec<ModRegistryMetadata, IModRegistry> {
+        public static ModRegistryCodec Instance { get; } = new ModRegistryCodec();
+        
+        public ModRegistryCodec() : base(ToJsonType, ToClassType) {}
 
         public static IModRegistry ToClassType(ModRegistryMetadata metadata) =>
             metadata switch {
-                LocalModRegistryMetadata m => new LocalModRegistry(m.PakReleaseDir, ModRegistryDownloaderFactory.Instance.ToClassType(m.DownloaderMetadata)),
-                GithubModRegistryMetadata m => new GithubModRegistry(m.Org, m.RepoName, ModRegistryDownloaderFactory.Instance.ToClassType(m.DownloaderMetadata)),
+                LocalModRegistryMetadata m => new LocalModRegistry(m.PakReleaseDir, ModRegistryDownloaderCodec.ToClassType(m.DownloaderMetadata)),
+                GithubModRegistryMetadata m => new GithubModRegistry(m.Org, m.RepoName, ModRegistryDownloaderCodec.ToClassType(m.DownloaderMetadata)),
                 AggregateModRegistryMetadata m => new AggregateModRegistry(m.Registries.Select(ToClassType).ToArray()),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(metadata), metadata,
@@ -19,8 +20,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
         public static ModRegistryMetadata ToJsonType(IModRegistry registry) =>
             registry switch {
-                LocalModRegistry d => new LocalModRegistryMetadata(d.RegistryPath, ModRegistryDownloaderFactory.Instance.ToJsonType(d.ModRegistryDownloader)),
-                GithubModRegistry d => new GithubModRegistryMetadata(d.Organization, d.RepoName, ModRegistryDownloaderFactory.Instance.ToJsonType(d.ModRegistryDownloader)),
+                LocalModRegistry d => new LocalModRegistryMetadata(d.RegistryPath, ModRegistryDownloaderCodec.ToJsonType(d.ModRegistryDownloader)),
+                GithubModRegistry d => new GithubModRegistryMetadata(d.Organization, d.RepoName, ModRegistryDownloaderCodec.ToJsonType(d.ModRegistryDownloader)),
                 AggregateModRegistry d => new AggregateModRegistryMetadata(d.ModRegistries.Select(ToJsonType).ToArray()),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(registry), registry,
@@ -29,9 +30,9 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
     }
 
     [UnionTag(nameof(Kind))]
-    [UnionCase(typeof(LocalModRegistry), ModRegistryMetadataKind.LocalModRegistry)]
-    [UnionCase(typeof(GithubModRegistry), ModRegistryMetadataKind.GithubModRegistry)]
-    [UnionCase(typeof(GithubModRegistry), ModRegistryMetadataKind.AggregateModRegistry)]
+    [UnionCase(typeof(LocalModRegistryMetadata), ModRegistryMetadataKind.LocalModRegistry)]
+    [UnionCase(typeof(GithubModRegistryMetadata), ModRegistryMetadataKind.GithubModRegistry)]
+    [UnionCase(typeof(AggregateModRegistryMetadata), ModRegistryMetadataKind.AggregateModRegistry)]
     public abstract record ModRegistryMetadata(string Kind);
     public record LocalModRegistryMetadata(string PakReleaseDir, ModRegistryDownloaderMetadata DownloaderMetadata) : ModRegistryMetadata(ModRegistryMetadataKind.LocalModRegistry);
     public record GithubModRegistryMetadata(string Org, string RepoName, ModRegistryDownloaderMetadata DownloaderMetadata) : ModRegistryMetadata(ModRegistryMetadataKind.GithubModRegistry);

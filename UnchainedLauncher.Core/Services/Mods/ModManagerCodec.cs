@@ -5,16 +5,15 @@ using UnchainedLauncher.Core.Utilities;
 using LanguageExt;
 
 namespace UnchainedLauncher.Core.Services.Mods {
-    public class ModManagerFactory {
-        public static readonly JsonFactory<ModManagerMetadata, IModManager> Instance =
-            new JsonFactory<ModManagerMetadata, IModManager>(ToClassType, ToJsonType);
+    public class ModManagerCodec: DerivedJsonCodec<ModManagerMetadata, ModManager> {
+        public ModManagerCodec(IModRegistry registry): base(ToJsonType, modManager => ToClassType(modManager, registry)) { }
+        
 
-        public static IModManager ToClassType(ModManagerMetadata metadata) =>
+        public static ModManager ToClassType(ModManagerMetadata metadata, IModRegistry registry) =>
             metadata switch {
                 StandardModManagerMetadata m => new ModManager(
-                    ModRegistryFactory.Instance.ToClassType(m.Registry),
-                    m.EnabledModReleases,
-                    m.Mods
+                    registry,
+                    m.EnabledModReleases
                 ),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(metadata), metadata,
@@ -24,9 +23,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public static ModManagerMetadata ToJsonType(IModManager manager) =>
             manager switch {
                 ModManager m => new StandardModManagerMetadata(
-                    ModRegistryFactory.Instance.ToJsonType(m.Registry),
-                    m.EnabledModReleaseCoordinates,
-                    m.Mods
+                    m.EnabledModReleaseCoordinates
                 ),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(manager), manager,
@@ -35,13 +32,11 @@ namespace UnchainedLauncher.Core.Services.Mods {
     }
 
     [UnionTag(nameof(Kind))]
-    [UnionCase(typeof(ModManager), ModManagerMetadataKind.StandardModManager)]
+    [UnionCase(typeof(StandardModManagerMetadata), ModManagerMetadataKind.StandardModManager)]
     public abstract record ModManagerMetadata(string Kind);
 
     public record StandardModManagerMetadata(
-        ModRegistryMetadata Registry,
-        IEnumerable<ReleaseCoordinates> EnabledModReleases,
-        IEnumerable<Mod> Mods
+        IEnumerable<ReleaseCoordinates> EnabledModReleases
     ): ModManagerMetadata(ModManagerMetadataKind.StandardModManager);
 
     internal static class ModManagerMetadataKind {

@@ -29,18 +29,15 @@ namespace UnchainedLauncher.Core.Utilities {
     /// <typeparam name="T"></typeparam>
     public interface ICodec<T> : IDeserializer<T>, ISerializer<T> { }
 
-    public static class SerializerExtensions
-    {
-        public static void SerializeFile<T>(this ISerializer<T> serializer, string path, T obj)
-        {
-            if(!Directory.Exists(Path.GetDirectoryName(path))) 
+    public static class SerializerExtensions {
+        public static void SerializeFile<T>(this ISerializer<T> serializer, string path, T obj) {
+            if (!Directory.Exists(Path.GetDirectoryName(path)))
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
-            
+
             File.WriteAllText(path, serializer.Serialize(obj));
         }
-        
-        public static Option<DeserializationResult<T>> DeserializeFile<T>(this IDeserializer<T> deserializer, string path)
-        {
+
+        public static Option<DeserializationResult<T>> DeserializeFile<T>(this IDeserializer<T> deserializer, string path) {
             if (!File.Exists(path)) return None;
 
             var fileContents = File.ReadAllText(path);

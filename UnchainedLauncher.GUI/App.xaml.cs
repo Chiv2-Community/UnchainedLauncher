@@ -1,7 +1,5 @@
 ﻿using LanguageExt;
 using log4net;
-using log4net.Repository.Hierarchy;
-using Octokit;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -27,7 +25,6 @@ using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
 using Application = System.Windows.Application;
-using List = System.Windows.Documents.List;
 
 namespace UnchainedLauncher.GUI {
     using static LanguageExt.Prelude;
@@ -116,8 +113,8 @@ namespace UnchainedLauncher.GUI {
             var settingsViewModel = SettingsVM.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
 
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
-            var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry); 
-                
+            var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+
             var registryTabViewModel = new RegistryTabVM(modRegistry);
 
 #if DEBUG_FAKECHIVALRYLAUNCH
@@ -220,7 +217,7 @@ namespace UnchainedLauncher.GUI {
             return registry;
         }
         private ModManager InitializeModManager(string jsonPath, IModRegistry registry) {
-            Func<ModManager> initializeDefaultModManager = () => 
+            Func<ModManager> initializeDefaultModManager = () =>
                 new ModManager(
                     registry,
                     Enumerable.Empty<ReleaseCoordinates>()
@@ -228,7 +225,7 @@ namespace UnchainedLauncher.GUI {
 
             var codec = new ModManagerCodec(registry);
             var modManager = InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
-            
+
             RegisterSaveToFileOnExit(modManager, codec, jsonPath);
             return modManager;
         }

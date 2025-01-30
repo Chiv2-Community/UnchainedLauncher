@@ -1,6 +1,4 @@
 using LanguageExt;
-using LanguageExt.TypeClasses;
-using log4net.Repository.Hierarchy;
 using static LanguageExt.Prelude;
 
 
@@ -8,7 +6,7 @@ namespace UnchainedLauncher.Core.Utilities {
 
     // N.B. The serializers here seem like duplicated effort from System.Text.Json, but they represent more concretely
     //      typed serializers that we can compose in more effective ways.
-    
+
     /// <summary>
     /// Represents a typed serializer for an arbitrary format. Usually json.
     /// </summary>
@@ -48,28 +46,28 @@ namespace UnchainedLauncher.Core.Utilities {
             var fileContents = File.ReadAllText(path);
             return Some(deserializer.Deserialize(fileContents));
         }
-        
-        public static IDeserializer<T2> Map<T, T2>(this IDeserializer<T> deserializer, Func<T, T2> f) => 
+
+        public static IDeserializer<T2> Map<T, T2>(this IDeserializer<T> deserializer, Func<T, T2> f) =>
             new Deserializer<T2>(json => deserializer.Deserialize(json).Select(f));
-        
-        public static ISerializer<T2> Contramap<T, T2>(this ISerializer<T> serializer, Func<T2, T> f) => 
+
+        public static ISerializer<T2> Contramap<T, T2>(this ISerializer<T> serializer, Func<T2, T> f) =>
             new Serializer<T2>(t2 => serializer.Serialize(f(t2)));
-        
+
         public static Codec<T2> InvariantMap<T, T2>(this Codec<T> codec, Func<T, T2> to, Func<T2, T> from) =>
             new Codec<T2>(
                 codec.Contramap(from),
                 codec.Map(to)
             );
     }
-    
 
-    public class Deserializer<T>: IDeserializer<T> {
+
+    public class Deserializer<T> : IDeserializer<T> {
         public readonly Func<string, DeserializationResult<T>> _deserialize;
-        
+
         public Deserializer(Func<string, DeserializationResult<T>> deserialize) {
             _deserialize = deserialize;
         }
-        
+
         public DeserializationResult<T> Deserialize(string json) => _deserialize(json);
 
         public Option<DeserializationResult<T>> DeserializeFile(string path) {
@@ -78,23 +76,23 @@ namespace UnchainedLauncher.Core.Utilities {
             var fileContents = File.ReadAllText(path);
             return Some(Deserialize(fileContents));
         }
-        
+
     }
 
-    public class Serializer<T>: ISerializer<T> {
+    public class Serializer<T> : ISerializer<T> {
         public readonly Func<T, string> _serialize;
-        
+
         public Serializer(Func<T, string> serialize) => _serialize = serialize;
-        
+
         public string Serialize(T obj) => _serialize(obj);
     }
-    
-    
+
+
     /// <summary>
     /// Given a serializer and deserializaer, constructs a Codec which can handle serialization and deserialization.
     /// This is largely for convenience, for situations where you'll need to do both
     /// </summary>
-    public class Codec<T>: ICodec<T> {
+    public class Codec<T> : ICodec<T> {
         protected readonly ISerializer<T> _serializer;
         protected readonly IDeserializer<T> _deserializer;
 
@@ -102,7 +100,7 @@ namespace UnchainedLauncher.Core.Utilities {
             _deserializer = deserializer;
             _serializer = serializer;
         }
-        
+
         public string Serialize(T obj) => _serializer.Serialize(obj);
         public DeserializationResult<T> Deserialize(string json) => _deserializer.Deserialize(json);
     }
@@ -114,7 +112,7 @@ namespace UnchainedLauncher.Core.Utilities {
     /// <typeparam name="TJson"></typeparam>
     /// <typeparam name="T"></typeparam>
     public class DerivedCodec<TSerializable, T> : Codec<T> {
-        public DerivedCodec(ICodec<TSerializable> codec, Func<T, TSerializable> contramap, Func<TSerializable, T> map):
-            base(codec.Contramap(contramap), codec.Map(map)) {}
+        public DerivedCodec(ICodec<TSerializable> codec, Func<T, TSerializable> contramap, Func<TSerializable, T> map) :
+            base(codec.Contramap(contramap), codec.Map(map)) { }
     }
 }

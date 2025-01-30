@@ -3,10 +3,10 @@ using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
-    public class ModRegistryCodec: DerivedJsonCodec<ModRegistryMetadata, IModRegistry> {
+    public class ModRegistryCodec : DerivedJsonCodec<ModRegistryMetadata, IModRegistry> {
         public static ModRegistryCodec Instance { get; } = new ModRegistryCodec();
-        
-        public ModRegistryCodec() : base(ToJsonType, ToClassType) {}
+
+        public ModRegistryCodec() : base(ToJsonType, ToClassType) { }
 
         public static IModRegistry ToClassType(ModRegistryMetadata metadata) =>
             metadata switch {

@@ -22,6 +22,7 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.Installer;
+using UnchainedLauncher.GUI.ViewModels.Registry;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
@@ -116,7 +117,8 @@ namespace UnchainedLauncher.GUI {
             var modRegistry = await InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = await InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry); 
                 
-                
+            var registryTabViewModel = new RegistryTabVM(modRegistry);
+            
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(
                 "Official Chivalry 2"
@@ -196,7 +198,8 @@ namespace UnchainedLauncher.GUI {
                 launcherViewModel,
                 modListViewModel,
                 settingsViewModel,
-                serversTabViewModel
+                serversTabViewModel,
+                registryTabViewModel
             );
 
             return new MainWindow(mainWindowViewModel);

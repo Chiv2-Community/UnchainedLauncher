@@ -2,7 +2,6 @@
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
-using LanguageExt;
 
 namespace UnchainedLauncher.Core.Services.Mods {
     public class ModManagerCodec: DerivedJsonCodec<ModManagerMetadata, ModManager> {

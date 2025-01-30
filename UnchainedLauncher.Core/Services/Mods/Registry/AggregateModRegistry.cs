@@ -14,7 +14,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             "AggregateModRegistry of: \n\t" +
                 string.Join("\n\t", ModRegistries.Select(m => m.Name));
 
-        public IEnumerable<IModRegistry> ModRegistries { get; }
+        public IList<IModRegistry> ModRegistries { get; }
 
         public AggregateModRegistry(IEnumerable<IModRegistry> modRegistries) {
             ModRegistries = modRegistries.SelectMany(r => {
@@ -23,7 +23,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 
                 // otherwise just return the mod registry as normal
                 return new List<IModRegistry>() { r };
-            });
+            }).ToList();
         }
 
         public AggregateModRegistry(params IModRegistry[] registries) : this(registries.ToList()) { }

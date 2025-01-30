@@ -167,10 +167,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             testFixture.LastEnabledRelease.Should().Be(secondRelease);
             testFixture.LastEnabledPreviousVersion.Should().Be(firstRelease.Tag);
         }
-        
+
         [Fact]
-        public async Task DisableModRelease_WithModEnabled_ShouldDisableCorrectVersion()
-        {
+        public async Task DisableModRelease_WithModEnabled_ShouldDisableCorrectVersion() {
             var testFixture = CreateTestFixture();
             await testFixture.ModManager.UpdateModsList();
             var mod = testFixture.ModManager.Mods.First();
@@ -186,10 +185,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             testFixture.LastDisabledRelease.Should().Be(release);
             testFixture.ModManager.EnabledModReleaseCoordinates.Should().BeEmpty();
         }
-        
+
         [Fact]
-        public async Task EnableMod_WithNoSubscribers_ShouldNotError()
-        {
+        public async Task EnableMod_WithNoSubscribers_ShouldNotError() {
             var testFixture = new ModManagerFactsFixture(enableHandlers: false);
             await testFixture.ModManager.UpdateModsList();
             var mod = testFixture.ModManager.Mods.First();
@@ -203,8 +201,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         }
 
         [Fact]
-        public async Task DisableMod_WithNoSubscribers_ShouldNotError()
-        {
+        public async Task DisableMod_WithNoSubscribers_ShouldNotError() {
             var testFixture = new ModManagerFactsFixture(enableHandlers: false);
             await testFixture.ModManager.UpdateModsList();
             var mod = testFixture.ModManager.Mods.First();
@@ -219,8 +216,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         }
 
         [Fact]
-        public async Task EnableModRelease_WithNoSubscribers_ShouldNotError()
-        {
+        public async Task EnableModRelease_WithNoSubscribers_ShouldNotError() {
             var testFixture = new ModManagerFactsFixture(enableHandlers: false);
             await testFixture.ModManager.UpdateModsList();
             var mod = testFixture.ModManager.Mods.First();
@@ -233,10 +229,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             testFixture.ModEnabledCallCount.Should().Be(0);
             testFixture.ModManager.EnabledModReleaseCoordinates.First().Should().Be(coordinates);
         }
-        
+
         [Fact]
-        public async Task DisableModRelease_WithNoSubscribers_ShouldNotError()
-        {
+        public async Task DisableModRelease_WithNoSubscribers_ShouldNotError() {
             var testFixture = new ModManagerFactsFixture(enableHandlers: false);
             await testFixture.ModManager.UpdateModsList();
             var mod = testFixture.ModManager.Mods.First();
@@ -250,6 +245,6 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             testFixture.ModDisabledCallCount.Should().Be(0);
             testFixture.ModManager.EnabledModReleaseCoordinates.Should().BeEmpty();
         }
-        
+
     }
 }

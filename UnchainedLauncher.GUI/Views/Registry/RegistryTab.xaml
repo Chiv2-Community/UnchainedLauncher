@@ -11,26 +11,52 @@
              d:DesignHeight="300" d:DesignWidth="300" >
     <UserControl.Resources>
         <DataTemplate DataType="{x:Type registry:GithubModRegistryVM}">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Text="{Binding _registry.Name}"/>
-                <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
-                    <Label>Organization:</Label>
-                    <TextBox Text="{Binding Org}"/>
-                </StackPanel>
-                <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal">
-                    <Label>RepoName:</Label>
-                    <TextBox Text="{Binding RepoName}"/>
-                </StackPanel>
-            </Grid>
+            <StackPanel>
+                <TextBlock Text="{Binding Name}"/>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Row="0" Grid.Column="0">Organization:</Label>
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Org}"/>
+                
+                    <Label Grid.Row="1" Grid.Column="0">RepoName:</Label>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RepoName}"/>
+                </Grid>
+                
+                
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type registry:LocalModRegistryVM}">
+            <StackPanel>
+                <TextBlock Text="{Binding Name}"/>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Row="0" Grid.Column="0">Registry Path:</Label>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
+                        <TextBlock ToolTip="{Binding AbsoluteStub, Mode=OneWay}">
+                            <Run Text="&lt;Base Dir&gt;"/>
+                            <Run Text="{Binding PathSeparator, Mode=OneWay}"/>
+                            <Run Text=" "/>
+                        </TextBlock>
+                        <TextBox Text="{Binding RegistryPath}"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type registry:GenericModRegistryVM}">
+            <TextBlock Text="{Binding Registry.Name, Mode=OneWay}"/>
         </DataTemplate>
     </UserControl.Resources>
     <Grid>

@@ -1,7 +1,9 @@
+using Microsoft.VisualBasic.FileIO;
 using PropertyChanged;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 
@@ -23,11 +25,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         }
 
         public static IModRegistryVM IntoVM(IModRegistry registry) {
-            if (registry is GithubModRegistry reg) {
-                return new GithubModRegistryVM(reg);
-            }
-            
-            return new GenericModRegistryVM(registry);
+            return registry switch {
+                GithubModRegistry reg => new GithubModRegistryVM(reg),
+                LocalModRegistry reg => new LocalModRegistryVM(reg),
+                _ => new GenericModRegistryVM(registry)
+            };
         }
         
         public RegistryTabVM() : this(new AggregateModRegistry()) {}
@@ -45,14 +47,14 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                     )
                 );
             vm.Registries.Add(
-                new GenericModRegistryVM(
+                new LocalModRegistryVM(
                     new LocalModRegistry(
                         "LocalModRegistryTesting1",
                         new LocalFilePakDownloader("LocalModRegistryTesting1"))
                 )
             );
             vm.Registries.Add(
-                new GenericModRegistryVM(
+                new LocalModRegistryVM(
                     new LocalModRegistry(
                         "LocalModRegistryTesting2",
                         new LocalFilePakDownloader("LocalModRegistryTesting2"))
@@ -82,6 +84,9 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public GithubModRegistryVM(GithubModRegistry registry) {
             _registry = registry;
         }
+        
+        [DependsOn(nameof(Org), nameof(RepoName))]
+        public string Name => _registry.Name;
 
         public string Org {
             get => _registry.Organization;
@@ -91,5 +96,37 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             get => _registry.RepoName;
             set => _registry.RepoName = value;
         }
+    }
+    
+    [AddINotifyPropertyChangedInterface]
+    public partial class LocalModRegistryVM : INotifyPropertyChanged, IModRegistryVM {
+        public LocalModRegistry _registry { get; private set; }
+        public IModRegistry Registry => _registry;
+
+        public LocalModRegistryVM(LocalModRegistry registry) {
+            _registry = registry;
+        }
+        
+        [DependsOn(nameof(RegistryPath))]
+        public string Name => _registry.Name;
+
+        public string RegistryPath {
+            get => _registry.RegistryPath;
+            set {
+                _registry.RegistryPath = value;
+                if (_registry.ModRegistryDownloader is LocalFilePakDownloader downloader) {
+                    downloader.PakReleasesDir = value;
+                }
+                else {
+                    throw new InvalidOperationException(
+                        $"Unsure how to mutate downloader of type '{_registry.ModRegistryDownloader.GetType().Name}' to use new pak dir"
+                        );
+                }
+            } 
+        }
+
+        public string AbsoluteStub => FileSystem.CurrentDirectory;
+        public string PathSeparator => Path.DirectorySeparatorChar.ToString();
+
     }
 }

@@ -10,7 +10,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class LocalModRegistry : JsonRegistry {
         public override string Name => $"Local filesystem registry at {RegistryPath}";
         public IModRegistryDownloader ModRegistryDownloader { get; }
-        public string RegistryPath { get; }
+        public string RegistryPath { get; set; }
         public LocalModRegistry(string registryPath, IModRegistryDownloader downloader) {
             RegistryPath = registryPath;
             ModRegistryDownloader = downloader;

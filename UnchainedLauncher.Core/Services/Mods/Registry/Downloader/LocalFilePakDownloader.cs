@@ -4,7 +4,7 @@ using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
     public class LocalFilePakDownloader : IModRegistryDownloader {
-        public string PakReleasesDir { get; }
+        public string PakReleasesDir { get; set; }
 
         public LocalFilePakDownloader(string pakReleasesDir) {
             PakReleasesDir = pakReleasesDir;

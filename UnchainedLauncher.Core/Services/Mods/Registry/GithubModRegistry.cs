@@ -41,7 +41,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 .ToEither()
                 .MapLeft(e => RegistryMetadataException.NotFound(modIdentifier, e));
         }
-        
+
         public override EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation) =>
             GetMod(coordinates)
                 .Map(releaseMetadata => releaseMetadata.Releases.Find(x => x.Tag == coordinates.Version))

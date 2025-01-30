@@ -72,7 +72,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                         .MapLeft(e => RegistryMetadataException.NotFound(modId, e));
                 }));
         }
-        
+
         private EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(Release release) {
             // Paks will be found in PakReleasesDir/org/repoName/releaseTag/fileName
             var path = Path.Combine(RegistryPath, release.Manifest.Organization, release.Manifest.RepoName, release.Tag, release.PakFileName);

@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.VisualBasic.FileIO;
 using PropertyChanged;
-using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;

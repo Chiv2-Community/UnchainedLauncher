@@ -6,7 +6,7 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
     public class HttpPakDownloader : IModRegistryDownloader {
         public static HttpPakDownloader GithubPakDownloader => new HttpPakDownloader(
-            $"https://github.com/<Org>/<Repo>/releases/download/<Version>/<PakFileName>"
+            $"https://github.com/[Org]/[Repo]/releases/download/[Version]/[PakFileName]"
         );
 
         public string UrlPattern { get; }
@@ -17,10 +17,10 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry.Downloader {
 
         public string GetDownloadURL(Release r) =>
             UrlPattern
-                .Replace("<Org>", r.Manifest.Organization)
-                .Replace("<Repo>", r.Manifest.RepoName)
-                .Replace("<Version>", r.Tag)
-                .Replace("<PakFileName>", r.PakFileName);
+                .Replace("[Org]", r.Manifest.Organization)
+                .Replace("[Repo]", r.Manifest.RepoName)
+                .Replace("[Version]", r.Tag)
+                .Replace("[PakFileName]", r.PakFileName);
 
         public EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(Release target) {
             var url = GetDownloadURL(target);

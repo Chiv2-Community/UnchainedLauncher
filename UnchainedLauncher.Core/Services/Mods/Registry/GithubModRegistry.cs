@@ -12,8 +12,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
         public override string Name => $"Github mod registry at {Organization}/{RepoName}";
         public IModRegistryDownloader ModRegistryDownloader { get; }
-        public string Organization { get; }
-        public string RepoName { get; }
+        public string Organization { get; set; }
+        public string RepoName { get; set; }
         public string PackageDBBaseUrl => $"https://raw.githubusercontent.com/{Organization}/{RepoName}/db/package_db";
         public string PackageDBPackageListUrl => $"{PackageDBBaseUrl}/mod_list_index.txt";
 

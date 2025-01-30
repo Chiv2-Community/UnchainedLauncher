@@ -14,12 +14,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public MainWindowVM(LauncherVM launcherViewModel,
                             ModListVM modListViewModel,
                             SettingsVM settingsViewModel,
-                            ServersTabVM serversTab) {
+                            ServersTabVM serversTab,
+                            RegistryTabVM registryTabViewModel) {
             LauncherViewModel = launcherViewModel;
             ModListViewModel = modListViewModel;
             SettingsViewModel = settingsViewModel;
             ServersTab = serversTab;
-            RegistryTabViewModel = RegistryTabVM.DEFAULT;
+            RegistryTabViewModel = registryTabViewModel;
         }
 
         public void Dispose() {

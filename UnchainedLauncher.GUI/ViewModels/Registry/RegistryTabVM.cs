@@ -40,38 +40,38 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                 "C2ModRegistry",
                 HttpPakDownloader.GithubPakDownloader
             );
-            
+
             AddRegistry(ghr);
         }
 
         [RelayCommand]
         public void AddNewLocalRegistry() {
             LocalModRegistry lmr = new LocalModRegistry("LocalRegistryPath", new LocalFilePakDownloader("LocalRegistryPath"));
-            
+
             AddRegistry(lmr);
         }
-        
+
         public void AddRegistry(IModRegistry mr) {
             Registry.ModRegistries.Add(mr);
             Registries.Add(IntoVM(mr));
         }
-        
+
         public void RemoveRegistry(IModRegistryVM vm) {
             Registry.ModRegistries.Remove(vm.Registry);
             Registries.Remove(vm);
         }
-        
-        public RegistryTabVM() : this(new AggregateModRegistry()) {}
-        
+
+        public RegistryTabVM() : this(new AggregateModRegistry()) { }
+
         public static RegistryTabVM DEFAULT => makeDefault();
-    
+
         private static RegistryTabVM makeDefault() {
             var vm = new RegistryTabVM();
             vm.Registries.Add(
                 new GithubModRegistryVM(
                     new GithubModRegistry(
-                            "Chiv2-Community", 
-                            "C2ModRegistry", 
+                            "Chiv2-Community",
+                            "C2ModRegistry",
                             HttpPakDownloader.GithubPakDownloader
                         ), vm.RemoveRegistry
                     )
@@ -99,13 +99,13 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
     public interface IModRegistryVM {
         public IModRegistry Registry { get; }
     }
-    
+
     [AddINotifyPropertyChangedInterface]
     public partial class GenericModRegistryVM : INotifyPropertyChanged, IModRegistryVM {
         public IModRegistry Registry { get; }
         public delegate void RequestDeletion(IModRegistryVM toDelete);
         private RequestDeletion? _requestDeletion;
-    
+
         [RelayCommand]
         public void SelfDelete() {
             _requestDeletion?.Invoke(this);
@@ -124,7 +124,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public GithubModRegistryVM(GithubModRegistry registry, RequestDeletion? requestDeletion = null) : base(registry, requestDeletion) {
             Registry = registry;
         }
-        
+
         [DependsOn(nameof(Org), nameof(RepoName))]
         public string Name => Registry.Name;
 
@@ -137,7 +137,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             set => Registry.RepoName = value;
         }
     }
-    
+
     [AddINotifyPropertyChangedInterface]
     public partial class LocalModRegistryVM : GenericModRegistryVM {
         public new LocalModRegistry Registry { get; private set; }
@@ -145,7 +145,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public LocalModRegistryVM(LocalModRegistry registry, RequestDeletion? requestDeletion = null) : base(registry, requestDeletion) {
             Registry = registry;
         }
-        
+
         [DependsOn(nameof(RegistryPath))]
         public string Name => Registry.Name;
 
@@ -161,7 +161,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                         $"Unsure how to mutate downloader of type '{Registry.ModRegistryDownloader.GetType().Name}' to use new pak dir"
                         );
                 }
-            } 
+            }
         }
 
         public string AbsoluteStub => FileSystem.CurrentDirectory;

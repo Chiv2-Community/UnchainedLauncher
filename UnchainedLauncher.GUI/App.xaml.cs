@@ -1,8 +1,6 @@
 ﻿using LanguageExt;
 using log4net;
-using log4net.Repository.Hierarchy;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -26,7 +24,6 @@ using UnchainedLauncher.GUI.ViewModels.Registry;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
-using List = System.Windows.Documents.List;
 
 namespace UnchainedLauncher.GUI {
     using static LanguageExt.Prelude;
@@ -36,8 +33,8 @@ namespace UnchainedLauncher.GUI {
     /// </summary>
     public partial class App : Application {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
-        
-        
+
+
 
         public App() : base() { }
         protected override void OnStartup(StartupEventArgs e) {
@@ -115,10 +112,10 @@ namespace UnchainedLauncher.GUI {
             var settingsViewModel = SettingsVM.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
 
             var modRegistry = await InitializeModRegistry(FilePaths.RegistryConfigPath);
-            var modManager = await InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry); 
-                
+            var modManager = await InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+
             var registryTabViewModel = new RegistryTabVM(modRegistry);
-            
+
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(
                 "Official Chivalry 2"
@@ -176,12 +173,12 @@ namespace UnchainedLauncher.GUI {
                 await launcherViewModel.LaunchVanilla(false);
                 return null;
             }
-            
+
             if (envArgs.Contains("--startmodded")) {
                 await launcherViewModel.LaunchVanilla(true);
                 return null;
             }
-            
+
             if (envArgs.Contains("--startunchained")) {
                 await launcherViewModel.LaunchUnchained();
                 return null;
@@ -211,25 +208,25 @@ namespace UnchainedLauncher.GUI {
 
             var loadedResult =
                 await InitializeFromFileWithCodec(ModRegistryCodec.Instance, jsonPath, CreateDefaultModRegistry);
-            
+
             // Ensure that we've got an AggregateModRegistry. The constructor will handle it if we're wrapping 
             // another AggregateModRegistry, so no worries there.
             var registry = new AggregateModRegistry(loadedResult);
 
-            RegisterSaveToFileOnExit(registry, ModRegistryCodec.Instance, jsonPath); 
+            RegisterSaveToFileOnExit(registry, ModRegistryCodec.Instance, jsonPath);
             return registry;
         }
-        
+
         private async Task<ModManager> InitializeModManager(string jsonPath, IModRegistry registry) {
-            Func<ModManager> initializeDefaultModManager = () => 
+            Func<ModManager> initializeDefaultModManager = () =>
                 new ModManager(
                     registry,
                     Enumerable.Empty<ReleaseCoordinates>()
             );
-            
+
             var codec = new ModManagerCodec(registry);
             var modManager = await InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
-            
+
             RegisterSaveToFileOnExit(modManager, codec, jsonPath);
             return modManager;
         }
@@ -240,11 +237,11 @@ namespace UnchainedLauncher.GUI {
             return (await codec.DeserializeFile(filePath)).Match(
                 None: initializeDefault,
                 Some: deserializationResult => Optional(deserializationResult.Result).IfNone(() => {
-                        _log.Error(
-                            $"Failed to deserialize saved {typeof(T).Name} data from {filePath} using {codec.GetType().Name}({codec}). Falling back to default.",
-                            deserializationResult.Exception);
-                        return initializeDefault();
-                    }
+                    _log.Error(
+                        $"Failed to deserialize saved {typeof(T).Name} data from {filePath} using {codec.GetType().Name}({codec}). Falling back to default.",
+                        deserializationResult.Exception);
+                    return initializeDefault();
+                }
                 ));
         }
 

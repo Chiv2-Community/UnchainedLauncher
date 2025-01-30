@@ -1,12 +1,11 @@
 ﻿using DiscriminatedUnions;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods {
-    public class ModManagerCodec: DerivedJsonCodec<ModManagerMetadata, ModManager> {
-        public ModManagerCodec(IModRegistry registry): base(ToJsonType, modManager => ToClassType(modManager, registry)) { }
-        
+    public class ModManagerCodec : DerivedJsonCodec<ModManagerMetadata, ModManager> {
+        public ModManagerCodec(IModRegistry registry) : base(ToJsonType, modManager => ToClassType(modManager, registry)) { }
+
 
         public static ModManager ToClassType(ModManagerMetadata metadata, IModRegistry registry) =>
             metadata switch {
@@ -36,7 +35,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
     public record StandardModManagerMetadata(
         IEnumerable<ReleaseCoordinates> EnabledModReleases
-    ): ModManagerMetadata(ModManagerMetadataKind.StandardModManager);
+    ) : ModManagerMetadata(ModManagerMetadataKind.StandardModManager);
 
     internal static class ModManagerMetadataKind {
         public const string StandardModManager = "StandardModManager";

@@ -19,8 +19,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public AggregateModRegistry(IEnumerable<IModRegistry> modRegistries) {
             ModRegistries = modRegistries.SelectMany(r => {
                 // Flatten any aggregate mod registries in to this one.
-                if(r is AggregateModRegistry registry) return registry.ModRegistries;
-                
+                if (r is AggregateModRegistry registry) return registry.ModRegistries;
+
                 // otherwise just return the mod registry as normal
                 return new List<IModRegistry>() { r };
             }).ToList();

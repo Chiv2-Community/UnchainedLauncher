@@ -4,7 +4,7 @@ using log4net;
 using System.Text.Json;
 
 namespace UnchainedLauncher.Core.Utilities {
-    
+
 
     public static class TypedJsonSerializer {
         /// <summary>
@@ -39,7 +39,7 @@ namespace UnchainedLauncher.Core.Utilities {
     }
 
     public class DerivedJsonCodec<TJson, T> : DerivedCodec<TJson, T> {
-        public DerivedJsonCodec(Func<T, TJson> contramap, Func<TJson, T> map): base(TypedJsonCodec.Derive<TJson>(), contramap, map) { }
+        public DerivedJsonCodec(Func<T, TJson> contramap, Func<TJson, T> map) : base(TypedJsonCodec.Derive<TJson>(), contramap, map) { }
     }
 
     public static class JsonHelpers {
@@ -109,7 +109,7 @@ namespace UnchainedLauncher.Core.Utilities {
         public DeserializationResult<T2> Map<T2>(Func<T, T2> func) => Select(func);
 
         public DeserializationResult<T2> Bind<T2>(Func<T, DeserializationResult<T2>> func) =>
-          Result == null 
+          Result == null
             ? new DeserializationResult<T2>(default, Exception)
             : func(Result);
 

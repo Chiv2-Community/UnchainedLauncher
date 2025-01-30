@@ -1,19 +1,14 @@
 ﻿using FluentAssertions;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
-using Xunit;
 
-namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
-{
-    public class ModRegistryCodecTests : CodecTestBase<IModRegistry>
-    {
-        public ModRegistryCodecTests() : base(ModRegistryCodec.Instance)
-        {
+namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
+    public class ModRegistryCodecTests : CodecTestBase<IModRegistry> {
+        public ModRegistryCodecTests() : base(ModRegistryCodec.Instance) {
         }
 
         [Fact]
-        public void LocalModRegistry_SerializeAndDeserialize_PreservesData()
-        {
+        public void LocalModRegistry_SerializeAndDeserialize_PreservesData() {
             var downloader = new LocalFilePakDownloader(@"C:\TestPath\Mods");
             var originalRegistry = new LocalModRegistry(@"C:\TestPath\Mods", downloader);
 
@@ -24,8 +19,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
         }
 
         [Fact]
-        public void GithubModRegistry_SerializeAndDeserialize_PreservesData()
-        {
+        public void GithubModRegistry_SerializeAndDeserialize_PreservesData() {
             var downloader = new HttpPakDownloader("https://example.com/<Org>/<Repo>/download/<Version>/<PakFileName>");
             var originalRegistry = new GithubModRegistry("TestOrg", "TestRepo", downloader);
 
@@ -38,11 +32,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry
         }
 
         [Fact]
-        public void AggregateModRegistry_SerializeAndDeserialize_PreservesData()
-        {
-            var localRegistry = new LocalModRegistry(@"C:\TestPath\Mods", 
+        public void AggregateModRegistry_SerializeAndDeserialize_PreservesData() {
+            var localRegistry = new LocalModRegistry(@"C:\TestPath\Mods",
                 new LocalFilePakDownloader(@"C:\TestPath\Mods"));
-            var githubRegistry = new GithubModRegistry("TestOrg", "TestRepo", 
+            var githubRegistry = new GithubModRegistry("TestOrg", "TestRepo",
                 new HttpPakDownloader("https://example.com/<Org>/<Repo>/download/<Version>/<PakFileName>"));
             var originalRegistry = new AggregateModRegistry(new IModRegistry[] { localRegistry, githubRegistry });
 

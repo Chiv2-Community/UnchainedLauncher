@@ -1,6 +1,7 @@
 ﻿using LanguageExt;
 using log4net;
 using log4net.Repository.Hierarchy;
+using Octokit;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -26,6 +27,7 @@ using UnchainedLauncher.GUI.ViewModels.Registry;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
+using Application = System.Windows.Application;
 using List = System.Windows.Documents.List;
 
 namespace UnchainedLauncher.GUI {
@@ -114,8 +116,8 @@ namespace UnchainedLauncher.GUI {
 
             var settingsViewModel = SettingsVM.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
 
-            var modRegistry = await InitializeModRegistry(FilePaths.RegistryConfigPath);
-            var modManager = await InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry); 
+            var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
+            var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry); 
                 
             var registryTabViewModel = new RegistryTabVM(modRegistry);
             
@@ -205,12 +207,12 @@ namespace UnchainedLauncher.GUI {
             return new MainWindow(mainWindowViewModel);
         }
 
-        private async Task<AggregateModRegistry> InitializeModRegistry(string jsonPath) {
+        private AggregateModRegistry InitializeModRegistry(string jsonPath) {
             AggregateModRegistry CreateDefaultModRegistry() => new AggregateModRegistry(
                 new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader));
 
             var loadedResult =
-                await InitializeFromFileWithCodec(ModRegistryCodec.Instance, jsonPath, CreateDefaultModRegistry);
+                InitializeFromFileWithCodec(ModRegistryCodec.Instance, jsonPath, CreateDefaultModRegistry);
             
             // Ensure that we've got an AggregateModRegistry. The constructor will handle it if we're wrapping 
             // another AggregateModRegistry, so no worries there.
@@ -220,7 +222,7 @@ namespace UnchainedLauncher.GUI {
             return registry;
         }
         
-        private async Task<ModManager> InitializeModManager(string jsonPath, IModRegistry registry) {
+        private ModManager InitializeModManager(string jsonPath, IModRegistry registry) {
             Func<ModManager> initializeDefaultModManager = () => 
                 new ModManager(
                     registry,
@@ -228,16 +230,16 @@ namespace UnchainedLauncher.GUI {
             );
             
             var codec = new ModManagerCodec(registry);
-            var modManager = await InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
+            var modManager = InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
             
             RegisterSaveToFileOnExit(modManager, codec, jsonPath);
             return modManager;
         }
 
 
-        private async Task<T> InitializeFromFileWithCodec<T>(ICodec<T> codec, string filePath, Func<T> initializeDefault) {
+        private T InitializeFromFileWithCodec<T>(ICodec<T> codec, string filePath, Func<T> initializeDefault) {
             _log.Info($"Loading {typeof(T).Name} from {filePath} using {codec.GetType().Name}({codec})...");
-            return (await codec.DeserializeFile(filePath)).Match(
+            return codec.DeserializeFile(filePath).Match(
                 None: initializeDefault,
                 Some: deserializationResult => Optional(deserializationResult.Result).IfNone(() => {
                         _log.Error(
@@ -252,13 +254,7 @@ namespace UnchainedLauncher.GUI {
             Exit += (_, _) => {
                 try {
                     _log.Info($"Saving {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec})...");
-                    var task = codec.SerializeFile(filePath, t);
-
-                    var finished = task.Wait(TimeSpan.FromSeconds(10));
-                    if (!finished) {
-                        _log.Error(
-                            $"Failed to save configuration for {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec}). Operation timed out after 10 seconds.");
-                    }
+                    codec.SerializeFile(filePath, t);
                 }
                 catch (Exception ex) {
                     _log.Error(

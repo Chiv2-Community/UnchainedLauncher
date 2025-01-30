@@ -1,5 +1,6 @@
 using LanguageExt;
 using LanguageExt.TypeClasses;
+using log4net.Repository.Hierarchy;
 using static LanguageExt.Prelude;
 
 
@@ -32,19 +33,19 @@ namespace UnchainedLauncher.Core.Utilities {
 
     public static class SerializerExtensions
     {
-        public static async Task SerializeFile<T>(this ISerializer<T> serializer, string path, T obj)
+        public static void SerializeFile<T>(this ISerializer<T> serializer, string path, T obj)
         {
             if(!Directory.Exists(Path.GetDirectoryName(path))) 
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
             
-            await File.WriteAllTextAsync(path, serializer.Serialize(obj));
+            File.WriteAllText(path, serializer.Serialize(obj));
         }
         
-        public static async Task<Option<DeserializationResult<T>>> DeserializeFile<T>(this IDeserializer<T> deserializer, string path)
+        public static Option<DeserializationResult<T>> DeserializeFile<T>(this IDeserializer<T> deserializer, string path)
         {
             if (!File.Exists(path)) return None;
 
-            var fileContents = await File.ReadAllTextAsync(path);
+            var fileContents = File.ReadAllText(path);
             return Some(deserializer.Deserialize(fileContents));
         }
         
@@ -71,10 +72,10 @@ namespace UnchainedLauncher.Core.Utilities {
         
         public DeserializationResult<T> Deserialize(string json) => _deserialize(json);
 
-        public async Task<Option<DeserializationResult<T>>> DeserializeFile(string path) {
+        public Option<DeserializationResult<T>> DeserializeFile(string path) {
             if (!File.Exists(path)) return None;
 
-            var fileContents = await File.ReadAllTextAsync(path);
+            var fileContents = File.ReadAllText(path);
             return Some(Deserialize(fileContents));
         }
         

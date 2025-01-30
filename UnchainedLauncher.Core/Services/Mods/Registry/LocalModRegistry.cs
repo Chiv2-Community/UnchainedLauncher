@@ -2,18 +2,15 @@
 using LanguageExt.Common;
 using System.Collections.Immutable;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class LocalModRegistry : JsonRegistry {
         public override string Name => $"Local filesystem registry at {RegistryPath}";
-        public IModRegistryDownloader ModRegistryDownloader { get; }
         public string RegistryPath { get; set; }
-        public LocalModRegistry(string registryPath, IModRegistryDownloader downloader) {
+        public LocalModRegistry(string registryPath) {
             RegistryPath = registryPath;
-            ModRegistryDownloader = downloader;
         }
 
         public override EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation) {
@@ -25,7 +22,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                         coordinates,
                         Error.New($"Failed to fetch pak. No releases found for {coordinates.Org} / {coordinates.ModuleName} / {coordinates.Version}.")
                 )))
-                .Bind(release => ModRegistryDownloader.ModPakStream(release))
+                .Bind(ModPakStream)
                 .Map(sizedStream => new FileWriter(outputLocation, sizedStream.Stream, sizedStream.Size));
         }
 
@@ -74,6 +71,31 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                         .ToEither()
                         .MapLeft(e => RegistryMetadataException.NotFound(modId, e));
                 }));
+        }
+        
+        private EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(Release release) {
+            // Paks will be found in PakReleasesDir/org/repoName/releaseTag/fileName
+            var path = Path.Combine(RegistryPath, release.Manifest.Organization, release.Manifest.RepoName, release.Tag, release.PakFileName);
+
+            if (!File.Exists(path))
+                return
+                    LeftAsync<ModPakStreamAcquisitionFailure, SizedStream>(
+                            new ModPakStreamAcquisitionFailure(
+                                ReleaseCoordinates.FromRelease(release),
+                                Error.New($"Failed to fetch pak. File not found: {path}")
+                            )
+                        );
+
+            return
+                TryAsync(Task.Run(() => File.OpenRead(path)))
+                    .Map(stream => new SizedStream(stream, stream.Length))
+                    .ToEither()
+                    .MapLeft(e =>
+                        new ModPakStreamAcquisitionFailure(
+                            ReleaseCoordinates.FromRelease(release),
+                            Error.New($"Failed to fetch pak from {path}.", e)
+                        )
+                    );
         }
     }
 }

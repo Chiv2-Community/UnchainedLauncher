@@ -6,7 +6,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 
 namespace UnchainedLauncher.GUI.ViewModels.Registry {
     public partial class RegistryTabVM {
@@ -37,8 +36,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public void AddNewGithubRegistry() {
             GithubModRegistry ghr = new GithubModRegistry(
                 "Chiv2-Community",
-                "C2ModRegistry",
-                HttpPakDownloader.GithubPakDownloader
+                "C2ModRegistry"
             );
 
             AddRegistry(ghr);
@@ -46,7 +44,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         [RelayCommand]
         public void AddNewLocalRegistry() {
-            LocalModRegistry lmr = new LocalModRegistry("LocalRegistryPath", new LocalFilePakDownloader("LocalRegistryPath"));
+            LocalModRegistry lmr = new LocalModRegistry("LocalRegistryPath");
 
             AddRegistry(lmr);
         }
@@ -71,24 +69,21 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                 new GithubModRegistryVM(
                     new GithubModRegistry(
                             "Chiv2-Community",
-                            "C2ModRegistry",
-                            HttpPakDownloader.GithubPakDownloader
+                            "C2ModRegistry"
                         ), vm.RemoveRegistry
                     )
                 );
             vm.Registries.Add(
                 new LocalModRegistryVM(
                     new LocalModRegistry(
-                        "LocalModRegistryTesting1",
-                        new LocalFilePakDownloader("LocalModRegistryTesting1")
+                        "LocalModRegistryTesting1"
                         ), vm.RemoveRegistry
                 )
             );
             vm.Registries.Add(
                 new LocalModRegistryVM(
                     new LocalModRegistry(
-                        "LocalModRegistryTesting2",
-                        new LocalFilePakDownloader("LocalModRegistryTesting2")
+                        "LocalModRegistryTesting2"
                     ), vm.RemoveRegistry
                 )
             );
@@ -151,17 +146,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         public string RegistryPath {
             get => Registry.RegistryPath;
-            set {
-                Registry.RegistryPath = value;
-                if (Registry.ModRegistryDownloader is LocalFilePakDownloader downloader) {
-                    downloader.PakReleasesDir = value;
-                }
-                else {
-                    throw new InvalidOperationException(
-                        $"Unsure how to mutate downloader of type '{Registry.ModRegistryDownloader.GetType().Name}' to use new pak dir"
-                        );
-                }
-            }
+            set => Registry.RegistryPath = value;
         }
 
         public string AbsoluteStub => FileSystem.CurrentDirectory;

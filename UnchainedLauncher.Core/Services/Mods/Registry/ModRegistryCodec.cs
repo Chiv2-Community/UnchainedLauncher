@@ -1,5 +1,4 @@
 using DiscriminatedUnions;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
@@ -10,8 +9,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
         public static IModRegistry ToClassType(ModRegistryMetadata metadata) =>
             metadata switch {
-                LocalModRegistryMetadata m => new LocalModRegistry(m.PakReleaseDir, ModRegistryDownloaderCodec.ToClassType(m.DownloaderMetadata)),
-                GithubModRegistryMetadata m => new GithubModRegistry(m.Org, m.RepoName, ModRegistryDownloaderCodec.ToClassType(m.DownloaderMetadata)),
+                LocalModRegistryMetadata m => new LocalModRegistry(m.PakReleaseDir),
+                GithubModRegistryMetadata m => new GithubModRegistry(m.Org, m.RepoName),
                 AggregateModRegistryMetadata m => new AggregateModRegistry(m.Registries.Select(ToClassType).ToArray()),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(metadata), metadata,
@@ -20,8 +19,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
         public static ModRegistryMetadata ToJsonType(IModRegistry registry) =>
             registry switch {
-                LocalModRegistry d => new LocalModRegistryMetadata(d.RegistryPath, ModRegistryDownloaderCodec.ToJsonType(d.ModRegistryDownloader)),
-                GithubModRegistry d => new GithubModRegistryMetadata(d.Organization, d.RepoName, ModRegistryDownloaderCodec.ToJsonType(d.ModRegistryDownloader)),
+                LocalModRegistry d => new LocalModRegistryMetadata(d.RegistryPath),
+                GithubModRegistry d => new GithubModRegistryMetadata(d.Organization, d.RepoName),
                 AggregateModRegistry d => new AggregateModRegistryMetadata(d.ModRegistries.Select(ToJsonType).ToArray()),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(registry), registry,
@@ -34,8 +33,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
     [UnionCase(typeof(GithubModRegistryMetadata), ModRegistryMetadataKind.GithubModRegistry)]
     [UnionCase(typeof(AggregateModRegistryMetadata), ModRegistryMetadataKind.AggregateModRegistry)]
     public abstract record ModRegistryMetadata(string Kind);
-    public record LocalModRegistryMetadata(string PakReleaseDir, ModRegistryDownloaderMetadata DownloaderMetadata) : ModRegistryMetadata(ModRegistryMetadataKind.LocalModRegistry);
-    public record GithubModRegistryMetadata(string Org, string RepoName, ModRegistryDownloaderMetadata DownloaderMetadata) : ModRegistryMetadata(ModRegistryMetadataKind.GithubModRegistry);
+    public record LocalModRegistryMetadata(string PakReleaseDir) : ModRegistryMetadata(ModRegistryMetadataKind.LocalModRegistry);
+    public record GithubModRegistryMetadata(string Org, string RepoName) : ModRegistryMetadata(ModRegistryMetadataKind.GithubModRegistry);
     public record AggregateModRegistryMetadata(ModRegistryMetadata[] Registries) : ModRegistryMetadata(ModRegistryMetadataKind.AggregateModRegistry);
 
     internal static class ModRegistryMetadataKind {

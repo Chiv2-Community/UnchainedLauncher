@@ -12,7 +12,6 @@ using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
@@ -205,7 +204,7 @@ namespace UnchainedLauncher.GUI {
 
         private AggregateModRegistry InitializeModRegistry(string jsonPath) {
             AggregateModRegistry CreateDefaultModRegistry() => new AggregateModRegistry(
-                new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader));
+                new GithubModRegistry("Chiv2-Community", "C2ModRegistry"));
 
             var loadedResult =
                 InitializeFromFileWithCodec(ModRegistryCodec.Instance, jsonPath, CreateDefaultModRegistry);

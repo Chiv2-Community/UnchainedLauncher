@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 
@@ -11,7 +10,7 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
 
         // TODO: Create some kind of InMemory ModRegistry for design/testing purposes
         public static IModManager DEFAULTMODMANAGER => new ModManager(
-            new LocalModRegistry("", new LocalFilePakDownloader("")),
+            new LocalModRegistry(""),
             new List<ReleaseCoordinates> { ReleaseCoordinates.FromRelease(ModViewModelInstances.DesignViewRelease) }
         );
 

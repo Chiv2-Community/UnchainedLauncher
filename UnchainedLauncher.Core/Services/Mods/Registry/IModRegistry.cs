@@ -3,7 +3,6 @@ using LanguageExt.Common;
 using log4net;
 using Semver;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
@@ -104,6 +103,9 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         /// <returns></returns>
         public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation);
     }
+
+    public record SizedStream(Stream Stream, long Size);
+    public record ModPakStreamAcquisitionFailure(ReleaseCoordinates Target, Error Error) : Expected($"Failed to acquire download stream for mod pak '{Target.Org} / {Target.ModuleName} / {Target.Version}", 4000, Some(Error));
 
     public abstract record RegistryMetadataException(string Message, int Code, Option<Error> Underlying) : Expected(Message, Code, Underlying) {
         public record ParseException(string Message, Option<Error> Underlying)

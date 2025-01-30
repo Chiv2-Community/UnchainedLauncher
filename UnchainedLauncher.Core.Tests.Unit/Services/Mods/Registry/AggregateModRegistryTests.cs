@@ -2,7 +2,6 @@ using FluentAssertions;
 using LanguageExt;
 using System.Collections.Immutable;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
     public class AggregateModRegistryTests {

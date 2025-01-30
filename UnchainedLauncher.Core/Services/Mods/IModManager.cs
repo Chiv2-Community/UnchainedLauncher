@@ -3,7 +3,6 @@ using LanguageExt.Common;
 using System.Collections.Immutable;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 

@@ -1,5 +1,4 @@
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
     public static class LocalModRegistryFactory {
@@ -13,9 +12,6 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
             Create(ALTERNATE_MOD_MANAGER_PATH);
 
         public static LocalModRegistry Create(string path) =>
-            new LocalModRegistry(
-                path,
-                new LocalFilePakDownloader(path)
-            );
+            new LocalModRegistry(path);
     }
 }

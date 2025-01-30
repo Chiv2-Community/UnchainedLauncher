@@ -57,7 +57,6 @@ namespace UnchainedLauncher.Core.Utilities {
         /// <returns></returns>
         public static DeserializationResult<T> Deserialize<T>(string json) {
             try {
-                logger.Debug($"Deserializing {typeof(T)} from JSON: {json}");
                 var result = JsonSerializer.Deserialize<T>(json, _serializerOptions);
                 return new DeserializationResult<T>(result, null);
             }

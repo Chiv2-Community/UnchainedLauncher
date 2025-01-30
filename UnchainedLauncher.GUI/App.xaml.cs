@@ -12,7 +12,6 @@ using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
@@ -20,9 +19,11 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.Installer;
+using UnchainedLauncher.GUI.ViewModels.Registry;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
+using Application = System.Windows.Application;
 
 namespace UnchainedLauncher.GUI {
     using static LanguageExt.Prelude;
@@ -31,7 +32,9 @@ namespace UnchainedLauncher.GUI {
     /// Interaction logic for App.xaml
     /// </summary>
     public partial class App : Application {
-        private readonly ILog _log = LogManager.GetLogger(typeof(App));
+        private static readonly ILog _log = LogManager.GetLogger(typeof(App));
+
+
 
         public App() : base() { }
         protected override void OnStartup(StartupEventArgs e) {
@@ -108,9 +111,10 @@ namespace UnchainedLauncher.GUI {
 
             var settingsViewModel = SettingsVM.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
 
-            var modManager = ModManager.ForRegistries(
-                new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader)
-            );
+            var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
+            var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+
+            var registryTabViewModel = new RegistryTabVM(modRegistry);
 
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(
@@ -169,18 +173,20 @@ namespace UnchainedLauncher.GUI {
                 await launcherViewModel.LaunchVanilla(false);
                 return null;
             }
-            else if (envArgs.Contains("--startmodded")) {
+
+            if (envArgs.Contains("--startmodded")) {
                 await launcherViewModel.LaunchVanilla(true);
                 return null;
             }
-            else if (envArgs.Contains("--startunchained")) {
+
+            if (envArgs.Contains("--startunchained")) {
                 await launcherViewModel.LaunchUnchained();
                 return null;
             }
 
             var serversTabViewModel = new ServersTabVM(
                 settingsViewModel,
-                () => new ModManager(modManager),
+                () => new ModManager(modManager.Registry, modManager.EnabledModReleaseCoordinates, modManager.Mods),
                 userDialogueSpawner,
                 unchainedLauncher,
                 new FileBackedSettings<IEnumerable<SavedServerTemplate>>(FilePaths.ServerTemplatesFilePath));
@@ -189,10 +195,66 @@ namespace UnchainedLauncher.GUI {
                 launcherViewModel,
                 modListViewModel,
                 settingsViewModel,
-                serversTabViewModel
+                serversTabViewModel,
+                registryTabViewModel
             );
 
             return new MainWindow(mainWindowViewModel);
+        }
+
+        private AggregateModRegistry InitializeModRegistry(string jsonPath) {
+            AggregateModRegistry CreateDefaultModRegistry() => new AggregateModRegistry(
+                new GithubModRegistry("Chiv2-Community", "C2ModRegistry"));
+
+            var loadedResult =
+                InitializeFromFileWithCodec(ModRegistryCodec.Instance, jsonPath, CreateDefaultModRegistry);
+            // Ensure that we've got an AggregateModRegistry. The constructor will handle it if we're wrapping 
+            // another AggregateModRegistry, so no worries there.
+            var registry = new AggregateModRegistry(loadedResult);
+
+            RegisterSaveToFileOnExit(registry, ModRegistryCodec.Instance, jsonPath);
+            return registry;
+        }
+        private ModManager InitializeModManager(string jsonPath, IModRegistry registry) {
+            Func<ModManager> initializeDefaultModManager = () =>
+                new ModManager(
+                    registry,
+                    Enumerable.Empty<ReleaseCoordinates>()
+            );
+
+            var codec = new ModManagerCodec(registry);
+            var modManager = InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
+
+            RegisterSaveToFileOnExit(modManager, codec, jsonPath);
+            return modManager;
+        }
+
+
+        private T InitializeFromFileWithCodec<T>(ICodec<T> codec, string filePath, Func<T> initializeDefault) {
+            _log.Info($"Loading {typeof(T).Name} from {filePath} using {codec.GetType().Name}({codec})...");
+            return codec.DeserializeFile(filePath).Match(
+                None: initializeDefault,
+                Some: deserializationResult => Optional(deserializationResult.Result).IfNone(() => {
+                    _log.Error(
+                        $"Failed to deserialize saved {typeof(T).Name} data from {filePath} using {codec.GetType().Name}({codec}). Falling back to default.",
+                        deserializationResult.Exception);
+                    return initializeDefault();
+                }
+                ));
+        }
+
+        private void RegisterSaveToFileOnExit<T>(T t, ICodec<T> codec, string filePath) {
+            Exit += (_, _) => {
+                try {
+                    _log.Info($"Saving {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec})...");
+                    codec.SerializeFile(filePath, t);
+                }
+                catch (Exception ex) {
+                    _log.Error(
+                        $"Failed to save configuration for {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec}).",
+                        ex);
+                }
+            };
         }
     }
 }

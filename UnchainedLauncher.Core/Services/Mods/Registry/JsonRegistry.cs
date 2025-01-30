@@ -1,21 +1,36 @@
 ﻿using LanguageExt;
+using LanguageExt.Common;
 using log4net;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Utilities;
+using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public abstract class JsonRegistry : IModRegistry {
         protected static readonly ILog logger = LogManager.GetLogger(nameof(JsonRegistry));
 
-        public abstract IModRegistryDownloader ModRegistryDownloader { get; }
+        // Re-export IModRegistryMethods that will not be implemented here.
         public abstract string Name { get; }
+        public abstract EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation);
+
+        public abstract Task<GetAllModsResult> GetAllMods();
+
+        /// <summary>
+        /// Gets the mod metadata in a string format.
+        /// 
+        /// Implementations of JsonRegistry need only implement this, and then the JsonRegistry GetModMetadata
+        /// method will handle the parsing of the mod metadata.
+        /// </summary>
+        /// <param name="modId"></param>
+        /// <returns></returns>
+        protected abstract EitherAsync<RegistryMetadataException, string> GetModMetadataString(ModIdentifier modId);
 
         /// <summary>
         /// Gets the mod metadata located at the given path within the registry
         /// </summary>
         /// <param name="modPath"></param>
         /// <returns></returns>
-        public EitherAsync<RegistryMetadataException, JsonModels.Metadata.V3.Mod> GetModMetadata(string modPath) {
+        public EitherAsync<RegistryMetadataException, JsonModels.Metadata.V3.Mod> GetMod(ModIdentifier modPath) {
             return GetModMetadataString(modPath).Bind(json =>
                 // Try to deserialize as V3 first
                 JsonHelpers.Deserialize<JsonModels.Metadata.V3.Mod>(json).RecoverWith(e => {
@@ -32,11 +47,14 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 })
                 .ToEither()
                 .ToAsync()
-                .MapLeft(err => new RegistryMetadataException(modPath, err))
+                .MapLeft(err => RegistryMetadataException.Parse($"Failed to parse mod manifest at {modPath}", Expected.New(err)))
             );
         }
 
-        public abstract Task<GetAllModsResult> GetAllMods();
-        public abstract EitherAsync<RegistryMetadataException, string> GetModMetadataString(string modPath);
+        public EitherAsync<RegistryMetadataException, Release> GetModRelease(ReleaseCoordinates coords) =>
+            GetMod(coords)
+                .Map(mod => Optional(mod.Releases.Find(coords.Matches)))
+                .Bind<Release>(maybeRelease =>
+                    maybeRelease.ToEitherAsync(() => RegistryMetadataException.NotFound(coords, None)));
     }
 }

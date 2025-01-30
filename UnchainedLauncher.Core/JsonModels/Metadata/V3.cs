@@ -40,7 +40,12 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
 
         public string ReleaseUrl => $"{Manifest.RepoUrl}/releases/{Tag}";
 
-        public SemVersion Version => SemVersion.Parse(Tag, SemVersionStyles.AllowV);
+        public SemVersion? Version {
+            get {
+                SemVersion.TryParse(Tag, SemVersionStyles.AllowV, out var version);
+                return version;
+            }
+        }
     }
     [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum ModType {
@@ -65,6 +70,9 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
         [property: JsonPropertyName("repo_url")] string RepoUrl,
         [property: JsonPropertyName("version")] string Version
     ) {
+        public string Organization => RepoUrl.Split('/')[^2];
+        public string RepoName => RepoUrl.Split('/')[^1];
+
         public static Dependency FromV2(V2.Dependency input) {
             return new Dependency(
                 RepoUrl: input.RepoUrl,

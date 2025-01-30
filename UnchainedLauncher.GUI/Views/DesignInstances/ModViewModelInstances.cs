@@ -1,5 +1,4 @@
-﻿using LanguageExt;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
@@ -41,7 +40,8 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             return new ModVM(
                 DesignViewMod,
                 Some(DesignViewRelease),
-                new ModManager(new HashMap<IModRegistry, IEnumerable<Core.JsonModels.Metadata.V3.Mod>>(), new List<Release>())
+                // TODO: Set up some kind of in-memory registry for design view purposes
+                new ModManager(new LocalModRegistry("foo"), new List<ReleaseCoordinates>())
             );
         }
 

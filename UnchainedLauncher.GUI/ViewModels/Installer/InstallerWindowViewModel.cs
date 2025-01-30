@@ -60,7 +60,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             NextButtonCommand = new AsyncRelayCommand(NextPage);
             BackButtonCommand = new AsyncRelayCommand(PreviousPage);
 
-            CurrentPage.Load().RunSynchronously();
+            CurrentPage.Load();
 
             InstallerPages.ToList().ForEach(page => page.PropertyChanged += CurrentPagePropertyChanged);
 

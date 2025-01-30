@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views"
         xmlns:vms="clr-namespace:UnchainedLauncher.GUI.ViewModels"
         xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
+        xmlns:registry="clr-namespace:UnchainedLauncher.GUI.Views.Registry"
         mc:Ignorable="d" 
         d:DataContext="{x:Static instances:MainWindowViewModelInstances.DEFAULT}"
         x:Class="UnchainedLauncher.GUI.Views.MainWindow"
@@ -37,6 +38,9 @@
     <TabControl x:Name="Tabs">
         <TabItem Header="Launcher">
             <local:Launcher DataContext="{Binding LauncherViewModel}" />
+        </TabItem>
+        <TabItem Header="Mod Registries">
+            <registry:RegistryTab DataContext="{Binding RegistryTabViewModel}"/>
         </TabItem>
         <TabItem Header="Mod Manager">
             <local:ModList DataContext="{Binding ModListViewModel}" />

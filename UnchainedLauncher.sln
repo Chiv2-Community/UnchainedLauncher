@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncher.Core.Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncher.Core.Tests.Integration", "UnchainedLauncher.Core.Tests.Integration\UnchainedLauncher.Core.Tests.Integration.csproj", "{ABBE4710-C988-4C0A-92D8-663271A6AA78}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DiscriminatedUnions", "DiscriminatedUnions\DiscriminatedUnions.csproj", "{EA5E392E-050F-4EF7-865B-9E87F6C364B6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

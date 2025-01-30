@@ -1,10 +1,52 @@
 ﻿using LanguageExt;
+using LanguageExt.Common;
 using log4net;
+using Semver;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Services.Mods.Registry.Downloader;
 using UnchainedLauncher.Core.Utilities;
+using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
+
+    public record ModIdentifier(string Org, string ModuleName) : IComparable<ModIdentifier> {
+        public static ModIdentifier FromMod(Mod mod) =>
+            new ModIdentifier(mod.LatestManifest.Organization, mod.LatestManifest.RepoName);
+
+        public static ModIdentifier FromDependency(Dependency dependency) => new ModIdentifier(dependency.Organization, dependency.RepoName);
+        public static ModIdentifier FromRelease(Release release) => new ModIdentifier(release.Manifest.Organization, release.Manifest.RepoName);
+
+        public bool Matches(Mod mod) => Org == mod.LatestManifest.Organization && ModuleName == mod.LatestManifest.RepoName;
+
+        // Intentionally not using equality of this == modId here, because the other ModIdentifier may be a ReleaseCoordinate.
+        public bool Matches(ModIdentifier modId) => Org == modId.Org && ModuleName == modId.ModuleName;
+        public int CompareTo(ModIdentifier? other) =>
+            other == null
+                ? -1
+                : (this.Org, this.ModuleName).CompareTo((other.Org, other.ModuleName));
+    }
+
+    public record ReleaseCoordinates(string Org, string ModuleName, string Version) : ModIdentifier(Org, ModuleName), IComparable<ReleaseCoordinates> {
+        public static ReleaseCoordinates FromRelease(Release release) =>
+            new ReleaseCoordinates(release.Manifest.Organization, release.Manifest.RepoName, release.Tag);
+
+        public bool Matches(Release release) => Org == release.Manifest.Organization && ModuleName == release.Manifest.RepoName && Version == release.Tag;
+        public int CompareTo(ReleaseCoordinates? other) {
+            if (other == null) return -1;
+
+            SemVersion.TryParse(Version, SemVersionStyles.Any, out var thisVersion);
+            SemVersion.TryParse(other.Version, SemVersionStyles.Any, out var otherVersion);
+
+            return (thisVersion, otherVersion) switch {
+                (null, null) =>
+                    (this.Org, this.ModuleName, this.Version).CompareTo((other.Org, other.ModuleName, other.Version)),
+                (null, _) =>
+                    (this.Org, this.ModuleName, new SemVersion(0, 0, 0)).CompareTo((other.Org, other.ModuleName,
+                        otherVersion)),
+                (_, _) =>
+                    (this.Org, this.ModuleName, thisVersion!).CompareTo((other.Org, other.ModuleName, otherVersion!)),
+            };
+        }
+    }
 
     public record GetAllModsResult(IEnumerable<RegistryMetadataException> Errors, IEnumerable<Mod> Mods) {
         public bool HasErrors => Errors.Any();
@@ -30,50 +72,67 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
     /// </summary>
     public interface IModRegistry {
         protected static readonly ILog logger = LogManager.GetLogger(nameof(IModRegistry));
-        public IModRegistryDownloader ModRegistryDownloader { get; }
-        public string Name { get; }
 
+        public string Name { get; }
 
         /// <summary>
         /// Get all mod metadata from this registry
         /// </summary>
         /// <returns></returns>
-        public abstract Task<GetAllModsResult> GetAllMods();
+        public Task<GetAllModsResult> GetAllMods();
 
         /// <summary>
-        /// Gets the mod metadata in a string format, located at the given path within the registry
+        /// Fetches a mod object from the registry
         /// </summary>
-        /// <param name="modPath"></param>
+        /// <param name="modId"></param>
         /// <returns></returns>
-        public abstract EitherAsync<RegistryMetadataException, string> GetModMetadataString(string modPath);
+        public EitherAsync<RegistryMetadataException, Mod> GetMod(ModIdentifier modId);
 
         /// <summary>
-        /// Deserializes the string format from GetModMetadataString into a Mod object
+        /// Fetches a specific release from the registry
         /// </summary>
-        /// <param name="modPath"></param>
+        /// <param name="coords"></param>
         /// <returns></returns>
-        public abstract EitherAsync<RegistryMetadataException, Mod> GetModMetadata(string modPath);
+        public EitherAsync<RegistryMetadataException, Release> GetModRelease(ReleaseCoordinates coords);
 
-
-        public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(PakTarget coordinates, string outputLocation) {
-            return
-                ModRegistryDownloader
-                    .ModPakStream(coordinates)
-                    .Map(stream => new FileWriter(outputLocation, stream.Stream, stream.Size));
-        }
-        public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(string org, string repoName, string fileName, string releaseTag, string outputLocation) {
-            return DownloadPak(new PakTarget(org, repoName, fileName, releaseTag), outputLocation);
-        }
-
-        public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(Release release, string outputLocation) {
-            return DownloadPak(release.Manifest.Organization, release.Manifest.RepoName, release.PakFileName, release.Tag, outputLocation);
-        }
+        /// <summary>
+        /// Download pak
+        /// </summary>
+        /// <param name="coordinates"></param>
+        /// <param name="outputLocation"></param>
+        /// <returns></returns>
+        public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation);
     }
 
-    public class RegistryMetadataException : Exception {
-        public string ModPath { get; }
-        public RegistryMetadataException(string modPath, Exception underlying) : base($"Failed to get mod metadata at {modPath}", underlying) {
-            ModPath = modPath;
-        }
+    public record SizedStream(Stream Stream, long Size);
+    public record ModPakStreamAcquisitionFailure(ReleaseCoordinates Target, Error Error) : Expected($"Failed to acquire download stream for mod pak '{Target.Org} / {Target.ModuleName} / {Target.Version}", 4000, Some(Error));
+
+    public abstract record RegistryMetadataException(string Message, int Code, Option<Error> Underlying) : Expected(Message, Code, Underlying) {
+        public record ParseException(string Message, Option<Error> Underlying)
+            : RegistryMetadataException(Message, 0, Underlying);
+
+        public record NotFoundException(ModIdentifier ModId, Option<string> Version, Option<Error> Underlying)
+            : RegistryMetadataException(FormatMessage(ModId, Version), 0, Underlying) {
+            private static string FormatMessage(ModIdentifier modId, Option<string> version) =>
+                $"Failed to get mod metadata for '{modId.Org}/{modId.ModuleName}" +
+                version.Map(v => $" / {v}'").IfNone("'");
+        };
+        public record PackageListRetrievalException(string Message, Option<Error> Underlying) : RegistryMetadataException(Message, 0, Underlying);
+
+        public static RegistryMetadataException Parse(string message, Option<Error> underlying) => new ParseException(message, underlying);
+        public static RegistryMetadataException NotFound(ModIdentifier modId, Option<Error> underlying) => new NotFoundException(modId, None, underlying);
+        public static RegistryMetadataException NotFound(ReleaseCoordinates coords, Option<Error> underlying) =>
+            new NotFoundException(coords, Some(coords.Version), underlying);
+        public static RegistryMetadataException PackageListRetrieval(string message, Option<Error> underlying) => new PackageListRetrievalException(message, underlying);
+
+        public T Match<T>(
+            Func<ParseException, T> parseExceptionFunc,
+            Func<NotFoundException, T> notFoundFunc,
+            Func<PackageListRetrievalException, T> packageListRetrievalFunc
+        ) => this switch {
+            NotFoundException notFound => notFoundFunc(notFound),
+            PackageListRetrievalException packageListRetrievalException => packageListRetrievalFunc(packageListRetrievalException),
+            ParseException parseError => parseExceptionFunc(parseError)
+        };
     }
 }

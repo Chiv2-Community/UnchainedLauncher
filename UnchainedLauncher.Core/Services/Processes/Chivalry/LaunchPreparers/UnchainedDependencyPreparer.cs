@@ -2,6 +2,7 @@
 using log4net;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
@@ -23,6 +24,11 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     public class UnchainedDependencyPreparer : IChivalry2LaunchPreparer<ModdedLaunchOptions> {
         private readonly ILog logger = LogManager.GetLogger(typeof(UnchainedDependencyPreparer));
         private readonly string pluginPath;
+
+        private static readonly ModIdentifier UnchainedModsIdentifier = new ModIdentifier(
+            "Chiv2-Community",
+            "Unchained-Mods"
+        );
 
         public static IChivalry2LaunchPreparer<ModdedLaunchOptions> Create(
             IModManager modManager,
@@ -67,7 +73,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
         private bool ShouldCheckForUpdate(ModdedLaunchOptions options) {
             var pluginExists = File.Exists(pluginPath);
-            var isUnchainedModsEnabled = ModManager.EnabledModReleases.Exists(IsUnchainedMods);
+            var isUnchainedModsEnabled = ModManager.EnabledModReleaseCoordinates.Exists(UnchainedModsIdentifier.Matches);
             return options.CheckForDependencyUpdates || !pluginExists || !isUnchainedModsEnabled;
         }
 
@@ -102,7 +108,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         private DependencyUpdate? GetModsUpdate() {
-            var isUnchainedModsEnabled = ModManager.EnabledModReleases.Exists(IsUnchainedMods);
+            var isUnchainedModsEnabled = ModManager.EnabledModReleaseCoordinates.Exists(UnchainedModsIdentifier.Matches);
             var latestUnchainedMods = ModManager.Mods
                 .SelectMany(x => x.LatestRelease)
                 .Find(IsUnchainedMods)
@@ -183,16 +189,17 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         private async Task<bool> UpdateMods(Release latestMods) {
-            var result = await ModManager.EnableModRelease(latestMods, None, CancellationToken.None);
-            if (result.IsLeft) {
-                var error = result.LeftToSeq().FirstOrDefault()!;
-                // TODO: the line below this sometimes explodes with a stack overflow. Don't know why.
-                logger.Error("Failed to download latest Unchained-Mods", error);
-                UserDialogueSpawner.DisplayMessage(
-                    "Failed to download latest Unchained-Mods. Aborting launch. Check the logs for more details.");
-                return false;
-            }
-            return true;
+            // TODO: This doesn't actually download the mod anymore. The mod manager only tracks what is enabled.
+            //       We should probably swap out the ModManager for an IModRegistry, and call the download method
+            //       on that.
+            var result = ModManager.EnableModRelease(latestMods);
+            if (result) return true;
+
+            logger.Error("Failed to download latest Unchained-Mods");
+            UserDialogueSpawner.DisplayMessage(
+                "Failed to download latest Unchained-Mods. Aborting launch. Check the logs for more details.");
+
+            return false;
         }
 
         private static bool IsUnchainedMods(Release release) =>

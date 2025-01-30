@@ -7,6 +7,9 @@
     <RootNamespace>UnchainedLauncher.Core</RootNamespace>
     <AssemblyName>$(MSBuildProjectName)</AssemblyName>
   </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\DiscriminatedUnions\DiscriminatedUnions.csproj" />
+    </ItemGroup>
   <ItemGroup>
 	<PackageReference Include="LanguageExt.Core" Version="4.4.9" />
 	<PackageReference Include="LanguageExt.Sys" Version="4.4.9" />

@@ -14,10 +14,10 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             "AggregateModRegistry of: \n\t" +
                 string.Join("\n\t", ModRegistries.Select(m => m.Name));
 
-        public IOrderedEnumerable<IModRegistry> ModRegistries { get; }
+        public IList<IModRegistry> ModRegistries { get; }
 
         public AggregateModRegistry(IEnumerable<IModRegistry> modRegistries) {
-            ModRegistries = modRegistries.OrderBy(m => m.Name);
+            ModRegistries = modRegistries.OrderBy(m => m.Name).ToList();
         }
 
         public AggregateModRegistry(params IModRegistry[] registries) : this(registries.ToList()) { }

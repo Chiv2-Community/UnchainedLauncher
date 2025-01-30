@@ -20,6 +20,7 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.Installer;
+using UnchainedLauncher.GUI.ViewModels.Registry;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
@@ -108,8 +109,17 @@ namespace UnchainedLauncher.GUI {
 
             var settingsViewModel = SettingsVM.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
 
+            var registryTabViewModel = new RegistryTabVM();
+            // TODO: do load/save instead of always adding this manually
+            registryTabViewModel.AddRegistry(
+                new GithubModRegistry(
+                    "Chiv2-Community",
+                    "C2ModRegistry",
+                    HttpPakDownloader.GithubPakDownloader)
+                );
+
             var modManager = new ModManager(
-                new GithubModRegistry("Chiv2-Community", "C2ModRegistry", HttpPakDownloader.GithubPakDownloader),
+                registryTabViewModel.Registry,
                 new List<ReleaseCoordinates>() // TODO: Load this from somewhere, or something. 
             );
 
@@ -190,7 +200,8 @@ namespace UnchainedLauncher.GUI {
                 launcherViewModel,
                 modListViewModel,
                 settingsViewModel,
-                serversTabViewModel
+                serversTabViewModel,
+                registryTabViewModel
             );
 
             return new MainWindow(mainWindowViewModel);

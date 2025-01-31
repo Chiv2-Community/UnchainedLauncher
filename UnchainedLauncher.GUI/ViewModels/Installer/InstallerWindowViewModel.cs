@@ -11,7 +11,7 @@ using UnchainedLauncher.GUI.Views.Installer;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer {
     public partial class InstallerWindowViewModel : INotifyPropertyChanged {
-        private static readonly ILog logger = LogManager.GetLogger(typeof(VersionSelectionPageViewModel));
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(VersionSelectionPageViewModel));
 
         private static readonly ObservableCollection<IInstallerPageViewModel> DefaultPages = new ObservableCollection<IInstallerPageViewModel>() {
             new InstallationSelectionPageViewModel(),
@@ -20,15 +20,15 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         };
 
         public ObservableCollection<IInstallerPageViewModel> InstallerPages { get; set; }
-        public IInstallerPageViewModel CurrentPage { get { return InstallerPages[CurrentPageIndex]; } }
+        public IInstallerPageViewModel CurrentPage => InstallerPages[CurrentPageIndex];
         public int CurrentPageIndex { get; set; }
-        public string CurrentPageTitle { get { return CurrentPage.TitleText; } }
-        public string CurrentPageDescription { get { return CurrentPage.DescriptionText ?? ""; } }
+        public string CurrentPageTitle => CurrentPage.TitleText;
+        public string CurrentPageDescription => CurrentPage.DescriptionText ?? "";
 
-        public string ContinueButtonText { get { return CurrentPage.ContinueButtonText; } }
+        public string ContinueButtonText => CurrentPage.ContinueButtonText;
         public bool CanContinue { get; set; }
 
-        public string GoBackButtonText { get { return CurrentPage.GoBackButtonText ?? ""; } }
+        public string GoBackButtonText => CurrentPage.GoBackButtonText ?? "";
         public bool CanGoBack { get; set; }
         public bool Finished { get; set; }
         public Visibility WindowVisibility { get; set; }
@@ -38,7 +38,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public string DescriptionColumnWidth => DisplayDescription == Visibility.Visible ? "1*" : "0";
         public string PageColumnWidth => DisplayDescription == Visibility.Visible ? "2*" : "1*";
 
-        public ObservableCollection<InstallationTargetViewModel> InstallTargets;
+        public readonly ObservableCollection<InstallationTargetViewModel> InstallTargets;
 
 
         public InstallerWindowViewModel() : this(DefaultPages, new ObservableCollection<InstallationTargetViewModel> { new() }) { }
@@ -58,8 +58,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
             InstallerPages.ToList().ForEach(page => page.PropertyChanged += CurrentPagePropertyChanged);
 
-            logger.Info("InstallerWindowViewModel initialized");
-            logger.Info("Current Page: " + CurrentPage.TitleText);
+            Logger.Info("InstallerWindowViewModel initialized");
+            Logger.Info("Current Page: " + CurrentPage.TitleText);
 
             UpdateCurrentPage();
         }
@@ -82,7 +82,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         }
 
         private void FinalizeInstallation() {
-            logger.Info("Installer finished");
+            Logger.Info("Installer finished");
             WindowVisibility = Visibility.Hidden;
             var result = MessageBox.Show("Chivalry 2 Unchained Launcher has been installed successfully! Would you like to launch it now?", "Installation Complete", MessageBoxButton.YesNo);
             if (result == MessageBoxResult.Yes) {

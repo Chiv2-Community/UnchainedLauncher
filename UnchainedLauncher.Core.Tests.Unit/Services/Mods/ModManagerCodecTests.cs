@@ -2,12 +2,13 @@
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry;
+using UnchainedLauncher.Core.Tests.Unit.Utilities;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
     public class ModManagerCodecTests : CodecTestBase<ModManager> {
-        private static readonly IModRegistry _registry = LocalModRegistryFactory.DefaultModRegistry;
+        private static readonly IModRegistry Registry = LocalModRegistryFactory.DefaultModRegistry;
 
-        public ModManagerCodecTests() : base(new ModManagerCodec(_registry)) { }
+        public ModManagerCodecTests() : base(new ModManagerCodec(Registry)) { }
 
         [Fact]
         public void StandardModManager_SerializeAndDeserialize_PreservesData() {
@@ -17,22 +18,22 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
                 new ReleaseCoordinates("AnotherOrg", "AnotherRepo", "2.0.0")
             };
 
-            var originalManager = new ModManager(_registry, enabledMods);
+            var originalManager = new ModManager(Registry, enabledMods);
 
             VerifyCodecRoundtrip(originalManager, manager => {
                 manager.EnabledModReleaseCoordinates.Should().BeEquivalentTo(enabledMods);
-                manager.Registry.Should().BeSameAs(_registry);
+                manager.Registry.Should().BeSameAs(Registry);
             });
         }
 
         [Fact]
         public void ModManager_SerializeAndDeserialize_PreservesEmptyEnabledMods() {
             var enabledMods = Array.Empty<ReleaseCoordinates>();
-            var originalManager = new ModManager(_registry, enabledMods);
+            var originalManager = new ModManager(Registry, enabledMods);
 
             VerifyCodecRoundtrip(originalManager, manager => {
                 manager.EnabledModReleaseCoordinates.Should().BeEmpty();
-                manager.Registry.Should().BeSameAs(_registry);
+                manager.Registry.Should().BeSameAs(Registry);
             });
         }
     }

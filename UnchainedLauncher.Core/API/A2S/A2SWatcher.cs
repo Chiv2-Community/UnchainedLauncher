@@ -7,33 +7,33 @@ namespace UnchainedLauncher.Core.API.A2S {
     /// </summary>
     [AddINotifyPropertyChangedInterface]
     public class A2SWatcher : IDisposable {
-        public delegate Task OnA2SReceived(A2sInfo info);
-        private readonly OnA2SReceived OnReceived;
-        private readonly PeriodicRunner runner;
-        public Exception? LastException => runner.LastException;
-        public A2sInfo? LastA2sInfo { get; private set; }
+        public delegate Task OnA2SReceived(A2SInfo info);
+        private readonly OnA2SReceived _onReceived;
+        private readonly PeriodicRunner _runner;
+        public Exception? LastException => _runner.LastException;
+        public A2SInfo? LastA2SInfo { get; private set; }
         // TODO: add a task completion thing to this
         // so that other things can get async tasks that
         // complete when this becomes true.
         // this being true doesn't actually garuntee anything, though,
         // so doing that might just be a TOCTOU factory
-        public bool A2sOk { get; private set; }
-        private readonly IA2S source;
-        private bool disposedValue;
+        public bool A2SOk { get; private set; }
+        private readonly IA2S _source;
+        private bool _disposedValue;
         public readonly TimeSpan PollingInterval;
         public A2SWatcher(IA2S source, OnA2SReceived action, int intervalMillis = 1000) {
-            this.source = source;
-            A2sOk = false;
-            OnReceived = action;
+            this._source = source;
+            A2SOk = false;
+            _onReceived = action;
             PollingInterval = TimeSpan.FromMilliseconds(intervalMillis);
-            runner = new PeriodicRunner(FetchA2S, OnException);
+            _runner = new PeriodicRunner(FetchA2S, OnException);
         }
 
         private async Task<TimeSpan> FetchA2S() {
-            var newInfo = await source.InfoAsync();
-            LastA2sInfo = newInfo;
-            A2sOk = true;
-            await OnReceived(newInfo);
+            var newInfo = await _source.InfoAsync();
+            LastA2SInfo = newInfo;
+            A2SOk = true;
+            await _onReceived(newInfo);
             return PollingInterval;
         }
 
@@ -47,19 +47,19 @@ namespace UnchainedLauncher.Core.API.A2S {
             // retry the task and spam the endpoint. See the comment on
             // the PeriodicRunner on returning a nullable TimeSpan instead
             // of bool to do precisely this.
-            A2sOk = false;
+            A2SOk = false;
             await Task.Delay(PollingInterval);
             // keep going even if there's exceptions
             return true;
         }
 
         protected virtual void Dispose(bool disposing) {
-            if (!disposedValue) {
+            if (!_disposedValue) {
                 if (disposing) {
-                    runner.Dispose();
+                    _runner.Dispose();
                 }
-                A2sOk = false;
-                disposedValue = true;
+                A2SOk = false;
+                _disposedValue = true;
             }
         }
 

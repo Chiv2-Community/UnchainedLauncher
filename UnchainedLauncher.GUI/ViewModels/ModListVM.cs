@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Utilities;
 
@@ -18,8 +19,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
     public partial class ModListVM : INotifyPropertyChanged {
-        private readonly ILog logger = LogManager.GetLogger(nameof(ModListVM));
-        private readonly IModManager ModManager;
+        private readonly ILog _logger = LogManager.GetLogger(nameof(ModListVM));
+        private readonly IModManager _modManager;
         private ObservableCollection<ModVM> UnfilteredModView { get; }
         private ObservableCollection<ModFilter> ModFilters { get; }
 
@@ -29,7 +30,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private IUserDialogueSpawner UserDialogueSpawner { get; }
 
         public ModListVM(IModManager modManager, IUserDialogueSpawner userDialogueSpawner) {
-            this.ModManager = modManager;
+            this._modManager = modManager;
 
             UserDialogueSpawner = userDialogueSpawner;
 
@@ -47,12 +48,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
         [RelayCommand]
         private async Task RefreshModList() {
             try {
-                logger.Info("Refreshing mod list...");
-                var (errors, updatedModsList) = await ModManager.UpdateModsList();
+                _logger.Info("Refreshing mod list...");
+                var (errors, updatedModsList) = await _modManager.UpdateModsList();
 
                 if (errors.Any()) {
-                    logger.Warn("Errors encountered while refreshing mod list:");
-                    errors.ToList().ForEach(error => logger.Warn(error));
+                    _logger.Warn("Errors encountered while refreshing mod list:");
+                    errors.ToList().ForEach(error => _logger.Warn(error));
                     UserDialogueSpawner.DisplayMessage("Errors encountered while refreshing mod list. Check the logs for details.");
                 }
                 UnfilteredModView.Clear();
@@ -61,17 +62,17 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     UnfilteredModView.Add(
                         new ModVM(
                             mod,
-                            ModManager.GetCurrentlyEnabledReleaseForMod(mod),
-                            ModManager
+                            _modManager.GetCurrentlyEnabledReleaseForMod(mod),
+                            _modManager
                         )
                     )
                 );
 
-                logger.Info("Mod list refreshed.");
+                _logger.Info("Mod list refreshed.");
 
             }
             catch (Exception ex) {
-                logger.Error(ex);
+                _logger.Error(ex);
                 UserDialogueSpawner.DisplayMessage(ex.ToString());
             }
         }
@@ -81,14 +82,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
             try {
                 await RefreshModList();
 
-                logger.Info("Checking for Mod updates...");
+                _logger.Info("Checking for Mod updates...");
 
                 IEnumerable<(ModVM, UpdateCandidate)> pendingUpdates =
                     DisplayMods
                         .Map(displayMod => displayMod.CheckForUpdate().Map(update => (displayMod, update)))
                         .Collect(x => x.AsEnumerable());
 
-                UserDialogueChoice? res =
+                var res =
                     UserDialogueSpawner.DisplayUpdateMessage(
                         "Update Mods?",
                         $"Mod updates available.",
@@ -119,12 +120,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         MessageBox.Show($"Failed to enable mods: {failureNames}\n\nCheck the logs for more details.");
                     }
 
-                    logger.Info("Mods updated successfully");
+                    _logger.Info("Mods updated successfully");
                     MessageBox.Show("Mods updated successfully");
                 }
             }
             catch (Exception ex) {
-                logger.Error(ex.ToString());
+                _logger.Error(ex.ToString());
                 MessageBox.Show("Failed to check for updates. Check the logs for details.");
             }
         }
@@ -143,7 +144,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             switch (e.Action) {
                 case NotifyCollectionChangedAction.Add:
                     foreach (Mod mod in e.NewItems!) {
-                        this.UnfilteredModView.Add(new ModVM(mod, ModManager.GetCurrentlyEnabledReleaseForMod(mod), ModManager));
+                        this.UnfilteredModView.Add(new ModVM(mod, _modManager.GetCurrentlyEnabledReleaseForMod(mod), _modManager));
                     }
                     break;
 

@@ -1,6 +1,5 @@
 ﻿using LanguageExt;
 using System.Diagnostics;
-using UnchainedLauncher.Core.Processes;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
     public interface IOfficialChivalry2Launcher {

@@ -10,7 +10,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
     public record PublicPorts(
         int Game,
         int Ping,
-        int A2s
+        int A2S
     );
 
     public record ServerBrowserMod(string Name, string Organization, string Version);
@@ -34,13 +34,13 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
         public int PlayerCount { get; set; } = 0;
         public int MaxPlayers { get; set; } = 0;
         public ServerInfo() { }
-        public ServerInfo(C2ServerInfo info, A2sInfo a2s) : base(info) {
-            Update(a2s);
+        public ServerInfo(C2ServerInfo info, A2SInfo a2S) : base(info) {
+            Update(a2S);
         }
 
-        public bool Update(A2sInfo a2s) {
-            bool wasChanged = (MaxPlayers, PlayerCount, CurrentMap) != (a2s.MaxPlayers, a2s.Players, a2s.Map);
-            (MaxPlayers, PlayerCount, CurrentMap) = (a2s.MaxPlayers, a2s.Players, a2s.Map);
+        public bool Update(A2SInfo a2S) {
+            var wasChanged = (MaxPlayers, PlayerCount, CurrentMap) != (a2S.MaxPlayers, a2S.Players, a2S.Map);
+            (MaxPlayers, PlayerCount, CurrentMap) = (a2S.MaxPlayers, a2S.Players, a2S.Map);
             return wasChanged;
         }
     }
@@ -115,38 +115,38 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
     /// IS thread-safe
     /// </summary>
     public class ServerBrowser : IServerBrowser {
-        public const string KEY_HEADER = "x-chiv2-server-browser-key";
-        protected HttpClient HttpClient;
-        protected Uri backend_uri;
-        private bool disposedValue;
-        protected static readonly JsonSerializerOptions sOptions = new() {
+        public const string KeyHeader = "x-chiv2-server-browser-key";
+        protected readonly HttpClient HttpClient;
+        protected readonly Uri BackendUri;
+        private bool _disposedValue;
+        protected static readonly JsonSerializerOptions SOptions = new() {
             PropertyNamingPolicy = new SnakeCaseNamingPolicy(),
             IncludeFields = true
         };
         public TimeSpan TimeOutMillis {
-            get { return HttpClient.Timeout; }
-            set { HttpClient.Timeout = value; }
+            get => HttpClient.Timeout;
+            set => HttpClient.Timeout = value;
         }
 
-        public string Host => backend_uri.Host;
+        public string Host => BackendUri.Host;
 
-        public ServerBrowser(Uri backend_uri, HttpClient client, int TimeOutMillis = 4000) {
+        public ServerBrowser(Uri backendUri, HttpClient client, int timeOutMillis = 4000) {
             HttpClient = client;
-            client.Timeout = TimeSpan.FromMilliseconds(TimeOutMillis);
-            this.TimeOutMillis = TimeSpan.FromMilliseconds(TimeOutMillis);
-            this.backend_uri = backend_uri;
+            client.Timeout = TimeSpan.FromMilliseconds(timeOutMillis);
+            this.TimeOutMillis = TimeSpan.FromMilliseconds(timeOutMillis);
+            this.BackendUri = backendUri;
         }
 
-        public ServerBrowser(Uri backend_uri, int TimeOutMillis = 4000) : this(backend_uri, new HttpClient(), TimeOutMillis) { }
+        public ServerBrowser(Uri backendUri, int timeOutMillis = 4000) : this(backendUri, new HttpClient(), timeOutMillis) { }
 
         public async Task<RegisterServerResponse> RegisterServerAsync(string localIp, ServerInfo info, CancellationToken? ct = null) {
             var reqContent = new RegisterServerRequest(info, localIp);
-            var content = JsonContent.Create(reqContent, options: sOptions);
-            var httpResponse = await HttpClient.PostAsync(backend_uri + "/servers", content, ct ?? CancellationToken.None);
+            var content = JsonContent.Create(reqContent, options: SOptions);
+            var httpResponse = await HttpClient.PostAsync(BackendUri + "/servers", content, ct ?? CancellationToken.None);
             try {
                 var res = await httpResponse.EnsureSuccessStatusCode()
                             .Content
-                            .ReadFromJsonAsync<RegisterServerResponse>(sOptions, ct ?? CancellationToken.None);
+                            .ReadFromJsonAsync<RegisterServerResponse>(SOptions, ct ?? CancellationToken.None);
                 if (res == null) {
                     throw new InvalidDataException("Failed to parse RegisterServer response from server");
                 }
@@ -162,13 +162,13 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
         public async Task<double> UpdateServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null) {
 
             var reqContent = new UpdateServerRequest(info.PlayerCount, info.MaxPlayers, info.CurrentMap);
-            var content = JsonContent.Create(reqContent, options: sOptions);
-            content.Headers.Add(KEY_HEADER, key);
-            var httpResponse = await HttpClient.PutAsync(backend_uri + $"/servers/{info.UniqueId}", content, ct ?? CancellationToken.None);
+            var content = JsonContent.Create(reqContent, options: SOptions);
+            content.Headers.Add(KeyHeader, key);
+            var httpResponse = await HttpClient.PutAsync(BackendUri + $"/servers/{info.UniqueId}", content, ct ?? CancellationToken.None);
             try {
                 var res = await httpResponse.EnsureSuccessStatusCode()
                             .Content
-                            .ReadFromJsonAsync<UpdateServerResponse>(sOptions, ct ?? CancellationToken.None);
+                            .ReadFromJsonAsync<UpdateServerResponse>(SOptions, ct ?? CancellationToken.None);
                 if (res == null) {
                     throw new InvalidDataException("Failed to parse Update response from server");
                 }
@@ -185,12 +185,12 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
 
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
             var content = new StringContent("");
-            content.Headers.Add(KEY_HEADER, key);
-            var httpResponse = await HttpClient.PostAsync(backend_uri + $"/servers/{info.UniqueId}/heartbeat", content, ct ?? CancellationToken.None);
+            content.Headers.Add(KeyHeader, key);
+            var httpResponse = await HttpClient.PostAsync(BackendUri + $"/servers/{info.UniqueId}/heartbeat", content, ct ?? CancellationToken.None);
             try {
                 var res = await httpResponse.EnsureSuccessStatusCode()
                             .Content
-                            .ReadFromJsonAsync<UpdateServerResponse>(sOptions, ct ?? CancellationToken.None);
+                            .ReadFromJsonAsync<UpdateServerResponse>(SOptions, ct ?? CancellationToken.None);
                 if (res == null) {
                     throw new InvalidDataException("Failed to parse Heartbeat response from server");
                 }
@@ -205,8 +205,8 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
 
         public async Task DeleteServerAsync(UniqueServerInfo info, string key, CancellationToken? ct = null) {
             //var reqContent = new UpdateServerRequest(info.playerCount, info.maxPlayers, info.currentMap);
-            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Delete, backend_uri + $"/servers/{info.UniqueId}");
-            request.Headers.Add(KEY_HEADER, key);
+            var request = new HttpRequestMessage(HttpMethod.Delete, BackendUri + $"/servers/{info.UniqueId}");
+            request.Headers.Add(KeyHeader, key);
             //the DeleteAsync method does not take a content parameter.
             //that's a problem, since that's the only way to set headers
             //without setting state on the HttpClient
@@ -214,12 +214,12 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
         }
 
         protected virtual void Dispose(bool disposing) {
-            if (!disposedValue) {
+            if (!_disposedValue) {
                 if (disposing) {
                     HttpClient.Dispose();
                 }
 
-                disposedValue = true;
+                _disposedValue = true;
             }
         }
 
@@ -237,8 +237,8 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
     /// with a server browser in production.
     /// </summary>
     public class NullServerBrowser : IServerBrowser {
-        public double RefreshFrequency;
-        private bool disposedValue;
+        public readonly double RefreshFrequency;
+        private bool _disposedValue;
 
         public NullServerBrowser(double refreshFrequency = 60) {
             RefreshFrequency = refreshFrequency;
@@ -271,8 +271,8 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
         // we don't actually have anything to dispose, but we still have to
         // satisfy the interface
         protected virtual void Dispose(bool disposing) {
-            if (!disposedValue) {
-                disposedValue = true;
+            if (!_disposedValue) {
+                _disposedValue = true;
             }
         }
 

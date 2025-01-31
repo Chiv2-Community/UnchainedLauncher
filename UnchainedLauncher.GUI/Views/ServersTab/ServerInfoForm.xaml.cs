@@ -27,7 +27,7 @@ namespace UnchainedLauncher.GUI.Views {
     public class IPAddressValidationRule : ValidationRule {
         public override ValidationResult Validate(object value, CultureInfo cultureInfo) {
             try {
-                IPAddress addr = IPAddress.Parse((string)value);
+                var addr = IPAddress.Parse((string)value);
                 return ValidationResult.ValidResult;
             }
             catch {

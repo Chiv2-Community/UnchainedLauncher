@@ -1,17 +1,15 @@
 ﻿using LanguageExt;
-using LanguageExt.Common;
 using System.Collections.Immutable;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods {
 
     public record UpdateCandidate(Release CurrentlyEnabled, Release AvailableUpdate) {
-        public static Option<UpdateCandidate> CreateIfNewer(Release CurrentlyEnabled, Release AvailableUpdate) {
-            return (AvailableUpdate.Version != null && AvailableUpdate.Version.ComparePrecedenceTo(CurrentlyEnabled.Version) > 0)
-                ? Some(new UpdateCandidate(CurrentlyEnabled, AvailableUpdate))
+        public static Option<UpdateCandidate> CreateIfNewer(Release currentlyEnabled, Release availableUpdate) {
+            return (availableUpdate.Version != null && availableUpdate.Version.ComparePrecedenceTo(currentlyEnabled.Version) > 0)
+                ? Some(new UpdateCandidate(currentlyEnabled, availableUpdate))
                 : None;
         }
     }
@@ -60,19 +58,17 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// Enabling an already enabled mod results in a noop
         /// Enabling a different version for an already enabled mod will disable the currently enabled version
         /// </summary>
-        /// <param name="release">The release to enable</param>
-        /// <param name="progress">An optional progress indicator. Progress in percentage will be reported to the provided IProgress instance.</param>
-        /// <param name="cancellationToken">An optional cancellation token to stop any downloads</param>
+        /// <param name="coordinates"></param>
         /// <returns>bool indicating whether or not the operation was successful</returns>
         bool EnableModRelease(ReleaseCoordinates coordinates);
 
         /// <summary>
         /// Enables the latest version of a given mod if it is disabled. This may update some local metadata that the
         /// mod manager uses to keep track of what is enabled, but will not actually download the mod files.
-        ///
+        /// 
         /// Enabling an already enabled mod results in a noop
         /// </summary>
-        /// <param name="release">The release to disable</param>
+        /// <param name="identifier"></param>
         /// <returns>bool indicating whether or not the operation was successful</returns>
         bool EnableMod(ModIdentifier identifier);
 
@@ -80,10 +76,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <summary>
         /// Disables the given mod if it is enabled. This may update some local metadata that the mod manager uses to
         /// keep track of what is enabled, but will not actually delete the mod files.
-        ///
+        /// 
         /// Disabling an already disabled mod results in a noop
         /// </summary>
-        /// <param name="release">The release to disable</param>
+        /// <param name="identifier"></param>
         /// <returns>bool indicating whether or not the operation was successful</returns>
         bool DisableMod(ModIdentifier identifier);
 
@@ -98,7 +94,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         Task<GetAllModsResult> UpdateModsList();
     }
 
-    public static class IModManagerExtensions {
+    public static class ModManagerExtensions {
         public static bool EnableMod(this IModManager modManager, Mod mod) =>
             modManager.EnableMod(ModIdentifier.FromMod(mod));
 
@@ -220,100 +216,6 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     (aggregateSeenDependencies, newRelease) =>
                         modManager.AggregateUniqueDependencies(ReleaseCoordinates.FromRelease(newRelease), aggregateSeenDependencies)
                 );
-        }
-
-
-    }
-
-    /// <summary>
-    /// The failure domain of downloading a mod.
-    /// 
-    /// Do not invoke the constructors directly, use the static methods instead.
-    /// </summary>
-    public abstract record DownloadModFailure(string Message, int Code, Option<Error> Inner = default) : Expected(Message, Code, Inner) {
-
-        public record ModPakStreamAcquisitionFailureWrapper(ModPakStreamAcquisitionFailure Failure) : DownloadModFailure(Failure.Message, Failure.Code, Failure.Inner);
-        public record HashFailureWrapper(HashFailure Failure) : DownloadModFailure(Failure.Message, Failure.Code, Failure.Inner);
-        public record HashMismatchFailure(Release Release, Option<string> InvalidHash) : DownloadModFailure($"Mismatched hashes. Got '{InvalidHash.IfNone("None")}', Expected '{Release.ReleaseHash}'", 4001);
-        public record ModNotFoundFailure(Release Release) : DownloadModFailure($"Mod release verion '{Release.Tag}' for '{Release.Manifest.Name}' not found. Please contact the author.", 4002);
-        public record WriteFailure(string Path, Error Failure) : DownloadModFailure($"Failed to write mod to path '{Path}'. Reason: {Failure.Message}", Failure.Code, Some(Failure));
-        public record AlreadyDownloadedFailure(Release Release) : DownloadModFailure($"Mod '{Release.Manifest.Name} {Release.Tag}' already downloaded. Cache may be corrupt.", 4003);
-
-        public DownloadModFailure Widen => this;
-        public static DownloadModFailure Wrap(ModPakStreamAcquisitionFailure failure) => new ModPakStreamAcquisitionFailureWrapper(failure).Widen;
-        public static DownloadModFailure Wrap(HashFailure failure) => new HashFailureWrapper(failure).Widen;
-
-        public static DownloadModFailure HashMismatch(Release release, Option<string> invalidHash) => new HashMismatchFailure(release, invalidHash).Widen;
-        public static DownloadModFailure ModNotFound(Release release) => new ModNotFoundFailure(release).Widen;
-        public static DownloadModFailure WriteFailed(string path, Error failure) => new WriteFailure(path, failure);
-        public static DownloadModFailure AlreadyDownloaded(Release release) => new AlreadyDownloadedFailure(release);
-
-        public T Match<T>(
-            Func<ModPakStreamAcquisitionFailure, T> ModPakStreamAcquisitionFailure,
-            Func<HashFailure, T> HashFailure,
-            Func<HashMismatchFailure, T> HashMismatchFailure,
-            Func<ModNotFoundFailure, T> ModNotFoundFailure,
-            Func<WriteFailure, T> WriteFailure,
-            Func<AlreadyDownloadedFailure, T> AlreadyDownloadedFailure
-        ) => this switch {
-            ModPakStreamAcquisitionFailureWrapper wrapper => ModPakStreamAcquisitionFailure(wrapper.Failure),
-            HashFailureWrapper wrapper => HashFailure(wrapper.Failure),
-            HashMismatchFailure mismatch => HashMismatchFailure(mismatch),
-            ModNotFoundFailure notFound => ModNotFoundFailure(notFound),
-            WriteFailure write => WriteFailure(write),
-            AlreadyDownloadedFailure alreadyDownloaded => AlreadyDownloadedFailure(alreadyDownloaded),
-            _ => throw new Exception("Unreachable")
-        };
-    }
-
-    /// <summary>
-    /// The failure domain of disabling a mod.
-    /// 
-    /// Do not invoke the constructors directly, use the static methods instead.
-    /// </summary>
-    public abstract record DisableModFailure(string Message, int Code, Option<Error> Inner = default) : Expected(Message, Code, Inner) {
-        public record DeleteFailure(string Path, Error Failure) : DisableModFailure($"Failed to delete file at '{Path}'.  Reason: {Failure.Message}", Failure.Code, Some(Failure));
-        public record ModNotEnabledFailure(Release Release) : DisableModFailure($"Attempted to disable a mod ('{Release.Manifest.Name}') that is not enabled. Cache may be corrupt.", 4004);
-
-        public static DisableModFailure DeleteFailed(string path, Error failure) => new DeleteFailure(path, failure);
-        public static DisableModFailure ModNotEnabled(Release release) => new ModNotEnabledFailure(release);
-
-        public DisableModFailure Widen => this;
-
-        public T Match<T>(
-            Func<DeleteFailure, T> DeleteFailure,
-            Func<ModNotEnabledFailure, T> ModNotEnabledFailure
-        ) => this switch {
-            DeleteFailure delete => DeleteFailure(delete),
-            ModNotEnabledFailure notEnabled => ModNotEnabledFailure(notEnabled),
-            _ => throw new Exception("Unreachable")
-        };
-    }
-
-    /// <summary>
-    /// The failure domain of enabling a mod.
-    /// 
-    /// Do not invoke the constructors directly, use the static methods instead.
-    /// </summary>
-    public abstract record EnableModFailure(string Message, int Code, Option<Error> Inner = default) : Expected(Message, Code, Inner) {
-        public record DownloadModFailureWrapper(DownloadModFailure Failure) : EnableModFailure(Failure.Message, Failure.Code, Failure.Inner);
-        public record DisableModFailureWrapper(DisableModFailure Failure) : EnableModFailure(Failure.Message, Failure.Code, Failure.Inner);
-
-
-        public static EnableModFailure Wrap(DownloadModFailure failure) => new DownloadModFailureWrapper(failure);
-        public static EnableModFailure Wrap(DisableModFailure failure) => new DisableModFailureWrapper(failure);
-
-        public EnableModFailure Widen => this;
-
-        public T Match<T>(
-            Func<DownloadModFailure, T> DownloadModFailure,
-            Func<DisableModFailure, T> DisableModFailure
-        ) {
-            return this switch {
-                DownloadModFailureWrapper wrapper => DownloadModFailure(wrapper.Failure),
-                DisableModFailureWrapper wrapper => DisableModFailure(wrapper.Failure),
-                _ => throw new Exception("Unreachable")
-            };
         }
     }
 }

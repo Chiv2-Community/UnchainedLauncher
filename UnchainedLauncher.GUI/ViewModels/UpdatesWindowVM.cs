@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
-using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.Services;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     public partial class UpdatesWindowVM : INotifyPropertyChanged {

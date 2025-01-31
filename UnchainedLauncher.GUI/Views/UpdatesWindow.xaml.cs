@@ -36,7 +36,7 @@ namespace UnchainedLauncher.GUI.Views {
             var window = new UpdatesWindow(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, updates);
             window.ShowDialog();
 
-            MessageBoxResult result = window.ViewModel.Result;
+            var result = window.ViewModel.Result;
             logger.Info("User Selects: " + result);
             return result;
         }

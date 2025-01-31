@@ -7,9 +7,9 @@ using UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry;
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
     internal class ModManagerFactsFixture {
-        public IModManager ModManager;
-        public ModEnabledHandler? ModEnabledHandler;
-        public ModDisabledHandler? ModDisabledHandler;
+        public readonly IModManager ModManager;
+        public readonly ModEnabledHandler? ModEnabledHandler;
+        public readonly ModDisabledHandler? ModDisabledHandler;
         public int ModEnabledCallCount;
         public int ModDisabledCallCount;
         public Release? LastEnabledRelease;

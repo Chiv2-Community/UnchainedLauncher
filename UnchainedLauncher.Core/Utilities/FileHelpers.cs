@@ -5,22 +5,22 @@ using log4net;
 namespace UnchainedLauncher.Core.Utilities {
     using static LanguageExt.Prelude;
     public static class FileHelpers {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(FileHelpers));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(FileHelpers));
 
-        public const string USER_LOCK_SUFFIX = ".USER_LOCK";
+        public const string UserLockSuffix = ".USER_LOCK";
 
         public static bool IsFileLocked(string filePath) {
-            return File.Exists(Path.Combine(Path.GetDirectoryName(filePath)!, USER_LOCK_SUFFIX)) ||
-                   File.Exists(filePath + USER_LOCK_SUFFIX);
+            return File.Exists(Path.Combine(Path.GetDirectoryName(filePath)!, UserLockSuffix)) ||
+                   File.Exists(filePath + UserLockSuffix);
         }
 
         public static bool DeleteFiles(IEnumerable<string> filePaths) {
-            logger.Info("Deleting files: " + string.Join("\n    ", filePaths));
+            Logger.Info("Deleting files: " + string.Join("\n    ", filePaths));
             // Delete all files in a transaction.
             // If any of them are locked, don't delete any of them.
             if (filePaths.Any(IsFileLocked)) {
                 var lockedFiles = filePaths.Where(IsFileLocked);
-                logger.Warn($"Not deleting files because some of them are locked:\n" + string.Join("\n    ", lockedFiles));
+                Logger.Warn($"Not deleting files because some of them are locked:\n" + string.Join("\n    ", lockedFiles));
                 return false;
             }
 
@@ -33,12 +33,12 @@ namespace UnchainedLauncher.Core.Utilities {
 
         public static bool DeleteFile(string filePath) {
             if (IsFileLocked(filePath)) {
-                logger.Warn($"Not deleting file because it is locked: {filePath}");
+                Logger.Warn($"Not deleting file because it is locked: {filePath}");
                 return false;
             }
 
             if (File.Exists(filePath)) {
-                logger.Info("Deleting file: " + filePath);
+                Logger.Info("Deleting file: " + filePath);
                 File.Delete(filePath);
             }
 
@@ -46,9 +46,9 @@ namespace UnchainedLauncher.Core.Utilities {
         }
 
         public static bool DeleteDirectory(string filePath) {
-            logger.Info("Deleting directory: " + filePath);
+            Logger.Info("Deleting directory: " + filePath);
             if (!Directory.Exists(filePath)) {
-                logger.Warn($"Not deleting directory because it doesn't exist: {filePath}");
+                Logger.Warn($"Not deleting directory because it doesn't exist: {filePath}");
                 return false;
             }
 
@@ -63,12 +63,12 @@ namespace UnchainedLauncher.Core.Utilities {
 
         // Currently unused, but maybe someday.
         public static void LockFile(string filePath) {
-            File.Create(Path.Combine(Path.GetDirectoryName(filePath)!, USER_LOCK_SUFFIX)).Close();
+            File.Create(Path.Combine(Path.GetDirectoryName(filePath)!, UserLockSuffix)).Close();
         }
 
         // Currently unused, but maybe someday.
         public static void UnlockFile(string filePath) {
-            File.Delete(Path.Combine(Path.GetDirectoryName(filePath)!, USER_LOCK_SUFFIX));
+            File.Delete(Path.Combine(Path.GetDirectoryName(filePath)!, UserLockSuffix));
         }
 
         public static Either<HashFailure, string> Sha512(string filePath) {

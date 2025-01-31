@@ -24,7 +24,7 @@ namespace UnchainedLauncher.GUI.Views.Installer {
         private async void HandleDataContextChanged() {
             if (DataContext == null || DataContext is not VersionSelectionPageViewModel) return;
 
-            VersionSelectionPageViewModel vm = (VersionSelectionPageViewModel)DataContext;
+            var vm = (VersionSelectionPageViewModel)DataContext;
 
             // We need to act as though SelectedVersion changed, because we have a changed ViewModel
             await HandleSelectedVersionChanged(vm);
@@ -69,7 +69,7 @@ namespace UnchainedLauncher.GUI.Views.Installer {
             VersionComboBox.Dispatcher.BeginInvoke(() => {
                 if (VersionComboBox.IsDropDownOpen) {
                     if (VersionComboBox.Template.FindName("DropDownScrollViewer", VersionComboBox) is ScrollViewer scrollViewer) {
-                        double targetOffset = scrollViewer.VerticalOffset - scrollViewer.ViewportHeight / 2;
+                        var targetOffset = scrollViewer.VerticalOffset - scrollViewer.ViewportHeight / 2;
                         scrollViewer.ScrollToVerticalOffset(targetOffset);
                     }
                 }

@@ -1,6 +1,6 @@
 ﻿using Semver;
 
-namespace UnchainedLauncher.Core.Utilities {
+namespace UnchainedLauncher.Core.Services {
     public interface IVersionExtractor {
         /// <summary>
         /// Provided some identifier (like a file path), output the SemVersion of the associated object.

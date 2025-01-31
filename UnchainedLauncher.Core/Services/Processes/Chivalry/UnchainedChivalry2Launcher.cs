@@ -2,7 +2,6 @@ using LanguageExt;
 using LanguageExt.UnsafeValueAccess;
 using log4net;
 using System.Diagnostics;
-using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using UnchainedLauncher.Core.Utilities;
 
@@ -10,7 +9,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
     using static Prelude;
 
     public class UnchainedChivalry2Launcher : IUnchainedChivalry2Launcher {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(UnchainedLauncher));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(UnchainedLauncher));
 
         private IProcessLauncher Launcher { get; }
         private IChivalry2LaunchPreparer<ModdedLaunchOptions> LaunchPreparer { get; }
@@ -31,7 +30,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         }
 
         public async Task<Either<UnchainedLaunchFailure, Process>> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args) {
-            logger.Info("Attempting to launch modded game.");
+            Logger.Info("Attempting to launch modded game.");
 
             var updatedLaunchOpts = await LaunchPreparer.PrepareLaunch(launchOptions);
             if (updatedLaunchOpts.IsNone) {
@@ -46,23 +45,23 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
             moddedLaunchArgs = moddedLaunchArgs.Insert(offsetIndex, $" {string.Join(" ", launchOpts)} ");
 
-            logger.Info($"Launch args: {moddedLaunchArgs}");
+            Logger.Info($"Launch args: {moddedLaunchArgs}");
 
             var launchResult = Launcher.Launch(Path.Combine(InstallationRootDir, FilePaths.BinDir), moddedLaunchArgs);
 
             return launchResult.Match(
                 Left: error => {
-                    logger.Error(error);
+                    Logger.Error(error);
                     return Left(UnchainedLaunchFailure.LaunchFailed(error));
                 },
                 Right: proc => {
-                    logger.Info("Successfully launched Chivalry 2 Unchained");
-                    return InjectDLLs(proc);
+                    Logger.Info("Successfully launched Chivalry 2 Unchained");
+                    return InjectDlLs(proc);
                 }
             );
         }
 
-        private Either<UnchainedLaunchFailure, Process> InjectDLLs(Process process) {
+        private Either<UnchainedLaunchFailure, Process> InjectDlLs(Process process) {
             if (ProcessInjector.Inject(process)) return Right(process);
 
             process.Kill();

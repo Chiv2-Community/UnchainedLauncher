@@ -12,32 +12,32 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
     /// </summary>
     [AddINotifyPropertyChangedInterface]
     public class PersistentServerRegistration : IDisposable {
-        public readonly IServerBrowser browser;
+        public readonly IServerBrowser Browser;
         public readonly int HeartBeatSecondsBeforeTimeout;
         public delegate Task RegistrationDied(Exception reason);
-        private readonly RegistrationDied OnRegistrationDied;
+        private readonly RegistrationDied _onRegistrationDied;
         public bool IsDead { get; private set; }
-        private static readonly ILog logger = LogManager.GetLogger(nameof(PersistentServerRegistration));
-        private readonly PeriodicRunner Runner;
-        public Exception? LastException => Runner.LastException;
-        private bool disposedValue;
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(PersistentServerRegistration));
+        private readonly PeriodicRunner _runner;
+        public Exception? LastException => _runner.LastException;
+        private bool _disposedValue;
         public RegisterServerResponse Registration { get; private set; }
         public PersistentServerRegistration(IServerBrowser browser,
                                             RegisterServerResponse registration,
-                                            RegistrationDied? OnDeath = null,
+                                            RegistrationDied? onDeath = null,
                                             int heartBeatSecondsBeforeTimeout = 5) {
-            this.browser = browser;
+            this.Browser = browser;
             IsDead = false;
-            OnRegistrationDied = OnDeath ?? DefaultOnRegistrationDied;
+            _onRegistrationDied = onDeath ?? DefaultOnRegistrationDied;
             Registration = registration;
             HeartBeatSecondsBeforeTimeout = heartBeatSecondsBeforeTimeout;
-            Runner = new PeriodicRunner(TryHeartBeat, OnException, CalcSleepDuration(registration.RefreshBefore));
+            _runner = new PeriodicRunner(TryHeartBeat, OnException, CalcSleepDuration(registration.RefreshBefore));
         }
 
         private async Task<bool> OnException(Exception ex) {
             IsDead = true;
             // notify anyone who cares that this registration is dead
-            await OnRegistrationDied(ex);
+            await _onRegistrationDied(ex);
             return false;
         }
 
@@ -51,7 +51,7 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
             return TimeSpan.FromSeconds(refreshBefore - DateTimeOffset.Now.ToUnixTimeSeconds() - HeartBeatSecondsBeforeTimeout);
         }
 
-        public async Task UpdateRegistrationA2s(A2sInfo info) {
+        public async Task UpdateRegistrationA2S(A2SInfo info) {
             var shouldPush = Registration.Server.Update(info);
             if (shouldPush) {
                 await UpdateRegistration(Registration.Server);
@@ -59,56 +59,56 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
         }
 
         public async Task UpdateRegistration(UniqueServerInfo info) {
-            if (disposedValue) {
-                logger.Error($"Attemped to update disposed server '{Registration.Server.Name}'");
+            if (_disposedValue) {
+                Logger.Error($"Attemped to update disposed server '{Registration.Server.Name}'");
                 throw new ObjectDisposedException("Attempted to update a disposed server");
             }
 
             try {
-                await browser.UpdateServerAsync(info, Registration.Key);
+                await Browser.UpdateServerAsync(info, Registration.Key);
             }
             catch (Exception ex) {
-                logger.Error($"Server '${Registration.Server.Name}' failed to update: {ex.Message}");
+                Logger.Error($"Server '${Registration.Server.Name}' failed to update: {ex.Message}");
                 throw;
             }
         }
 
         protected async Task<TimeSpan> TryHeartBeat() {
             try {
-                var refreshBefore = await browser.HeartbeatAsync(Registration.Server, Registration.Key);
+                var refreshBefore = await Browser.HeartbeatAsync(Registration.Server, Registration.Key);
                 // update RefreshBefore for visibility
                 Registration = Registration with { RefreshBefore = refreshBefore };
                 return CalcSleepDuration(refreshBefore);
             }
             catch (HttpRequestException e) {
                 if (e.StatusCode == HttpStatusCode.NotFound) {
-                    logger.Error($"Server '{Registration.Server.Name}' got HTTP 404. Probably a missed heartbeat.", e);
+                    Logger.Error($"Server '{Registration.Server.Name}' got HTTP 404. Probably a missed heartbeat.", e);
                     throw;
                 }
                 else {
-                    logger.Error($"Server '{Registration.Server.Name}' got status code {e.StatusCode}.", e);
+                    Logger.Error($"Server '{Registration.Server.Name}' got status code {e.StatusCode}.", e);
                     // re-throw exception
                     throw;
                 }
             }
             catch (TimeoutException e) {
-                logger.Error($"Server '{Registration.Server.Name}' timed out.", e);
+                Logger.Error($"Server '{Registration.Server.Name}' timed out.", e);
                 throw;
             }
         }
 
         protected virtual void Dispose(bool disposing) {
-            if (!disposedValue) {
+            if (!_disposedValue) {
                 try {
                     IsDead = true;
-                    Runner.Dispose();
-                    browser.DeleteServerAsync(Registration.Server, Registration.Key).Wait();
+                    _runner.Dispose();
+                    Browser.DeleteServerAsync(Registration.Server, Registration.Key).Wait();
                 }
                 catch (Exception e) {
-                    logger.Error($"Failed to de-register server '{Registration.Server.Name}' from backend: {e.Message}");
+                    Logger.Error($"Failed to de-register server '{Registration.Server.Name}' from backend: {e.Message}");
                 }
 
-                disposedValue = true;
+                _disposedValue = true;
             }
         }
 

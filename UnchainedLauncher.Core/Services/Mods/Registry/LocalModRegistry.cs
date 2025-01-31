@@ -63,7 +63,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
                     switch (manifests.Count()) {
                         case > 1:
-                            logger.Warn($"Found multiple candidates for manifests at {path}. Using the first one.");
+                            Logger.Warn($"Found multiple candidates for manifests at {path}. Using the first one.");
                             break;
                         case 0:
                             return LeftAsync<RegistryMetadataException, string>(RegistryMetadataException.NotFound(modId, Some(Error.New("No manifests"))));

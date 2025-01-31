@@ -7,7 +7,7 @@ using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class AggregateModRegistry : IModRegistry {
-        private static readonly ILog _logger = LogManager.GetLogger(typeof(AggregateModRegistry));
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(AggregateModRegistry));
 
         public string Name =>
             "AggregateModRegistry of: \n\t" +
@@ -46,29 +46,29 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             return InternalGetModMetadata(modId, ModRegistries.ToList(), None, None).ToAsync();
 
             async Task<Either<RegistryMetadataException, Mod>> InternalGetModMetadata(
-                ModIdentifier modId,
+                ModIdentifier id,
                 List<IModRegistry> remainingRegistries,
                 Option<Mod> previousMod,
                 Option<Error> previousError) {
                 if (!remainingRegistries.Any()) {
-                    return previousMod.ToEither(() => RegistryMetadataException.NotFound(modId, previousError));
+                    return previousMod.ToEither(() => RegistryMetadataException.NotFound(id, previousError));
                 }
 
                 var currentRegistry = remainingRegistries[0];
                 var remainingRegistriesTail = remainingRegistries.Tail().ToList();
 
-                var result = await currentRegistry.GetMod(modId);
+                var result = await currentRegistry.GetMod(id);
                 return await result.Match<Task<Either<RegistryMetadataException, Mod>>>(
                     Left: async error =>
                         await InternalGetModMetadata(
-                            modId,
+                            id,
                             remainingRegistriesTail,
                             previousMod,
                             Some(error.ToErrorException().ToError())
                         ),
                     Right: async newMod =>
                         await InternalGetModMetadata(
-                            modId,
+                            id,
                             remainingRegistriesTail,
                             previousMod.Match(
                                 None: () => Some(newMod),

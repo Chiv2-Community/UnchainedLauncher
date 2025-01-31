@@ -13,12 +13,12 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public RegistryTabVM(AggregateModRegistry registry) {
             Registry = registry;
             Registries = new ObservableCollection<IModRegistryVM>();
-            pullRegistryVMs();
+            PullRegistryVMs();
         }
 
-        public void pullRegistryVMs() {
+        public void PullRegistryVMs() {
             Registries.Clear();
-            foreach (IModRegistryVM vm in Registry.ModRegistries.Map(IntoVM)) {
+            foreach (var vm in Registry.ModRegistries.Map(IntoVM)) {
                 Registries.Add(vm);
             }
         }
@@ -33,7 +33,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         [RelayCommand]
         public void AddNewGithubRegistry() {
-            GithubModRegistry ghr = new GithubModRegistry(
+            var ghr = new GithubModRegistry(
                 "Chiv2-Community",
                 "C2ModRegistry"
             );
@@ -43,7 +43,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         [RelayCommand]
         public void AddNewLocalRegistry() {
-            LocalModRegistry lmr = new LocalModRegistry("LocalRegistryPath");
+            var lmr = new LocalModRegistry("LocalRegistryPath");
 
             AddRegistry(lmr);
         }
@@ -60,9 +60,9 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         public RegistryTabVM() : this(new AggregateModRegistry()) { }
 
-        public static RegistryTabVM DEFAULT => makeDefault();
+        public static RegistryTabVM Default => MakeDefault();
 
-        private static RegistryTabVM makeDefault() {
+        private static RegistryTabVM MakeDefault() {
             var vm = new RegistryTabVM();
             vm.Registries.Add(
                 new GithubModRegistryVM(
@@ -98,7 +98,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
     public partial class GenericModRegistryVM : INotifyPropertyChanged, IModRegistryVM {
         public IModRegistry Registry { get; }
         public delegate void RequestDeletion(IModRegistryVM toDelete);
-        private RequestDeletion? _requestDeletion;
+        private readonly RequestDeletion? _requestDeletion;
 
         [RelayCommand]
         public void SelfDelete() {

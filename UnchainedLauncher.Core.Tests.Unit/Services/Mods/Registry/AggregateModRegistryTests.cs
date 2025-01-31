@@ -5,7 +5,7 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
     public class AggregateModRegistryTests {
-        private static readonly ModIdentifier TEST_MOD_IDENTIFIER =
+        private static readonly ModIdentifier TestModIdentifier =
             new ModIdentifier("Chiv2-Community", "Unchained-Mods");
 
         // These test registries have a couple of different mods, and then also some overlapping mods with both
@@ -15,7 +15,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
             LocalModRegistryFactory.DefaultModRegistry
         );
 
-        private static SortedSet<ModIdentifier> ExpectedModIdentifiers = new SortedSet<ModIdentifier>() {
+        private static SortedSet<ModIdentifier> _expectedModIdentifiers = new SortedSet<ModIdentifier>() {
             new ModIdentifier("Chiv2-Community", "Unchained-Mods"),
             new ModIdentifier("Chiv2-Community", "Test-Mod"),
         };
@@ -37,9 +37,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
 
             modCount.Should().Be(distinctModCount);
 
-            modIdentifiers.Should().ContainInOrder(ExpectedModIdentifiers);
+            modIdentifiers.Should().ContainInOrder(_expectedModIdentifiers);
             var unchainedMods = result.Mods
-                .Find(TEST_MOD_IDENTIFIER.Matches).FirstOrDefault();
+                .Find(TestModIdentifier.Matches).FirstOrDefault();
 
             Assert.NotNull(unchainedMods);
             unchainedMods!.Releases.Select(x => x.Tag)
@@ -51,7 +51,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
         public async Task GetMod_WithDuplicateMods_ShouldReturnFirstMatchWithReleasesDeduplicatedAndMerged() {
             var aggregateRegistry = AggregateTestRegistry;
 
-            var result = await aggregateRegistry.GetMod(TEST_MOD_IDENTIFIER).ToEither();
+            var result = await aggregateRegistry.GetMod(TestModIdentifier).ToEither();
 
             result.IsRight.Should().BeTrue();
             var mod = result.RightToSeq().FirstOrDefault();
@@ -74,7 +74,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
             var aggregateRegistry = new AggregateModRegistry(registry1, registry2);
 
             try {
-                var result = await aggregateRegistry.GetMod(TEST_MOD_IDENTIFIER).ToEither();
+                var result = await aggregateRegistry.GetMod(TestModIdentifier).ToEither();
 
                 result.IsLeft.Should().BeTrue();
                 result.LeftToSeq().FirstOrDefault().Should().BeOfType<RegistryMetadataException.NotFoundException>();
@@ -90,8 +90,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
 
             var name = aggregateRegistry.Name;
 
-            name.Should().Contain(LocalModRegistryFactory.DEFAULT_MOD_MANAGER_PATH);
-            name.Should().Contain(LocalModRegistryFactory.ALTERNATE_MOD_MANAGER_PATH);
+            name.Should().Contain(LocalModRegistryFactory.DefaultModManagerPath);
+            name.Should().Contain(LocalModRegistryFactory.AlternateModManagerPath);
         }
 
         [Fact]
@@ -142,8 +142,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
 
             try {
                 var coordinates = new ReleaseCoordinates(
-                    TEST_MOD_IDENTIFIER.Org,
-                    TEST_MOD_IDENTIFIER.ModuleName,
+                    TestModIdentifier.Org,
+                    TestModIdentifier.ModuleName,
                     "v0.0.4"  // Use a version that does not exist
                 );
 

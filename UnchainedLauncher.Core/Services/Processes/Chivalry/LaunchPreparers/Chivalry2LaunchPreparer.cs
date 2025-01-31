@@ -3,7 +3,7 @@ using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
-    public static class IChivalry2LaunchPreparer {
+    public static class Chivalry2LaunchPreparer {
         public static IChivalry2LaunchPreparer<T> Create<T>(Func<T, Task<Option<T>>> f) =>
             new FunctionalChivalry2LaunchPreparer<T>(f);
 
@@ -22,7 +22,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         public Task<Option<T>> PrepareLaunch(T options);
 
         public IChivalry2LaunchPreparer<T> AndThen(IChivalry2LaunchPreparer<T> otherLaunchPreparer) {
-            return IChivalry2LaunchPreparer.Create<T>(opts => {
+            return Chivalry2LaunchPreparer.Create<T>(opts => {
                 var result =
                     from modifiedOpts in OptionalAsync(this.PrepareLaunch(opts))
                     from finalOpts in OptionalAsync(otherLaunchPreparer.PrepareLaunch(opts))
@@ -67,7 +67,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             AndThen(other.InvariantMap(toT2, toT));
 
 
-        public IChivalry2LaunchPreparer<T> AndThen(Func<T, Task<Option<T>>> f) => AndThen(IChivalry2LaunchPreparer.Create(f));
+        public IChivalry2LaunchPreparer<T> AndThen(Func<T, Task<Option<T>>> f) => AndThen(Chivalry2LaunchPreparer.Create(f));
         public IChivalry2LaunchPreparer<T> Bind(IChivalry2LaunchPreparer<T> launchPreparer) => AndThen(launchPreparer);
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         /// <typeparam name="T2"></typeparam>
         /// <returns></returns>
         public IChivalry2LaunchPreparer<T2> InvariantMap<T2>(Func<T2, T> toT, Func<T, T2> fromT) =>
-            IChivalry2LaunchPreparer.Create<T2>(async t2 => (await PrepareLaunch(toT(t2))).Map(fromT));
+            Chivalry2LaunchPreparer.Create<T2>(async t2 => (await PrepareLaunch(toT(t2))).Map(fromT));
     }
 
     public class FunctionalChivalry2LaunchPreparer<T> : IChivalry2LaunchPreparer<T> {

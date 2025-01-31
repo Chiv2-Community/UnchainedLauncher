@@ -20,11 +20,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         // TODO: This binding won't work and I've spent enough time tearing my hair out to fix it for now.
         // I think the property changed notification is not getting propagated up when LastException is changed.
         // Swapping to a different template and coming back will show the updated value in the tooltip
-        public string? LastA2sExceptionMessage => Server.RegistrationHandler.A2SWatcher.LastException?.Message;
-        public bool IsA2sOk => Server.RegistrationHandler.A2SWatcher.A2sOk;
+        public string? LastA2SExceptionMessage => Server.RegistrationHandler.A2SWatcher.LastException?.Message;
+        public bool IsA2SOk => Server.RegistrationHandler.A2SWatcher.A2SOk;
         public string RconHistory { get; set; }
 
-        private bool disposed = false;
+        private bool _disposed = false;
 
 
         public ServerVM(Chivalry2Server server) {
@@ -59,11 +59,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         // IDisposable stuff ensures timely DELETE request to backend
         // and closing of the chiv process associated with the server
         protected virtual void Dispose(bool disposing) {
-            if (!disposed && disposing) {
+            if (!_disposed && disposing) {
                 Server.Dispose();
             }
 
-            disposed = true;
+            _disposed = true;
         }
 
         public void Dispose() {

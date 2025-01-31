@@ -15,7 +15,7 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
         }
         public Option<Release> LatestRelease =>
             Prelude.Optional(
-                Releases.Where(x => x.Version.IsRelease)
+                Releases.Where(x => x.Version?.IsRelease ?? false)
                     .OrderByDescending(x => x.Version)
                     .FirstOrDefault()
             );

@@ -10,7 +10,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
     public record UpdateCandidate(Release CurrentlyEnabled, Release AvailableUpdate) {
         public static Option<UpdateCandidate> CreateIfNewer(Release CurrentlyEnabled, Release AvailableUpdate) {
-            return AvailableUpdate.Version.ComparePrecedenceTo(CurrentlyEnabled.Version) > 0
+            return (AvailableUpdate.Version != null && AvailableUpdate.Version.ComparePrecedenceTo(CurrentlyEnabled.Version) > 0)
                 ? Some(new UpdateCandidate(CurrentlyEnabled, AvailableUpdate))
                 : None;
         }

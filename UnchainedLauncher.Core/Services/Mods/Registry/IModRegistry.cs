@@ -43,7 +43,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                     (this.Org, this.ModuleName, new SemVersion(0, 0, 0)).CompareTo((other.Org, other.ModuleName,
                         otherVersion)),
                 (_, _) =>
-                    (this.Org, this.ModuleName, thisVersion!).CompareTo((other.Org, other.ModuleName, otherVersion!)),
+                    (this.Org, this.ModuleName, thisVersion).CompareTo((other.Org, other.ModuleName, otherVersion!)),
             };
         }
     }
@@ -71,7 +71,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
     /// ModRegistryPakFetcher
     /// </summary>
     public interface IModRegistry {
-        protected static readonly ILog logger = LogManager.GetLogger(nameof(IModRegistry));
+        protected static readonly ILog Logger = LogManager.GetLogger(nameof(IModRegistry));
 
         public string Name { get; }
 

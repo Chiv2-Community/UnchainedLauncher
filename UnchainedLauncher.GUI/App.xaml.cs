@@ -170,12 +170,12 @@ namespace UnchainedLauncher.GUI {
 
             // TODO: Replace this if/else chain with a real CLI
             if (envArgs.Contains("--startvanilla")) {
-                await launcherViewModel.LaunchVanilla(false);
+                await launcherViewModel.LaunchVanilla();
                 return null;
             }
 
             if (envArgs.Contains("--startmodded")) {
-                await launcherViewModel.LaunchVanilla(true);
+                await launcherViewModel.LaunchModdedVanilla();
                 return null;
             }
 

@@ -70,21 +70,21 @@
                             <StackPanel>
                                 <TextBlock>
                                     <Run Text="ID: "/>
-                                    <Run Text="{Binding Registration.Server.UniqueId}"/>
+                                    <Run Text="{Binding Server.ServerProcess.Id}"/>
                                 </TextBlock>
                                 <TextBlock>
                                     <Run Text="Name: "/>
-                                    <Run Text="{Binding Registration.Server.Name}"/>
+                                    <Run Text="{Binding Server.RegistrationHandler.ServerInfo.Name}"/>
                                 </TextBlock>
                                 <TextBlock>
                                     <Run Text="Map: "/>
-                                    <Run Text="{Binding Registration.Server.CurrentMap}"/>
+                                    <Run Text="{Binding Server.RegistrationHandler.A2SWatcher.LastA2sInfo.Map}"/>
                                 </TextBlock>
                                 <TextBlock>
                                     <Run Text="Players: "/>
-                                    <Run Text="{Binding Registration.Server.PlayerCount}"/>
+                                    <Run Text="{Binding Server.RegistrationHandler.A2SWatcher.LastA2sInfo.Players}"/>
                                     /
-                                    <Run Text="{Binding Registration.Server.MaxPlayers}"/>
+                                    <Run Text="{Binding Server.RegistrationHandler.A2SWatcher.LastA2sInfo.MaxPlayers}"/>
                                 </TextBlock>
                             </StackPanel>
                         </DataTemplate>

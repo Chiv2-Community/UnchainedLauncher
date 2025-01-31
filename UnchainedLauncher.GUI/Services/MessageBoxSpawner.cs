@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using UnchainedLauncher.Core.Utilities;
@@ -28,6 +29,7 @@ namespace UnchainedLauncher.GUI.Services {
                 MessageBoxResult.Yes or MessageBoxResult.OK => UserDialogueChoice.Yes,
                 MessageBoxResult.Cancel or MessageBoxResult.None => UserDialogueChoice.Cancel,
                 MessageBoxResult.No => UserDialogueChoice.No,
+                _ => throw new ArgumentOutOfRangeException(nameof(result), result, null)
             };
     }
 }

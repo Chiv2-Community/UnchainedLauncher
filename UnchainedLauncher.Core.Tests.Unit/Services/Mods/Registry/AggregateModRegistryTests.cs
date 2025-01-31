@@ -42,7 +42,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
                 .Find(TEST_MOD_IDENTIFIER.Matches).FirstOrDefault();
 
             Assert.NotNull(unchainedMods);
-            unchainedMods.Releases.Select(x => x.Tag)
+            unchainedMods!.Releases.Select(x => x.Tag)
                 .Should()
                 .ContainInOrder(new[] { "v0.0.3", "v0.0.2", "v0.0.1" });
         }

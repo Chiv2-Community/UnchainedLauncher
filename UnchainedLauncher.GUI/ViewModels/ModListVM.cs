@@ -79,7 +79,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         [RelayCommand]
         private async Task UpdateMods() {
             try {
-                await RefreshModListAsync();
+                await RefreshModList();
 
                 logger.Info("Checking for Mod updates...");
 

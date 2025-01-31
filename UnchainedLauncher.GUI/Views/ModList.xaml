@@ -33,18 +33,6 @@
                     SelectionMode="Single" 
                     SelectionUnit="FullRow"   
                     >
-            <DataGrid.RowStyle>
-                <Style TargetType="DataGridRow">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding HasError}" Value="true">
-                            <Setter Property="Background" Value="Red"></Setter>
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding HasError}" Value="false">
-                            <Setter Property="Background" Value="White"></Setter>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </DataGrid.RowStyle>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Name" Binding="{Binding Mod.LatestManifest.Name}"/>
                 <DataGridTextColumn Header="Mod Type" Binding="{Binding Mod.LatestManifest.ModType}"/>

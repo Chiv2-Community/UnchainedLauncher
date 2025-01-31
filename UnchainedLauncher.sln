@@ -71,6 +71,18 @@ Global
 		{ABBE4710-C988-4C0A-92D8-663271A6AA78}.Release|Any CPU.Build.0 = Release|Any CPU
 		{ABBE4710-C988-4C0A-92D8-663271A6AA78}.Release|x64.ActiveCfg = Release|Any CPU
 		{ABBE4710-C988-4C0A-92D8-663271A6AA78}.Release|x64.Build.0 = Release|Any CPU
+		{EA5E392E-050F-4EF7-865B-9E87F6C364B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA5E392E-050F-4EF7-865B-9E87F6C364B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA5E392E-050F-4EF7-865B-9E87F6C364B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA5E392E-050F-4EF7-865B-9E87F6C364B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA5E392E-050F-4EF7-865B-9E87F6C364B6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EA5E392E-050F-4EF7-865B-9E87F6C364B6}.Debug|x64.Build.0 = Debug|Any CPU
+		{EA5E392E-050F-4EF7-865B-9E87F6C364B6}.Debug-FakeChivalryLaunch|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA5E392E-050F-4EF7-865B-9E87F6C364B6}.Debug-FakeChivalryLaunch|Any CPU.Build.0 = Debug|Any CPU
+		{EA5E392E-050F-4EF7-865B-9E87F6C364B6}.Debug-FakeChivalryLaunch|x64.ActiveCfg = Debug|Any CPU
+		{EA5E392E-050F-4EF7-865B-9E87F6C364B6}.Debug-FakeChivalryLaunch|x64.Build.0 = Debug|Any CPU
+		{EA5E392E-050F-4EF7-865B-9E87F6C364B6}.Release|x64.ActiveCfg = Release|Any CPU
+		{EA5E392E-050F-4EF7-865B-9E87F6C364B6}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

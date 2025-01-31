@@ -46,7 +46,8 @@ namespace UnchainedLauncher.Core.Utilities {
         private static readonly ILog logger = LogManager.GetLogger(nameof(JsonHelpers));
 
         private static readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions {
-            Converters = { new UnionConverterFactory() }
+            Converters = { new UnionConverterFactory() },
+            WriteIndented = true,
         };
 
         /// <summary>

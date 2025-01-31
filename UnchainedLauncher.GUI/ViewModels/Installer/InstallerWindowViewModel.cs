@@ -38,8 +38,6 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         public string DescriptionColumnWidth => DisplayDescription == Visibility.Visible ? "1*" : "0";
         public string PageColumnWidth => DisplayDescription == Visibility.Visible ? "2*" : "1*";
-        public ICommand NextButtonCommand { get; }
-        public ICommand BackButtonCommand { get; }
 
         public ObservableCollection<InstallationTargetViewModel> InstallTargets;
 
@@ -57,9 +55,6 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
             WindowVisibility = Visibility.Visible;
 
-            NextButtonCommand = new AsyncRelayCommand(NextPage);
-            BackButtonCommand = new AsyncRelayCommand(PreviousPage);
-
             CurrentPage.Load();
 
             InstallerPages.ToList().ForEach(page => page.PropertyChanged += CurrentPagePropertyChanged);
@@ -70,7 +65,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             UpdateCurrentPage();
         }
 
-        private async Task NextPage() {
+        [RelayCommand]
+        private async Task NextButton() {
             await CurrentPage.Continue();
 
             if ((CurrentPageIndex + 1) == InstallerPages.Count) {
@@ -96,7 +92,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             Finished = true;
         }
 
-        private async Task PreviousPage() {
+        [RelayCommand]
+        private async Task BackButton() {
             CurrentPageIndex--;
             await CurrentPage.Load();
             UpdateCurrentPage();

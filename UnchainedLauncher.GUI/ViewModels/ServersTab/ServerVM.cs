@@ -2,7 +2,6 @@
 using PropertyChanged;
 using System;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using UnchainedLauncher.Core.API;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
@@ -17,7 +16,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         // instead of having the ViewModel do it
         public Chivalry2Server Server { get; private set; }
         public string CurrentRconCommand { get; set; } = "";
-        public ICommand SubmitRconCommand { get; private set; }
+
         // TODO: This binding won't work and I've spent enough time tearing my hair out to fix it for now.
         // I think the property changed notification is not getting propagated up when LastException is changed.
         // Swapping to a different template and coming back will show the updated value in the tooltip
@@ -36,10 +35,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             // 3. sending RCON commands
             this.Server = server;
             this.RconHistory = "";
-            SubmitRconCommand = new AsyncRelayCommand(SubmitCommand);
         }
 
-        public async Task SubmitCommand() {
+        [RelayCommand]
+        public async Task SubmitRcon() {
             var command = CurrentRconCommand;
             CurrentRconCommand = "";
 

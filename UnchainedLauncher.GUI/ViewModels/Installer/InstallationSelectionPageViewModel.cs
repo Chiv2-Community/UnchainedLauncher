@@ -28,17 +28,12 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         public IChivalry2InstallationFinder InstallationFinder { get; }
         public ObservableCollection<InstallationTargetViewModel> Installations { get; }
-        public ICommand ScanForInstallationsCommand { get; }
-        public ICommand BrowseForInstallationCommand { get; }
         public InstallationSelectionPageViewModel() : this(new Chivalry2InstallationFinder()) { }
 
         public InstallationSelectionPageViewModel(IChivalry2InstallationFinder installFinder) {
             InstallationFinder = installFinder;
 
             Installations = new ObservableCollection<InstallationTargetViewModel>();
-
-            ScanForInstallationsCommand = new RelayCommand(ScanForInstallations);
-            BrowseForInstallationCommand = new RelayCommand(BrowseForInstallation);
 
             Installations.CollectionChanged += (_, _) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Installations)));
 
@@ -48,6 +43,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public Task Continue() => Task.CompletedTask;
         public Task Load() => Task.Run(ScanForInstallations);
 
+        [RelayCommand]
         private void ScanForInstallations() {
             Installations.Clear();
 
@@ -67,6 +63,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             }
         }
 
+        [RelayCommand]
         private void BrowseForInstallation() {
             var dialog = new OpenFileDialog {
                 Title = "Select Chivalry2Launcher.exe from your Chivalry 2 Installation Directory"

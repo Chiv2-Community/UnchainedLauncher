@@ -24,9 +24,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private ObservableCollection<ModVM> UnfilteredModView { get; }
         private ObservableCollection<ModFilter> ModFilters { get; }
 
-        public ICommand RefreshModListCommand { get; }
-        public ICommand UpdateModsCommand { get; }
-
         public ModVM? SelectedMod { get; set; }
         public ObservableCollection<ModVM> DisplayMods { get; }
 
@@ -46,14 +43,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
             // Watch the unfiltered mod view and mod filters for changes, and update our view accordingly
             this.UnfilteredModView.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
             this.ModFilters.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
-
-            this.RefreshModListCommand = new AsyncRelayCommand(RefreshModListAsync);
-            this.UpdateModsCommand = new AsyncRelayCommand(UpdateModsAsync);
-
-
         }
 
-        private async Task RefreshModListAsync() {
+        [RelayCommand]
+        private async Task RefreshModList() {
             try {
                 logger.Info("Refreshing mod list...");
                 var (errors, updatedModsList) = await ModManager.UpdateModsList();
@@ -84,7 +77,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
         }
 
-        private async Task UpdateModsAsync() {
+        [RelayCommand]
+        private async Task UpdateMods() {
             try {
                 await RefreshModListAsync();
 

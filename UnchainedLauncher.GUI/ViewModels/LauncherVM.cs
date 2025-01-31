@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
+using static LanguageExt.Prelude;
 using log4net;
 using System;
 using System.ComponentModel;
@@ -12,13 +13,9 @@ using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels {
-    using static LanguageExt.Prelude;
 
     public partial class LauncherVM : INotifyPropertyChanged {
         private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherVM));
-        public ICommand LaunchVanillaCommand { get; }
-        public ICommand LaunchModdedVanillaCommand { get; }
-        public ICommand LaunchUnchainedCommand { get; }
 
         public SettingsVM Settings { get; }
 
@@ -41,13 +38,15 @@ namespace UnchainedLauncher.GUI.ViewModels {
             ClientSideModdedLauncher = clientSideModdedLauncher;
             UnchainedLauncher = moddedLauncher;
             UserDialogueSpawner = dialogueSpawner;
-
-            LaunchVanillaCommand = new AsyncRelayCommand(async () => await LaunchVanilla(false));
-            LaunchModdedVanillaCommand = new AsyncRelayCommand(async () => await LaunchVanilla(true));
-            LaunchUnchainedCommand = new AsyncRelayCommand(async () => await LaunchUnchained());
         }
 
-        public async Task<Option<Process>> LaunchVanilla(bool enableMods) {
+        [RelayCommand]
+        public Task<Option<Process>> LaunchVanilla() => InternalLaunchVanilla(false);
+        
+        [RelayCommand]
+        public Task<Option<Process>> LaunchModdedVanilla() => InternalLaunchVanilla(true);
+
+        private async Task<Option<Process>> InternalLaunchVanilla(bool enableMods) {
             // For a vanilla launch we need to pass the args through to the vanilla launcher.
             // Skip the first arg which is the path to the exe.
             var args = Settings.CLIArgs;
@@ -71,6 +70,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
         }
 
+        [RelayCommand]
         public async Task<Option<Process>> LaunchUnchained() {
             if (!IsReusable()) Settings.CanClick = false;
 

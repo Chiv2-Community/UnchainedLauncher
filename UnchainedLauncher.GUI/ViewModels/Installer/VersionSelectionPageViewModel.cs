@@ -35,7 +35,6 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public string SelectedVersionDescriptionHtml => SelectedVersion == null ? "" : RenderMarkdown(SelectedVersion.DescriptionMarkdown);
 
         public bool IsSelected { get { return SelectedVersion != null; } }
-        public ICommand ViewOnGithubCommand { get; }
 
         public VersionSelectionPageViewModel() : this(null) {
             AvailableVersions.Add(new ReleaseTarget("test", "#foo\n\nBar.", new SemVersion(1, 2), new List<ReleaseAsset>(), DateTimeOffset.Now, true, false));
@@ -48,8 +47,6 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             AvailableVersions = new ObservableCollection<ReleaseTarget>();
 
             AvailableVersions.CollectionChanged += (_, _) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VisibleVersions)));
-
-            ViewOnGithubCommand = new RelayCommand(OpenGithubPage);
         }
 
         public Task Continue() {
@@ -83,7 +80,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             return true;
         }
 
-        private void OpenGithubPage() {
+        [RelayCommand]
+        private void ViewOnGithub() {
             if (SelectedVersion == null) {
                 MessageBox.Show("Please select a version to view.");
                 return;

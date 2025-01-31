@@ -7,7 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 
@@ -70,15 +69,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public List<string> AvailableVersions => Mod.Releases.Select(x => x.Tag).ToList();
 
-        public ICommand ButtonCommand { get; }
 
         public ModVM(Mod mod, Option<Release> enabledRelease, IModManager modManager) {
             EnabledRelease = enabledRelease.ValueUnsafe();
 
             Mod = mod;
             ModManager = modManager;
-
-            ButtonCommand = new RelayCommand(DisableOrEnable);
 
             PropertyChangedEventManager.AddHandler(this, (sender, e) => {
                 if (e.PropertyName == nameof(EnabledRelease)) {
@@ -95,7 +91,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 .Bind(x => UpdateCandidate.CreateIfNewer(x.Item1, x.Item2));
         }
 
-        private void DisableOrEnable() {
+        [RelayCommand]
+        private void EnableOrDisable() {
             if (EnabledRelease == null)
                 EnabledRelease = Mod.Releases.First();
             else

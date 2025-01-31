@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
-using System.Windows.Input;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels {
@@ -22,9 +21,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public MessageBoxResult Result { get; private set; }
 
-        public ICommand YesCommand { get; set; }
-        public ICommand NoCommand { get; set; }
-        public ICommand CancelCommand { get; set; }
         private Action CloseWindow { get; }
 
         public UpdatesWindowVM(string titleText, string messageText, string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdateViewModel> updates, Action closeWindow) {
@@ -35,27 +31,24 @@ namespace UnchainedLauncher.GUI.ViewModels {
             CancelButtonText = cancelButtonText;
 
             Updates = updates;
-
-            YesCommand = new RelayCommand(YesButton_Click);
-            NoCommand = new RelayCommand(NoButton_Click);
-            CancelCommand = new RelayCommand(CancelButton_Click);
-
             CloseWindow = closeWindow;
-
             Result = MessageBoxResult.None;
         }
 
-        public void YesButton_Click() {
+        [RelayCommand]
+        public void Yes() {
             Result = MessageBoxResult.Yes;
             CloseWindow();
         }
 
-        public void NoButton_Click() {
+        [RelayCommand]
+        public void No() {
             Result = MessageBoxResult.No;
             CloseWindow();
         }
 
-        public void CancelButton_Click() {
+        [RelayCommand]
+        public void Cancel() {
             Result = MessageBoxResult.Cancel;
             CloseWindow();
         }
@@ -66,9 +59,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
     public record DependencyUpdateViewModel(DependencyUpdate Update) {
         public string CurrentVersionString => Update.CurrentVersion ?? "None";
         public string VersionString => Update.CurrentVersion == null ? Update.LatestVersion : $"{CurrentVersionString} -> {Update.LatestVersion}";
-        public ICommand HyperlinkCommand => new RelayCommand(Hyperlink_Click);
 
-        public void Hyperlink_Click() {
+        [RelayCommand]
+        public void Hyperlink() {
             Process.Start(new ProcessStartInfo { FileName = Update.ReleaseUrl, UseShellExecute = true });
         }
     };

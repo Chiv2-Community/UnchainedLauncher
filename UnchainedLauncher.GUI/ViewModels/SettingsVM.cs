@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Services.Installer;
@@ -20,7 +19,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
     [AddINotifyPropertyChangedInterface]
-    public class SettingsVM : IDisposable {
+    public partial class SettingsVM : IDisposable {
         private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsVM));
         private static readonly Version version = Assembly.GetExecutingAssembly().GetName().Version!;
 
@@ -47,8 +46,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public bool IsLauncherReusable() => InstallationType == InstallationType.Steam;
 
 
-        public ICommand CheckForUpdateCommand { get; }
-        public ICommand CleanUpInstallationCommand { get; }
         private IUserDialogueSpawner UserDialogueSpawner { get; }
 
         public static IEnumerable<InstallationType> AllInstallationTypes {
@@ -75,9 +72,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             _cliArgs = cliArgs;
             CLIArgsModified = false;
-
-            CheckForUpdateCommand = new AsyncRelayCommand(CheckForUpdate);
-            CleanUpInstallationCommand = new RelayCommand(CleanUpInstallation);
         }
 
 
@@ -113,6 +107,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         //       It should be telling the mod manager and other things which
         //       manage files to clean themselves up, rather than this class
         //       being aware of everything.
+        [RelayCommand]
         private void CleanUpInstallation() {
             logger.Info("CleanUpInstallation button clicked.");
             var message = new List<string>() {
@@ -169,7 +164,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             ExitProgram(0);
         }
 
-
+        [RelayCommand]
         public async Task CheckForUpdate() {
             logger.Info("Checking for updates...");
 

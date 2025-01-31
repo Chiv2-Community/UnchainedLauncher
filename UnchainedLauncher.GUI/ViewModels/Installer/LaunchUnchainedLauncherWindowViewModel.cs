@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Utilities;
 
@@ -25,8 +24,6 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         public InstallationTargetViewModel SelectedTarget { get; set; }
 
-        public ICommand LaunchCommand { get; }
-
         private Action CloseWindow { get; }
 
         public LaunchUnchainedLauncherWindowViewModel(IEnumerable<InstallationTargetViewModel> targets, Action closeWindow) {
@@ -38,10 +35,9 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             }
 
             SelectedTarget = LaunchTargets.First();
-
-            LaunchCommand = new RelayCommand(Launch);
         }
 
+        [RelayCommand]
         public void Launch() {
             string fileName;
             switch (SelectedTarget.InstallationType) {

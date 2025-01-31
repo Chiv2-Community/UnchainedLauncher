@@ -57,7 +57,7 @@
         </Grid>
 
         <TextBlock Grid.Row="1" 
-                   Text="{Binding SelectedVersion.Release.Name}"
+                   Text="{Binding SelectedVersion.DisplayText}"
                    FontSize="20"
                    FontWeight="Bold"
                    Margin="0,0,0,5"/>

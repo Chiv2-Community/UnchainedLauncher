@@ -16,12 +16,12 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
     public partial class InstallationSelectionPageViewModel : IInstallerPageViewModel, INotifyPropertyChanged {
 
-        private static readonly ILog logger = LogManager.GetLogger(typeof(InstallationSelectionPageViewModel));
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(InstallationSelectionPageViewModel));
 
         public string ContinueButtonText => "Continue";
         public bool CanContinue { get; set; }
         public string GoBackButtonText => "Back";
-        public bool CanGoBack { get { return true; } }
+        public bool CanGoBack => true;
         public string TitleText => "Select Chivalry 2 Installations where you want to install the Unchained Launcher";
         public string DescriptionText => "For each selected installation, the Unchained Launcher will install to Chivalry2Launcher.exe and move the original launcher to Chivalry2Launcher-ORIGINAL.exe";
 
@@ -57,7 +57,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
             }
             catch (Exception ex) {
-                logger.Error("Error scanning for installations", ex);
+                Logger.Error("Error scanning for installations", ex);
                 MessageBox.Show("Error scanning for installations: " + ex.Message);
             }
         }

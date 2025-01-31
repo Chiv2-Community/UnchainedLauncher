@@ -20,9 +20,9 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         public string Log { get; set; }
 
-        private readonly IUnchainedLauncherInstaller Installer;
-        private readonly Func<IEnumerable<DirectoryInfo>> GetInstallationTargets;
-        private readonly Func<ReleaseTarget> GetSelectedRelease;
+        private readonly IUnchainedLauncherInstaller _installer;
+        private readonly Func<IEnumerable<DirectoryInfo>> _getInstallationTargets;
+        private readonly Func<ReleaseTarget> _getSelectedRelease;
 
         public InstallerLogPageViewModel() : this(
             new MockInstaller(),
@@ -34,18 +34,18 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         }
 
         public InstallerLogPageViewModel(IUnchainedLauncherInstaller installer, Func<IEnumerable<DirectoryInfo>> getTargets, Func<ReleaseTarget> getSelectedRelease) {
-            Installer = installer;
+            _installer = installer;
 
             CanContinue = false;
             Log = "";
 
-            GetInstallationTargets = getTargets;
-            GetSelectedRelease = getSelectedRelease;
+            _getInstallationTargets = getTargets;
+            _getSelectedRelease = getSelectedRelease;
         }
 
         public async Task Load() {
-            var targets = GetInstallationTargets();
-            var release = GetSelectedRelease();
+            var targets = _getInstallationTargets();
+            var release = _getSelectedRelease();
 
             AppendLog("Selected version: v" + release.Version);
             AppendLog("Installation targets:\n    " + string.Join("\n    ", from t in targets select t.FullName));
@@ -54,7 +54,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             foreach (var target in targets!) {
                 AppendLog("-----------------------------------------------------");
                 AppendLog($"Installing v{release.Version} to {target}");
-                await Installer.Install(target, release, false, AppendLog);
+                await _installer.Install(target, release, false, AppendLog);
                 AppendLog("-----------------------------------------------------");
                 AppendLog("");
             }

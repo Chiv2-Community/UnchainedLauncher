@@ -21,17 +21,17 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
     [AddINotifyPropertyChangedInterface]
     public partial class SettingsVM : IDisposable {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsVM));
-        private static readonly Version version = Assembly.GetExecutingAssembly().GetName().Version!;
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(SettingsVM));
+        private static readonly Version Version = Assembly.GetExecutingAssembly().GetName().Version!;
 
         public InstallationType InstallationType { get; set; }
         public bool EnablePluginAutomaticUpdates { get; set; }
         public string AdditionalModActors { get; set; }
         public string ServerBrowserBackend { get; set; }
 
-        public string _cliArgs;
+        private string _cliArgs;
         public string CLIArgs {
-            get { return _cliArgs; }
+            get => _cliArgs;
             set {
                 if (value != _cliArgs) {
                     CLIArgsModified = true;
@@ -41,7 +41,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
         public bool CLIArgsModified { get; set; }
         public string CurrentVersion {
-            get => "v" + version.ToString(3);
+            get => "v" + Version.ToString(3);
         }
 
         public bool IsLauncherReusable() => InstallationType == InstallationType.Steam;
@@ -110,7 +110,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         //       being aware of everything.
         [RelayCommand]
         private void CleanUpInstallation() {
-            logger.Info("CleanUpInstallation button clicked.");
+            Logger.Info("CleanUpInstallation button clicked.");
             var message = new List<string>() {
                 "Are you sure? This will disable all mods and reset all settings to their defaults. This will delete the following:",
                 "* All files in .mod_cache",
@@ -121,7 +121,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }.Aggregate((accumulator, next) => accumulator + "\n" + next);
 
             var choice = UserDialogueSpawner.DisplayYesNoMessage(message, "Really clean up installation?");
-            logger.Info($"Are you sure? User selects: {choice}");
+            Logger.Info($"Are you sure? User selects: {choice}");
 
             if (choice == UserDialogueChoice.No) return;
 
@@ -134,7 +134,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     .GetFiles(FilePaths.PakDir)
                     .Where(pakName => {
                         if (vanillaPaks.Any(vanillaPak => pakName.EndsWith(vanillaPak))) {
-                            logger.Info($"Skipping vanilla pak {pakName}");
+                            Logger.Info($"Skipping vanilla pak {pakName}");
                             return false;
                         }
 
@@ -147,7 +147,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         private void RestartLauncher() {
-            logger.Info("Restarting launcher...");
+            Logger.Info("Restarting launcher...");
 
             var currentExecutableName = Process.GetCurrentProcess().ProcessName;
 
@@ -161,13 +161,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
             PowerShell.Run(powershellCommands);
             UserDialogueSpawner.DisplayMessage("The launcher will now restart. No further action must be taken.");
 
-            logger.Info("Closing");
+            Logger.Info("Closing");
             ExitProgram(0);
         }
 
         [RelayCommand]
         public async Task CheckForUpdate() {
-            logger.Info("Checking for updates...");
+            Logger.Info("Checking for updates...");
 
             var latestRelease = await UnchainedReleaseLocator.GetLatestRelease();
             if (latestRelease == null) {
@@ -175,8 +175,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 return;
             }
 
-            if (latestRelease.Version.ComparePrecedenceTo(new Semver.SemVersion(version.Major, version.Minor, version.Build)) > 0) {
-                logger.Info($"Latest version: {latestRelease.Version}, Current version: {CurrentVersion}");
+            if (latestRelease.Version.ComparePrecedenceTo(new Semver.SemVersion(Version.Major, Version.Minor, Version.Build)) > 0) {
+                Logger.Info($"Latest version: {latestRelease.Version}, Current version: {CurrentVersion}");
                 await ChangeVersion(latestRelease);
             }
             else {
@@ -196,12 +196,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 );
 
             if (dialogResult == UserDialogueChoice.No) {
-                logger.Info("User chose not to update.");
+                Logger.Info("User chose not to update.");
                 return;
             }
 
             if (dialogResult == UserDialogueChoice.Yes) {
-                logger.Info("User chose to update.");
+                Logger.Info("User chose to update.");
                 await Installer.Install(new DirectoryInfo(Environment.CurrentDirectory), release, true, (_) => { });
             }
         }
@@ -218,7 +218,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             if (finder.IsSteamDir(curDir)) return InstallationType.Steam;
 
-            logger.Warn("Could not detect installation type.");
+            Logger.Warn("Could not detect installation type.");
             return InstallationType.NotSet;
         }
     }

@@ -25,7 +25,7 @@
             <!-- Data display -->
             <StackPanel Grid.Column="0">
                 <!-- A2S status display -->
-                <TextBlock ToolTip="{Binding LastA2sExceptionMessage, Mode=OneWay}">
+                <TextBlock ToolTip="{Binding LastA2SExceptionMessage, Mode=OneWay}">
                     <Run Text="A2S Status (hover for errors): "/>
                     <InlineUIContainer BaselineAlignment="Center">
                         <Ellipse Width="13" Height="13">
@@ -33,7 +33,7 @@
                                 <Style TargetType="Ellipse">
                                     <Setter Property="Fill" Value="Green"/>
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsA2sOk}" Value="False">
+                                        <DataTrigger Binding="{Binding IsA2SOk}" Value="False">
                                             <Setter Property="Fill" Value="Red"/>
                                         </DataTrigger>
                                     </Style.Triggers>

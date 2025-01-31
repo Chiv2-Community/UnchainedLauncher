@@ -26,7 +26,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static Successors;
     [AddINotifyPropertyChangedInterface]
     public partial class ServersTabVM : IDisposable, INotifyPropertyChanged {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(ServersTabVM));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(ServersTabVM));
         public SettingsVM Settings { get; }
         public readonly IUnchainedChivalry2Launcher Launcher;
         public Func<IModManager> ModManagerCreator;
@@ -42,13 +42,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             // is so small.
             Save();
         }
-        private ServerTemplateVM? _SelectedTemplate;
+        private ServerTemplateVM? _selectedTemplate;
         public ServerTemplateVM? SelectedTemplate {
-            get => _SelectedTemplate;
+            get => _selectedTemplate;
             set {
-                if (_SelectedTemplate != null) {
+                if (_selectedTemplate != null) {
                     // TODO: change in mod manager section of template needs to be wired up here too
-                    _SelectedTemplate.Form.PropertyChanged -= OnTemplateChanged;
+                    _selectedTemplate.Form.PropertyChanged -= OnTemplateChanged;
                 }
 
                 if (value != null) {
@@ -56,7 +56,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                     value.Form.PropertyChanged += OnTemplateChanged;
                 }
 
-                _SelectedTemplate = value;
+                _selectedTemplate = value;
                 UpdateVisibility();
             }
         }
@@ -100,7 +100,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var newTemplate = new ServerTemplateVM(ModManagerCreator());
             var occupiedPorts = ServerTemplates.Select(
                 (e) => new Set<int>(new List<int> {
-                    e.Form.A2sPort,
+                    e.Form.A2SPort,
                     e.Form.RconPort,
                     e.Form.PingPort,
                     e.Form.GamePort
@@ -114,7 +114,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 var newForm = newTemplate.Form;
                 (newForm.GamePort, occupiedPorts) = ReserveRestrictedSuccessor(oldForm.GamePort, occupiedPorts);
                 (newForm.PingPort, occupiedPorts) = ReserveRestrictedSuccessor(oldForm.PingPort, occupiedPorts);
-                (newForm.A2sPort, occupiedPorts) = ReserveRestrictedSuccessor(oldForm.A2sPort, occupiedPorts);
+                (newForm.A2SPort, occupiedPorts) = ReserveRestrictedSuccessor(oldForm.A2SPort, occupiedPorts);
                 (newForm.RconPort, _) = ReserveRestrictedSuccessor(oldForm.RconPort, occupiedPorts);
 
                 // increment name in a similar way, so the user doesn't get things confused
@@ -147,42 +147,42 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                     new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort))
                     );
                 var serverVm = new ServerVM(server);
-                var RunningTuple = (SelectedTemplate, serverVm);
+                var runningTuple = (SelectedTemplate, serverVm);
                 process.Exited += (_, _) => {
-                    RunningTemplates.Remove(RunningTuple);
-                    RunningTuple.serverVm.Dispose();
+                    RunningTemplates.Remove(runningTuple);
+                    runningTuple.serverVm.Dispose();
                 };
-                RunningTemplates.Add(RunningTuple);
+                RunningTemplates.Add(runningTuple);
             });
         }
 
         [RelayCommand]
         public void Save() {
             if (SaveLocation == null) {
-                logger.Warn("Tried to save server templates, but no file is selected.");
+                Logger.Warn("Tried to save server templates, but no file is selected.");
                 return;
             }
-            logger.Info("Saving server templates...");
+            Logger.Info("Saving server templates...");
             SaveLocation.SaveSettings(ServerTemplates.Select(template => template.Saved()));
-            logger.Info($"Saved {ServerTemplates.Count} server templates.");
+            Logger.Info($"Saved {ServerTemplates.Count} server templates.");
         }
 
         public void Load() {
             if (SaveLocation == null) {
-                logger.Warn("Tried to load server templates, but no file is selected.");
+                Logger.Warn("Tried to load server templates, but no file is selected.");
                 return;
             }
 
             var loaded = SaveLocation.LoadSettings();
             if (loaded == null) {
-                logger.Warn("Failed to load server templates. Error unavailable, but likely invalid JSON.");
+                Logger.Warn("Failed to load server templates. Error unavailable, but likely invalid JSON.");
                 return;
             }
 
             foreach (var template in loaded) {
                 ServerTemplates.Add(new ServerTemplateVM(template, ModManagerCreator()));
             }
-            logger.Info($"Loaded {ServerTemplates.Count} server templates.");
+            Logger.Info($"Loaded {ServerTemplates.Count} server templates.");
         }
 
         public void UpdateVisibility() {
@@ -222,7 +222,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                     process.EnableRaisingEvents = true;
                     process.Exited += (sender, e) => {
                         if (process.ExitCode == 0) return;
-                        logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
+                        Logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
                         DialogueSpawner.DisplayMessage($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
                     };
                     return Some(process);

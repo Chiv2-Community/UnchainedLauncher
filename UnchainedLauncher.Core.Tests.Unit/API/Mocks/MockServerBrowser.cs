@@ -2,7 +2,7 @@
 
 namespace UnchainedLauncher.Core.Tests.Unit.API.Mocks {
     public class MockServerBrowser : IServerBrowser {
-        protected int refreshBeforeSeconds;
+        protected int RefreshBeforeSeconds;
         public int NumServerRegisters { get; private set; }
         public int NumServerUpdates { get; private set; }
         public int NumServerHeartbeats { get; private set; }
@@ -13,12 +13,12 @@ namespace UnchainedLauncher.Core.Tests.Unit.API.Mocks {
         // TODO: allow throwing occasional 404 errors from
         // appropriate functions for more testing
         public MockServerBrowser(int refreshBeforeSeconds) {
-            this.refreshBeforeSeconds = refreshBeforeSeconds;
+            this.RefreshBeforeSeconds = refreshBeforeSeconds;
         }
 
         private (long, long) GetTimes() {
             var now = DateTimeOffset.Now.ToUnixTimeSeconds();
-            var rfBefore = now + refreshBeforeSeconds;
+            var rfBefore = now + RefreshBeforeSeconds;
             return (now, rfBefore);
         }
 

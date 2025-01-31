@@ -7,7 +7,7 @@ namespace UnchainedLauncher.GUI.JsonModels {
         [property: JsonPropertyName("selected_map")] string? SelectedMap,
         [property: JsonPropertyName("game_port")] int? GamePort,
         [property: JsonPropertyName("rcon_port")] int? RconPort,
-        [property: JsonPropertyName("a2s_port")] int? A2sPort,
+        [property: JsonPropertyName("a2s_port")] int? A2SPort,
         [property: JsonPropertyName("ping_port")] int? PingPort,
         [property: JsonPropertyName("show_in_server_browser")] bool? ShowInServerBrowser
     );

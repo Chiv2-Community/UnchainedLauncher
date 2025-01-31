@@ -15,7 +15,7 @@ using UnchainedLauncher.Core.Services;
 namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
     public partial class VersionSelectionPageViewModel : IInstallerPageViewModel, INotifyPropertyChanged {
-        private readonly IReleaseLocator ReleaseLocator;
+        private readonly IReleaseLocator _releaseLocator;
         public string TitleText => "Select UnchainedLauncher version you wish to install";
         public string DescriptionText => "The latest stable version is recommended. After choosing your version and selecting \"Install\" the Unchained Launcher Installer will begin the installation process.";
 
@@ -42,7 +42,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
 
         public VersionSelectionPageViewModel(IReleaseLocator releaseLocator) {
-            ReleaseLocator = releaseLocator;
+            _releaseLocator = releaseLocator;
             AvailableVersions = new ObservableCollection<ReleaseTarget>();
 
             AvailableVersions.CollectionChanged += (_, _) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VisibleVersions)));
@@ -53,7 +53,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         }
 
         public async Task Load() {
-            var releases = await ReleaseLocator.GetAllReleases();
+            var releases = await _releaseLocator.GetAllReleases();
             if (!releases.Any()) {
                 MessageBox.Show("Failed to fetch UnchainedLauncher releases. Please check your internet connection and try again.");
                 return;

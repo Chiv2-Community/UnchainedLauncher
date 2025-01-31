@@ -1,5 +1,6 @@
 ﻿using FluentAssertions;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Tests.Unit.Utilities;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
     public class ModRegistryCodecTests : CodecTestBase<IModRegistry> {

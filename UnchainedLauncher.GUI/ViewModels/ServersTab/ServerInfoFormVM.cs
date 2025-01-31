@@ -21,7 +21,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                                             string Password = "",
                                             int GamePort = 7777,
                                             int RconPort = 9001,
-                                            int A2sPort = 7071,
+                                            int A2SPort = 7071,
                                             int PingPort = 3075,
                                             string SelectedMap = "FFA_Courtyard",
                                             bool ShowInServerBrowser = false) {
@@ -34,13 +34,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 SelectedMap,
                 GamePort,
                 PingPort,
-                A2sPort,
+                A2SPort,
                 RconPort
             );
         }
 
         public PublicPorts ToPublicPorts() {
-            return new PublicPorts(GamePort, PingPort, A2sPort);
+            return new PublicPorts(GamePort, PingPort, A2SPort);
         }
     }
 
@@ -51,7 +51,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public string Password { get; set; }
         public int GamePort { get; set; }
         public int RconPort { get; set; }
-        public int A2sPort { get; set; }
+        public int A2SPort { get; set; }
         public int PingPort { get; set; }
         public string SelectedMap { get; set; }
         public bool ShowInServerBrowser { get; set; }
@@ -67,7 +67,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             Description = initialData.Description;
             Password = initialData.Password;
             RconPort = initialData.RconPort;
-            A2sPort = initialData.A2sPort;
+            A2SPort = initialData.A2SPort;
             PingPort = initialData.PingPort;
             GamePort = initialData.GamePort;
             ShowInServerBrowser = initialData.ShowInServerBrowser;
@@ -75,7 +75,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         [RelayCommand]
-        public void AutoFillIP() {
+        public void AutoFillIp() {
             LocalIp = GetAllLocalIPv4().FirstOrDefault("127.0.0.1");
         }
 
@@ -98,7 +98,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public ServerInfoFormData Data => new ServerInfoFormData(
             LocalIp, Name, Description, Password, GamePort, RconPort,
-            A2sPort, PingPort, SelectedMap, ShowInServerBrowser
+            A2SPort, PingPort, SelectedMap, ShowInServerBrowser
         );
 
         // https://stackoverflow.com/a/24814027

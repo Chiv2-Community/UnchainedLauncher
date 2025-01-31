@@ -14,7 +14,7 @@ using static LanguageExt.Prelude;
 namespace UnchainedLauncher.GUI.ViewModels {
 
     public partial class LauncherVM : INotifyPropertyChanged {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(LauncherVM));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(LauncherVM));
 
         public SettingsVM Settings { get; }
 
@@ -84,7 +84,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             return launchResult.Match(
                 Left: e => {
-                    logger.Error(e);
+                    Logger.Error(e);
                     if (e is not UnchainedLaunchFailure.LaunchCancelledError)
                         UserDialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
 
@@ -106,11 +106,11 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                     if (process.ExitCode == 0) return;
 
-                    logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
+                    Logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
                     UserDialogueSpawner.DisplayMessage($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
                 }
                 catch (Exception e) {
-                    logger.Error("Failure occured while waiting for Chivalry process to exit", e);
+                    Logger.Error("Failure occured while waiting for Chivalry process to exit", e);
                 }
             });
 

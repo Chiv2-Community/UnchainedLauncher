@@ -14,7 +14,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
     public partial class ModVM : INotifyPropertyChanged {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(ModVM));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(ModVM));
         // A ModViewModel needs access to the mod manager so that it can enable/disable releases as they get set on the view.
         private IModManager ModManager { get; }
         public Mod Mod { get; }
@@ -82,7 +82,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 }
             }, nameof(EnabledRelease));
 
-            logger.Debug($"Initialized ModViewModel for {mod.LatestManifest.Name}. Currently enabled release: {EnabledVersion}");
+            Logger.Debug($"Initialized ModViewModel for {mod.LatestManifest.Name}. Currently enabled release: {EnabledVersion}");
         }
 
         public Option<UpdateCandidate> CheckForUpdate() {

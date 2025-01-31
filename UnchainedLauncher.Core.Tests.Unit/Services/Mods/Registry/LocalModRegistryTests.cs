@@ -3,7 +3,7 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
     public class LocalModRegistryTests {
-        private static readonly ModIdentifier TEST_MOD_IDENTIFIER =
+        private static readonly ModIdentifier TestModIdentifier =
             new ModIdentifier("Chiv2-Community", "Unchained-Mods");
 
         [Fact]
@@ -44,7 +44,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
         public async Task GetModMetadataString_WithValidPath_ShouldReturnContent() {
             var registry = LocalModRegistryFactory.DefaultModRegistry;
 
-            var result = await registry.GetMod(TEST_MOD_IDENTIFIER).ToEither();
+            var result = await registry.GetMod(TestModIdentifier).ToEither();
 
             result.IsRight.Should().BeTrue();
             var content = result.RightToSeq().FirstOrDefault();
@@ -69,7 +69,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
         [Fact]
         public void Registry_Name_ShouldIncludePath() {
             var registry = LocalModRegistryFactory.DefaultModRegistry;
-            registry.Name.Should().Contain(LocalModRegistryFactory.DEFAULT_MOD_MANAGER_PATH);
+            registry.Name.Should().Contain(LocalModRegistryFactory.DefaultModManagerPath);
         }
 
         [Fact]
@@ -80,8 +80,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
 
             try {
                 var coordinates = new ReleaseCoordinates(
-                    TEST_MOD_IDENTIFIER.Org,
-                    TEST_MOD_IDENTIFIER.ModuleName,
+                    TestModIdentifier.Org,
+                    TestModIdentifier.ModuleName,
                     "v0.0.2"
                 );
                 var outputPath = Path.Combine(tempOutputDir, $"{coordinates.Org}-{coordinates.ModuleName}-{coordinates.Version}.pak");
@@ -108,8 +108,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
 
             try {
                 var coordinates = new ReleaseCoordinates(
-                    TEST_MOD_IDENTIFIER.Org,
-                    TEST_MOD_IDENTIFIER.ModuleName,
+                    TestModIdentifier.Org,
+                    TestModIdentifier.ModuleName,
                     "v9.9.9"  // A version that doesn't exist
                 );
                 var outputPath = Path.Combine(tempOutputDir, $"{coordinates.Org}-{coordinates.ModuleName}-{coordinates.Version}.pak");

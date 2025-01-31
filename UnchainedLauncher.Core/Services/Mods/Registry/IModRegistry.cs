@@ -26,7 +26,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
     }
 
     public record ReleaseCoordinates(string Org, string ModuleName, string Version) : ModIdentifier(Org, ModuleName), IComparable<ReleaseCoordinates> {
-        public static ReleaseCoordinates FromRelease(Release release) =>
+        public static new ReleaseCoordinates FromRelease(Release release) =>
             new ReleaseCoordinates(release.Manifest.Organization, release.Manifest.RepoName, release.Tag);
 
         public bool Matches(Release release) => Org == release.Manifest.Organization && ModuleName == release.Manifest.RepoName && Version == release.Tag;
@@ -132,7 +132,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         ) => this switch {
             NotFoundException notFound => notFoundFunc(notFound),
             PackageListRetrievalException packageListRetrievalException => packageListRetrievalFunc(packageListRetrievalException),
-            ParseException parseError => parseExceptionFunc(parseError)
+            ParseException parseError => parseExceptionFunc(parseError),
+            _ => throw new ArgumentOutOfRangeException()
         };
     }
 }

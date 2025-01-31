@@ -74,16 +74,15 @@ namespace UnchainedLauncher.GUI {
             if (forceSkipInstallation && needsInstallation)
                 _log.Info("Skipping installation");
 
-            var createWindowTask =
+            var window =
                 needsInstallation && !forceSkipInstallation
                     ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
                     : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator, pluginReleaseLocator);
 
-            createWindowTask.Wait();
-            createWindowTask.Result?.Show();
+            window?.Show();
         }
 
-        public async Task<Window?> InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
+        private Window? InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
             var installationSelectionVM = new InstallationSelectionPageViewModel(installationFinder);
             var versionSelectionVM = new VersionSelectionPageViewModel(launcherReleaseLocator);
             var installationLogVM = new InstallerLogPageViewModel(
@@ -106,7 +105,7 @@ namespace UnchainedLauncher.GUI {
             return new InstallerWindow(installerWindowVM);
         }
 
-        public async Task<Window?> InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
+        private Window? InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
             var userDialogueSpawner = new MessageBoxSpawner();
 
             var settingsViewModel = SettingsVM.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
@@ -170,17 +169,17 @@ namespace UnchainedLauncher.GUI {
 
             // TODO: Replace this if/else chain with a real CLI
             if (envArgs.Contains("--startvanilla")) {
-                await launcherViewModel.LaunchVanilla();
+                launcherViewModel.LaunchVanilla().Wait();
                 return null;
             }
 
             if (envArgs.Contains("--startmodded")) {
-                await launcherViewModel.LaunchModdedVanilla();
+                launcherViewModel.LaunchModdedVanilla().Wait();
                 return null;
             }
 
             if (envArgs.Contains("--startunchained")) {
-                await launcherViewModel.LaunchUnchained();
+                launcherViewModel.LaunchUnchained().Wait();
                 return null;
             }
 
@@ -240,7 +239,7 @@ namespace UnchainedLauncher.GUI {
                         deserializationResult.Exception);
                     return initializeDefault();
                 }
-                ));
+            ));
         }
 
         private void RegisterSaveToFileOnExit<T>(T t, ICodec<T> codec, string filePath) {

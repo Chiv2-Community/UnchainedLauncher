@@ -31,8 +31,9 @@ namespace UnchainedLauncher.Core.Utilities {
 
     public static class SerializerExtensions {
         public static void SerializeFile<T>(this ISerializer<T> serializer, string path, T obj) {
-            if (!Directory.Exists(Path.GetDirectoryName(path)))
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
+            var dir = Path.GetDirectoryName(path);
+            if (dir != null && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
 
             File.WriteAllText(path, serializer.Serialize(obj));
         }

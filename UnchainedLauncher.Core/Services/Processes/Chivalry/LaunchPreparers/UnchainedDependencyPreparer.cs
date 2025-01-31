@@ -68,6 +68,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 UserDialogueChoice.Yes => await PerformUpdates(updates) ? Some(options) : None,
                 UserDialogueChoice.No => Some(options), // Don't install anything, continue launch anyway
                 UserDialogueChoice.Cancel => None, // Cancel launch
+                _ => throw new ArgumentOutOfRangeException()
             };
         }
 
@@ -123,7 +124,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 return new DependencyUpdate(
                     latestUnchainedMods.Manifest.Name,
                     null,
-                    latestUnchainedMods.Version.ToString(),
+                    latestUnchainedMods.Version?.ToString() ?? latestUnchainedMods.Tag,
                     latestUnchainedMods.ReleaseUrl,
                     "Adds necessary Unchained content to Chivalry 2"
                 );
@@ -167,7 +168,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                         .Find(IsUnchainedMods)
                         .FirstOrDefault();
 
-                    if (latestMods != null && !await UpdateMods(latestMods))
+                    if (latestMods != null && !UpdateMods(latestMods))
                         return false;
                 }
             }
@@ -188,7 +189,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             return true;
         }
 
-        private async Task<bool> UpdateMods(Release latestMods) {
+        private bool UpdateMods(Release latestMods) {
             // TODO: This doesn't actually download the mod anymore. The mod manager only tracks what is enabled.
             //       We should probably swap out the ModManager for an IModRegistry, and call the download method
             //       on that.

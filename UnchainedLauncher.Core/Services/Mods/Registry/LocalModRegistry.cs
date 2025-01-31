@@ -39,10 +39,10 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             EitherAsync<RegistryMetadataException, Mod> InternalGetModMetadata(string jsonManifestPath) {
                 var dir = Path.GetDirectoryName(jsonManifestPath);
                 if (dir == null) {
-                    return 
+                    return
                         LeftAsync<RegistryMetadataException, Mod>(RegistryMetadataException.Parse($"Failed to parse json manifest path {jsonManifestPath}. Got null directory name.", None));
                 }
-                
+
                 var parts = dir.Split(Path.DirectorySeparatorChar);
                 if (parts.Length() < 2) return LeftAsync<RegistryMetadataException, Mod>(RegistryMetadataException.PackageListRetrieval($"Failed to determine module id for file at path {jsonManifestPath}", None));
                 var modIdParts = parts.Reverse().Take(2).Reverse();

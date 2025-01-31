@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Utilities;
 

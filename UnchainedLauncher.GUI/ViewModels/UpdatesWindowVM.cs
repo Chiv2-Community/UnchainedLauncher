@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
-using System.Windows.Input;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels {

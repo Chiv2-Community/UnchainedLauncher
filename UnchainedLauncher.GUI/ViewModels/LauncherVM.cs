@@ -1,16 +1,15 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
-using static LanguageExt.Prelude;
 using log4net;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
+using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.GUI.ViewModels {
 
@@ -42,7 +41,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         [RelayCommand]
         public Task<Option<Process>> LaunchVanilla() => InternalLaunchVanilla(false);
-        
+
         [RelayCommand]
         public Task<Option<Process>> LaunchModdedVanilla() => InternalLaunchVanilla(true);
 

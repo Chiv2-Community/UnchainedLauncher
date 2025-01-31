@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Processes;
 using UnchainedLauncher.Core.Services.Installer;

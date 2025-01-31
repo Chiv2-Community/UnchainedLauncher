@@ -12,8 +12,8 @@ namespace UnchainedLauncher.Core.API {
     /// </summary>
     [AddINotifyPropertyChangedInterface]
     public sealed class PeriodicRunner : IDisposable {
-        private Timer Timer;
-        private bool disposedValue;
+        private Timer _timer;
+        private bool _disposedValue;
 
         // whether the delegate is currently scheduled to be run
         public bool IsTicking { get; private set; }
@@ -25,13 +25,13 @@ namespace UnchainedLauncher.Core.API {
         // the next time it should be called
         public delegate Task<TimeSpan> Execute();
         public delegate Task<bool> OnException(Exception exception);
-        private readonly Execute _Execute;
-        private readonly OnException _OnException;
+        private readonly Execute _execute;
+        private readonly OnException _onException;
 
-        public PeriodicRunner(Execute execute, OnException? OnException = null, TimeSpan? after = null) {
-            this._Execute = execute;
-            this._OnException = OnException ?? DefaultOnException;
-            this.Timer = new Timer(this.Execute_Update, null, after ?? TimeSpan.Zero, Timeout.InfiniteTimeSpan);
+        public PeriodicRunner(Execute execute, OnException? onException = null, TimeSpan? after = null) {
+            this._execute = execute;
+            this._onException = onException ?? DefaultOnException;
+            this._timer = new Timer(this.Execute_Update, null, after ?? TimeSpan.Zero, Timeout.InfiniteTimeSpan);
             this.IsTicking = true;
         }
 
@@ -49,8 +49,8 @@ namespace UnchainedLauncher.Core.API {
                 return;
             }
 
-            this.Timer.Dispose();
-            this.Timer = new Timer(this.Execute_Update, null, after ?? TimeSpan.Zero, Timeout.InfiniteTimeSpan);
+            this._timer.Dispose();
+            this._timer = new Timer(this.Execute_Update, null, after ?? TimeSpan.Zero, Timeout.InfiniteTimeSpan);
             this.IsTicking = true;
         }
 
@@ -58,7 +58,7 @@ namespace UnchainedLauncher.Core.API {
         /// Stop the timer from ticking. An already scheduled run will not occur after this.
         /// </summary>
         public void Stop() {
-            this.Timer.Dispose();
+            this._timer.Dispose();
             this.IsTicking = false;
         }
 
@@ -66,15 +66,15 @@ namespace UnchainedLauncher.Core.API {
         // catch any errors and run the OnException delegate as needed
         private async void Execute_Update(object? state) {
             try {
-                var nextTimeSpan = await _Execute();
+                var nextTimeSpan = await _execute();
                 // saturate negative timespans to run immediately
                 nextTimeSpan = nextTimeSpan < TimeSpan.Zero ? TimeSpan.Zero : nextTimeSpan;
-                this.Timer = new Timer(this.Execute_Update, null, nextTimeSpan, Timeout.InfiniteTimeSpan);
+                this._timer = new Timer(this.Execute_Update, null, nextTimeSpan, Timeout.InfiniteTimeSpan);
                 return;
             }
             catch (Exception exception) {
                 this.LastException = exception;
-                var shouldContinue = await this._OnException(exception);
+                var shouldContinue = await this._onException(exception);
                 if (shouldContinue) {
                     this.Stop();
                     this.Resume();
@@ -83,18 +83,18 @@ namespace UnchainedLauncher.Core.API {
             finally {
                 // in case we were disposed after the timeout expired but before
                 // we set the new timer
-                if (this.disposedValue) {
+                if (this._disposedValue) {
                     this.Stop();
                 }
             }
         }
 
         private void Dispose(bool disposing) {
-            if (!disposedValue) {
+            if (!_disposedValue) {
                 if (disposing) {
                     this.Stop();
                 }
-                disposedValue = true;
+                _disposedValue = true;
             }
         }
 

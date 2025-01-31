@@ -18,24 +18,24 @@ namespace UnchainedLauncher.Core.Tests.Unit.API {
             // additionally, because our mock is lacking, index 0 will also cause an update.
             // (the response sent back from the back has mostly absent server info)
             // NOTE: IF YOU CHANGE THIS, YOU MUST FIGURE OUT THE ABOVE COMMENT AND CHANGE CHECKS ACCORDINGLY
-            var mockA2s = new A2sInfo[] {
-                    new(0, "", "test map", "", "Chivalry 2", 0, 10, 100, 5, ServerType.NONDEDICATED, Environment.WINDOWS, true, false),
-                    new(0, "", "test map", "", "Chivalry 2", 0, 10, 100, 5, ServerType.NONDEDICATED, Environment.WINDOWS, true, false),
-                    new(0, "", "test map", "", "Chivalry 2", 0, 5, 100, 5, ServerType.NONDEDICATED, Environment.WINDOWS, true, false),
-                    new(0, "", "some other map", "", "Chivalry 2", 0, 5, 100, 5, ServerType.NONDEDICATED, Environment.WINDOWS, true, false),
-                    new(0, "", "some other map", "", "Chivalry 2", 0, 7, 100, 5, ServerType.NONDEDICATED, Environment.WINDOWS, true, false),
+            var mockA2s = new A2SInfo[] {
+                    new(0, "", "test map", "", "Chivalry 2", 0, 10, 100, 5, ServerType.NonDedicated, Environment.Windows, true, false),
+                    new(0, "", "test map", "", "Chivalry 2", 0, 10, 100, 5, ServerType.NonDedicated, Environment.Windows, true, false),
+                    new(0, "", "test map", "", "Chivalry 2", 0, 5, 100, 5, ServerType.NonDedicated, Environment.Windows, true, false),
+                    new(0, "", "some other map", "", "Chivalry 2", 0, 5, 100, 5, ServerType.NonDedicated, Environment.Windows, true, false),
+                    new(0, "", "some other map", "", "Chivalry 2", 0, 7, 100, 5, ServerType.NonDedicated, Environment.Windows, true, false),
                 };
 
-            int heartbeatSeconds = 10;
-            int heartbeatBeforeSeconds = 5;
-            int testDuration = 24;
-            int expectedHeartbeatCount = testDuration / (heartbeatSeconds - heartbeatBeforeSeconds);
+            var heartbeatSeconds = 10;
+            var heartbeatBeforeSeconds = 5;
+            var testDuration = 24;
+            var expectedHeartbeatCount = testDuration / (heartbeatSeconds - heartbeatBeforeSeconds);
 
             MockServerBrowser mockSB = new(heartbeatSeconds);
 
             ServerInfo serverInfo = new(testServerC2Info, mockA2s[0]);
             var registration = await mockSB.RegisterServerAsync("127.0.0.1", serverInfo);
-            bool hasDied = false;
+            var hasDied = false;
             Task OnDeath(Exception ex) {
                 hasDied = true;
                 return Task.CompletedTask;
@@ -46,7 +46,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.API {
                 // make sure it's doing heartbeats properly
                 Assert.Equal(expectedHeartbeatCount, mockSB.NumServerHeartbeats);
                 foreach (var info in mockA2s) {
-                    await server.UpdateRegistrationA2s(info);
+                    await server.UpdateRegistrationA2S(info);
                 }
                 // see comment above mockA2s to see where this 4 comes from
                 Assert.Equal(4, mockSB.NumServerUpdates);

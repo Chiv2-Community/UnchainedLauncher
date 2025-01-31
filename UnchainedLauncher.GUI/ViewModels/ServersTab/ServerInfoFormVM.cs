@@ -60,7 +60,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public ServerInfoFormVM(ObservableCollection<string>? mapsList = null,
                                 ServerInfoFormData? data = null) {
-            ServerInfoFormData initialData = data ?? new(GetAllLocalIPv4().FirstOrDefault("127.0.0.1"));
+            var initialData = data ?? new(GetAllLocalIPv4().FirstOrDefault("127.0.0.1"));
             MapsList = mapsList ?? new(GetDefaultMaps());
             SelectedMap = MapsList.FirstOrDefault("FFA_Courtyard");
             Name = initialData.Name;
@@ -104,9 +104,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         // https://stackoverflow.com/a/24814027
         public static string[] GetAllLocalIPv4() {
             List<string> ipAddrList = new List<string>();
-            foreach (NetworkInterface item in NetworkInterface.GetAllNetworkInterfaces()) {
+            foreach (var item in NetworkInterface.GetAllNetworkInterfaces()) {
                 if (item.OperationalStatus == OperationalStatus.Up) {
-                    foreach (UnicastIPAddressInformation ip in item.GetIPProperties().UnicastAddresses) {
+                    foreach (var ip in item.GetIPProperties().UnicastAddresses) {
                         if (ip.Address.AddressFamily == AddressFamily.InterNetwork) {
                             ipAddrList.Add(ip.Address.ToString());
                         }

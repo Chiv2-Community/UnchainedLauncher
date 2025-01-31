@@ -7,7 +7,7 @@ using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public abstract class JsonRegistry : IModRegistry {
-        protected static readonly ILog logger = LogManager.GetLogger(nameof(JsonRegistry));
+        protected static readonly ILog Logger = LogManager.GetLogger(nameof(JsonRegistry));
 
         // Re-export IModRegistryMethods that will not be implemented here.
         public abstract string Name { get; }
@@ -35,12 +35,12 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 // Try to deserialize as V3 first
                 JsonHelpers.Deserialize<JsonModels.Metadata.V3.Mod>(json).RecoverWith(e => {
                     // If that fails, try to deserialize as V2
-                    logger.Warn("Falling back to V2 deserialization: " + e?.Message ?? "unknown failure");
+                    Logger.Warn("Falling back to V2 deserialization: " + e?.Message ?? "unknown failure");
                     return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Mod>(json)
                         .Select(JsonModels.Metadata.V3.Mod.FromV2);
                 }).RecoverWith(e => {
                     // If that fails, try to deserialize as V1
-                    logger.Warn("Falling back to V1 deserialization" + e?.Message ?? "unknown failure");
+                    Logger.Warn("Falling back to V1 deserialization" + e?.Message ?? "unknown failure");
                     return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Mod>(json)
                         .Select(JsonModels.Metadata.V2.Mod.FromV1)
                         .Select(JsonModels.Metadata.V3.Mod.FromV2);

@@ -1,12 +1,12 @@
-﻿
-
-using LanguageExt;
+﻿using LanguageExt;
 using log4net;
 using Octokit;
 using Semver;
 using System.Collections.Immutable;
+using UnchainedLauncher.Core.Utilities;
+using ReleaseAsset = UnchainedLauncher.Core.Services.ReleaseAsset;
 
-namespace UnchainedLauncher.Core.Utilities {
+namespace UnchainedLauncher.Core.Services {
     using static LanguageExt.Prelude;
 
     /// <summary>
@@ -14,19 +14,19 @@ namespace UnchainedLauncher.Core.Utilities {
     /// for downloading those releases.
     /// </summary>
     public class GithubReleaseLocator : IReleaseLocator {
-        public static readonly ILog logger = LogManager.GetLogger(nameof(GithubReleaseLocator));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(GithubReleaseLocator));
 
-        public GitHubClient GitHubClient { get; }
-        private string RepoOwner;
-        private string RepoName;
+        private readonly GitHubClient _gitHubClient;
+        private readonly string _repoOwner;
+        private readonly string _repoName;
 
         private IEnumerable<ReleaseTarget>? ReleaseCache { get; set; }
         private ReleaseTarget? LatestRelease { get; set; }
 
         public GithubReleaseLocator(GitHubClient githubClient, string repoOwner, string repoName) {
-            GitHubClient = githubClient;
-            RepoName = repoName;
-            RepoOwner = repoOwner;
+            _gitHubClient = githubClient;
+            _repoName = repoName;
+            _repoOwner = repoOwner;
         }
 
         public async Task<ReleaseTarget?> GetLatestRelease() {
@@ -49,7 +49,7 @@ namespace UnchainedLauncher.Core.Utilities {
 
         private async Task<IEnumerable<ReleaseTarget>> ProcessGithubReleases() {
             try {
-                var maybeReleases = Optional(await GitHubClient.Repository.Release.GetAll(RepoOwner, RepoName));
+                var maybeReleases = Optional(await _gitHubClient.Repository.Release.GetAll(_repoOwner, _repoName));
                 var results =
                     from releases in maybeReleases
                     from release in releases
@@ -64,9 +64,9 @@ namespace UnchainedLauncher.Core.Utilities {
                         false,
                         version.IsPrerelease || release.Prerelease);
 
-                ReleaseTarget? latestRelease = results.Filter(r => !r.IsPrerelease).MaxBy(x => x.Version)?.AsLatestStable();
+                var latestRelease = results.Filter(r => !r.IsPrerelease).MaxBy(x => x.Version)?.AsLatestStable();
 
-                logger.Info($"Found {results.Count()} releases, latest stable release is {latestRelease?.Version}");
+                Logger.Info($"Found {results.Count()} releases, latest stable release is {latestRelease?.Version}");
 
                 if (latestRelease != null)
                     results = results?.ToList().Select(x => x.Version == latestRelease.Version ? x.AsLatestStable() : x);
@@ -77,7 +77,7 @@ namespace UnchainedLauncher.Core.Utilities {
                 return Optional(ReleaseCache).ToList().Flatten();
             }
             catch (Exception e) {
-                logger.Error("Failed to connect to github to retrieve version information", e);
+                Logger.Error("Failed to connect to github to retrieve version information", e);
                 return ImmutableList.CreateBuilder<ReleaseTarget>().ToImmutableList();
             }
         }
@@ -89,7 +89,7 @@ namespace UnchainedLauncher.Core.Utilities {
             }
 
             SemVersion.TryParse(versionString, SemVersionStyles.Any, out var parsedVersion);
-            if (parsedVersion == null) logger.Error($"Failed to parse git tag {tag}");
+            if (parsedVersion == null) Logger.Error($"Failed to parse git tag {tag}");
 
             return Optional(parsedVersion);
         }

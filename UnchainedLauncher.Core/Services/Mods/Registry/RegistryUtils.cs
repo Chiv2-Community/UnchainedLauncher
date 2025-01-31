@@ -2,7 +2,7 @@
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class RegistryUtils {
-        private static readonly ILog logger = LogManager.GetLogger(typeof(RegistryUtils));
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(RegistryUtils));
 
         /// <summary>
         /// Some mod registry package lists are formatted as a line-separated list of $org/$modName
@@ -15,7 +15,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 var id = ParseModIdentifier(packageLine, "/");
                 if (id != null) return new List<ModIdentifier>() { id };
 
-                logger.Warn($"Invalid package list line '{packageLine}' will be ignored.");
+                Logger.Warn($"Invalid package list line '{packageLine}' will be ignored.");
                 return new List<ModIdentifier>();
             });
 

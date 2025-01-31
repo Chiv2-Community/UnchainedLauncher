@@ -5,13 +5,13 @@ using System.Net.Sockets;
 using System.Text;
 
 namespace UnchainedLauncher.Core.API.A2S {
-    public record A2sInfo(
+    public record A2SInfo(
         byte ProtocolVersion,
         string Name,
         string Map,
         string Folder,
         string Game,
-        ushort GameID,
+        ushort GameId,
         byte Players,
         byte MaxPlayers,
         byte Bots,
@@ -22,27 +22,27 @@ namespace UnchainedLauncher.Core.API.A2S {
         );
 
     public enum ServerType : byte {
-        DEDICATED = (byte)'D',
-        NONDEDICATED = (byte)'L',
-        PROXY = (byte)'P'
+        Dedicated = (byte)'D',
+        NonDedicated = (byte)'L',
+        Proxy = (byte)'P'
     }
 
     public enum Environment : byte {
-        LINUX = (byte)'L',
-        WINDOWS = (byte)'W',
-        MAC = (byte)'M'
+        Linux = (byte)'L',
+        Windows = (byte)'W',
+        Mac = (byte)'M'
     }
 
     public interface IA2S {
-        public Task<A2sInfo> InfoAsync();
+        public Task<A2SInfo> InfoAsync();
     }
     public class A2S : IA2S {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(A2S));
-        protected readonly IPEndPoint ep;
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(A2S));
+        protected readonly IPEndPoint Ep;
         protected readonly int TimeOutMillis;
-        public A2S(IPEndPoint ep, int TimeOutMillis = 1000) {
-            this.ep = ep;
-            this.TimeOutMillis = TimeOutMillis;
+        public A2S(IPEndPoint ep, int timeOutMillis = 1000) {
+            this.Ep = ep;
+            this.TimeOutMillis = timeOutMillis;
         }
 
         private async Task<UdpReceiveResult> DoInfoRequest() {
@@ -56,7 +56,7 @@ namespace UnchainedLauncher.Core.API.A2S {
             try {
                 using UdpClient client = new();
                 using CancellationTokenSource cs = new(TimeOutMillis);
-                client.Connect(ep);
+                client.Connect(Ep);
                 await client.SendAsync(request, cs.Token);
                 return await client.ReceiveAsync(cs.Token);
             }
@@ -64,22 +64,22 @@ namespace UnchainedLauncher.Core.API.A2S {
                 throw new TimeoutException("A2S request timed out");
             }
         }
-        public async Task<A2sInfo> InfoAsync() {
-            UdpReceiveResult response = await DoInfoRequest();
-            logger.Debug($"Received {ByteArrayToHexString(response.Buffer)} bytes from {ep}");
+        public async Task<A2SInfo> InfoAsync() {
+            var response = await DoInfoRequest();
+            Logger.Debug($"Received {ByteArrayToHexString(response.Buffer)} bytes from {Ep}");
             BinaryReader br = new(new MemoryStream(response.Buffer), Encoding.UTF8);
             // ensure header is correct
             if (!br.ReadBytes(5).SequenceEqual(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0x49 })) {
                 throw new InvalidDataException("Invalid response header");
             }
-            byte protocolVersion = br.ReadByte();
+            var protocolVersion = br.ReadByte();
             var (name, map, folder, game) = (ReadString(ref br), ReadString(ref br), ReadString(ref br), ReadString(ref br));
-            ushort gameID = BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2));
+            var gameId = BinaryPrimitives.ReadUInt16BigEndian(br.ReadBytes(2));
             var (players, maxPlayers, bots) = (br.ReadByte(), br.ReadByte(), br.ReadByte());
             var serverType = (ServerType)br.ReadByte();
             var environment = (Environment)br.ReadByte();
             //handle weird variance on mac environments
-            environment = (byte)environment == (byte)'O' ? Environment.MAC : environment;
+            environment = (byte)environment == (byte)'O' ? Environment.Mac : environment;
             var (isPublic, vac) = (br.ReadByte() == 0, br.ReadByte() == 1);
             // validate enum values
             if (!Enum.IsDefined(typeof(ServerType), serverType)) {
@@ -88,11 +88,11 @@ namespace UnchainedLauncher.Core.API.A2S {
             else if (!Enum.IsDefined(typeof(Environment), environment)) {
                 throw new InvalidDataException("Invalid environment type");
             }
-            return new A2sInfo(protocolVersion, name, map, folder, game, gameID, players, maxPlayers, bots, serverType, environment, isPublic, vac);
+            return new A2SInfo(protocolVersion, name, map, folder, game, gameId, players, maxPlayers, bots, serverType, environment, isPublic, vac);
         }
         private static string ReadString(ref BinaryReader reader) {
             StringBuilder sb = new();
-            char n = reader.ReadChar();
+            var n = reader.ReadChar();
             while (n != 0x00) {
                 sb.Append(n);
                 n = reader.ReadChar();
@@ -102,10 +102,10 @@ namespace UnchainedLauncher.Core.API.A2S {
 
         private static string ByteArrayToHexString(byte[] byteArray) {
             // Create a new string array to hold the hexadecimal representations
-            string[] hexArray = new string[byteArray.Length];
+            var hexArray = new string[byteArray.Length];
 
             // Convert each byte to a two-character hexadecimal string
-            for (int i = 0; i < byteArray.Length; i++) {
+            for (var i = 0; i < byteArray.Length; i++) {
                 hexArray[i] = byteArray[i].ToString("X2"); // X2 formats as two uppercase hex digits
             }
 

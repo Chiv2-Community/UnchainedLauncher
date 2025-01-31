@@ -17,8 +17,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.API.Mocks {
         }
 
         private (long, long) GetTimes() {
-            long now = DateTimeOffset.Now.ToUnixTimeSeconds();
-            long rfBefore = now + refreshBeforeSeconds;
+            var now = DateTimeOffset.Now.ToUnixTimeSeconds();
+            var rfBefore = now + refreshBeforeSeconds;
             return (now, rfBefore);
         }
 

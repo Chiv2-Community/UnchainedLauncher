@@ -1,39 +1,41 @@
 ﻿using LanguageExt;
 using log4net;
+using UnchainedLauncher.Core.Services;
 
 namespace UnchainedLauncher.Core.Utilities {
     using static LanguageExt.Prelude;
 
     public static class HttpHelpers {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(HttpHelpers));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(HttpHelpers));
 
-        private static readonly HttpClient _httpClient = new HttpClient();
+        private static readonly HttpClient HttpClient = new HttpClient();
 
         /// <summary>
         /// Downloads a file asynchronously.
         /// </summary>
-        /// <param name="target"></param>
+        /// <param name="url"></param>
+        /// <param name="outputPath"></param>
         /// <returns>
         /// The task that represents the asynchronous operation.
         /// </returns>
         public static DownloadTask DownloadFileAsync(string url, string outputPath) {
             var dirName = Path.GetDirectoryName(outputPath);
             if (dirName != null && dirName != "" && !Directory.Exists(dirName)) {
-                logger.Info($"Creating directory {outputPath}...");
+                Logger.Info($"Creating directory {outputPath}...");
                 Directory.CreateDirectory(dirName);
             }
 
             if (FileHelpers.IsFileLocked(outputPath)) {
-                logger.Info($"{outputPath} is locked, skipping download.");
+                Logger.Info($"{outputPath} is locked, skipping download.");
                 return new DownloadTask(
                     Task.CompletedTask,
                     new DownloadTarget(url, outputPath)
                 );
             }
 
-            logger.Info($"Downloading file {outputPath} from {url}");
+            Logger.Info($"Downloading file {outputPath} from {url}");
             return new DownloadTask(
-                _httpClient.GetByteArrayAsync(url).ContinueWith(t => File.WriteAllBytes(outputPath, t.Result)),
+                HttpClient.GetByteArrayAsync(url).ContinueWith(t => File.WriteAllBytes(outputPath, t.Result)),
                 new DownloadTarget(url, outputPath)
             );
         }
@@ -41,33 +43,33 @@ namespace UnchainedLauncher.Core.Utilities {
         public static async Task<long> GetContentLengthAsync(string url) {
             try {
                 using var request = new HttpRequestMessage(HttpMethod.Head, url);
-                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                using var response = await HttpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 response.EnsureSuccessStatusCode();
                 if (response.Content.Headers.TryGetValues("Content-Length", out var values)) {
-                    if (long.TryParse(values.FirstOrDefault(), out long contentLength)) {
+                    if (long.TryParse(values.FirstOrDefault(), out var contentLength)) {
                         return contentLength;
                     }
                 }
             }
             catch (Exception ex) {
-                logger.Error($"Error retrieving file size: {ex.Message}");
+                Logger.Error($"Error retrieving file size: {ex.Message}");
             }
 
             return 0L;
         }
 
         public static DownloadTask<Stream> GetByteContentsAsync(string url) {
-            logger.Info($"Downloading file {url}");
+            Logger.Info($"Downloading file {url}");
             return new DownloadTask<Stream>(
-                _httpClient.GetStreamAsync(url),
+                HttpClient.GetStreamAsync(url),
                 new DownloadTarget(url, null)
               );
         }
 
         public static DownloadTask<string> GetStringContentsAsync(string url) {
-            logger.Info($"Fetching string contents from {url}");
+            Logger.Info($"Fetching string contents from {url}");
             return new DownloadTask<string>(
-                _httpClient.GetStringAsync(url),
+                HttpClient.GetStringAsync(url),
                 new DownloadTarget(url, null)
             );
         }
@@ -102,7 +104,7 @@ namespace UnchainedLauncher.Core.Utilities {
             Action<string>? logResult = null
         ) {
             Action<string> log = message => {
-                logger.Info(message);
+                Logger.Info(message);
                 logResult?.Invoke(message);
             };
 
@@ -111,7 +113,7 @@ namespace UnchainedLauncher.Core.Utilities {
                     var downloadTarget = assetMapping(asset);
 
                     if (downloadTarget == null) {
-                        logger.Debug($"Skipping asset with no download target {asset.Name}");
+                        Logger.Debug($"Skipping asset with no download target {asset.Name}");
                         return true;
                     }
 
@@ -125,8 +127,7 @@ namespace UnchainedLauncher.Core.Utilities {
                         log(e.ToString());
                         return false;
                     }
-                })
-                    .SequenceParallel();
+                }).SequenceParallel();
 
             return results.ForAll(identity);
 
@@ -144,8 +145,8 @@ namespace UnchainedLauncher.Core.Utilities {
         }
     }
     public record DownloadTask<T>(Task<T> Task, DownloadTarget Target) {
-        public DownloadTask<U> ContinueWith<U>(Func<T, U> action) {
-            return new DownloadTask<U>(Task.ContinueWith(t => action(t.Result)), Target);
+        public DownloadTask<TU> ContinueWith<TU>(Func<T, TU> action) {
+            return new DownloadTask<TU>(Task.ContinueWith(t => action(t.Result)), Target);
         }
 
         public DownloadTask<T> RecoverWith(Func<Exception?, DownloadTask<T>> recover) {

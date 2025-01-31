@@ -1,9 +1,9 @@
 ﻿using log4net;
 using System.Diagnostics;
 using System.Reflection;
-using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Utilities;
-using ReleaseAsset = UnchainedLauncher.Core.Utilities.ReleaseAsset;
+using ReleaseAsset = UnchainedLauncher.Core.Services.ReleaseAsset;
 
 namespace UnchainedLauncher.Core.Services.Installer {
     public interface IUnchainedLauncherInstaller {
@@ -21,7 +21,7 @@ namespace UnchainedLauncher.Core.Services.Installer {
     }
 
     public class UnchainedLauncherInstaller : IUnchainedLauncherInstaller {
-        public static readonly ILog logger = LogManager.GetLogger(nameof(UnchainedLauncherInstaller));
+        public static readonly ILog Logger = LogManager.GetLogger(nameof(UnchainedLauncherInstaller));
 
         private Action<int> EndProgram { get; }
 
@@ -43,7 +43,7 @@ namespace UnchainedLauncher.Core.Services.Installer {
         public async Task<bool> Install(DirectoryInfo targetDir, ReleaseTarget release, bool replaceCurrent, Action<string>? logProgress = null) {
             var log = new Action<string>(s => {
                 logProgress?.Invoke(s);
-                logger.Info(s);
+                Logger.Info(s);
             });
 
             try {
@@ -107,7 +107,7 @@ namespace UnchainedLauncher.Core.Services.Installer {
             }
             catch (Exception ex) {
                 log(ex.ToString());
-                logger.Error(ex);
+                Logger.Error(ex);
             }
 
             return false;

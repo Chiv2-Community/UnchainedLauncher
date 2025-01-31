@@ -43,9 +43,9 @@ namespace UnchainedLauncher.Core.Utilities {
     }
 
     public static class JsonHelpers {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(JsonHelpers));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(JsonHelpers));
 
-        private static readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions {
+        private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions {
             Converters = { new UnionConverterFactory() },
             WriteIndented = true,
         };
@@ -58,7 +58,7 @@ namespace UnchainedLauncher.Core.Utilities {
         /// <returns></returns>
         public static DeserializationResult<T> Deserialize<T>(string json) {
             try {
-                var result = JsonSerializer.Deserialize<T>(json, _serializerOptions);
+                var result = JsonSerializer.Deserialize<T>(json, SerializerOptions);
                 return new DeserializationResult<T>(result, null);
             }
             catch (JsonException e) {
@@ -67,7 +67,7 @@ namespace UnchainedLauncher.Core.Utilities {
         }
 
         public static string Serialize<T>(T obj) =>
-            JsonSerializer.Serialize(obj, _serializerOptions);
+            JsonSerializer.Serialize(obj, SerializerOptions);
 
     }
 

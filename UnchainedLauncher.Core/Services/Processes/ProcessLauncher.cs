@@ -3,7 +3,7 @@ using LanguageExt.Common;
 using log4net;
 using System.Diagnostics;
 
-namespace UnchainedLauncher.Core.Processes {
+namespace UnchainedLauncher.Core.Services.Processes {
     using static LanguageExt.Prelude;
 
     public interface IProcessLauncher {
@@ -11,7 +11,7 @@ namespace UnchainedLauncher.Core.Processes {
     }
 
     public class PowershellProcessLauncher : IProcessLauncher {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(PowershellProcessLauncher));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(PowershellProcessLauncher));
         public string Tag { get; }
         public PowershellProcessLauncher(string tag) {
             Tag = tag;
@@ -35,7 +35,7 @@ namespace UnchainedLauncher.Core.Processes {
     /// Launches an executable with the provided working directory and DLLs to inject.
     /// </summary>
     public class ProcessLauncher : IProcessLauncher {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(ProcessLauncher));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(ProcessLauncher));
 
         public string ExecutableLocation { get; }
 
@@ -67,13 +67,13 @@ namespace UnchainedLauncher.Core.Processes {
                 proc.Start();
                 proc.OutputDataReceived += (sender, e) => {
                     if (e.Data != null) {
-                        logger.Info("Stdout: " + e.Data);
+                        Logger.Info("Stdout: " + e.Data);
                     }
                 };
 
                 proc.ErrorDataReceived += (sender, e) => {
                     if (e.Data != null) {
-                        logger.Error("Stderr: " + e.Data);
+                        Logger.Error("Stderr: " + e.Data);
                     }
                 };
 

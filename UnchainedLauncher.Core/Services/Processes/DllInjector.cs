@@ -7,7 +7,7 @@ using UnchainedLauncher.Core.Extensions;
 namespace UnchainedLauncher.Core.Services.Processes {
     //Code modified/adapted from https://codingvision.net/c-inject-a-dll-into-a-process-w-createremotethread
     public class DllInjector : IProcessInjector {
-        private readonly ILog logger = LogManager.GetLogger(nameof(DllInjector));
+        private readonly ILog _logger = LogManager.GetLogger(nameof(DllInjector));
 
         [DllImport("kernel32.dll")]
         public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
@@ -37,18 +37,18 @@ namespace UnchainedLauncher.Core.Services.Processes {
         static extern uint WaitForSingleObject(IntPtr hProcess, uint dwMilliseconds);
 
         // privileges
-        const int PROCESS_CREATE_THREAD = 0x0002;
-        const int PROCESS_QUERY_INFORMATION = 0x0400;
-        const int PROCESS_VM_OPERATION = 0x0008;
-        const int PROCESS_VM_WRITE = 0x0020;
-        const int PROCESS_VM_READ = 0x0010;
+        const int ProcessCreateThread = 0x0002;
+        const int ProcessQueryInformation = 0x0400;
+        const int ProcessVmOperation = 0x0008;
+        const int ProcessVmWrite = 0x0020;
+        const int ProcessVmRead = 0x0010;
 
         // used for memory allocation
-        const uint MEM_COMMIT = 0x00001000;
-        const uint MEM_RESERVE = 0x00002000;
-        const uint MEM_RELEASE = 0x00008000;
+        const uint MemCommit = 0x00001000;
+        const uint MemReserve = 0x00002000;
+        const uint MemRelease = 0x00008000;
 
-        const uint PAGE_READWRITE = 4;
+        const uint PageReadwrite = 4;
 
         private string DllDir { get; }
 
@@ -64,47 +64,47 @@ namespace UnchainedLauncher.Core.Services.Processes {
                         : Enumerable.Empty<string>();
 
                 if (paths.Length() == 0) {
-                    logger.Info("No dlls present for injection");
+                    _logger.Info("No dlls present for injection");
                     return true;
                 }
 
                 //Paths to be injected MUST be absolute
                 paths = paths.Select(p => Path.GetFullPath(p));
 
-                logger.LogListInfo("Injecting DLLs: ", paths);
+                _logger.LogListInfo("Injecting DLLs: ", paths);
 
-                IntPtr procHandle = OpenProcess(PROCESS_CREATE_THREAD |
-                                                PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION |
-                                                PROCESS_VM_WRITE | PROCESS_VM_READ, false, p.Id);
+                var procHandle = OpenProcess(ProcessCreateThread |
+                                             ProcessQueryInformation | ProcessVmOperation |
+                                             ProcessVmWrite | ProcessVmRead, false, p.Id);
                 if (procHandle == IntPtr.Zero) {
                     return false;
                 }
 
-                int maxLen = paths.Max(p => p.Length);
-                uint allocSize = (uint)((maxLen + 1) * Marshal.SizeOf(typeof(char)));
+                var maxLen = paths.Max(p => p.Length);
+                var allocSize = (uint)((maxLen + 1) * Marshal.SizeOf(typeof(char)));
 
                 // searching for the address of LoadLibraryA and storing it in a pointer
-                IntPtr loadLibraryAddr = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
+                var loadLibraryAddr = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
                 if (loadLibraryAddr == IntPtr.Zero) {
                     return false;
                 }
 
                 // alocating some memory on the target process - enough to store the name of the dll
                 // and storing its address in a pointer
-                IntPtr allocMemAddress = VirtualAllocEx(procHandle,
+                var allocMemAddress = VirtualAllocEx(procHandle,
                     IntPtr.Zero,
                     allocSize,
-                    MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+                    MemCommit | MemReserve, PageReadwrite);
                 if (allocMemAddress == IntPtr.Zero) {
                     return false;
                 }
 
-                foreach (string path in paths) {
+                foreach (var path in paths) {
                     // writing the name of the dll there
                     var res = WriteProcessMemory(procHandle, allocMemAddress,
                         Encoding.Default.GetBytes(path + '\0'),
                         (uint)((path.Length + 1) * Marshal.SizeOf(typeof(char))),
-                        out UIntPtr bytesWritten);
+                        out var bytesWritten);
                     if (!res) { return false; }
 
                     //inject
@@ -113,11 +113,11 @@ namespace UnchainedLauncher.Core.Services.Processes {
                     var signalEvent = WaitForSingleObject(thread, unchecked((uint)-1));
                 }
 
-                VirtualFreeEx(procHandle, allocMemAddress, allocSize, MEM_RELEASE);
+                VirtualFreeEx(procHandle, allocMemAddress, allocSize, MemRelease);
                 return true;
             }
             catch (Exception e) {
-                logger.Error("Injection failed", e);
+                _logger.Error("Injection failed", e);
                 return false;
             }
         }

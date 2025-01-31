@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Utilities;
 
@@ -88,7 +89,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         .Map(displayMod => displayMod.CheckForUpdate().Map(update => (displayMod, update)))
                         .Collect(x => x.AsEnumerable());
 
-                UserDialogueChoice? res =
+                var res =
                     UserDialogueSpawner.DisplayUpdateMessage(
                         "Update Mods?",
                         $"Mod updates available.",

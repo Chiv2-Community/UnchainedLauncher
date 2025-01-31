@@ -11,23 +11,23 @@ namespace UnchainedLauncher.Core.API {
     [AddINotifyPropertyChangedInterface]
     public class A2SBoundRegistration : IDisposable {
         // handles creating new registrations
-        private readonly PersistentServerRegistrationFactory RegistrationFactory;
-        public C2ServerInfo ServerInfo => RegistrationFactory.ServerInfo;
-        private static readonly ILog logger = LogManager.GetLogger(nameof(A2SBoundRegistration));
+        private readonly PersistentServerRegistrationFactory _registrationFactory;
+        public C2ServerInfo ServerInfo => _registrationFactory.ServerInfo;
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(A2SBoundRegistration));
         public PersistentServerRegistration? Registration { get; private set; }
         public A2SWatcher A2SWatcher { get; private set; }
-        private bool disposedValue;
+        private bool _disposedValue;
 
         public A2SBoundRegistration(IServerBrowser browser,
-                                    IA2S a2sEndpoint,
+                                    IA2S a2SEndpoint,
                                     C2ServerInfo serverInfo,
                                     string localIp,
                                     int heartbeatSecondsBeforeTimeout = 5,
                                     int updateIntervalMillis = 1000) {
-            this.RegistrationFactory = new(browser, serverInfo, heartbeatSecondsBeforeTimeout, localIp);
+            this._registrationFactory = new(browser, serverInfo, heartbeatSecondsBeforeTimeout, localIp);
             // this should be constructed last, because it will start polling immediately
             // and could otherwise trigger stuff before this object is fully constructed!
-            this.A2SWatcher = new(a2sEndpoint, this.OnA2SPoll, updateIntervalMillis);
+            this.A2SWatcher = new(a2SEndpoint, this.OnA2SPoll, updateIntervalMillis);
         }
 
         /// <summary>
@@ -43,14 +43,14 @@ namespace UnchainedLauncher.Core.API {
         /// </summary>
         /// <param name="info">The A2s info to send as the initial server state</param>
         /// <returns></returns>
-        public async Task TryRegister(A2sInfo info) {
+        public async Task TryRegister(A2SInfo info) {
             this.DropRegistration();
-            logger.Info($"Server '{this.ServerInfo.Name}' is attempting to register with the backend");
+            Logger.Info($"Server '{this.ServerInfo.Name}' is attempting to register with the backend");
             try {
-                this.Registration = await this.RegistrationFactory.MakeRegistration(info, this.OnRegistrationDeath);
+                this.Registration = await this._registrationFactory.MakeRegistration(info, this.OnRegistrationDeath);
             }
             catch (Exception reason) {
-                logger.Error($"Server '{this.ServerInfo.Name}' failed to register with backend: {reason.Message}");
+                Logger.Error($"Server '{this.ServerInfo.Name}' failed to register with backend: {reason.Message}");
             }
         }
 
@@ -59,8 +59,8 @@ namespace UnchainedLauncher.Core.API {
         /// </summary>
         /// <param name="info">The new A2S information</param>
         /// <returns></returns>
-        private async Task OnA2SPoll(A2sInfo info) {
-            logger.Debug($"Server '{this.ServerInfo.Name}' just got A2s info.");
+        private async Task OnA2SPoll(A2SInfo info) {
+            Logger.Debug($"Server '{this.ServerInfo.Name}' just got A2s info.");
             // if the registration is null or dead, make a new registration with this info
             if (this.Registration is null || this.Registration.IsDead) {
                 await this.TryRegister(info);
@@ -68,11 +68,11 @@ namespace UnchainedLauncher.Core.API {
             }
 
             try {
-                await this.Registration.UpdateRegistrationA2s(info);
+                await this.Registration.UpdateRegistrationA2S(info);
             }
             catch (Exception ex) {
                 // if something went wrong, try re-making the registration
-                logger.Error($"Server '{this.ServerInfo.Name}' failed to update registration and will drop it: {ex.Message}");
+                Logger.Error($"Server '{this.ServerInfo.Name}' failed to update registration and will drop it: {ex.Message}");
                 this.DropRegistration();
             }
         }
@@ -84,7 +84,7 @@ namespace UnchainedLauncher.Core.API {
         }
 
         protected virtual void Dispose(bool disposing) {
-            if (!disposedValue) {
+            if (!_disposedValue) {
                 if (disposing) {
                     // A2SWatcher must dispose before Registration.
                     // Otherwise, it might make a new Registration
@@ -92,7 +92,7 @@ namespace UnchainedLauncher.Core.API {
                     this.A2SWatcher.Dispose();
                     this.Registration?.Dispose();
                 }
-                disposedValue = true;
+                _disposedValue = true;
             }
         }
 

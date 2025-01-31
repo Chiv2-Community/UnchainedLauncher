@@ -16,16 +16,16 @@ namespace UnchainedLauncher.Core.Services.Installer {
     }
 
     public class Chivalry2InstallationFinder : IChivalry2InstallationFinder {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2InstallationFinder));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(Chivalry2InstallationFinder));
 
-        private static readonly string Chiv2SteamAppID = "1824220";
+        private static readonly string Chiv2SteamAppId = "1824220";
         private static readonly string Chiv2EGSAppName = "Peppermint";
 
         public bool IsValidInstallation(DirectoryInfo chivInstallDir) {
-            string Chiv2ExePath = Path.Combine(chivInstallDir.FullName, FilePaths.GameBinPath);
-            var result = File.Exists(Chiv2ExePath);
-            logger.Info($"Checking if {Chiv2ExePath} exists: {result}");
-            return File.Exists(Chiv2ExePath);
+            var chiv2ExePath = Path.Combine(chivInstallDir.FullName, FilePaths.GameBinPath);
+            var result = File.Exists(chiv2ExePath);
+            Logger.Info($"Checking if {chiv2ExePath} exists: {result}");
+            return File.Exists(chiv2ExePath);
         }
 
         public bool IsSteamDir(DirectoryInfo chivInstallDir) {
@@ -44,82 +44,82 @@ namespace UnchainedLauncher.Core.Services.Installer {
         }
 
         public DirectoryInfo? FindSteamDir() {
-            logger.Info("Searching for Chivalry 2 Steam install directory...");
-            string? maybeSteamPath = GetSteamPath();
+            Logger.Info("Searching for Chivalry 2 Steam install directory...");
+            var maybeSteamPath = GetSteamPath();
             if (maybeSteamPath == null) {
-                logger.Info("Failed to find Steam path.");
+                Logger.Info("Failed to find Steam path.");
                 return null;
             }
 
-            string SteamPath = maybeSteamPath;
-            string SteamLibFile = Path.Combine(SteamPath, "steamapps", "libraryfolders.vdf");
+            var steamPath = maybeSteamPath;
+            var steamLibFile = Path.Combine(steamPath, "steamapps", "libraryfolders.vdf");
 
-            logger.Info($"Steam library metadata location: {SteamLibFile}");
+            Logger.Info($"Steam library metadata location: {steamLibFile}");
 
-            if (File.Exists(SteamLibFile)) {
+            if (File.Exists(steamLibFile)) {
                 try {
-                    string vdfContent = File.ReadAllText(SteamLibFile);
+                    var vdfContent = File.ReadAllText(steamLibFile);
                     // This captures everything after "path"
-                    string pattern = "\"(\\d+)\"[\\s\\t]*\\{[\\s\\S]*?\"path\"[\\s\\t]*\"(.*?)\"";
-                    MatchCollection matches = Regex.Matches(vdfContent, pattern);
+                    var pattern = "\"(\\d+)\"[\\s\\t]*\\{[\\s\\S]*?\"path\"[\\s\\t]*\"(.*?)\"";
+                    var matches = Regex.Matches(vdfContent, pattern);
 
-                    for (int i = 0; i < matches.Count; ++i) {
-                        Match match = matches[i];
+                    for (var i = 0; i < matches.Count; ++i) {
+                        var match = matches[i];
 
-                        string CandidateDir = match.Groups[2].Value;
-                        CandidateDir = Regex.Unescape(CandidateDir);
+                        var candidateDir = match.Groups[2].Value;
+                        candidateDir = Regex.Unescape(candidateDir);
                         //Console.WriteLine($"Folder Path: {folderPath}");
 
                         // get substring until next section
                         var maxIdx = (i < matches.Count - 1) ? matches[i + 1].Index : vdfContent.Length;
-                        string ss = vdfContent[match.Index..maxIdx];
+                        var ss = vdfContent[match.Index..maxIdx];
 
                         // skip apps and brackets, then parse each line
-                        string pattern3 = "\"apps\"[\\s\\t]*\\{";
-                        MatchCollection matches3 = Regex.Matches(ss, pattern3);
-                        int appsIdx = matches3[0].Index + matches3[0].Value.Length;
+                        var pattern3 = "\"apps\"[\\s\\t]*\\{";
+                        var matches3 = Regex.Matches(ss, pattern3);
+                        var appsIdx = matches3[0].Index + matches3[0].Value.Length;
                         // get only the lines with numbers inside "apps"
-                        var ss_sub2 = ss[appsIdx..ss.IndexOf('}', appsIdx)];
-                        string[] lines = ss_sub2.Split(new[] { '\"' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                        var ssSub2 = ss[appsIdx..ss.IndexOf('}', appsIdx)];
+                        string[] lines = ssSub2.Split(new[] { '\"' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
-                        for (int j = 0; j < lines.Length; j += 2)
-                            if (lines[j].Equals(Chiv2SteamAppID))
-                                return new DirectoryInfo(Path.Combine(CandidateDir, @"steamapps\common\Chivalry 2"));
+                        for (var j = 0; j < lines.Length; j += 2)
+                            if (lines[j].Equals(Chiv2SteamAppId))
+                                return new DirectoryInfo(Path.Combine(candidateDir, @"steamapps\common\Chivalry 2"));
                     }
                 }
                 catch (Exception e) {
-                    logger.Error($"Error reading Steam library metadata file", e);
+                    Logger.Error($"Error reading Steam library metadata file", e);
                     return null;
                 }
             }
 
-            logger.Info($"Found no Steam library with Chivalry 2 installed.");
+            Logger.Info($"Found no Steam library with Chivalry 2 installed.");
             return null;
         }
 
         public DirectoryInfo? FindEGSDir() {
-            logger.Info("Searching for Chivalry 2 EGS install directory...");
+            Logger.Info("Searching for Chivalry 2 EGS install directory...");
 
-            var ProgramDataDir = Environment.ExpandEnvironmentVariables("%PROGRAMDATA%");
-            string EGSDataFile = Path.Combine(ProgramDataDir, @"Epic\UnrealEngineLauncher\LauncherInstalled.dat");
+            var programDataDir = Environment.ExpandEnvironmentVariables("%PROGRAMDATA%");
+            var egsDataFile = Path.Combine(programDataDir, @"Epic\UnrealEngineLauncher\LauncherInstalled.dat");
 
-            if (File.Exists(EGSDataFile)) {
-                logger.Info($"Reading EGS Install List from {EGSDataFile}...");
+            if (File.Exists(egsDataFile)) {
+                Logger.Info($"Reading EGS Install List from {egsDataFile}...");
 
-                var savedSettings = JsonSerializer.Deserialize<EGSInstallList>(File.ReadAllText(EGSDataFile));
+                var savedSettings = JsonSerializer.Deserialize<EGSInstallList>(File.ReadAllText(egsDataFile));
                 if (savedSettings != null && savedSettings.InstallationList.Count > 0) {
                     var chivEntry = savedSettings.InstallationList.Where(x => x.AppName == Chiv2EGSAppName);
                     if (chivEntry.Any()) {
-                        logger.Info($"Found Chivalry 2 EGS install directory: {chivEntry.First().InstallLocation}");
+                        Logger.Info($"Found Chivalry 2 EGS install directory: {chivEntry.First().InstallLocation}");
                         return new DirectoryInfo(chivEntry.First().InstallLocation);
                     }
                 }
                 else {
-                    logger.Warn("Failed to read EGS install list file.");
+                    Logger.Warn("Failed to read EGS install list file.");
                 }
             }
 
-            logger.Info($"Found no EGS installation with Chivalry 2 installed.");
+            Logger.Info($"Found no EGS installation with Chivalry 2 installed.");
             return null;
         }
 
@@ -127,7 +127,7 @@ namespace UnchainedLauncher.Core.Services.Installer {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 var registrySteamPath = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Valve\Steam", "SteamPath", null);
                 if (registrySteamPath == null) {
-                    logger.Info("Steam library metadata location not found in registry.");
+                    Logger.Info("Steam library metadata location not found in registry.");
                     return null;
                 }
 

@@ -9,39 +9,39 @@ namespace UnchainedLauncher.Core.API.ServerBrowser {
         public readonly int HeartBeatSecondsBeforeTimeout;
         public readonly IServerBrowser Browser;
         public readonly string LocalIp;
-        private bool disposedValue;
+        private bool _disposedValue;
 
-        public PersistentServerRegistrationFactory(IServerBrowser Browser,
-                                                   C2ServerInfo ServerInfo,
-                                                   int HeartBeatSecondsBeforeTimeout,
-                                                   string LocalIp) {
-            this.Browser = Browser;
-            this.ServerInfo = ServerInfo;
-            this.HeartBeatSecondsBeforeTimeout = HeartBeatSecondsBeforeTimeout;
-            this.LocalIp = LocalIp;
+        public PersistentServerRegistrationFactory(IServerBrowser browser,
+                                                   C2ServerInfo serverInfo,
+                                                   int heartBeatSecondsBeforeTimeout,
+                                                   string localIp) {
+            this.Browser = browser;
+            this.ServerInfo = serverInfo;
+            this.HeartBeatSecondsBeforeTimeout = heartBeatSecondsBeforeTimeout;
+            this.LocalIp = localIp;
         }
 
         /// <summary>
         /// Make a new PersistentServerRegistration using the factory's parameters
         /// </summary>
         /// <param name="info">The initial A2S information</param>
-        /// <param name="OnDeath">The callback for if the PersistentServerRegistration dies</param>
+        /// <param name="onDeath">The callback for if the PersistentServerRegistration dies</param>
         /// <returns></returns>
-        public async Task<PersistentServerRegistration> MakeRegistration(A2sInfo info,
-                                                                         PersistentServerRegistration.RegistrationDied? OnDeath = null) {
-            ServerInfo specificInfo = new ServerInfo(ServerInfo, info);
+        public async Task<PersistentServerRegistration> MakeRegistration(A2SInfo info,
+                                                                         PersistentServerRegistration.RegistrationDied? onDeath = null) {
+            var specificInfo = new ServerInfo(ServerInfo, info);
             var response = await Browser.RegisterServerAsync(LocalIp, specificInfo);
-            return new(Browser, response, OnDeath, HeartBeatSecondsBeforeTimeout);
+            return new(Browser, response, onDeath, HeartBeatSecondsBeforeTimeout);
         }
 
         protected virtual void Dispose(bool disposing) {
-            if (!disposedValue) {
+            if (!_disposedValue) {
                 if (disposing) {
                     // TODO: should this dispose the browser?
                     Browser.Dispose();
                 }
 
-                disposedValue = true;
+                _disposedValue = true;
             }
         }
 

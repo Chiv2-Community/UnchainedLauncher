@@ -4,10 +4,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.API {
     public class PeriodicRunnerTests {
         [Fact]
         public async Task TestPolling() {
-            int pollCount = 0;
-            int testTimeMillis = 2000;
-            int expectedPollCount = 10;
-            int delay = testTimeMillis / expectedPollCount;
+            var pollCount = 0;
+            var testTimeMillis = 2000;
+            var expectedPollCount = 10;
+            var delay = testTimeMillis / expectedPollCount;
             Task<TimeSpan> Execute() {
                 pollCount++;
                 return Task.FromResult(TimeSpan.FromMilliseconds(delay));
@@ -29,14 +29,14 @@ namespace UnchainedLauncher.Core.Tests.Unit.API {
 
         [Fact]
         public async Task TestExceptions() {
-            int pollCount = 0;
-            int testTimeMillis = 200;
+            var pollCount = 0;
+            var testTimeMillis = 200;
             Task<TimeSpan> Execute() {
                 pollCount++;
                 throw new NotImplementedException();
             }
 
-            bool exceptionHandled = false;
+            var exceptionHandled = false;
             Task<bool> OnException(Exception e) {
                 exceptionHandled = true;
                 return Task.FromResult(false);
@@ -52,14 +52,14 @@ namespace UnchainedLauncher.Core.Tests.Unit.API {
 
         [Fact]
         public async Task TestExceptionRetries() {
-            int pollCount = 0;
-            int testTimeMillis = 200;
+            var pollCount = 0;
+            var testTimeMillis = 200;
             Task<TimeSpan> Execute() {
                 pollCount++;
                 throw new NotImplementedException();
             }
 
-            bool exceptionHandled = false;
+            var exceptionHandled = false;
             Task<bool> OnException(Exception e) {
                 exceptionHandled = true;
                 return Task.FromResult(true);

@@ -10,8 +10,9 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Installer;
+using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.JsonModels;
 
@@ -184,7 +185,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         private async Task ChangeVersion(ReleaseTarget release) {
-            UserDialogueChoice? dialogResult =
+            var dialogResult =
                 UserDialogueSpawner.DisplayUpdateMessage(
                     "Chivalry 2 Unchained Launcher Update",
                     "Update the Unchained Launcher?",

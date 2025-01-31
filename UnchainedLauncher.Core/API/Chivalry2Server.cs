@@ -8,15 +8,15 @@ namespace UnchainedLauncher.Core.API {
     /// </summary>
     [AddINotifyPropertyChangedInterface]
     public class Chivalry2Server : IDisposable {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(Chivalry2Server));
-        private bool disposedValue;
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(Chivalry2Server));
+        private bool _disposedValue;
         public Process ServerProcess { get; private set; }
         public IRCON? Rcon { get; private set; }
 
         // TODO: add UPnP manager here
         public A2SBoundRegistration RegistrationHandler { get; private set; }
-        public Chivalry2Server(Process serverProcess, A2SBoundRegistration Registration, IRCON? rcon = null) {
-            this.RegistrationHandler = Registration;
+        public Chivalry2Server(Process serverProcess, A2SBoundRegistration registration, IRCON? rcon = null) {
+            this.RegistrationHandler = registration;
             ServerProcess = serverProcess;
             Rcon = rcon;
         }
@@ -27,7 +27,7 @@ namespace UnchainedLauncher.Core.API {
                 Rcon?.SendCommand("exit").Wait(1000);
             }
             catch (Exception ex) {
-                logger.Error($"Failed to send exit RCON to process: {ex.Message}");
+                Logger.Error($"Failed to send exit RCON to process: {ex.Message}");
             }
             finally {
                 try {
@@ -40,7 +40,7 @@ namespace UnchainedLauncher.Core.API {
                     ServerProcess.WaitForExit();
                 }
                 catch (Exception ex) {
-                    logger.Error($"Failed to kill server process: {ex.Message}");
+                    Logger.Error($"Failed to kill server process: {ex.Message}");
                 }
             }
             ServerProcess.WaitForExit();
@@ -49,13 +49,13 @@ namespace UnchainedLauncher.Core.API {
         }
 
         protected virtual void Dispose(bool disposing) {
-            if (!disposedValue) {
+            if (!_disposedValue) {
                 if (disposing) {
                     KillProcess();
                     this.RegistrationHandler.Dispose();
                 }
 
-                disposedValue = true;
+                _disposedValue = true;
             }
         }
 

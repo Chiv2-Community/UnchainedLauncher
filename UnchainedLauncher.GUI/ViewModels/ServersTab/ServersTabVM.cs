@@ -17,6 +17,7 @@ using UnchainedLauncher.Core.API;
 using UnchainedLauncher.Core.API.A2S;
 using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
@@ -136,7 +137,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public async Task LaunchSelected(bool headless = false) {
             if (SelectedTemplate == null) return;
 
-            ServerInfoFormData formData = SelectedTemplate.Form.Data;
+            var formData = SelectedTemplate.Form.Data;
             var enabledMods =
                 SelectedTemplate.ModManager.GetEnabledModReleases();
             var maybeProcess = await LaunchProcessForSelected(formData, headless);
@@ -189,7 +190,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             SelectedLive = RunningTemplates.Choose(
                 (e) => e.template == SelectedTemplate ? e.live : Option<ServerVM>.None
             ).FirstOrDefault();
-            bool isSelectedRunning = SelectedLive != null;
+            var isSelectedRunning = SelectedLive != null;
 
             TemplateEditorVisibility = isSelectedRunning || ServerTemplates.Length() == 0 ? Visibility.Hidden : Visibility.Visible;
             LiveServerVisibility = !isSelectedRunning ? Visibility.Hidden : Visibility.Visible;
@@ -249,7 +250,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             return new A2SBoundRegistration(
                 new ServerBrowser(new Uri(Settings.ServerBrowserBackend + "/api/v1")),
-                new A2S(new IPEndPoint(IPAddress.Loopback, ports.A2s)),
+                new A2S(new IPEndPoint(IPAddress.Loopback, ports.A2S)),
                 serverInfo,
                 formData.LocalIp);
         }
@@ -267,7 +268,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
     public static class Successors {
         public static (int, Set<int>) ReserveRestrictedSuccessor(int number, Set<int> excluded) {
-            int next = RestrictedSuccessor(number, excluded);
+            var next = RestrictedSuccessor(number, excluded);
             return (next, excluded.Add(next));
         }
 

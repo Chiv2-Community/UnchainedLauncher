@@ -18,7 +18,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         public void pullRegistryVMs() {
             Registries.Clear();
-            foreach (IModRegistryVM vm in Registry.ModRegistries.Map(IntoVM)) {
+            foreach (var vm in Registry.ModRegistries.Map(IntoVM)) {
                 Registries.Add(vm);
             }
         }
@@ -33,7 +33,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         [RelayCommand]
         public void AddNewGithubRegistry() {
-            GithubModRegistry ghr = new GithubModRegistry(
+            var ghr = new GithubModRegistry(
                 "Chiv2-Community",
                 "C2ModRegistry"
             );
@@ -43,7 +43,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         [RelayCommand]
         public void AddNewLocalRegistry() {
-            LocalModRegistry lmr = new LocalModRegistry("LocalRegistryPath");
+            var lmr = new LocalModRegistry("LocalRegistryPath");
 
             AddRegistry(lmr);
         }

@@ -9,9 +9,9 @@ namespace UnchainedLauncher.Core.API {
     }
 
     public class RCON : IRCON {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(RCON));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(RCON));
         public string RconLocation => RconEndpoint.ToString();
-        protected IPEndPoint RconEndpoint;
+        protected readonly IPEndPoint RconEndpoint;
         public RCON(IPEndPoint rconEndpoint) {
             RconEndpoint = rconEndpoint;
         }
@@ -21,14 +21,14 @@ namespace UnchainedLauncher.Core.API {
         }
 
         public static async Task SendCommandTo(IPEndPoint rconEndpoint, string command) {
-            using TcpClient client = new TcpClient();
+            using var client = new TcpClient();
             client.SendTimeout = 1000;
             client.ReceiveTimeout = 1000;
             await client.ConnectAsync(rconEndpoint);
             await client.GetStream().WriteAsync(
                 (command + "\n").Map((c) => (byte)c).ToArray() // string -> byte[]
             );
-            logger.Info($"Sent command '{command}' to '{rconEndpoint}'");
+            Logger.Info($"Sent command '{command}' to '{rconEndpoint}'");
         }
     }
 }

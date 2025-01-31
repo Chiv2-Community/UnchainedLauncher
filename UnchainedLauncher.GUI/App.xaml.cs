@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
-using UnchainedLauncher.Core.Processes;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -48,7 +48,7 @@ namespace UnchainedLauncher.GUI {
                 log4net.Config.XmlConfigurator.Configure(new FileInfo("Resources/log4net.config"));
             }
             else {
-                using Stream? configStream = assembly.GetManifestResourceStream("UnchainedLauncher.GUI.Resources.log4net.config");
+                using var configStream = assembly.GetManifestResourceStream("UnchainedLauncher.GUI.Resources.log4net.config");
                 if (configStream != null) {
                     log4net.Config.XmlConfigurator.Configure(configStream);
                 }

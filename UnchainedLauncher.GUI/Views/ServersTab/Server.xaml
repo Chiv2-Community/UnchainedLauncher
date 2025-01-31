@@ -78,13 +78,13 @@
                                 </TextBlock>
                                 <TextBlock>
                                     <Run Text="Map: "/>
-                                    <Run Text="{Binding Server.RegistrationHandler.A2SWatcher.LastA2sInfo.Map}"/>
+                                    <Run Text="{Binding Server.RegistrationHandler.A2SWatcher.LastA2SInfo.Map}"/>
                                 </TextBlock>
                                 <TextBlock>
                                     <Run Text="Players: "/>
-                                    <Run Text="{Binding Server.RegistrationHandler.A2SWatcher.LastA2sInfo.Players}"/>
+                                    <Run Text="{Binding Server.RegistrationHandler.A2SWatcher.LastA2SInfo.Players}"/>
                                     /
-                                    <Run Text="{Binding Server.RegistrationHandler.A2SWatcher.LastA2sInfo.MaxPlayers}"/>
+                                    <Run Text="{Binding Server.RegistrationHandler.A2SWatcher.LastA2SInfo.MaxPlayers}"/>
                                 </TextBlock>
                             </StackPanel>
                         </DataTemplate>
@@ -112,7 +112,7 @@
                     <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.Ping}"/>
 
                     <TextBlock Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" Text="A2S: "/>
-                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.A2s}"/>
+                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding Server.RegistrationHandler.ServerInfo.Ports.A2S}"/>
 
                     <TextBlock Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Text="RCON: "/>
                     <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Server.Rcon.RconLocation, FallbackValue=????}"/>

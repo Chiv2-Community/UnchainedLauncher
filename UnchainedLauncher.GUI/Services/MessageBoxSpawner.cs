@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.Views;

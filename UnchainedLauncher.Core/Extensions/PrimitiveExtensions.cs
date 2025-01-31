@@ -2,16 +2,16 @@
 
 namespace UnchainedLauncher.Core.Extensions {
     public static class PrimitiveExtensions {
-        public static T Match<T>(this bool b, Func<T> True, Func<T> False) {
-            return b ? True() : False();
+        public static T Match<T>(this bool b, Func<T> trueFunc, Func<T> falseFunc) {
+            return b ? trueFunc() : falseFunc();
         }
 
-        public static Either<L, R> ToEither<L, R>(this bool b, Func<L> False, Func<R> True) {
-            return b ? Prelude.Right(True()) : Prelude.Left(False());
+        public static Either<TL, TR> ToEither<TL, TR>(this bool b, Func<TL> falseFunc, Func<TR> trueFunc) {
+            return b ? Prelude.Right(trueFunc()) : Prelude.Left(falseFunc());
         }
 
-        public static EitherAsync<L, R> ToEitherAsync<L, R>(this bool b, Func<Task<L>> False, Func<Task<R>> True) {
-            return b ? Prelude.RightAsync<L, R>(True()) : Prelude.LeftAsync<L, R>(False());
+        public static EitherAsync<TL, TR> ToEitherAsync<TL, TR>(this bool b, Func<Task<TL>> falseFunc, Func<Task<TR>> trueFunc) {
+            return b ? Prelude.RightAsync<TL, TR>(trueFunc()) : Prelude.LeftAsync<TL, TR>(falseFunc());
         }
     }
 }

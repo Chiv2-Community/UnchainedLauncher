@@ -60,13 +60,13 @@ namespace UnchainedLauncher.Core.Utilities {
 
 
     public class Deserializer<T> : IDeserializer<T> {
-        public readonly Func<string, DeserializationResult<T>> _deserialize;
+        public readonly Func<string, DeserializationResult<T>> DeserializeFunc;
 
-        public Deserializer(Func<string, DeserializationResult<T>> deserialize) {
-            _deserialize = deserialize;
+        public Deserializer(Func<string, DeserializationResult<T>> deserializeFunc) {
+            DeserializeFunc = deserializeFunc;
         }
 
-        public DeserializationResult<T> Deserialize(string json) => _deserialize(json);
+        public DeserializationResult<T> Deserialize(string json) => DeserializeFunc(json);
 
         public Option<DeserializationResult<T>> DeserializeFile(string path) {
             if (!File.Exists(path)) return None;
@@ -78,21 +78,21 @@ namespace UnchainedLauncher.Core.Utilities {
     }
 
     public class Serializer<T> : ISerializer<T> {
-        public readonly Func<T, string> _serialize;
+        public readonly Func<T, string> SerializeFunc;
 
-        public Serializer(Func<T, string> serialize) => _serialize = serialize;
+        public Serializer(Func<T, string> serializeFunc) => SerializeFunc = serializeFunc;
 
-        public string Serialize(T obj) => _serialize(obj);
+        public string Serialize(T obj) => SerializeFunc(obj);
     }
 
 
     /// <summary>
-    /// Given a serializer and deserializaer, constructs a Codec which can handle serialization and deserialization.
+    /// Given a serializer and deserializer, constructs a Codec which can handle serialization and deserialization.
     /// This is largely for convenience, for situations where you'll need to do both
     /// </summary>
     public class Codec<T> : ICodec<T> {
-        protected readonly ISerializer<T> _serializer;
-        protected readonly IDeserializer<T> _deserializer;
+        private readonly ISerializer<T> _serializer;
+        private readonly IDeserializer<T> _deserializer;
 
         public Codec(ISerializer<T> serializer, IDeserializer<T> deserializer) {
             _deserializer = deserializer;
@@ -107,8 +107,8 @@ namespace UnchainedLauncher.Core.Utilities {
     /// Derives a new codec from a map/contramap function and an underlying codec.
     /// This is kind of ugly, but C# doesn't provide a much nicer way to do this.
     /// </summary>
-    /// <typeparam name="TJson"></typeparam>
     /// <typeparam name="T"></typeparam>
+    /// <typeparam name="TSerializable"></typeparam>
     public class DerivedCodec<TSerializable, T> : Codec<T> {
         public DerivedCodec(ICodec<TSerializable> codec, Func<T, TSerializable> contramap, Func<TSerializable, T> map) :
             base(codec.Contramap(contramap), codec.Map(map)) { }

@@ -12,8 +12,8 @@ namespace UnchainedLauncher.Core.Tests.Integration.API {
             Description = "Test description"
         };
         //test a2s response to use where it would be useless/inconvenient to actually make such a query
-        private static readonly A2sInfo testA2SInfo =
-            new(0, "", "test map", "", "Chivalry 2", 0, 10, 100, 5, ServerType.NONDEDICATED, Environment.WINDOWS, true, false);
+        private static readonly A2SInfo testA2SInfo =
+            new(0, "", "test map", "", "Chivalry 2", 0, 10, 100, 5, ServerType.NonDedicated, Environment.Windows, true, false);
 
         private static readonly ServerInfo testServerInfo = new(testServerC2Info, testA2SInfo);
 
@@ -23,7 +23,7 @@ namespace UnchainedLauncher.Core.Tests.Integration.API {
         [Fact]
         public async Task RegisterServerTest() {
             using ServerBrowser backend = new(endpoint, new HttpClient());
-            RegisterServerResponse res = await backend.RegisterServerAsync(localIP, testServerInfo); ;
+            var res = await backend.RegisterServerAsync(localIP, testServerInfo); ;
             //not exhaustive
             //it's not possible to up-cast and compare using equals
             //because the result will still retain the fields and cause a not-equal
@@ -40,8 +40,8 @@ namespace UnchainedLauncher.Core.Tests.Integration.API {
             using ServerBrowser backend = new(endpoint, new HttpClient());
             var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
             await Task.Delay(1000); //wait a bit before updating
-            double refreshBefore2 = await backend.UpdateServerAsync(server, key);
-            long now = DateTimeOffset.Now.ToUnixTimeSeconds();
+            var refreshBefore2 = await backend.UpdateServerAsync(server, key);
+            var now = DateTimeOffset.Now.ToUnixTimeSeconds();
             Assert.True(refreshBefore2 > now);
         }
 
@@ -50,8 +50,8 @@ namespace UnchainedLauncher.Core.Tests.Integration.API {
             using ServerBrowser backend = new(endpoint, new HttpClient());
             var (_, key, server) = await backend.RegisterServerAsync(localIP, testServerInfo);
             Thread.Sleep(1000); //give it time to sit before sending a heartbeat
-            double refreshBefore2 = await backend.HeartbeatAsync(server, key);
-            long now = DateTimeOffset.Now.ToUnixTimeSeconds();
+            var refreshBefore2 = await backend.HeartbeatAsync(server, key);
+            var now = DateTimeOffset.Now.ToUnixTimeSeconds();
 
             Assert.True(refreshBefore2 > now);
         }

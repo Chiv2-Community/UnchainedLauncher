@@ -1,15 +1,15 @@
 ﻿using log4net;
 using System.Diagnostics;
 
-namespace UnchainedLauncher.Core.Processes {
+namespace UnchainedLauncher.Core.Services.Processes {
     public static class PowerShell {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(PowerShell));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(PowerShell));
         public static Process Run(IEnumerable<string> commands, bool createWindow = false) {
             var process = new Process();
 
-            logger.Info("Running powershell command:");
+            Logger.Info("Running powershell command:");
             foreach (var command in commands) {
-                logger.Info("    " + command);
+                Logger.Info("    " + command);
             }
 
             var commandString = commands.Aggregate("", (acc, elem) => acc + elem + "; \n");
@@ -23,7 +23,7 @@ namespace UnchainedLauncher.Core.Processes {
                 process.Start();
             }
             catch (Exception e) {
-                logger.Error($"Failed to execute powershell command.", e);
+                Logger.Error($"Failed to execute powershell command.", e);
                 throw;
             }
 

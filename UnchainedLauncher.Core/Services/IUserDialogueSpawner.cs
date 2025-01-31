@@ -1,6 +1,6 @@
 ﻿using UnchainedLauncher.Core.Services.Mods;
 
-namespace UnchainedLauncher.Core.Utilities {
+namespace UnchainedLauncher.Core.Services {
 
 
     public interface IUserDialogueSpawner {

@@ -21,7 +21,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         // I think the property changed notification is not getting propagated up when LastException is changed.
         // Swapping to a different template and coming back will show the updated value in the tooltip
         public string? LastA2sExceptionMessage => Server.RegistrationHandler.A2SWatcher.LastException?.Message;
-        public bool IsA2sOk => Server.RegistrationHandler.A2SWatcher.A2sOk;
+        public bool IsA2sOk => Server.RegistrationHandler.A2SWatcher.A2SOk;
         public string RconHistory { get; set; }
 
         private bool disposed = false;

@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;

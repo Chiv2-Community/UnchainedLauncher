@@ -1,6 +1,6 @@
 ﻿using Semver;
 
-namespace UnchainedLauncher.Core.Utilities {
+namespace UnchainedLauncher.Core.Services {
     /// <summary>
     /// An IReleaseLocator is used for finding releases for non-mod files.
     ///

@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services;
@@ -103,28 +104,88 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
         }
 
-
-        // TODO: This function knows too much.
-        //       It should be telling the mod manager and other things which
-        //       manage files to clean themselves up, rather than this class
-        //       being aware of everything.
         [RelayCommand]
-        private void CleanUpInstallation() {
-            Logger.Info("CleanUpInstallation button clicked.");
+        private void UninstallLauncher() {
+            const string originalPath = FilePaths.OriginalLauncherPath;
+            const string launcherPath = FilePaths.LauncherPath;
+            
+            var originalExists = File.Exists(originalPath);
             var message = new List<string>() {
-                "Are you sure? This will disable all mods and reset all settings to their defaults. This will delete the following:",
+                "Are you sure? This will disable all mods, reset all settings to their defaults, and uninstall the launcher. This will delete the following:",
                 "* All files in .mod_cache",
                 "* All files in TBL\\Binaries\\Win64\\Plugins",
                 "* All non-vanilla paks in TBL\\Content\\Paks.",
                 "",
-                "After deleting, the launcher will restart itself."
+                originalExists 
+                ? "IMPORTANT: Wait at least 1 second and then launch normally."
+                : "IMPORTANT: The original launcher is not present. You will need to verify game files after this so it can be re-downloaded."
             }.Aggregate((accumulator, next) => accumulator + "\n" + next);
-
-            var choice = UserDialogueSpawner.DisplayYesNoMessage(message, "Really clean up installation?");
+            
+            var choice = UserDialogueSpawner.DisplayYesNoMessage(message, "Really uninstall?");
             Logger.Info($"Are you sure? User selects: {choice}");
 
             if (choice == UserDialogueChoice.No) return;
-
+            
+            CleanUpInstallation_actions();
+            const string replaceCommand = $@" 
+                while (Test-Path '{originalPath}' -PathType Leaf) {{
+                    try {{
+                        Move-Item -Path '{originalPath}' -Destination '{launcherPath}' -Force;
+                        break;
+                    }} catch {{
+                        Start-Sleep -Milliseconds 200;
+                        Write-Error $_.Exception.Message;
+                    }}
+                }};"; 
+            
+            const string deleteCommand = $@" 
+                while (Test-Path '{launcherPath}' -PathType Leaf) {{
+                    try {{
+                        Remove-Item -Path '{launcherPath}' -Force;
+                        break;
+                    }} catch {{
+                        Start-Sleep -Milliseconds 200;
+                        Write-Error $_.Exception.Message;
+                    }}
+                }};"; 
+            
+            // flatten the script so newlines don't cause problems
+            var flatReplaceCommand = Regex.Replace(
+                replaceCommand, 
+                @"[\n\r]+\s*", 
+                " ", 
+                RegexOptions.Singleline
+                );
+            // flatten the script so newlines don't cause problems
+            var flatDeleteCommand = Regex.Replace(
+                deleteCommand, 
+                @"[\n\r]+\s*", 
+                " ", 
+                RegexOptions.Singleline
+            );
+            
+            // if there's no original, then there's nothing we can do but delete ourselves
+            if (originalExists) { 
+                PowerShell.Run(new List<string>() { 
+                    $"Wait-Process -Id {Process.GetCurrentProcess().Id}", 
+                    flatReplaceCommand
+                }, false).Dispose();
+            }
+            else {
+                PowerShell.Run(new List<string>() { 
+                    $"Wait-Process -Id {Process.GetCurrentProcess().Id}", 
+                    flatDeleteCommand
+                }, false).Dispose();
+            }
+            
+            ExitProgram(0);
+        }
+        
+        // TODO: This function knows too much.
+        //       It should be telling the mod manager and other things which
+        //       manage files to clean themselves up, rather than this class
+        //       being aware of everything.
+        private void CleanUpInstallation_actions() {
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
             FileHelpers.DeleteDirectory(FilePaths.PluginDir);
 
@@ -142,7 +203,25 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     });
 
             FileHelpers.DeleteFiles(filePaths);
+        }
+        
+        [RelayCommand]
+        private void CleanUpInstallation() {
+            Logger.Info("CleanUpInstallation button clicked.");
+            var message = new List<string>() {
+                "Are you sure? This will disable all mods and reset all settings to their defaults. This will delete the following:",
+                "* All files in .mod_cache",
+                "* All files in TBL\\Binaries\\Win64\\Plugins",
+                "* All non-vanilla paks in TBL\\Content\\Paks.",
+                "",
+                "After deleting, the launcher will restart itself."
+            }.Aggregate((accumulator, next) => accumulator + "\n" + next);
 
+            var choice = UserDialogueSpawner.DisplayYesNoMessage(message, "Really clean up installation?");
+            Logger.Info($"Are you sure? User selects: {choice}");
+
+            if (choice == UserDialogueChoice.No) return;
+            CleanUpInstallation_actions();
             RestartLauncher();
         }
 

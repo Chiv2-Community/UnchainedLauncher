@@ -23,6 +23,7 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="auto"/>
         </Grid.ColumnDefinitions>
 
@@ -47,7 +48,7 @@
             <TextBox Text="{Binding AdditionalModActors, Mode=TwoWay}" IsManipulationEnabled="True" AcceptsReturn="False" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN"/>
         </Grid>
 
-        <Grid Grid.Row="1" Grid.Column="1">
+        <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
@@ -62,8 +63,10 @@
         <TextBox Text="{Binding CLIArgs}" Grid.Row="4" Grid.ColumnSpan ="3" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
 
         <Button Content="Clean Up Installation" Grid.Row="5" Grid.Column="0" Margin="5" Command="{Binding CleanUpInstallationCommand}" />
-        <Button Content="Check for updates" Grid.Row="5" Grid.Column="1" Margin="5" Command="{Binding CheckForUpdateCommand}" />
+        <Button Content="Uninstall" Grid.Row="5" Grid.Column="1" Margin="5" Command="{Binding UninstallLauncherCommand}" />
+        <Button Content="Check for updates" Grid.Row="5" Grid.Column="2" Margin="5" Command="{Binding CheckForUpdateCommand}" />
 
-        <TextBlock Text="{Binding CurrentVersion}" Grid.Row="5" Grid.ColumnSpan ="2" Grid.Column="2" HorizontalAlignment="Center" Height="NaN" Margin="0,0,0,0" VerticalAlignment="Center" Width="NaN" />
+
+        <TextBlock Text="{Binding CurrentVersion}" Grid.Row="5" Grid.Column="3" HorizontalAlignment="Center" Height="NaN" Margin="0,0,0,0" VerticalAlignment="Center" Width="NaN" />
     </Grid>
 </UserControl>

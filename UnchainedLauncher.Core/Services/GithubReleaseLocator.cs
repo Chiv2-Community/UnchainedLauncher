@@ -3,8 +3,6 @@ using log4net;
 using Octokit;
 using Semver;
 using System.Collections.Immutable;
-using UnchainedLauncher.Core.Utilities;
-using ReleaseAsset = UnchainedLauncher.Core.Services.ReleaseAsset;
 
 namespace UnchainedLauncher.Core.Services {
     using static LanguageExt.Prelude;

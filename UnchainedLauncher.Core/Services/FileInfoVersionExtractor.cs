@@ -1,7 +1,6 @@
 ﻿using log4net;
 using Semver;
 using System.Diagnostics;
-using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services {
     /// <summary>

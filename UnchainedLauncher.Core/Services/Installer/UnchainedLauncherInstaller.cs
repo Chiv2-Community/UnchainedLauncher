@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Reflection;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Utilities;
-using ReleaseAsset = UnchainedLauncher.Core.Services.ReleaseAsset;
 
 namespace UnchainedLauncher.Core.Services.Installer {
     public interface IUnchainedLauncherInstaller {

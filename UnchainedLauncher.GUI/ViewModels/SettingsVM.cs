@@ -20,7 +20,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
     [AddINotifyPropertyChangedInterface]
-    public class SettingsVM : IDisposable {
+    public partial class SettingsVM : IDisposable {
         private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsVM));
         private static readonly Version version = Assembly.GetExecutingAssembly().GetName().Version!;
 

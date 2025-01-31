@@ -13,7 +13,7 @@ namespace UnchainedLauncher.GUI.Views {
     /// </summary>
     public partial class UpdatesWindow : Window {
 
-        private static readonly ILog logger = LogManager.GetLogger(nameof(SettingsVM));
+        private static readonly ILog logger = LogManager.GetLogger(nameof(UpdatesWindow));
 
         public UpdatesWindowVM ViewModel { get; private set; }
 

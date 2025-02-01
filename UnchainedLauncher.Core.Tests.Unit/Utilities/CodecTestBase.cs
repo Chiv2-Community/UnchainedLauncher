@@ -1,18 +1,28 @@
 ﻿using FluentAssertions;
+using log4net;
 using UnchainedLauncher.Core.Utilities;
+using Xunit.Abstractions;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Utilities {
     public abstract class CodecTestBase<TAbstract> {
         protected readonly Codec<TAbstract> Codec;
+        
+        private readonly ITestOutputHelper _testOutputHelper;
 
-        protected CodecTestBase(Codec<TAbstract> codec) {
+        protected CodecTestBase(Codec<TAbstract> codec, ITestOutputHelper testOutputHelper) {
             Codec = codec;
+            _testOutputHelper = testOutputHelper;
         }
 
         public void VerifyCodecRoundtrip<TSpecific>(TSpecific originalObject, params Action<TSpecific>[] assertions)
             where TSpecific : TAbstract {
+            _testOutputHelper.WriteLine($"Original object: {originalObject}");
             var json = Codec.Serialize(originalObject);
+            _testOutputHelper.WriteLine($"Serialized json: {json}");
+
             var deserialized = Codec.Deserialize(json);
+                        
+            _testOutputHelper.WriteLine($"Deserialized result: {deserialized.Result}");
 
             deserialized.Result.Should().NotBeNull();
             deserialized.Result.Should().BeOfType<TSpecific>();

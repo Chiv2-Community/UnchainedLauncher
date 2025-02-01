@@ -3,12 +3,13 @@ using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry;
 using UnchainedLauncher.Core.Tests.Unit.Utilities;
+using Xunit.Abstractions;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
     public class ModManagerCodecTests : CodecTestBase<ModManager> {
         private static readonly IModRegistry Registry = LocalModRegistryFactory.DefaultModRegistry;
 
-        public ModManagerCodecTests() : base(new ModManagerCodec(Registry)) { }
+        public ModManagerCodecTests(ITestOutputHelper testOutputHelper) : base(new ModManagerCodec(Registry), testOutputHelper) { }
 
         [Fact]
         public void StandardModManager_SerializeAndDeserialize_PreservesData() {

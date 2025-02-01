@@ -1,12 +1,11 @@
 ﻿using FluentAssertions;
-using log4net;
 using UnchainedLauncher.Core.Utilities;
 using Xunit.Abstractions;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Utilities {
     public abstract class CodecTestBase<TAbstract> {
         protected readonly Codec<TAbstract> Codec;
-        
+
         private readonly ITestOutputHelper _testOutputHelper;
 
         protected CodecTestBase(Codec<TAbstract> codec, ITestOutputHelper testOutputHelper) {
@@ -21,7 +20,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Utilities {
             _testOutputHelper.WriteLine($"Serialized json: {json}");
 
             var deserialized = Codec.Deserialize(json);
-                        
+
             _testOutputHelper.WriteLine($"Deserialized result: {deserialized.Result}");
 
             deserialized.Result.Should().NotBeNull();

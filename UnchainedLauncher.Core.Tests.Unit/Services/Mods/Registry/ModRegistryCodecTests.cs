@@ -1,10 +1,11 @@
 ﻿using FluentAssertions;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Tests.Unit.Utilities;
+using Xunit.Abstractions;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
     public class ModRegistryCodecTests : CodecTestBase<IModRegistry> {
-        public ModRegistryCodecTests() : base(ModRegistryCodec.Instance) {
+        public ModRegistryCodecTests(ITestOutputHelper testOutputHelper) : base(ModRegistryCodec.Instance, testOutputHelper) {
         }
 
         [Fact]

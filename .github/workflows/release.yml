@@ -29,7 +29,7 @@ jobs:
     - name: Build
       run: dotnet build -c ${{ matrix.configuration }}
     - name: Run Unit Tests
-      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Core.Tests.Unit\
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Core.Tests.Unit  --logger:"console;verbosity=detailed"
       
     # Puts binaries in ${{ env.GUI_Project_Path }}\bin\${{ matrix.configuration }}\net6.0-windows\win-x64\publish\
     - name: Package ${{ matrix.configuration }} binaries

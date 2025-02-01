@@ -187,6 +187,7 @@ namespace UnchainedLauncher.GUI {
                 () => new ModManager(modManager.Registry, modManager.EnabledModReleaseCoordinates, modManager.Mods),
                 userDialogueSpawner,
                 unchainedLauncher,
+                modRegistry,
                 new FileBackedSettings<IEnumerable<SavedServerTemplate>>(FilePaths.ServerTemplatesFilePath));
 
             var mainWindowViewModel = new MainWindowVM(

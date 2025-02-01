@@ -10,6 +10,7 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
@@ -20,7 +21,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
     public partial class ModListVM : INotifyPropertyChanged {
         private readonly ILog _logger = LogManager.GetLogger(nameof(ModListVM));
-        private readonly IModManager _modManager;
+        public readonly IModManager _modManager;
         private ObservableCollection<ModVM> UnfilteredModView { get; }
         private ObservableCollection<ModFilter> ModFilters { get; }
 

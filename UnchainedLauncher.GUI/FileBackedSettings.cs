@@ -1,4 +1,5 @@
-﻿using log4net;
+﻿using DiscriminatedUnions;
+using log4net;
 using System.IO;
 using System.Text.Json;
 using UnchainedLauncher.Core.Utilities;
@@ -9,6 +10,7 @@ namespace UnchainedLauncher.GUI {
         public string SettingsFilePath { get; }
 
         private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions {
+            Converters = { new UnionConverterFactory() },
             WriteIndented = true
         };
 

@@ -114,7 +114,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 "Are you sure? This will disable all mods, reset all settings to their defaults, and uninstall the launcher. This will delete the following:",
                 "* All files in .mod_cache",
                 "* All files in TBL\\Binaries\\Win64\\Plugins",
-                "* All non-vanilla paks in TBL\\Content\\Paks.",
+                "* All non-vanilla files in TBL\\Content\\Paks.",
                 "",
                 originalExists
                 ? "IMPORTANT: Wait at least 1 second and then launch normally."
@@ -189,20 +189,20 @@ namespace UnchainedLauncher.GUI.ViewModels {
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
             FileHelpers.DeleteDirectory(FilePaths.PluginDir);
 
-            var vanillaPaks = new List<string>() { "pakchunk0-WindowsNoEditor.pak" };
-            var filePaths =
+            var vanillaFiles = new List<string>() { "pakchunk0-WindowsNoEditor.pak", "pakchunk0-WindowsNoEditor.sig" };
+            var nonVanillaFiles =
                 Directory
                     .GetFiles(FilePaths.PakDir)
-                    .Where(pakName => {
-                        if (vanillaPaks.Any(vanillaPak => pakName.EndsWith(vanillaPak))) {
-                            Logger.Info($"Skipping vanilla pak {pakName}");
+                    .Where(fileName => {
+                        if (vanillaFiles.Any(vanillaFile => fileName.EndsWith(vanillaFile))) {
+                            Logger.Info($"Skipping vanilla file {fileName}");
                             return false;
                         }
 
                         return true;
                     });
 
-            FileHelpers.DeleteFiles(filePaths);
+            FileHelpers.DeleteFiles(nonVanillaFiles);
         }
 
         [RelayCommand]
@@ -212,7 +212,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 "Are you sure? This will disable all mods and reset all settings to their defaults. This will delete the following:",
                 "* All files in .mod_cache",
                 "* All files in TBL\\Binaries\\Win64\\Plugins",
-                "* All non-vanilla paks in TBL\\Content\\Paks.",
+                "* All non-vanilla files in TBL\\Content\\Paks.",
                 "",
                 "After deleting, the launcher will restart itself."
             }.Aggregate((accumulator, next) => accumulator + "\n" + next);

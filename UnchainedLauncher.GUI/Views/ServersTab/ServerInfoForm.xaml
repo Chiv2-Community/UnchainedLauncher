@@ -90,7 +90,7 @@
                     </Binding.ValidationRules>
                 </Binding>
             </TextBox>
-            <Button Grid.Column ="1" Command="{Binding AutoFillIPCommand}">detect</Button>
+            <Button Grid.Column ="1" Command="{Binding AutoFillIpCommand}">detect</Button>
         </Grid>
         
     </Grid>

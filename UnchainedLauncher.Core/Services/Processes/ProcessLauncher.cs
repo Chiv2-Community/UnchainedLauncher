@@ -2,6 +2,7 @@
 using LanguageExt.Common;
 using log4net;
 using System.Diagnostics;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes {
     using static LanguageExt.Prelude;
@@ -19,7 +20,13 @@ namespace UnchainedLauncher.Core.Services.Processes {
 
         public Either<LaunchFailed, Process> Launch(string workingDirectory, string args) {
             try {
-                return Right(PowerShell.Run(new List<string> { $"Read-Host -Prompt \'{Tag} args: ({args}). Press enter to close\'" }, true));
+                var pakdir = FilePaths.PakDir;
+                var plugindir = FilePaths.PluginDir;
+                return Right(PowerShell.Run(new List<string> {
+                    $"if(Test-Path {pakdir}){{Get-ChildItem -Path \'{pakdir}\'}}",
+                    $"if(Test-Path {plugindir}){{Get-ChildItem -Path \'{plugindir}\'}}",
+                    $"Read-Host -Prompt \'{Tag} args: ({args}). Press enter to close\'"
+                }, true));
             }
             catch (Exception e) {
                 return Left(new LaunchFailed("powershell.exe", args, e));

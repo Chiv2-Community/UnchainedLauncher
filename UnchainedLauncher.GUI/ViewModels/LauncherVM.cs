@@ -55,7 +55,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var launchResult = enableMods
                 ? await ClientSideModdedLauncher.Launch(args,
                         new ModdedLaunchOptions(
-                            ModManager.EnabledModReleaseCoordinates, // TODO: this needs to have dependencies resolved
+                            ModManager.GetEnabledAndDependencies(),
                             "",
                             false,
                             None,
@@ -92,8 +92,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             if (!IsReusable()) Settings.CanClick = false;
 
             var options = new ModdedLaunchOptions(
-                // TODO: this needs to have dependencies resolved BEFORE it goes in the pipeline
-                ModManager.EnabledModReleaseCoordinates,
+                ModManager.GetEnabledAndDependencies(),
                 Settings.ServerBrowserBackend,
                 Settings.EnablePluginAutomaticUpdates,
                 None,

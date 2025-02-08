@@ -40,7 +40,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
     }
 
     public record ModdedLaunchOptions(
-        IEnumerable<ReleaseCoordinates> EnabledReleases, // TODO: this needs to include dependencies!
+        IEnumerable<ReleaseCoordinates> EnabledReleases,
         string ServerBrowserBackend,
         bool CheckForDependencyUpdates, //TODO: remove this property
         Option<string> SavedDirSuffix,

@@ -192,6 +192,24 @@ namespace UnchainedLauncher.Core.Services.Mods {
             );
         }
 
+        public static IEnumerable<ReleaseCoordinates> GetEnabledAndDependencies(this IModManager modManager) {
+            return modManager.GetEnabledAndDependencyReleases()
+                .Map(ReleaseCoordinates.FromRelease);
+        }
+
+        public static IEnumerable<Release> GetEnabledAndDependencyReleases(this IModManager modManager) {
+            var modsSet = modManager
+                .GetEnabledModReleases()
+                .ToImmutableHashSet();
+            
+            return modsSet
+                .Fold(
+                    modsSet,
+                    (s, r) => 
+                        s.Union(modManager.GetNewDependenciesForRelease(r, s))
+                    );
+        }
+
         public static IEnumerable<Release> GetNewDependenciesForRelease(this IModManager modManager, Release release, IEnumerable<Release> existingDependencies) =>
             modManager.AggregateUniqueDependencies(
                 ReleaseCoordinates.FromRelease(release),

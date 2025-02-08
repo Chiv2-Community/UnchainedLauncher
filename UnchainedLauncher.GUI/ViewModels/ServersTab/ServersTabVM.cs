@@ -228,8 +228,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             var serverLaunchOptions = formData.ToServerLaunchOptions(headless);
             var options = new ModdedLaunchOptions(
-                // TODO: this needs to get dependencies resolved BEFORE it goes down the pipeline
-                SelectedTemplate.ModList._modManager.EnabledModReleaseCoordinates,
+                SelectedTemplate.ModList._modManager.GetEnabledAndDependencies(),
                 Settings.ServerBrowserBackend,
                 Settings.EnablePluginAutomaticUpdates,
                 None,

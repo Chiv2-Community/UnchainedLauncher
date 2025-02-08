@@ -201,11 +201,11 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var modsSet = modManager
                 .GetEnabledModReleases()
                 .ToImmutableHashSet();
-            
+
             return modsSet
                 .Fold(
                     modsSet,
-                    (s, r) => 
+                    (s, r) =>
                         s.Union(modManager.GetNewDependenciesForRelease(r, s))
                     );
         }

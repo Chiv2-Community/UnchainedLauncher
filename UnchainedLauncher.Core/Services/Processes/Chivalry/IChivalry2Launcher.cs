@@ -17,7 +17,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         /// </returns>
         public Task<Either<LaunchFailed, Process>> Launch(string args, ModdedLaunchOptions options);
     }
-    
+
     public abstract record UnchainedLaunchFailure(string Message, int Code, Option<Error> Underlying) : Expected(Message, Code, Underlying) {
         public record InjectionFailedError() : UnchainedLaunchFailure("Failed to inject process with unchained code.", 0, None);
         public record LaunchFailedError(LaunchFailed Failure) : UnchainedLaunchFailure(Failure.Message, Failure.Code, Failure.Underlying);

@@ -21,7 +21,6 @@ using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
-using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
@@ -53,7 +52,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private void OnTemplateModManagerModEnabled(Release r, string? prev) {
             Save();
         }
-        
+
         private ServerTemplateVM? _selectedTemplate;
         public ServerTemplateVM? SelectedTemplate {
             get => _selectedTemplate;

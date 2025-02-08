@@ -15,7 +15,7 @@ namespace UnchainedLauncher.Core.Extensions {
                 yield return item;
             }
         }
-        
+
         public static (IEnumerable<L>, IEnumerable<R>) SplitEithers<L, R>(this IEnumerable<Either<L, R>> el) {
             List<L> ls = new List<L>();
             List<R> rs = new List<R>();

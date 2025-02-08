@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using UnchainedLauncher.Core.Services.Mods;
-using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.GUI.Services;
+﻿using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {

@@ -7,11 +7,11 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     public class UnchainedPluginUpdateChecker : IChivalry2LaunchPreparer<ModdedLaunchOptions> {
         private readonly ILog _logger = LogManager.GetLogger(typeof(UnchainedPluginUpdateChecker));
         private readonly string _pluginPath;
-        
+
         private IReleaseLocator PluginReleaseLocator { get; }
         private IVersionExtractor FileVersionExtractor { get; }
         private IUserDialogueSpawner _userDialogueSpawner { get; }
-        
+
         public static IChivalry2LaunchPreparer<ModdedLaunchOptions> Create(
             IReleaseLocator pluginReleaseLocator,
             IVersionExtractor fileVersionExtractor,
@@ -27,7 +27,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             _userDialogueSpawner = userDialogueSpawner;
             _pluginPath = Path.Combine(Directory.GetCurrentDirectory(), FilePaths.UnchainedPluginPath);
         }
-        
+
         public async Task<Option<string>> UpdatePlugin(ReleaseTarget latestPlugin) {
             var downloadResult = await HttpHelpers.DownloadReleaseTarget(
                 latestPlugin,
@@ -45,7 +45,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             if (!options.CheckForDependencyUpdates) {
                 return options;
             }
-            
+
             var latestPlugin = await PluginReleaseLocator.GetLatestRelease();
             if (latestPlugin == null) {
                 _logger.Warn("Could not find latest plugin");
@@ -64,7 +64,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 latestPlugin.PageUrl,
                 "Used for hosting and connecting to player owned servers. Required to run Chivalry 2 Unchained."
             );
-            
+
             var action = update.CurrentVersion == null ? "Install" : "Update";
             var choice = _userDialogueSpawner.DisplayUpdateMessage(
                 $"{action} plugin",

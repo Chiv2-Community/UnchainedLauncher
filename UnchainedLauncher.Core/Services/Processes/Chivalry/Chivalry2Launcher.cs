@@ -1,7 +1,6 @@
 ﻿using LanguageExt;
 using log4net;
 using System.Diagnostics;
-using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using UnchainedLauncher.Core.Utilities;
 
@@ -15,8 +14,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         private string WorkingDirectory { get; }
 
         public Chivalry2Launcher(
-            IChivalry2LaunchPreparer<ModdedLaunchOptions> preparer, 
-            IProcessLauncher processLauncher, 
+            IChivalry2LaunchPreparer<ModdedLaunchOptions> preparer,
+            IProcessLauncher processLauncher,
             string workingDirectory) {
             WorkingDirectory = workingDirectory;
             LaunchPreparer = preparer;

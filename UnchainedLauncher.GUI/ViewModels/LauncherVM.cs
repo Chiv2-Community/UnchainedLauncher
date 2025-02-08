@@ -12,7 +12,6 @@ using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
-using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -118,7 +117,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 }
             );
         }
-        
+
         private Thread CreateChivalryProcessWatcher(Process process) {
             //TODO: add a Process.Exited event instead. 
             var thread = new Thread(async void () => {

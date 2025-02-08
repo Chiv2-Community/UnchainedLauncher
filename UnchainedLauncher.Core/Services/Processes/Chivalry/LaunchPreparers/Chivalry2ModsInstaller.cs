@@ -16,13 +16,13 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             _modRegistry = registry;
             _userDialogueSpawner = dialogueSpawner;
         }
-        
+
         public async Task<Option<ModdedLaunchOptions>> PrepareLaunch(ModdedLaunchOptions options) {
             IEnumerable<ReleaseCoordinates> releases = options.EnabledReleases;
             var releasesList = new List<ReleaseCoordinates>(releases);
             _logger.LogListInfo("Installing the following releases:", releasesList);
             // get release metadatas
-            var (failures, metas) = 
+            var (failures, metas) =
                 (
                     await Task.WhenAll(
                         releasesList
@@ -39,7 +39,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             if (failuresCount != 0) {
                 return None;
             }
-            
+
             var downloadsMap = new Map<ReleaseCoordinates, Release>()
                 .AddRange(releases.Zip(metas))
                 .Filter(release => {
@@ -47,12 +47,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                     if (alreadyExists) {
                         _logger.Info($"Not overwriting already installed mod {release.PakFileName}");
                     }
-                    
+
                     return !alreadyExists;
                 });
-            
+
             var cts = new CancellationTokenSource(6000);
-            
+
             // TODO: display download progress as a popup or something
             var downloads = await Task.WhenAll(
                 downloadsMap.Pairs.Map(

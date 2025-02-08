@@ -31,7 +31,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServersTabVM));
         public SettingsVM Settings { get; }
         public IModRegistry ModRegistry { get; }
-        public readonly IUnchainedChivalry2Launcher Launcher;
+        public readonly IChivalry2Launcher Launcher;
         public Func<IModManager> ModManagerCreator;
         public IUserDialogueSpawner DialogueSpawner;
         public FileBackedSettings<IEnumerable<SavedServerTemplate>>? SaveLocation;
@@ -82,7 +82,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public ServersTabVM(SettingsVM settings,
                             Func<IModManager> modManagerCreator,
                             IUserDialogueSpawner dialogueSpawner,
-                            IUnchainedChivalry2Launcher launcher,
+                            IChivalry2Launcher launcher,
                             IModRegistry modRegistry,
                             FileBackedSettings<IEnumerable<SavedServerTemplate>>? saveLocation = null) {
             ServerTemplates = new ObservableCollection<ServerTemplateVM>();
@@ -229,13 +229,15 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             var serverLaunchOptions = formData.ToServerLaunchOptions(headless);
             var options = new ModdedLaunchOptions(
+                // TODO: this needs to get dependencies resolved BEFORE it goes down the pipeline
+                SelectedTemplate.ModList._modManager.EnabledModReleaseCoordinates,
                 Settings.ServerBrowserBackend,
                 Settings.EnablePluginAutomaticUpdates,
                 None,
                 Some(serverLaunchOptions)
             );
 
-            var launchResult = await Launcher.Launch(options, Settings.EnablePluginAutomaticUpdates, Settings.CLIArgs);
+            var launchResult = await Launcher.Launch(Settings.CLIArgs, options);
             return launchResult.Match(
                 Left: _ => {
                     DialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");

@@ -125,30 +125,36 @@ namespace UnchainedLauncher.GUI {
             var officialProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.OriginalLauncherPath));
             var unchainedProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 #endif
-
+            
             var noSigLaunchPreparer = NoSigPreparer.Create(userDialogueSpawner);
             var sigLaunchPreparer = SigPreparer.Create(userDialogueSpawner);
-
-            var unchainedContentPreparer = UnchainedDependencyPreparer.Create(
-                modManager,
+            
+            IChivalry2LaunchPreparer<ModdedLaunchOptions> pluginInstaller = new UnchainedPluginUpdateChecker(
                 pluginReleaseLocator,
                 new FileInfoVersionExtractor(),
                 userDialogueSpawner);
 
-            var vanillaLauncher = new OfficialChivalry2Launcher(
-                noSigLaunchPreparer,
+            IChivalry2LaunchPreparer<ModdedLaunchOptions> modInstaller = new Chivalry2ModsInstaller(
+                modRegistry, userDialogueSpawner
+            );
+            
+            var vanillaLauncher = new Chivalry2Launcher(
+                noSigLaunchPreparer.IgnoreOptions<ModdedLaunchOptions>(),
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
 
-            var clientsideModdedLauncher = new OfficialChivalry2Launcher(
-                sigLaunchPreparer,
+            var clientsideModdedLauncher = new Chivalry2Launcher(
+                modInstaller
+                    .Sub(sigLaunchPreparer),
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                unchainedContentPreparer.Sub(sigLaunchPreparer, _ => Unit.Default),
+                pluginInstaller
+                    .AndThen(modInstaller)
+                    .Sub(sigLaunchPreparer),
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
 #if DEBUG_FAKECHIVALRYLAUNCH
@@ -159,7 +165,13 @@ namespace UnchainedLauncher.GUI {
 #endif
             );
 
-            var launcherViewModel = new LauncherVM(settingsViewModel, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, userDialogueSpawner);
+            var launcherViewModel = new LauncherVM(
+                settingsViewModel,
+                modManager,
+                vanillaLauncher,
+                clientsideModdedLauncher,
+                unchainedLauncher,
+                userDialogueSpawner);
             var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
             modListViewModel.RefreshModListCommand.Execute(null);

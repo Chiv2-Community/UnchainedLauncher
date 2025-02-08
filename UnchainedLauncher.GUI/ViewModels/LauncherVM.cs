@@ -2,17 +2,20 @@
 using LanguageExt;
 using log4net;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services;
+using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.GUI.ViewModels {
-
+    using static LanguageExt.Prelude;
     public partial class LauncherVM : INotifyPropertyChanged {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(LauncherVM));
 
@@ -22,17 +25,18 @@ namespace UnchainedLauncher.GUI.ViewModels {
             (!Settings.CanClick && !IsReusable())
                 ? "Unchained cannot launch an EGS installation more than once.  Restart the launcher if you wish to launch the game again."
                 : "";
-        public IOfficialChivalry2Launcher VanillaLauncher { get; }
-        public IOfficialChivalry2Launcher ClientSideModdedLauncher { get; }
-        public IUnchainedChivalry2Launcher UnchainedLauncher { get; }
+        public IChivalry2Launcher VanillaLauncher { get; }
+        public IChivalry2Launcher ClientSideModdedLauncher { get; }
+        public IChivalry2Launcher UnchainedLauncher { get; }
 
         private IUserDialogueSpawner UserDialogueSpawner { get; }
+        private IModManager ModManager { get; }
 
         public bool IsReusable() => Settings.InstallationType == InstallationType.Steam;
 
-        public LauncherVM(SettingsVM settings, IOfficialChivalry2Launcher vanillaLauncher, IOfficialChivalry2Launcher clientSideModdedLauncher, IUnchainedChivalry2Launcher moddedLauncher, IUserDialogueSpawner dialogueSpawner) {
+        public LauncherVM(SettingsVM settings, IModManager modManager, IChivalry2Launcher vanillaLauncher, IChivalry2Launcher clientSideModdedLauncher, IChivalry2Launcher moddedLauncher, IUserDialogueSpawner dialogueSpawner) {
             Settings = settings;
-
+            ModManager = modManager;
             VanillaLauncher = vanillaLauncher;
             ClientSideModdedLauncher = clientSideModdedLauncher;
             UnchainedLauncher = moddedLauncher;
@@ -50,8 +54,23 @@ namespace UnchainedLauncher.GUI.ViewModels {
             // Skip the first arg which is the path to the exe.
             var args = Settings.CLIArgs;
             var launchResult = enableMods
-                ? await VanillaLauncher.Launch(args)
-                : await ClientSideModdedLauncher.Launch(args);
+                ? await ClientSideModdedLauncher.Launch(args,
+                        new ModdedLaunchOptions(
+                            ModManager.EnabledModReleaseCoordinates, // TODO: this needs to have dependencies resolved
+                            "",
+                            false,
+                            None,
+                            None
+                        )
+                    )
+                : await VanillaLauncher.Launch(args,
+                    new ModdedLaunchOptions(
+                        new List<ReleaseCoordinates>(),
+                        "",
+                        false,
+                        None,
+                        None)
+                    );
 
             if (!IsReusable())
                 Settings.CanClick = false;
@@ -74,18 +93,20 @@ namespace UnchainedLauncher.GUI.ViewModels {
             if (!IsReusable()) Settings.CanClick = false;
 
             var options = new ModdedLaunchOptions(
+                // TODO: this needs to have dependencies resolved BEFORE it goes in the pipeline
+                ModManager.EnabledModReleaseCoordinates,
                 Settings.ServerBrowserBackend,
                 Settings.EnablePluginAutomaticUpdates,
                 None,
                 None
             );
 
-            var launchResult = await UnchainedLauncher.Launch(options, Settings.EnablePluginAutomaticUpdates, Settings.CLIArgs);
+            var launchResult = await UnchainedLauncher.Launch(Settings.CLIArgs, options);
 
             return launchResult.Match(
                 Left: e => {
                     Logger.Error(e);
-                    if (e is not UnchainedLaunchFailure.LaunchCancelledError)
+                    if (e.Underlying is not UnchainedLaunchFailure.LaunchCancelledError)
                         UserDialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
 
                     Settings.CanClick = true;
@@ -97,8 +118,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 }
             );
         }
-
+        
         private Thread CreateChivalryProcessWatcher(Process process) {
+            //TODO: add a Process.Exited event instead. 
             var thread = new Thread(async void () => {
                 try {
                     await process.WaitForExitAsync();

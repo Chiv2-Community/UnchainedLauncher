@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using log4net;
+using System.Diagnostics;
 
 namespace UnchainedLauncher.Core.Services.Processes {
 
@@ -15,11 +16,16 @@ namespace UnchainedLauncher.Core.Services.Processes {
     /// succeeds based on constructor arg
     /// </summary>
     public class NullInjector : IProcessInjector {
+        private readonly ILog _logger = LogManager.GetLogger(typeof(NullInjector));
         private readonly bool _result;
 
         public NullInjector(bool result = true) {
             _result = result;
         }
-        public bool Inject(Process p) => _result;
+
+        public bool Inject(Process p) {
+            _logger.Debug($"Pretending to inject dll into {p.Id}");
+            return _result;
+        }
     }
 }

@@ -1,8 +1,6 @@
 using LanguageExt;
 using LanguageExt.Common;
 using log4net;
-using System.Collections.Immutable;
-using System.Text.Json;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -10,7 +8,7 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     using static LanguageExt.Prelude;
-    
+
     // TODO: turn this into a class that overall represents the pak subdir.
     // Anything that wants to add, remove, or check paks in the paks subdir
     // does so through that object. We have a lot of that behavior happening
@@ -19,7 +17,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     public class LastInstalledPakVersionMeta {
         ILog _logger = LogManager.GetLogger(typeof(LastInstalledPakVersionMeta));
         public IEnumerable<ReleaseCoordinates> Coordinates { get; private set; }
-        private readonly string _infoFilePath; 
+        private readonly string _infoFilePath;
         public LastInstalledPakVersionMeta(string infoFilePath) {
             Coordinates = ReadCoordinates(infoFilePath);
             _infoFilePath = infoFilePath;
@@ -28,13 +26,13 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         public bool UpdateVersion(ReleaseCoordinates coordinates) {
             if (Coordinates.Any(c => c.Matches(coordinates) && c.Version == coordinates.Version))
                 return false;
-            
+
             Coordinates = Coordinates
                 .Filter(c => !c.Matches(coordinates))
                 .Append(coordinates);
             return true;
         }
-        
+
         private IEnumerable<ReleaseCoordinates> ReadCoordinates(string infoFilePath) {
             return Try(() => File.ReadAllText(infoFilePath))()
                 .Match(
@@ -70,13 +68,13 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 var serialized = JsonHelpers.Serialize(Coordinates);
                 File.WriteAllText(_infoFilePath, serialized);
             }
-            catch(Exception e) {
+            catch (Exception e) {
                 _logger.Error("Failed to write installed paks metadata file", e);
             }
         }
     }
 
-    
+
     public class Chivalry2ModsInstaller : IChivalry2LaunchPreparer<ModdedLaunchOptions> {
         private readonly ILog _logger = LogManager.GetLogger(typeof(Chivalry2ModsInstaller));
         private readonly IUserDialogueSpawner _userDialogueSpawner;
@@ -108,7 +106,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             if (failuresCount != 0) {
                 return None;
             }
-            
+
             // delete any paks not mentioned in this launch
             // TODO: do something more clever than just deleting. This weirdness ultimately comes
             // from the fact that launches share a pak dir, and can affect each other.
@@ -123,11 +121,11 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 try {
                     File.Delete(file);
                 }
-                catch(Exception e){
+                catch (Exception e) {
                     _logger.Error($"Failed to delete '{file}'", e);
                 }
             }
-            
+
             // tracks versions of installed paks
             var installedFiles = new LastInstalledPakVersionMeta(FilePaths.LastInstalledPakVersionList);
             var downloadsMap = new Map<ReleaseCoordinates, Release>()

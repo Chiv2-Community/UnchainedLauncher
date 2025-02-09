@@ -1,6 +1,8 @@
 using LanguageExt;
 using LanguageExt.Common;
 using log4net;
+using System.Collections.Immutable;
+using System.Text.Json;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -8,6 +10,73 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     using static LanguageExt.Prelude;
+    
+    // TODO: turn this into a class that overall represents the pak subdir.
+    // Anything that wants to add, remove, or check paks in the paks subdir
+    // does so through that object. We have a lot of that behavior happening
+    // manually when there is actually a specific set of operations 
+    // that we want to model.
+    public class LastInstalledPakVersionMeta {
+        ILog _logger = LogManager.GetLogger(typeof(LastInstalledPakVersionMeta));
+        public IEnumerable<ReleaseCoordinates> Coordinates { get; private set; }
+        private readonly string _infoFilePath; 
+        public LastInstalledPakVersionMeta(string infoFilePath) {
+            Coordinates = ReadCoordinates(infoFilePath);
+            _infoFilePath = infoFilePath;
+        }
+
+        public bool UpdateVersion(ReleaseCoordinates coordinates) {
+            if (Coordinates.Any(c => c.Matches(coordinates) && c.Version == coordinates.Version))
+                return false;
+            
+            Coordinates = Coordinates
+                .Filter(c => !c.Matches(coordinates))
+                .Append(coordinates);
+            return true;
+        }
+        
+        private IEnumerable<ReleaseCoordinates> ReadCoordinates(string infoFilePath) {
+            return Try(() => File.ReadAllText(infoFilePath))()
+                .Match(
+                    Some,
+                    e => {
+                        if (e is FileNotFoundException or DirectoryNotFoundException) {
+                            return None;
+                        }
+
+                        _logger.Error($"Could not read installed paks metadata file {infoFilePath}: {e}");
+                        return None;
+                    }
+                ).Map(
+                    contents => JsonHelpers
+                        .Deserialize<IEnumerable<ReleaseCoordinates>>(contents)
+                        .ToEither()
+                        .Match(
+                            Some,
+                            e => {
+                                _logger.Error($"Couldn't parse installed paks metadata file", e);
+                                return None;
+                            })
+                )
+                .Flatten()
+                .Match(
+                    s => s,
+                    () => new List<ReleaseCoordinates>()
+                );
+        }
+
+        public void Save() {
+            try {
+                var serialized = JsonHelpers.Serialize(Coordinates);
+                File.WriteAllText(_infoFilePath, serialized);
+            }
+            catch(Exception e) {
+                _logger.Error("Failed to write installed paks metadata file", e);
+            }
+        }
+    }
+
+    
     public class Chivalry2ModsInstaller : IChivalry2LaunchPreparer<ModdedLaunchOptions> {
         private readonly ILog _logger = LogManager.GetLogger(typeof(Chivalry2ModsInstaller));
         private readonly IUserDialogueSpawner _userDialogueSpawner;
@@ -39,16 +108,40 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             if (failuresCount != 0) {
                 return None;
             }
-
+            
+            // delete any paks not mentioned in this launch
+            // TODO: do something more clever than just deleting. This weirdness ultimately comes
+            // from the fact that launches share a pak dir, and can affect each other.
+            // This stuff is only really relevant to servers, and there's probably not much
+            // we can do without adding some seriously in-depth hooks in the plugin
+            // that allows doing some kind of per-process pak dir isolation
+            var modFileNames = metas.Map(m => m.PakFileName);
+            foreach (string file in Directory.EnumerateFiles(FilePaths.PakDir)
+                     .Filter(f => f.Contains(".pak"))
+                     .Filter(f => !f.Contains("pakchunk0-WindowsNoEditor.pak"))
+                     .Filter(f => !modFileNames.Any(n => f.Contains(n)))) {
+                try {
+                    File.Delete(file);
+                }
+                catch(Exception e){
+                    _logger.Error($"Failed to delete '{file}'", e);
+                }
+            }
+            
+            // tracks versions of installed paks
+            var installedFiles = new LastInstalledPakVersionMeta(FilePaths.LastInstalledPakVersionList);
             var downloadsMap = new Map<ReleaseCoordinates, Release>()
                 .AddRange(releases.Zip(metas))
                 .Filter(release => {
                     var alreadyExists = File.Exists(Path.Join(FilePaths.PakDir, release.PakFileName));
-                    if (alreadyExists) {
-                        _logger.Info($"Not overwriting already installed mod {release.PakFileName}");
+                    var isDifferentVersion = installedFiles.UpdateVersion(ReleaseCoordinates.FromRelease(release));
+                    if (isDifferentVersion || !alreadyExists) {
+                        return true;
                     }
 
-                    return !alreadyExists;
+                    _logger.Info($"Not overwriting already installed and versioned mod {release.PakFileName}");
+                    return false;
+
                 });
 
             var cts = new CancellationTokenSource(6000);
@@ -81,6 +174,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             if (downloadFailureCount != 0) {
                 return None;
             }
+            // save new versions of paks in this dir
+            installedFiles.Save();
 
             return options;
         }

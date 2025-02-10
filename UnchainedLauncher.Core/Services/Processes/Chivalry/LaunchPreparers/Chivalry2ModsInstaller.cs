@@ -114,7 +114,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             // we can do without adding some seriously in-depth hooks in the plugin
             // that allows doing some kind of per-process pak dir isolation
             var modFileNames = metas.Map(m => m.PakFileName);
-            
+
             Directory.EnumerateFiles(FilePaths.PakDir)
                 .Filter(f => f.Contains(".pak"))
                 .Filter(f => !f.Contains("pakchunk0-WindowsNoEditor.pak"))
@@ -125,7 +125,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 }))
                 .ToList()
                 .ForEach(tryResult => tryResult.IfFail(e => _logger.Error($"Failed to delete file", e)));
-            
+
 
             // tracks versions of installed paks
             var installedFiles = new LastInstalledPakVersionMeta(FilePaths.LastInstalledPakVersionList);
@@ -147,13 +147,13 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
             // TODO: display download progress as a popup or something
             var downloads = await Task.WhenAll(
-                downloadsMap.Pairs.Map(p => 
+                downloadsMap.Pairs.Map(p =>
                     _modRegistry.DownloadPak(p.Item1, Path.Join(FilePaths.PakDir, p.Item2.PakFileName))
                 )
-                    .Map(e => 
+                    .Map(e =>
                         e.Map(writer => writer.WriteAsync(None, cts.Token))
-                    ).Map(e => 
-                        e.MatchAsync(r => 
+                    ).Map(e =>
+                        e.MatchAsync(r =>
                                 r.Match(
                                 _ => None,
                                 Some<Error>

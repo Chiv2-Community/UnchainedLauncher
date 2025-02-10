@@ -147,15 +147,15 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
             // TODO: display download progress as a popup or something
             var downloads = await Task.WhenAll(
-                downloadsMap.Pairs.Map(
-                    p => _modRegistry.DownloadPak(p.Item1, Path.Join(FilePaths.PakDir, p.Item2.PakFileName))
-                ).Map(
-                    e => e.Map(
-                        writer => writer.WriteAsync(None, cts.Token)
-                        )
-                    ).Map(e => e.MatchAsync(
-                        r => r.Match(
-                                ri => None,
+                downloadsMap.Pairs.Map(p => 
+                    _modRegistry.DownloadPak(p.Item1, Path.Join(FilePaths.PakDir, p.Item2.PakFileName))
+                )
+                    .Map(e => 
+                        e.Map(writer => writer.WriteAsync(None, cts.Token))
+                    ).Map(e => 
+                        e.MatchAsync(r => 
+                                r.Match(
+                                _ => None,
                                 Some<Error>
                             ),
                         Some<Error>

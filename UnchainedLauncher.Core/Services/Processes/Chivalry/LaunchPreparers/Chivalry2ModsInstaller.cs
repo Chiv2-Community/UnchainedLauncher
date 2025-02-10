@@ -96,7 +96,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                         .Map(_modRegistry.GetModRelease)
                         .Map(async t => await t)
                     )
-                    ).SplitEithers();
+                    ).Partition();
 
             var failuresCount = failures.Fold(0, (c, e) => {
                 _logger.Error($"Failed to get registry metadata: {e.Message}");
@@ -163,7 +163,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 );
 
             var downloadFailureCount = downloads
-                .Choose(o => o)
+                .Choose(identity)
                 .Fold(0, (s, e) => {
                     _logger.Error($"Failed to download mod: {e.Message}");
                     return s + 1;

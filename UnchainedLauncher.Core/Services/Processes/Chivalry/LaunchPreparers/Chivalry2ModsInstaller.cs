@@ -114,17 +114,18 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             // we can do without adding some seriously in-depth hooks in the plugin
             // that allows doing some kind of per-process pak dir isolation
             var modFileNames = metas.Map(m => m.PakFileName);
-            foreach (string file in Directory.EnumerateFiles(FilePaths.PakDir)
-                     .Filter(f => f.Contains(".pak"))
-                     .Filter(f => !f.Contains("pakchunk0-WindowsNoEditor.pak"))
-                     .Filter(f => !modFileNames.Any(n => f.Contains(n)))) {
-                try {
+            
+            Directory.EnumerateFiles(FilePaths.PakDir)
+                .Filter(f => f.Contains(".pak"))
+                .Filter(f => !f.Contains("pakchunk0-WindowsNoEditor.pak"))
+                .Filter(f => !modFileNames.Any(f.Contains))
+                .Select(file => PrimitiveExtensions.TryVoid(() => {
+                    _logger.Info($"Deleting pak file '{file}' because it is not declared for this launch");
                     File.Delete(file);
-                }
-                catch (Exception e) {
-                    _logger.Error($"Failed to delete '{file}'", e);
-                }
-            }
+                }))
+                .ToList()
+                .ForEach(tryResult => tryResult.IfFail(e => _logger.Error($"Failed to delete file", e)));
+            
 
             // tracks versions of installed paks
             var installedFiles = new LastInstalledPakVersionMeta(FilePaths.LastInstalledPakVersionList);

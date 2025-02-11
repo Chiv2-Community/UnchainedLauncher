@@ -12,12 +12,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(UnchainedLauncher));
 
         private IProcessLauncher Launcher { get; }
-        private IChivalry2LaunchPreparer<ModdedLaunchOptions> LaunchPreparer { get; }
+        private IChivalry2LaunchPreparer<LaunchOptions> LaunchPreparer { get; }
         private string InstallationRootDir { get; }
         private IProcessInjector ProcessInjector { get; }
 
         public UnchainedChivalry2Launcher(
-            IChivalry2LaunchPreparer<ModdedLaunchOptions> preparer,
+            IChivalry2LaunchPreparer<LaunchOptions> preparer,
             IProcessLauncher processLauncher,
             string installationRootDir,
             IProcessInjector processInjector) {
@@ -29,12 +29,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             Launcher = processLauncher;
         }
 
-        public async Task<Either<LaunchFailed, Process>> Launch(string args, ModdedLaunchOptions options) {
-            var launchResult = await TryLaunch(args, options);
-            return launchResult.MapLeft(failure => failure.AsLaunchFailed(args));
+        public async Task<Either<LaunchFailed, Process>> Launch(LaunchOptions options) {
+            var launchResult = await TryLaunch(options);
+            return launchResult.MapLeft(failure => failure.AsLaunchFailed(options.LaunchArgs));
         }
 
-        public async Task<Either<UnchainedLaunchFailure, Process>> TryLaunch(string args, ModdedLaunchOptions launchOptions) {
+        public async Task<Either<UnchainedLaunchFailure, Process>> TryLaunch(LaunchOptions launchOptions) {
             Logger.Info("Attempting to launch modded game.");
 
             var updatedLaunchOpts = await LaunchPreparer.PrepareLaunch(launchOptions);
@@ -42,7 +42,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
                 return Left(UnchainedLaunchFailure.LaunchCancelled());
             }
 
-            var moddedLaunchArgs = args;
+            var moddedLaunchArgs = launchOptions.LaunchArgs;
             var tblLoc = moddedLaunchArgs.IndexOf("TBL", StringComparison.Ordinal);
             var offsetIndex = tblLoc == -1 ? 0 : tblLoc + 3;
 

@@ -51,21 +51,22 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private async Task<Option<Process>> InternalLaunchVanilla(bool enableMods) {
             // For a vanilla launch we need to pass the args through to the vanilla launcher.
             // Skip the first arg which is the path to the exe.
-            var args = Settings.CLIArgs;
             var launchResult = enableMods
-                ? await ClientSideModdedLauncher.Launch(args,
-                        new ModdedLaunchOptions(
+                ? await ClientSideModdedLauncher.Launch(
+                        new LaunchOptions(
                             ModManager.GetEnabledAndDependencies(),
                             "",
+                            Settings.CLIArgs,
                             false,
                             None,
                             None
                         )
                     )
-                : await VanillaLauncher.Launch(args,
-                    new ModdedLaunchOptions(
+                : await VanillaLauncher.Launch(
+                    new LaunchOptions(
                         new List<ReleaseCoordinates>(),
                         "",
+                        Settings.CLIArgs,
                         false,
                         None,
                         None)
@@ -91,15 +92,16 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public async Task<Option<Process>> LaunchUnchained() {
             if (!IsReusable()) Settings.CanClick = false;
 
-            var options = new ModdedLaunchOptions(
+            var options = new LaunchOptions(
                 ModManager.GetEnabledAndDependencies(),
                 Settings.ServerBrowserBackend,
+                Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
                 None,
                 None
             );
 
-            var launchResult = await UnchainedLauncher.Launch(Settings.CLIArgs, options);
+            var launchResult = await UnchainedLauncher.Launch(options);
 
             return launchResult.Match(
                 Left: e => {

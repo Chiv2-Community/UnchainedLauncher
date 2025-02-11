@@ -9,12 +9,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
     public class Chivalry2Launcher : IChivalry2Launcher {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Chivalry2Launcher));
 
-        private IChivalry2LaunchPreparer<ModdedLaunchOptions> LaunchPreparer { get; }
+        private IChivalry2LaunchPreparer<LaunchOptions> LaunchPreparer { get; }
         private IProcessLauncher Launcher { get; }
         private string WorkingDirectory { get; }
 
         public Chivalry2Launcher(
-            IChivalry2LaunchPreparer<ModdedLaunchOptions> preparer,
+            IChivalry2LaunchPreparer<LaunchOptions> preparer,
             IProcessLauncher processLauncher,
             string workingDirectory) {
             WorkingDirectory = workingDirectory;
@@ -22,14 +22,14 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             Launcher = processLauncher;
         }
 
-        public Task<Either<LaunchFailed, Process>> Launch(string args, ModdedLaunchOptions options) {
-            Logger.Info($"Launch args: {args}");
+        public Task<Either<LaunchFailed, Process>> Launch(LaunchOptions options) {
+            Logger.Info($"Launch args: {options.LaunchArgs}");
             return LaunchPreparer.PrepareLaunch(options).Match(
                 None: () => Left(new LaunchFailed(
                     FilePaths.OriginalLauncherPath,
-                    args,
+                    options.LaunchArgs,
                     "launch preparer(s) failed.")),
-                Some: _ => Launcher.Launch(WorkingDirectory, args)
+                Some: _ => Launcher.Launch(WorkingDirectory, options.LaunchArgs)
                 );
         }
     }

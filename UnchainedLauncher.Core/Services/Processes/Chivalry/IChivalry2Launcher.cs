@@ -9,13 +9,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         /// <summary>
         /// Launches a vanilla game. Implementations may do extra work to enable client side pak file loading
         /// </summary>
-        /// <param name="args"></param>
         /// <param name="options"></param>
         /// <returns>
         /// Left if the game failed to launch.
         /// Right if the game was launched successfully.
         /// </returns>
-        public Task<Either<LaunchFailed, Process>> Launch(string args, ModdedLaunchOptions options);
+        public Task<Either<LaunchFailed, Process>> Launch(LaunchOptions options);
     }
 
     public abstract record UnchainedLaunchFailure(string Message, int Code, Option<Error> Underlying) : Expected(Message, Code, Underlying) {
@@ -39,9 +38,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         public LaunchFailed AsLaunchFailed(string args) => new LaunchFailed("unknown", args, this);
     }
 
-    public record ModdedLaunchOptions(
+    public record LaunchOptions(
         IEnumerable<ReleaseCoordinates> EnabledReleases,
         string ServerBrowserBackend,
+        string LaunchArgs,
         bool CheckForDependencyUpdates, //TODO: remove this property
         Option<string> SavedDirSuffix,
         Option<ServerLaunchOptions> ServerLaunchOptions

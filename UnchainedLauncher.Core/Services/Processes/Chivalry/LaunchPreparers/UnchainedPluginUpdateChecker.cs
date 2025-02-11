@@ -4,7 +4,7 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     using static LanguageExt.Prelude;
-    public class UnchainedPluginUpdateChecker : IChivalry2LaunchPreparer<ModdedLaunchOptions> {
+    public class UnchainedPluginUpdateChecker : IChivalry2LaunchPreparer<LaunchOptions> {
         private readonly ILog _logger = LogManager.GetLogger(typeof(UnchainedPluginUpdateChecker));
         private readonly string _pluginPath;
 
@@ -12,7 +12,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         private IVersionExtractor FileVersionExtractor { get; }
         private IUserDialogueSpawner _userDialogueSpawner { get; }
 
-        public static IChivalry2LaunchPreparer<ModdedLaunchOptions> Create(
+        public static IChivalry2LaunchPreparer<LaunchOptions> Create(
             IReleaseLocator pluginReleaseLocator,
             IVersionExtractor fileVersionExtractor,
             IUserDialogueSpawner userDialogueSpawner
@@ -41,7 +41,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             return None;
         }
 
-        public async Task<Option<ModdedLaunchOptions>> PrepareLaunch(ModdedLaunchOptions options) {
+        public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
             if (!options.CheckForDependencyUpdates) {
                 return options;
             }

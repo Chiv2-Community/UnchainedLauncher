@@ -129,17 +129,17 @@ namespace UnchainedLauncher.GUI {
             var noSigLaunchPreparer = NoSigPreparer.Create(userDialogueSpawner);
             var sigLaunchPreparer = SigPreparer.Create(userDialogueSpawner);
 
-            IChivalry2LaunchPreparer<ModdedLaunchOptions> pluginInstaller = new UnchainedPluginUpdateChecker(
+            IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new UnchainedPluginUpdateChecker(
                 pluginReleaseLocator,
                 new FileInfoVersionExtractor(),
                 userDialogueSpawner);
 
-            IChivalry2LaunchPreparer<ModdedLaunchOptions> modInstaller = new Chivalry2ModsInstaller(
+            IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
                 modRegistry, userDialogueSpawner
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
-                noSigLaunchPreparer.IgnoreOptions<ModdedLaunchOptions>(),
+                noSigLaunchPreparer.IgnoreOptions<LaunchOptions>(),
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );

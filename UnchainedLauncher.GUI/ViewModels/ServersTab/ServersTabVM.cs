@@ -227,15 +227,16 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             if (SelectedTemplate == null) return None;
 
             var serverLaunchOptions = formData.ToServerLaunchOptions(headless);
-            var options = new ModdedLaunchOptions(
+            var options = new LaunchOptions(
                 SelectedTemplate.ModList._modManager.GetEnabledAndDependencies(),
                 Settings.ServerBrowserBackend,
+                Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
                 None,
                 Some(serverLaunchOptions)
             );
 
-            var launchResult = await Launcher.Launch(Settings.CLIArgs, options);
+            var launchResult = await Launcher.Launch(options);
             return launchResult.Match(
                 Left: _ => {
                     DialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");

@@ -75,7 +75,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     }
 
 
-    public class Chivalry2ModsInstaller : IChivalry2LaunchPreparer<ModdedLaunchOptions> {
+    public class Chivalry2ModsInstaller : IChivalry2LaunchPreparer<LaunchOptions> {
         private readonly ILog _logger = LogManager.GetLogger(typeof(Chivalry2ModsInstaller));
         private readonly IUserDialogueSpawner _userDialogueSpawner;
         private IModRegistry _modRegistry { get; }
@@ -84,7 +84,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             _userDialogueSpawner = dialogueSpawner;
         }
 
-        public async Task<Option<ModdedLaunchOptions>> PrepareLaunch(ModdedLaunchOptions options) {
+        public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
             IEnumerable<ReleaseCoordinates> releases = options.EnabledReleases;
             var releasesList = new List<ReleaseCoordinates>(releases);
             _logger.LogListInfo("Installing the following releases:", releasesList);

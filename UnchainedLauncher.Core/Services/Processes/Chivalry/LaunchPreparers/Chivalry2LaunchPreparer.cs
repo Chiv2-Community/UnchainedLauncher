@@ -9,6 +9,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
         public static IChivalry2LaunchPreparer<T> Create<T>(Func<T, Option<T>> f) =>
             new FunctionalChivalry2LaunchPreparer<T>(t => Task.FromResult(f(t)));
+
+        public static IChivalry2LaunchPreparer<T> IgnoreOptions<T>(this IChivalry2LaunchPreparer<Unit> u) {
+            return Create<T>(
+                async opt => await u.PrepareLaunch(Unit.Default).Map(_ => opt)
+            );
+        }
     }
 
     /// <summary>
@@ -18,7 +24,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         /// <summary>
         /// Runs the preparations
         /// </summary>
-        /// <returns>a Task containing None when preparations fail. Some(ModdedLaunchOptions) when successful.</returns>
+        /// <returns>a Task containing None when preparations fail. Some(T) when successful.</returns>
         public Task<Option<T>> PrepareLaunch(T options);
 
         public IChivalry2LaunchPreparer<T> AndThen(IChivalry2LaunchPreparer<T> otherLaunchPreparer) {

@@ -16,9 +16,7 @@
             <local:ServerInfoForm DataContext="{Binding Form}"/>
         </Border>
         <Border BorderBrush="Black" BorderThickness="0.5" Grid.Row="1">
-            <Grid Grid.Row="1" Background="Pink">
-                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"><Run Text="Mod selection UI goes here, eventually"/></TextBlock>
-            </Grid>
+            <local:ModList DataContext="{Binding ModList}"/>
         </Border>
         
         

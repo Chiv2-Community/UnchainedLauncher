@@ -200,7 +200,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         }
 
                         return true;
-                    });
+                    }).Append(FilePaths.LastInstalledPakVersionList);
 
             FileHelpers.DeleteFiles(nonVanillaFiles);
         }

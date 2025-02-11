@@ -19,6 +19,7 @@ using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
@@ -28,32 +29,44 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     public partial class ServersTabVM : IDisposable, INotifyPropertyChanged {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServersTabVM));
         public SettingsVM Settings { get; }
-        public readonly IUnchainedChivalry2Launcher Launcher;
+        public IModRegistry ModRegistry { get; }
+        public readonly IChivalry2Launcher Launcher;
         public Func<IModManager> ModManagerCreator;
         public IUserDialogueSpawner DialogueSpawner;
         public FileBackedSettings<IEnumerable<SavedServerTemplate>>? SaveLocation;
         public ObservableCollection<ServerTemplateVM> ServerTemplates { get; }
         public ObservableCollection<(ServerTemplateVM template, ServerVM live)> RunningTemplates { get; } = new();
 
-        private void OnTemplateChanged(object? o, PropertyChangedEventArgs e) {
+        private void OnTemplateFormChanged(object? o, PropertyChangedEventArgs e) {
             // this saves all templates, but since we're not using a very complex
             // file format, there's no real way to save just one without just saving
             // all of them. Partial updates don't give value since the data size
             // is so small.
             Save();
         }
+
+        private void OnTemplateModManagerModDisabled(Release r) {
+            Save();
+        }
+
+        private void OnTemplateModManagerModEnabled(Release r, string? prev) {
+            Save();
+        }
+
         private ServerTemplateVM? _selectedTemplate;
         public ServerTemplateVM? SelectedTemplate {
             get => _selectedTemplate;
             set {
                 if (_selectedTemplate != null) {
-                    // TODO: change in mod manager section of template needs to be wired up here too
-                    _selectedTemplate.Form.PropertyChanged -= OnTemplateChanged;
+                    _selectedTemplate.Form.PropertyChanged -= OnTemplateFormChanged;
+                    _selectedTemplate.ModList._modManager.ModEnabled -= OnTemplateModManagerModEnabled;
+                    _selectedTemplate.ModList._modManager.ModDisabled -= OnTemplateModManagerModDisabled;
                 }
 
                 if (value != null) {
-                    // TODO: change in mod manager section of template needs to be wired up here too
-                    value.Form.PropertyChanged += OnTemplateChanged;
+                    value.Form.PropertyChanged += OnTemplateFormChanged;
+                    value.ModList._modManager.ModEnabled += OnTemplateModManagerModEnabled;
+                    value.ModList._modManager.ModDisabled += OnTemplateModManagerModDisabled;
                 }
 
                 _selectedTemplate = value;
@@ -68,7 +81,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public ServersTabVM(SettingsVM settings,
                             Func<IModManager> modManagerCreator,
                             IUserDialogueSpawner dialogueSpawner,
-                            IUnchainedChivalry2Launcher launcher,
+                            IChivalry2Launcher launcher,
+                            IModRegistry modRegistry,
                             FileBackedSettings<IEnumerable<SavedServerTemplate>>? saveLocation = null) {
             ServerTemplates = new ObservableCollection<ServerTemplateVM>();
             ServerTemplates.CollectionChanged += (_, _) => {
@@ -77,6 +91,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             };
             RunningTemplates.CollectionChanged += (_, _) => UpdateVisibility();
             Settings = settings;
+            ModRegistry = modRegistry;
             Launcher = launcher;
             DialogueSpawner = dialogueSpawner;
             ModManagerCreator = modManagerCreator;
@@ -96,8 +111,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public Task ShutdownServer() => Task.Run(() => SelectedLive?.Dispose());
 
         [RelayCommand]
-        public void AddTemplate() {
-            var newTemplate = new ServerTemplateVM(ModManagerCreator());
+        public async Task AddTemplate() {
+            var newModManager = new ModManager(
+                ModRegistry,
+                new List<ReleaseCoordinates> { });
+            var newTemplate = new ServerTemplateVM(
+                new ModListVM(newModManager, DialogueSpawner)
+                );
+            newTemplate.ModList.RefreshModListCommand.Execute(null);
             var occupiedPorts = ServerTemplates.Select(
                 (e) => new Set<int>(new List<int> {
                     e.Form.A2SPort,
@@ -138,7 +159,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             var formData = SelectedTemplate.Form.Data;
             var enabledMods =
-                SelectedTemplate.ModManager.GetEnabledModReleases();
+                SelectedTemplate.ModList._modManager.GetEnabledModReleases();
             var maybeProcess = await LaunchProcessForSelected(formData, headless);
             maybeProcess.IfSome(process => {
                 var server = new Chivalry2Server(
@@ -180,7 +201,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             }
 
             foreach (var template in loaded) {
-                ServerTemplates.Add(new ServerTemplateVM(template, ModManagerCreator()));
+                var newTemplate = new ServerTemplateVM(template, ModRegistry, DialogueSpawner);
+                newTemplate.ModList.RefreshModListCommand.Execute(null);
+                ServerTemplates.Add(newTemplate);
             }
             Logger.Info($"Loaded {ServerTemplates.Count} server templates.");
         }
@@ -204,14 +227,16 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             if (SelectedTemplate == null) return None;
 
             var serverLaunchOptions = formData.ToServerLaunchOptions(headless);
-            var options = new ModdedLaunchOptions(
+            var options = new LaunchOptions(
+                SelectedTemplate.ModList._modManager.GetEnabledAndDependencies(),
                 Settings.ServerBrowserBackend,
+                Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
                 None,
                 Some(serverLaunchOptions)
             );
 
-            var launchResult = await Launcher.Launch(options, Settings.EnablePluginAutomaticUpdates, Settings.CLIArgs);
+            var launchResult = await Launcher.Launch(options);
             return launchResult.Match(
                 Left: _ => {
                     DialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");

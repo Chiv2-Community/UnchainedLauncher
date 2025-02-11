@@ -8,16 +8,16 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
     using static Prelude;
 
-    public class UnchainedChivalry2Launcher : IUnchainedChivalry2Launcher {
+    public class UnchainedChivalry2Launcher : IChivalry2Launcher {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(UnchainedLauncher));
 
         private IProcessLauncher Launcher { get; }
-        private IChivalry2LaunchPreparer<ModdedLaunchOptions> LaunchPreparer { get; }
+        private IChivalry2LaunchPreparer<LaunchOptions> LaunchPreparer { get; }
         private string InstallationRootDir { get; }
         private IProcessInjector ProcessInjector { get; }
 
         public UnchainedChivalry2Launcher(
-            IChivalry2LaunchPreparer<ModdedLaunchOptions> preparer,
+            IChivalry2LaunchPreparer<LaunchOptions> preparer,
             IProcessLauncher processLauncher,
             string installationRootDir,
             IProcessInjector processInjector) {
@@ -29,7 +29,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             Launcher = processLauncher;
         }
 
-        public async Task<Either<UnchainedLaunchFailure, Process>> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args) {
+        public async Task<Either<LaunchFailed, Process>> Launch(LaunchOptions options) {
+            var launchResult = await TryLaunch(options);
+            return launchResult.MapLeft(failure => failure.AsLaunchFailed(options.LaunchArgs));
+        }
+
+        public async Task<Either<UnchainedLaunchFailure, Process>> TryLaunch(LaunchOptions launchOptions) {
             Logger.Info("Attempting to launch modded game.");
 
             var updatedLaunchOpts = await LaunchPreparer.PrepareLaunch(launchOptions);
@@ -37,7 +42,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
                 return Left(UnchainedLaunchFailure.LaunchCancelled());
             }
 
-            var moddedLaunchArgs = args;
+            var moddedLaunchArgs = launchOptions.LaunchArgs;
             var tblLoc = moddedLaunchArgs.IndexOf("TBL", StringComparison.Ordinal);
             var offsetIndex = tblLoc == -1 ? 0 : tblLoc + 3;
 
@@ -55,13 +60,14 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
                     return Left(UnchainedLaunchFailure.LaunchFailed(error));
                 },
                 Right: proc => {
-                    Logger.Info("Successfully launched Chivalry 2 Unchained");
+                    Logger.Info("Successfully launched Chivalry 2 process.");
                     return InjectDlLs(proc);
                 }
             );
         }
 
         private Either<UnchainedLaunchFailure, Process> InjectDlLs(Process process) {
+            Logger.Info($"Injecting DLLs into {process.Id}");
             if (ProcessInjector.Inject(process)) return Right(process);
 
             process.Kill();

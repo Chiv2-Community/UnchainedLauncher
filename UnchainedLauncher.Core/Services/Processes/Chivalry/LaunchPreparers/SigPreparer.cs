@@ -2,7 +2,6 @@
 using log4net;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.PakDir;
-using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {

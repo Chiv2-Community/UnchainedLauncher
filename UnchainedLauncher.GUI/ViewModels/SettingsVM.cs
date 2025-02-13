@@ -19,8 +19,6 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels {
-    using static LanguageExt.Prelude;
-
     [AddINotifyPropertyChangedInterface]
     public partial class SettingsVM : IDisposable {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(SettingsVM));
@@ -184,7 +182,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             ExitProgram(0);
         }
-        
+
         private void CleanUpInstallation_actions() {
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
             FileHelpers.DeleteDirectory(FilePaths.PluginDir);

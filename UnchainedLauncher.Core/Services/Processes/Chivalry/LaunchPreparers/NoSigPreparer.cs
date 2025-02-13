@@ -2,7 +2,6 @@
 using log4net;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.PakDir;
-using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
@@ -13,7 +12,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     /// <typeparam name="T"></typeparam>
     public class NoSigPreparer : IChivalry2LaunchPreparer<Unit> {
         private readonly ILog _logger = LogManager.GetLogger(nameof(NoSigPreparer));
-        
+
         public IPakDir PakDir { get; private set; }
 
         private readonly IUserDialogueSpawner _userDialogueSpawner;

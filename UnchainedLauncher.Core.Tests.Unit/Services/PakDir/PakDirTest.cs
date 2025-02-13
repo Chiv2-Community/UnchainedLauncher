@@ -1,7 +1,5 @@
-using FluentAssertions.Execution;
 using JetBrains.Annotations;
 using LanguageExt.UnsafeValueAccess;
-using System.Collections.Immutable;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Utilities;
@@ -19,7 +17,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             streamWriter.Write(fileContents);
             return new FileWriter(path, fileStream, fileContents.Length);
         };
-        
+
         /// <summary>
         /// this should not have multiple versions of the same mod. Make a different dataset for that
         /// </summary>
@@ -29,7 +27,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             new("Chained-Mods", "Mod1", "1.0.0"),
             new("Chained-Mods", "Mod2", "1.0.0"),
         };
-        
+
         // for theories
         public static List<object[]> DummyModsParam = DummyMods.Select(x => new object[] { x }).ToList();
 
@@ -46,7 +44,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         private static void PrepareTestDir(string dir) {
-            Directory.CreateDirectory(dir); 
+            Directory.CreateDirectory(dir);
             Directory.Delete(dir, true);
         }
 
@@ -60,21 +58,21 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         public void DeleteOrphanedSigs() {
             var thisTestPath = Path.Join(BaseTestDir, System.Reflection.MethodBase.GetCurrentMethod()?.Name);
             PrepareTestDirWithSig(thisTestPath);
-            
+
             var orphanedSigName = Path.Join(thisTestPath, "orphaned.sig");
             File.WriteAllText(orphanedSigName, "orphaned sig file");
-            
+
             var pd = new Core.Services.PakDir.PakDir(thisTestPath);
             Assert.True(File.Exists(orphanedSigName));
             pd.DeleteOrphanedSigs();
             Assert.False(File.Exists(orphanedSigName));
         }
-        
+
         [Fact]
         public void CleanUpPakDir() {
             var thisTestPath = Path.Join(BaseTestDir, System.Reflection.MethodBase.GetCurrentMethod()?.Name);
             PrepareTestDirWithSig(thisTestPath);
-            
+
             var pd = new Core.Services.PakDir.PakDir(thisTestPath);
             new List<string> {
                 "pakchunk0-WindowsNoEditor.pak",
@@ -85,7 +83,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
                 "file3.sig"
             }.Map(p => Path.Join(thisTestPath, p))
                 .ToList().ForEach(p => File.WriteAllText(p, "mysterious contents"));
-            
+
             var m1 = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
             InstallDummy(pd, m1);
             pd.CleanUpDir().IfLeft(e => throw e);
@@ -101,33 +99,33 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         public void UnmanagedHandling() {
             var thisTestPath = Path.Join(BaseTestDir, System.Reflection.MethodBase.GetCurrentMethod()?.Name);
             PrepareTestDirWithSig(thisTestPath);
-            
+
             var pd = new Core.Services.PakDir.PakDir(thisTestPath);
             var mysteriousFiles = new List<string> {
                 "mysterious-file1.pak",
                 "mysterious-file2.pak",
                 "mysterious-file3.pak"
             }.Map(fn => Path.Combine(thisTestPath, fn)).ToList();
-            
+
             mysteriousFiles.ForEach(p => File.WriteAllText(p, "myserious pak contents"));
             // this name should collide with an unmanaged file and be handled properly
             var m1 = new ReleaseCoordinates("Unchained-Mods", "mysterious-file1", "1.0.0");
             InstallDummy(pd, m1);
             pd.Sign(m1).IfLeft(e => throw e);
             Assert.NotEqual(mysteriousFiles[0], pd.GetInstalledPakFile(m1));
-            
+
             // should add sig files for them
             pd.SignUnmanaged().IfLeft(e => throw e);
             mysteriousFiles
                 .Map(p => Path.ChangeExtension(p, ".sig"))
                 .ToList().ForEach(p => Assert.True(File.Exists(p)));
-            
+
             // should delete sig files for them
             pd.UnSignUnmanaged().IfLeft(e => throw e);
             mysteriousFiles
                 .Map(p => Path.ChangeExtension(p, ".sig"))
                 .ToList().ForEach(p => Assert.False(File.Exists(p)));
-            
+
             // should delete unmanaged pak and sig files
             pd.SignUnmanaged().IfLeft(e => throw e);
             pd.DeleteUnmanaged().IfLeft(e => throw e);
@@ -135,56 +133,56 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             mysteriousFiles
                 .Map(p => Path.ChangeExtension(p, ".sig"))
                 .ToList().ForEach(p => Assert.False(File.Exists(p)));
-            
+
             // none of the above should affect managed files
             Assert.True(pd.IsSigned(m1));
             Assert.True(File.Exists(pd.GetInstalledPakFile(m1).ValueUnsafe()));
-            Assert.True(File.Exists(Path.ChangeExtension(pd.GetInstalledPakFile(m1).ValueUnsafe(),".sig")));
+            Assert.True(File.Exists(Path.ChangeExtension(pd.GetInstalledPakFile(m1).ValueUnsafe(), ".sig")));
         }
-        
+
         [Fact]
         public void SignOnly() {
             var thisTestPath = Path.Join(BaseTestDir, System.Reflection.MethodBase.GetCurrentMethod()?.Name);
             PrepareTestDirWithSig(thisTestPath);
-            
+
             var m1 = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
             var m2 = new ReleaseCoordinates("Chained-Mods", "Mod1", "1.0.0");
             var m3 = new ReleaseCoordinates("Chained-Mods", "Mod2", "1.0.0");
-            
+
             var pd = new Core.Services.PakDir.PakDir(thisTestPath);
             InstallDummy(pd, m1);
             InstallDummy(pd, m2);
             InstallDummy(pd, m3);
-            
+
             pd.SignOnly(new List<ReleaseCoordinates> { m1, m3 }).IfLeft(e => throw e);
-            
+
             var m2InstallPath = pd.GetInstalledPakFile(m2).ValueUnsafe();
 
             Assert.True(pd.IsSigned(m1));
             Assert.False(pd.IsSigned(m2));
             Assert.False(File.Exists(Path.ChangeExtension(m2InstallPath, ".sig")));
             Assert.True(pd.IsSigned(m3));
-            
+
         }
 
         [Fact]
         public void InstallOnly() {
             var thisTestPath = Path.Join(BaseTestDir, System.Reflection.MethodBase.GetCurrentMethod()?.Name);
             PrepareTestDir(thisTestPath);
-            
+
             var m1 = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
             var m2 = new ReleaseCoordinates("Chained-Mods", "Mod1", "1.0.0");
             var m3 = new ReleaseCoordinates("Chained-Mods", "Mod2", "1.0.0");
-            
+
             var pd = new Core.Services.PakDir.PakDir(thisTestPath);
             InstallDummy(pd, m1);
             InstallDummy(pd, m2);
             InstallDummy(pd, m3);
-            
+
             var m2InstallPath = pd.GetInstalledPakFile(m2).ValueUnsafe();
-            
+
             pd.InstallOnly(new List<(ReleaseCoordinates, IPakDir.MakeFileWriter, string)> {
-                (m1, StaticMkWriter, m1.ModuleName+".pak"), 
+                (m1, StaticMkWriter, m1.ModuleName+".pak"),
                 (m3, StaticMkWriter, m1.ModuleName+".pak")
             }).IfLeft(e => throw e);
 
@@ -193,16 +191,16 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.False(File.Exists(m2InstallPath));
             Assert.Contains(m3, pd.GetInstalledReleases());
         }
-        
+
 
         [Fact]
         public void WillBumpName() {
             var thisTestPath = Path.Join(BaseTestDir, System.Reflection.MethodBase.GetCurrentMethod()?.Name);
             PrepareTestDir(thisTestPath);
-            
+
             var m1 = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
             var m2 = new ReleaseCoordinates("Chained-Mods", "Mod1", "1.0.0");
-            
+
             var pd = new Core.Services.PakDir.PakDir(thisTestPath);
             InstallDummy(pd, m1);
             InstallDummy(pd, m2);
@@ -211,7 +209,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.Contains(m2, pd.GetInstalledReleases());
             Assert.NotEqual(pd.GetInstalledPakFile(m1), pd.GetInstalledPakFile(m2));
         }
-        
+
         [Theory]
         [MemberData(nameof(DummyModsParam))]
         public void CanSignPak(ReleaseCoordinates coords) {
@@ -229,7 +227,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             pd.Unsign(coords).IfLeft(e => throw e);
             Assert.False(File.Exists(signedName.ValueUnsafe()));
         }
-        
+
         /// <summary>
         /// Makes sure uninstall logic works properly. This means not uninstalling a release if it's not
         /// a matching verison, and uninstalling a release using only a ModIdentifier
@@ -251,7 +249,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             pd.Uninstall(modIdent).IfLeft(e => throw e);
             Assert.Throws<TrueException>(() => VerifyHasInstalledPak(pd, subPath, coords));
         }
-        
+
         [Theory]
         [MemberData(nameof(DummyModsParam))]
         public void CanInstallPak(ReleaseCoordinates coords) {

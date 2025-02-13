@@ -5,7 +5,6 @@ using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.PakDir;
-using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     using static LanguageExt.Prelude;
@@ -43,7 +42,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             if (failuresCount != 0) {
                 return None;
             }
-            
+
             // TODO: do something more clever than just deleting. This weirdness ultimately comes
             // TODO: display download progress as a popup or something
             // from the fact that launches share a pak dir, and can affect each other.
@@ -52,15 +51,15 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             // that allows doing some kind of per-process pak dir isolation
             return await _pakDir.InstallOnly(
                 metas.Map<Release, (ReleaseCoordinates, IPakDir.MakeFileWriter, string)>(m => {
-                        var coords = ReleaseCoordinates.FromRelease(m);
+                    var coords = ReleaseCoordinates.FromRelease(m);
 
-                        return (
-                            coords,
-                            (outputPath) => _modRegistry.DownloadPak(coords, outputPath)
-                                .MapLeft(e => Error.New(e)),
-                            m.PakFileName
-                        );
-                    }
+                    return (
+                        coords,
+                        (outputPath) => _modRegistry.DownloadPak(coords, outputPath)
+                            .MapLeft(e => Error.New(e)),
+                        m.PakFileName
+                    );
+                }
 
                 )
             ).Match(

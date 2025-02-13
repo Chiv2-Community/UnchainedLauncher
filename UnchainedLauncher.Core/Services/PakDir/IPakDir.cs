@@ -3,11 +3,9 @@ using LanguageExt.Common;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Services.PakDir
-{
-    public interface IPakDir
-    {
-        public delegate EitherAsync<Error,FileWriter> MakeFileWriter(string filePath);
+namespace UnchainedLauncher.Core.Services.PakDir {
+    public interface IPakDir {
+        public delegate EitherAsync<Error, FileWriter> MakeFileWriter(string filePath);
         IEnumerable<string> GetPakFiles();
         IEnumerable<string> GetSigFiles();
         Either<Error, string> GetDefaultSigFilePath();

@@ -7,7 +7,7 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.PakDir {
     using static LanguageExt.Prelude;
-    
+
     public class PakDir : IPakDir {
         private readonly string _dirPath;
         private readonly string _metadataFileName;
@@ -16,24 +16,23 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         private const string BaseSigFileName = "pakchunk0-WindowsNoEditor.sig";
 
         private static readonly ILog Logger = LogManager.GetLogger(nameof(PakDir));
-        
+
         // TODO: invert this map, because most uses of it are filtering on the Value, not the key.
         private Map<string, ReleaseCoordinates> _releaseMap;
-        
+
         /// <summary>
         /// Mapping from file name to ReleaseCoordinates. File name is ALWAYS lacking the path/to/pakdir/ prefix
         /// </summary>
         /// 
         private Map<string, ReleaseCoordinates> ReleaseMap {
             get => _releaseMap;
-            set{
+            set {
                 _releaseMap = value;
                 SaveMetaData() //TODO: make this save less often, maybe only on process close
-                    .IfLeft(e => Logger.Error("PakDir autosave",e)); 
+                    .IfLeft(e => Logger.Error("PakDir autosave", e));
             }
         }
-        public PakDir(string dirPath, string metadataFileName = "metadata.json")
-        {
+        public PakDir(string dirPath, string metadataFileName = "metadata.json") {
             _dirPath = dirPath;
             _metadataFileName = metadataFileName;
             ReleaseMap = TryLoadMetadata();
@@ -47,7 +46,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                     s => Right(s),
                     e => Error.New($"Failed to read metadata file '{fullMetadataPath}'", (Exception)e)
                 )
-                .Bind(s => 
+                .Bind(s =>
                     JsonHelpers.Deserialize<IEnumerable<(string, ReleaseCoordinates)>>(s)
                         .ToEither()
                         .MapLeft(e => Error.New($"Failed to deserialize metadata file '{fullMetadataPath}'", e))
@@ -60,19 +59,19 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                             Logger.Info("Metadata file not found. Using empty one instead.");
                             return new Map<string, ReleaseCoordinates>();
                         }
-                        Logger.Error("Error while deserializing PakDir metadata. Starting from scratch instead.",e);
+                        Logger.Error("Error while deserializing PakDir metadata. Starting from scratch instead.", e);
                         return new Map<string, ReleaseCoordinates>();
                     }
                     );
         }
 
-        public Either<Error,Unit> SaveMetaData() {
+        public Either<Error, Unit> SaveMetaData() {
             var jsonMetaData = JsonHelpers.Serialize(ReleaseMap);
             var fullMetadataPath = Path.Join(_dirPath, _metadataFileName);
             return PrimitiveExtensions.TryVoid(() => {
-                    Directory.CreateDirectory(_dirPath);
-                    File.WriteAllText(fullMetadataPath, jsonMetaData);
-                })
+                Directory.CreateDirectory(_dirPath);
+                File.WriteAllText(fullMetadataPath, jsonMetaData);
+            })
                 .Invoke()
                 .Match<Either<Error, Unit>>(
                     s => Right(s),
@@ -87,7 +86,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         public IEnumerable<string> GetSigFiles() {
             return Directory.EnumerateFiles(_dirPath, "*.sig");
         }
-        
+
         public Either<Error, string> GetDefaultSigFilePath() {
             var sigPath = Path.Join(_dirPath, BaseSigFileName);
             return File.Exists(sigPath)
@@ -104,7 +103,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
             var sigFiles = GetSigFiles();
             return sigFiles.Filter(f => !f.EndsWith(BaseSigFileName));
         }
-        
+
         /// <summary>
         /// Helper for deleting files using try
         /// </summary>
@@ -119,7 +118,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                     e => Error.New($"Failed to delete file: '{path}'", (Exception)e)
                     );
         }
-        
+
         /// <summary>
         /// Helper for copying files
         /// </summary>
@@ -165,19 +164,19 @@ namespace UnchainedLauncher.Core.Services.PakDir {
 
         private EitherAsync<Error, string> _writePak(IPakDir.MakeFileWriter mkFileWriter, string suggestedFileName) {
             var unManagedPaks = GetUnmanagedPaks().ToHashSet();
-            var actualName = Path.GetFileNameWithoutExtension(suggestedFileName); 
+            var actualName = Path.GetFileNameWithoutExtension(suggestedFileName);
             var extension = Path.GetExtension(suggestedFileName);
             string fullActualName = actualName + extension;
             while (ReleaseMap.ContainsKey(fullActualName) || unManagedPaks.Contains(_fnToProperPath(fullActualName))) {
                 actualName = Successors.TextualSuccessor(actualName);
                 fullActualName = actualName + extension;
             }
-            
+
             Logger.Info($"Downloading pak to {fullActualName}");
-            
+
             return mkFileWriter(_fnToProperPath(fullActualName))
-                .Bind(fileWriter => 
-                // TODO: allow passing of a cancellation token here
+                .Bind(fileWriter =>
+                    // TODO: allow passing of a cancellation token here
                     fileWriter.WriteAsync(None, CancellationToken.None)
                     .Map(_ => fullActualName)
                 );
@@ -193,7 +192,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                             // this is already installed; nothing to do
                             return p.Key;
                         }
-                        
+
                         // uninstall the other version, then install the new version
                         return Uninstall(p.Value)
                             .ToEitherAsync()
@@ -227,7 +226,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Bind(_ => installs.Map(t => Install(t.Item1, t.Item2, t.Item3)))
                 .AggregateBind();
         }
-        
+
         /// <summary>
         /// Does nothing if the sign file already exists
         /// </summary>
@@ -241,7 +240,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
             return GetDefaultSigFilePath()
                 .Bind(defaultPath => _copyFile(defaultPath, signedName));
         }
-        
+
         private Either<Error, Unit> _unsignFile(string path) {
             var signedName = Path.ChangeExtension(path, ".sig");
             return _deleteFile(signedName);
@@ -251,12 +250,12 @@ namespace UnchainedLauncher.Core.Services.PakDir {
             return GetInstalledPakFile(coords)
                 .Match(_signFile, () => Right(Unit.Default));
         }
-        
+
         public Either<Error, Unit> Unsign(ReleaseCoordinates coords) {
             return GetInstalledPakFile(coords)
                 .Match(_unsignFile, Right(Unit.Default));
         }
-        
+
         public Either<Error, Unit> Unsign(ModIdentifier coords) {
             return GetInstalledPakFile(coords)
                 .Match(_unsignFile, Right(Unit.Default));
@@ -277,7 +276,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Filter(GetSigFiles().Contains)
                 .IsSome;
         }
-        
+
         public bool IsSigned(ModIdentifier coords) {
             return GetInstalledPakFile(coords)
                 .Map(f => Path.ChangeExtension(f, ".sig"))
@@ -291,7 +290,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Map(p => _fnToProperPath(p.Key))
                 .ToOption();
         }
-        
+
         public Option<string> GetInstalledPakFile(ModIdentifier coords) {
             return ReleaseMap
                 .Filter(c => c.Matches(coords))
@@ -319,7 +318,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
 
         public IEnumerable<string> GetUnmanagedSigs() {
             return GetModdedSigFiles()
-                .Filter(p => 
+                .Filter(p =>
                     !ReleaseMap.ContainsKey(
                         Path.GetFileName(Path.ChangeExtension(p, ".pak")))
                     );
@@ -330,7 +329,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Map(_signFile)
                 .AggregateBind();
         }
-        
+
         public Either<Error, Unit> UnSignUnmanaged() {
             return GetUnmanagedPaks()
                 .Map(_unsignFile)

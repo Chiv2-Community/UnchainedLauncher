@@ -62,22 +62,22 @@ namespace UnchainedLauncher.Core.Extensions {
                 return f(l).MapLeft(_ => l);
             });
         }
-        
-        public static EitherAsync<L,R> ToEitherAsync<L,R>(this Either<L,R> either) =>
-            either.Match(EitherAsync<L,R>.Right, EitherAsync<L,R>.Left);
+
+        public static EitherAsync<L, R> ToEitherAsync<L, R>(this Either<L, R> either) =>
+            either.Match(EitherAsync<L, R>.Right, EitherAsync<L, R>.Left);
 
         public static Either<TL, Unit> AggregateBind<TL>(this IEnumerable<Either<TL, Unit>> eithers) {
             return eithers.Fold(Either<TL, Unit>.Right(Unit.Default), (s, n) => s.Bind(_ => n));
         }
-        
+
         public static Either<TL, R> AggregateBind<TL, R>(this IEnumerable<Either<TL, R>> eithers, R defaultValue) {
             return eithers.Fold(Either<TL, R>.Right(defaultValue), (s, n) => s.Bind(_ => n));
         }
-        
+
         public static EitherAsync<TL, Unit> AggregateBind<TL>(this IEnumerable<EitherAsync<TL, Unit>> eithers) {
             return eithers.Fold(EitherAsync<TL, Unit>.Right(Unit.Default), (s, n) => s.Bind(_ => n));
         }
-        
+
         public static EitherAsync<TL, R> AggregateBind<TL, R>(this IEnumerable<EitherAsync<TL, R>> eithers, R defaultValue) {
             return eithers.Fold(EitherAsync<TL, R>.Right(defaultValue), (s, n) => s.Bind(_ => n));
         }

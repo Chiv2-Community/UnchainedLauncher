@@ -8,6 +8,12 @@ namespace UnchainedLauncher.Core.Extensions {
             return b ? trueFunc() : falseFunc();
         }
 
+        public static Option<T> ToOption<T>(this T? o) {
+            return o != null
+                ? Some(o)
+                : None;
+        }
+
         public static Either<TL, TR> ToEither<TL, TR>(this bool b, Func<TL> falseFunc, Func<TR> trueFunc) {
             return b ? Prelude.Right(trueFunc()) : Prelude.Left(falseFunc());
         }

@@ -20,7 +20,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
     public partial class ModListVM : INotifyPropertyChanged {
         private readonly ILog _logger = LogManager.GetLogger(nameof(ModListVM));
-        private readonly IModManager _modManager;
+        public readonly IModManager _modManager;
         private ObservableCollection<ModVM> UnfilteredModView { get; }
         private ObservableCollection<ModFilter> ModFilters { get; }
 

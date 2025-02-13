@@ -147,7 +147,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <param name="modId"></param>
         /// <returns></returns>
         public static Option<Release> GetLatestRelease(this IModManager modManager, ModIdentifier modId) =>
-            modManager.Mods.Find(m => ModIdentifier.FromMod(m) == modId)
+            modManager.Mods.Find(m => ModIdentifier.FromMod(m).Matches(modId))
                 .Bind(m => m.LatestRelease);
 
         /// <summary>
@@ -190,6 +190,24 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 coordinates,
                 existingDependencies.ToImmutableHashSet()
             );
+        }
+
+        public static IEnumerable<ReleaseCoordinates> GetEnabledAndDependencies(this IModManager modManager) {
+            return modManager.GetEnabledAndDependencyReleases()
+                .Map(ReleaseCoordinates.FromRelease);
+        }
+
+        public static IEnumerable<Release> GetEnabledAndDependencyReleases(this IModManager modManager) {
+            var modsSet = modManager
+                .GetEnabledModReleases()
+                .ToImmutableHashSet();
+
+            return modsSet
+                .Fold(
+                    modsSet,
+                    (s, r) =>
+                        s.Union(modManager.GetNewDependenciesForRelease(r, s))
+                    );
         }
 
         public static IEnumerable<Release> GetNewDependenciesForRelease(this IModManager modManager, Release release, IEnumerable<Release> existingDependencies) =>

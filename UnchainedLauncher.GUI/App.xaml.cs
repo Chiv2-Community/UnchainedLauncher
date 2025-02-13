@@ -129,26 +129,32 @@ namespace UnchainedLauncher.GUI {
             var noSigLaunchPreparer = NoSigPreparer.Create(userDialogueSpawner);
             var sigLaunchPreparer = SigPreparer.Create(userDialogueSpawner);
 
-            var unchainedContentPreparer = UnchainedDependencyPreparer.Create(
-                modManager,
+            IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new UnchainedPluginUpdateChecker(
                 pluginReleaseLocator,
                 new FileInfoVersionExtractor(),
                 userDialogueSpawner);
 
-            var vanillaLauncher = new OfficialChivalry2Launcher(
-                noSigLaunchPreparer,
+            IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
+                modRegistry, userDialogueSpawner
+            );
+
+            var vanillaLauncher = new Chivalry2Launcher(
+                noSigLaunchPreparer.IgnoreOptions<LaunchOptions>(),
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
 
-            var clientsideModdedLauncher = new OfficialChivalry2Launcher(
-                sigLaunchPreparer,
+            var clientsideModdedLauncher = new Chivalry2Launcher(
+                modInstaller
+                    .Sub(sigLaunchPreparer),
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                unchainedContentPreparer.Sub(sigLaunchPreparer, _ => Unit.Default),
+                pluginInstaller
+                    .AndThen(modInstaller)
+                    .Sub(sigLaunchPreparer),
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
 #if DEBUG_FAKECHIVALRYLAUNCH
@@ -159,7 +165,13 @@ namespace UnchainedLauncher.GUI {
 #endif
             );
 
-            var launcherViewModel = new LauncherVM(settingsViewModel, vanillaLauncher, clientsideModdedLauncher, unchainedLauncher, userDialogueSpawner);
+            var launcherViewModel = new LauncherVM(
+                settingsViewModel,
+                modManager,
+                vanillaLauncher,
+                clientsideModdedLauncher,
+                unchainedLauncher,
+                userDialogueSpawner);
             var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
             modListViewModel.RefreshModListCommand.Execute(null);
@@ -187,6 +199,7 @@ namespace UnchainedLauncher.GUI {
                 () => new ModManager(modManager.Registry, modManager.EnabledModReleaseCoordinates, modManager.Mods),
                 userDialogueSpawner,
                 unchainedLauncher,
+                modRegistry,
                 new FileBackedSettings<IEnumerable<SavedServerTemplate>>(FilePaths.ServerTemplatesFilePath));
 
             var mainWindowViewModel = new MainWindowVM(

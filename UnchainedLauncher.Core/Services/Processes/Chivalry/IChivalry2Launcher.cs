@@ -1,31 +1,29 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
 using System.Diagnostics;
-using static LanguageExt.Prelude;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
-    public interface IUnchainedChivalry2Launcher {
+    using static LanguageExt.Prelude;
+    public interface IChivalry2Launcher {
         /// <summary>
-        /// Launches a modded instance of the game with additional parameters, supporting server hosting and potentially
-        /// DLL Injection.  
+        /// Launches a vanilla game. Implementations may do extra work to enable client side pak file loading
         /// </summary>
-        /// <param name="launchOptions"></param>
-        /// <param name="updateUnchainedDependencies"></param> If updateUnchainedDependencies is true, the implementation is expected to download updates for required launch files.
-        /// <param name="args"></param>
+        /// <param name="options"></param>
         /// <returns>
         /// Left if the game failed to launch.
         /// Right if the game was launched successfully.
         /// </returns>
-        public Task<Either<UnchainedLaunchFailure, Process>> Launch(ModdedLaunchOptions launchOptions, bool updateUnchainedDependencies, string args);
+        public Task<Either<LaunchFailed, Process>> Launch(LaunchOptions options);
     }
 
     public abstract record UnchainedLaunchFailure(string Message, int Code, Option<Error> Underlying) : Expected(Message, Code, Underlying) {
-
         public record InjectionFailedError() : UnchainedLaunchFailure("Failed to inject process with unchained code.", 0, None);
         public record LaunchFailedError(LaunchFailed Failure) : UnchainedLaunchFailure(Failure.Message, Failure.Code, Failure.Underlying);
         public record DependencyDownloadFailedError(IEnumerable<string> DependencyNames)
             : UnchainedLaunchFailure($"Failed to download dependencies '{string.Join("', '", DependencyNames)}'", 0, None);
         public record LaunchCancelledError() : UnchainedLaunchFailure($"Launch Cancelled", 0, None);
+        public record MissingArgumentsError() : UnchainedLaunchFailure("Necessary modded launch arguments not provided.", 0, None);
 
 
         public static UnchainedLaunchFailure InjectionFailed() =>
@@ -35,11 +33,16 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             new DependencyDownloadFailedError(dependencyNames);
 
         public static UnchainedLaunchFailure LaunchCancelled() => new LaunchCancelledError();
+        public static UnchainedLaunchFailure MissingArguments() => new MissingArgumentsError();
+
+        public LaunchFailed AsLaunchFailed(string args) => new LaunchFailed("unknown", args, this);
     }
 
-    public record ModdedLaunchOptions(
+    public record LaunchOptions(
+        IEnumerable<ReleaseCoordinates> EnabledReleases,
         string ServerBrowserBackend,
-        bool CheckForDependencyUpdates,
+        string LaunchArgs,
+        bool CheckForDependencyUpdates, //TODO: remove this property
         Option<string> SavedDirSuffix,
         Option<ServerLaunchOptions> ServerLaunchOptions
     ) {
@@ -85,6 +88,4 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             return args;
         }
     };
-
-
 }

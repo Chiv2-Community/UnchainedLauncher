@@ -1,5 +1,7 @@
 ﻿using LanguageExt;
 using log4net;
+using UnchainedLauncher.Core.Extensions;
+using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
@@ -11,27 +13,38 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class SigPreparer : IChivalry2LaunchPreparer<Unit> {
+        public IPakDir PakDir { get; private set; }
         private readonly ILog _logger = LogManager.GetLogger(nameof(SigPreparer));
 
         private readonly IUserDialogueSpawner _userDialogueSpawner;
 
-        public static IChivalry2LaunchPreparer<Unit> Create(IUserDialogueSpawner userDialogueSpawner) =>
-            new SigPreparer(userDialogueSpawner);
+        public static IChivalry2LaunchPreparer<Unit> Create(IPakDir pakDir, IUserDialogueSpawner userDialogueSpawner) =>
+            new SigPreparer(pakDir, userDialogueSpawner);
 
-        private SigPreparer(IUserDialogueSpawner userDialogueSpawner) {
+        private SigPreparer(IPakDir pakDir, IUserDialogueSpawner userDialogueSpawner) {
+            PakDir = pakDir;
             _userDialogueSpawner = userDialogueSpawner;
         }
 
-        public async Task<Option<Unit>> PrepareLaunch(Unit input) {
+        public Task<Option<Unit>> PrepareLaunch(Unit input) {
             _logger.Info("Ensuring sigs are set up for all pak files.");
-            var result = await Task.Run(() =>
-                SigFileHelper.CheckAndCopySigFiles() && SigFileHelper.DeleteOrphanedSigFiles()
-            );
+            var result = PakDir.SignUnmanaged()
+                .Bind(_ =>
+                    PakDir.GetInstalledReleases()
+                        .Map(PakDir.Sign)
+                        .AggregateBind()
+                )
+                .Bind(_ => PakDir.DeleteOrphanedSigs())
+                .Match(
+                    _ => Some(input),
+                    e => {
+                        _logger.Error("Failed to prepare sigs", e);
+                        _userDialogueSpawner.DisplayMessage("Failed to prepare sig files. Check the logs for more information.");
+                        return None;
+                    }
+                );
 
-            if (result) return Some(input);
-
-            _userDialogueSpawner.DisplayMessage("Failed to prepare sig files. Check the logs for more information.");
-            return None;
+            return Task.FromResult(result);
         }
     }
 }

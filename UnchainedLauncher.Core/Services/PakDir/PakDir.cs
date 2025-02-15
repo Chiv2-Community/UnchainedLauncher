@@ -71,9 +71,9 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 var jsonMetaData = JsonHelpers.Serialize(ReleaseMap);
                 var fullMetadataPath = Path.Join(_dirPath, _metadataFileName);
                 return PrimitiveExtensions.TryVoid(() => {
-                        Directory.CreateDirectory(_dirPath);
-                        File.WriteAllText(fullMetadataPath, jsonMetaData);
-                    })
+                    Directory.CreateDirectory(_dirPath);
+                    File.WriteAllText(fullMetadataPath, jsonMetaData);
+                })
                     .Invoke()
                     .Match<Either<Error, Unit>>(
                         s => Right(s),
@@ -216,7 +216,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
 
         public EitherAsync<Error, Unit> InstallOnly(
                 IEnumerable<(
-                    ReleaseCoordinates version, 
+                    ReleaseCoordinates version,
                     IPakDir.MakeFileWriter,
                     string suggestedPakName)> installs,
                 Option<AccumulatedMemoryProgress> progress) {

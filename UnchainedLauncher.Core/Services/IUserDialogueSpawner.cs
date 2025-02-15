@@ -5,7 +5,7 @@ namespace UnchainedLauncher.Core.Services {
 
 
     public interface IUserDialogueSpawner {
-        
+
         public void DisplayMessage(string message);
         public UserDialogueChoice DisplayYesNoMessage(string message, string caption);
 
@@ -19,7 +19,7 @@ namespace UnchainedLauncher.Core.Services {
 
             return DisplayUpdateMessage(titleText, messageText, yesButtonText, noButtonText, cancelButtonText, allUpdates);
         }
-        
+
         /// <summary>
         /// Displays a progress popup window for the user. Returns an action that, when called, will close the window
         /// regardless of whether the progress is completed

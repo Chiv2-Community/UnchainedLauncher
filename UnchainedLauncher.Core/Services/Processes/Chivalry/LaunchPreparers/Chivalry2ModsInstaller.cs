@@ -52,15 +52,15 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");
             var installOnlyResult = _pakDir.InstallOnly(
                 metas.Map<Release, (ReleaseCoordinates, IPakDir.MakeFileWriter, string)>(m => {
-                        var coords = ReleaseCoordinates.FromRelease(m);
-                    
-                        return (
-                            coords,
-                            (outputPath) => _modRegistry.DownloadPak(coords, outputPath)
-                                .MapLeft(e => Error.New(e)),
-                            m.PakFileName
-                        );
-                    }
+                    var coords = ReleaseCoordinates.FromRelease(m);
+
+                    return (
+                        coords,
+                        (outputPath) => _modRegistry.DownloadPak(coords, outputPath)
+                            .MapLeft(e => Error.New(e)),
+                        m.PakFileName
+                    );
+                }
                 ), progresses
             ).Match(
                 _ => Some(options),
@@ -73,11 +73,11 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
 
             var closeProgressWindow = _userDialogueSpawner.DisplayProgress(progresses);
-                
+
             var finalResult = await installOnlyResult;
 
             closeProgressWindow();
-            
+
             return finalResult;
 
         }

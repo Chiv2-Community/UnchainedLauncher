@@ -16,7 +16,7 @@ namespace UnchainedLauncher.Core.Utilities {
             ProgressPercentage = Math.Clamp(value, 0.00, 100.00);
         }
     }
-    
+
     public class AccumulatedMemoryProgress : MemoryProgress {
         // average the progress of sub-percentages
         private double CalcAggregatePercentage() =>
@@ -28,7 +28,7 @@ namespace UnchainedLauncher.Core.Utilities {
 
         public ObservableCollection<MemoryProgress> Progresses { get; private set; }
 
-        public AccumulatedMemoryProgress(IEnumerable<MemoryProgress>? memoryProgress = null, string? taskName = null) : base(taskName){
+        public AccumulatedMemoryProgress(IEnumerable<MemoryProgress>? memoryProgress = null, string? taskName = null) : base(taskName) {
             Progresses = new ObservableCollection<MemoryProgress>(memoryProgress ?? new List<MemoryProgress>());
             Progresses.ToList().ForEach(BindTo);
             ProgressPercentage = CalcAggregatePercentage();

@@ -23,7 +23,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             other == null
                 ? -1
                 : (this.Org, this.ModuleName).CompareTo((other.Org, other.ModuleName));
-        
+
         public override string ToString() {
             return $"('{Org}','{ModuleName}')";
         }

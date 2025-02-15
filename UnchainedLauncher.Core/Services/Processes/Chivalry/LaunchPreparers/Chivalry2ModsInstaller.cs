@@ -5,6 +5,7 @@ using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.PakDir;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     using static LanguageExt.Prelude;
@@ -49,19 +50,19 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             // This stuff is only really relevant to servers, and there's probably not much
             // we can do without adding some seriously in-depth hooks in the plugin
             // that allows doing some kind of per-process pak dir isolation
-            return await _pakDir.InstallOnly(
+            var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");
+            var installOnlyResult = _pakDir.InstallOnly(
                 metas.Map<Release, (ReleaseCoordinates, IPakDir.MakeFileWriter, string)>(m => {
-                    var coords = ReleaseCoordinates.FromRelease(m);
-
-                    return (
-                        coords,
-                        (outputPath) => _modRegistry.DownloadPak(coords, outputPath)
-                            .MapLeft(e => Error.New(e)),
-                        m.PakFileName
-                    );
-                }
-
-                )
+                        var coords = ReleaseCoordinates.FromRelease(m);
+                    
+                        return (
+                            coords,
+                            (outputPath) => _modRegistry.DownloadPak(coords, outputPath)
+                                .MapLeft(e => Error.New(e)),
+                            m.PakFileName
+                        );
+                    }
+                ), progresses
             ).Match(
                 _ => Some(options),
                 e => {
@@ -69,6 +70,17 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                     _userDialogueSpawner.DisplayMessage($"There was an error while installing releases: {e.Message}");
                     return None;
                 });
+
+
+
+            var closeProgressWindow = _userDialogueSpawner.DisplayProgress(progresses);
+                
+            var finalResult = await installOnlyResult;
+
+            closeProgressWindow();
+            
+            return finalResult;
+
         }
     }
 }

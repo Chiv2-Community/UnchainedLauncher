@@ -28,13 +28,14 @@ namespace UnchainedLauncher.Core.Utilities {
 
         public ObservableCollection<MemoryProgress> Progresses { get; private set; }
 
-        public AccumulatedMemoryProgress(IEnumerable<MemoryProgress> memoryProgress, string? taskName = null) : base(taskName){
-            Progresses = new ObservableCollection<MemoryProgress>(memoryProgress);
+        public AccumulatedMemoryProgress(IEnumerable<MemoryProgress>? memoryProgress = null, string? taskName = null) : base(taskName){
+            Progresses = new ObservableCollection<MemoryProgress>(memoryProgress ?? new List<MemoryProgress>());
             Progresses.ToList().ForEach(BindTo);
             ProgressPercentage = CalcAggregatePercentage();
         }
 
         public void AlsoTrack(MemoryProgress memoryProgress) {
+            BindTo(memoryProgress);
             Progresses.Add(memoryProgress);
             ProgressPercentage = CalcAggregatePercentage();
         }

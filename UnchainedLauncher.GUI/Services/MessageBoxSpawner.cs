@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using UnchainedLauncher.Core.Services;
+using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.Views;
 
@@ -20,6 +21,12 @@ namespace UnchainedLauncher.GUI.Services {
             );
 
             return result?.ToMessageBoxResult();
+        }
+
+        public Action DisplayProgress(MemoryProgress progress) {
+            var window = new ProgressWindow(progress);
+            window.Show();
+            return () => window.Close();
         }
     }
 

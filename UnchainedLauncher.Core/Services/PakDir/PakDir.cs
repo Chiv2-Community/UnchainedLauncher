@@ -229,7 +229,6 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Map(p => Uninstall(p.Value)) // uninstall them
                 .AggregateBind()
                 // attempt to install all mentioned releases (installing an already installed release does nothing)
-                // TODO: maybe parallelize this, so all paks get downloaded in parallel. It's fast enough for now though
                 .Bind(_ => installs.Map(t => {
                     if (GetInstalledPakFile(t.Item1).IsSome) {
                         // so we don't show already installed paks in the progress

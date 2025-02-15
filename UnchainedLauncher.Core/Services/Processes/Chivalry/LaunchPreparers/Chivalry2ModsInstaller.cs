@@ -45,7 +45,6 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             }
 
             // TODO: do something more clever than just deleting. This weirdness ultimately comes
-            // TODO: display download progress as a popup or something
             // from the fact that launches share a pak dir, and can affect each other.
             // This stuff is only really relevant to servers, and there's probably not much
             // we can do without adding some seriously in-depth hooks in the plugin

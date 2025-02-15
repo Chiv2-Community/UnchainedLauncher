@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Utilities;
@@ -24,9 +26,26 @@ namespace UnchainedLauncher.GUI.Services {
         }
 
         public Action DisplayProgress(MemoryProgress progress) {
-            var window = new ProgressWindow(progress);
-            window.Show();
-            return () => window.Close();
+            //this code feels super evil
+            // set a default "do nothing" action to satisfy compiler's assignment requirements
+            Action closeWindowAction = () => {};
+            // set a reset MRE (this is like a semaphore holding 0)
+            ManualResetEventSlim naughty = new ManualResetEventSlim(false);
+            // on the UI-safe thread...
+            Application.Current.Dispatcher.Invoke((Action)delegate{
+                var window = new ProgressWindow(progress);
+                window.Show();
+                // set the action via closure that, when invoked, closes the window on the UI-safe thread
+                closeWindowAction = () => Application.Current.Dispatcher.Invoke((Action)delegate { window.Close(); });
+                // set the MRE to signal the initially calling thread
+                // that closeWindowAction is assigned, and it can return
+                // (this is like releasing a semaphore)
+                naughty.Set();
+            });
+            // wait for the action on the UI-safe thread to complete
+            naughty.Wait();
+            
+            return closeWindowAction;
         }
     }
 

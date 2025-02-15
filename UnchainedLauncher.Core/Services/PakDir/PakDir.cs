@@ -65,18 +65,21 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                     );
         }
 
+        private readonly object _saveLock = new object();
         public Either<Error, Unit> SaveMetaData() {
-            var jsonMetaData = JsonHelpers.Serialize(ReleaseMap);
-            var fullMetadataPath = Path.Join(_dirPath, _metadataFileName);
-            return PrimitiveExtensions.TryVoid(() => {
-                Directory.CreateDirectory(_dirPath);
-                File.WriteAllText(fullMetadataPath, jsonMetaData);
-            })
-                .Invoke()
-                .Match<Either<Error, Unit>>(
-                    s => Right(s),
-                    e => Error.New("Failed to save metadata file. Starting from scratch instead.", (Exception)e)
+            lock (_saveLock) {
+                var jsonMetaData = JsonHelpers.Serialize(ReleaseMap);
+                var fullMetadataPath = Path.Join(_dirPath, _metadataFileName);
+                return PrimitiveExtensions.TryVoid(() => {
+                        Directory.CreateDirectory(_dirPath);
+                        File.WriteAllText(fullMetadataPath, jsonMetaData);
+                    })
+                    .Invoke()
+                    .Match<Either<Error, Unit>>(
+                        s => Right(s),
+                        e => Error.New("Failed to save metadata file. Starting from scratch instead.", (Exception)e)
                     );
+            }
         }
 
         public IEnumerable<string> GetPakFiles() {
@@ -162,7 +165,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                     .Match(_internalUninstall, Right(Unit.Default)));
         }
 
-        private EitherAsync<Error, string> _writePak(IPakDir.MakeFileWriter mkFileWriter, string suggestedFileName) {
+        private EitherAsync<Error, string> _writePak(IPakDir.MakeFileWriter mkFileWriter, Option<IProgress<double>> progress, string suggestedFileName) {
             var unManagedPaks = GetUnmanagedPaks().ToHashSet();
             var actualName = Path.GetFileNameWithoutExtension(suggestedFileName);
             var extension = Path.GetExtension(suggestedFileName);
@@ -173,16 +176,15 @@ namespace UnchainedLauncher.Core.Services.PakDir {
             }
 
             Logger.Info($"Downloading pak to {fullActualName}");
-
             return mkFileWriter(_fnToProperPath(fullActualName))
                 .Bind(fileWriter =>
                     // TODO: allow passing of a cancellation token here
-                    fileWriter.WriteAsync(None, CancellationToken.None)
+                    fileWriter.WriteAsync(progress, CancellationToken.None)
                     .Map(_ => fullActualName)
                 );
         }
 
-        public EitherAsync<Error, Unit> Install(ReleaseCoordinates coords, IPakDir.MakeFileWriter mkFileWriter, string suggestedFileName) {
+        public EitherAsync<Error, Unit> Install(ReleaseCoordinates coords, IPakDir.MakeFileWriter mkFileWriter, string suggestedFileName, Option<IProgress<double>> progress) {
             return ReleaseMap
                 .Filter(c => c.Matches(coords))
                 .ToOption()
@@ -197,11 +199,11 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                         return Uninstall(p.Value)
                             .ToEitherAsync()
                             .Bind(
-                                _ => _writePak(mkFileWriter, suggestedFileName)
+                                _ => _writePak(mkFileWriter, progress, suggestedFileName)
                             );
                     },
                     // no version installed. Install the new version
-                    () => _writePak(mkFileWriter, suggestedFileName)
+                    () => _writePak(mkFileWriter, progress, suggestedFileName)
                 )
                 .Map<Unit>(actualName => {
                     if (!ReleaseMap.ContainsKey(actualName)) {
@@ -212,7 +214,12 @@ namespace UnchainedLauncher.Core.Services.PakDir {
 
         }
 
-        public EitherAsync<Error, Unit> InstallOnly(IEnumerable<(ReleaseCoordinates version, IPakDir.MakeFileWriter, string suggestedPakName)> installs) {
+        public EitherAsync<Error, Unit> InstallOnly(
+                IEnumerable<(
+                    ReleaseCoordinates version, 
+                    IPakDir.MakeFileWriter,
+                    string suggestedPakName)> installs,
+                Option<AccumulatedMemoryProgress> progress) {
             return ReleaseMap
                 .Filter(c =>
                     !installs.Any(t =>
@@ -223,7 +230,15 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .AggregateBind()
                 // attempt to install all mentioned releases (installing an already installed release does nothing)
                 // TODO: maybe parallelize this, so all paks get downloaded in parallel. It's fast enough for now though
-                .Bind(_ => installs.Map(t => Install(t.Item1, t.Item2, t.Item3)))
+                .Bind(_ => installs.Map(t => {
+                    if (GetInstalledPakFile(t.Item1).IsSome) {
+                        // so we don't show already installed paks in the progress
+                        return Unit.Default;
+                    }
+                    var versionProgress = new MemoryProgress($"{t.Item1}");
+                    progress.IfSome(p => p.AlsoTrack(versionProgress));
+                    return Install(t.Item1, t.Item2, t.Item3, Some((IProgress<double>)versionProgress));
+                }))
                 .AggregateBind();
         }
 

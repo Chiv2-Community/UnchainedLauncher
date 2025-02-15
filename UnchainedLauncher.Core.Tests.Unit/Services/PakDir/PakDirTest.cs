@@ -1,4 +1,5 @@
 using JetBrains.Annotations;
+using LanguageExt;
 using LanguageExt.UnsafeValueAccess;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.PakDir;
@@ -39,7 +40,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
         private static void InstallDummy(Core.Services.PakDir.PakDir pd, ReleaseCoordinates coords) {
             var result = pd
-                .Install(coords, StaticMkWriter, coords.ModuleName + ".pak");
+                .Install(coords, StaticMkWriter, coords.ModuleName + ".pak", Option<IProgress<double>>.None);
             Task.Run(async () => await result).Result.IfLeft(e => throw e);
         }
 
@@ -184,7 +185,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             pd.InstallOnly(new List<(ReleaseCoordinates, IPakDir.MakeFileWriter, string)> {
                 (m1, StaticMkWriter, m1.ModuleName+".pak"),
                 (m3, StaticMkWriter, m1.ModuleName+".pak")
-            }).IfLeft(e => throw e);
+            }, Option<AccumulatedMemoryProgress>.None).IfLeft(e => throw e);
 
             Assert.Contains(m1, pd.GetInstalledReleases());
             Assert.DoesNotContain(m2, pd.GetInstalledReleases());

@@ -13,8 +13,8 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         IEnumerable<string> GetModdedSigFiles();
         Either<Error, Unit> Uninstall(ReleaseCoordinates coords);
         Either<Error, Unit> Uninstall(ModIdentifier coords);
-        EitherAsync<Error, Unit> Install(ReleaseCoordinates coords, MakeFileWriter mkFileWriter, string suggestedFileName);
-        EitherAsync<Error, Unit> InstallOnly(IEnumerable<(ReleaseCoordinates version, MakeFileWriter, string suggestedPakName)> installs);
+        EitherAsync<Error, Unit> Install(ReleaseCoordinates coords, MakeFileWriter mkFileWriter, string suggestedFileName, Option<IProgress<double>> progress);
+        EitherAsync<Error, Unit> InstallOnly(IEnumerable<(ReleaseCoordinates version, MakeFileWriter, string suggestedPakName)> installs, Option<AccumulatedMemoryProgress> progress);
         Either<Error, Unit> Sign(ReleaseCoordinates coords);
         Either<Error, Unit> Unsign(ReleaseCoordinates coords);
         Either<Error, Unit> Unsign(ModIdentifier coords);

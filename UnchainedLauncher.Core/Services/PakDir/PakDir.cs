@@ -18,6 +18,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(PakDir));
 
         // TODO: invert this map, because most uses of it are filtering on the Value, not the key.
+        private readonly object _releaseMapLock = new object();
         private Map<string, ReleaseCoordinates> _releaseMap;
 
         /// <summary>
@@ -146,7 +147,9 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         private Either<Error, Unit> _internalUninstall(string fileToRemove) {
             var deleteResult = _deleteFile(fileToRemove);
             if (deleteResult.IsRight) {
-                ReleaseMap = ReleaseMap.Remove(Path.GetFileName(fileToRemove));
+                lock (_releaseMapLock) {
+                    ReleaseMap = ReleaseMap.Remove(Path.GetFileName(fileToRemove));
+                }
             }
             return deleteResult;
         }
@@ -207,7 +210,9 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 )
                 .Map<Unit>(actualName => {
                     if (!ReleaseMap.ContainsKey(actualName)) {
-                        ReleaseMap = ReleaseMap.Add(actualName, coords);
+                        lock(_releaseMapLock) {
+                            ReleaseMap = ReleaseMap.Add(actualName, coords);
+                        }
                     }
                     return Unit.Default;
                 });
@@ -363,7 +368,9 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .AggregateBind()
                 .Map(_ => {
                     // bypass auto-save behavior so that the .json file is not re-created
-                    _releaseMap = ReleaseMap.Clear();
+                    lock (_releaseMapLock) {
+                        _releaseMap = ReleaseMap.Clear();
+                    }
                     return Unit.Default;
                 });
         }

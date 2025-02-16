@@ -210,7 +210,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 )
                 .Map<Unit>(actualName => {
                     if (!ReleaseMap.ContainsKey(actualName)) {
-                        lock(_releaseMapLock) {
+                        lock (_releaseMapLock) {
                             ReleaseMap = ReleaseMap.Add(actualName, coords);
                         }
                     }

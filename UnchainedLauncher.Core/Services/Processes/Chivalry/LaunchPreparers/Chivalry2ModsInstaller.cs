@@ -139,7 +139,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 .IfLeft(
                     lefts => lefts
                         .ToList()
-                        .ForEach(e => 
+                        .ForEach(e =>
                                 _logger.Error($"Failed to enforce pak file ordering:", e)
                             )
                     );

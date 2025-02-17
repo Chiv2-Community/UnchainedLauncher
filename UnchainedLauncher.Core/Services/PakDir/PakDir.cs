@@ -387,7 +387,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Map(_deleteFile)
                 .BindLefts();
         }
-        
+
         /// <summary>
         /// represents i using characters from alphabet
         /// </summary>
@@ -404,7 +404,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
 
             return string.Join("", sb.ToString().Reverse());
         }
-        
+
         /// <summary>
         /// Given a sequence of strings, modify those strings such
         /// that they are sorted lexicographically and return it
@@ -416,7 +416,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
             var inputsList = inputs.ToList();
             const string alphabet = "abcdefghijklmnopqrstuvwxyz";
             var requiredSymbols = (int)Math.Ceiling(Math.Log(inputsList.Count, alphabet.Length));
-            return inputsList.Map((i, n) => 
+            return inputsList.Map((i, n) =>
                 $"z{RepUsingAlphabet(alphabet, i).PadLeft(requiredSymbols, alphabet[0])}" +
                 forcedSortDivider +
                 $"{Regex.Replace(n, $".*{forcedSortDivider}", "")}"
@@ -439,23 +439,22 @@ namespace UnchainedLauncher.Core.Services.PakDir {
             var fullLocation = _fnToProperPath(location);
 
             return PrimitiveExtensions.TryVoid(() => {
-                        File.Move(fullLocation, _fnToProperPath(fullActualName));
-                        lock (_releaseMapLock) {
-                            var release = ReleaseMap[location];
-                            if (release == null) {
-                                throw new InvalidOperationException("attempt to move nonexistant file. This is an internal error.");
-                            }
-                            ReleaseMap = ReleaseMap.Remove(location).Add(fullActualName, release);
-                        }
-                        var signedVersion = Path.ChangeExtension(fullLocation, ".sig");
-                        if(File.Exists(signedVersion))
-                        {
-                            File.Move(
-                                signedVersion,
-                                Path.ChangeExtension(_fnToProperPath(fullActualName), ".sig")
-                            );
-                        }
-                })
+                File.Move(fullLocation, _fnToProperPath(fullActualName));
+                lock (_releaseMapLock) {
+                    var release = ReleaseMap[location];
+                    if (release == null) {
+                        throw new InvalidOperationException("attempt to move nonexistant file. This is an internal error.");
+                    }
+                    ReleaseMap = ReleaseMap.Remove(location).Add(fullActualName, release);
+                }
+                var signedVersion = Path.ChangeExtension(fullLocation, ".sig");
+                if (File.Exists(signedVersion)) {
+                    File.Move(
+                        signedVersion,
+                        Path.ChangeExtension(_fnToProperPath(fullActualName), ".sig")
+                    );
+                }
+            })
                 .Invoke()
                 .Match<Either<Error, Unit>>(
                     u => u,
@@ -469,9 +468,9 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Map(Path.GetFileName)
                 .OfType<string>()
                 .ToList();
-            
+
             var newPaths = ApplySortedLexicographically(paths);
-            
+
             return paths.Zip(newPaths)
                 .Map(t => _moveInternal(t.Item1, t.Item2))
                 .BindLefts();

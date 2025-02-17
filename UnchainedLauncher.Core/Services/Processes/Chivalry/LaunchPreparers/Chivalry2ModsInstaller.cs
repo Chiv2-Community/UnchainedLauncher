@@ -37,6 +37,43 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
         }
 
+        private Unit ifHashInvalid((Release, string, string) validationResult) {
+            var coords = ReleaseCoordinates.FromRelease(validationResult.Item1);
+            _logger.Warn($"Hash mismatch: actual hash '{validationResult.Item2}' does not " +
+                         $"match release hash '{validationResult.Item3}' for '{coords}'.");
+
+            var redownloadResponse = _userDialogueSpawner.DisplayYesNoMessage(
+                $"The hash for release {coords} is not correct. " +
+                $"This indicates that the file on disk does not match " +
+                $"what is approved by the mod registry. This could be due to " +
+                $"simple file corruption, but could also indicate that the version " +
+                $"you have is malicious.\n\n" +
+                $"Expected: {validationResult.Item3}\n" +
+                $"Actual: {validationResult.Item2}\n\n" +
+                $"Would you like to re-download the pak? (recommended)", "Refresh pak file?");
+
+            if (redownloadResponse == UserDialogueChoice.Yes) {
+                _pakDir.Uninstall(coords)
+                    .IfLeft(e =>
+                        _logger.Error($"Failed to uninstall release '{coords}' with invalid hash", e));
+            }
+
+            return Unit.Default;
+        }
+
+        private async Task ValidateHashes(IEnumerable<Release> releases) {
+            var hashValidationTasks = releases
+                .Map(m =>
+                    GetLocalHash(ReleaseCoordinates.FromRelease(m))
+                        .Map(h => (m, h, m.ReleaseHash))
+                        // select only those whose hashes do not match
+                        .Filter(o => !o.Item2.Equals(o.Item3))
+                        .IfSome(ifHashInvalid)
+                );
+
+            await Task.WhenAll(hashValidationTasks);
+        }
+
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
             IEnumerable<ReleaseCoordinates> releases = options.EnabledReleases;
             var releasesList = new List<ReleaseCoordinates>(releases);
@@ -60,39 +97,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 return None;
             }
 
-            var hashValidationTasks = metas
-                .Map(m =>
-                    GetLocalHash(ReleaseCoordinates.FromRelease(m))
-                        .Map(h => (m, h, m.ReleaseHash))
-                        // select only those whose hashes do not match
-                        .Filter(o => !o.Item2.Equals(o.Item3))
-                        .IfSome(b => {
-                            var coords = ReleaseCoordinates.FromRelease(b.Item1);
-                            _logger.Warn($"Hash mismatch: actual hash '{b.Item2}' does not " +
-                                         $"match release hash '{b.Item3}' for '{coords}'.");
-
-                            var redownloadResponse = _userDialogueSpawner.DisplayYesNoMessage(
-                                $"The hash for release {coords} is not correct. " +
-                                $"This indicates that the file on disk does not match " +
-                                $"what is approved by the mod registry. This could be due to " +
-                                $"simple file corruption, but could also indicate that the version " +
-                                $"you have is malicious.\n\n" +
-                                $"Expected: {b.Item3}\n" +
-                                $"Actual: {b.Item2}\n\n" +
-                                $"Would you like to re-download the pak? (recommended)", "Refresh pak file?");
-
-                            if (redownloadResponse == UserDialogueChoice.Yes) {
-                                _pakDir.Uninstall(coords)
-                                    .IfLeft(e =>
-                                        _logger.Error($"Failed to uninstall release '{coords}' with invalid hash", e));
-                            }
-
-                            return Unit.Default;
-                        })
-                );
-
-            await Task.WhenAll(hashValidationTasks);
-
+            await ValidateHashes(metas);
 
             // TODO: do something more clever than just deleting. This weirdness ultimately comes
             // from the fact that launches share a pak dir, and can affect each other.
@@ -123,8 +128,6 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                         );
                     return None;
                 });
-
-
 
             var closeProgressWindow = _userDialogueSpawner.DisplayProgress(progresses);
 

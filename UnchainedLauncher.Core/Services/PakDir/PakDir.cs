@@ -1,6 +1,8 @@
 using LanguageExt;
 using LanguageExt.Common;
 using log4net;
+using System.Text;
+using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
@@ -383,6 +385,95 @@ namespace UnchainedLauncher.Core.Services.PakDir {
             return GetSigFiles()
                 .Filter(p => !File.Exists(Path.ChangeExtension(p, ".pak")))
                 .Map(_deleteFile)
+                .BindLefts();
+        }
+        
+        /// <summary>
+        /// represents i using characters from alphabet
+        /// </summary>
+        /// <param name="alphabet"></param>
+        /// <param name="i">must be positive</param>
+        /// <returns></returns>
+        private static string RepUsingAlphabet(string alphabet, int i) {
+            var systemBase = alphabet.Length;
+            var sb = new StringBuilder();
+            while (i > 0) {
+                sb.Append(alphabet[i % systemBase]);
+                i /= systemBase;
+            }
+
+            return string.Join("", sb.ToString().Reverse());
+        }
+        
+        /// <summary>
+        /// Given a sequence of strings, modify those strings such
+        /// that they are sorted lexicographically and return it
+        /// </summary>
+        /// <param name="inputs"></param>
+        /// <returns></returns>
+        private static IEnumerable<string> ApplySortedLexicographically(IEnumerable<string> inputs) {
+            const string forcedSortDivider = "__-__";
+            var inputsList = inputs.ToList();
+            const string alphabet = "abcdefghijklmnopqrstuvwxyz";
+            var requiredSymbols = (int)Math.Ceiling(Math.Log(inputsList.Count, alphabet.Length));
+            return inputsList.Map((i, n) => 
+                $"z{RepUsingAlphabet(alphabet, i).PadLeft(requiredSymbols, alphabet[0])}" +
+                forcedSortDivider +
+                $"{Regex.Replace(n, $".*{forcedSortDivider}", "")}"
+            );
+        }
+
+        private Either<Error, Unit> _moveInternal(string location, string newLocation) {
+            if (location == newLocation) {
+                return Unit.Default;
+            }
+            var unManagedPaks = GetUnmanagedPaks().ToHashSet();
+            var actualName = Path.GetFileNameWithoutExtension(newLocation);
+            var extension = Path.GetExtension(newLocation);
+            string fullActualName = actualName + extension;
+            while (ReleaseMap.ContainsKey(fullActualName) || unManagedPaks.Contains(_fnToProperPath(fullActualName))) {
+                actualName = Successors.TextualSuccessor(actualName);
+                fullActualName = actualName + extension;
+            }
+
+            var fullLocation = _fnToProperPath(location);
+
+            return PrimitiveExtensions.TryVoid(() => {
+                        File.Move(fullLocation, _fnToProperPath(fullActualName));
+                        lock (_releaseMapLock) {
+                            var release = ReleaseMap[location];
+                            if (release == null) {
+                                throw new InvalidOperationException("attempt to move nonexistant file. This is an internal error.");
+                            }
+                            ReleaseMap = ReleaseMap.Remove(location).Add(fullActualName, release);
+                        }
+                        var signedVersion = Path.ChangeExtension(fullLocation, ".sig");
+                        if(File.Exists(signedVersion))
+                        {
+                            File.Move(
+                                signedVersion,
+                                Path.ChangeExtension(_fnToProperPath(fullActualName), ".sig")
+                            );
+                        }
+                })
+                .Invoke()
+                .Match<Either<Error, Unit>>(
+                    u => u,
+                    e => Error.New($"Failed to move: '{location}' -> '{fullActualName}'.", (Exception)e)
+                );
+        }
+
+        public Either<IEnumerable<Error>, Unit> EnforceOrdering(IEnumerable<ReleaseCoordinates> coords) {
+            var paths = coords
+                .Choose(GetInstalledPakFile)
+                .Map(Path.GetFileName)
+                .OfType<string>()
+                .ToList();
+            
+            var newPaths = ApplySortedLexicographically(paths);
+            
+            return paths.Zip(newPaths)
+                .Map(t => _moveInternal(t.Item1, t.Item2))
                 .BindLefts();
         }
     }

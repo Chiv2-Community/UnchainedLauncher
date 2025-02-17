@@ -32,5 +32,6 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         Either<IEnumerable<Error>, Unit> DeleteUnmanaged();
         Either<IEnumerable<Error>, Unit> CleanUpDir();
         Either<IEnumerable<Error>, Unit> DeleteOrphanedSigs();
+        Either<IEnumerable<Error>, Unit> EnforceOrdering(IEnumerable<ReleaseCoordinates> coords);
     }
 }

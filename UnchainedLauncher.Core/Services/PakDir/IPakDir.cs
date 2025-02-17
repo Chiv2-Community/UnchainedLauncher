@@ -14,11 +14,11 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         Either<Error, Unit> Uninstall(ReleaseCoordinates coords);
         Either<Error, Unit> Uninstall(ModIdentifier coords);
         EitherAsync<Error, Unit> Install(ReleaseCoordinates coords, MakeFileWriter mkFileWriter, string suggestedFileName, Option<IProgress<double>> progress);
-        EitherAsync<Error, Unit> InstallOnly(IEnumerable<(ReleaseCoordinates version, MakeFileWriter, string suggestedPakName)> installs, Option<AccumulatedMemoryProgress> progress);
+        EitherAsync<IEnumerable<Error>, Unit> InstallOnly(IEnumerable<(ReleaseCoordinates version, MakeFileWriter, string suggestedPakName)> installs, Option<AccumulatedMemoryProgress> progress);
         Either<Error, Unit> Sign(ReleaseCoordinates coords);
         Either<Error, Unit> Unsign(ReleaseCoordinates coords);
         Either<Error, Unit> Unsign(ModIdentifier coords);
-        Either<Error, Unit> SignOnly(IEnumerable<ReleaseCoordinates> coords);
+        Either<IEnumerable<Error>, Unit> SignOnly(IEnumerable<ReleaseCoordinates> coords);
         bool IsSigned(ReleaseCoordinates coords);
         bool IsSigned(ModIdentifier coords);
         Option<string> GetInstalledPakFile(ReleaseCoordinates coords);
@@ -27,10 +27,10 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         IEnumerable<ReleaseCoordinates> GetInstalledReleases();
         IEnumerable<string> GetUnmanagedPaks();
         IEnumerable<string> GetUnmanagedSigs();
-        Either<Error, Unit> SignUnmanaged();
-        Either<Error, Unit> UnSignUnmanaged();
-        Either<Error, Unit> DeleteUnmanaged();
-        Either<Error, Unit> CleanUpDir();
-        Either<Error, Unit> DeleteOrphanedSigs();
+        Either<IEnumerable<Error>, Unit> SignUnmanaged();
+        Either<IEnumerable<Error>, Unit> UnSignUnmanaged();
+        Either<IEnumerable<Error>, Unit> DeleteUnmanaged();
+        Either<IEnumerable<Error>, Unit> CleanUpDir();
+        Either<IEnumerable<Error>, Unit> DeleteOrphanedSigs();
     }
 }

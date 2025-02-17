@@ -114,9 +114,13 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 ), progresses
             ).Match(
                 _ => Some(options),
-                e => {
-                    _logger.Error($"Failed to install releases: {e.Message}");
-                    _userDialogueSpawner.DisplayMessage($"There was an error while installing releases: {e.Message}");
+                errors => {
+                    errors.ToList().ForEach(e => _logger.Error($"Failed to install releases: {e.Message}"));
+                    
+                    _userDialogueSpawner.DisplayMessage(
+                        $"There were errors while installing releases:\n " +
+                        $"{errors.Aggregate((a,b) => $"{a}\n\n{b}")}"
+                        );
                     return None;
                 });
 

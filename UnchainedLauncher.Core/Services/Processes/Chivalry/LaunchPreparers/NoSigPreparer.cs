@@ -31,13 +31,17 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 .Bind(_ =>
                     PakDir.GetInstalledReleases()
                         .Map(PakDir.Unsign)
-                        .AggregateBind()
+                        .BindLefts()
                 )
                 .Match(
                     _ => Some(input),
-                    e => {
-                        _logger.Error("Failed to prepare sigs", e);
-                        _userDialogueSpawner.DisplayMessage("Failed to remove mod sig files. Check the logs for more details.");
+                    errors => {
+                        errors.ToList().ForEach(e => _logger.Error($"Failed to unsign release: {e.Message}"));
+                    
+                        _userDialogueSpawner.DisplayMessage(
+                            $"There were errors while installing releases:\n " +
+                            $"{errors.Aggregate((a,b) => $"{a}\n\n{b}")}"
+                        );
                         return None;
                     }
                 );

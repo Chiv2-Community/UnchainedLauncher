@@ -31,14 +31,18 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 .Bind(_ =>
                     PakDir.GetInstalledReleases()
                         .Map(PakDir.Sign)
-                        .AggregateBind()
+                        .BindLefts()
                 )
                 .Bind(_ => PakDir.DeleteOrphanedSigs())
                 .Match(
                     _ => Some(input),
-                    e => {
-                        _logger.Error("Failed to prepare sigs", e);
-                        _userDialogueSpawner.DisplayMessage("Failed to prepare sig files. Check the logs for more information.");
+                    errors => {
+                        errors.ToList().ForEach(e => _logger.Error($"Failed to sign file: {e.Message}"));
+                    
+                        _userDialogueSpawner.DisplayMessage(
+                            $"There were errors while installing releases:\n " +
+                            $"{errors.Aggregate((a,b) => $"{a}\n\n{b}")}"
+                        );
                         return None;
                     }
                 );

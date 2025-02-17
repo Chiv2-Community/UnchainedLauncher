@@ -1,5 +1,6 @@
 using JetBrains.Annotations;
 using LanguageExt;
+using LanguageExt.Common;
 using LanguageExt.UnsafeValueAccess;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.PakDir;
@@ -69,6 +70,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.False(File.Exists(orphanedSigName));
         }
 
+        private void throwErrors(IEnumerable<Error> errors) {
+            throw Error.Many(errors.ToSeq());
+        }
+        
         [Fact]
         public void CleanUpPakDir() {
             var thisTestPath = Path.Join(BaseTestDir, System.Reflection.MethodBase.GetCurrentMethod()?.Name);
@@ -87,7 +92,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             var m1 = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
             InstallDummy(pd, m1);
-            pd.CleanUpDir().IfLeft(e => throw e);
+            pd.CleanUpDir().IfLeft(throwErrors);
             Assert.Empty(
                 Directory.EnumerateFiles(thisTestPath)
                     .Map(Path.GetFileName)
@@ -116,20 +121,20 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.NotEqual(mysteriousFiles[0], pd.GetInstalledPakFile(m1));
 
             // should add sig files for them
-            pd.SignUnmanaged().IfLeft(e => throw e);
+            pd.SignUnmanaged().IfLeft(throwErrors);
             mysteriousFiles
                 .Map(p => Path.ChangeExtension(p, ".sig"))
                 .ToList().ForEach(p => Assert.True(File.Exists(p)));
 
             // should delete sig files for them
-            pd.UnSignUnmanaged().IfLeft(e => throw e);
+            pd.UnSignUnmanaged().IfLeft(throwErrors);
             mysteriousFiles
                 .Map(p => Path.ChangeExtension(p, ".sig"))
                 .ToList().ForEach(p => Assert.False(File.Exists(p)));
 
             // should delete unmanaged pak and sig files
-            pd.SignUnmanaged().IfLeft(e => throw e);
-            pd.DeleteUnmanaged().IfLeft(e => throw e);
+            pd.SignUnmanaged().IfLeft(throwErrors);
+            pd.DeleteUnmanaged().IfLeft(throwErrors);
             mysteriousFiles.ForEach(p => Assert.False(File.Exists(p)));
             mysteriousFiles
                 .Map(p => Path.ChangeExtension(p, ".sig"))
@@ -155,7 +160,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             InstallDummy(pd, m2);
             InstallDummy(pd, m3);
 
-            pd.SignOnly(new List<ReleaseCoordinates> { m1, m3 }).IfLeft(e => throw e);
+            pd.SignOnly(new List<ReleaseCoordinates> { m1, m3 }).IfLeft(throwErrors);
 
             var m2InstallPath = pd.GetInstalledPakFile(m2).ValueUnsafe();
 
@@ -185,7 +190,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             pd.InstallOnly(new List<(ReleaseCoordinates, IPakDir.MakeFileWriter, string)> {
                 (m1, StaticMkWriter, m1.ModuleName+".pak"),
                 (m3, StaticMkWriter, m1.ModuleName+".pak")
-            }, Option<AccumulatedMemoryProgress>.None).IfLeft(e => throw e);
+            }, Option<AccumulatedMemoryProgress>.None).IfLeft(throwErrors);
 
             Assert.Contains(m1, pd.GetInstalledReleases());
             Assert.DoesNotContain(m2, pd.GetInstalledReleases());

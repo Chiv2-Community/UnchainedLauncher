@@ -219,7 +219,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
 
         }
 
-        public EitherAsync<Error, Unit> InstallOnly(
+        public EitherAsync<IEnumerable<Error>, Unit> InstallOnly(
                 IEnumerable<(
                     ReleaseCoordinates version,
                     IPakDir.MakeFileWriter,
@@ -232,18 +232,22 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                     )
                 ) // Find any releases not mentioned in this install
                 .Map(p => Uninstall(p.Value)) // uninstall them
-                .AggregateBind()
+                .BindLefts()
+                .ToAsync()
                 // attempt to install all mentioned releases (installing an already installed release does nothing)
-                .Bind(_ => installs.Map(t => {
-                    if (GetInstalledPakFile(t.Item1).IsSome) {
-                        // so we don't show already installed paks in the progress
-                        return Unit.Default;
-                    }
-                    var versionProgress = new MemoryProgress($"{t.Item1}");
-                    progress.IfSome(p => p.AlsoTrack(versionProgress));
-                    return Install(t.Item1, t.Item2, t.Item3, Some((IProgress<double>)versionProgress));
-                }))
-                .AggregateBind();
+                .Bind(_ => 
+                    installs.Map(t => {
+                                if (GetInstalledPakFile(t.Item1).IsSome) {
+                                    // so we don't show already installed paks in the progress
+                                    return Unit.Default;
+                                }
+                                var versionProgress = new MemoryProgress($"{t.Item1}");
+                                progress.IfSome(p => p.AlsoTrack(versionProgress));
+                                return Install(t.Item1, t.Item2, t.Item3, Some((IProgress<double>)versionProgress));
+                            }
+                        )
+                        .BindLefts()
+                    );
         }
 
         /// <summary>
@@ -280,13 +284,13 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Match(_unsignFile, Right(Unit.Default));
         }
 
-        public Either<Error, Unit> SignOnly(IEnumerable<ReleaseCoordinates> coords) {
+        public Either<IEnumerable<Error>, Unit> SignOnly(IEnumerable<ReleaseCoordinates> coords) {
             return ReleaseMap
                 .Filter(c => coords.All(ci => ci.CompareTo(c) != 0))
                 .Map(p => _unsignFile(p.Key))
-                .AggregateBind()
+                .BindLefts()
                 .Bind(_ => coords.Map(Sign))
-                .AggregateBind();
+                .BindLefts();
         }
 
         public bool IsSigned(ReleaseCoordinates coords) {
@@ -343,29 +347,29 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                     );
         }
 
-        public Either<Error, Unit> SignUnmanaged() {
+        public Either<IEnumerable<Error>, Unit> SignUnmanaged() {
             return GetUnmanagedPaks()
                 .Map(_signFile)
-                .AggregateBind();
+                .BindLefts();
         }
 
-        public Either<Error, Unit> UnSignUnmanaged() {
+        public Either<IEnumerable<Error>, Unit> UnSignUnmanaged() {
             return GetUnmanagedPaks()
                 .Map(_unsignFile)
-                .AggregateBind();
+                .BindLefts();
         }
 
-        public Either<Error, Unit> DeleteUnmanaged() {
+        public Either<IEnumerable<Error>, Unit> DeleteUnmanaged() {
             return GetUnmanagedPaks().ConcatFast(GetUnmanagedSigs())
                 .Map(_deleteFile)
-                .AggregateBind();
+                .BindLefts();
         }
 
-        public Either<Error, Unit> CleanUpDir() {
+        public Either<IEnumerable<Error>, Unit> CleanUpDir() {
             return Directory.EnumerateFiles(_dirPath)
                 .Filter(p => !(p.EndsWith(BasePakFileName) || p.EndsWith(BaseSigFileName)))
                 .Map(_deleteFile)
-                .AggregateBind()
+                .BindLefts()
                 .Map(_ => {
                     // bypass auto-save behavior so that the .json file is not re-created
                     lock (_releaseMapLock) {
@@ -375,11 +379,11 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 });
         }
 
-        public Either<Error, Unit> DeleteOrphanedSigs() {
+        public Either<IEnumerable<Error>, Unit> DeleteOrphanedSigs() {
             return GetSigFiles()
                 .Filter(p => !File.Exists(Path.ChangeExtension(p, ".pak")))
                 .Map(_deleteFile)
-                .AggregateBind();
+                .BindLefts();
         }
     }
 }

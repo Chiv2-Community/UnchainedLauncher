@@ -200,7 +200,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
 
                         // uninstall the other version, then install the new version
                         return Uninstall(p.Value)
-                            .ToEitherAsync()
+                            .ToAsync()
                             .Bind(
                                 _ => _writePak(mkFileWriter, progress, suggestedFileName)
                             );

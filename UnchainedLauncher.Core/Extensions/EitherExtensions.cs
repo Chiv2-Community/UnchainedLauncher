@@ -63,9 +63,6 @@ namespace UnchainedLauncher.Core.Extensions {
             });
         }
 
-        public static EitherAsync<L, R> ToEitherAsync<L, R>(this Either<L, R> either) =>
-            either.Match(EitherAsync<L, R>.Right, EitherAsync<L, R>.Left);
-
         public static Either<TL, Unit> AggregateBind<TL>(this IEnumerable<Either<TL, Unit>> eithers) {
             return eithers.Fold(Either<TL, Unit>.Right(Unit.Default), (s, n) => s.Bind(_ => n));
         }

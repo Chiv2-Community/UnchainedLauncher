@@ -235,16 +235,16 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .BindLefts()
                 .ToAsync()
                 // attempt to install all mentioned releases (installing an already installed release does nothing)
-                .Bind(_ => 
+                .Bind(_ =>
                     installs.Map(t => {
-                                if (GetInstalledPakFile(t.Item1).IsSome) {
-                                    // so we don't show already installed paks in the progress
-                                    return Unit.Default;
-                                }
-                                var versionProgress = new MemoryProgress($"{t.Item1}");
-                                progress.IfSome(p => p.AlsoTrack(versionProgress));
-                                return Install(t.Item1, t.Item2, t.Item3, Some((IProgress<double>)versionProgress));
-                            }
+                        if (GetInstalledPakFile(t.Item1).IsSome) {
+                            // so we don't show already installed paks in the progress
+                            return Unit.Default;
+                        }
+                        var versionProgress = new MemoryProgress($"{t.Item1}");
+                        progress.IfSome(p => p.AlsoTrack(versionProgress));
+                        return Install(t.Item1, t.Item2, t.Item3, Some((IProgress<double>)versionProgress));
+                    }
                         )
                         .BindLefts()
                     );

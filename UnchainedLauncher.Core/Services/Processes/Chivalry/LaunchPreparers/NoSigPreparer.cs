@@ -37,10 +37,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                     _ => Some(input),
                     errors => {
                         errors.ToList().ForEach(e => _logger.Error($"Failed to unsign release: {e.Message}"));
-                    
+
                         _userDialogueSpawner.DisplayMessage(
                             $"There were errors while installing releases:\n " +
-                            $"{errors.Aggregate((a,b) => $"{a}\n\n{b}")}"
+                            $"{errors.Aggregate((a, b) => $"{a}\n\n{b}")}"
                         );
                         return None;
                     }

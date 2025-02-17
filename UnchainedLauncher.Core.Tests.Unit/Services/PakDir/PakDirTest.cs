@@ -73,7 +73,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         private void throwErrors(IEnumerable<Error> errors) {
             throw Error.Many(errors.ToSeq());
         }
-        
+
         [Fact]
         public void CleanUpPakDir() {
             var thisTestPath = Path.Join(BaseTestDir, System.Reflection.MethodBase.GetCurrentMethod()?.Name);

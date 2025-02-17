@@ -82,7 +82,7 @@ namespace UnchainedLauncher.Core.Extensions {
                 )
             ).MapLeft(l => (IEnumerable<TL>)l);
         }
-        
+
         /// <summary>
         /// If there are any lefts, returns all of them as left.
         /// Otherwise, returns right as unit

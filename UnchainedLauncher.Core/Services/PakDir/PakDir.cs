@@ -417,7 +417,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
             const string alphabet = "abcdefghijklmnopqrstuvwxyz";
             var requiredSymbols = (int)Math.Ceiling(Math.Log(inputsList.Count, alphabet.Length));
             return inputsList.Map((i, n) =>
-                $"z{RepUsingAlphabet(alphabet, i).PadLeft(requiredSymbols, alphabet[0])}" +
+                $"q{RepUsingAlphabet(alphabet, i).PadLeft(requiredSymbols, alphabet[0])}" +
                 forcedSortDivider +
                 $"{Regex.Replace(n, $".*{forcedSortDivider}", "")}"
             );

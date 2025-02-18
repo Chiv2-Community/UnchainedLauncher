@@ -195,9 +195,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public static IEnumerable<ReleaseCoordinates> GetEnabledAndDependencies(this IModManager modManager) {
             var enabled = modManager.GetEnabledAndDependencyReleases()
                 .Map(ReleaseCoordinates.FromRelease);
-            
+
             // make sure unchained-mods always comes first
-            var unchainedMods = new ModIdentifier("Chiv2-Community","Unchained-Mods");
+            var unchainedMods = new ModIdentifier("Chiv2-Community", "Unchained-Mods");
             var installedUnchainedMods = enabled
                 .Filter(r => r.Matches(unchainedMods))
                 .ToOption();

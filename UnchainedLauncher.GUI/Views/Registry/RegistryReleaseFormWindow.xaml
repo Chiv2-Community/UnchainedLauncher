@@ -5,7 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Registry"
         mc:Ignorable="d"
-        Title="RegistryReleaseFormWindow" Height="450" Width="800">
+        Title="RegistryReleaseFormWindow" Height="450" Width="400">
     <Grid>
         <local:RegistryReleaseForm/>
     </Grid>

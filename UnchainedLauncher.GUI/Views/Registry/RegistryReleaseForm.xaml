@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Registry"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
+             xmlns:jd="clr-namespace:Jdenticon.Wpf;assembly=Jdenticon.Wpf"
              d:DataContext="{x:Static designInstances:LocalModRegistryConfigWindowViewModelInstances.DEFAULT_RELEASE}"
              mc:Ignorable="d"
              d:DesignHeight="300" d:DesignWidth="300">
@@ -41,17 +42,28 @@
                 ItemsSource="{Binding ModTypeChoices, Mode=OneWay}"
                 SelectedItem="{Binding SelectedModType}"
                 />
-            <TextBlock>
-                ReleaseHash:
-                <Run Text="{Binding ReleaseHash}"/>
-            </TextBlock>
-            <StackPanel Width="100" Height="100" Background="Gray" Drop="ImagePanel_Drop" MouseLeftButtonDown="UIElement_OnMouseLeftButtonDown" AllowDrop="True">
-                <TextBlock TextWrapping="Wrap">drag and drop a pak file here, or click</TextBlock>
-                <TextBlock 
-                    Foreground="DarkRed" 
+            <Grid Height="150" >
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"></RowDefinition>
+                    <RowDefinition Height="*"></RowDefinition>
+                    <RowDefinition Height="Auto"></RowDefinition>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" TextWrapping="Wrap">drag and drop a pak file here, or click</TextBlock>
+                <jd:IdenticonElement 
+                    HorizontalAlignment="Left"
+                    Grid.Row="1" 
+                    Value="{Binding ReleaseHash}"
+                    ToolTip="{Binding ReleaseHash}" 
+                    Drop="ImagePanel_Drop" 
+                    MouseLeftButtonDown="UIElement_OnMouseLeftButtonDown" 
+                    AllowDrop="True"/>
+                <TextBlock
+                    Grid.Row="2" Foreground="DarkRed" 
                     Text="{Binding LastDragDropComplaint, RelativeSource={RelativeSource AncestorType=UserControl}}"
                     TextWrapping="Wrap"/>
-            </StackPanel>
+            </Grid>
+            
+            
             <Button Command="{Binding SubmitCommand}">Submit</Button>
             <TextBlock Foreground="DarkRed" Text="{Binding LastSubmitComplaint}"/>
         </StackPanel>

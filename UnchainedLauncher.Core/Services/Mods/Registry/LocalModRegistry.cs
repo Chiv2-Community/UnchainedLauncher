@@ -1,9 +1,12 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
+using LanguageExt.UnsafeValueAccess;
+using Octokit;
 using System.Collections.Immutable;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
+using Release = UnchainedLauncher.Core.JsonModels.Metadata.V3.Release;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class LocalModRegistry : JsonRegistry {
@@ -12,6 +15,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public LocalModRegistry(string registryPath) {
             RegistryPath = registryPath;
         }
+
+        public event Action? OnRegistryChanged;
 
         public override EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation) {
             return GetMod(coordinates)
@@ -26,6 +31,103 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 .Map(sizedStream => new FileWriter(outputLocation, sizedStream.Stream, sizedStream.Size));
         }
 
+        public async Task DeleteRelease(ReleaseCoordinates coordinates) {
+            var _ = await GetMod(coordinates)
+                .Match(
+                mod => {
+                    var deletedRelease = mod.Releases.Filter(r =>
+                        coordinates.Matches(r) && r.Tag.Equals(coordinates.Version)
+                    ).FirstOrDefault();
+
+                    if (deletedRelease == null) {
+                        return Unit.Default;
+                    }
+                    
+                    var deleted = mod with {
+                        Releases = mod.Releases
+                            .Filter(x => x != deletedRelease)
+                            .ToList()
+                    };
+                    
+                    var modPath = Path.Combine(RegistryPath, coordinates.Org, coordinates.ModuleName);
+                    var releasePath = Path.Combine(modPath, deletedRelease.Tag);
+                    if (!deleted.Releases.Any()) {
+                        Directory.Delete(modPath, true);
+                        return Unit.Default;
+                    }
+                    
+                    Directory.Delete(releasePath, true);
+                    
+                    WriteMod(deleted with {
+                        // we know this unwrap is safe because if there were no releases, we would have deleted
+                        LatestManifest = deleted.LatestRelease.ValueUnsafe().Manifest
+                    });
+                    return Unit.Default;
+                },
+                _ => Unit.Default
+                );
+            OnRegistryChanged?.Invoke();
+        }
+
+        public async Task AddRelease(Release newVersion, string pakPath) {
+            ReleaseCoordinates coordinates = ReleaseCoordinates.FromRelease(newVersion);
+            string modDirectory = Path.Combine(RegistryPath, coordinates.Org, coordinates.ModuleName);
+            string manifestPath = Path.Combine(modDirectory, $"{coordinates.ModuleName}.json");
+            var mod = await InternalGetModMetadata(manifestPath)
+                .Match(
+                    existing => new Mod(
+                                newVersion.Manifest,
+                                existing.Releases
+                                    .Filter(x => !ReleaseCoordinates.FromRelease(x).Matches(newVersion) )
+                                    .Append(newVersion).ToList()
+                            ),
+                    _ => new Mod(
+                        newVersion.Manifest,
+                        new List<Release>{newVersion}
+                        )
+                    );
+
+            CopyFileForRelease(newVersion, pakPath);
+            WriteMod(mod);
+            OnRegistryChanged?.Invoke();
+        }
+
+        private void CopyFileForRelease(Release release, string sourceFile) {
+            string releaseDirectory = Path.Combine(
+                RegistryPath, 
+                release.Manifest.Organization, 
+                release.Manifest.Name, 
+                release.Tag
+                );
+            
+            string releasePakPath = Path.Combine(releaseDirectory, release.PakFileName);
+            Directory.CreateDirectory(releaseDirectory);
+            if(sourceFile == releasePakPath) return;
+            File.Copy(sourceFile, releasePakPath, true);
+        }
+
+        private void WriteMod(Mod modToWrite) {
+            ModIdentifier ident = ModIdentifier.FromMod(modToWrite);
+            string modDirectory = Path.Combine(RegistryPath, ident.Org, ident.ModuleName);
+            string manifestPath = Path.Combine(modDirectory, $"{ident.ModuleName}.json");
+            Directory.CreateDirectory(modDirectory);
+            File.WriteAllText(manifestPath, JsonHelpers.Serialize(modToWrite));
+        }
+        
+        private EitherAsync<RegistryMetadataException, Mod> InternalGetModMetadata(string jsonManifestPath) {
+            var dir = Path.GetDirectoryName(jsonManifestPath);
+            if (dir == null) {
+                return
+                    LeftAsync<RegistryMetadataException, Mod>(RegistryMetadataException.Parse($"Failed to parse json manifest path {jsonManifestPath}. Got null directory name.", None));
+            }
+
+            var parts = dir.Split(Path.DirectorySeparatorChar);
+            if (parts.Length() < 2) return LeftAsync<RegistryMetadataException, Mod>(RegistryMetadataException.PackageListRetrieval($"Failed to determine module id for file at path {jsonManifestPath}", None));
+            var modIdParts = parts.Reverse().Take(2).Reverse();
+
+            return GetMod(new ModIdentifier(modIdParts.First(), modIdParts.Last()));
+        }
+
         public override Task<GetAllModsResult> GetAllMods() {
             return Task
                 .Run(() => Directory.EnumerateFiles(RegistryPath, "*.json", SearchOption.AllDirectories))
@@ -35,20 +137,6 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                         .Partition()
                         .Select(t => new GetAllModsResult(t.Lefts, t.Rights))
                 );
-
-            EitherAsync<RegistryMetadataException, Mod> InternalGetModMetadata(string jsonManifestPath) {
-                var dir = Path.GetDirectoryName(jsonManifestPath);
-                if (dir == null) {
-                    return
-                        LeftAsync<RegistryMetadataException, Mod>(RegistryMetadataException.Parse($"Failed to parse json manifest path {jsonManifestPath}. Got null directory name.", None));
-                }
-
-                var parts = dir.Split(Path.DirectorySeparatorChar);
-                if (parts.Length() < 2) return LeftAsync<RegistryMetadataException, Mod>(RegistryMetadataException.PackageListRetrieval($"Failed to determine module id for file at path {jsonManifestPath}", None));
-                var modIdParts = parts.Reverse().Take(2).Reverse();
-
-                return GetMod(new ModIdentifier(modIdParts.First(), modIdParts.Last()));
-            }
         }
 
         protected override EitherAsync<RegistryMetadataException, string> GetModMetadataString(ModIdentifier modId) {

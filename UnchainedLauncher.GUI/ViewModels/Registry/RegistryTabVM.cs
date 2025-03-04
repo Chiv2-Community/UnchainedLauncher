@@ -4,7 +4,9 @@ using PropertyChanged;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Windows;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.GUI.Views.Registry;
 
 namespace UnchainedLauncher.GUI.ViewModels.Registry {
     public partial class RegistryTabVM {
@@ -146,6 +148,20 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public string RegistryPath {
             get => Registry.RegistryPath;
             set => Registry.RegistryPath = value;
+        }
+
+        private Window? _configWindow;
+        [RelayCommand]
+        public void OpenConfigWindow() {
+            if (_configWindow == null) {
+                _configWindow = new LocalModRegistryWindow();
+                _configWindow.DataContext = new LocalModRegistryWindowVM(Registry);
+                _configWindow.Closed += (_, __) => _configWindow = null;
+                _configWindow.Show();
+            }
+            else {
+                _configWindow.Activate();
+            }
         }
 
         public string AbsoluteStub => FileSystem.CurrentDirectory;

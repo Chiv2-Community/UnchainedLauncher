@@ -54,6 +54,7 @@
                     </StackPanel>
                 </Grid>
                 <Button Command="{Binding SelfDeleteCommand}">Delete</Button>
+                <Button Command="{Binding OpenConfigWindowCommand}">Config</Button>
             </StackPanel>
             
         </DataTemplate>

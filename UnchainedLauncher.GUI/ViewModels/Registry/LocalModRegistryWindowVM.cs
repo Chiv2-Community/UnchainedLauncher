@@ -9,7 +9,6 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -21,11 +20,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
     public class ReleaseCreationHelper {
         public LocalModRegistry Registry { get; set; }
-        
+
         public ReleaseCreationHelper(LocalModRegistry registry) {
             Registry = registry;
         }
-        
+
         public RegistryReleaseFormVM PromptAddRelease(Release newRelease, string? previousPakPath = null) {
             var editableForm = new RegistryReleaseFormVM(newRelease, previousPakPath);
             var editWindow = new RegistryReleaseFormWindow();
@@ -34,7 +33,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             editableForm.OnSubmit += async () => {
                 var (res, p) = editableForm.ToRelease();
                 await Registry.AddRelease(
-                    res, 
+                    res,
                     p
                 );
             };
@@ -62,11 +61,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                     new OptionFlags(true)
                 )
             );
-            
+
             return PromptAddRelease(dummyRelease);
         }
     }
-    
+
     [AddINotifyPropertyChangedInterface]
     public partial class LocalModRegistryWindowVM {
         public LocalModRegistry Registry { get; set; }
@@ -86,7 +85,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         public void RefreshModsList() {
             var newMods = Registry.GetAllMods().Result;
-                
+
             var newModVMs = newMods.Mods
                 .ToList()
                 .Map(m => {
@@ -95,12 +94,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                         ReleaseCreationHelper,
                         m
                         );
-                    
+
                     return vm;
                 });
             // make sure this happens on the UI thread
-            Application.Current.Dispatcher.BeginInvoke((Action)delegate()
-            {
+            Application.Current.Dispatcher.BeginInvoke((Action)delegate () {
                 Mods.Clear();
                 newModVMs.ToList().ForEach(m => Mods.Add(m));
             });
@@ -123,12 +121,12 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             SourceRegistry = registry;
             PopulateReleases();
         }
-        
+
         // This must be called from UI thread!
         private void PopulateReleases() {
             Releases.Clear();
             Mod.Releases.ToList()
-                .ForEach(r => 
+                .ForEach(r =>
                     Releases.Add(new RegistryReleaseVM(
                             r,
                             CreationHelper
@@ -136,17 +134,17 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                     )
                 );
         }
-        
+
         [RelayCommand]
         public void AddRelease() {
             var latestRelease = Mod.LatestRelease.FirstOrDefault();
             if (latestRelease != null) {
                 SemVersion.TryParse(latestRelease.Tag, SemVersionStyles.AllowV, out var newTag);
-                newTag = newTag ?? new SemVersion(0,0,0);
-            
+                newTag = newTag ?? new SemVersion(0, 0, 0);
+
                 var newRelease = latestRelease with {
                     ReleaseDate = DateTime.Now,
-                    Tag = $"v{newTag.WithPatch(newTag.Patch+1).ToString()}"
+                    Tag = $"v{newTag.WithPatch(newTag.Patch + 1).ToString()}"
                 };
                 var previousReleasePath = Path.Join(
                     SourceRegistry.RegistryPath,
@@ -179,21 +177,21 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             );
             _creationHelper.PromptAddRelease(Release, pakPath);
         }
-        
+
         public RegistryReleaseVM(Release release, ReleaseCreationHelper creationHelper) {
             Release = release;
-            _creationHelper = creationHelper;            
+            _creationHelper = creationHelper;
         }
     }
-    
+
     /// <summary>
     /// Duplicates Release, but it's modifiable
     /// </summary>
     [AddINotifyPropertyChangedInterface]
     public partial class RegistryReleaseFormVM {
         // Release stuff
-        public string Tag {get; set;}
-        public string ReleaseHash {get; set;}
+        public string Tag { get; set; }
+        public string ReleaseHash { get; set; }
         private string PakFileName => Path.GetFileName(PakFilePath) ?? "Unknown; invalid path";
         private string? _pakFilePath;
         [DoNotCheckEquality]
@@ -208,18 +206,18 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                 }
             }
         }
-        public DateTime ReleaseDate {get; set;}
-        
+        public DateTime ReleaseDate { get; set; }
+
         // Manifest stuff
         public string RepoUrl {
-            get => $"{Organization}/{Regex.Replace(Name, "\\s","-")}";
+            get => $"{Organization}/{Regex.Replace(Name, "\\s", "-")}";
         }
-        public string Organization {get; set;}
-        public string Name {get; set;}
-        public string Description {get; set;}
-        public string? HomePage {get; set;}
-        public string? ImageUrl {get; set;}
-        
+        public string Organization { get; set; }
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public string? HomePage { get; set; }
+        public string? ImageUrl { get; set; }
+
         public static readonly Hashtable ModTypeMap = new Hashtable {
             {"Client", ModType.Client},
             {"Server", ModType.Server},
@@ -235,12 +233,12 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         }
 
         public static List<string> ModTypeChoices { get; } = ModTypeMap.Keys.Cast<string>().ToList();
-        public ModType ModType {get; set;}
-        public List<string> Authors {get; set;}
-        public List<Dependency> Dependencies {get; set;}
-        public List<ModTag> Tags {get; set;}
-        public List<string> Maps {get; set;}
-        public OptionFlags OptionFlags {get; set;}
+        public ModType ModType { get; set; }
+        public List<string> Authors { get; set; }
+        public List<Dependency> Dependencies { get; set; }
+        public List<ModTag> Tags { get; set; }
+        public List<string> Maps { get; set; }
+        public OptionFlags OptionFlags { get; set; }
 
         public string LastSubmitComplaint { get; set; } = "";
 
@@ -259,7 +257,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             Tag = release.Tag;
             ReleaseHash = release.ReleaseHash;
             ReleaseDate = release.ReleaseDate;
-            
+
             // Manifest stuff
             Organization = release.Manifest.Organization;
             Name = release.Manifest.Name;
@@ -291,12 +289,12 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             if (PakFilePath == null) {
                 throw new InvalidOperationException("Pak file path is not set");
             }
-            
+
             Release r = new Release(
-                Tag, 
-                ReleaseHash, 
-                PakFileName, 
-                ReleaseDate, 
+                Tag,
+                ReleaseHash,
+                PakFileName,
+                ReleaseDate,
                 m);
 
             return (r, PakFilePath);

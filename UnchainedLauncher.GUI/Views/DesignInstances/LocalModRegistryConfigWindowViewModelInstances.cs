@@ -22,10 +22,10 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
                     null,
                     null,
                     ModType.Shared,
-                    new List<string>{"DrLong", "JayKobe6k"},
+                    new List<string> { "DrLong", "JayKobe6k" },
                     new List<Dependency>(),
-                    new List<ModTag>{ModTag.Doodad, ModTag.Mutator},
-                    new List<string>{"ffa_exampleMap", "tdm_exampleMap"},
+                    new List<ModTag> { ModTag.Doodad, ModTag.Mutator },
+                    new List<string> { "ffa_exampleMap", "tdm_exampleMap" },
                     new OptionFlags(true)
                     )
                 ), null

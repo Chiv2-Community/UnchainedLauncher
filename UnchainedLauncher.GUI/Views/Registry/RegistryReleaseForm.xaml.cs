@@ -1,7 +1,6 @@
 using Microsoft.Win32;
 using PropertyChanged;
 using Semver;
-using System;
 using System.Globalization;
 using System.IO;
 using System.Windows;
@@ -10,19 +9,18 @@ using System.Windows.Input;
 using UnchainedLauncher.GUI.ViewModels.Registry;
 
 namespace UnchainedLauncher.GUI.Views.Registry {
-    public class VersionStringRule : ValidationRule
-    {
+    public class VersionStringRule : ValidationRule {
         public override ValidationResult Validate(object? value, CultureInfo cultureInfo) {
             if (value is string stringValue) {
                 return SemVersion.TryParse(stringValue, SemVersionStyles.AllowV, out SemVersion _)
                     ? ValidationResult.ValidResult
                     : new ValidationResult(false, "Invalid version string");
             }
-            
+
             return new ValidationResult(false, "Value was not string.");
         }
     }
-    
+
     [AddINotifyPropertyChangedInterface]
     public partial class RegistryReleaseForm : UserControl {
         public RegistryReleaseForm() {
@@ -36,7 +34,7 @@ namespace UnchainedLauncher.GUI.Views.Registry {
                 LastDragDropComplaint = "Please drop a pak file";
                 return;
             }
-            
+
             var pickedFile = fileData[0];
             var fileName = Path.GetFileName(pickedFile);
             if (fileName == string.Empty) {
@@ -47,7 +45,7 @@ namespace UnchainedLauncher.GUI.Views.Registry {
                 LastDragDropComplaint = "Please drag a pak file";
                 return;
             }
-            
+
             ((RegistryReleaseFormVM)DataContext).PakFilePath = pickedFile;
         }
 
@@ -55,7 +53,7 @@ namespace UnchainedLauncher.GUI.Views.Registry {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "Pak files (*.pak)|*.pak";
             openFileDialog.Multiselect = false;
-            if(!(openFileDialog.ShowDialog() ?? false)) return;
+            if (!(openFileDialog.ShowDialog() ?? false)) return;
 
             if (openFileDialog.FileName != string.Empty) {
                 ((RegistryReleaseFormVM)DataContext).PakFilePath = openFileDialog.FileName;

@@ -1,7 +1,6 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
 using LanguageExt.UnsafeValueAccess;
-using Octokit;
 using System.Collections.Immutable;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Utilities;
@@ -42,22 +41,22 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                     if (deletedRelease == null) {
                         return Unit.Default;
                     }
-                    
+
                     var deleted = mod with {
                         Releases = mod.Releases
                             .Filter(x => x != deletedRelease)
                             .ToList()
                     };
-                    
+
                     var modPath = Path.Combine(RegistryPath, coordinates.Org, coordinates.ModuleName);
                     var releasePath = Path.Combine(modPath, deletedRelease.Tag);
                     if (!deleted.Releases.Any()) {
                         Directory.Delete(modPath, true);
                         return Unit.Default;
                     }
-                    
+
                     Directory.Delete(releasePath, true);
-                    
+
                     WriteMod(deleted with {
                         // we know this unwrap is safe because if there were no releases, we would have deleted
                         LatestManifest = deleted.LatestRelease.ValueUnsafe().Manifest
@@ -78,12 +77,12 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                     existing => new Mod(
                                 newVersion.Manifest,
                                 existing.Releases
-                                    .Filter(x => !ReleaseCoordinates.FromRelease(x).Matches(newVersion) )
+                                    .Filter(x => !ReleaseCoordinates.FromRelease(x).Matches(newVersion))
                                     .Append(newVersion).ToList()
                             ),
                     _ => new Mod(
                         newVersion.Manifest,
-                        new List<Release>{newVersion}
+                        new List<Release> { newVersion }
                         )
                     );
 
@@ -94,15 +93,15 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
         private void CopyFileForRelease(Release release, string sourceFile) {
             string releaseDirectory = Path.Combine(
-                RegistryPath, 
-                release.Manifest.Organization, 
-                release.Manifest.Name, 
+                RegistryPath,
+                release.Manifest.Organization,
+                release.Manifest.Name,
                 release.Tag
                 );
-            
+
             string releasePakPath = Path.Combine(releaseDirectory, release.PakFileName);
             Directory.CreateDirectory(releaseDirectory);
-            if(sourceFile == releasePakPath) return;
+            if (sourceFile == releasePakPath) return;
             File.Copy(sourceFile, releasePakPath, true);
         }
 
@@ -113,7 +112,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             Directory.CreateDirectory(modDirectory);
             File.WriteAllText(manifestPath, JsonHelpers.Serialize(modToWrite));
         }
-        
+
         private EitherAsync<RegistryMetadataException, Mod> InternalGetModMetadata(string jsonManifestPath) {
             var dir = Path.GetDirectoryName(jsonManifestPath);
             if (dir == null) {

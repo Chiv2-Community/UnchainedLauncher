@@ -39,6 +39,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
             _dirPath = dirPath;
             _metadataFileName = metadataFileName;
             ReleaseMap = TryLoadMetadata();
+            SynchronizeWithDir();
         }
 
         private Map<string, ReleaseCoordinates> TryLoadMetadata() {
@@ -190,6 +191,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         }
 
         public EitherAsync<Error, Unit> Install(ReleaseCoordinates coords, IPakDir.MakeFileWriter mkFileWriter, string suggestedFileName, Option<IProgress<double>> progress) {
+            SynchronizeWithDir();
             return ReleaseMap
                 .Filter(c => c.Matches(coords))
                 .ToOption()
@@ -308,8 +310,32 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Filter(GetSigFiles().Contains)
                 .IsSome;
         }
+        
+        /// <summary>
+        /// Delete any ReleaseMap entries that don't
+        /// actually have a corresponding file on disk anymore.
+        /// NOTE: this should only actually do anything because the *user*
+        /// messed something up
+        /// </summary>
+        private void SynchronizeWithDir() {
+            var missing = ReleaseMap
+                .Filter(p => !File.Exists(_fnToProperPath(p.Key)))
+                .Map(p => p.Key)
+                .ToList();
+            
+            if (missing.Count == 0) {
+                return;
+            }
+            Logger.LogListWarn(
+                "The following files were missing from the pak dir when they were expected to exist:",
+                missing);
+            lock (_releaseMapLock) {
+                ReleaseMap = ReleaseMap.RemoveRange(missing);
+            }
+        }
 
         public Option<string> GetInstalledPakFile(ReleaseCoordinates coords) {
+            SynchronizeWithDir();
             return ReleaseMap
                 .Filter(c => c.CompareTo(coords) == 0)
                 .Map(p => _fnToProperPath(p.Key))
@@ -317,6 +343,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         }
 
         public Option<string> GetInstalledPakFile(ModIdentifier coords) {
+            SynchronizeWithDir();
             return ReleaseMap
                 .Filter(c => c.Matches(coords))
                 .Map(p => _fnToProperPath(p.Key))
@@ -333,6 +360,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         }
 
         public IEnumerable<ReleaseCoordinates> GetInstalledReleases() {
+            SynchronizeWithDir();
             return ReleaseMap.Map(p => p.Value);
         }
 

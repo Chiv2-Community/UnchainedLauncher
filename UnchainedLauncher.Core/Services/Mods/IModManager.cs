@@ -203,8 +203,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .ToOption();
 
             return installedUnchainedMods.Match(
-                r => Lst<ReleaseCoordinates>.Empty.Add(r)
-                    .Append(enabled.Filter(release => !release.Matches(unchainedMods))),
+                r => enabled.Filter(release => !release.Matches(unchainedMods)).Append(r),
                 () => enabled
                 );
         }

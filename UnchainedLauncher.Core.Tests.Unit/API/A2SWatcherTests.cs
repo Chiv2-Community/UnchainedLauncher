@@ -24,7 +24,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.API {
             using (var watcher = new A2SWatcher(mockA2S, onReceivedAction, 500)) {
                 // should be enough time for 8 queries
                 await Task.Delay(4000);
-            };
+            }
+            ;
 
             Assert.Equal(mockA2S.NumRequests, receivedCount);
             Assert.Equal(8, receivedCount);

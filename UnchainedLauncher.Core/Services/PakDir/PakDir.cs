@@ -310,7 +310,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Filter(GetSigFiles().Contains)
                 .IsSome;
         }
-        
+
         /// <summary>
         /// Delete any ReleaseMap entries that don't
         /// actually have a corresponding file on disk anymore.
@@ -322,7 +322,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Filter(p => !File.Exists(_fnToProperPath(p.Key)))
                 .Map(p => p.Key)
                 .ToList();
-            
+
             if (missing.Count == 0) {
                 return;
             }

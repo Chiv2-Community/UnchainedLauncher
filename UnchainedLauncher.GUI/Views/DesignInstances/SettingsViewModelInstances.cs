@@ -3,10 +3,13 @@ using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
+using UnchainedLauncher.GUI.ViewModels.Registry;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
     public static class SettingsViewModelInstances {
         public static SettingsVM DEFAULT => new SettingsVM(
+            RegistryWindowViewModelInstances.DEFAULT,
+            new RegistryWindowService(),
             new MockInstaller(),
             null,
             new MessageBoxSpawner(),

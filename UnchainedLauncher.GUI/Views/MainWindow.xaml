@@ -48,9 +48,6 @@
         <TabItem Header="Settings">
             <local:Settings DataContext="{Binding SettingsViewModel}" />
         </TabItem>
-        <TabItem Header="Mod Registries">
-            <registry:RegistryTab DataContext="{Binding RegistryTabViewModel}"/>
-        </TabItem>
     </TabControl>
 
 </Window>

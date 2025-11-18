@@ -26,20 +26,40 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
     public partial class LocalModRegistryWindowVM {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(PersistentServerRegistration));
 
-        private ILocalModRegistryWindowService _windowService;
+        private IRegistryWindowService _windowService;
 
         public LocalModRegistry Registry { get; }
         public ObservableCollection<RegistryModVM> Mods { get; } = new();
-        public LocalModRegistryWindowVM(ILocalModRegistryWindowService windowService) {
+        public LocalModRegistryWindowVM(LocalModRegistry registry, IRegistryWindowService windowService) {
             _windowService = windowService;
-            Registry = windowService.Registry;
+            Registry = registry;
             Registry.OnRegistryChanged += RefreshModsList;
             RefreshModsList(null);
         }
-
+        
         [RelayCommand]
         public void AddRelease() {
-            _windowService.PromptAddRelease();
+            var dummyRelease = new Release(
+                "v0.0.0",
+                "",
+                "unknown",
+                DateTime.Now,
+                new ModManifest(
+                    "Unchained-Mods/Example-Mod",
+                    "MyFancyMod",
+                    "Example Description",
+                    null,
+                    null,
+                    ModType.Shared,
+                    new List<string> { "Example Author" },
+                    new List<Dependency>(),
+                    new List<ModTag> { ModTag.Doodad },
+                    new List<string> { "ffa_exampleMap", "tdm_exampleMap" },
+                    new OptionFlags(true)
+                )
+            );
+            
+            _windowService.PromptAddRelease(Registry, new RegistryReleaseFormVM(dummyRelease, null));
         }
 
         public async void RefreshModsList(ReleaseCoordinates? updatedMod) {
@@ -75,7 +95,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                     var newRelease = await Registry.GetModRelease(updatedMod);
                     
                     newRelease.ToOption().IfSome(mod => {
-                        modVM.Releases.Add(new RegistryReleaseVM(mod, _windowService));
+                        modVM.Releases.Add(new RegistryReleaseVM(Registry, mod, _windowService));
                     });
                 }
             }
@@ -93,10 +113,10 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         }
 
         public ObservableCollection<RegistryReleaseVM> Releases { get; } = new();
-        public LocalModRegistry SourceRegistry { get; set; }
-        private ILocalModRegistryWindowService _windowService;
+        public LocalModRegistry SourceRegistry { get; }
+        private IRegistryWindowService _windowService;
 
-        public RegistryModVM(LocalModRegistry registry, ILocalModRegistryWindowService windowService, Mod mod) {
+        public RegistryModVM(LocalModRegistry registry, IRegistryWindowService windowService, Mod mod) {
             _windowService = windowService;
             Mod = mod;
             SourceRegistry = registry;
@@ -106,9 +126,10 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         // This must be called from UI thread!
         private void PopulateReleases() {
             Releases.Clear();
-            Mod.Releases.ToList()
+            Mod.Releases
                 .ForEach(r =>
                     Releases.Add(new RegistryReleaseVM(
+                            SourceRegistry, 
                             r,
                             _windowService
                         )
@@ -134,34 +155,37 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                     latestRelease.Tag,
                     latestRelease.PakFileName
                 );
-                _windowService.PromptAddRelease(newRelease, previousReleasePath);
+                _windowService.PromptAddRelease(SourceRegistry, new RegistryReleaseFormVM(newRelease, previousReleasePath));
             }
         }
     }
 
     public partial class RegistryReleaseVM {
         public Release Release { get; set; }
-        private ILocalModRegistryWindowService _windowService;
+        private IRegistryWindowService _windowService;
+        public LocalModRegistry SourceRegistry { get; }
+        
+        public RegistryReleaseVM(LocalModRegistry sourceRegistry,  Release release, IRegistryWindowService windowService) {
+            SourceRegistry = sourceRegistry;
+            Release = release;
+            _windowService = windowService;
+        }
+        
         [RelayCommand]
         public void Delete() {
-            var _ = _windowService.Registry.DeleteRelease(ReleaseCoordinates.FromRelease(Release));
+            var _ = SourceRegistry.DeleteRelease(ReleaseCoordinates.FromRelease(Release));
         }
 
         [RelayCommand]
         public void Edit() {
             var pakPath = Path.Join(
-                _windowService.Registry.RegistryPath,
+                SourceRegistry.RegistryPath,
                 Release.Manifest.Organization,
                 Release.Manifest.RepoName,
                 Release.Tag,
                 Release.PakFileName
             );
-            _windowService.PromptAddRelease(Release, pakPath);
-        }
-
-        public RegistryReleaseVM(Release release, ILocalModRegistryWindowService windowService) {
-            Release = release;
-            _windowService = windowService;
+            _windowService.PromptAddRelease(SourceRegistry, new RegistryReleaseFormVM(Release, pakPath));
         }
     }
 

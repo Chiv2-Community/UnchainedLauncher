@@ -3,8 +3,8 @@ using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.Registry;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
-    public static class RegistryTabViewModelInstances {
-        private static RegistryTabVM MakeDefault() {
+    public static class RegistryWindowViewModelInstances {
+        private static RegistryWindowVM MakeDefault() {
             var aggregateRegistry = new AggregateModRegistry(
                 new GithubModRegistry(
                     "Chiv2-Community",
@@ -15,10 +15,10 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             );
             
             
-            return new RegistryTabVM(aggregateRegistry, x => new LocalModRegistryWindowService(x));
+            return new RegistryWindowVM(aggregateRegistry, new RegistryWindowService());
 
         }
         
-        public static RegistryTabVM DEFAULT => MakeDefault();
+        public static RegistryWindowVM DEFAULT => MakeDefault();
     }
 }

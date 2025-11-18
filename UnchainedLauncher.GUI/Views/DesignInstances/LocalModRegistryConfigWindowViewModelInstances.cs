@@ -7,10 +7,10 @@ using UnchainedLauncher.GUI.ViewModels.Registry;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
     public static class LocalModRegistryConfigWindowViewModelInstances {
-        private static LocalModRegistryWindowService _windowService = new LocalModRegistryWindowService(new LocalModRegistry("exampleRegistry"));
+        private static RegistryWindowService _windowService = new RegistryWindowService();
             
         public static LocalModRegistryWindowVM DEFAULT =>
-            new LocalModRegistryWindowVM(_windowService);
+            new LocalModRegistryWindowVM(new LocalModRegistry("LocalModRegistryTesting1"), _windowService);
 
         public static RegistryReleaseFormVM DEFAULT_RELEASE => new RegistryReleaseFormVM(
             new Release(

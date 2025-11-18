@@ -19,18 +19,17 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
     using static LanguageExt.Prelude;
 
     [AddINotifyPropertyChangedInterface]
-    public partial class RegistryTabVM {
-        private static readonly ILog Logger = LogManager.GetLogger(nameof(RegistryTabVM));
+    public partial class RegistryWindowVM {
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(RegistryWindowVM));
 
         public AggregateModRegistry Registry { get; }
         public ObservableCollection<IModRegistryVM<IModRegistry>> Registries { get; }
-        private readonly Func<LocalModRegistry, ILocalModRegistryWindowService> _windowServiceFactory;
+        private readonly IRegistryWindowService _windowService;
 
-        public RegistryTabVM(AggregateModRegistry registry,
-            Func<LocalModRegistry, ILocalModRegistryWindowService> windowServiceFactory) {
+        public RegistryWindowVM(AggregateModRegistry registry,
+            IRegistryWindowService windowService) {
             Registry = registry;
             Registries = new ObservableCollection<IModRegistryVM<IModRegistry>>();
-            _windowServiceFactory = windowServiceFactory;
             LoadRegistryViewModels();
         }
 
@@ -45,7 +44,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             return registry switch {
                 AggregateModRegistry reg => reg.ModRegistries.AsEnumerable().Bind(IntoVM),
                 GithubModRegistry reg => new List<IModRegistryVM<IModRegistry>> {new GithubModRegistryVM(reg, RemoveRegistry)},
-                LocalModRegistry reg => new List<IModRegistryVM<IModRegistry>> { new LocalModRegistryVM(_windowServiceFactory(reg), RemoveRegistry)},
+                LocalModRegistry reg => new List<IModRegistryVM<IModRegistry>> { new LocalModRegistryVM(reg, _windowService, RemoveRegistry)},
                 _ => new List<IModRegistryVM<IModRegistry>> { new GenericModRegistryVM<IModRegistry>(registry, RemoveRegistry) }
             };
         }
@@ -125,9 +124,9 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
     [AddINotifyPropertyChangedInterface]
     public partial class LocalModRegistryVM : GenericModRegistryVM<LocalModRegistry> {
-        private ILocalModRegistryWindowService _windowService;
+        private IRegistryWindowService _windowService;
 
-        public LocalModRegistryVM(ILocalModRegistryWindowService windowService, RequestDeletion? requestDeletion = null) : base(windowService.Registry, requestDeletion) {
+        public LocalModRegistryVM(LocalModRegistry registry, IRegistryWindowService windowService, RequestDeletion? requestDeletion = null) : base(registry, requestDeletion) {
             _windowService = windowService;
         }
 
@@ -141,7 +140,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         [RelayCommand]
         public void OpenConfigWindow() {
-            _windowService.Show();
+            _windowService.ShowLocalRegistryWindow(new LocalModRegistryWindowVM(Registry, _windowService));
         }
 
         public string AbsoluteStub => FileSystem.CurrentDirectory;

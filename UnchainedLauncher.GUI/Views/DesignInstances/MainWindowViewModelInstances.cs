@@ -8,7 +8,7 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             ModListViewModelInstances.DEFAULT,
             SettingsViewModelInstances.DEFAULT,
             ServersTabInstances.DEFAULT,
-            RegistryTabVM.Default
+            RegistryTabViewModelInstances.DEFAULT
         );
     }
 }

@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
 using log4net;
+using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -18,7 +19,8 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
-    public partial class ModListVM : INotifyPropertyChanged {
+    [AddINotifyPropertyChangedInterface]
+    public partial class ModListVM {
         private readonly ILog _logger = LogManager.GetLogger(nameof(ModListVM));
         public readonly IModManager _modManager;
         private ObservableCollection<ModVM> UnfilteredModView { get; }

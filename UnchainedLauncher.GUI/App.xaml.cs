@@ -112,7 +112,7 @@ namespace UnchainedLauncher.GUI {
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
 
-            var registryTabViewModel = new RegistryTabVM(modRegistry);
+            var registryTabViewModel = new RegistryTabVM(modRegistry, reg => new LocalModRegistryWindowService(reg));
 
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(

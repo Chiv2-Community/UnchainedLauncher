@@ -6,6 +6,7 @@
              xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Registry"
              xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
              xmlns:registry="clr-namespace:UnchainedLauncher.GUI.ViewModels.Registry"
+             xmlns:registry1="clr-namespace:UnchainedLauncher.Core.Services.Mods.Registry;assembly=UnchainedLauncher.Core"
              d:DataContext="{x:Static instances:RegistryTabViewModelInstances.DEFAULT}"
              mc:Ignorable="d"
              d:DesignHeight="300" d:DesignWidth="300" >

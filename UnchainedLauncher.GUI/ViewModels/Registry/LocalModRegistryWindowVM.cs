@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
+using log4net;
 using PropertyChanged;
 using Semver;
 using System;
@@ -10,98 +11,78 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
+using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.Views.Registry;
 
 namespace UnchainedLauncher.GUI.ViewModels.Registry {
     using static LanguageExt.Prelude;
-
-    public class ReleaseCreationHelper {
-        public LocalModRegistry Registry { get; set; }
-
-        public ReleaseCreationHelper(LocalModRegistry registry) {
-            Registry = registry;
-        }
-
-        public RegistryReleaseFormVM PromptAddRelease(Release newRelease, string? previousPakPath = null) {
-            var editableForm = new RegistryReleaseFormVM(newRelease, previousPakPath);
-            var editWindow = new RegistryReleaseFormWindow();
-            editWindow.DataContext = editableForm;
-            editableForm.OnSubmit += editWindow.Close;
-            editableForm.OnSubmit += async () => {
-                var (res, p) = editableForm.ToRelease();
-                await Registry.AddRelease(
-                    res,
-                    p
-                );
-            };
-            editWindow.Show();
-            return editableForm;
-        }
-
-        public RegistryReleaseFormVM PromptAddRelease() {
-            var dummyRelease = new Release(
-                "v0.0.0",
-                "",
-                "unknown",
-                DateTime.Now,
-                new ModManifest(
-                    "Unchained-Mods/Example-Mod",
-                    "MyFancyMod",
-                    "Example Description",
-                    null,
-                    null,
-                    ModType.Shared,
-                    new List<string> { "Example Author" },
-                    new List<Dependency>(),
-                    new List<ModTag> { ModTag.Doodad },
-                    new List<string> { "ffa_exampleMap", "tdm_exampleMap" },
-                    new OptionFlags(true)
-                )
-            );
-
-            return PromptAddRelease(dummyRelease);
-        }
-    }
+    
 
     [AddINotifyPropertyChangedInterface]
     public partial class LocalModRegistryWindowVM {
-        public LocalModRegistry Registry { get; set; }
-        public ObservableCollection<RegistryModVM> Mods { get; set; } = new();
-        public ReleaseCreationHelper ReleaseCreationHelper { get; set; }
-        public LocalModRegistryWindowVM(LocalModRegistry registry) {
-            Registry = registry;
-            ReleaseCreationHelper = new ReleaseCreationHelper(registry);
-            registry.OnRegistryChanged += RefreshModsList;
-            RefreshModsList();
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(PersistentServerRegistration));
+
+        private ILocalModRegistryWindowService _windowService;
+
+        public LocalModRegistry Registry { get; }
+        public ObservableCollection<RegistryModVM> Mods { get; } = new();
+        public LocalModRegistryWindowVM(ILocalModRegistryWindowService windowService) {
+            _windowService = windowService;
+            Registry = windowService.Registry;
+            Registry.OnRegistryChanged += RefreshModsList;
+            RefreshModsList(null);
         }
 
         [RelayCommand]
         public void AddRelease() {
-            ReleaseCreationHelper.PromptAddRelease();
+            _windowService.PromptAddRelease();
         }
 
-        public void RefreshModsList() {
-            var newMods = Registry.GetAllMods().Result;
+        public async void RefreshModsList(ReleaseCoordinates? updatedMod) {
+            try
+            {
+                if (updatedMod == null) {
+                    var newMods = await Registry.GetAllMods();
 
-            var newModVMs = newMods.Mods
-                .ToList()
-                .Map(m => {
-                    var vm = new RegistryModVM(
-                        Registry,
-                        ReleaseCreationHelper,
-                        m
-                        );
+                    var newModVMs = newMods.Mods
+                        .ToList()
+                        .Map(m => {
+                            var vm = new RegistryModVM(
+                                Registry,
+                                _windowService,
+                                m
+                            );
 
-                    return vm;
-                });
-            // make sure this happens on the UI thread
-            Application.Current.Dispatcher.BeginInvoke((Action)delegate () {
-                Mods.Clear();
-                newModVMs.ToList().ForEach(m => Mods.Add(m));
-            });
+                            return vm;
+                        });
+                    
+                    Application.Current.Dispatcher.BeginInvoke((Action)delegate () {
+                        Mods.Clear();
+                        newModVMs.ToList().ForEach(m => Mods.Add(m));
+                    });
+                }
+                else {
+                    
+                    var modVM = Mods.First(mod => ModIdentifier.FromMod(mod.Mod) == updatedMod);
+                    var existing = modVM.Releases.FirstOrDefault(r => r.Release.Tag == updatedMod.Version);
+                    if(existing != null)
+                        modVM.Releases.Remove(existing);
+                    
+                    var newRelease = await Registry.GetModRelease(updatedMod);
+                    
+                    newRelease.ToOption().IfSome(mod => {
+                        modVM.Releases.Add(new RegistryReleaseVM(mod, _windowService));
+                    });
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Error("Failed to update mod list", e);
+            }
         }
     }
 
@@ -113,10 +94,10 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         public ObservableCollection<RegistryReleaseVM> Releases { get; } = new();
         public LocalModRegistry SourceRegistry { get; set; }
-        public ReleaseCreationHelper CreationHelper { get; set; }
+        private ILocalModRegistryWindowService _windowService;
 
-        public RegistryModVM(LocalModRegistry registry, ReleaseCreationHelper creationHelper, Mod mod) {
-            CreationHelper = creationHelper;
+        public RegistryModVM(LocalModRegistry registry, ILocalModRegistryWindowService windowService, Mod mod) {
+            _windowService = windowService;
             Mod = mod;
             SourceRegistry = registry;
             PopulateReleases();
@@ -129,7 +110,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                 .ForEach(r =>
                     Releases.Add(new RegistryReleaseVM(
                             r,
-                            CreationHelper
+                            _windowService
                         )
                     )
                 );
@@ -140,11 +121,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             var latestRelease = Mod.LatestRelease.FirstOrDefault();
             if (latestRelease != null) {
                 SemVersion.TryParse(latestRelease.Tag, SemVersionStyles.AllowV, out var newTag);
-                newTag = newTag ?? new SemVersion(0, 0, 0);
+                newTag ??= new SemVersion(0, 0, 0);
 
                 var newRelease = latestRelease with {
                     ReleaseDate = DateTime.Now,
-                    Tag = $"v{newTag.WithPatch(newTag.Patch + 1).ToString()}"
+                    Tag = $"v{newTag.WithPatch(newTag.Patch + 1)}"
                 };
                 var previousReleasePath = Path.Join(
                     SourceRegistry.RegistryPath,
@@ -153,34 +134,34 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                     latestRelease.Tag,
                     latestRelease.PakFileName
                 );
-                CreationHelper.PromptAddRelease(newRelease, previousReleasePath);
+                _windowService.PromptAddRelease(newRelease, previousReleasePath);
             }
         }
     }
 
     public partial class RegistryReleaseVM {
         public Release Release { get; set; }
-        private ReleaseCreationHelper _creationHelper;
+        private ILocalModRegistryWindowService _windowService;
         [RelayCommand]
         public void Delete() {
-            var _ = _creationHelper.Registry.DeleteRelease(ReleaseCoordinates.FromRelease(Release));
+            var _ = _windowService.Registry.DeleteRelease(ReleaseCoordinates.FromRelease(Release));
         }
 
         [RelayCommand]
         public void Edit() {
             var pakPath = Path.Join(
-                _creationHelper.Registry.RegistryPath,
+                _windowService.Registry.RegistryPath,
                 Release.Manifest.Organization,
                 Release.Manifest.RepoName,
                 Release.Tag,
                 Release.PakFileName
             );
-            _creationHelper.PromptAddRelease(Release, pakPath);
+            _windowService.PromptAddRelease(Release, pakPath);
         }
 
-        public RegistryReleaseVM(Release release, ReleaseCreationHelper creationHelper) {
+        public RegistryReleaseVM(Release release, ILocalModRegistryWindowService windowService) {
             Release = release;
-            _creationHelper = creationHelper;
+            _windowService = windowService;
         }
     }
 

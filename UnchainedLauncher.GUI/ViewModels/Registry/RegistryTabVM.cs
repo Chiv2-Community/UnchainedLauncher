@@ -1,35 +1,52 @@
 using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
+using log4net;
 using Microsoft.VisualBasic.FileIO;
 using PropertyChanged;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Windows;
+using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.Views.Registry;
 
 namespace UnchainedLauncher.GUI.ViewModels.Registry {
+    using static LanguageExt.Prelude;
+
+    [AddINotifyPropertyChangedInterface]
     public partial class RegistryTabVM {
-        public AggregateModRegistry Registry { get; private set; }
-        public ObservableCollection<IModRegistryVM> Registries { get; }
-        public RegistryTabVM(AggregateModRegistry registry) {
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(RegistryTabVM));
+
+        public AggregateModRegistry Registry { get; }
+        public ObservableCollection<IModRegistryVM<IModRegistry>> Registries { get; }
+        private readonly Func<LocalModRegistry, ILocalModRegistryWindowService> _windowServiceFactory;
+
+        public RegistryTabVM(AggregateModRegistry registry,
+            Func<LocalModRegistry, ILocalModRegistryWindowService> windowServiceFactory) {
             Registry = registry;
-            Registries = new ObservableCollection<IModRegistryVM>();
-            PullRegistryVMs();
+            Registries = new ObservableCollection<IModRegistryVM<IModRegistry>>();
+            _windowServiceFactory = windowServiceFactory;
+            LoadRegistryViewModels();
         }
 
-        public void PullRegistryVMs() {
+        public void LoadRegistryViewModels() {
             Registries.Clear();
-            foreach (var vm in Registry.ModRegistries.Map(IntoVM)) {
-                Registries.Add(vm);
-            }
+            IntoVM(Registry).ForEach(Registries.Add);
+            Logger.Info($"Loaded {Registries.Count} Registry View Models");
         }
 
-        public IModRegistryVM IntoVM(IModRegistry registry) {
+        private IEnumerable<IModRegistryVM<IModRegistry>> IntoVM(IModRegistry registry) {
+            Logger.Debug($"Creating Registry View Model for {registry.Name}");
             return registry switch {
-                GithubModRegistry reg => new GithubModRegistryVM(reg, RemoveRegistry),
-                LocalModRegistry reg => new LocalModRegistryVM(reg, RemoveRegistry),
-                _ => new GenericModRegistryVM(registry)
+                AggregateModRegistry reg => reg.ModRegistries.AsEnumerable().Bind(IntoVM),
+                GithubModRegistry reg => new List<IModRegistryVM<IModRegistry>> {new GithubModRegistryVM(reg, RemoveRegistry)},
+                LocalModRegistry reg => new List<IModRegistryVM<IModRegistry>> { new LocalModRegistryVM(_windowServiceFactory(reg), RemoveRegistry)},
+                _ => new List<IModRegistryVM<IModRegistry>> { new GenericModRegistryVM<IModRegistry>(registry, RemoveRegistry) }
             };
         }
 
@@ -52,54 +69,26 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         public void AddRegistry(IModRegistry mr) {
             Registry.ModRegistries.Add(mr);
-            Registries.Add(IntoVM(mr));
+            IntoVM(mr).Tap(Registries.Add);
         }
 
-        public void RemoveRegistry(IModRegistryVM vm) {
+        public void RemoveRegistry(IModRegistryVM<IModRegistry> vm) {
             Registry.ModRegistries.Remove(vm.Registry);
             Registries.Remove(vm);
         }
-
-        public RegistryTabVM() : this(new AggregateModRegistry()) { }
-
-        public static RegistryTabVM Default => MakeDefault();
-
-        private static RegistryTabVM MakeDefault() {
-            var vm = new RegistryTabVM();
-            vm.Registries.Add(
-                new GithubModRegistryVM(
-                    new GithubModRegistry(
-                            "Chiv2-Community",
-                            "C2ModRegistry"
-                        ), vm.RemoveRegistry
-                    )
-                );
-            vm.Registries.Add(
-                new LocalModRegistryVM(
-                    new LocalModRegistry(
-                        "LocalModRegistryTesting1"
-                        ), vm.RemoveRegistry
-                )
-            );
-            vm.Registries.Add(
-                new LocalModRegistryVM(
-                    new LocalModRegistry(
-                        "LocalModRegistryTesting2"
-                    ), vm.RemoveRegistry
-                )
-            );
-            return vm;
-        }
     }
 
-    public interface IModRegistryVM {
-        public IModRegistry Registry { get; }
+
+    public interface IModRegistryVM<out T> where T : IModRegistry {
+        T Registry { get; }
     }
 
     [AddINotifyPropertyChangedInterface]
-    public partial class GenericModRegistryVM : INotifyPropertyChanged, IModRegistryVM {
-        public IModRegistry Registry { get; }
-        public delegate void RequestDeletion(IModRegistryVM toDelete);
+    public partial class GenericModRegistryVM<T> : INotifyPropertyChanged, IModRegistryVM<T>
+        where T: IModRegistry {
+        public T Registry { get; }
+        public delegate void RequestDeletion(IModRegistryVM<T> toDelete);
+        
         private readonly RequestDeletion? _requestDeletion;
 
         [RelayCommand]
@@ -107,19 +96,19 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             _requestDeletion?.Invoke(this);
         }
 
-        public GenericModRegistryVM(IModRegistry registry, RequestDeletion? requestDeletion = null) {
+        public GenericModRegistryVM(T registry, RequestDeletion? requestDeletion = null) {
             Registry = registry;
             _requestDeletion = requestDeletion;
         }
     }
 
-    [AddINotifyPropertyChangedInterface]
-    public partial class GithubModRegistryVM : GenericModRegistryVM {
-        public new GithubModRegistry Registry { get; private set; }
+    public class GenericModRegistryVM : GenericModRegistryVM<IModRegistry> {
+        public GenericModRegistryVM(IModRegistry registry, RequestDeletion? requestDeletion = null): base(registry, requestDeletion) { }
+    }
 
-        public GithubModRegistryVM(GithubModRegistry registry, RequestDeletion? requestDeletion = null) : base(registry, requestDeletion) {
-            Registry = registry;
-        }
+    [AddINotifyPropertyChangedInterface]
+    public partial class GithubModRegistryVM : GenericModRegistryVM<GithubModRegistry> {
+        public GithubModRegistryVM(GithubModRegistry registry, RequestDeletion? requestDeletion = null) : base(registry, requestDeletion) { }
 
         [DependsOn(nameof(Org), nameof(RepoName))]
         public string Name => Registry.Name;
@@ -135,11 +124,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
     }
 
     [AddINotifyPropertyChangedInterface]
-    public partial class LocalModRegistryVM : GenericModRegistryVM {
-        public new LocalModRegistry Registry { get; private set; }
+    public partial class LocalModRegistryVM : GenericModRegistryVM<LocalModRegistry> {
+        private ILocalModRegistryWindowService _windowService;
 
-        public LocalModRegistryVM(LocalModRegistry registry, RequestDeletion? requestDeletion = null) : base(registry, requestDeletion) {
-            Registry = registry;
+        public LocalModRegistryVM(ILocalModRegistryWindowService windowService, RequestDeletion? requestDeletion = null) : base(windowService.Registry, requestDeletion) {
+            _windowService = windowService;
         }
 
         [DependsOn(nameof(RegistryPath))]
@@ -150,18 +139,9 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             set => Registry.RegistryPath = value;
         }
 
-        private Window? _configWindow;
         [RelayCommand]
         public void OpenConfigWindow() {
-            if (_configWindow == null) {
-                _configWindow = new LocalModRegistryWindow();
-                _configWindow.DataContext = new LocalModRegistryWindowVM(Registry);
-                _configWindow.Closed += (_, __) => _configWindow = null;
-                _configWindow.Show();
-            }
-            else {
-                _configWindow.Activate();
-            }
+            _windowService.Show();
         }
 
         public string AbsoluteStub => FileSystem.CurrentDirectory;

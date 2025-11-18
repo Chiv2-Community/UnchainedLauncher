@@ -126,9 +126,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 var errorCount = result.Errors.Count();
                 logger.Error($"Encountered {errorCount} errors while fetching mod list from registry");
                 result.Errors
-                    .Zip(Enumerable.Range(1, errorCount))
                     .ToList()
-                    .ForEach(tuple => logger.Error($"Error {tuple.Item2}: ", tuple.Item1));
+                    .ForEach(err => logger.Error(err));
+
+                // Exit early if we only encountered errors.
+                if (!result.Mods.Any())
+                    return result;
             }
 
             _mods.Clear();

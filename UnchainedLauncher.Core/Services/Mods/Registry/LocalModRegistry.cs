@@ -13,9 +13,10 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public string RegistryPath { get; set; }
         public LocalModRegistry(string registryPath) {
             RegistryPath = registryPath;
+            if (!Directory.Exists(RegistryPath)) Directory.CreateDirectory(RegistryPath);
         }
 
-        public event Action? OnRegistryChanged;
+        public event Action<ReleaseCoordinates>? OnRegistryChanged;
 
         public override EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation) {
             return GetMod(coordinates)
@@ -30,42 +31,38 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 .Map(sizedStream => new FileWriter(outputLocation, sizedStream.Stream, sizedStream.Size));
         }
 
-        public async Task DeleteRelease(ReleaseCoordinates coordinates) {
-            var _ = await GetMod(coordinates)
+        public Task<bool> DeleteRelease(ReleaseCoordinates coordinates) {
+            return GetMod(coordinates)
+                .Bind(mod => GetModRelease(coordinates)
+                .Map(release => (mod, release)))
                 .Match(
-                mod => {
-                    var deletedRelease = mod.Releases.Filter(r =>
-                        coordinates.Matches(r) && r.Tag.Equals(coordinates.Version)
-                    ).FirstOrDefault();
+                    result => {
+                        var mod = result.mod!;
+                        var toDelete = result.release!;
+                        
+                        var modPath = Path.Combine(RegistryPath, coordinates.Org, coordinates.ModuleName);
+                        var releasePath = Path.Combine(modPath, toDelete.Tag);
+                        mod.Releases.Remove(toDelete);
 
-                    if (deletedRelease == null) {
-                        return Unit.Default;
+                        if (mod.Releases.Count == 0) {
+                            Directory.Delete(modPath, true);
+                        }
+                        else {  
+                            Directory.Delete(releasePath, true);
+                            WriteMod(mod with {
+                                // we know this unwrap is safe because if there were no releases, we would have deleted
+                                LatestManifest = mod.LatestRelease.ValueUnsafe().Manifest
+                            });
+                        }
+                        
+                        OnRegistryChanged?.Invoke(coordinates);
+                        return true;
+                    },
+                    _ => {
+                        Logger.Warn($"Failed to delete release {coordinates.Org}/{coordinates.ModuleName}/{coordinates.Version}. Mod or specific release not found.");
+                        return false;
                     }
-
-                    var deleted = mod with {
-                        Releases = mod.Releases
-                            .Filter(x => x != deletedRelease)
-                            .ToList()
-                    };
-
-                    var modPath = Path.Combine(RegistryPath, coordinates.Org, coordinates.ModuleName);
-                    var releasePath = Path.Combine(modPath, deletedRelease.Tag);
-                    if (!deleted.Releases.Any()) {
-                        Directory.Delete(modPath, true);
-                        return Unit.Default;
-                    }
-
-                    Directory.Delete(releasePath, true);
-
-                    WriteMod(deleted with {
-                        // we know this unwrap is safe because if there were no releases, we would have deleted
-                        LatestManifest = deleted.LatestRelease.ValueUnsafe().Manifest
-                    });
-                    return Unit.Default;
-                },
-                _ => Unit.Default
                 );
-            OnRegistryChanged?.Invoke();
         }
 
         public async Task AddRelease(Release newVersion, string pakPath) {
@@ -88,29 +85,31 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
             CopyFileForRelease(newVersion, pakPath);
             WriteMod(mod);
-            OnRegistryChanged?.Invoke();
+            OnRegistryChanged?.Invoke(coordinates);
         }
 
-        private void CopyFileForRelease(Release release, string sourceFile) {
-            string releaseDirectory = Path.Combine(
-                RegistryPath,
-                release.Manifest.Organization,
-                release.Manifest.Name,
-                release.Tag
+        private async Task CopyFileForRelease(Release release, string sourceFile) {
+            Task.Run(() => {
+                string releaseDirectory = Path.Combine(
+                    RegistryPath,
+                    release.Manifest.Organization,
+                    release.Manifest.Name,
+                    release.Tag
                 );
 
-            string releasePakPath = Path.Combine(releaseDirectory, release.PakFileName);
-            Directory.CreateDirectory(releaseDirectory);
-            if (sourceFile == releasePakPath) return;
-            File.Copy(sourceFile, releasePakPath, true);
+                string releasePakPath = Path.Combine(releaseDirectory, release.PakFileName);
+                Directory.CreateDirectory(releaseDirectory);
+                if (sourceFile == releasePakPath) return;
+                File.Copy(sourceFile, releasePakPath, true);
+            });
         }
 
-        private void WriteMod(Mod modToWrite) {
+        private async Task WriteMod(Mod modToWrite) {
             ModIdentifier ident = ModIdentifier.FromMod(modToWrite);
             string modDirectory = Path.Combine(RegistryPath, ident.Org, ident.ModuleName);
             string manifestPath = Path.Combine(modDirectory, $"{ident.ModuleName}.json");
             Directory.CreateDirectory(modDirectory);
-            File.WriteAllText(manifestPath, JsonHelpers.Serialize(modToWrite));
+            await File.WriteAllTextAsync(manifestPath, JsonHelpers.Serialize(modToWrite));
         }
 
         private EitherAsync<RegistryMetadataException, Mod> InternalGetModMetadata(string jsonManifestPath) {

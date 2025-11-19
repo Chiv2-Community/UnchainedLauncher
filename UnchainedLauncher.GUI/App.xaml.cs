@@ -108,11 +108,11 @@ namespace UnchainedLauncher.GUI {
         private Window? InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
             var userDialogueSpawner = new MessageBoxSpawner();
             var registryWindowService = new RegistryWindowService();
-            
+
             var pakDir = new PakDir(FilePaths.PakDir);
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
-            
+
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
             var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService, installationFinder, installer, launcherReleaseLocator, pakDir, userDialogueSpawner, Environment.Exit);
 

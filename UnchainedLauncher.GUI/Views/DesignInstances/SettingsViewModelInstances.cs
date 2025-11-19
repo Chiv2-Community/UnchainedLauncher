@@ -11,6 +11,7 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             new RegistryWindowService(),
             new MockInstaller(),
             null,
+            null,
             new MessageBoxSpawner(),
             InstallationType.Steam,
             true,

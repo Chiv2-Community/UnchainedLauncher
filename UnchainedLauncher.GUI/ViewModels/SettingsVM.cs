@@ -17,6 +17,8 @@ using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.JsonModels;
+using UnchainedLauncher.GUI.Services;
+using UnchainedLauncher.GUI.ViewModels.Registry;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
@@ -60,10 +62,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public readonly Action<int> ExitProgram;
         public bool CanClick { get; set; }
 
-        public SettingsVM(IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakDir, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
+        private RegistryWindowService RegistryWindowService { get; }
+        private RegistryWindowVM RegistryWindowVM { get; }
+
+        public SettingsVM(RegistryWindowVM registryWindowVM, RegistryWindowService registryWindowService, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakDir, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
+            RegistryWindowVM = registryWindowVM;
+            RegistryWindowService = registryWindowService;
             Installer = installer;
             UnchainedReleaseLocator = unchainedReleaseLocator;
-            PakDir = pakDir;
             UserDialogueSpawner = dialogueSpawner;
             InstallationType = installationType;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
@@ -78,7 +84,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
 
-        public static SettingsVM LoadSettings(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakdir, IUserDialogueSpawner userDialogueSpawner, Action<int> exitProgram) {
+        public static SettingsVM LoadSettings(RegistryWindowVM registryWindowVM, RegistryWindowService registryWindowService, IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakDir, IUserDialogueSpawner userDialogueSpawner, Action<int> exitProgram) {
             var cliArgsList = Environment.GetCommandLineArgs();
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => $"{x} {y}") : "";
 
@@ -86,9 +92,11 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var loadedSettings = fileBackedSettings.LoadSettings();
 
             return new SettingsVM(
+                registryWindowVM,
+                registryWindowService,
                 installer,
                 unchainedReleaseLocator,
-                pakdir,
+                pakDir,
                 userDialogueSpawner,
                 loadedSettings?.InstallationType ?? DetectInstallationType(installationFinder),
                 loadedSettings?.EnablePluginAutomaticUpdates ?? true,
@@ -104,6 +112,11 @@ namespace UnchainedLauncher.GUI.ViewModels {
             LauncherSettings.SaveSettings(
                 new LauncherSettings(InstallationType, EnablePluginAutomaticUpdates, AdditionalModActors, ServerBrowserBackend)
             );
+        }
+
+        [RelayCommand]
+        private void OpenRegistryWindow() {
+            RegistryWindowService.ShowAllRegistriesWindow(RegistryWindowVM);
         }
 
         [RelayCommand]

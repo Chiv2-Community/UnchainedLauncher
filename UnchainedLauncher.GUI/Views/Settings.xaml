@@ -60,12 +60,11 @@
         <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Column="1" Content="Enable Automatic Plugin Updates and Downloads" HorizontalAlignment="Left" Margin="5,0,0,0" VerticalAlignment="Center" />
 
         <TextBlock Text="CLI Args:" Grid.Row="2" Grid.ColumnSpan ="3" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="5"/>
-        <TextBox Text="{Binding CLIArgs}" Grid.Row="4" Grid.ColumnSpan ="3" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
-
+        <TextBox Text="{Binding CLIArgs}" Grid.Row="4" Grid.ColumnSpan ="4" TextWrapping="Wrap" IsManipulationEnabled="True" AcceptsReturn="True" />
+        <Button Content="Mod Registries" Grid.Row="2" Grid.Column="3" Margin="5" Command="{Binding OpenRegistryWindowCommand}" />
         <Button Content="Clean Up Installation" Grid.Row="5" Grid.Column="0" Margin="5" Command="{Binding CleanUpInstallationCommand}" />
         <Button Content="Uninstall" Grid.Row="5" Grid.Column="1" Margin="5" Command="{Binding UninstallLauncherCommand}" />
-        <Button Content="Check for updates" Grid.Row="5" Grid.Column="2" Margin="5" Command="{Binding CheckForUpdateCommand}" />
-
+        <Button Content="Check for updates" Grid.Row="5" Grid.Column="2" HorizontalAlignment="Right" Margin="5" Command="{Binding CheckForUpdateCommand}" />
 
         <TextBlock Text="{Binding CurrentVersion}" Grid.Row="5" Grid.Column="3" HorizontalAlignment="Center" Height="NaN" Margin="0,0,0,0" VerticalAlignment="Center" Width="NaN" />
     </Grid>

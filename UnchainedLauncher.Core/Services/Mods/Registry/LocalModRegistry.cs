@@ -10,8 +10,17 @@ using Release = UnchainedLauncher.Core.JsonModels.Metadata.V3.Release;
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class LocalModRegistry : JsonRegistry {
         public override string Name => $"Local filesystem registry at {RegistryPath}";
-        public string RegistryPath { get; set; }
+
+        private string _registryPathInternal;
+
+        public string RegistryPath {
+            get => _registryPathInternal;
+            set { _registryPathInternal = !Path.IsPathRooted(value) ? Path.GetFullPath(value) : value; }
+        }
+
         public LocalModRegistry(string registryPath) {
+            if(registryPath == "") 
+                registryPath = "LocalModRegistry";
             RegistryPath = registryPath;
             if (!Directory.Exists(RegistryPath)) Directory.CreateDirectory(RegistryPath);
         }

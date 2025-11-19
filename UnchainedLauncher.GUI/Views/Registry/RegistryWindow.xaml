@@ -7,81 +7,200 @@
         xmlns:registry="clr-namespace:UnchainedLauncher.GUI.ViewModels.Registry"
         d:DataContext="{x:Static instances:RegistryWindowViewModelInstances.DEFAULT}"
         mc:Ignorable="d"
-        Title="Mod Registries" Height="450" Width="600">
+        Title="Mod Registries" Height="450" Width="1000">
     <Window.Resources>
         <DataTemplate DataType="{x:Type registry:GithubModRegistryVM}">
-            <StackPanel>
-                <TextBlock Text="{Binding Name}"/>
+            <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" 
+                    Background="White" Margin="8" Padding="12">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="5" ShadowDepth="2" Opacity="0.3"/>
+                </Border.Effect>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Label Grid.Row="0" Grid.Column="0">Organization:</Label>
-                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Org}"/>
                 
-                    <Label Grid.Row="1" Grid.Column="0">RepoName:</Label>
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RepoName}"/>
+                    <!-- Header with Title and Delete Button -->
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                        <Button Command="{Binding SelfDeleteCommand}" 
+                                HorizontalAlignment="Right" 
+                                VerticalAlignment="Center"
+                                Background="#F44336" 
+                                Foreground="White"
+                                BorderThickness="0"
+                                Padding="8,4"
+                                ToolTip="Delete Registry"
+                                Cursor="Hand"
+                                Content="Delete"/>
+                    </Grid>
+                
+                    <!-- Registry Details -->
+                    <Grid Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                
+                        <Label Grid.Row="0" Grid.Column="0" Content="Organization:" 
+                               Margin="0,4" FontWeight="SemiBold"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Org}" 
+                                Margin="8,4" Padding="6" VerticalContentAlignment="Center"
+                                BorderBrush="#E0E0E0"/>
+    
+                        <Label Grid.Row="1" Grid.Column="0" Content="Repo Name:" 
+                               Margin="0,4" FontWeight="SemiBold"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RepoName}" 
+                                Margin="8,4" Padding="6" VerticalContentAlignment="Center"
+                                BorderBrush="#E0E0E0"/>
+                    </Grid>
                 </Grid>
-                <Button Command="{Binding SelfDeleteCommand}">Delete</Button>
-                
-            </StackPanel>
+            </Border>
         </DataTemplate>
+    
         <DataTemplate DataType="{x:Type registry:LocalModRegistryVM}">
-            <StackPanel>
-                <TextBlock Text="{Binding Name}"/>
+            <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" 
+                    Background="White" Margin="8" Padding="12">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="5" ShadowDepth="2" Opacity="0.3"/>
+                </Border.Effect>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Label Grid.Row="0" Grid.Column="0">Registry Path:</Label>
-                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
-                        <TextBlock ToolTip="{Binding AbsoluteStub, Mode=OneWay}">
-                            <Run Text="&lt;Base Dir&gt;"/>
-                            <Run Text="{Binding PathSeparator, Mode=OneWay}"/>
-                            <Run Text=" "/>
-                        </TextBlock>
-                        <TextBox Text="{Binding RegistryPath}"/>
-                    </StackPanel>
+                
+                    <!-- Header with Title and Delete Button -->
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                        <Button Command="{Binding SelfDeleteCommand}" 
+                                HorizontalAlignment="Right" 
+                                VerticalAlignment="Center"
+                                Background="#F44336" 
+                                Foreground="White"
+                                BorderThickness="0"
+                                Padding="8,4"
+                                ToolTip="Delete Registry"
+                                Cursor="Hand"
+                                Content="Delete"/>
+                    </Grid>
+                
+                    <!-- Registry Path -->
+                    <Grid Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                
+                        <Label Grid.Row="0" Grid.Column="0" Content="Registry Path:" 
+                               Margin="0,4" FontWeight="SemiBold"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding RegistryPath}" 
+                                Margin="8,4" Padding="6" VerticalContentAlignment="Center"
+                                BorderBrush="#E0E0E0"/>
+                    </Grid>
+                    
+                    <!-- Manage Button -->
+                    <Button Grid.Row="2" 
+                           Command="{Binding OpenConfigWindowCommand}" 
+                           Content="Manage Local Repo" 
+                           Margin="0,10,0,0"
+                           Padding="10,6"
+                           Background="#2196F3"
+                           Foreground="White"
+                           BorderThickness="0"
+                           FontWeight="SemiBold"
+                           Cursor="Hand"
+                           HorizontalAlignment="Stretch"/>
                 </Grid>
-                <Button Command="{Binding SelfDeleteCommand}">Delete</Button>
-                <Button Command="{Binding OpenConfigWindowCommand}">Config</Button>
-            </StackPanel>
-            
+            </Border>
         </DataTemplate>
+    
         <DataTemplate DataType="{x:Type registry:GenericModRegistryVM}">
-            <StackPanel>
-                <TextBlock Text="{Binding Registry.Name, Mode=OneWay}"/>
-                <Button Command="{Binding SelfDeleteCommand}">Delete</Button>
-            </StackPanel>
-            
+            <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" 
+                    Background="White" Margin="8" Padding="12">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="5" ShadowDepth="2" Opacity="0.3"/>
+                </Border.Effect>
+                <Grid>
+                    <TextBlock Text="{Binding Registry.Name, Mode=OneWay}" 
+                              FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                    <Button Command="{Binding SelfDeleteCommand}" 
+                            HorizontalAlignment="Right" 
+                            VerticalAlignment="Center"
+                            Background="#F44336" 
+                            Foreground="White"
+                            BorderThickness="0"
+                            Padding="8,4"
+                            ToolTip="Delete Registry"
+                            Cursor="Hand"
+                            Content="Delete"/>
+                </Grid>
+            </Border>
         </DataTemplate>
     </Window.Resources>
-    <Grid>
+
+    <Grid Margin="15">
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <ListView Grid.Row="1" ItemsSource="{Binding Registries}"/>
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="auto"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <Button Grid.Column="1" Command="{Binding AddNewGithubRegistryCommand}">Add Github Registry</Button>
-            <Button Grid.Column="3" Command="{Binding AddNewLocalRegistryCommand}">Add Local Registry</Button>
-        </Grid>
+    
+        <!-- Header -->
+        <TextBlock Grid.Row="0" 
+                  Text="Mod Registry Management"
+                  FontSize="18"
+                  FontWeight="Bold"
+                  Margin="0,0,0,15"/>
+    
+        <!-- Registries List -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Registries}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ContentPresenter Content="{Binding}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    
+        <!-- Footer with Add Buttons -->
+        <Border Grid.Row="2" 
+               BorderBrush="#E0E0E0" 
+               BorderThickness="0,1,0,0" 
+               Padding="0,15,0,0"
+               Margin="0,15,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Command="{Binding AddNewGithubRegistryCommand}" 
+                       Content="+ Add Github Registry" 
+                       Margin="0,0,10,0"
+                       Padding="15,8"
+                       Background="#2196F3"
+                       Foreground="White"
+                       BorderThickness="0"
+                       FontWeight="SemiBold"
+                       FontSize="14"
+                       Cursor="Hand"/>
+                <Button Command="{Binding AddNewLocalRegistryCommand}" 
+                       Content="+ Add Local Registry" 
+                       Margin="10,0,0,0"
+                       Padding="15,8"
+                       Background="#2196F3"
+                       Foreground="White"
+                       BorderThickness="0"
+                       FontWeight="SemiBold"
+                       FontSize="14"
+                       Cursor="Hand"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

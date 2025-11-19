@@ -9,63 +9,132 @@
              d:DataContext="{x:Static designInstances:LocalModRegistryConfigWindowViewModelInstances.DEFAULT_RELEASE}"
              mc:Ignorable="d"
              d:DesignHeight="300" d:DesignWidth="300">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" 
+            Background="White" Margin="8" Padding="15">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="5" ShadowDepth="2" Opacity="0.3"/>
+        </Border.Effect>
+        
         <StackPanel>
-            <TextBlock>
-                Organization:
-                <TextBox MinWidth="100" Text="{Binding Organization}"/>
-            </TextBlock>
-            <TextBlock>
-                Name:
-                <TextBox MinWidth="100" Text="{Binding Name}"/>
-            </TextBlock>
-            <TextBlock>
-                Description:
-                <TextBox MinWidth="100" MinLines="2" Text="{Binding Description}"/>
-            </TextBlock>
-            <TextBlock>
-                Tag:
-                <TextBox MinWidth="50">
+            <Grid Margin="0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Organization:" VerticalAlignment="Center" 
+                          Margin="0,0,10,0" FontWeight="SemiBold"/>
+                <TextBox Grid.Column="1" MinWidth="100" Text="{Binding Organization}"
+                        Padding="6,4" BorderBrush="#E0E0E0"/>
+            </Grid>
+    
+            <Grid Margin="0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Name:" VerticalAlignment="Center" 
+                          Margin="0,0,10,0" FontWeight="SemiBold"/>
+                <TextBox Grid.Column="1" MinWidth="100" Text="{Binding Name}"
+                        Padding="6,4" BorderBrush="#E0E0E0"/>
+            </Grid>
+    
+            <Grid Margin="0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Description:" VerticalAlignment="Top" 
+                          Margin="0,8,10,0" FontWeight="SemiBold"/>
+                <TextBox Grid.Column="1" MinWidth="100" MinLines="2" TextWrapping="Wrap" 
+                        Text="{Binding Description}" Padding="6,4" BorderBrush="#E0E0E0"/>
+            </Grid>
+    
+            <Grid Margin="0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Tag:" VerticalAlignment="Center" 
+                          Margin="0,0,10,0" FontWeight="SemiBold"/>
+                <TextBox Grid.Column="1" MinWidth="50" Padding="6,4" BorderBrush="#E0E0E0">
                     <Binding Path="Tag">
                         <Binding.ValidationRules>
                             <local:VersionStringRule/>
                         </Binding.ValidationRules>
                     </Binding>
                 </TextBox>
-            </TextBlock>
-            <ComboBox 
-                MaxWidth="100"
-                HorizontalContentAlignment="Left"
-                ItemsSource="{Binding ModTypeChoices, Mode=OneWay}"
-                SelectedItem="{Binding SelectedModType}"
-                />
-            <Grid Height="150" >
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                    <RowDefinition Height="*"></RowDefinition>
-                    <RowDefinition Height="Auto"></RowDefinition>
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" TextWrapping="Wrap">drag and drop a pak file here, or click</TextBlock>
-                <jd:IdenticonElement 
-                    HorizontalAlignment="Left"
-                    Grid.Row="1" 
-                    Value="{Binding ReleaseHash}"
-                    ToolTip="{Binding ReleaseHash}" 
-                    Drop="ImagePanel_Drop" 
-                    MouseLeftButtonDown="UIElement_OnMouseLeftButtonDown" 
-                    AllowDrop="True"/>
-                <TextBlock
-                    Grid.Row="2" Foreground="DarkRed" 
-                    Text="{Binding LastDragDropComplaint, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                    TextWrapping="Wrap"/>
             </Grid>
+    
+            <Grid Margin="0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Mod Type:" VerticalAlignment="Center" 
+                          Margin="0,0,10,0" FontWeight="SemiBold"/>
+                <ComboBox 
+                    Grid.Column="1"
+                    MaxWidth="200"
+                    HorizontalAlignment="Left"
+                    HorizontalContentAlignment="Left"
+                    ItemsSource="{Binding ModTypeChoices, Mode=OneWay}"
+                    SelectedItem="{Binding SelectedModType}"
+                    Padding="6,4"
+                    BorderBrush="#E0E0E0"/>
+            </Grid>
+    
+            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" 
+                    Padding="12" Margin="0,12" Background="#FAFAFA">
+                <Grid Height="150">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
             
+                    <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
+                              Foreground="#666666">
+                        Drag and drop a pak file here, or click
+                    </TextBlock>
             
-            <Button Command="{Binding SubmitCommand}">Submit</Button>
-            <TextBlock Foreground="DarkRed" Text="{Binding LastSubmitComplaint}"/>
+                    <jd:IdenticonElement 
+                        Grid.Row="1"
+                        HorizontalAlignment="Left"
+                        Margin="0,8"
+                        Value="{Binding ReleaseHash}"
+                        ToolTip="{Binding ReleaseHash}" 
+                        Drop="ImagePanel_Drop" 
+                        MouseLeftButtonDown="UIElement_OnMouseLeftButtonDown" 
+                        AllowDrop="True"
+                        Cursor="Hand"/>
+            
+                    <TextBlock
+                        Grid.Row="2" 
+                        Foreground="#F44336" 
+                        Margin="0,8,0,0"
+                        Text="{Binding LastDragDropComplaint, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                        TextWrapping="Wrap"
+                        FontWeight="Medium"/>
+                </Grid>
+            </Border>
+    
+            <Button Command="{Binding SubmitCommand}" 
+                   Margin="0,12,0,8" 
+                   Padding="15,8"
+                   Background="#4CAF50"
+                   Foreground="White"
+                   BorderThickness="0"
+                   FontWeight="SemiBold"
+                   Cursor="Hand"
+                   HorizontalAlignment="Stretch">
+                Submit
+            </Button>
+    
+            <TextBlock Foreground="#F44336" 
+                      Margin="0,8,0,0" 
+                      Text="{Binding LastSubmitComplaint}" 
+                      TextWrapping="Wrap"
+                      FontWeight="Medium"/>
         </StackPanel>
-    </Grid>
+    </Border>
 </UserControl>

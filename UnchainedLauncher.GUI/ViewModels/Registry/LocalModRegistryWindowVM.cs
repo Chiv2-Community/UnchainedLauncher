@@ -65,39 +65,24 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public async void RefreshModsList(ReleaseCoordinates? updatedMod) {
             try
             {
-                if (updatedMod == null) {
-                    var newMods = await Registry.GetAllMods();
+                var newMods = await Registry.GetAllMods();
 
-                    var newModVMs = newMods.Mods
-                        .ToList()
-                        .Map(m => {
-                            var vm = new RegistryModVM(
-                                Registry,
-                                _windowService,
-                                m
-                            );
+                var newModVMs = newMods.Mods
+                    .ToList()
+                    .Map(m => {
+                        var vm = new RegistryModVM(
+                            Registry,
+                            _windowService,
+                            m
+                        );
 
-                            return vm;
-                        });
-                    
-                    Application.Current.Dispatcher.BeginInvoke((Action)delegate () {
-                        Mods.Clear();
-                        newModVMs.ToList().ForEach(m => Mods.Add(m));
+                        return vm;
                     });
-                }
-                else {
-                    
-                    var modVM = Mods.First(mod => ModIdentifier.FromMod(mod.Mod) == updatedMod);
-                    var existing = modVM.Releases.FirstOrDefault(r => r.Release.Tag == updatedMod.Version);
-                    if(existing != null)
-                        modVM.Releases.Remove(existing);
-                    
-                    var newRelease = await Registry.GetModRelease(updatedMod);
-                    
-                    newRelease.ToOption().IfSome(mod => {
-                        modVM.Releases.Add(new RegistryReleaseVM(Registry, mod, _windowService));
-                    });
-                }
+                
+                await Application.Current.Dispatcher.BeginInvoke((Action)delegate () {
+                    Mods.Clear();
+                    newModVMs.ToList().ForEach(m => Mods.Add(m));
+                });
             }
             catch (Exception e)
             {

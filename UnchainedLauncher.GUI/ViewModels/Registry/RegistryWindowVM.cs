@@ -28,6 +28,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         public RegistryWindowVM(AggregateModRegistry registry,
             IRegistryWindowService windowService) {
+            _windowService = windowService;
             Registry = registry;
             Registries = new ObservableCollection<IModRegistryVM<IModRegistry>>();
             LoadRegistryViewModels();
@@ -61,14 +62,14 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
         [RelayCommand]
         public void AddNewLocalRegistry() {
-            var lmr = new LocalModRegistry("LocalRegistryPath");
+            var lmr = new LocalModRegistry("LocalModRegistry");
 
             AddRegistry(lmr);
         }
 
         public void AddRegistry(IModRegistry mr) {
             Registry.ModRegistries.Add(mr);
-            IntoVM(mr).Tap(Registries.Add);
+            IntoVM(mr).ForEach(Registries.Add);
         }
 
         public void RemoveRegistry(IModRegistryVM<IModRegistry> vm) {

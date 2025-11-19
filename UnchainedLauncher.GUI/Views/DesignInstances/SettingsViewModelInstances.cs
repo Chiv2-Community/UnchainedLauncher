@@ -7,6 +7,8 @@ using UnchainedLauncher.GUI.ViewModels;
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
     public static class SettingsViewModelInstances {
         public static SettingsVM DEFAULT => new SettingsVM(
+            RegistryWindowViewModelInstances.DEFAULT,
+            new RegistryWindowService(),
             new MockInstaller(),
             null,
             new MessageBoxSpawner(),

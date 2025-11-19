@@ -106,13 +106,13 @@ namespace UnchainedLauncher.GUI {
 
         private Window? InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
             var userDialogueSpawner = new MessageBoxSpawner();
-
-            var settingsViewModel = SettingsVM.LoadSettings(installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
-
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
 
-            var registryTabViewModel = new RegistryTabVM(modRegistry);
+            var registryWindowService = new RegistryWindowService();
+            var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
+
+            var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService, installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
 
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(
@@ -206,8 +206,7 @@ namespace UnchainedLauncher.GUI {
                 launcherViewModel,
                 modListViewModel,
                 settingsViewModel,
-                serversTabViewModel,
-                registryTabViewModel
+                serversTabViewModel
             );
 
             return new MainWindow(mainWindowViewModel);

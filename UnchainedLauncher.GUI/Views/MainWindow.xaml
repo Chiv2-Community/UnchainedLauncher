@@ -39,9 +39,6 @@
         <TabItem Header="Launcher">
             <local:Launcher DataContext="{Binding LauncherViewModel}" />
         </TabItem>
-        <TabItem Header="Mod Registries">
-            <registry:RegistryTab DataContext="{Binding RegistryTabViewModel}"/>
-        </TabItem>
         <TabItem Header="Mod Manager">
             <local:ModList DataContext="{Binding ModListViewModel}" />
         </TabItem>

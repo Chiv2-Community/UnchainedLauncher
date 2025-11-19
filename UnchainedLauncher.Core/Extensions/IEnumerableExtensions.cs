@@ -18,7 +18,7 @@
                 yield return item;
             }
         }
-        
+
         /**
          * Eagerly iterate over each item in the source collection and perform some kind of side effect on each item.
          */

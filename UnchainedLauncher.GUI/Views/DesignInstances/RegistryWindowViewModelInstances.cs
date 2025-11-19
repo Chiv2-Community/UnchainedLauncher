@@ -13,12 +13,12 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
                 new LocalModRegistry("LocalModRegistryTesting1"),
                 new LocalModRegistry("LocalModRegistryTesting2")
             );
-            
-            
+
+
             return new RegistryWindowVM(aggregateRegistry, new RegistryWindowService());
 
         }
-        
+
         public static RegistryWindowVM DEFAULT => MakeDefault();
     }
 }

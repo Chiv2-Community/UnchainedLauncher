@@ -3,17 +3,14 @@ using LanguageExt;
 using log4net;
 using Microsoft.VisualBasic.FileIO;
 using PropertyChanged;
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.GUI.Services;
-using UnchainedLauncher.GUI.Views.Registry;
 
 namespace UnchainedLauncher.GUI.ViewModels.Registry {
     using static LanguageExt.Prelude;
@@ -44,8 +41,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             Logger.Debug($"Creating Registry View Model for {registry.Name}");
             return registry switch {
                 AggregateModRegistry reg => reg.ModRegistries.AsEnumerable().Bind(IntoVM),
-                GithubModRegistry reg => new List<IModRegistryVM<IModRegistry>> {new GithubModRegistryVM(reg, RemoveRegistry)},
-                LocalModRegistry reg => new List<IModRegistryVM<IModRegistry>> { new LocalModRegistryVM(reg, _windowService, RemoveRegistry)},
+                GithubModRegistry reg => new List<IModRegistryVM<IModRegistry>> { new GithubModRegistryVM(reg, RemoveRegistry) },
+                LocalModRegistry reg => new List<IModRegistryVM<IModRegistry>> { new LocalModRegistryVM(reg, _windowService, RemoveRegistry) },
                 _ => new List<IModRegistryVM<IModRegistry>> { new GenericModRegistryVM<IModRegistry>(registry, RemoveRegistry) }
             };
         }
@@ -85,10 +82,10 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
     [AddINotifyPropertyChangedInterface]
     public partial class GenericModRegistryVM<T> : INotifyPropertyChanged, IModRegistryVM<T>
-        where T: IModRegistry {
+        where T : IModRegistry {
         public T Registry { get; }
         public delegate void RequestDeletion(IModRegistryVM<T> toDelete);
-        
+
         private readonly RequestDeletion? _requestDeletion;
 
         [RelayCommand]
@@ -103,7 +100,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
     }
 
     public class GenericModRegistryVM : GenericModRegistryVM<IModRegistry> {
-        public GenericModRegistryVM(IModRegistry registry, RequestDeletion? requestDeletion = null): base(registry, requestDeletion) { }
+        public GenericModRegistryVM(IModRegistry registry, RequestDeletion? requestDeletion = null) : base(registry, requestDeletion) { }
     }
 
     [AddINotifyPropertyChangedInterface]

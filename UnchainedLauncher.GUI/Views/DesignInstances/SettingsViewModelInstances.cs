@@ -3,7 +3,6 @@ using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
-using UnchainedLauncher.GUI.ViewModels.Registry;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
     public static class SettingsViewModelInstances {

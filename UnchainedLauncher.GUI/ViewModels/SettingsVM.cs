@@ -61,7 +61,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public IReleaseLocator UnchainedReleaseLocator { get; set; }
         public readonly Action<int> ExitProgram;
         public bool CanClick { get; set; }
-        
+
         private RegistryWindowService RegistryWindowService { get; }
         private RegistryWindowVM RegistryWindowVM { get; }
 
@@ -112,7 +112,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 new LauncherSettings(InstallationType, EnablePluginAutomaticUpdates, AdditionalModActors, ServerBrowserBackend)
             );
         }
-        
+
         [RelayCommand]
         private void OpenRegistryWindow() {
             RegistryWindowService.ShowAllRegistriesWindow(RegistryWindowVM);

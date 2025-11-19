@@ -1,8 +1,4 @@
-﻿using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Services.Mods.Registry;
+﻿using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.GUI.ViewModels.Registry;
 using UnchainedLauncher.GUI.Views.Registry;
 
@@ -12,8 +8,8 @@ namespace UnchainedLauncher.GUI.Services {
         void ShowLocalRegistryWindow(LocalModRegistryWindowVM registryWindowVM);
         RegistryReleaseFormVM PromptAddRelease(LocalModRegistry registry, RegistryReleaseFormVM registryReleaseFormVM);
     }
-    
-    public class RegistryWindowService: IRegistryWindowService {
+
+    public class RegistryWindowService : IRegistryWindowService {
         private LocalModRegistryWindow? _localModRegistryWindow;
         private RegistryWindow? _allRegistriesWindow;
 
@@ -28,17 +24,18 @@ namespace UnchainedLauncher.GUI.Services {
             }
         }
 
-        public void ShowLocalRegistryWindow(LocalModRegistryWindowVM registryWindowVM) { 
+        public void ShowLocalRegistryWindow(LocalModRegistryWindowVM registryWindowVM) {
             if (_localModRegistryWindow == null) {
                 _localModRegistryWindow = new LocalModRegistryWindow(registryWindowVM);
                 _localModRegistryWindow.Closed += (_, __) => _localModRegistryWindow = null;
                 _localModRegistryWindow.Show();
-            } else {
+            }
+            else {
                 _localModRegistryWindow.DataContext = registryWindowVM;
                 _localModRegistryWindow.Activate();
             }
         }
-        
+
         public RegistryReleaseFormVM PromptAddRelease(LocalModRegistry registry, RegistryReleaseFormVM registryReleaseFormVM) {
             var editWindow = new RegistryReleaseFormWindow();
             editWindow.DataContext = registryReleaseFormVM;

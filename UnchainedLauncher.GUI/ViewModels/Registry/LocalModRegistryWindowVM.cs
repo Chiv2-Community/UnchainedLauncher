@@ -16,11 +16,10 @@ using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
-using UnchainedLauncher.GUI.Views.Registry;
 
 namespace UnchainedLauncher.GUI.ViewModels.Registry {
     using static LanguageExt.Prelude;
-    
+
 
     [AddINotifyPropertyChangedInterface]
     public partial class LocalModRegistryWindowVM {
@@ -36,7 +35,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             Registry.OnRegistryChanged += RefreshModsList;
             RefreshModsList(null);
         }
-        
+
         [RelayCommand]
         public void AddRelease() {
             var dummyRelease = new Release(
@@ -58,13 +57,12 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                     new OptionFlags(true)
                 )
             );
-            
+
             _windowService.PromptAddRelease(Registry, new RegistryReleaseFormVM(dummyRelease, null));
         }
 
         public async void RefreshModsList(ReleaseCoordinates? updatedMod) {
-            try
-            {
+            try {
                 var newMods = await Registry.GetAllMods();
 
                 var newModVMs = newMods.Mods
@@ -78,14 +76,13 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
                         return vm;
                     });
-                
+
                 await Application.Current.Dispatcher.BeginInvoke((Action)delegate () {
                     Mods.Clear();
                     newModVMs.ToList().ForEach(m => Mods.Add(m));
                 });
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 Logger.Error("Failed to update mod list", e);
             }
         }
@@ -114,7 +111,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             Mod.Releases
                 .ForEach(r =>
                     Releases.Add(new RegistryReleaseVM(
-                            SourceRegistry, 
+                            SourceRegistry,
                             r,
                             _windowService
                         )
@@ -149,13 +146,13 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public Release Release { get; set; }
         private IRegistryWindowService _windowService;
         public LocalModRegistry SourceRegistry { get; }
-        
-        public RegistryReleaseVM(LocalModRegistry sourceRegistry,  Release release, IRegistryWindowService windowService) {
+
+        public RegistryReleaseVM(LocalModRegistry sourceRegistry, Release release, IRegistryWindowService windowService) {
             SourceRegistry = sourceRegistry;
             Release = release;
             _windowService = windowService;
         }
-        
+
         [RelayCommand]
         public void Delete() {
             var _ = SourceRegistry.DeleteRelease(ReleaseCoordinates.FromRelease(Release));

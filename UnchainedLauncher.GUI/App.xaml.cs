@@ -108,11 +108,11 @@ namespace UnchainedLauncher.GUI {
             var userDialogueSpawner = new MessageBoxSpawner();
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
-            
+
             var registryWindowService = new RegistryWindowService();
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
-            
-            var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService,installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
+
+            var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService, installationFinder, installer, launcherReleaseLocator, userDialogueSpawner, Environment.Exit);
 
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.ComponentModel;
-using UnchainedLauncher.GUI.ViewModels.Registry;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 
 namespace UnchainedLauncher.GUI.ViewModels {

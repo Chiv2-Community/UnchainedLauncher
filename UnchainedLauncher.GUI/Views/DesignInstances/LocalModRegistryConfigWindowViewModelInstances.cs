@@ -8,7 +8,7 @@ using UnchainedLauncher.GUI.ViewModels.Registry;
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
     public static class LocalModRegistryConfigWindowViewModelInstances {
         private static RegistryWindowService _windowService = new RegistryWindowService();
-            
+
         public static LocalModRegistryWindowVM DEFAULT =>
             new LocalModRegistryWindowVM(new LocalModRegistry("LocalModRegistryTesting1"), _windowService);
 

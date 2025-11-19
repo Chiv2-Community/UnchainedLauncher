@@ -19,7 +19,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         }
 
         public LocalModRegistry(string registryPath) {
-            if(registryPath == "") 
+            if (registryPath == "")
                 registryPath = "LocalModRegistry";
             RegistryPath = registryPath;
             if (!Directory.Exists(RegistryPath)) Directory.CreateDirectory(RegistryPath);
@@ -48,7 +48,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                     result => {
                         var mod = result.mod!;
                         var toDelete = result.release!;
-                        
+
                         var modPath = Path.Combine(RegistryPath, coordinates.Org, coordinates.ModuleName);
                         var releasePath = Path.Combine(modPath, toDelete.Tag);
                         mod.Releases.Remove(toDelete);
@@ -56,14 +56,14 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                         if (mod.Releases.Count == 0) {
                             Directory.Delete(modPath, true);
                         }
-                        else {  
+                        else {
                             Directory.Delete(releasePath, true);
                             WriteMod(mod with {
                                 // we know this unwrap is safe because if there were no releases, we would have deleted
                                 LatestManifest = mod.LatestRelease.ValueUnsafe().Manifest
                             });
                         }
-                        
+
                         OnRegistryChanged?.Invoke(coordinates);
                         return true;
                     },

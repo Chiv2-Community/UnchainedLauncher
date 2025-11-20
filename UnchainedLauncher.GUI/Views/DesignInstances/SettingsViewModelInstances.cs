@@ -3,10 +3,15 @@ using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
+using UnchainedLauncher.GUI.Views.Registry.DesignInstances;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
     public static class SettingsViewModelInstances {
-        public static SettingsVM DEFAULT => new SettingsVM(
+        public static SettingsVM DEFAULT => new SettingsDesignVM();
+    }
+
+    public class SettingsDesignVM : SettingsVM {
+        public SettingsDesignVM() : base(
             RegistryWindowViewModelInstances.DEFAULT,
             new RegistryWindowService(),
             new MockInstaller(),
@@ -17,7 +22,9 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             true,
             "--design-time-only-default-constructor",
             "https://servers.polehammer.net",
-            new FileBackedSettings<LauncherSettings>(""), "", (_) => { }
-        );
+            new FileBackedSettings<LauncherSettings>(""),
+            "",
+            (_) => { }
+        ) { }
     }
 }

@@ -25,7 +25,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             ModList = new ModListVM(
                 ModManagerCodec.ToClassType(saved.ModManagerMetadata, registry),
                 dialogueSpawner
-                );
+            );
         }
 
         public SavedServerTemplate Saved() {

@@ -2,7 +2,7 @@
 using System.Net;
 using System.Windows.Controls;
 
-namespace UnchainedLauncher.GUI.Views {
+namespace UnchainedLauncher.GUI.Views.Servers {
     /// <summary>
     /// Interaction logic for ServerInfoForm.xaml
     /// </summary>

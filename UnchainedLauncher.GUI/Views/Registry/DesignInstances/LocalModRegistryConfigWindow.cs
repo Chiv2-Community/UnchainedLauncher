@@ -5,14 +5,24 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.Registry;
 
-namespace UnchainedLauncher.GUI.Views.DesignInstances {
+namespace UnchainedLauncher.GUI.Views.Registry.DesignInstances {
     public static class LocalModRegistryConfigWindowViewModelInstances {
-        private static RegistryWindowService _windowService = new RegistryWindowService();
+        public static RegistryWindowService DEFAULT_WINDOW_SERVICE = new RegistryWindowService();
 
-        public static LocalModRegistryWindowVM DEFAULT =>
-            new LocalModRegistryWindowVM(new LocalModRegistry("LocalModRegistryTesting1"), _windowService);
+        public static LocalModRegistryWindowVM DEFAULT => new LocalModRegistryWindowDesignVM();
 
-        public static RegistryReleaseFormVM DEFAULT_RELEASE => new RegistryReleaseFormVM(
+        public static RegistryReleaseFormVM DEFAULT_RELEASE => new RegistryReleaseFormDesignVM();
+    }
+
+    public class LocalModRegistryWindowDesignVM : LocalModRegistryWindowVM {
+        public LocalModRegistryWindowDesignVM() : base(
+            new LocalModRegistry("LocalModRegistryTesting1"),
+            LocalModRegistryConfigWindowViewModelInstances.DEFAULT_WINDOW_SERVICE
+        ) { }
+    }
+
+    public class RegistryReleaseFormDesignVM : RegistryReleaseFormVM {
+        public RegistryReleaseFormDesignVM() : base(
             new Release(
                 "v1.0.0",
                 "some hash",
@@ -30,8 +40,9 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
                     new List<ModTag> { ModTag.Doodad, ModTag.Mutator },
                     new List<string> { "ffa_exampleMap", "tdm_exampleMap" },
                     new OptionFlags(true)
-                    )
-                ), null
-            );
+                )
+            ),
+            null
+        ) { }
     }
 }

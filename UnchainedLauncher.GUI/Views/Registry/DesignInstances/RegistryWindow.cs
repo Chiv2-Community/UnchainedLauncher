@@ -2,23 +2,22 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.Registry;
 
-namespace UnchainedLauncher.GUI.Views.DesignInstances {
+namespace UnchainedLauncher.GUI.Views.Registry.DesignInstances {
     public static class RegistryWindowViewModelInstances {
-        private static RegistryWindowVM MakeDefault() {
-            var aggregateRegistry = new AggregateModRegistry(
+        public static RegistryWindowVM DEFAULT => new RegistryWindowDesignVM();
+    }
+
+    public class RegistryWindowDesignVM : RegistryWindowVM {
+        public RegistryWindowDesignVM() : base(
+            new AggregateModRegistry(
                 new GithubModRegistry(
                     "Chiv2-Community",
                     "C2ModRegistry"
                 ),
                 new LocalModRegistry("LocalModRegistryTesting1"),
                 new LocalModRegistry("LocalModRegistryTesting2")
-            );
-
-
-            return new RegistryWindowVM(aggregateRegistry, new RegistryWindowService());
-
-        }
-
-        public static RegistryWindowVM DEFAULT => MakeDefault();
+            ),
+            new RegistryWindowService()
+        ) { }
     }
 }

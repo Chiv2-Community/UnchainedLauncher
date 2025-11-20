@@ -8,8 +8,9 @@ namespace UnchainedLauncher.Core.Utilities {
         public double ProgressPercentage { get; protected set; }
         public string TaskName { get; protected set; }
 
-        public MemoryProgress(string? taskName = null) {
+        public MemoryProgress(string? taskName = null, double progress = 0) {
             TaskName = taskName ?? "";
+            ProgressPercentage = progress;
         }
 
         public void Report(double value) {

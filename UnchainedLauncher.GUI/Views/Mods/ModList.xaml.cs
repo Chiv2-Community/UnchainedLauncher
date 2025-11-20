@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 
-namespace UnchainedLauncher.GUI.Views {
+namespace UnchainedLauncher.GUI.Views.Mods {
     /// <summary>
     /// Interaction logic for ModManagerView.xaml
     /// </summary>

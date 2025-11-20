@@ -7,7 +7,7 @@
              xmlns:vms="clr-namespace:UnchainedLauncher.GUI.ViewModels"
              xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
              mc:Ignorable="d" 
-             d:DataContext="{x:Static instances:SettingsViewModelInstances.DEFAULT}"
+             d:DataContext="{d:DesignInstance instances:SettingsDesignVM}"
              d:DesignHeight="450" d:DesignWidth="800">
 
     <Grid HorizontalAlignment="Stretch" Margin="0,0,0,0" Width="NaN" VerticalAlignment="Stretch">

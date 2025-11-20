@@ -4,11 +4,13 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views"
+        xmlns:mods="clr-namespace:UnchainedLauncher.GUI.Views.Mods"
+        xmlns:servers="clr-namespace:UnchainedLauncher.GUI.Views.Servers"
         xmlns:vms="clr-namespace:UnchainedLauncher.GUI.ViewModels"
         xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
         xmlns:registry="clr-namespace:UnchainedLauncher.GUI.Views.Registry"
         mc:Ignorable="d" 
-        d:DataContext="{x:Static instances:MainWindowViewModelInstances.DEFAULT}"
+        d:DataContext="{d:DesignInstance instances:MainWindowDesignVM}"
         x:Class="UnchainedLauncher.GUI.Views.MainWindow"
         Title="Unchained Launcher" Height="500" Width="650"
     >
@@ -40,10 +42,10 @@
             <local:Launcher DataContext="{Binding LauncherViewModel}" />
         </TabItem>
         <TabItem Header="Mod Manager">
-            <local:ModList DataContext="{Binding ModListViewModel}" />
+            <mods:ModList DataContext="{Binding ModListViewModel}" />
         </TabItem>
         <TabItem Header="Servers">
-            <local:ServersTab DataContext="{Binding ServersTab}" />
+            <servers:ServersTab DataContext="{Binding ServersTab}" />
         </TabItem>
         <TabItem Header="Settings">
             <local:Settings DataContext="{Binding SettingsViewModel}" />

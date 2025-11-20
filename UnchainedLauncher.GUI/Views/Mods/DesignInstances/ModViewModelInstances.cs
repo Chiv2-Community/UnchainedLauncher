@@ -5,11 +5,11 @@ using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.GUI.ViewModels;
 
-namespace UnchainedLauncher.GUI.Views.DesignInstances {
+namespace UnchainedLauncher.GUI.Views.Mods.DesignInstances {
     using static LanguageExt.Prelude;
 
     public static class ModViewModelInstances {
-        public static ModVM DEFAULT => CreateDefaultModViewModel();
+        public static ModVM DEFAULT => new ModDesignVM();
 
         public static readonly ModManifest DesignViewManifest = new ModManifest(
             "https://github.com/Gooner/FinallyMod",
@@ -35,16 +35,13 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
                 DesignViewRelease
             }
         );
+    }
 
-        private static ModVM CreateDefaultModViewModel() {
-            return new ModVM(
-                DesignViewMod,
-                Some(DesignViewRelease),
-                // TODO: Set up some kind of in-memory registry for design view purposes
-                new ModManager(new LocalModRegistry("foo"), new List<ReleaseCoordinates>())
-            );
-        }
-
-
+    public class ModDesignVM : ModVM {
+        public ModDesignVM() : base(
+            ModViewModelInstances.DesignViewMod,
+            Some(ModViewModelInstances.DesignViewRelease),
+            new ModManager(new LocalModRegistry("foo"), new List<ReleaseCoordinates>())
+        ) { }
     }
 }

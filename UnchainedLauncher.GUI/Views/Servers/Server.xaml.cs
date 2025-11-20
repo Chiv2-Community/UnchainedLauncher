@@ -1,6 +1,6 @@
 ﻿using System.Windows.Controls;
 
-namespace UnchainedLauncher.GUI.Views {
+namespace UnchainedLauncher.GUI.Views.Servers {
     /// <summary>
     /// Interaction logic for ServersView.xaml
     /// </summary>

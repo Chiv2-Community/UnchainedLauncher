@@ -21,7 +21,10 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public LocalModRegistry(string registryPath) {
             if (registryPath == "")
                 registryPath = "LocalModRegistry";
+            
+            _registryPathInternal = ""; // Technically does nothing, but cleans up a warning.
             RegistryPath = registryPath;
+            
             if (!Directory.Exists(RegistryPath)) Directory.CreateDirectory(RegistryPath);
         }
 
@@ -40,12 +43,12 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 .Map(sizedStream => new FileWriter(outputLocation, sizedStream.Stream, sizedStream.Size));
         }
 
-        public Task<bool> DeleteRelease(ReleaseCoordinates coordinates) {
-            return GetMod(coordinates)
+        public async Task<bool> DeleteRelease(ReleaseCoordinates coordinates) {
+            return await GetMod(coordinates)
                 .Bind(mod => GetModRelease(coordinates)
                 .Map(release => (mod, release)))
-                .Match(
-                    result => {
+                .MatchAsync(
+                    async result => {
                         var mod = result.mod!;
                         var toDelete = result.release!;
 
@@ -58,7 +61,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                         }
                         else {
                             Directory.Delete(releasePath, true);
-                            WriteMod(mod with {
+                            await WriteMod(mod with {
                                 // we know this unwrap is safe because if there were no releases, we would have deleted
                                 LatestManifest = mod.LatestRelease.ValueUnsafe().Manifest
                             });
@@ -92,13 +95,13 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                         )
                     );
 
-            CopyFileForRelease(newVersion, pakPath);
-            WriteMod(mod);
+            await CopyFileForRelease(newVersion, pakPath);
+            await WriteMod(mod);
             OnRegistryChanged?.Invoke(coordinates);
         }
 
-        private async Task CopyFileForRelease(Release release, string sourceFile) {
-            Task.Run(() => {
+        private Task CopyFileForRelease(Release release, string sourceFile) {
+            return Task.Run(() => {
                 string releaseDirectory = Path.Combine(
                     RegistryPath,
                     release.Manifest.Organization,

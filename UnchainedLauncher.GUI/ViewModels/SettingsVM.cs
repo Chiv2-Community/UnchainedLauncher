@@ -70,6 +70,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             RegistryWindowService = registryWindowService;
             Installer = installer;
             UnchainedReleaseLocator = unchainedReleaseLocator;
+            PakDir = pakDir;
             UserDialogueSpawner = dialogueSpawner;
             InstallationType = installationType;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;

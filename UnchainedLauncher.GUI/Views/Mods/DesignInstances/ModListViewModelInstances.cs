@@ -3,7 +3,6 @@ using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
-using UnchainedLauncher.GUI.Views.DesignInstances;
 
 namespace UnchainedLauncher.GUI.Views.Mods.DesignInstances {
     public static class ModListViewModelInstances {

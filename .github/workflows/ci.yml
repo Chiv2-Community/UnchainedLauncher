@@ -26,7 +26,7 @@ jobs:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '6.x'
+        dotnet-version: '10.x'
 
 
     - name: Format source
@@ -40,9 +40,9 @@ jobs:
       if: steps.auto-commit-action.outputs.changes_detected == 'true'
       run: exit 1
 
-        
     - name: Install dependencies
       run: dotnet restore
+      
     - name: Build
       run: dotnet build -c ${{ matrix.configuration }}
     - name: Run Unit Tests

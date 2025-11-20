@@ -21,10 +21,10 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public LocalModRegistry(string registryPath) {
             if (registryPath == "")
                 registryPath = "LocalModRegistry";
-            
+
             _registryPathInternal = ""; // Technically does nothing, but cleans up a warning.
             RegistryPath = registryPath;
-            
+
             if (!Directory.Exists(RegistryPath)) Directory.CreateDirectory(RegistryPath);
         }
 

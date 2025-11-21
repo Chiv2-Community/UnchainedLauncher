@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Registry"
         xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
         xmlns:registry="clr-namespace:UnchainedLauncher.GUI.ViewModels.Registry"
         xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Registry.DesignInstances"
@@ -10,6 +11,9 @@
         mc:Ignorable="d"
         Title="Mod Registries" Height="450" Width="1000">
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <local:BoolToExpandCollapseConverter x:Key="BoolToExpandCollapseConverter"/>
+
         <DataTemplate DataType="{x:Type registry:GithubModRegistryVM}">
             <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" 
                     Background="White" Margin="8" Padding="12">
@@ -65,7 +69,7 @@
         </DataTemplate>
     
         <DataTemplate DataType="{x:Type registry:LocalModRegistryVM}">
-            <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" 
+            <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="5"
                     Background="White" Margin="8" Padding="12">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="5" ShadowDepth="2" Opacity="0.3"/>
@@ -75,15 +79,16 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                
+
                     <!-- Header with Title and Delete Button -->
                     <Grid Grid.Row="0" Margin="0,0,0,10">
                         <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
-                        <Button Command="{Binding SelfDeleteCommand}" 
-                                HorizontalAlignment="Right" 
+                        <Button Command="{Binding SelfDeleteCommand}"
+                                HorizontalAlignment="Right"
                                 VerticalAlignment="Center"
-                                Background="#F44336" 
+                                Background="#F44336"
                                 Foreground="White"
                                 BorderThickness="0"
                                 Padding="8,4"
@@ -91,7 +96,7 @@
                                 Cursor="Hand"
                                 Content="Delete"/>
                     </Grid>
-                
+
                     <!-- Registry Path -->
                     <Grid Grid.Row="1">
                         <Grid.RowDefinitions>
@@ -101,26 +106,40 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                
-                        <Label Grid.Row="0" Grid.Column="0" Content="Registry Path:" 
+
+                        <Label Grid.Row="0" Grid.Column="0" Content="Registry Path:"
                                Margin="0,4" FontWeight="SemiBold"/>
-                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding RegistryPath}" 
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding RegistryPath}"
                                 Margin="8,4" Padding="6" VerticalContentAlignment="Center"
                                 BorderBrush="#E0E0E0"/>
                     </Grid>
-                    
-                    <!-- Manage Button -->
-                    <Button Grid.Row="2" 
-                           Command="{Binding OpenConfigWindowCommand}" 
-                           Content="Manage Local Repo" 
-                           Margin="0,10,0,0"
-                           Padding="10,6"
-                           Background="#2196F3"
-                           Foreground="White"
-                           BorderThickness="0"
-                           FontWeight="SemiBold"
-                           Cursor="Hand"
-                           HorizontalAlignment="Stretch"/>
+
+                    <!-- Expand/Collapse Toggle Button -->
+                    <Button Grid.Row="2"
+                            Command="{Binding ToggleExpandedCommand}"
+                            Margin="0,10,0,0"
+                            Padding="8,6"
+                            Background="Transparent"
+                            BorderBrush="#E0E0E0"
+                            BorderThickness="1"
+                            Cursor="Hand"
+                            HorizontalAlignment="Stretch">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="{Binding SectionMessage}"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Collapsible Details Section -->
+                    <Border Grid.Row="3"
+                            Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}"
+                            BorderBrush="#E0E0E0"
+                            BorderThickness="0,1,0,0"
+                            Margin="0,10,0,0"
+                            Padding="0,10,0,0">
+                        <local:LocalModRegistryDetails DataContext="{Binding InlineVM}"/>
+                    </Border>
                 </Grid>
             </Border>
         </DataTemplate>
@@ -151,20 +170,12 @@
 
     <Grid Margin="15">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-    
-        <!-- Header -->
-        <TextBlock Grid.Row="0" 
-                  Text="Mod Registry Management"
-                  FontSize="18"
-                  FontWeight="Bold"
-                  Margin="0,0,0,15"/>
-    
+
         <!-- Registries List -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
             <ItemsControl ItemsSource="{Binding Registries}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -173,9 +184,9 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
-    
+
         <!-- Footer with Add Buttons -->
-        <Border Grid.Row="2" 
+        <Border Grid.Row="1" 
                BorderBrush="#E0E0E0" 
                BorderThickness="0,1,0,0" 
                Padding="0,15,0,0"

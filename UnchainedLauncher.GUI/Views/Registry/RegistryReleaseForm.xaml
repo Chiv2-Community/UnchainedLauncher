@@ -9,7 +9,7 @@
              xmlns:designInstances1="clr-namespace:UnchainedLauncher.GUI.Views.Registry.DesignInstances"
              d:DataContext="{d:DesignInstance designInstances1:RegistryReleaseFormDesignVM}"
              mc:Ignorable="d"
-             d:DesignHeight="300" d:DesignWidth="300">
+             d:DesignHeight="600" d:DesignWidth="300">
     <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" 
             Background="White" Margin="8" Padding="15">
         <Border.Effect>
@@ -84,12 +84,12 @@
                     BorderBrush="#E0E0E0"/>
             </Grid>
     
-            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4" 
+            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="4"
                     Padding="12" Margin="0,12" Background="#FAFAFA">
-                <Grid Height="150">
+                <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="200"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
             

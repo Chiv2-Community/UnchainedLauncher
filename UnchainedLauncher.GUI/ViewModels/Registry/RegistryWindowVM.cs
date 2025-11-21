@@ -122,10 +122,15 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
     [AddINotifyPropertyChangedInterface]
     public partial class LocalModRegistryVM : GenericModRegistryVM<LocalModRegistry> {
-        private IRegistryWindowService _windowService;
+        
+        public LocalModRegistryDetailsVM InlineVM { get; }
+
+        public bool IsExpanded { get; set; }
+        public string SectionMessage => IsExpanded ? "▼ Hide Local Mods" : "▶ Manage Local Mods";
+
 
         public LocalModRegistryVM(LocalModRegistry registry, IRegistryWindowService windowService, RequestDeletion? requestDeletion = null) : base(registry, requestDeletion) {
-            _windowService = windowService;
+            InlineVM = new LocalModRegistryDetailsVM(registry, windowService);
         }
 
         [DependsOn(nameof(RegistryPath))]
@@ -137,8 +142,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         }
 
         [RelayCommand]
-        public void OpenConfigWindow() {
-            _windowService.ShowLocalRegistryWindow(new LocalModRegistryWindowVM(Registry, _windowService));
+        public void ToggleExpanded() {
+            IsExpanded = !IsExpanded;
         }
 
         public string AbsoluteStub => FileSystem.CurrentDirectory;

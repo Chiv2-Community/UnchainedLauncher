@@ -5,12 +5,10 @@ using UnchainedLauncher.GUI.Views.Registry;
 namespace UnchainedLauncher.GUI.Services {
     public interface IRegistryWindowService {
         void ShowAllRegistriesWindow(RegistryWindowVM registryWindowVM);
-        void ShowLocalRegistryWindow(LocalModRegistryWindowVM registryWindowVM);
         RegistryReleaseFormVM PromptAddRelease(LocalModRegistry registry, RegistryReleaseFormVM registryReleaseFormVM);
     }
 
     public class RegistryWindowService : IRegistryWindowService {
-        private LocalModRegistryWindow? _localModRegistryWindow;
         private RegistryWindow? _allRegistriesWindow;
 
         public void ShowAllRegistriesWindow(RegistryWindowVM registryWindowVM) {
@@ -21,18 +19,6 @@ namespace UnchainedLauncher.GUI.Services {
             }
             else {
                 _allRegistriesWindow.Activate();
-            }
-        }
-
-        public void ShowLocalRegistryWindow(LocalModRegistryWindowVM registryWindowVM) {
-            if (_localModRegistryWindow == null) {
-                _localModRegistryWindow = new LocalModRegistryWindow(registryWindowVM);
-                _localModRegistryWindow.Closed += (_, __) => _localModRegistryWindow = null;
-                _localModRegistryWindow.Show();
-            }
-            else {
-                _localModRegistryWindow.DataContext = registryWindowVM;
-                _localModRegistryWindow.Activate();
             }
         }
 

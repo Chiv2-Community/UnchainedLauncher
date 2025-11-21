@@ -22,14 +22,14 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
 
     [AddINotifyPropertyChangedInterface]
-    public partial class LocalModRegistryWindowVM {
+    public partial class LocalModRegistryDetailsVM {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(PersistentServerRegistration));
 
         private IRegistryWindowService _windowService;
 
         public LocalModRegistry Registry { get; }
         public ObservableCollection<RegistryModVM> Mods { get; } = new();
-        public LocalModRegistryWindowVM(LocalModRegistry registry, IRegistryWindowService windowService) {
+        public LocalModRegistryDetailsVM(LocalModRegistry registry, IRegistryWindowService windowService) {
             _windowService = windowService;
             Registry = registry;
             Registry.OnRegistryChanged += RefreshModsList;

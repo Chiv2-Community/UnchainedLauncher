@@ -9,13 +9,13 @@ namespace UnchainedLauncher.GUI.Views.Registry.DesignInstances {
     public static class LocalModRegistryConfigWindowViewModelInstances {
         public static RegistryWindowService DEFAULT_WINDOW_SERVICE = new RegistryWindowService();
 
-        public static LocalModRegistryWindowVM DEFAULT => new LocalModRegistryWindowDesignVM();
+        public static LocalModRegistryDetailsVM DEFAULT => new LocalModRegistryDetailsDesignVM();
 
         public static RegistryReleaseFormVM DEFAULT_RELEASE => new RegistryReleaseFormDesignVM();
     }
 
-    public class LocalModRegistryWindowDesignVM : LocalModRegistryWindowVM {
-        public LocalModRegistryWindowDesignVM() : base(
+    public class LocalModRegistryDetailsDesignVM : LocalModRegistryDetailsVM {
+        public LocalModRegistryDetailsDesignVM() : base(
             new LocalModRegistry("LocalModRegistryTesting1"),
             LocalModRegistryConfigWindowViewModelInstances.DEFAULT_WINDOW_SERVICE
         ) { }

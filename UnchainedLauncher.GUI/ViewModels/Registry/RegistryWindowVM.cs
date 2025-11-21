@@ -122,7 +122,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
     [AddINotifyPropertyChangedInterface]
     public partial class LocalModRegistryVM : GenericModRegistryVM<LocalModRegistry> {
-        
+
         public LocalModRegistryDetailsVM InlineVM { get; }
 
         public bool IsExpanded { get; set; }

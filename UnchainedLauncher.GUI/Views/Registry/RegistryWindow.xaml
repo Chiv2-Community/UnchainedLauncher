@@ -12,7 +12,6 @@
         Title="Mod Registries" Height="450" Width="1000">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
-        <local:BoolToExpandCollapseConverter x:Key="BoolToExpandCollapseConverter"/>
 
         <DataTemplate DataType="{x:Type registry:GithubModRegistryVM}">
             <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" 

@@ -3,16 +3,15 @@
     <OutputType>WinExe</OutputType>
     <UseWPF>True</UseWPF>
     <TargetFramework>net10.0-windows</TargetFramework>
-    <EnableWindowsTargeting>True</EnableWindowsTargeting>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <EnableWindowsTargeting>True</EnableWindowsTargeting>
     <Deterministic>True</Deterministic>
     <DebugSymbols>True</DebugSymbols>
     <DebugType>embedded</DebugType>
     <IncludeAllContentForSelfExtract>True</IncludeAllContentForSelfExtract>
-    <IncludeNativeLibrariesForSelfExtract>True</IncludeNativeLibrariesForSelfExtract>
     <SignAssembly>False</SignAssembly>
     <Configurations>Debug;Release;Debug-FakeChivalryLaunch</Configurations>
+    <PublishSingleFile>True</PublishSingleFile>
     
     <RepositoryUrl>https://github.com/Chiv2-Community/UnchainedLauncher</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -33,21 +32,19 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <Optimize>False</Optimize>
     <SelfContained>False</SelfContained>
-    
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DefineConstants>TRACE</DefineConstants>
     <Optimize>True</Optimize>
-    <PublishSingleFile>True</PublishSingleFile>
     <SelfContained>True</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>True</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug-FakeChivalryLaunch|AnyCPU' ">
     <DefineConstants>DEBUG;TRACE;FAKE_CHIVALRY_LAUNCH</DefineConstants>
     <Optimize>False</Optimize>
     <SelfContained>False</SelfContained>
-    
   </PropertyGroup>
   
   <ItemGroup>

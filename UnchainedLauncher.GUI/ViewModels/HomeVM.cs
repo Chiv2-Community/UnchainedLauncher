@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.JsonModels;
@@ -12,11 +13,12 @@ using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
+using UnchainedLauncher.GUI.Services;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
-    public partial class LauncherVM : INotifyPropertyChanged {
-        private static readonly ILog Logger = LogManager.GetLogger(nameof(LauncherVM));
+    public partial class HomeVM : INotifyPropertyChanged {
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(HomeVM));
 
         public SettingsVM Settings { get; }
 
@@ -33,13 +35,51 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public bool IsReusable() => Settings.InstallationType == InstallationType.Steam;
 
-        public LauncherVM(SettingsVM settings, IModManager modManager, IChivalry2Launcher vanillaLauncher, IChivalry2Launcher clientSideModdedLauncher, IChivalry2Launcher moddedLauncher, IUserDialogueSpawner dialogueSpawner) {
+        public HomeVM(SettingsVM settings, IModManager modManager, IChivalry2Launcher vanillaLauncher, IChivalry2Launcher clientSideModdedLauncher, IChivalry2Launcher moddedLauncher, IUserDialogueSpawner dialogueSpawner) {
             Settings = settings;
             ModManager = modManager;
             VanillaLauncher = vanillaLauncher;
             ClientSideModdedLauncher = clientSideModdedLauncher;
             UnchainedLauncher = moddedLauncher;
             UserDialogueSpawner = dialogueSpawner;
+            _ = LoadWhatsNew();
+        }
+
+        public class WhatsNewItem {
+            public required string Title { get; init; }
+            public required DateTime Date { get; init; }
+            public required string Html { get; init; }
+            public required string Url { get; init; }
+        }
+
+        public System.Collections.ObjectModel.ObservableCollection<WhatsNewItem> WhatsNew { get; } = new();
+
+        private async Task LoadWhatsNew() {
+            try {
+                // Ensure we have the latest mods list
+                await ModManager.UpdateModsList();
+
+                var latestFive = ModManager.Mods
+                    .SelectMany(m => m.Releases)
+                    .OrderByDescending(r => r.ReleaseDate)
+                    .Take(5)
+                    .ToList();
+
+                WhatsNew.Clear();
+                foreach (var r in latestFive) {
+                    var markdown = r.ReleaseNotesMarkdown ?? "";
+                    var html = MarkdownRenderer.RenderHtml(markdown);
+                    WhatsNew.Add(new WhatsNewItem {
+                        Title = $"{r.Manifest.Name} {r.Tag}",
+                        Date = r.ReleaseDate,
+                        Html = html,
+                        Url = r.ReleaseUrl
+                    });
+                }
+            }
+            catch (Exception e) {
+                Logger.Warn("Failed to load What's New section", e);
+            }
         }
 
         [RelayCommand]

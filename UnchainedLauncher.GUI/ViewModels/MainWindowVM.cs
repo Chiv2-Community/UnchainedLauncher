@@ -4,16 +4,16 @@ using UnchainedLauncher.GUI.ViewModels.ServersTab;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     public partial class MainWindowVM : INotifyPropertyChanged, IDisposable {
-        public LauncherVM LauncherViewModel { get; }
+        public HomeVM HomeVM { get; }
         public ModListVM ModListViewModel { get; }
         public SettingsVM SettingsViewModel { get; }
         public ServersTabVM ServersTab { get; }
 
-        public MainWindowVM(LauncherVM launcherViewModel,
+        public MainWindowVM(HomeVM launcherVM,
                             ModListVM modListViewModel,
                             SettingsVM settingsViewModel,
                             ServersTabVM serversTab) {
-            LauncherViewModel = launcherViewModel;
+            HomeVM = launcherVM;
             ModListViewModel = modListViewModel;
             SettingsViewModel = settingsViewModel;
             ServersTab = serversTab;

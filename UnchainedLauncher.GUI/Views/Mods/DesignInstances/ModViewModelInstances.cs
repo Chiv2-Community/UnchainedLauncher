@@ -27,7 +27,7 @@ namespace UnchainedLauncher.GUI.Views.Mods.DesignInstances {
             new OptionFlags(false)
         );
 
-        public static readonly Release DesignViewRelease = new Release("v1.0.0", "abcd", "ExamplePak", DateTime.Now, DesignViewManifest);
+        public static readonly Release DesignViewRelease = new Release("v1.0.0", "abcd", "ExamplePak", DateTime.Now, DesignViewManifest, "## Example Release Notes\n\n* Foo\n* bar\n* baz");
 
         public static readonly Core.JsonModels.Metadata.V3.Mod DesignViewMod = new Core.JsonModels.Metadata.V3.Mod(
             DesignViewManifest,

@@ -6,30 +6,119 @@
              xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Mods"
              xmlns:vms="clr-namespace:UnchainedLauncher.GUI.ViewModels"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Mods.DesignInstances"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance designInstances:ModDesignVM}"
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="160" d:DesignWidth="800"
+             Focusable="True">
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="40"/>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="80"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
-        
-        <TextBox Text="{Binding Description, Mode=OneWay}" Background="Transparent" Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="0" Margin="5" BorderThickness="0" IsReadOnly="True" TextWrapping="Wrap"  />
-        <Button Content="{Binding ButtonText}" Grid.Row="1" Grid.Column="0" Command="{Binding EnableOrDisableCommand}"/>
-        <ComboBox ItemsSource="{Binding Mod.Releases, Mode=TwoWay}" 
-                              SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
-                              DisplayMemberPath="Tag"
-                              Grid.Row="1" 
-                              Grid.Column="1" 
-                              Height="NaN" 
-                              Margin="5" 
-                              VerticalAlignment="Stretch"
-                              Width="NaN" FontSize="18"/>
-    </Grid>
+    <UserControl.Resources>
+        <!-- Success tinted background using theme color -->
+        <SolidColorBrush x:Key="Brush.SuccessTint"
+                         Color="{StaticResource Color.Success}"
+                         Opacity="0.05"/>
+
+        <!-- Card style that reacts to IsEnabled and focus -->
+        <Style x:Key="ModCard" TargetType="Border" BasedOn="{StaticResource Card}">
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{StaticResource Brush.Background}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource Brush.Success}"/>
+                    <Setter Property="BorderThickness" Value="2"/>
+                    <Setter Property="Background" Value="{StaticResource Brush.SuccessTint}"/>
+                </DataTrigger>
+                <!-- Slightly emphasize on focus -->
+                <DataTrigger Value="True">
+                    <DataTrigger.Binding>
+                        <Binding RelativeSource="{RelativeSource AncestorType=UserControl}" Path="IsKeyboardFocusWithin"/>
+                    </DataTrigger.Binding>
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.25"/>
+                        </Setter.Value>
+                    </Setter>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Description collapses when not focused, expands on focus -->
+        <Style x:Key="ExpandableDescription" TargetType="FrameworkElement">
+            <Setter Property="MaxHeight" Value="100"/>
+            <Style.Triggers>
+                <DataTrigger Value="True">
+                    <DataTrigger.Binding>
+                        <Binding RelativeSource="{RelativeSource AncestorType=UserControl}" Path="IsKeyboardFocusWithin"/>
+                    </DataTrigger.Binding>
+                    <Setter Property="MaxHeight" Value="{x:Static sys:Double.PositiveInfinity}"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Style="{StaticResource ModCard}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header: Name, Enable/Disable, Version selector -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="220"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Mod.LatestManifest.Name}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                <Button Grid.Column="1"
+                        Content="{Binding ButtonText}"
+                        Command="{Binding EnableOrDisableCommand}"
+                        Margin="0,0,8,0">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource Button.Secondary}">
+                            <!-- Green when action is Enable (IsEnabled == False), Red when action is Disable (IsEnabled == True) -->
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                    <Setter Property="Background" Value="{StaticResource Brush.Success}"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource Brush.Danger}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <ComboBox Grid.Column="2"
+                          ItemsSource="{Binding Mod.Releases}"
+                          SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
+                          DisplayMemberPath="Tag"
+                          ToolTip="Select version"
+                          VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- Tags / Enabled info -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+                <TextBlock Text="Type: " Foreground="{StaticResource Brush.Muted}"/>
+                <TextBlock Text="{Binding Mod.LatestManifest.ModType}" Margin="4,0,12,0"/>
+                <TextBlock Text="Tags: " Foreground="{StaticResource Brush.Muted}"/>
+                <TextBlock Text="{Binding TagsString}"/>
+                <TextBlock Text="{Binding EnabledVersion}"/>
+            </StackPanel>
+
+            <!-- Description: visible by default, clipped when long; expands on focus -->
+            <Border Grid.Row="2"
+                    Margin="0,8,0,0"
+                    BorderBrush="{StaticResource Brush.Border}"
+                    BorderThickness="1"
+                    Padding="8"
+                    CornerRadius="4"
+                    Style="{StaticResource ExpandableDescription}">
+                <!-- Important: avoid inner ScrollViewer/TextBox so the parent list can always scroll on mouse wheel -->
+                <TextBlock Text="{Binding Description, Mode=OneWay}"
+                           TextWrapping="Wrap"/>
+            </Border>
+        </Grid>
+    </Border>
 </UserControl>

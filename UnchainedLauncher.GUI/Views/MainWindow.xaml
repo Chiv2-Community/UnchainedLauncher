@@ -12,24 +12,176 @@
         mc:Ignorable="d" 
         d:DataContext="{d:DesignInstance instances:MainWindowDesignVM}"
         x:Class="UnchainedLauncher.GUI.Views.MainWindow"
-        Title="Unchained Launcher" Height="500" Width="650"
+        Title="Unchained Launcher" Height="500" Width="1000"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        AllowsTransparency="False"
     >
     
-    <Window.Resources/>
+    <Window.Resources>
+        <!-- Bubble TabItem style using theme brushes (DynamicResource for runtime theme changes) -->
+        <Style TargetType="TabItem" x:Key="BubbleTabItemStyle">
+            <!-- Default/unselected/hover text color uses TextPrimary -->
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
+            <Setter Property="HeaderTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"/>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid>
+                            <Border
+                                x:Name="Spacer"
+                                Width="Auto"
+                                Height="Auto"
+                                Padding="0 0 5 0"
+                                Margin="0 0 0 0"
+                                BorderBrush="Transparent"
+                                BorderThickness="0">
+                            <Border x:Name="Bubble"
+                                    Background="{DynamicResource Brush.LightTransparent}"
+                                    BorderBrush="{DynamicResource Brush.Border}"
+                                    BorderThickness="1"
+                                    CornerRadius="16"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter x:Name="ContentSite"
+                                                  ContentSource="Header"
+                                                  RecognizesAccessKey="True"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Margin="8,2"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}"/>
+                            </Border>
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bubble" Property="Background" Value="{DynamicResource Brush.Primary}"/>
+                                <Setter TargetName="Bubble" Property="BorderBrush" Value="{DynamicResource Brush.Primary}"/>
+                                <!-- Selected tab text color uses Light as requested -->
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Light}"/>
+                                <Setter Property="Panel.ZIndex" Value="1"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.6"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bubble" Property="Background" Value="{DynamicResource Brush.PrimaryHover}"/>
+                                <!-- Keep text color unchanged on hover for unselected tabs (TextPrimary) -->
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-    <TabControl x:Name="Tabs">
-        <TabItem Header="Launcher">
-            <local:Launcher DataContext="{Binding LauncherViewModel}" />
-        </TabItem>
-        <TabItem Header="Mod Manager">
-            <mods:ModList DataContext="{Binding ModListViewModel}" />
-        </TabItem>
-        <TabItem Header="Servers">
-            <servers:ServersTab DataContext="{Binding ServersTab}" />
-        </TabItem>
-        <TabItem Header="Settings">
-            <local:Settings DataContext="{Binding SettingsViewModel}" />
-        </TabItem>
-    </TabControl>
+        <!-- TabControl template with logo on the left and right-aligned bubble tabs -->
+        <Style TargetType="TabControl" x:Key="RightAlignedTabControlStyle">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid KeyboardNavigation.TabNavigation="Local">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <!-- Header row: logo on the left, app title next to it, tabs on the right -->
+                            <Grid Grid.Row="0" Margin="8,8,8,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Image Grid.Column="0"
+                                       Height="56"
+                                       Stretch="Uniform"
+                                       VerticalAlignment="Top"
+                                       Margin="0,-32,8,0"
+                                       Source="pack://application:,,,/UnchainedLauncher;component/assets/chiv2-unchained-logo.png"/>
+                                <!-- Ensure the app title is vertically centered relative to the logo's visual height (56) that spans title bar + tab header -->
+                                <Border Grid.Column="1"
+                                        Height="56"
+                                        VerticalAlignment="Top"
+                                        Margin="0,-32,12,0">
+                                    <TextBlock Text="Unchained"
+                                               Style="{DynamicResource Heading.H1}"
+                                               VerticalAlignment="Center"
+                                               FontWeight="SemiBold" />
+                                </Border>
+                                <TabPanel Grid.Column="2" x:Name="HeaderPanel"
+                                          IsItemsHost="True"
+                                          HorizontalAlignment="Right"
+                                          Margin="8,0,0,0"
+                                          Width="NaN" />
+                            </Grid>
+                            <!-- Content presenter -->
+                            <Border Grid.Row="1" Margin="8" Background="Transparent">
+                                <ContentPresenter x:Name="PART_SelectedContentHost"
+                                                  ContentSource="SelectedContent"
+                                                  SnapsToDevicePixels="True"
+                                                  Margin="0 16 0 0"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- Custom chrome: Title bar with window controls, app content below -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="32"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title bar -->
+        <Grid Grid.Row="0"
+              Background="Transparent"
+              MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Drag region (empty, spans left area) -->
+            <Border Grid.Column="0" Background="Transparent"/>
+
+            <!-- Window buttons -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{StaticResource Button.TitleBar.Minimize}" Click="MinimizeButton_Click" ToolTip="Minimize">
+                    <TextBlock Text="—" FontSize="12"/>
+                </Button>
+                <Button Style="{StaticResource Button.TitleBar.Close}" Click="CloseButton_Click" ToolTip="Close">
+                    <TextBlock Text="×" FontSize="14"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- Main tabs/content -->
+        <TabControl Grid.Row="1" x:Name="Tabs"
+                    Style="{StaticResource RightAlignedTabControlStyle}"
+                    ItemContainerStyle="{StaticResource BubbleTabItemStyle}">
+            <TabItem Header="Home">
+                <local:Home DataContext="{Binding HomeVM}" />
+            </TabItem>
+            <TabItem Header="Mod Manager">
+                <mods:ModList DataContext="{Binding ModListViewModel}" />
+            </TabItem>
+            <TabItem Header="Servers">
+                <servers:ServersTab DataContext="{Binding ServersTab}" />
+            </TabItem>
+            <TabItem Header="Settings">
+                <local:Settings DataContext="{Binding SettingsViewModel}" />
+            </TabItem>
+        </TabControl>
+    </Grid>
 
 </Window>

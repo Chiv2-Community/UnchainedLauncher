@@ -2,10 +2,10 @@
 
 namespace UnchainedLauncher.GUI.Views {
     /// <summary>
-    /// Interaction logic for LauncherView.xaml
+    /// Interaction logic for Home.xaml
     /// </summary>
-    public partial class Launcher : UserControl {
-        public Launcher() {
+    public partial class Home : UserControl {
+        public Home() {
             InitializeComponent();
         }
     }

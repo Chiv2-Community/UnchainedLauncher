@@ -169,7 +169,7 @@ namespace UnchainedLauncher.GUI {
 #endif
             );
 
-            var launcherViewModel = new LauncherVM(
+            var homeViewModel = new HomeVM(
                 settingsViewModel,
                 modManager,
                 vanillaLauncher,
@@ -184,17 +184,17 @@ namespace UnchainedLauncher.GUI {
 
             // TODO: Replace this if/else chain with a real CLI
             if (envArgs.Contains("--startvanilla")) {
-                launcherViewModel.LaunchVanilla().Wait();
+                homeViewModel.LaunchVanilla().Wait();
                 return null;
             }
 
             if (envArgs.Contains("--startmodded")) {
-                launcherViewModel.LaunchModdedVanilla().Wait();
+                homeViewModel.LaunchModdedVanilla().Wait();
                 return null;
             }
 
             if (envArgs.Contains("--startunchained")) {
-                launcherViewModel.LaunchUnchained().Wait();
+                homeViewModel.LaunchUnchained().Wait();
                 return null;
             }
 
@@ -207,7 +207,7 @@ namespace UnchainedLauncher.GUI {
                 new FileBackedSettings<IEnumerable<SavedServerTemplate>>(FilePaths.ServerTemplatesFilePath));
 
             var mainWindowViewModel = new MainWindowVM(
-                launcherViewModel,
+                homeViewModel,
                 modListViewModel,
                 settingsViewModel,
                 serversTabViewModel

@@ -32,13 +32,13 @@
                 </ComboBox.ItemTemplate>
             </ComboBox>
             <StackPanel Orientation="Horizontal" Grid.Column="1">
-                <Button Command="{Binding AddTemplateCommand}">
+                <Button Command="{Binding AddTemplateCommand}" Style="{StaticResource Button.Secondary}">
                     <Run Text=" + "/>
                 </Button>
-                <Button Command="{Binding RemoveTemplateCommand}">
+                <Button Command="{Binding RemoveTemplateCommand}" Style="{StaticResource Button.Light}">
                     <Run Text="  -  "/>
                 </Button>
-                <Button Command="{Binding SaveCommand}">
+                <Button Command="{Binding SaveCommand}" Style="{StaticResource Button.Primary}">
                     <Run Text="Save"/>
                 </Button>
             </StackPanel>
@@ -62,8 +62,8 @@
                     <ColumnDefinition Width="10"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Button Grid.Column="0" Command="{Binding LaunchServerCommand}">Launch server</Button>
-                <Button Grid.Column="2" Command="{Binding LaunchHeadlessCommand}">Launch Headless Server</Button>
+                <Button Grid.Column="0" Command="{Binding LaunchServerCommand}" Style="{StaticResource Button.Primary}">Launch server</Button>
+                <Button Grid.Column="2" Command="{Binding LaunchHeadlessCommand}" Style="{StaticResource Button.Secondary}">Launch Headless Server</Button>
             </Grid>
         </Grid>
         
@@ -76,7 +76,8 @@
             <local:Server DataContext="{Binding SelectedLive}" Grid.Row="0"/>
             <Button Grid.Row="1"
                 Command="{Binding ShutdownServerCommand}" 
-                DockPanel.Dock="Bottom">
+                DockPanel.Dock="Bottom"
+                Style="{StaticResource Button.Danger}">
                 Shut Down
             </Button>
         </Grid>

@@ -26,14 +26,12 @@
                 <ColumnDefinition Width="220"/>
                 <ColumnDefinition Width="12"/>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="12"/>
-                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
             <!-- Title -->
             <TextBlock Grid.Column="0"
-                       Text="Installed Mods"
+                       Text="Search:"
                        Style="{StaticResource Heading.H3}"
                        VerticalAlignment="Center"/>
 
@@ -51,94 +49,20 @@
                       ToolTip="Sort mods"
                       VerticalAlignment="Center"/>
 
-            <!-- Enabled only filter -->
-            <CheckBox Grid.Column="6"
-                      Content="Enabled only"
-                      IsChecked="{Binding ShowEnabledOnly}"
-                      VerticalAlignment="Center"
-                      Margin="0,0,8,0"/>
-
             <!-- Actions -->
-            <Button x:Name="UpdateModsButton" Grid.Column="8" Content="Update Mods" Command="{Binding UpdateModsCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Secondary}"/>
-            <Button x:Name="RefreshModListButton" Grid.Column="9" Content="Refresh Mod List" Command="{Binding RefreshModListCommand}" Style="{StaticResource Button.Primary}"/>
+            <Button x:Name="UpdateModsButton" Grid.Column="6" Content="Update Mods" Command="{Binding UpdateModsCommand}" Margin="0,0,8,0" Style="{StaticResource Button.Primary}"/>
+            <Button x:Name="RefreshModListButton" Grid.Column="7" Content="Refresh Mod List" Command="{Binding RefreshModListCommand}" Style="{StaticResource Button.Primary}"/>
         </Grid>
 
         <!-- Cards list -->
         <Grid Grid.Row="1">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <ItemsControl ItemsSource="{Binding DisplayMods}">
-                    <ItemsControl.Resources>
-                        <!-- Card style that reacts to IsEnabled -->
-                        <Style x:Key="ModCard" TargetType="Border" BasedOn="{StaticResource Card}">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsEnabled}" Value="True">
-                                    <Setter Property="BorderBrush" Value="{StaticResource Brush.Success}"/>
-                                    <Setter Property="BorderThickness" Value="2"/>
-                                    <Setter Property="Background" Value="#0D198754"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ItemsControl.Resources>
-
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Style="{StaticResource ModCard}">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <!-- Header: Name, Enable/Disable, Version selector -->
-                                    <Grid Grid.Row="0">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                            <ColumnDefinition Width="220"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding Mod.LatestManifest.Name}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
-                                        <Button Grid.Column="1"
-                                                Content="{Binding ButtonText}"
-                                                Command="{Binding EnableOrDisableCommand}"
-                                                Margin="0,0,8,0"
-                                                Style="{StaticResource Button.Secondary}"/>
-                                        <ComboBox Grid.Column="2"
-                                                  ItemsSource="{Binding Mod.Releases}"
-                                                  SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
-                                                  DisplayMemberPath="Tag"
-                                                  ToolTip="Select version"
-                                                  VerticalAlignment="Center"/>
-                                    </Grid>
-
-                                    <!-- Tags / Enabled info -->
-                                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
-                                        <TextBlock Text="Type: " Foreground="{StaticResource Brush.Muted}"/>
-                                        <TextBlock Text="{Binding Mod.LatestManifest.ModType}" Margin="4,0,12,0"/>
-                                        <TextBlock Text="Tags: " Foreground="{StaticResource Brush.Muted}"/>
-                                        <TextBlock Text="{Binding TagsString}"/>
-                                        <TextBlock Text="  •  " Margin="8,0" Foreground="{StaticResource Brush.Muted}"/>
-                                        <TextBlock Text="Enabled: " Foreground="{StaticResource Brush.Muted}"/>
-                                        <TextBlock Text="{Binding EnabledVersion}"/>
-                                    </StackPanel>
-
-                                    <!-- Description Expander (collapsed by default) -->
-                                    <Expander Grid.Row="2" Header="View full description" Margin="0,8,0,0">
-                                        <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" Padding="8" CornerRadius="4">
-                                            <ScrollViewer MaxHeight="180">
-                                                <TextBox Text="{Binding Description, Mode=OneWay}"
-                                                         IsReadOnly="True"
-                                                         Background="Transparent"
-                                                         BorderThickness="0"
-                                                         TextWrapping="Wrap"/>
-                                            </ScrollViewer>
-                                        </Border>
-                                    </Expander>
-                                </Grid>
-                            </Border>
+                            <local:Mod/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
-
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel/>

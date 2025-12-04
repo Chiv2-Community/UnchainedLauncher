@@ -13,6 +13,7 @@
         <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}"/>
     </Style>
 
+
     <!-- Card container (like Bootstrap .card) -->
     <Style x:Key="Card" TargetType="Border">
         <Setter Property="CornerRadius" Value="6"/>
@@ -69,9 +70,12 @@
     <Style x:Key="Button.Primary" TargetType="Button" BasedOn="{StaticResource Button.Base}">
         <Setter Property="Background" Value="{StaticResource Brush.Primary}"/>
         <Setter Property="BorderBrush" Value="{StaticResource Brush.PrimaryHover}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.Light}" />
     </Style>
     <Style x:Key="Button.Secondary" TargetType="Button" BasedOn="{StaticResource Button.Base}">
         <Setter Property="Background" Value="{StaticResource Brush.Secondary}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextSecondary}" />
+        
     </Style>
     <Style x:Key="Button.Success" TargetType="Button" BasedOn="{StaticResource Button.Base}">
         <Setter Property="Background" Value="{StaticResource Brush.Success}"/>
@@ -83,6 +87,89 @@
         <Setter Property="Background" Value="{StaticResource Brush.Light}"/>
         <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}"/>
         <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}"/>
+    </Style>
+
+    <!-- Title bar buttons (flat, small, hover states) -->
+    <Style x:Key="Button.TitleBar" TargetType="Button" BasedOn="{StaticResource Button.Light}">
+        <Setter Property="Width" Value="34"/>
+        <Setter Property="Height" Value="26"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd"
+                            CornerRadius="0"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="0">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.LightTransparent}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="bd" Property="Opacity" Value="0.9"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="bd" Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Button.TitleBar.Close" TargetType="Button" BasedOn="{StaticResource Button.TitleBar}">
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd"
+                            Background="Transparent"
+                            BorderBrush="Transparent">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Danger}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Brush.Light}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="bd" Property="Opacity" Value="0.9"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Dedicated minimize button style with clearer hover (placed after Button.TitleBar to satisfy StaticResource resolution) -->
+    <Style x:Key="Button.TitleBar.Minimize" TargetType="Button" BasedOn="{StaticResource Button.TitleBar}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd"
+                            Background="Transparent"
+                            BorderBrush="Transparent">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.PrimaryHover}"/>
+                            <Setter Property="Foreground" Value="{StaticResource Brush.Light}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="bd" Property="Opacity" Value="0.9"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- Inputs -->

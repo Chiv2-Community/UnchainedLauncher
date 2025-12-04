@@ -18,7 +18,8 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V2 {
         [property: JsonPropertyName("hash")] string ReleaseHash,
         [property: JsonPropertyName("pak_file_name")] string PakFileName,
         [property: JsonPropertyName("release_date")] DateTime ReleaseDate,
-        [property: JsonPropertyName("manifest")] ModManifest Manifest
+        [property: JsonPropertyName("manifest")] ModManifest Manifest,
+        [property: JsonPropertyName("release_notes_markdown")] string? ReleaseNotesMarkdown
     ) {
         public static Release FromV1(V1.Release input) {
             return new Release(
@@ -26,7 +27,8 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V2 {
                 ReleaseHash: input.ReleaseHash,
                 PakFileName: input.PakFileName,
                 ReleaseDate: input.ReleaseDate,
-                Manifest: ModManifest.FromV1(input.Manifest)
+                Manifest: ModManifest.FromV1(input.Manifest),
+                ReleaseNotesMarkdown: input.ReleaseNotesMarkdown
             );
         }
     }

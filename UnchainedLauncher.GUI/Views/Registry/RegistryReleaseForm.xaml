@@ -122,11 +122,8 @@
             <Button Command="{Binding SubmitCommand}" 
                    Margin="0,12,0,8" 
                    Padding="15,8"
-                   Background="#4CAF50"
-                   Foreground="White"
-                   BorderThickness="0"
+                   Style="{StaticResource Button.Success}"
                    FontWeight="SemiBold"
-                   Cursor="Hand"
                    HorizontalAlignment="Stretch">
                 Submit
             </Button>

@@ -40,7 +40,8 @@ namespace UnchainedLauncher.GUI.Views.Registry.DesignInstances {
                     new List<ModTag> { ModTag.Doodad, ModTag.Mutator },
                     new List<string> { "ffa_exampleMap", "tdm_exampleMap" },
                     new OptionFlags(true)
-                )
+                ),
+                "# Example Release Notes\n\n* Your release notes here"
             ),
             null
         ) { }

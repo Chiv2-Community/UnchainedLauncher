@@ -4,26 +4,16 @@
              xmlns:local="clr-namespace:UnchainedLauncher.GUI"
              xmlns:converters="clr-namespace:UnchainedLauncher.GUI.Converters">
     <Application.Resources>
-        <converters:InstallationTypeConverter x:Key="InstallationTypeConverter"/>
+        <!-- Global theme dictionaries and shared resources -->
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Colors.xaml"/>
+                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Typography.xaml"/>
+                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Controls.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
 
-        <!-- Default Style for TextBlock -->
-        <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="Black"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
-        </Style>
-
-        <!-- Default Style for ComboBox -->
-        <Style TargetType="ComboBox">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#CCCCCC"/>
-            <Setter Property="BorderThickness" Value="1"/>
-        </Style>
-
-        <!-- Default Style for CheckBox -->
-        <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="Black"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#CCCCCC"/>
-        </Style>
+            <!-- Converters -->
+            <converters:InstallationTypeConverter x:Key="InstallationTypeConverter"/>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

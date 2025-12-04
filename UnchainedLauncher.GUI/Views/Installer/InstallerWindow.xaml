@@ -37,8 +37,7 @@
         <!-- Header -->
         <TextBlock Grid.Row="0"
                    Text="{Binding CurrentPageTitle}"
-                   FontSize="20"
-                   FontWeight="Bold"
+                   Style="{StaticResource Heading.H2}"
                    Margin="0,0,0,10"/>
         
         <!-- Page Content, Grid, Two columns, left side houses a descripton, right side houses some user control that changes per page -->
@@ -48,19 +47,14 @@
                 <ColumnDefinition Width="{Binding PageColumnWidth}"/>
             </Grid.ColumnDefinitions>
             
-            <!-- Left side, description with border around it-->
+            <!-- Left side, description in a card container -->
             <Border Grid.Column="0"
-                    BorderBrush="{x:Static SystemColors.ControlDarkBrush}"
-                    Background="White"
-                    BorderThickness="1"
+                    Style="{StaticResource Card}"
                     Margin="0,0,10,0"
-                    Visibility="{Binding DisplayDescription}"
-                    >
+                    Visibility="{Binding DisplayDescription}">
                 <TextBlock Text="{Binding CurrentPageDescription}"
-                           FontSize="16"
-                           TextWrapping="Wrap"
-                           Margin="5"
-                           />
+                           FontSize="14"
+                           TextWrapping="Wrap"/>
             </Border>
             
             <!-- Right side, user control -->
@@ -68,7 +62,7 @@
         </Grid>
 
         <!-- Bottom Button Panel -->
-        <Grid Grid.Row="3" Margin="0,10,0,0">
+        <Grid Grid.Row="2" Margin="0,10,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
@@ -81,31 +75,19 @@
                     Content="{Binding GoBackButtonText}"
                     IsEnabled="{Binding CanGoBack}"
                     Visibility="{Binding DisplayGoBackButton}"
-                    Padding="20,3"
+                    Padding="20,6"
                     Margin="0,0,10,0"
-                    HorizontalAlignment="Right">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="{x:Static SystemColors.ControlBrush}"/>
-                        <Setter Property="BorderBrush" Value="{x:Static SystemColors.ControlDarkBrush}"/>
-                    </Style>
-                </Button.Style>
-            </Button>
+                    HorizontalAlignment="Right"
+                    Style="{StaticResource Button.Secondary}"/>
 
             <!-- Right-aligned Continue button -->
             <Button Grid.Column="2"
                     Command="{Binding NextButtonCommand}"
                     Content="{Binding ContinueButtonText}"
                     IsEnabled="{Binding CanContinue}"
-                    Padding="20,3"
-                    HorizontalAlignment="Right">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="{x:Static SystemColors.ControlBrush}"/>
-                        <Setter Property="BorderBrush" Value="{x:Static SystemColors.ControlDarkBrush}"/>
-                    </Style>
-                </Button.Style>
-            </Button>
+                    Padding="20,6"
+                    HorizontalAlignment="Right"
+                    Style="{StaticResource Button.Primary}"/>
         </Grid>
     </Grid>
 </Window>

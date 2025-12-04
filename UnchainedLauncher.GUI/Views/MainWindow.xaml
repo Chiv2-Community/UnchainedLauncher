@@ -15,27 +15,7 @@
         Title="Unchained Launcher" Height="500" Width="650"
     >
     
-    <Window.Resources>
-        <Style TargetType="Button">
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Background" Value="LightGray"/>
-            <Setter Property="Foreground" Value="Black"/>
-        </Style>
-        <Style TargetType="DataGrid">
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="Black"/>
-        </Style>
-        <Style TargetType="TextBlock">
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Foreground" Value="Black"/>
-        </Style>
-        <Style TargetType="ComboBox">
-            <Setter Property="Margin" Value="5"/>
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="Foreground" Value="Black"/>
-        </Style>
-    </Window.Resources>
+    <Window.Resources/>
 
     <TabControl x:Name="Tabs">
         <TabItem Header="Launcher">

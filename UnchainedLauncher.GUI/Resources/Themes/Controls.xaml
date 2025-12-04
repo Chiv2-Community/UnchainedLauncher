@@ -1,0 +1,126 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Spacing helpers -->
+    <Thickness x:Key="Spacing.XS">2</Thickness>
+    <Thickness x:Key="Spacing.SM">4</Thickness>
+    <Thickness x:Key="Spacing.MD">8</Thickness>
+    <Thickness x:Key="Spacing.LG">12</Thickness>
+    <Thickness x:Key="Spacing.XL">16</Thickness>
+
+    <!-- Window defaults -->
+    <Style TargetType="Window">
+        <Setter Property="Background" Value="{StaticResource Brush.Light}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}"/>
+    </Style>
+
+    <!-- Card container (like Bootstrap .card) -->
+    <Style x:Key="Card" TargetType="Border">
+        <Setter Property="CornerRadius" Value="6"/>
+        <Setter Property="Background" Value="{StaticResource Brush.Background}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="12"/>
+        <Setter Property="Margin" Value="8"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect BlurRadius="5" ShadowDepth="2" Opacity="0.15"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Buttons -->
+    <Style x:Key="Button.Base" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Default}"/>
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="Margin" Value="0,0,0,0"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="Background" Value="{StaticResource Brush.Secondary}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border" CornerRadius="4" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter Margin="4" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Opacity" Value="0.95"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Opacity" Value="0.9"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Background" Value="#FFADB5BD"/>
+                            <Setter Property="Foreground" Value="#FFE9ECEF"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Apply base button style implicitly to all Buttons -->
+    <Style TargetType="Button" BasedOn="{StaticResource Button.Base}"/>
+
+    <Style x:Key="Button.Primary" TargetType="Button" BasedOn="{StaticResource Button.Base}">
+        <Setter Property="Background" Value="{StaticResource Brush.Primary}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.PrimaryHover}"/>
+    </Style>
+    <Style x:Key="Button.Secondary" TargetType="Button" BasedOn="{StaticResource Button.Base}">
+        <Setter Property="Background" Value="{StaticResource Brush.Secondary}"/>
+    </Style>
+    <Style x:Key="Button.Success" TargetType="Button" BasedOn="{StaticResource Button.Base}">
+        <Setter Property="Background" Value="{StaticResource Brush.Success}"/>
+    </Style>
+    <Style x:Key="Button.Danger" TargetType="Button" BasedOn="{StaticResource Button.Base}">
+        <Setter Property="Background" Value="{StaticResource Brush.Danger}"/>
+    </Style>
+    <Style x:Key="Button.Light" TargetType="Button" BasedOn="{StaticResource Button.Base}">
+        <Setter Property="Background" Value="{StaticResource Brush.Light}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}"/>
+    </Style>
+
+    <!-- Inputs -->
+    <Style x:Key="Input.TextBox" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Default}"/>
+        <Setter Property="Padding" Value="8,6"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.InputBorder}"/>
+        <Setter Property="Background" Value="{StaticResource Brush.InputBackground}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+    <!-- Apply TextBox style implicitly -->
+    <Style TargetType="TextBox" BasedOn="{StaticResource Input.TextBox}"/>
+
+    <Style x:Key="Input.ComboBox" TargetType="ComboBox">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Default}"/>
+        <Setter Property="Padding" Value="6,4"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.InputBorder}"/>
+        <Setter Property="Background" Value="{StaticResource Brush.InputBackground}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+    <!-- Apply ComboBox style implicitly -->
+    <Style TargetType="ComboBox" BasedOn="{StaticResource Input.ComboBox}"/>
+
+    <Style x:Key="Toggle.CheckBox" TargetType="CheckBox">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Default}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}"/>
+    </Style>
+    <!-- Apply CheckBox style implicitly -->
+    <Style TargetType="CheckBox" BasedOn="{StaticResource Toggle.CheckBox}"/>
+
+    <!-- Misc controls -->
+    <Style TargetType="GroupBox">
+        <Setter Property="Margin" Value="{StaticResource Spacing.MD}"/>
+    </Style>
+    <Style TargetType="ProgressBar">
+        <Setter Property="Height" Value="12"/>
+    </Style>
+</ResourceDictionary>

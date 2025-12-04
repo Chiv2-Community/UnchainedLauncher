@@ -6,23 +6,21 @@
     <Nullable>enable</Nullable>
     <RootNamespace>UnchainedLauncher.Core</RootNamespace>
     <AssemblyName>$(MSBuildProjectName)</AssemblyName>
+
+    <DebugSymbols>True</DebugSymbols>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
-  
+
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <Optimize>false</Optimize>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>portable</DebugType>
-    <Deterministic>true</Deterministic>
+    <Optimize>False</Optimize>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>none</DebugType>
-    <Deterministic>true</Deterministic>
+    <Optimize>True</Optimize>
   </PropertyGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\DiscriminatedUnions\DiscriminatedUnions.csproj"/>
 

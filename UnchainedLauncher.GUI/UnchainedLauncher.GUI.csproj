@@ -3,16 +3,18 @@
     <OutputType>WinExe</OutputType>
     <UseWPF>True</UseWPF>
     <TargetFramework>net10.0-windows</TargetFramework>
-    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <EnableWindowsTargeting>True</EnableWindowsTargeting>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <EnableWindowsTargeting>true</EnableWindowsTargeting>
-    <SelfContained>false</SelfContained>
-    <PublishSingleFile>true</PublishSingleFile>
-    <Nullable>enable</Nullable>
-    <PublishReadyToRun>False</PublishReadyToRun>
-    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <EnableWindowsTargeting>True</EnableWindowsTargeting>
+    <SelfContained>False</SelfContained>
+    <Deterministic>True</Deterministic>
+    <DebugSymbols>True</DebugSymbols>
+    <DebugType>embedded</DebugType>
+    <IncludeAllContentForSelfExtract>True</IncludeAllContentForSelfExtract>
     <IncludeNativeLibrariesForSelfExtract>True</IncludeNativeLibrariesForSelfExtract>
     <SignAssembly>False</SignAssembly>
+    <Configurations>Debug;Release;Debug-FakeChivalryLaunch</Configurations>
+    
     <RepositoryUrl>https://github.com/Chiv2-Community/UnchainedLauncher</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <StartupObject>UnchainedLauncher.GUI.App</StartupObject>
@@ -24,31 +26,24 @@
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <AssemblyName>UnchainedLauncher</AssemblyName>
     <RootNamespace>UnchainedLauncher.GUI</RootNamespace>
-    <Configurations>Debug;Release;Debug-FakeChivalryLaunch</Configurations>
+
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <Optimize>false</Optimize>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>portable</DebugType>
-    <Deterministic>true</Deterministic>
+    <Optimize>False</Optimize>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>none</DebugType>
-    <Deterministic>true</Deterministic>
+    <Optimize>True</Optimize>
+    <PublishSingleFile>True</PublishSingleFile>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug-FakeChivalryLaunch|AnyCPU' ">
     <DefineConstants>DEBUG;TRACE;FAKE_CHIVALRY_LAUNCH</DefineConstants>
-    <Optimize>false</Optimize>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>portable</DebugType>
-    <Deterministic>true</Deterministic>
+    <Optimize>False</Optimize>
   </PropertyGroup>
   
   <ItemGroup>

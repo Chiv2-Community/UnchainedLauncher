@@ -1,26 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    <!-- Shamelessly copied from https://gist.github.com/shadeglare/6b46baa340346e575b2751475733405c#file-complete-cs -->
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <RootNamespace>DiscriminatedUnions</RootNamespace>
-        <AssemblyName>$(MSBuildProjectName)</AssemblyName>
-    </PropertyGroup>
+  <!-- Shamelessly copied from https://gist.github.com/shadeglare/6b46baa340346e575b2751475733405c#file-complete-cs -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>DiscriminatedUnions</RootNamespace>
+    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
+    <DebugSymbols>True</DebugSymbols>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
 
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-        <DefineConstants>DEBUG;TRACE</DefineConstants>
-        <Optimize>false</Optimize>
-        <DebugSymbols>true</DebugSymbols>
-        <DebugType>portable</DebugType>
-        <Deterministic>true</Deterministic>
-    </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <Optimize>False</Optimize>
+  </PropertyGroup>
 
-    <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-        <DefineConstants>TRACE</DefineConstants>
-        <Optimize>true</Optimize>
-        <DebugSymbols>false</DebugSymbols>
-        <DebugType>none</DebugType>
-        <Deterministic>true</Deterministic>
-    </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>True</Optimize>
+  </PropertyGroup>
 </Project>

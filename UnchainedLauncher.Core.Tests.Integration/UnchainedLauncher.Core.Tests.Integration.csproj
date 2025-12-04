@@ -5,24 +5,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-
     <IsPackable>false</IsPackable>
+
+    <DebugSymbols>True</DebugSymbols>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
+
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <Optimize>false</Optimize>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>portable</DebugType>
-    <Deterministic>true</Deterministic>
+    <Optimize>False</Optimize>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>none</DebugType>
-    <Deterministic>true</Deterministic>
+    <Optimize>True</Optimize>
   </PropertyGroup>
 
   <ItemGroup>

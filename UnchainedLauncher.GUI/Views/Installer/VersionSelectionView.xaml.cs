@@ -1,64 +1,10 @@
-﻿using Microsoft.Web.WebView2.Core;
-using System;
-using System.IO;
-using System.Threading.Tasks;
+﻿using System;
 using System.Windows.Controls;
-using UnchainedLauncher.GUI.ViewModels.Installer;
 
 namespace UnchainedLauncher.GUI.Views.Installer {
-    // All of this codebehind exists because WebView doesn't support binding to a string for content
     public partial class VersionSelectionView : UserControl {
-        private bool WebViewInitialized = false;
-
         public VersionSelectionView() {
             InitializeComponent();
-
-            if (DataContext is VersionSelectionPageViewModel) {
-                // We need to first initialize the handlers with the current DataContext
-                HandleDataContextChanged();
-            }
-
-            DataContextChanged += (_, _) => HandleDataContextChanged();
-        }
-
-        private async void HandleDataContextChanged() {
-            if (DataContext == null || DataContext is not VersionSelectionPageViewModel) return;
-
-            var vm = (VersionSelectionPageViewModel)DataContext;
-
-            // We need to act as though SelectedVersion changed, because we have a changed ViewModel
-            await HandleSelectedVersionChanged(vm);
-
-            // We need to handle the PropertyChanged event to update the WebView automatically
-            vm.PropertyChanged += async (sender, args) => {
-                if (args.PropertyName == nameof(vm.SelectedVersion)) {
-                    await HandleSelectedVersionChanged(vm);
-                }
-            };
-        }
-
-        private async Task InitWebView() {
-            if (WebViewInitialized) return;
-
-            var userDataFolder = Path.Combine(
-                Path.GetTempPath(),
-                Path.GetRandomFileName()
-            );
-
-            var options = new CoreWebView2EnvironmentOptions();
-            var environment = await CoreWebView2Environment.CreateAsync(
-                null, // Use default browser version
-                userDataFolder,
-                options
-            );
-
-            await WebView.EnsureCoreWebView2Async(environment);
-            WebViewInitialized = true;
-        }
-
-        private async Task HandleSelectedVersionChanged(VersionSelectionPageViewModel vm) {
-            await InitWebView();
-            WebView.NavigateToString(vm.SelectedVersionDescriptionHtml);
         }
 
         // And this jank is to make it so the selected dropdown item is

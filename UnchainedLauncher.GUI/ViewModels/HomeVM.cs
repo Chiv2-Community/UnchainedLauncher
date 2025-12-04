@@ -17,6 +17,7 @@ using UnchainedLauncher.GUI.Services;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
+    
     public partial class HomeVM : INotifyPropertyChanged {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(HomeVM));
 
@@ -56,26 +57,26 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private async Task LoadWhatsNew() {
             try {
-                // Ensure we have the latest mods list
                 await ModManager.UpdateModsList();
 
                 var latestFive = ModManager.Mods
                     .SelectMany(m => m.Releases)
                     .OrderByDescending(r => r.ReleaseDate)
-                    .Take(5)
+                    .Take(20)
                     .ToList();
 
-                WhatsNew.Clear();
-                foreach (var r in latestFive) {
-                    var markdown = r.ReleaseNotesMarkdown ?? "";
-                    var html = MarkdownRenderer.RenderHtml(markdown);
-                    WhatsNew.Add(new WhatsNewItem {
-                        Title = $"{r.Manifest.Name} {r.Tag}",
-                        Date = r.ReleaseDate,
-                        Html = html,
-                        Url = r.ReleaseUrl
-                    });
-                }
+                // Build items off-UI-thread, then marshal collection updates to UI thread
+                var items = latestFive.Select(r => new WhatsNewItem {
+                    Title = $"{r.Manifest.Name} {r.Tag}",
+                    Date = r.ReleaseDate,
+                    Html = MarkdownRenderer.RenderHtml(r.ReleaseNotesMarkdown ?? ""),
+                    Url = r.ReleaseUrl
+                }).ToList();
+
+                System.Windows.Application.Current.Dispatcher.Invoke(() => {
+                    WhatsNew.Clear();
+                    foreach (var item in items) WhatsNew.Add(item);
+                });
             }
             catch (Exception e) {
                 Logger.Warn("Failed to load What's New section", e);

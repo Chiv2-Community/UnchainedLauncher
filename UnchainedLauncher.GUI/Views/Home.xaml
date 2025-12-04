@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:UnchainedLauncher.GUI.Views.Controls"
              xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance instances:HomeDesignVM}"
@@ -14,46 +15,64 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- What's new section -->
         <Border Grid.Row="0" Padding="12" Margin="4" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6">
-            <DockPanel>
-                <TextBlock Text="What's new" FontWeight="SemiBold" Margin="0 0 0 8" DockPanel.Dock="Top"/>
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <ItemsControl ItemsSource="{Binding WhatsNew}">
-                        <ItemsControl.ItemTemplate>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="What's new" FontWeight="SemiBold" Margin="0 0 0 8"/>
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="3*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- List of recent releases -->
+                    <ListBox x:Name="WhatsNewList"
+                             Grid.Column="0"
+                             ItemsSource="{Binding WhatsNew}"
+                             SelectionChanged="WhatsNewList_SelectionChanged">
+                        <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border Padding="8" Margin="0 0 0 8" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding Date, StringFormat=yyyy-MM-dd}" Opacity="0.7" FontSize="12"/>
-                                    </StackPanel>
-                                </Border>
+                                <StackPanel Margin="0 8 0 8">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Date, StringFormat=yyyy-MM-dd}" Opacity="0.7" FontSize="12"/>
+                                </StackPanel>
                             </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
-            </DockPanel>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <Border Grid.Column="1" Margin="12,0,0,0" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6">
+                        <controls:HtmlWebView x:Name="WhatsNewHtml"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"/>
+                    </Border>
+                </Grid>
+            </Grid>
         </Border>
 
-        <!-- Bottom-left normal buttons -->
         <Border Grid.Row="1" Padding="8,12" Background="Transparent">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Margin="0,0,8,0"
                         Content="Chivalry 2"
                         ToolTip="{Binding ButtonToolTip}"
                         Command="{Binding LaunchVanillaCommand}"
-                        IsEnabled="{Binding Settings.CanClick}"/>
+                        IsEnabled="{Binding Settings.CanClick}"
+                        Style="{StaticResource Button.Primary}"/>
 
                 <Button Margin="0,0,8,0"
                         Content="Chivalry 2 with Mods"
                         ToolTip="{Binding ButtonToolTip}"
                         Command="{Binding LaunchModdedVanillaCommand}"
-                        IsEnabled="{Binding Settings.CanClick}"/>
+                        IsEnabled="{Binding Settings.CanClick}"
+                        Style="{StaticResource Button.Primary}"/>
 
                 <Button Content="Chivalry 2 Unchained"
                         ToolTip="{Binding ButtonToolTip}"
                         Command="{Binding LaunchUnchainedCommand}"
-                        IsEnabled="{Binding Settings.CanClick}"/>
+                        IsEnabled="{Binding Settings.CanClick}"
+                        Style="{StaticResource Button.Primary}"/>
             </StackPanel>
         </Border>
     </Grid>

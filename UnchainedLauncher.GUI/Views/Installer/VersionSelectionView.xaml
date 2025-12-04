@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:ivms="clr-namespace:UnchainedLauncher.GUI.ViewModels.Installer"
-             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+             xmlns:controls="clr-namespace:UnchainedLauncher.GUI.Views.Controls"
              xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Installer"
              mc:Ignorable="d" 
              d:DesignHeight="350" d:DesignWidth="800">
@@ -62,12 +62,11 @@
                    FontWeight="Bold"
                    Margin="0,0,0,5"/>
 
-        <ScrollViewer Grid.Row="2" 
-                     VerticalScrollBarVisibility="Auto"
-                     Margin="0,0,0,10"
-                     VerticalAlignment="Stretch">
-            <wv2:WebView2 x:Name="WebView" Source="" />
-        </ScrollViewer>
+        <Border Grid.Row="2" Margin="0,0,0,10" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6">
+            <controls:HtmlWebView Html="{Binding SelectedVersionDescriptionHtml}"
+                                  HorizontalAlignment="Stretch"
+                                  VerticalAlignment="Stretch"/>
+        </Border>
 
         <Button Grid.Row="3" 
                 Content="View on GitHub"

@@ -7,9 +7,8 @@ namespace UnchainedLauncher.GUI.Services {
             .Build();
 
         public static string RenderHtml(string markdown) {
-            if (string.IsNullOrEmpty(markdown)) return "";
-
-            var html = Markdown.ToHtml(markdown, Pipeline);
+            var hasContent = !string.IsNullOrWhiteSpace(markdown);
+            var html = hasContent ? Markdown.ToHtml(markdown, Pipeline) : "<p style='opacity:0.7'>No release notes provided.</p>";
             return $@"
             <html>
                 <head>
@@ -20,6 +19,8 @@ namespace UnchainedLauncher.GUI.Services {
                             font-family: Segoe UI, sans-serif;
                             margin: 0;
                             padding: 0 8px;
+                            background-color: #ffffff;
+
                         }}
                         img {{ max-width: 100%; }}
                         pre {{ 

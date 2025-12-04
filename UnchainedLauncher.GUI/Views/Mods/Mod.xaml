@@ -104,7 +104,6 @@
                 <TextBlock Text="{Binding Mod.LatestManifest.ModType}" Margin="4,0,12,0"/>
                 <TextBlock Text="Tags: " Foreground="{StaticResource Brush.Muted}"/>
                 <TextBlock Text="{Binding TagsString}"/>
-                <TextBlock Text="{Binding EnabledVersion}"/>
             </StackPanel>
 
             <!-- Description: visible by default, clipped when long; expands on focus -->

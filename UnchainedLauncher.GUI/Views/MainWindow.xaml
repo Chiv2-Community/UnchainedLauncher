@@ -9,6 +9,7 @@
         xmlns:vms="clr-namespace:UnchainedLauncher.GUI.ViewModels"
         xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
         xmlns:registry="clr-namespace:UnchainedLauncher.GUI.Views.Registry"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         mc:Ignorable="d" 
         d:DataContext="{d:DesignInstance instances:MainWindowDesignVM}"
         x:Class="UnchainedLauncher.GUI.Views.MainWindow"
@@ -17,64 +18,54 @@
         ResizeMode="CanResize"
         AllowsTransparency="False"
     >
+    <!-- Ensure there is no residual non-client glass frame (prevents 1px white sliver at top) -->
+    <WindowChrome.WindowChrome>
+        <shell:WindowChrome
+            CaptionHeight="0"
+            CornerRadius="0"
+            GlassFrameThickness="0"
+            ResizeBorderThickness="6"
+            UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
     
     <Window.Resources>
-        <!-- Bubble TabItem style using theme brushes (DynamicResource for runtime theme changes) -->
-        <Style TargetType="TabItem" x:Key="BubbleTabItemStyle">
-            <!-- Default/unselected/hover text color uses TextPrimary -->
+        <Style TargetType="TabItem" x:Key="UnderlineTabItemStyle">
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
-            <Setter Property="HeaderTemplate">
-                <Setter.Value>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding}"
-                                   TextTrimming="CharacterEllipsis"
-                                   Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=TabItem}}"/>
-                    </DataTemplate>
-                </Setter.Value>
-            </Setter>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="8,4"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Grid>
-                            <Border
-                                x:Name="Spacer"
-                                Width="Auto"
-                                Height="Auto"
-                                Padding="0 0 5 0"
-                                Margin="0 0 0 0"
-                                BorderBrush="Transparent"
-                                BorderThickness="0">
-                            <Border x:Name="Bubble"
-                                    Background="{DynamicResource Brush.LightTransparent}"
-                                    BorderBrush="{DynamicResource Brush.Border}"
-                                    BorderThickness="1"
-                                    CornerRadius="16"
-                                    SnapsToDevicePixels="True">
+                            <Border x:Name="Spacer"
+                                    Margin="20 0 20 10"
+                                    BorderBrush="Transparent">
+                                <!-- Tab content -->
                                 <ContentPresenter x:Name="ContentSite"
                                                   ContentSource="Header"
                                                   RecognizesAccessKey="True"
                                                   HorizontalAlignment="Center"
                                                   VerticalAlignment="Center"
-                                                  Margin="8,2"
                                                   TextElement.Foreground="{TemplateBinding Foreground}"/>
                             </Border>
-                            </Border>
+                            <!-- Underline for selected tab -->
+                            <Border x:Name="Underline"
+                                    Height="2"
+                                    VerticalAlignment="Bottom"
+                                    Background="{DynamicResource Brush.Primary}"
+                                    Visibility="Collapsed"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bubble" Property="Background" Value="{DynamicResource Brush.Primary}"/>
-                                <Setter TargetName="Bubble" Property="BorderBrush" Value="{DynamicResource Brush.Primary}"/>
-                                <!-- Selected tab text color uses Light as requested -->
-                                <Setter Property="Foreground" Value="{DynamicResource Brush.Light}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Primary}"/>
+                                <Setter TargetName="Underline" Property="Visibility" Value="Visible"/>
                                 <Setter Property="Panel.ZIndex" Value="1"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.6"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bubble" Property="Background" Value="{DynamicResource Brush.PrimaryHover}"/>
-                                <!-- Keep text color unchanged on hover for unselected tabs (TextPrimary) -->
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.PrimaryHover}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -82,18 +73,21 @@
             </Setter>
         </Style>
 
-        <!-- TabControl template with logo on the left and right-aligned bubble tabs -->
+        <!-- TabControl template with logo on the left and right-aligned tabs -->
         <Style TargetType="TabControl" x:Key="RightAlignedTabControlStyle">
+            <Setter Property="Background" Value="{DynamicResource Brush.Background}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabControl">
-                        <Grid KeyboardNavigation.TabNavigation="Local">
+                        <Grid KeyboardNavigation.TabNavigation="Local"
+                              Background="{TemplateBinding Background}">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             <!-- Header row: logo on the left, app title next to it, tabs on the right -->
-                            <Grid Grid.Row="0" Margin="8,8,8,0">
+                            <Grid Grid.Row="0" Margin="8,8,8,0" Background="{TemplateBinding Background}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="Auto"/>
@@ -103,13 +97,13 @@
                                        Height="56"
                                        Stretch="Uniform"
                                        VerticalAlignment="Top"
-                                       Margin="0,-32,8,0"
+                                       Margin="0,-32,8,6"
                                        Source="pack://application:,,,/UnchainedLauncher;component/assets/chiv2-unchained-logo.png"/>
                                 <!-- Ensure the app title is vertically centered relative to the logo's visual height (56) that spans title bar + tab header -->
                                 <Border Grid.Column="1"
                                         Height="56"
                                         VerticalAlignment="Top"
-                                        Margin="0,-32,12,0">
+                                        Margin="0,-32,12,6">
                                     <TextBlock Text="Unchained"
                                                Style="{DynamicResource Heading.H1}"
                                                VerticalAlignment="Center"
@@ -118,15 +112,24 @@
                                 <TabPanel Grid.Column="2" x:Name="HeaderPanel"
                                           IsItemsHost="True"
                                           HorizontalAlignment="Right"
+                                          VerticalAlignment="Bottom"
                                           Margin="8,0,0,0"
-                                          Width="NaN" />
+                                          Width="NaN"
+                                          Background="{TemplateBinding Background}" />
                             </Grid>
-                            <!-- Content presenter -->
-                            <Border Grid.Row="1" Margin="8" Background="Transparent">
+                            <!-- Thin separator line between headers and content (full width) -->
+                            <Rectangle Grid.Row="0"
+                                       VerticalAlignment="Bottom"
+                                       Height="1"
+                                       Fill="{DynamicResource Brush.Border}"/>
+
+                            <!-- Content host wrapped in a Border to carry background -->
+                            <Border Grid.Row="1"
+                                    Background="{TemplateBinding Background}"
+                                    Margin="16">
                                 <ContentPresenter x:Name="PART_SelectedContentHost"
                                                   ContentSource="SelectedContent"
-                                                  SnapsToDevicePixels="True"
-                                                  Margin="0 16 0 0"/>
+                                                  SnapsToDevicePixels="True"/>
                             </Border>
                         </Grid>
                     </ControlTemplate>
@@ -144,7 +147,7 @@
 
         <!-- Title bar -->
         <Grid Grid.Row="0"
-              Background="Transparent"
+              Background="{DynamicResource Brush.Background}"
               MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -168,17 +171,41 @@
         <!-- Main tabs/content -->
         <TabControl Grid.Row="1" x:Name="Tabs"
                     Style="{StaticResource RightAlignedTabControlStyle}"
-                    ItemContainerStyle="{StaticResource BubbleTabItemStyle}">
-            <TabItem Header="Home">
+                    ItemContainerStyle="{StaticResource UnderlineTabItemStyle}">
+            <TabItem>
+                <TabItem.Header> 
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🏠" Margin="0,0,6,0"/>
+                        <TextBlock Text="Home"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <local:Home DataContext="{Binding HomeVM}" />
             </TabItem>
-            <TabItem Header="Mod Manager">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🧩" Margin="0,0,6,0"/>
+                        <TextBlock Text="Mod Manager"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <mods:ModList DataContext="{Binding ModListViewModel}" />
             </TabItem>
-            <TabItem Header="Servers">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🖥️" Margin="0,0,6,0"/>
+                        <TextBlock Text="Servers"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <servers:ServersTab DataContext="{Binding ServersTab}" />
             </TabItem>
-            <TabItem Header="Settings">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="⚙️" Margin="0,0,6,0"/>
+                        <TextBlock Text="Settings"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <local:Settings DataContext="{Binding SettingsViewModel}" />
             </TabItem>
         </TabControl>

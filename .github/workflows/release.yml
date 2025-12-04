@@ -34,15 +34,14 @@ jobs:
     - name: Run Unit Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Core.Tests.Unit  --logger:"console;verbosity=detailed"
       
-    # Puts binaries in ${{ env.GUI_Project_Path }}\bin\${{ matrix.configuration }}\net${{ env.DOTNET_VERSION }}-windows\win-x64\publish\
     - name: Package ${{ matrix.configuration }} binaries
-      run: dotnet publish -c ${{ matrix.configuration}} 
+      run: dotnet publish -c ${{ matrix.configuration}} -o out/
 
     - name: Upload ${{ matrix.configuration }} Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: UnchainedLauncher_${{ matrix.configuration }}_${{ github.sha }}
-        path: ${{ env.GUI_Project_Path }}\bin\${{ matrix.configuration }}\net${{ env.DOTNET_VERSION }}-windows\win-x64\publish\
+        path: out
 
   publish:
     needs: build

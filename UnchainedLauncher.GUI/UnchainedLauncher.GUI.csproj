@@ -6,93 +6,78 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
-	<SelfContained>false</SelfContained>
-	<PublishSingleFile>true</PublishSingleFile>
-	<Nullable>enable</Nullable>
+    <SelfContained>false</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <Nullable>enable</Nullable>
     <PublishReadyToRun>False</PublishReadyToRun>
-	<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <IncludeNativeLibrariesForSelfExtract>True</IncludeNativeLibrariesForSelfExtract>
     <SignAssembly>False</SignAssembly>
     <RepositoryUrl>https://github.com/Chiv2-Community/UnchainedLauncher</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <StartupObject>UnchainedLauncher.GUI.App</StartupObject>
     <Title>Unchained Launcher</Title>
-	<Description>A launcher for Chivalry 2 that allows you to use mods.</Description>
-	<Authors>Jacoby6000, AERoese (BK, DrLong), Nihilianth</Authors>
+    <Description>A launcher for Chivalry 2 that allows you to use mods.</Description>
+    <Authors>Jacoby6000, AERoese (BK, DrLong), Nihilianth</Authors>
     <PackageProjectUrl>https://github.com/Chiv2-Community/UnchainedLauncher</PackageProjectUrl>
     <ApplicationIcon>assets\chiv2-unchained-logo.ico</ApplicationIcon>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <AssemblyName>UnchainedLauncher</AssemblyName>
     <RootNamespace>UnchainedLauncher.GUI</RootNamespace>
     <Configurations>Debug;Release;Debug-FakeChivalryLaunch</Configurations>
-	<XamlDebuggingInformation>True</XamlDebuggingInformation>
   </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <Optimize>false</Optimize>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug-FakeChivalryLaunch|AnyCPU' ">
+    <DefineConstants>DEBUG;TRACE;FAKE_CHIVALRY_LAUNCH</DefineConstants>
+    <Optimize>false</Optimize>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  
   <ItemGroup>
-    <None Remove="DefaultMaps.txt" />
-    <None Remove="log4net.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="assets\chiv2-unchained-logo.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Resources\DefaultMaps.txt" />
-    <EmbeddedResource Include="Resources\log4net.config">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Jdenticon.Wpf" Version="3.1.2" />
-    <PackageReference Include="LanguageExt.Core" Version="4.4.9" />
-    <PackageReference Include="LanguageExt.Sys" Version="4.4.9" />
-    <PackageReference Include="log4net" Version="3.0.1" />
-    <PackageReference Include="Markdig" Version="0.38.0" />
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
-	<PackageReference Include="Octokit" Version="13.0.1" />
-    <PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All" />
-    <PackageReference Include="Semver" Version="2.3.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\UnchainedLauncher.Core\UnchainedLauncher.Core.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Update="Views\Installer\InstallerLogView.xaml.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Update="Views\Installer\InstallerWindow.xaml.cs">
-      <SubType>Code</SubType>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
+    <Content Include="assets\chiv2-unchained-logo.ico"/>
     <None Update="assets\chiv2-unchained-logo.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
+    <EmbeddedResource Include="Resources\DefaultMaps.txt"/>
+    <EmbeddedResource Include="Resources\log4net.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
+
+    <None Remove="DefaultMaps.txt"/>
+    <None Remove="log4net.config"/>
   </ItemGroup>
   <ItemGroup>
-    <Page Update="Views\Installer\InstallerWindow.xaml">
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="Views\Progress\MemoryProgressDisplay.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <XamlRuntime>Wpf</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="Views\Progress\ProgressWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <XamlRuntime>Wpf</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="Views\Mods\Mod.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <XamlRuntime>Wpf</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Update="Views\Mods\ModList.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <XamlRuntime>Wpf</XamlRuntime>
-      <SubType>Designer</SubType>
-    </Page>
+    <ProjectReference Include="..\UnchainedLauncher.Core\UnchainedLauncher.Core.csproj"/>
+
+    <PackageReference Include="Jdenticon.Wpf" Version="3.1.2"/>
+    <PackageReference Include="LanguageExt.Core" Version="4.4.9"/>
+    <PackageReference Include="LanguageExt.Sys" Version="4.4.9"/>
+    <PackageReference Include="log4net" Version="3.0.1"/>
+    <PackageReference Include="Markdig" Version="0.38.0"/>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40"/>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2"/>
+    <PackageReference Include="Octokit" Version="13.0.1"/>
+    <PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All"/>
+    <PackageReference Include="Semver" Version="2.3.0"/>
   </ItemGroup>
 </Project>

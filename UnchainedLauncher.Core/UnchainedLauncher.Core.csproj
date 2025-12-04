@@ -7,16 +7,31 @@
     <RootNamespace>UnchainedLauncher.Core</RootNamespace>
     <AssemblyName>$(MSBuildProjectName)</AssemblyName>
   </PropertyGroup>
-    <ItemGroup>
-        <ProjectReference Include="..\DiscriminatedUnions\DiscriminatedUnions.csproj" />
-    </ItemGroup>
+  
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <Optimize>false</Optimize>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
   <ItemGroup>
-	<PackageReference Include="LanguageExt.Core" Version="4.4.9" />
-	<PackageReference Include="LanguageExt.Sys" Version="4.4.9" />
-	<PackageReference Include="log4net" Version="3.0.1" />
-	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
-	<PackageReference Include="Octokit" Version="13.0.1" />
-	<PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All" />
-	<PackageReference Include="Semver" Version="2.3.0" />
+    <ProjectReference Include="..\DiscriminatedUnions\DiscriminatedUnions.csproj"/>
+
+    <PackageReference Include="LanguageExt.Core" Version="4.4.9"/>
+    <PackageReference Include="LanguageExt.Sys" Version="4.4.9"/>
+    <PackageReference Include="log4net" Version="3.0.1"/>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2"/>
+    <PackageReference Include="Octokit" Version="13.0.1"/>
+    <PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All"/>
+    <PackageReference Include="Semver" Version="2.3.0"/>
   </ItemGroup>
 </Project>

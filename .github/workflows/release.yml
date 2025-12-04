@@ -8,7 +8,9 @@ on:
 permissions:
   contents: write
 
-
+env:
+  DOTNET_VERSION: '10.x'
+  
 # TODO: Run integration tests. Set up some kind of stubbed environment for the tests to run in.
 jobs:
   build:
@@ -23,7 +25,8 @@ jobs:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '10.x'
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
     - name: Install dependencies
       run: dotnet restore
     - name: Build
@@ -31,15 +34,14 @@ jobs:
     - name: Run Unit Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Core.Tests.Unit  --logger:"console;verbosity=detailed"
       
-    # Puts binaries in ${{ env.GUI_Project_Path }}\bin\${{ matrix.configuration }}\net6.0-windows\win-x64\publish\
     - name: Package ${{ matrix.configuration }} binaries
-      run: dotnet publish -c ${{ matrix.configuration}} 
+      run: dotnet publish -c ${{ matrix.configuration}} -o out/
 
     - name: Upload ${{ matrix.configuration }} Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: UnchainedLauncher_${{ matrix.configuration }}_${{ github.sha }}
-        path: ${{ env.GUI_Project_Path }}\bin\${{ matrix.configuration }}\net6.0-windows\win-x64\publish\
+        path: out
 
   publish:
     needs: build

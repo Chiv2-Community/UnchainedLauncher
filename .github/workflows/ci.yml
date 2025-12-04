@@ -52,7 +52,7 @@ jobs:
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Core.Tests.Unit --logger:"console;verbosity=detailed"
 
     - name: Package ${{ matrix.configuration }} binaries
-      run: dotnet publish UnchainedLauncher.GUI --sc -c ${{ matrix.configuration}} -o out/
+      run: dotnet publish UnchainedLauncher.GUI -c ${{ matrix.configuration}} -o out/
 
     - name: Upload ${{ matrix.configuration }} Artifacts
       uses: actions/upload-artifact@v4

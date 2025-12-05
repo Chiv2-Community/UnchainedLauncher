@@ -96,7 +96,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             DialogueSpawner = dialogueSpawner;
             ModManagerCreator = modManagerCreator;
             SaveLocation = saveLocation;
+            
             Load();
+            
+            if(ServerTemplates.Length() == 0)
+                AddTemplate();
+            
             SelectedTemplate = ServerTemplates.FirstOrDefault();
             UpdateVisibility();
         }
@@ -111,7 +116,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public Task ShutdownServer() => Task.Run(() => SelectedLive?.Dispose());
 
         [RelayCommand]
-        public async Task AddTemplate() {
+        public void AddTemplate() {
             var newModManager = new ModManager(
                 ModRegistry,
                 new List<ReleaseCoordinates> { });

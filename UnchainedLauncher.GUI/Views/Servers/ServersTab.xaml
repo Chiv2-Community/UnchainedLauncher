@@ -13,7 +13,6 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
-            <RowDefinition Height="auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <!-- Server selector -->
@@ -47,20 +46,22 @@
                 <Button Width="100" Command="{Binding SaveCommand}" Style="{StaticResource Button.Primary}" Content="Save" Margin="8 0 0 0"/>
             </StackPanel>
         </Grid>
-        <Grid Grid.Row="1">
-            <TextBlock Text="Press the plus above to add a new template"/>
-        </Grid>
-        <!-- Only one of the following is displayed at a time -->
-        
-        <!-- Template editor & launch buttons -->
-        <Grid Grid.Row="2" Visibility="{Binding TemplateEditorVisibility}">
+        <!-- Template editor & launch buttons (scrollable content, fixed buttons at bottom) -->
+        <Grid Grid.Row="1" Visibility="{Binding TemplateEditorVisibility}" Margin="0, 8, 0, 0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="8"/>
                 <RowDefinition Height="auto"/>
             </Grid.RowDefinitions>
-            <local:ServerTemplate Grid.Row="0" DataContext="{Binding SelectedTemplate}"/>
-            <!-- Launch buttons -->
-            <Grid Grid.Row="1">
+            <!-- Scrollable template content -->
+            <ScrollViewer Grid.Row="0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          CanContentScroll="True">
+                <local:ServerTemplate DataContext="{Binding SelectedTemplate}"/>
+            </ScrollViewer>
+            <!-- Launch buttons fixed at bottom -->
+            <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="10"/>
@@ -70,9 +71,10 @@
                 <Button Grid.Column="2" Command="{Binding LaunchHeadlessCommand}" Style="{StaticResource Button.Secondary}">Launch Headless Server</Button>
             </Grid>
         </Grid>
+            
         
         <!-- Running server stuff-->
-        <Grid Grid.Row="2" Visibility="{Binding LiveServerVisibility}">
+        <Grid Grid.Row="1" Visibility="{Binding LiveServerVisibility}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="auto"/>

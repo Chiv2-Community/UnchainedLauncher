@@ -516,6 +516,8 @@
         <Setter Property="Padding" Value="8,6"/>
         <Setter Property="BorderBrush" Value="{StaticResource Brush.InputBorder}"/>
         <Setter Property="Background" Value="{StaticResource Brush.InputBackground}"/>
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource Brush.TextPrimary}"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>

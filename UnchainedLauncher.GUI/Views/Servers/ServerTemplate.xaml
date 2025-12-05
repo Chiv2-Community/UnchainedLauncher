@@ -7,18 +7,18 @@
              xmlns:mods="clr-namespace:UnchainedLauncher.GUI.Views.Mods"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        <Border Grid.Row="0" Style="{StaticResource Card}">
-            <local:ServerInfoForm DataContext="{Binding Form}"/>
+    <StackPanel>
+        <Border Style="{DynamicResource Card}">
+            <StackPanel>
+                <TextBlock Text="Server Details" Style="{DynamicResource Heading.H3}" />
+                <local:ServerInfoForm DataContext="{Binding Form}"/>
+            </StackPanel>
         </Border>
-        <Border Grid.Row="1" Style="{StaticResource Card}">
-            <mods:ModList DataContext="{Binding ModList}"/>
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <TextBlock Text="Server Mods" Style="{DynamicResource Heading.H3}" />
+                <mods:ModList DataContext="{Binding ModList}"/>
+            </StackPanel>
         </Border>
-        
-        
-    </Grid>
+    </StackPanel>
 </UserControl>

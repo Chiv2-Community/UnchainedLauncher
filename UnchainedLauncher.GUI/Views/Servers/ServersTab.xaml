@@ -13,6 +13,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <!-- Server selector -->
@@ -31,16 +32,19 @@
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
-            <StackPanel Orientation="Horizontal" Grid.Column="1">
-                <Button Command="{Binding AddTemplateCommand}" Style="{StaticResource Button.Secondary}">
-                    <Run Text=" + "/>
-                </Button>
-                <Button Command="{Binding RemoveTemplateCommand}" Style="{StaticResource Button.Light}">
-                    <Run Text="  -  "/>
-                </Button>
-                <Button Command="{Binding SaveCommand}" Style="{StaticResource Button.Primary}">
-                    <Run Text="Save"/>
-                </Button>
+            <StackPanel Orientation="Horizontal" Grid.Column="1" Margin="8 0 0 0">
+                <!-- Split buttons: inner edges squared to appear as one control -->
+                <Button Width="50"
+                        Command="{Binding AddTemplateCommand}"
+                        Style="{StaticResource Button.Success.SplitLeft}"
+                        Content="+"
+                        Margin="8 0 -2 0"/>
+                <Button Width="50"
+                        Command="{Binding RemoveTemplateCommand}"
+                        Style="{StaticResource Button.Danger.SplitRight}"
+                        Content="-"
+                        Margin="0"/>
+                <Button Width="100" Command="{Binding SaveCommand}" Style="{StaticResource Button.Primary}" Content="Save" Margin="8 0 0 0"/>
             </StackPanel>
         </Grid>
         <Grid Grid.Row="1">
@@ -49,7 +53,7 @@
         <!-- Only one of the following is displayed at a time -->
         
         <!-- Template editor & launch buttons -->
-        <Grid Grid.Row="1" Background="White" Visibility="{Binding TemplateEditorVisibility}">
+        <Grid Grid.Row="2" Visibility="{Binding TemplateEditorVisibility}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="auto"/>
@@ -68,7 +72,7 @@
         </Grid>
         
         <!-- Running server stuff-->
-        <Grid Grid.Row="1" Background="White" Visibility="{Binding LiveServerVisibility}">
+        <Grid Grid.Row="2" Visibility="{Binding LiveServerVisibility}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="auto"/>

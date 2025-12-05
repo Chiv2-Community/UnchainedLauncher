@@ -36,10 +36,12 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Grid>
+                        <!-- Make the entire header area hit-testable so clicking whitespace switches tabs -->
+                        <Grid Background="Transparent">
                             <Border x:Name="Spacer"
                                     Margin="20 0 20 10"
-                                    BorderBrush="Transparent">
+                                    BorderBrush="Transparent"
+                                    Background="Transparent">
                                 <!-- Tab content -->
                                 <ContentPresenter x:Name="ContentSite"
                                                   ContentSource="Header"

@@ -14,6 +14,7 @@
 
             <!-- Converters -->
             <converters:InstallationTypeConverter x:Key="InstallationTypeConverter"/>
+            <converters:ModSortModeToStringConverter x:Key="ModSortModeToStringConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

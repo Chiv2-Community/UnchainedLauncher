@@ -28,8 +28,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
         // UI state: filtering and sorting
         public string? SearchTerm { get; set; }
         public bool ShowEnabledOnly { get; set; }
-        public ModSortMode SelectedSortMode { get; set; } = ModSortMode.NameAsc;
-        public IReadOnlyList<ModSortMode> SortModes { get; } = new[] { ModSortMode.NameAsc, ModSortMode.EnabledFirst };
+        public ModSortMode SelectedSortMode { get; set; } = ModSortMode.EnabledFirst;
+        public IReadOnlyList<ModSortMode> SortModes { get; } = [ModSortMode.EnabledFirst, ModSortMode.Alphabetical, ModSortMode.LatestReleaseDateFirst, ModSortMode.NewestModsFirst];
 
         public ModVM? SelectedMod { get; set; }
         public ObservableCollection<ModVM> DisplayMods { get; }
@@ -169,8 +169,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 ModSortMode.EnabledFirst => query
                     .OrderByDescending(m => m.IsEnabled)
                     .ThenBy(m => m.Mod.LatestManifest.Name, StringComparer.OrdinalIgnoreCase),
-                _ => query
-                    .OrderBy(m => m.Mod.LatestManifest.Name, StringComparer.OrdinalIgnoreCase)
+                ModSortMode.LatestReleaseDateFirst => 
+                    query.OrderByDescending(m => m.Mod.LatestRelease.Map(r => r.ReleaseDate).IfNone(DateTime.MinValue)),
+                ModSortMode.NewestModsFirst => 
+                    query.OrderByDescending(m => m.Mod.Releases.LastOrDefault()?.ReleaseDate),
+                _ => 
+                    query.OrderBy(m => m.Mod.LatestManifest.Name, StringComparer.OrdinalIgnoreCase),
             };
 
             this.DisplayMods.Clear();
@@ -203,8 +207,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
     }
 
     public enum ModSortMode {
-        NameAsc,
-        EnabledFirst
+        EnabledFirst,
+        Alphabetical,
+        LatestReleaseDateFirst,
+        NewestModsFirst
     }
 
     public record ModFilter(ModTag Tag, FilterType Type) {

@@ -17,13 +17,14 @@
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
 
-        <Grid Background="White">
+        <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="4*"/>
                 <ColumnDefinition Width="6*"/>
             </Grid.ColumnDefinitions>
             <!-- Data display -->
-            <StackPanel Grid.Column="0">
+            <Border Grid.Column="0" Style="{StaticResource Card}">
+                <StackPanel>
                 <!-- A2S status display -->
                 <TextBlock ToolTip="{Binding LastA2SExceptionMessage, Mode=OneWay}">
                     <Run Text="A2S Status (hover for errors): "/>
@@ -31,10 +32,10 @@
                         <Ellipse Width="13" Height="13">
                             <Ellipse.Style>
                                 <Style TargetType="Ellipse">
-                                    <Setter Property="Fill" Value="Green"/>
+                                    <Setter Property="Fill" Value="{DynamicResource Brush.Success}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsA2SOk}" Value="False">
-                                            <Setter Property="Fill" Value="Red"/>
+                                            <Setter Property="Fill" Value="{DynamicResource Brush.Danger}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -49,13 +50,13 @@
                         <Ellipse Width="13" Height="13">
                             <Ellipse.Style>
                                 <Style TargetType="Ellipse">
-                                    <Setter Property="Fill" Value="Green"/>
+                                    <Setter Property="Fill" Value="{DynamicResource Brush.Success}"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding Server.RegistrationHandler.Registration.IsDead}" Value="True">
-                                            <Setter Property="Fill" Value="Red"/>
+                                            <Setter Property="Fill" Value="{DynamicResource Brush.Danger}"/>
                                         </DataTrigger>
                                         <DataTrigger Binding="{Binding Server.RegistrationHandler.Registration}" Value="{x:Null}">
-                                            <Setter Property="Fill" Value="Red"/>
+                                            <Setter Property="Fill" Value="{DynamicResource Brush.Danger}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
@@ -118,9 +119,11 @@
                     <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding Server.Rcon.RconLocation, FallbackValue=????}"/>
 
                 </Grid>
-            </StackPanel>
+                </StackPanel>
+            </Border>
             <!-- RCON console -->
-            <Grid Grid.Column="1">
+            <Border Grid.Column="1" Style="{StaticResource Card}">
+                <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="auto"/>
                     <RowDefinition/>
@@ -141,7 +144,6 @@
                     </Grid.ColumnDefinitions>
                     <TextBox 
                         Grid.Column="0" 
-                        Margin="5"
                         AcceptsReturn="False"
                         Text="{Binding CurrentRconCommand, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                         <TextBox.InputBindings>
@@ -149,9 +151,10 @@
                             <KeyBinding Command="{Binding SubmitRconCommand}" Key="Return"/>
                         </TextBox.InputBindings>
                     </TextBox>
-                    <Button Grid.Column="1" Content=" Send " Command="{Binding SubmitRconCommand}"/>
+                    <Button Grid.Column="1" Content=" Send " Command="{Binding SubmitRconCommand}" Style="{StaticResource Button.Primary}"/>
                 </Grid>
-            </Grid>
+                </Grid>
+            </Border>
         </Grid>
     </Grid>
 </UserControl>

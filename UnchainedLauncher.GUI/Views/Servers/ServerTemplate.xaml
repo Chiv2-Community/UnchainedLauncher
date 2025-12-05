@@ -12,10 +12,10 @@
             <RowDefinition Height="auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <Border BorderBrush="Black" BorderThickness="0.5" Grid.Row="0">
+        <Border Grid.Row="0" Style="{StaticResource Card}">
             <local:ServerInfoForm DataContext="{Binding Form}"/>
         </Border>
-        <Border BorderBrush="Black" BorderThickness="0.5" Grid.Row="1">
+        <Border Grid.Row="1" Style="{StaticResource Card}">
             <mods:ModList DataContext="{Binding ModList}"/>
         </Border>
         

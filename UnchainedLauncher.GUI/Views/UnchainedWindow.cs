@@ -8,7 +8,7 @@ namespace UnchainedLauncher.GUI.Views {
     /// Inherit from this class for all app windows to get working minimize/close buttons
     /// and default drag/maximize handling.
     ///
-    /// Make sure to set Style="{StaticResource UnchainedChrome}" on your window.
+    /// Make sure to set Style="{DynamicResource UnchainedChrome}" on your window.
     /// </summary>
     public class UnchainedWindow : Window {
         static UnchainedWindow() {

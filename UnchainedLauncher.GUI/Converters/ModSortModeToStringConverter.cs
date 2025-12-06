@@ -7,11 +7,11 @@ namespace UnchainedLauncher.GUI.Converters {
     public class ModSortModeToStringConverter : IValueConverter {
         public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) {
             return value switch {
-                ModSortMode.EnabledFirst => "Enabled first",
                 ModSortMode.Alphabetical => "Alphabetical",
                 ModSortMode.LatestReleaseDateFirst => "Latest New Releases First",
                 ModSortMode.NewestModsFirst => "Newest Mods First",
-                _ => value?.ToString() ?? string.Empty
+                ModSortMode.EnabledFirst => "Enabled first", // Technically redundant, but it's here for completeness sake
+                _ => value?.ToString() ?? "<Unknown Option>"
             };
         }
 

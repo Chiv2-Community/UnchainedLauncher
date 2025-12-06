@@ -36,8 +36,7 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
                 PakFileName: input.PakFileName,
                 ReleaseDate: input.ReleaseDate,
                 Manifest: ModManifest.FromV2(input.Manifest),
-                ReleaseNotesMarkdown: input.ReleaseNotesMarkdown ?? "# Added new stuff\n\n* This is just an example\n* Feel free to ignore\n![image](https://media4.giphy.com/media/v1.Y2lkPTZjMDliOTUyaWoybDRoaXY4aWc5dmY3MGNmMHg2OGptNzRidTQ2c25udW53YmM5byZlcD12MV9naWZzX3NlYXJjaCZjdD1n/AZ1PPDF8uO9MI/giphy.gif)"
-
+                ReleaseNotesMarkdown: input.ReleaseNotesMarkdown
             );
         }
 

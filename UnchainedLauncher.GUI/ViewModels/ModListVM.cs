@@ -58,7 +58,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private void OnSelectedSortModeChanged() => RebuildDisplay();
 
         [RelayCommand]
-        private async Task RefreshModList() {
+        public async Task RefreshModList() {
             try {
                 _logger.Info("Refreshing mod list...");
                 var (errors, updatedModsList) = await _modManager.UpdateModsList();

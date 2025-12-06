@@ -1,11 +1,12 @@
-﻿using System;
-using System.Globalization;
+﻿using log4net;
+using System;
 using System.Windows;
 using System.Windows.Media;
 using Markdig;
 
 namespace UnchainedLauncher.GUI.Services {
     public static class MarkdownRenderer {
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(MarkdownRenderer));
 
         private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
             .UseAdvancedExtensions()
@@ -80,7 +81,7 @@ namespace UnchainedLauncher.GUI.Services {
             </html>";
         }
         
-        private static string ColorToHex(Color c) => "#" + c.R.ToString("X2") + c.G.ToString("X2") + c.B.ToString("X2");
+        private static string ColorToHex(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
         private static string BrushHex(string brushKey, string fallback)
         {
@@ -96,9 +97,9 @@ namespace UnchainedLauncher.GUI.Services {
                     return ColorToHex(color);
                 }
             }
-            catch
+            catch(Exception e)
             {
-                // ignore and use fallback
+                Logger.Error($"Failed to resolve color resource {brushKey}.", e);
             }
             return fallback;
         }

@@ -49,9 +49,13 @@ namespace UnchainedLauncher.GUI.Views.Controls {
             if (_initialized) return;
 
             await _initGate.WaitAsync();
+            
+            // Another thread may have already initialized this while waiting, so check again
+            if (_initialized) return;
+            
             try {
-                if (_initialized) return;
 
+                
                 var environment = await GetSharedEnvironmentAsync();
                 await WebView.EnsureCoreWebView2Async(environment);
                 _initialized = true;

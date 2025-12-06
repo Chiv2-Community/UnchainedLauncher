@@ -49,14 +49,12 @@
                         <Label Grid.Row="0" Grid.Column="0" Content="Organization:"
                                Margin="0,4" FontWeight="SemiBold"/>
                         <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Org}"
-                                Margin="8,4" Padding="6" VerticalContentAlignment="Center"
-                                Style="{StaticResource Input.TextBox}"/>
+                                 Margin="8, 4, 0,4" Padding="6" VerticalContentAlignment="Center" />
 
                         <Label Grid.Row="1" Grid.Column="0" Content="Repo Name:"
                                Margin="0,4" FontWeight="SemiBold"/>
                         <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RepoName}"
-                                Margin="8,4" Padding="6" VerticalContentAlignment="Center"
-                                Style="{StaticResource Input.TextBox}"/>
+                                 Margin="8, 4, 0,4" Padding="6" VerticalContentAlignment="Center" />
                     </Grid>
                 </Grid>
             </Border>
@@ -97,8 +95,7 @@
                         <Label Grid.Row="0" Grid.Column="0" Content="Registry Path:"
                                Margin="0,4" FontWeight="SemiBold"/>
                         <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding RegistryPath}"
-                                Margin="8,4" Padding="6" VerticalContentAlignment="Center"
-                                Style="{StaticResource Input.TextBox}"/>
+                                Margin="8, 4, 0,4" Padding="6" VerticalContentAlignment="Center" />
                     </Grid>
 
                     <!-- Expand/Collapse Toggle Button -->

@@ -7,9 +7,15 @@
         <!-- Global theme dictionaries and shared resources -->
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Colors.xaml"/>
+                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Constants.xaml"/>
+
+                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Buttons.xaml"/>
+
+                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Misc.xaml"/>
+                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Inputs.xaml"/>
                 <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Typography.xaml"/>
-                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Controls.xaml"/>
+                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Scrollbar.xaml"/>
+                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/WindowChrome.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Converters -->

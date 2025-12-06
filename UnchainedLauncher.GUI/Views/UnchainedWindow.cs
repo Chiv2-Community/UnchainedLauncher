@@ -36,9 +36,7 @@ namespace UnchainedLauncher.GUI.Views {
                 nameof(ShowWindowTitle),
                 typeof(bool),
                 typeof(UnchainedWindow),
-                new PropertyMetadata(true, OnUseStandardChromeChanged));
-
-        private static void OnUseStandardChromeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) { }
+                new PropertyMetadata(true));
 
         private static void OnCloseWindow(object sender, ExecutedRoutedEventArgs e) {
             var win = (e.Parameter as Window) ?? Window.GetWindow(sender as DependencyObject);

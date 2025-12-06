@@ -21,7 +21,7 @@
                 <TextBlock Grid.Column="0" Text="Organization:" VerticalAlignment="Center" 
                           Margin="0,0,10,0" FontWeight="SemiBold"/>
                 <TextBox Grid.Column="1" MinWidth="100" Text="{Binding Organization}"
-                        Padding="6,4" Style="{StaticResource Input.TextBox}"/>
+                        Padding="6,4"/>
             </Grid>
     
             <Grid Margin="0,8">
@@ -32,7 +32,7 @@
                 <TextBlock Grid.Column="0" Text="Name:" VerticalAlignment="Center" 
                           Margin="0,0,10,0" FontWeight="SemiBold"/>
                 <TextBox Grid.Column="1" MinWidth="100" Text="{Binding Name}"
-                        Padding="6,4" Style="{StaticResource Input.TextBox}"/>
+                        Padding="6,4"/>
             </Grid>
     
             <Grid Margin="0,8">
@@ -43,7 +43,7 @@
                 <TextBlock Grid.Column="0" Text="Description:" VerticalAlignment="Top" 
                           Margin="0,8,10,0" FontWeight="SemiBold"/>
                 <TextBox Grid.Column="1" MinWidth="100" MinLines="2" TextWrapping="Wrap" 
-                        Text="{Binding Description}" Padding="6,4" Style="{StaticResource Input.TextBox}"/>
+                        Text="{Binding Description}" Padding="6,4"/>
             </Grid>
     
             <Grid Margin="0,8">
@@ -53,7 +53,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="Tag:" VerticalAlignment="Center" 
                           Margin="0,0,10,0" FontWeight="SemiBold"/>
-                <TextBox Grid.Column="1" MinWidth="50" Padding="6,4" Style="{StaticResource Input.TextBox}">
+                <TextBox Grid.Column="1" MinWidth="50" Padding="6,4">
                     <Binding Path="Tag">
                         <Binding.ValidationRules>
                             <local:VersionStringRule/>

@@ -34,10 +34,12 @@ jobs:
 
     - name: Format source
       run: dotnet format
-    - uses: stefanzweifel/git-auto-commit-action@v5
+    - uses: stefanzweifel/git-auto-commit-action@v7
       id: auto-commit-action
       with:
-        commit_message: '[GHA] Format Source' 
+        commit_message: '[GHA] Format Source'
+        token: ${{ secrets.AUTOMATED_CODE_CHANGE }}
+
 
     - name: Fail if changes were detected
       if: steps.auto-commit-action.outputs.changes_detected == 'true'

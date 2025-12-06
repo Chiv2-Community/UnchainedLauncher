@@ -1,18 +1,17 @@
 ﻿<views:UnchainedWindow x:Class="UnchainedLauncher.GUI.Views.Installer.InstallerWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Installer"
-        xmlns:views="clr-namespace:UnchainedLauncher.GUI.Views"
-        xmlns:ivms="clr-namespace:UnchainedLauncher.GUI.ViewModels.Installer"
-        Title="Chivalry 2 Unchained Launcher Installer" 
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-        mc:Ignorable="d"
-        Width="1000"
-        Height="500"
-        Visibility="{Binding WindowVisibility}"
-        Style="{DynamicResource UnchainedChrome}"
-        >
+                       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                       xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Installer"
+                       xmlns:views="clr-namespace:UnchainedLauncher.GUI.Views"
+                       xmlns:ivms="clr-namespace:UnchainedLauncher.GUI.ViewModels.Installer"
+                       Title="Chivalry 2 Unchained Launcher Installer"
+                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                       mc:Ignorable="d"
+                       Width="1000"
+                       Height="500"
+                       Visibility="{Binding WindowVisibility}"
+                       Style="{DynamicResource UnchainedChrome}">
     <d:DesignProperties.DataContext>
         <ivms:InstallerWindowViewModel />
     </d:DesignProperties.DataContext>
@@ -28,27 +27,27 @@
             <local:InstallerLogView />
         </DataTemplate>
     </Window.Resources>
-    
+
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        
+
         <!-- Header -->
         <TextBlock Grid.Row="0"
                    Text="{Binding CurrentPageTitle}"
                    Style="{StaticResource Heading.H2}"
-                   Margin="0,0,0,10"/>
-        
+                   Margin="0,0,0,10" />
+
         <!-- Page Content, Grid, Two columns, left side houses a descripton, right side houses some user control that changes per page -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="{Binding DescriptionColumnWidth}"/>
-                <ColumnDefinition Width="{Binding PageColumnWidth}"/>
+                <ColumnDefinition Width="{Binding DescriptionColumnWidth}" />
+                <ColumnDefinition Width="{Binding PageColumnWidth}" />
             </Grid.ColumnDefinitions>
-            
+
             <!-- Left side, description in a card container -->
             <Border Grid.Column="0"
                     Style="{StaticResource Card}"
@@ -56,9 +55,9 @@
                     Visibility="{Binding DisplayDescription}">
                 <TextBlock Text="{Binding CurrentPageDescription}"
                            FontSize="14"
-                           TextWrapping="Wrap"/>
+                           TextWrapping="Wrap" />
             </Border>
-            
+
             <!-- Right side, user control -->
             <ContentControl x:Name="PageContent" Grid.Column="1" Content="{Binding CurrentPage}" />
         </Grid>
@@ -66,9 +65,9 @@
         <!-- Bottom Button Panel -->
         <Grid Grid.Row="2" Margin="0,10,0,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <!-- Left-aligned buttons -->
@@ -80,7 +79,7 @@
                     Padding="20,6"
                     Margin="0,0,10,0"
                     HorizontalAlignment="Right"
-                    Style="{StaticResource Button.Secondary}"/>
+                    Style="{StaticResource Button.Secondary}" />
 
             <!-- Right-aligned Continue button -->
             <Button Grid.Column="2"
@@ -89,7 +88,7 @@
                     IsEnabled="{Binding CanContinue}"
                     Padding="20,6"
                     HorizontalAlignment="Right"
-                    Style="{StaticResource Button.Primary}"/>
+                    Style="{StaticResource Button.Primary}" />
         </Grid>
     </Grid>
 </views:UnchainedWindow>

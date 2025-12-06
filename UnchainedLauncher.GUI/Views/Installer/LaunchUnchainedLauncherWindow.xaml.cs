@@ -1,12 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
-using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.ViewModels.Installer;
 
 namespace UnchainedLauncher.GUI.Views.Installer {
     /// <summary>
-    /// Interaction logic for LaunchUnchainedLauncherWindow.xaml
+    ///     Interaction logic for LaunchUnchainedLauncherWindow.xaml
     /// </summary>
     public partial class LaunchUnchainedLauncherWindow : UnchainedWindow {
         public LaunchUnchainedLauncherWindow() {

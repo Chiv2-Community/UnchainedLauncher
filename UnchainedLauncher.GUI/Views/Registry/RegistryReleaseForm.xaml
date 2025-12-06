@@ -4,130 +4,129 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Registry"
-             xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
              xmlns:jd="clr-namespace:Jdenticon.Wpf;assembly=Jdenticon.Wpf"
              xmlns:designInstances1="clr-namespace:UnchainedLauncher.GUI.Views.Registry.DesignInstances"
              d:DataContext="{d:DesignInstance designInstances1:RegistryReleaseFormDesignVM}"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="300">
     <Border Style="{StaticResource Card}" Margin="8" Padding="15">
-        
+
         <StackPanel>
             <Grid Margin="0,8">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Organization:" VerticalAlignment="Center" 
-                          Margin="0,0,10,0" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="0" Text="Organization:" VerticalAlignment="Center"
+                           Margin="0,0,10,0" FontWeight="SemiBold" />
                 <TextBox Grid.Column="1" MinWidth="100" Text="{Binding Organization}"
-                        Padding="6,4"/>
+                         Padding="6,4" />
             </Grid>
-    
+
             <Grid Margin="0,8">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Name:" VerticalAlignment="Center" 
-                          Margin="0,0,10,0" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="0" Text="Name:" VerticalAlignment="Center"
+                           Margin="0,0,10,0" FontWeight="SemiBold" />
                 <TextBox Grid.Column="1" MinWidth="100" Text="{Binding Name}"
-                        Padding="6,4"/>
+                         Padding="6,4" />
             </Grid>
-    
+
             <Grid Margin="0,8">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Description:" VerticalAlignment="Top" 
-                          Margin="0,8,10,0" FontWeight="SemiBold"/>
-                <TextBox Grid.Column="1" MinWidth="100" MinLines="2" TextWrapping="Wrap" 
-                        Text="{Binding Description}" Padding="6,4"/>
+                <TextBlock Grid.Column="0" Text="Description:" VerticalAlignment="Top"
+                           Margin="0,8,10,0" FontWeight="SemiBold" />
+                <TextBox Grid.Column="1" MinWidth="100" MinLines="2" TextWrapping="Wrap"
+                         Text="{Binding Description}" Padding="6,4" />
             </Grid>
-    
+
             <Grid Margin="0,8">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Tag:" VerticalAlignment="Center" 
-                          Margin="0,0,10,0" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="0" Text="Tag:" VerticalAlignment="Center"
+                           Margin="0,0,10,0" FontWeight="SemiBold" />
                 <TextBox Grid.Column="1" MinWidth="50" Padding="6,4">
                     <Binding Path="Tag">
                         <Binding.ValidationRules>
-                            <local:VersionStringRule/>
+                            <local:VersionStringRule />
                         </Binding.ValidationRules>
                     </Binding>
                 </TextBox>
             </Grid>
-    
+
             <Grid Margin="0,8">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Mod Type:" VerticalAlignment="Center" 
-                          Margin="0,0,10,0" FontWeight="SemiBold"/>
-                <ComboBox 
+                <TextBlock Grid.Column="0" Text="Mod Type:" VerticalAlignment="Center"
+                           Margin="0,0,10,0" FontWeight="SemiBold" />
+                <ComboBox
                     Grid.Column="1"
                     MaxWidth="200"
                     HorizontalAlignment="Left"
                     HorizontalContentAlignment="Left"
                     ItemsSource="{Binding ModTypeChoices, Mode=OneWay}"
                     SelectedItem="{Binding SelectedModType}"
-                    Padding="6,4"/>
+                    Padding="6,4" />
             </Grid>
-    
+
             <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" CornerRadius="4"
                     Padding="12" Margin="0,12" Background="{StaticResource Brush.InputBackground}">
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="200"/>
-                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="200" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-            
+
                     <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
-                              Foreground="{StaticResource Brush.TextSecondary}">
+                               Foreground="{StaticResource Brush.TextSecondary}">
                         Drag and drop a pak file here, or click
                     </TextBlock>
-            
-                    <jd:IdenticonElement 
+
+                    <jd:IdenticonElement
                         Grid.Row="1"
                         HorizontalAlignment="Left"
                         Margin="0,8"
                         Value="{Binding ReleaseHash}"
-                        ToolTip="{Binding ReleaseHash}" 
-                        Drop="ImagePanel_Drop" 
-                        MouseLeftButtonDown="UIElement_OnMouseLeftButtonDown" 
+                        ToolTip="{Binding ReleaseHash}"
+                        Drop="ImagePanel_Drop"
+                        MouseLeftButtonDown="UIElement_OnMouseLeftButtonDown"
                         AllowDrop="True"
-                        Cursor="Hand"/>
-            
+                        Cursor="Hand" />
+
                     <TextBlock
-                        Grid.Row="2" 
-                        Foreground="{StaticResource Brush.Danger}" 
+                        Grid.Row="2"
+                        Foreground="{StaticResource Brush.Danger}"
                         Margin="0,8,0,0"
                         Text="{Binding LastDragDropComplaint, RelativeSource={RelativeSource AncestorType=UserControl}}"
                         TextWrapping="Wrap"
-                        FontWeight="Medium"/>
+                        FontWeight="Medium" />
                 </Grid>
             </Border>
-    
-            <Button Command="{Binding SubmitCommand}" 
-                   Margin="0,12,0,8" 
-                   Padding="15,8"
-                   Style="{StaticResource Button.Success}"
-                   FontWeight="SemiBold"
-                   HorizontalAlignment="Stretch">
+
+            <Button Command="{Binding SubmitCommand}"
+                    Margin="0,12,0,8"
+                    Padding="15,8"
+                    Style="{StaticResource Button.Success}"
+                    FontWeight="SemiBold"
+                    HorizontalAlignment="Stretch">
                 Submit
             </Button>
-    
-            <TextBlock Foreground="#F44336" 
-                      Margin="0,8,0,0" 
-                      Text="{Binding LastSubmitComplaint}" 
-                      TextWrapping="Wrap"
-                      FontWeight="Medium"/>
+
+            <TextBlock Foreground="#F44336"
+                       Margin="0,8,0,0"
+                       Text="{Binding LastSubmitComplaint}"
+                       TextWrapping="Wrap"
+                       FontWeight="Medium" />
         </StackPanel>
     </Border>
 </UserControl>

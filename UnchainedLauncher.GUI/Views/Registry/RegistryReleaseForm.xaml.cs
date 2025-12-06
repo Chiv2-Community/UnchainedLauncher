@@ -12,7 +12,7 @@ namespace UnchainedLauncher.GUI.Views.Registry {
     public class VersionStringRule : ValidationRule {
         public override ValidationResult Validate(object? value, CultureInfo cultureInfo) {
             if (value is string stringValue) {
-                return SemVersion.TryParse(stringValue, SemVersionStyles.AllowV, out SemVersion _)
+                return SemVersion.TryParse(stringValue, SemVersionStyles.AllowV, out var _)
                     ? ValidationResult.ValidResult
                     : new ValidationResult(false, "Invalid version string");
             }
@@ -28,6 +28,7 @@ namespace UnchainedLauncher.GUI.Views.Registry {
         }
 
         public string LastDragDropComplaint { get; set; } = "";
+
         private void ImagePanel_Drop(object sender, DragEventArgs e) {
             var fileData = (string[]?)e.Data.GetData(DataFormats.FileDrop);
             if (fileData == null || fileData.Length == 0) {
@@ -41,6 +42,7 @@ namespace UnchainedLauncher.GUI.Views.Registry {
                 LastDragDropComplaint = "Please drag a file, not a directory";
                 return;
             }
+
             if (Path.GetExtension(pickedFile) != ".pak") {
                 LastDragDropComplaint = "Please drag a pak file";
                 return;
@@ -50,10 +52,12 @@ namespace UnchainedLauncher.GUI.Views.Registry {
         }
 
         private void UIElement_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
+            var openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "Pak files (*.pak)|*.pak";
             openFileDialog.Multiselect = false;
-            if (!(openFileDialog.ShowDialog() ?? false)) return;
+            if (!(openFileDialog.ShowDialog() ?? false)) {
+                return;
+            }
 
             if (openFileDialog.FileName != string.Empty) {
                 ((RegistryReleaseFormVM)DataContext).PakFilePath = openFileDialog.FileName;

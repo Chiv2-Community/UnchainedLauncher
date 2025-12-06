@@ -14,6 +14,7 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             null,
             null,
             new MessageBoxSpawner()
-        ) { }
+        ) {
+        }
     }
 }

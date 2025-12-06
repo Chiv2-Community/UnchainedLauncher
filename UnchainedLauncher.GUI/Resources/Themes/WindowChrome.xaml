@@ -3,7 +3,7 @@
                     xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
                     xmlns:views="clr-namespace:UnchainedLauncher.GUI.Views">
     <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
-    
+
     <Style x:Key="UnchainedChrome" TargetType="views:UnchainedWindow">
         <Setter Property="WindowStyle" Value="None" />
         <Setter Property="ResizeMode" Value="CanResize" />
@@ -73,16 +73,15 @@
             </Setter.Value>
         </Setter>
     </Style>
-    
-        <!-- Title bar buttons (flat, small, hover states) -->
+
+    <!-- Title bar buttons (flat, small, hover states) -->
     <Style x:Key="Button.TitleBar" TargetType="Button" BasedOn="{StaticResource Button.Light}">
-        <Setter Property="Width" Value="34"/>
-        <Setter Property="Height" Value="26"/>
-        <Setter Property="Padding" Value="0"/>
-        <Setter Property="Margin" Value="0"/>
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderBrush" Value="Transparent"/>
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}"/>
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -91,17 +90,18 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="0">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.LightTransparent}"/>
+                            <Setter TargetName="bd" Property="Background"
+                                    Value="{StaticResource Brush.LightTransparent}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="bd" Property="Opacity" Value="0.9"/>
+                            <Setter TargetName="bd" Property="Opacity" Value="0.9" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="bd" Property="Opacity" Value="0.5"/>
+                            <Setter TargetName="bd" Property="Opacity" Value="0.5" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -110,22 +110,21 @@
     </Style>
 
     <Style x:Key="Button.TitleBar.Close" TargetType="Button" BasedOn="{StaticResource Button.TitleBar}">
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="bd"
                             Background="Transparent"
                             BorderBrush="Transparent">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Danger}"/>
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Light}"/>
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Danger}" />
+                            <Setter Property="Foreground" Value="{StaticResource Brush.Light}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="bd" Property="Opacity" Value="0.9"/>
+                            <Setter TargetName="bd" Property="Opacity" Value="0.9" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -141,15 +140,15 @@
                     <Border x:Name="bd"
                             Background="Transparent"
                             BorderBrush="Transparent">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.PrimaryHover}"/>
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Light}"/>
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.PrimaryHover}" />
+                            <Setter Property="Foreground" Value="{StaticResource Brush.Light}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="bd" Property="Opacity" Value="0.9"/>
+                            <Setter TargetName="bd" Property="Opacity" Value="0.9" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

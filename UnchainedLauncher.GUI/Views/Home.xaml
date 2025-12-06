@@ -11,28 +11,28 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <TextBlock Text="What's new" FontWeight="SemiBold" Margin="0 0 0 8"/>
+            <TextBlock Text="What's new" FontWeight="SemiBold" Margin="0 0 0 8" />
             <Grid Grid.Row="1">
                 <!-- Layout: What's New content on the left, vertical separator, launch buttons on the right -->
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
                 <!-- What's New content (list + preview) -->
                 <Grid Grid.Column="0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="4*"/>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="4*" />
                     </Grid.ColumnDefinitions>
 
                     <!-- List of recent releases -->
@@ -43,17 +43,19 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Margin="0 8 0 8">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{Binding Date, StringFormat=yyyy-MM-dd}" Opacity="0.7" FontSize="12"/>
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding Date, StringFormat=yyyy-MM-dd}" Opacity="0.7"
+                                               FontSize="12" />
                                 </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
 
-                    <Border Grid.Column="1" Margin="12,0,0,0" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="6">
+                    <Border Grid.Column="1" Margin="12,0,0,0" BorderBrush="{DynamicResource Brush.Border}"
+                            BorderThickness="1" CornerRadius="6">
                         <controls:HtmlWebView x:Name="WhatsNewHtml"
                                               HorizontalAlignment="Stretch"
-                                              VerticalAlignment="Stretch"/>
+                                              VerticalAlignment="Stretch" />
                     </Border>
                 </Grid>
 
@@ -61,7 +63,7 @@
                 <Border Grid.Column="1"
                         Width="1"
                         Margin="12,0"
-                        Background="{DynamicResource Brush.Border}"/>
+                        Background="{DynamicResource Brush.Border}" />
 
                 <!-- Launch buttons stacked vertically on the right -->
                 <Grid Grid.Column="2">
@@ -77,21 +79,21 @@
                             ToolTip="{Binding ButtonToolTip}"
                             Command="{Binding LaunchVanillaCommand}"
                             IsEnabled="{Binding Settings.CanClick}"
-                            Style="{StaticResource Button.Primary}"/>
+                            Style="{StaticResource Button.Primary}" />
 
                     <Button Grid.Row="2"
                             Content="Chivalry 2 with Mods"
                             ToolTip="{Binding ButtonToolTip}"
                             Command="{Binding LaunchModdedVanillaCommand}"
                             IsEnabled="{Binding Settings.CanClick}"
-                            Style="{StaticResource Button.Primary}"/>
+                            Style="{StaticResource Button.Primary}" />
 
                     <Button Grid.Row="4"
                             Content="Chivalry 2 Unchained"
                             ToolTip="{Binding ButtonToolTip}"
                             Command="{Binding LaunchUnchainedCommand}"
                             IsEnabled="{Binding Settings.CanClick}"
-                            Style="{StaticResource Button.Primary}"/>
+                            Style="{StaticResource Button.Primary}" />
                 </Grid>
             </Grid>
         </Grid>

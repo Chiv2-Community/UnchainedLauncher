@@ -2,7 +2,7 @@
 using UnchainedLauncher.GUI.ViewModels.Installer;
 
 namespace UnchainedLauncher.GUI.Views.Installer {
-    public partial class InstallerWindow : UnchainedLauncher.GUI.Views.UnchainedWindow {
+    public partial class InstallerWindow : UnchainedWindow {
         public InstallerWindow(InstallerWindowViewModel installerWindowViewModel) {
             DataContext = installerWindowViewModel;
             InitializeComponent();

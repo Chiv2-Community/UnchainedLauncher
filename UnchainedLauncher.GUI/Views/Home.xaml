@@ -23,16 +23,16 @@
             <Grid Grid.Row="1">
                 <!-- Layout: What's New content on the left, vertical separator, launch buttons on the right -->
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- What's New content (list + preview) -->
                 <Grid Grid.Column="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="4*"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- List of recent releases -->
@@ -64,31 +64,35 @@
                         Background="{DynamicResource Brush.Border}"/>
 
                 <!-- Launch buttons stacked vertically on the right -->
-                <StackPanel Grid.Column="2"
-                            Orientation="Vertical"
-                            VerticalAlignment="Top"
-                            Margin="12,0,0,0"
-                            Width="220">
-                    <Button Margin="0,0,0,8"
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Button Grid.Row="0"
                             Content="Chivalry 2"
                             ToolTip="{Binding ButtonToolTip}"
                             Command="{Binding LaunchVanillaCommand}"
                             IsEnabled="{Binding Settings.CanClick}"
                             Style="{StaticResource Button.Primary}"/>
 
-                    <Button Margin="0,0,0,8"
+                    <Button Grid.Row="2"
                             Content="Chivalry 2 with Mods"
                             ToolTip="{Binding ButtonToolTip}"
                             Command="{Binding LaunchModdedVanillaCommand}"
                             IsEnabled="{Binding Settings.CanClick}"
                             Style="{StaticResource Button.Primary}"/>
 
-                    <Button Content="Chivalry 2 Unchained"
+                    <Button Grid.Row="4"
+                            Content="Chivalry 2 Unchained"
                             ToolTip="{Binding ButtonToolTip}"
                             Command="{Binding LaunchUnchainedCommand}"
                             IsEnabled="{Binding Settings.CanClick}"
                             Style="{StaticResource Button.Primary}"/>
-                </StackPanel>
+                </Grid>
             </Grid>
         </Grid>
     </Grid>

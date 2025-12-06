@@ -1,6 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
-using Markdig;
 using Semver;
 using System;
 using System.Collections.Generic;
@@ -11,6 +10,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.Services;
+using UnchainedLauncher.GUI.Services;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
@@ -31,7 +31,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public IEnumerable<ReleaseTarget> VisibleVersions => AvailableVersions.Filter(ShouldShowVersion);
 
         public ReleaseTarget? SelectedVersion { get; set; }
-        public string SelectedVersionDescriptionHtml => SelectedVersion == null ? "" : RenderMarkdown(SelectedVersion.DescriptionMarkdown);
+        public string SelectedVersionDescriptionHtml => SelectedVersion == null ? "" : MarkdownRenderer.RenderHtml(SelectedVersion.DescriptionMarkdown);
 
         public bool IsSelected { get { return SelectedVersion != null; } }
 
@@ -90,44 +90,6 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
                 FileName = SelectedVersion.PageUrl,
                 UseShellExecute = true
             });
-        }
-
-        private static string RenderMarkdown(string markdown) {
-            if (string.IsNullOrEmpty(markdown)) return "";
-
-            var pipeline = new MarkdownPipelineBuilder()
-                .UseAdvancedExtensions()
-                .Build();
-
-            var html = Markdown.ToHtml(markdown, pipeline);
-            return $@"
-            <html>
-                <head>
-                    <style>
-                        body {{ 
-                            font-family: Segoe UI, sans-serif;
-                            margin: 0;
-                            padding: 0;
-                        }}
-                        img {{ max-width: 100%; }}
-                        pre {{ 
-                            background-color: #f6f8fa;
-                            padding: 16px;
-                            border-radius: 6px;
-                            overflow-x: auto;
-                        }}
-                        code {{ 
-                            font-family: Consolas, monospace;
-                            background-color: #f6f8fa;
-                            padding: 0.2em 0.4em;
-                            border-radius: 3px;
-                        }}
-                    </style>
-                </head>
-                <body>
-                    {html}
-                </body>
-            </html>";
         }
 
     }

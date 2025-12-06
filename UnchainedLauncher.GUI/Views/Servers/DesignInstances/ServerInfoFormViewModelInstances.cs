@@ -6,6 +6,5 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
     }
 
     public class ServerInfoFormDesignVM : ServerInfoFormVM {
-        public ServerInfoFormDesignVM() : base() { }
     }
 }

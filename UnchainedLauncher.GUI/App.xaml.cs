@@ -34,9 +34,6 @@ namespace UnchainedLauncher.GUI {
     public partial class App : Application {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
 
-
-
-        public App() : base() { }
         protected override void OnStartup(StartupEventArgs e) {
             base.OnStartup(e);
 
@@ -81,6 +78,8 @@ namespace UnchainedLauncher.GUI {
 
             window?.Show();
         }
+
+        // Removed class-level command bindings; handled by Views.UnchainedWindow type.
 
         private Window? InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
             var installationSelectionVM = new InstallationSelectionPageViewModel(installationFinder);
@@ -169,7 +168,7 @@ namespace UnchainedLauncher.GUI {
 #endif
             );
 
-            var launcherViewModel = new LauncherVM(
+            var homeViewModel = new HomeVM(
                 settingsViewModel,
                 modManager,
                 vanillaLauncher,
@@ -184,17 +183,17 @@ namespace UnchainedLauncher.GUI {
 
             // TODO: Replace this if/else chain with a real CLI
             if (envArgs.Contains("--startvanilla")) {
-                launcherViewModel.LaunchVanilla().Wait();
+                homeViewModel.LaunchVanilla().Wait();
                 return null;
             }
 
             if (envArgs.Contains("--startmodded")) {
-                launcherViewModel.LaunchModdedVanilla().Wait();
+                homeViewModel.LaunchModdedVanilla().Wait();
                 return null;
             }
 
             if (envArgs.Contains("--startunchained")) {
-                launcherViewModel.LaunchUnchained().Wait();
+                homeViewModel.LaunchUnchained().Wait();
                 return null;
             }
 
@@ -207,7 +206,7 @@ namespace UnchainedLauncher.GUI {
                 new FileBackedSettings<IEnumerable<SavedServerTemplate>>(FilePaths.ServerTemplatesFilePath));
 
             var mainWindowViewModel = new MainWindowVM(
-                launcherViewModel,
+                homeViewModel,
                 modListViewModel,
                 settingsViewModel,
                 serversTabViewModel

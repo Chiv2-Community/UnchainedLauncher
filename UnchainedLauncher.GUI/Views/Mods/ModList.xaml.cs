@@ -2,7 +2,7 @@
 
 namespace UnchainedLauncher.GUI.Views.Mods {
     /// <summary>
-    /// Interaction logic for ModManagerView.xaml
+    ///     Interaction logic for ModManagerView.xaml
     /// </summary>
     public partial class ModList : UserControl {
         public ModList() {

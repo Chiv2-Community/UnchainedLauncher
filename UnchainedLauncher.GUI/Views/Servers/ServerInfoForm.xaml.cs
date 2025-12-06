@@ -4,7 +4,7 @@ using System.Windows.Controls;
 
 namespace UnchainedLauncher.GUI.Views.Servers {
     /// <summary>
-    /// Interaction logic for ServerInfoForm.xaml
+    ///     Interaction logic for ServerInfoForm.xaml
     /// </summary>
     public partial class ServerInfoForm : UserControl {
         public ServerInfoForm() {
@@ -20,6 +20,7 @@ namespace UnchainedLauncher.GUI.Views.Servers {
                     ? ValidationResult.ValidResult
                     : new ValidationResult(false, "Ports must be in range (0, 65535]");
             }
+
             return new ValidationResult(false, "Ports must be an integer in range (0, 65535]");
         }
     }

@@ -7,7 +7,7 @@ using UnchainedLauncher.GUI.ViewModels.Registry;
 
 namespace UnchainedLauncher.GUI.Views.Registry.DesignInstances {
     public static class LocalModRegistryConfigWindowViewModelInstances {
-        public static RegistryWindowService DEFAULT_WINDOW_SERVICE = new RegistryWindowService();
+        public static RegistryWindowService DEFAULT_WINDOW_SERVICE = new();
 
         public static LocalModRegistryDetailsVM DEFAULT => new LocalModRegistryDetailsDesignVM();
 
@@ -18,7 +18,8 @@ namespace UnchainedLauncher.GUI.Views.Registry.DesignInstances {
         public LocalModRegistryDetailsDesignVM() : base(
             new LocalModRegistry("LocalModRegistryTesting1"),
             LocalModRegistryConfigWindowViewModelInstances.DEFAULT_WINDOW_SERVICE
-        ) { }
+        ) {
+        }
     }
 
     public class RegistryReleaseFormDesignVM : RegistryReleaseFormVM {
@@ -40,9 +41,11 @@ namespace UnchainedLauncher.GUI.Views.Registry.DesignInstances {
                     new List<ModTag> { ModTag.Doodad, ModTag.Mutator },
                     new List<string> { "ffa_exampleMap", "tdm_exampleMap" },
                     new OptionFlags(true)
-                )
+                ),
+                "# Example Release Notes\n\n* Your release notes here"
             ),
             null
-        ) { }
+        ) {
+        }
     }
 }

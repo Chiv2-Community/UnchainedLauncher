@@ -25,6 +25,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private ObservableCollection<ModVM> UnfilteredModView { get; }
         private ObservableCollection<ModFilter> ModFilters { get; }
 
+        // UI state: filtering and sorting
+        public string? SearchTerm { get; set; }
+        public bool ShowEnabledOnly { get; set; }
+        public ModSortMode SelectedSortMode { get; set; } = ModSortMode.EnabledFirst;
+        public IReadOnlyList<ModSortMode> SortModes { get; } = [ModSortMode.EnabledFirst, ModSortMode.Alphabetical, ModSortMode.LatestReleaseDateFirst, ModSortMode.NewestModsFirst];
+
         public ModVM? SelectedMod { get; set; }
         public ObservableCollection<ModVM> DisplayMods { get; }
 
@@ -46,8 +52,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
             this.ModFilters.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
         }
 
+        // Property change hooks (PropertyChanged.Fody will call these)
+        private void OnSearchTermChanged() => RebuildDisplay();
+        private void OnShowEnabledOnlyChanged() => RebuildDisplay();
+        private void OnSelectedSortModeChanged() => RebuildDisplay();
+
         [RelayCommand]
-        private async Task RefreshModList() {
+        public async Task RefreshModList() {
             try {
                 _logger.Info("Refreshing mod list...");
                 var (errors, updatedModsList) = await _modManager.UpdateModsList();
@@ -131,14 +142,44 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
         }
 
-        private void UnfilteredModViewOrModFilters_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
-            this.DisplayMods.Clear();
-            this.UnfilteredModView
-                .OrderBy(modView => modView.VersionNameSortKey)
-                .Where(modView => this.ModFilters.All(modFilter => modFilter.ShouldInclude(modView)))
-                .ToList()
-                .ForEach(modView => this.DisplayMods.Add(modView));
+        private void UnfilteredModViewOrModFilters_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => RebuildDisplay();
 
+        private void RebuildDisplay() {
+            IEnumerable<ModVM> query = this.UnfilteredModView;
+
+            // Apply tag-based filters if any exist
+            query = query.Where(modView => this.ModFilters.All(modFilter => modFilter.ShouldInclude(modView)));
+
+            // Enabled only toggle
+            if (ShowEnabledOnly)
+                query = query.Where(m => m.IsEnabled);
+
+            // Text search against name and tags
+            var term = (SearchTerm ?? string.Empty).Trim();
+            if (!string.IsNullOrWhiteSpace(term)) {
+                var t = term.ToLowerInvariant();
+                query = query.Where(m =>
+                    m.Mod.LatestManifest.Name.ToLowerInvariant().Contains(t)
+                    || m.TagsString.ToLowerInvariant().Contains(t)
+                );
+            }
+
+            // Sorting
+            query = SelectedSortMode switch {
+                ModSortMode.EnabledFirst => query
+                    .OrderByDescending(m => m.IsEnabled)
+                    .ThenBy(m => m.Mod.LatestManifest.Name, StringComparer.OrdinalIgnoreCase),
+                ModSortMode.LatestReleaseDateFirst =>
+                    query.OrderByDescending(m => m.Mod.LatestRelease.Map(r => r.ReleaseDate).IfNone(DateTime.MinValue)),
+                ModSortMode.NewestModsFirst =>
+                    query.OrderByDescending(m => m.Mod.Releases.LastOrDefault()?.ReleaseDate),
+                _ =>
+                    query.OrderBy(m => m.Mod.LatestManifest.Name, StringComparer.OrdinalIgnoreCase),
+            };
+
+            this.DisplayMods.Clear();
+            foreach (var mod in query)
+                this.DisplayMods.Add(mod);
         }
 
         private void ModManager_ModList_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
@@ -163,6 +204,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     throw new Exception("Unhandled NotifyCollectionChangedAction: " + e.Action);
             }
         }
+    }
+
+    public enum ModSortMode {
+        EnabledFirst,
+        Alphabetical,
+        LatestReleaseDateFirst,
+        NewestModsFirst
     }
 
     public record ModFilter(ModTag Tag, FilterType Type) {

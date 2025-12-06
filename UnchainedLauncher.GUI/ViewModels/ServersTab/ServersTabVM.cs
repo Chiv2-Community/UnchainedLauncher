@@ -96,8 +96,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             DialogueSpawner = dialogueSpawner;
             ModManagerCreator = modManagerCreator;
             SaveLocation = saveLocation;
+
             Load();
-            SelectedTemplate = ServerTemplates.FirstOrDefault();
+
+            if (ServerTemplates?.Count == 0) {
+                AddTemplate().Wait();
+            }
+
+            SelectedTemplate = ServerTemplates?.FirstOrDefault();
             UpdateVisibility();
         }
 
@@ -112,13 +118,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         [RelayCommand]
         public async Task AddTemplate() {
+
             var newModManager = new ModManager(
                 ModRegistry,
                 new List<ReleaseCoordinates> { });
             var newTemplate = new ServerTemplateVM(
                 new ModListVM(newModManager, DialogueSpawner)
-                );
-            newTemplate.ModList.RefreshModListCommand.Execute(null);
+            );
+            await newTemplate.ModList.RefreshModList();
             var occupiedPorts = ServerTemplates.Select(
                 (e) => new Set<int>(new List<int> {
                     e.Form.A2SPort,

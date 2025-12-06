@@ -18,6 +18,7 @@ namespace UnchainedLauncher.GUI.Views.Registry.DesignInstances {
                 new LocalModRegistry("LocalModRegistryTesting2")
             ),
             new RegistryWindowService()
-        ) { }
+        ) {
+        }
     }
 }

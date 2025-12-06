@@ -11,7 +11,8 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V1 {
         [property: JsonPropertyName("hash")] string ReleaseHash,
         [property: JsonPropertyName("pak_file_name")] string PakFileName,
         [property: JsonPropertyName("release_date")] DateTime ReleaseDate,
-        [property: JsonPropertyName("manifest")] ModManifest Manifest
+        [property: JsonPropertyName("manifest")] ModManifest Manifest,
+        [property: JsonPropertyName("release_notes_markdown")] string? ReleaseNotesMarkdown
     );
 
     public record Dependency(

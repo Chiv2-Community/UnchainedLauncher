@@ -24,7 +24,8 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             "https://servers.polehammer.net",
             new FileBackedSettings<LauncherSettings>(""),
             "",
-            (_) => { }
-        ) { }
+            _ => { }
+        ) {
+        }
     }
 }

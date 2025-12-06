@@ -2,7 +2,7 @@
 
 namespace UnchainedLauncher.GUI.Views.Servers {
     /// <summary>
-    /// Interaction logic for ServerTemplate.xaml
+    ///     Interaction logic for ServerTemplate.xaml
     /// </summary>
     public partial class ServerTemplate : UserControl {
         public ServerTemplate() {

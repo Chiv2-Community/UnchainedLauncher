@@ -55,7 +55,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                     new List<ModTag> { ModTag.Doodad },
                     new List<string> { "ffa_exampleMap", "tdm_exampleMap" },
                     new OptionFlags(true)
-                )
+                ),
+                "# Example Release Notes\n\n* Your release notes here"
             );
 
             _windowService.PromptAddRelease(Registry, new RegistryReleaseFormVM(dummyRelease, null));
@@ -227,6 +228,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public List<string> Maps { get; set; }
         public OptionFlags OptionFlags { get; set; }
 
+        public string ReleaseNotesMarkdown { get; set; }
+
         public string LastSubmitComplaint { get; set; } = "";
 
         [RelayCommand]
@@ -257,6 +260,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             Tags = release.Manifest.Tags;
             Maps = release.Manifest.Maps;
             OptionFlags = release.Manifest.OptionFlags;
+            ReleaseNotesMarkdown = release.ReleaseNotesMarkdown ?? "";
         }
 
         public (Release release, string pakPath) ToRelease() {
@@ -282,7 +286,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                 ReleaseHash,
                 PakFileName,
                 ReleaseDate,
-                m);
+                m,
+                ReleaseNotesMarkdown);
 
             return (r, PakFilePath);
         }

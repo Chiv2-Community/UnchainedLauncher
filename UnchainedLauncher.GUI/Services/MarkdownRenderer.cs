@@ -1,8 +1,8 @@
 ﻿using log4net;
+using Markdig;
 using System;
 using System.Windows;
 using System.Windows.Media;
-using Markdig;
 
 namespace UnchainedLauncher.GUI.Services {
     public static class MarkdownRenderer {
@@ -80,30 +80,25 @@ namespace UnchainedLauncher.GUI.Services {
                 </body>
             </html>";
         }
-        
+
         private static string ColorToHex(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
 
-        private static string BrushHex(string brushKey, string fallback)
-        {
-            try
-            {
+        private static string BrushHex(string brushKey, string fallback) {
+            try {
                 var res = Application.Current?.TryFindResource(brushKey);
-                if (res is SolidColorBrush scb)
-                {
+                if (res is SolidColorBrush scb) {
                     return ColorToHex(scb.Color);
                 }
-                if (res is Color color)
-                {
+                if (res is Color color) {
                     return ColorToHex(color);
                 }
             }
-            catch(Exception e)
-            {
+            catch (Exception e) {
                 Logger.Error($"Failed to resolve color resource {brushKey}.", e);
             }
             return fallback;
         }
     }
-    
+
 
 }

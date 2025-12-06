@@ -169,11 +169,11 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 ModSortMode.EnabledFirst => query
                     .OrderByDescending(m => m.IsEnabled)
                     .ThenBy(m => m.Mod.LatestManifest.Name, StringComparer.OrdinalIgnoreCase),
-                ModSortMode.LatestReleaseDateFirst => 
+                ModSortMode.LatestReleaseDateFirst =>
                     query.OrderByDescending(m => m.Mod.LatestRelease.Map(r => r.ReleaseDate).IfNone(DateTime.MinValue)),
-                ModSortMode.NewestModsFirst => 
+                ModSortMode.NewestModsFirst =>
                     query.OrderByDescending(m => m.Mod.Releases.LastOrDefault()?.ReleaseDate),
-                _ => 
+                _ =>
                     query.OrderBy(m => m.Mod.LatestManifest.Name, StringComparer.OrdinalIgnoreCase),
             };
 

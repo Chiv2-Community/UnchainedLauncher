@@ -227,7 +227,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public List<ModTag> Tags { get; set; }
         public List<string> Maps { get; set; }
         public OptionFlags OptionFlags { get; set; }
-        
+
         public string ReleaseNotesMarkdown { get; set; }
 
         public string LastSubmitComplaint { get; set; } = "";

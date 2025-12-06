@@ -17,7 +17,7 @@ using UnchainedLauncher.GUI.Services;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
-    
+
     public partial class HomeVM : INotifyPropertyChanged {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(HomeVM));
 

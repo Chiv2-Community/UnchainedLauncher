@@ -34,9 +34,6 @@ namespace UnchainedLauncher.GUI {
     public partial class App : Application {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
 
-
-
-        public App() : base() { }
         protected override void OnStartup(StartupEventArgs e) {
             base.OnStartup(e);
 
@@ -81,6 +78,8 @@ namespace UnchainedLauncher.GUI {
 
             window?.Show();
         }
+
+        // Removed class-level command bindings; handled by Views.UnchainedWindow type.
 
         private Window? InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
             var installationSelectionVM = new InstallationSelectionPageViewModel(installationFinder);

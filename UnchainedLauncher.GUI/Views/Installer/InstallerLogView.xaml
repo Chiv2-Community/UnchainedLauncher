@@ -14,14 +14,13 @@
 
     <Grid>
         <TextBox IsReadOnly="True"
+                 TextAlignment="Left"
+                 VerticalContentAlignment="Top"
                  VerticalScrollBarVisibility="Auto"
-                 Background="Black"
-                 Foreground="White"
-                 FontFamily="Consolas"
-                 TextWrapping="Wrap"
                  HorizontalScrollBarVisibility="Auto"
-                 Text="{Binding Log}"
-                  />
+                 TextWrapping="Wrap"
+                 FontFamily="Consolas"
+                 Text="{Binding Log}"/>
     </Grid>
     
 

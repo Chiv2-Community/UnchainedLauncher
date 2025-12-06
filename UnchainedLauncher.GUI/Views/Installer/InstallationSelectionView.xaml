@@ -28,7 +28,10 @@
         <!-- Main Content Area (ListView) -->
         <ListView x:Name="InstallationList"  Grid.Row="0"
                   ItemsSource="{Binding Installations}"
-                  Margin="0,0,0,10">
+                  Margin="0,0,0,10"
+                  Background="{StaticResource Brush.Background}"
+                  Foreground="{StaticResource Brush.TextPrimary}"
+                  BorderBrush="{StaticResource Brush.Border}">
         </ListView>
 
         <!-- Bottom Button Panel -->
@@ -44,26 +47,14 @@
                     Command="{Binding ScanForInstallationsCommand}"
                     Content="Scan for Installations"
                     Padding="10,3"
-                    Margin="0,0,10,0">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="{x:Static SystemColors.ControlBrush}"/>
-                        <Setter Property="BorderBrush" Value="{x:Static SystemColors.ControlDarkBrush}"/>
-                    </Style>
-                </Button.Style>
-            </Button>
+                    Margin="0,0,10,0"
+                    Style="{StaticResource Button.Secondary}"/>
 
             <Button Grid.Column="1"
                     Command="{Binding BrowseForInstallationCommand}"
                     Content="Browse for other installation..."
-                    Padding="10,3">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="{x:Static SystemColors.ControlBrush}"/>
-                        <Setter Property="BorderBrush" Value="{x:Static SystemColors.ControlDarkBrush}"/>
-                    </Style>
-                </Button.Style>
-            </Button>
+                    Padding="10,3"
+                    Style="{StaticResource Button.Secondary}"/>
         </Grid>
     </Grid>
 </UserControl>

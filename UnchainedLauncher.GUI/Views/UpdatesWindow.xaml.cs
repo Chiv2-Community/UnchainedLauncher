@@ -11,7 +11,7 @@ namespace UnchainedLauncher.GUI.Views {
     /// <summary>
     /// Interaction logic for MessageBoxEx.xaml
     /// </summary>
-    public partial class UpdatesWindow : Window {
+    public partial class UpdatesWindow : UnchainedWindow {
 
         private static readonly ILog logger = LogManager.GetLogger(nameof(UpdatesWindow));
 

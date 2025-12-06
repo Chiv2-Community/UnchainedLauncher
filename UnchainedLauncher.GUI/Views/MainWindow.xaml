@@ -1,4 +1,4 @@
-﻿<Window
+﻿<local:UnchainedWindow
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
@@ -13,21 +13,9 @@
         mc:Ignorable="d" 
         d:DataContext="{d:DesignInstance instances:MainWindowDesignVM}"
         x:Class="UnchainedLauncher.GUI.Views.MainWindow"
-        Title="Unchained Launcher" Height="500" Width="1000"
-        WindowStyle="None"
-        ResizeMode="CanResize"
-        AllowsTransparency="False"
-    >
-    <!-- Ensure there is no residual non-client glass frame (prevents 1px white sliver at top) -->
-    <WindowChrome.WindowChrome>
-        <shell:WindowChrome
-            CaptionHeight="0"
-            CornerRadius="0"
-            GlassFrameThickness="0"
-            ResizeBorderThickness="6"
-            UseAeroCaptionButtons="False" />
-    </WindowChrome.WindowChrome>
-    
+        Style="{DynamicResource UnchainedChrome}"
+        ShowWindowTitle="False"
+        Title="Unchained Launcher" Height="500" Width="1000" >
     <Window.Resources>
         <Style TargetType="TabItem" x:Key="UnderlineTabItemStyle">
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}"/>
@@ -140,77 +128,44 @@
         </Style>
     </Window.Resources>
 
-    <!-- Custom chrome: Title bar with window controls, app content below -->
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="32"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-
-        <!-- Title bar -->
-        <Grid Grid.Row="0"
-              Background="{DynamicResource Brush.Background}"
-              MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- Drag region (empty, spans left area) -->
-            <Border Grid.Column="0" Background="Transparent"/>
-
-            <!-- Window buttons -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Style="{StaticResource Button.TitleBar.Minimize}" Click="MinimizeButton_Click" ToolTip="Minimize">
-                    <TextBlock Text="—" FontSize="12"/>
-                </Button>
-                <Button Style="{StaticResource Button.TitleBar.Close}" Click="CloseButton_Click" ToolTip="Close">
-                    <TextBlock Text="×" FontSize="14"/>
-                </Button>
-            </StackPanel>
-        </Grid>
-
-        <!-- Main tabs/content -->
-        <TabControl Grid.Row="1" x:Name="Tabs"
-                    Style="{StaticResource RightAlignedTabControlStyle}"
-                    ItemContainerStyle="{StaticResource UnderlineTabItemStyle}">
-            <TabItem>
-                <TabItem.Header> 
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="🏠" Margin="0,0,6,0"/>
-                        <TextBlock Text="Home"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <local:Home DataContext="{Binding HomeVM}" />
-            </TabItem>
-            <TabItem>
-                <TabItem.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="🧩" Margin="0,0,6,0"/>
-                        <TextBlock Text="Mod Manager"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <mods:ModList DataContext="{Binding ModListViewModel}" />
-            </TabItem>
-            <TabItem>
-                <TabItem.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="🖥️" Margin="0,0,6,0"/>
-                        <TextBlock Text="Servers"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <servers:ServersTab DataContext="{Binding ServersTab}" />
-            </TabItem>
-            <TabItem>
-                <TabItem.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="⚙️" Margin="0,0,6,0"/>
-                        <TextBlock Text="Settings"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <local:Settings DataContext="{Binding SettingsViewModel}" />
-            </TabItem>
-        </TabControl>
-    </Grid>
-
-</Window>
+    <TabControl x:Name="Tabs"
+                Style="{StaticResource RightAlignedTabControlStyle}"
+                ItemContainerStyle="{StaticResource UnderlineTabItemStyle}">
+        <TabItem>
+            <TabItem.Header> 
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🏠" Margin="0,0,6,0"/>
+                    <TextBlock Text="Home"/>
+                </StackPanel>
+            </TabItem.Header>
+            <local:Home DataContext="{Binding HomeVM}" />
+        </TabItem>
+        <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🧩" Margin="0,0,6,0"/>
+                    <TextBlock Text="Mod Manager"/>
+                </StackPanel>
+            </TabItem.Header>
+            <mods:ModList DataContext="{Binding ModListViewModel}" />
+        </TabItem>
+        <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🖥️" Margin="0,0,6,0"/>
+                    <TextBlock Text="Servers"/>
+                </StackPanel>
+            </TabItem.Header>
+            <servers:ServersTab DataContext="{Binding ServersTab}" />
+        </TabItem>
+        <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="⚙️" Margin="0,0,6,0"/>
+                    <TextBlock Text="Settings"/>
+                </StackPanel>
+            </TabItem.Header>
+            <local:Settings DataContext="{Binding SettingsViewModel}" />
+        </TabItem>
+    </TabControl>
+</local:UnchainedWindow>

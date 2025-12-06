@@ -12,11 +12,7 @@
         d:DesignHeight="600" d:DesignWidth="1000">
     <UserControl.Resources>
         <DataTemplate DataType="{x:Type registry:RegistryModVM}">
-            <Border BorderBrush="LightGray" BorderThickness="1" CornerRadius="5" 
-                    Background="White" Margin="8" Padding="12">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="5" ShadowDepth="2" Opacity="0.3"/>
-                </Border.Effect>
+            <Border Style="{StaticResource Card}" Margin="8" Padding="12">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -27,7 +23,7 @@
                     <!-- Mod Header -->
                     <TextBlock Grid.Row="0" FontWeight="Bold" FontSize="14" Margin="0,0,0,10">
                         <Run Text="{Binding Mod.LatestManifest.Organization, Mode=OneWay}"/>
-                        <Run Text="/" Foreground="Gray"/>
+                        <Run Text="/" Foreground="{StaticResource Brush.TextSecondary}"/>
                         <Run Text="{Binding Mod.LatestManifest.Name, Mode=OneWay}"/>
                     </TextBlock>
                     
@@ -36,7 +32,7 @@
                         <ItemsControl ItemsSource="{Binding Releases}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" 
+                                    <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1" 
                                             Padding="4" Margin="0,2">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
@@ -110,7 +106,7 @@
         
         <!-- Footer with Add Button -->
         <Border Grid.Row="1" 
-               BorderBrush="#E0E0E0" 
+               BorderBrush="{StaticResource Brush.Border}" 
                BorderThickness="0,1,0,0" 
                Padding="0,15,0,0"
                Margin="0,15,0,0">

@@ -1,3 +1,4 @@
+using System.Windows;
 using UnchainedLauncher.GUI.ViewModels.Registry;
 
 namespace UnchainedLauncher.GUI.Views.Registry {

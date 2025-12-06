@@ -23,7 +23,7 @@
                     Text="{Binding TaskName, Mode=OneWay}"
                     Grid.Row="0"
                     FontWeight="SemiBold"
-                    Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"
+                    Foreground="{StaticResource Brush.TextPrimary}"
                 />
                 <ProgressBar 
                     Grid.Row="2"
@@ -31,8 +31,9 @@
                     Minimum="0.00"
                     Maximum="100.00"
                     Value="{Binding ProgressPercentage, Mode=OneWay}"
-                    Background="#E0E0E0"
-                    BorderBrush="#C0C0C0"
+                    Background="{StaticResource Brush.InputBackground}"
+                    BorderBrush="{StaticResource Brush.Border}"
+                    Foreground="{StaticResource Brush.Primary}"
                     BorderThickness="1"
                 />
             </Grid>
@@ -52,7 +53,7 @@
                     Grid.Row="0"
                     FontWeight="SemiBold"
                     FontSize="14"
-                    Foreground="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"
+                    Foreground="{StaticResource Brush.TextPrimary}"
                 />
                 <ProgressBar 
                     Grid.Row="2"
@@ -60,8 +61,9 @@
                     Minimum="0.00"
                     Maximum="100.00"
                     Value="{Binding ProgressPercentage, Mode=OneWay}"
-                    Background="#E0E0E0"
-                    BorderBrush="#C0C0C0"
+                    Background="{StaticResource Brush.InputBackground}"
+                    BorderBrush="{StaticResource Brush.Border}"
+                    Foreground="{StaticResource Brush.Primary}"
                     BorderThickness="1"
                 />
                 <Expander Grid.Row="4" 
@@ -73,7 +75,8 @@
                         HorizontalContentAlignment="Stretch"
                         BorderThickness="0"
                         Margin="0,8,0,0"
-                        Background="Transparent"/>
+                        Background="Transparent"
+                        Foreground="{StaticResource Brush.TextPrimary}"/>
                 </Expander>
             </Grid>
         </DataTemplate>

@@ -75,13 +75,6 @@
                 HorizontalAlignment="Left"
                 Padding="20,3"
                 Margin="0,0,10,0"
-                >
-            <Button.Style>
-                <Style TargetType="Button">
-                    <Setter Property="Background" Value="{x:Static SystemColors.ControlBrush}"/>
-                    <Setter Property="BorderBrush" Value="{x:Static SystemColors.ControlDarkBrush}"/>
-                </Style>
-            </Button.Style>
-        </Button>
+                Style="{StaticResource Button.Secondary}"/>
     </Grid>
 </UserControl>

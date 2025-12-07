@@ -54,7 +54,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         // Property change hooks (PropertyChanged.Fody will call these)
         private void OnSearchTermChanged() => RebuildDisplay();
-        private void OnShowEnabledOnlyChanged() => RebuildDisplay();
         private void OnSelectedSortModeChanged() => RebuildDisplay();
 
         [RelayCommand]
@@ -121,7 +120,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     var failedUpdates =
                         pendingUpdates.Select(x =>
                                 (x.Item1, x.Item1.UpdateCurrentlyEnabledVersion(x.Item2.AvailableUpdate))
-                            ).Filter(x => x.Item2 == false)
+                            ).Filter(x => !x.Item2)
                             .Select(x => x.Item1);
 
 

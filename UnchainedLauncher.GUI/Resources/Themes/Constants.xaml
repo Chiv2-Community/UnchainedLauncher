@@ -48,5 +48,6 @@
     <SolidColorBrush x:Key="Brush.White" Color="#FFFFFFFF" />
 
     <SolidColorBrush x:Key="Brush.LightTransparent" Color="{StaticResource Color.Light}" Opacity="0.5" />
+    <SolidColorBrush x:Key="Brush.PrimaryTransparent" Color="{StaticResource Color.Primary}" Opacity="0.2" />
 
 </ResourceDictionary>

@@ -12,7 +12,7 @@ namespace UnchainedLauncher.GUI.Services {
             .UseAdvancedExtensions()
             .Build();
 
-        public static string RenderHtml(string markdown) {
+        public static string RenderHtml(string markdown, string? appendHtml = null) {
             // Resolve theme colors from WPF resources (fallbacks are from Colors.xaml dark theme)
             var bg = BrushHex("Brush.Background", "#121214");
             var text = BrushHex("Brush.TextPrimary", "#EDEDEF");
@@ -24,6 +24,8 @@ namespace UnchainedLauncher.GUI.Services {
 
             var hasContent = !string.IsNullOrWhiteSpace(markdown);
             var html = hasContent ? Markdown.ToHtml(markdown, Pipeline) : "<p style='opacity:0.7'>No release notes provided.</p>";
+            appendHtml ??= "";
+            
             return $@"
             <html>
                 <head>
@@ -77,6 +79,7 @@ namespace UnchainedLauncher.GUI.Services {
                 </head>
                 <body>
                     {html}
+                    {appendHtml}
                 </body>
             </html>";
         }

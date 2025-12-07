@@ -51,7 +51,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             public required DateTime Date { get; init; }
             public required string Html { get; init; }
             public required string Url { get; init; }
-            
+
             [RelayCommand]
             public void OpenUrl() => Process.Start(new ProcessStartInfo {
                 FileName = Url,
@@ -70,7 +70,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     .OrderByDescending(r => r.ReleaseDate)
                     .Take(20)
                     .ToList();
-                
+
 
                 // Build items off-UI-thread, then marshal collection updates to UI thread
                 var items = latestFive.Select(r => {

@@ -25,7 +25,7 @@ namespace UnchainedLauncher.GUI.Services {
             var hasContent = !string.IsNullOrWhiteSpace(markdown);
             var html = hasContent ? Markdown.ToHtml(markdown, Pipeline) : "<p style='opacity:0.7'>No release notes provided.</p>";
             appendHtml ??= "";
-            
+
             return $@"
             <html>
                 <head>

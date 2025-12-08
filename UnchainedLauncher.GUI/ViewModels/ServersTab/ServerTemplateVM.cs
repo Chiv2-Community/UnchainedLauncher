@@ -1,18 +1,14 @@
-﻿using LanguageExt.Pipes;
-using log4net;
+﻿using log4net;
 using PropertyChanged;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.GUI.Views.Mods;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
-    
+
     public record SavedServerTemplate(
         ServerInfoFormData ServerInfo,
         List<ReleaseCoordinates>? EnabledModMarkerList
@@ -21,7 +17,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     [AddINotifyPropertyChangedInterface]
     public partial class ServerTemplateVM {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServerTemplateVM));
-        
+
         public ServerInfoFormVM Form { get; }
         public ObservableCollection<ReleaseCoordinates> EnabledModMarkerList { get; }
         public ObservableCollection<Release> AvailableMods { get; }
@@ -34,14 +30,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             modManager.ModDisabled += RemoveAvailableMod;
             modManager.ModEnabled += AddAvailableMod;
         }
-        
+
         public void EnableModMarker(Release release) => EnabledModMarkerList.Add(ReleaseCoordinates.FromRelease(release));
         public void DisableModMarker(Release release) => EnabledModMarkerList.Remove(ReleaseCoordinates.FromRelease(release));
-        
-        
+
+
         public void AddAvailableMod(Release release, string? previousVersion) => AvailableMods.Add(release);
         public void RemoveAvailableMod(Release release) => AvailableMods.Remove(release);
-        
+
         public SavedServerTemplate Saved() {
             var savedTemplate = new SavedServerTemplate(
                 Form.Data,

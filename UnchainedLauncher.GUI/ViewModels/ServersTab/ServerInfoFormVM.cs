@@ -27,7 +27,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                                             string SelectedMap = "FFA_Courtyard",
                                             bool ShowInServerBrowser = false,
                                             ObservableCollection<Release> selectedMods = null) {
-        
+
         public ServerLaunchOptions ToServerLaunchOptions(bool headless) {
             return new ServerLaunchOptions(
                 headless,

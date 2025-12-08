@@ -151,12 +151,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             if (SelectedTemplate == null) return;
 
             var formData = SelectedTemplate.Form.Data;
-            
+
             var enabledModMarkers =
                 SelectedTemplate.EnabledModMarkerList
                     .Select(rc => ModManager.GetRelease(rc))
                     .Collect(x => x.AsEnumerable());
-            
+
             var maybeProcess = await LaunchProcessForSelected(formData, headless);
             maybeProcess.IfSome(process => {
                 var server = new Chivalry2Server(

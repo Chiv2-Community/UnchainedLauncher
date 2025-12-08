@@ -53,7 +53,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             ServerLaunchOptions.IfSome(opts => args.AddRange(opts.ToCLIArgs()));
 
             var suffix = SavedDirSuffix.IfNone("Unchained");
-            args.Add($"--saved-dir-suffix {suffix}");
+            args.Add($"-saveddirsuffix {suffix}");
 
             return args;
         }

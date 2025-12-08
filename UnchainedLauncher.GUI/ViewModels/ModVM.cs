@@ -6,6 +6,7 @@ using Semver;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
@@ -25,6 +26,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         );
 
         public Release? EnabledRelease { get; set; }
+
 
         public string Description {
             get {
@@ -69,6 +71,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public List<string> AvailableVersions => Mod.Releases.Select(x => x.Tag).ToList();
 
+        public string GithubReleaseUrl => (EnabledRelease?.ReleaseUrl) ?? Mod.LatestManifest.RepoUrl;
 
         public ModVM(Mod mod, Option<Release> enabledRelease, IModManager modManager) {
             EnabledRelease = enabledRelease.ValueUnsafe();
@@ -79,6 +82,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             PropertyChangedEventManager.AddHandler(this, (sender, e) => {
                 if (e.PropertyName == nameof(EnabledRelease)) {
                     UpdateCurrentlyEnabledVersion(EnabledRelease);
+                    // Trigger dependent UI updates via re-evaluation (weaving should raise for EnabledRelease)
                 }
             }, nameof(EnabledRelease));
 
@@ -99,11 +103,43 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 EnabledRelease = null;
         }
 
+        [RelayCommand]
+        private void ViewOnGithub() {
+            var url = GithubReleaseUrl;
+            if (string.IsNullOrWhiteSpace(url))
+                return;
+
+            try {
+                Process.Start(new ProcessStartInfo {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception e) {
+                Logger.Warn($"Failed to open URL: {url}", e);
+            }
+        }
+
         public bool UpdateCurrentlyEnabledVersion(Option<Release> newVersion) =>
             newVersion.Match(
                 None: () => ModManager.DisableMod(Mod),
                 Some: ModManager.EnableModRelease
             );
+
+        [RelayCommand]
+        private void OpenGithubRelease() {
+            var url = GithubReleaseUrl;
+            if (string.IsNullOrWhiteSpace(url)) return;
+            try {
+                Process.Start(new ProcessStartInfo {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex) {
+                Logger.Warn($"Failed to open URL: {url}", ex);
+            }
+        }
     }
 
     public record VersionNameSort(SemVersion? Version, string Name) : IComparable<VersionNameSort> {

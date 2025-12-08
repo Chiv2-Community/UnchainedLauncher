@@ -10,92 +10,78 @@
              d:DesignHeight="450" d:DesignWidth="800">
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+        <!-- Layout: What's New content on the left, vertical separator, launch buttons on the right -->
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-        <Grid>
+        <!-- What's New content (list + preview) -->
+        <Grid Grid.Column="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="2*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.ColumnSpan="2" Text="What's new" Style="{DynamicResource Heading.H3}" FontWeight="SemiBold" Margin="0 0 0 8" />
+            <ListBox Grid.Column="0" 
+                     x:Name="WhatsNewList"
+                     ItemsSource="{Binding WhatsNew}"
+                     SelectionChanged="WhatsNewList_SelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="0 8 0 8">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding Date, StringFormat=yyyy-MM-dd}" Opacity="0.7"
+                                       FontSize="12" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <Border Grid.Column="1" Margin="12,0,0,0" BorderBrush="{DynamicResource Brush.Border}"
+                    BorderThickness="1" CornerRadius="6">
+                <controls:HtmlWebView x:Name="WhatsNewHtml"
+                                      HorizontalAlignment="Stretch"
+                                      VerticalAlignment="Stretch" />
+            </Border>
+        </Grid>
+
+        <!-- Vertical separator -->
+        <Border Grid.Column="1"
+                Width="1"
+                Margin="12,0"
+                Background="{DynamicResource Brush.Border}" />
+
+        <!-- Launch buttons stacked vertically on the right -->
+        <Grid Grid.Column="2">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="8" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <TextBlock Text="What's new" FontWeight="SemiBold" Margin="0 0 0 8" />
-            <Grid Grid.Row="1">
-                <!-- Layout: What's New content on the left, vertical separator, launch buttons on the right -->
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+            <Button Grid.Row="0"
+                    Content="Chivalry 2"
+                    ToolTip="{Binding ButtonToolTip}"
+                    Command="{Binding LaunchVanillaCommand}"
+                    IsEnabled="{Binding Settings.CanClick}"
+                    Style="{StaticResource Button.Primary}" />
 
-                <!-- What's New content (list + preview) -->
-                <Grid Grid.Column="0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*" />
-                        <ColumnDefinition Width="4*" />
-                    </Grid.ColumnDefinitions>
+            <Button Grid.Row="2"
+                    Content="Chivalry 2 with Mods"
+                    ToolTip="{Binding ButtonToolTip}"
+                    Command="{Binding LaunchModdedVanillaCommand}"
+                    IsEnabled="{Binding Settings.CanClick}"
+                    Style="{StaticResource Button.Primary}" />
 
-                    <!-- List of recent releases -->
-                    <ListBox x:Name="WhatsNewList"
-                             Grid.Column="0"
-                             ItemsSource="{Binding WhatsNew}"
-                             SelectionChanged="WhatsNewList_SelectionChanged">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="0 8 0 8">
-                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
-                                    <TextBlock Text="{Binding Date, StringFormat=yyyy-MM-dd}" Opacity="0.7"
-                                               FontSize="12" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-
-                    <Border Grid.Column="1" Margin="12,0,0,0" BorderBrush="{DynamicResource Brush.Border}"
-                            BorderThickness="1" CornerRadius="6">
-                        <controls:HtmlWebView x:Name="WhatsNewHtml"
-                                              HorizontalAlignment="Stretch"
-                                              VerticalAlignment="Stretch" />
-                    </Border>
-                </Grid>
-
-                <!-- Vertical separator -->
-                <Border Grid.Column="1"
-                        Width="1"
-                        Margin="12,0"
-                        Background="{DynamicResource Brush.Border}" />
-
-                <!-- Launch buttons stacked vertically on the right -->
-                <Grid Grid.Column="2">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="8" />
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="8" />
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <Button Grid.Row="0"
-                            Content="Chivalry 2"
-                            ToolTip="{Binding ButtonToolTip}"
-                            Command="{Binding LaunchVanillaCommand}"
-                            IsEnabled="{Binding Settings.CanClick}"
-                            Style="{StaticResource Button.Primary}" />
-
-                    <Button Grid.Row="2"
-                            Content="Chivalry 2 with Mods"
-                            ToolTip="{Binding ButtonToolTip}"
-                            Command="{Binding LaunchModdedVanillaCommand}"
-                            IsEnabled="{Binding Settings.CanClick}"
-                            Style="{StaticResource Button.Primary}" />
-
-                    <Button Grid.Row="4"
-                            Content="Chivalry 2 Unchained"
-                            ToolTip="{Binding ButtonToolTip}"
-                            Command="{Binding LaunchUnchainedCommand}"
-                            IsEnabled="{Binding Settings.CanClick}"
-                            Style="{StaticResource Button.Primary}" />
-                </Grid>
-            </Grid>
+            <Button Grid.Row="4"
+                    Content="Chivalry 2 Unchained"
+                    ToolTip="{Binding ButtonToolTip}"
+                    Command="{Binding LaunchUnchainedCommand}"
+                    IsEnabled="{Binding Settings.CanClick}"
+                    Style="{StaticResource Button.Primary}" />
         </Grid>
     </Grid>
 </UserControl>

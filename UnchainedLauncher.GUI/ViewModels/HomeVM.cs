@@ -46,11 +46,17 @@ namespace UnchainedLauncher.GUI.ViewModels {
             _ = LoadWhatsNew();
         }
 
-        public class WhatsNewItem {
+        public partial class WhatsNewItem {
             public required string Title { get; init; }
             public required DateTime Date { get; init; }
             public required string Html { get; init; }
             public required string Url { get; init; }
+
+            [RelayCommand]
+            public void OpenUrl() => Process.Start(new ProcessStartInfo {
+                FileName = Url,
+                UseShellExecute = true
+            });
         }
 
         public System.Collections.ObjectModel.ObservableCollection<WhatsNewItem> WhatsNew { get; } = new();
@@ -65,12 +71,22 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     .Take(20)
                     .ToList();
 
+
                 // Build items off-UI-thread, then marshal collection updates to UI thread
-                var items = latestFive.Select(r => new WhatsNewItem {
-                    Title = $"{r.Manifest.Name} {r.Tag}",
-                    Date = r.ReleaseDate,
-                    Html = MarkdownRenderer.RenderHtml(r.ReleaseNotesMarkdown ?? ""),
-                    Url = r.ReleaseUrl
+                var items = latestFive.Select(r => {
+                    var markdown = "## Mod Description\n\n" + r.Manifest.Description;
+
+                    markdown += r.ReleaseNotesMarkdown != null
+                        ? $"\n\n---\n\n## {r.Tag} Release Notes\n\n{r.ReleaseNotesMarkdown}"
+                        : "\n\n---\n\nNo release notes provided.";
+
+                    return new WhatsNewItem {
+                        Title = $"{r.Manifest.Name} {r.Tag}",
+                        Date = r.ReleaseDate,
+                        Html = MarkdownRenderer.RenderHtml(markdown,
+                            $"<br /><hr /><a style='float:right;' href='{r.ReleaseUrl}'>View on GitHub</a>"),
+                        Url = r.ReleaseUrl
+                    };
                 }).ToList();
 
                 System.Windows.Application.Current.Dispatcher.Invoke(() => {

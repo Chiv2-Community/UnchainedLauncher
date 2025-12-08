@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:UnchainedLauncher.GUI.Views.Controls"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Mods.DesignInstances"
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d"
@@ -60,6 +61,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <!-- Header: Name, Enable/Disable, Version selector -->
@@ -69,15 +71,22 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="220" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="{Binding Mod.LatestManifest.Name}" FontWeight="SemiBold" FontSize="14"
-                           VerticalAlignment="Center" />
+                <Button Grid.Column="0" 
+                        Content="{Binding Mod.LatestManifest.Name}" 
+                        Command="{Binding ViewOnGithubCommand}"
+                        FontWeight="SemiBold"
+                        FontSize="14"
+                        VerticalAlignment="Center" 
+                        Background="{DynamicResource Brush.PrimaryTransparent}" 
+                        Width="Auto" HorizontalAlignment="Left" 
+                        BorderThickness="1" 
+                        BorderBrush="{DynamicResource Brush.Border}" />
                 <Button Grid.Column="1"
                         Content="{Binding ButtonText}"
                         Command="{Binding EnableOrDisableCommand}"
                         Margin="0,0,8,0">
                     <Button.Style>
                         <Style TargetType="Button" BasedOn="{StaticResource Button.Secondary}">
-                            <!-- Green when action is Enable (IsEnabled == False), Red when action is Disable (IsEnabled == True) -->
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsEnabled}" Value="False">
                                     <Setter Property="Background" Value="{StaticResource Brush.Success}" />

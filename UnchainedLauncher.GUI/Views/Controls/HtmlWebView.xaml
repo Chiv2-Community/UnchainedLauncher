@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
              mc:Ignorable="d"
+             Padding="8"
              d:DesignHeight="200" d:DesignWidth="300">
     <Grid>
         <wv2:WebView2 x:Name="WebView" />

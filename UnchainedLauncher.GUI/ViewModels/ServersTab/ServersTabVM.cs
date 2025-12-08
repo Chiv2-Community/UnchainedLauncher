@@ -31,7 +31,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public SettingsVM Settings { get; }
         public IModRegistry ModRegistry { get; }
         public readonly IChivalry2Launcher Launcher;
-        public Func<IModManager> ModManagerCreator;
+        public IModManager ModManager { get; }
         public IUserDialogueSpawner DialogueSpawner;
         public FileBackedSettings<IEnumerable<SavedServerTemplate>>? SaveLocation;
         public ObservableCollection<ServerTemplateVM> ServerTemplates { get; }
@@ -45,28 +45,16 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             Save();
         }
 
-        private void OnTemplateModManagerModDisabled(Release r) {
-            Save();
-        }
-
-        private void OnTemplateModManagerModEnabled(Release r, string? prev) {
-            Save();
-        }
-
         private ServerTemplateVM? _selectedTemplate;
         public ServerTemplateVM? SelectedTemplate {
             get => _selectedTemplate;
             set {
                 if (_selectedTemplate != null) {
                     _selectedTemplate.Form.PropertyChanged -= OnTemplateFormChanged;
-                    _selectedTemplate.ModList._modManager.ModEnabled -= OnTemplateModManagerModEnabled;
-                    _selectedTemplate.ModList._modManager.ModDisabled -= OnTemplateModManagerModDisabled;
                 }
 
                 if (value != null) {
                     value.Form.PropertyChanged += OnTemplateFormChanged;
-                    value.ModList._modManager.ModEnabled += OnTemplateModManagerModEnabled;
-                    value.ModList._modManager.ModDisabled += OnTemplateModManagerModDisabled;
                 }
 
                 _selectedTemplate = value;
@@ -79,7 +67,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public Visibility LiveServerVisibility { get; private set; }
 
         public ServersTabVM(SettingsVM settings,
-                            Func<IModManager> modManagerCreator,
+                            IModManager modManager,
                             IUserDialogueSpawner dialogueSpawner,
                             IChivalry2Launcher launcher,
                             IModRegistry modRegistry,
@@ -94,7 +82,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             ModRegistry = modRegistry;
             Launcher = launcher;
             DialogueSpawner = dialogueSpawner;
-            ModManagerCreator = modManagerCreator;
+            ModManager = modManager;
             SaveLocation = saveLocation;
 
             Load();
@@ -118,14 +106,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         [RelayCommand]
         public async Task AddTemplate() {
-
-            var newModManager = new ModManager(
-                ModRegistry,
-                new List<ReleaseCoordinates> { });
-            var newTemplate = new ServerTemplateVM(
-                new ModListVM(newModManager, DialogueSpawner)
+            var saved = new SavedServerTemplate(
+                new ServerInfoFormData("127.0.0.1"),
+                new List<ReleaseCoordinates> { }
             );
-            await newTemplate.ModList.RefreshModList();
+            var enabled = new ObservableCollection<ReleaseCoordinates>(saved.EnabledModMarkerList);
+            var newTemplate = new ServerTemplateVM(saved, enabled, ModManager);
             var occupiedPorts = ServerTemplates.Select(
                 (e) => new Set<int>(new List<int> {
                     e.Form.A2SPort,
@@ -165,15 +151,21 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             if (SelectedTemplate == null) return;
 
             var formData = SelectedTemplate.Form.Data;
-            var enabledMods =
-                SelectedTemplate.ModList._modManager.GetEnabledModReleases();
+            
+            var modsToDownload = ModManager.GetEnabledAndDependencyReleases();
+            
+            var enabledModMarkers =
+                SelectedTemplate.EnabledModMarkerList
+                    .Select(rc => ModManager.GetRelease(rc))
+                    .Collect(x => x.AsEnumerable());
+            
             var maybeProcess = await LaunchProcessForSelected(formData, headless);
             maybeProcess.IfSome(process => {
                 var server = new Chivalry2Server(
                     process,
-                    RegisterWithBackend(formData, enabledMods),
+                    RegisterWithBackend(formData, enabledModMarkers),
                     new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort))
-                    );
+                );
                 var serverVm = new ServerVM(server);
                 var runningTuple = (SelectedTemplate, serverVm);
                 process.Exited += (_, _) => {
@@ -208,8 +200,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             }
 
             foreach (var template in loaded) {
-                var newTemplate = new ServerTemplateVM(template, ModRegistry, DialogueSpawner);
-                newTemplate.ModList.RefreshModListCommand.Execute(null);
+                var enabled = new ObservableCollection<ReleaseCoordinates>(template.EnabledModMarkerList ?? Enumerable.Empty<ReleaseCoordinates>());
+                var newTemplate = new ServerTemplateVM(template, enabled, ModManager);
                 ServerTemplates.Add(newTemplate);
             }
             Logger.Info($"Loaded {ServerTemplates.Count} server templates.");
@@ -235,7 +227,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             var serverLaunchOptions = formData.ToServerLaunchOptions(headless);
             var options = new LaunchOptions(
-                SelectedTemplate.ModList._modManager.GetEnabledAndDependencies(),
+                ModManager.EnabledModReleaseCoordinates,
                 Settings.ServerBrowserBackend,
                 Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,

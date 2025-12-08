@@ -65,28 +65,10 @@ namespace UnchainedLauncher.Core.Services.Processes {
                     FileName = ExecutableLocation,
                     Arguments = args,
                     WorkingDirectory = Path.GetFullPath(workingDirectory),
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true
                 }
             };
-            // Execute the process
             try {
                 proc.Start();
-                proc.OutputDataReceived += (sender, e) => {
-                    if (e.Data != null) {
-                        Logger.Info("Stdout: " + e.Data);
-                    }
-                };
-
-                proc.ErrorDataReceived += (sender, e) => {
-                    if (e.Data != null) {
-                        Logger.Error("Stderr: " + e.Data);
-                    }
-                };
-
-                proc.BeginErrorReadLine();
-                proc.BeginOutputReadLine();
-
                 return Right(proc);
             }
             catch (Exception e) {

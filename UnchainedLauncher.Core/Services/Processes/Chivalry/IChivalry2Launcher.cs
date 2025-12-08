@@ -68,7 +68,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         int GamePort,
         int BeaconPort,
         int QueryPort,
-        int RconPort
+        int RconPort,
+        IEnumerable<String> NextMapModMarkers
     ) {
         public IEnumerable<String> ToCLIArgs() {
             var args = new List<string>();
@@ -84,6 +85,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             args.Add($"GameServerPingPort={BeaconPort}");
             args.Add($"GameServerQueryPort={QueryPort}");
             args.Add($"--rcon {RconPort}");
+            args.Add($"--next-map-mod-markers {string.Join(",", NextMapModMarkers)}");
 
             return args;
         }

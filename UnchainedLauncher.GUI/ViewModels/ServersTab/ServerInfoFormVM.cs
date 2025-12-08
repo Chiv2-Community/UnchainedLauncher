@@ -10,6 +10,7 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
 using UnchainedLauncher.Core.API.ServerBrowser;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
@@ -24,7 +25,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                                             int A2SPort = 7071,
                                             int PingPort = 3075,
                                             string SelectedMap = "FFA_Courtyard",
-                                            bool ShowInServerBrowser = false) {
+                                            bool ShowInServerBrowser = false,
+                                            ObservableCollection<Release> selectedMods = null) {
+
         public ServerLaunchOptions ToServerLaunchOptions(bool headless) {
             return new ServerLaunchOptions(
                 headless,
@@ -35,7 +38,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 GamePort,
                 PingPort,
                 A2SPort,
-                RconPort
+                RconPort,
+                selectedMods?
+                    .Where(release => release.Manifest.OptionFlags.ActorMod)
+                    .Select(release => release.Manifest.Name.Replace(" ", "")) ?? Enumerable.Empty<string>()
             );
         }
 

@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Servers"
              xmlns:mods="clr-namespace:UnchainedLauncher.GUI.Views.Mods"
+             xmlns:conv="clr-namespace:UnchainedLauncher.GUI.Converters"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
     <StackPanel>
@@ -16,8 +17,35 @@
         </Border>
         <Border Style="{StaticResource Card}">
             <StackPanel>
-                <TextBlock Text="Server Mods" Style="{DynamicResource Heading.H3}" />
-                <mods:ModList DataContext="{Binding ModList}" />
+                <StackPanel.Resources>
+                    <conv:ReleaseEnabledConverter x:Key="ReleaseEnabledConverter" />
+                </StackPanel.Resources>
+                <TextBlock Text="Server Mod Actors" Style="{DynamicResource Heading.H3}" />
+                <ListBox ItemsSource="{Binding AvailableMods}" BorderThickness="0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="0,4">
+                                <CheckBox
+                                    VerticalAlignment="Center"
+                                    Checked="CheckBox_OnChecked"
+                                    Unchecked="CheckBox_OnUnchecked">
+                                    <CheckBox.IsChecked>
+                                        <MultiBinding Converter="{StaticResource ReleaseEnabledConverter}" Mode="OneWay">
+                                            <Binding />
+                                            <Binding RelativeSource="{RelativeSource AncestorType=UserControl}" Path="DataContext.EnabledModMarkerList" />
+                                        </MultiBinding>
+                                    </CheckBox.IsChecked>
+                                </CheckBox>
+                                <TextBlock Margin="8,0,0,0" VerticalAlignment="Center">
+                                    <Run Text="{Binding Manifest.Name}" />
+                                    <Run Text="  (" />
+                                    <Run Text="{Binding Tag}" />
+                                    <Run Text=")" />
+                                </TextBlock>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </StackPanel>
         </Border>
     </StackPanel>

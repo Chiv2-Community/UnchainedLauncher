@@ -199,7 +199,7 @@ namespace UnchainedLauncher.GUI {
 
             var serversTabViewModel = new ServersTabVM(
                 settingsViewModel,
-                () => new ModManager(modManager.Registry, modManager.EnabledModReleaseCoordinates, modManager.Mods),
+                modManager,
                 userDialogueSpawner,
                 unchainedLauncher,
                 modRegistry,

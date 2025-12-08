@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -221,6 +222,19 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 Settings.CanClick = false;
             }
 
+            Func<string, string> sanitizeSaveddirSuffix = s => {
+                var substitutedUnderscores = s.Trim()
+                    .Replace(' ', '_')
+                    .Replace('(', '_')
+                    .Replace(')', '_')
+                    .ReplaceLineEndings("_");
+
+                var illegalCharsRemoved =
+                    string.Join("_", substitutedUnderscores.Split(Path.GetInvalidFileNameChars()));
+
+                return illegalCharsRemoved;
+            };
+
             if (SelectedTemplate == null) return None;
 
             var serverLaunchOptions = formData.ToServerLaunchOptions(headless);
@@ -229,7 +243,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 Settings.ServerBrowserBackend,
                 Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
-                None,
+                Some(sanitizeSaveddirSuffix(formData.Name)),
                 Some(serverLaunchOptions)
             );
 

@@ -152,8 +152,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             var formData = SelectedTemplate.Form.Data;
             
-            var modsToDownload = ModManager.GetEnabledAndDependencyReleases();
-            
             var enabledModMarkers =
                 SelectedTemplate.EnabledModMarkerList
                     .Select(rc => ModManager.GetRelease(rc))

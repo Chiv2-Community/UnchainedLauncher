@@ -111,7 +111,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 new ServerInfoFormData("127.0.0.1"),
                 new List<ReleaseCoordinates> { }
             );
-            var enabled = new ObservableCollection<ReleaseCoordinates>(saved.EnabledModMarkerList);
+            var enabled = new ObservableCollection<ReleaseCoordinates>(saved.EnabledServerModList);
             var newTemplate = new ServerTemplateVM(saved, enabled, ModManager);
             var occupiedPorts = ServerTemplates.Select(
                 (e) => new Set<int>(new List<int> {
@@ -153,8 +153,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             var formData = SelectedTemplate.Form.Data;
 
-            var enabledModMarkers =
-                SelectedTemplate.EnabledModMarkerList
+            var enabledModActors =
+                SelectedTemplate.EnabledServerModList
                     .Select(rc => ModManager.GetRelease(rc))
                     .Collect(x => x.AsEnumerable());
 
@@ -162,7 +162,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             maybeProcess.IfSome(process => {
                 var server = new Chivalry2Server(
                     process,
-                    RegisterWithBackend(formData, enabledModMarkers),
+                    RegisterWithBackend(formData, enabledModActors),
                     new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort))
                 );
                 var serverVm = new ServerVM(server);
@@ -199,7 +199,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             }
 
             foreach (var template in loaded) {
-                var enabled = new ObservableCollection<ReleaseCoordinates>(template.EnabledModMarkerList ?? Enumerable.Empty<ReleaseCoordinates>());
+                var enabled = new ObservableCollection<ReleaseCoordinates>(template.EnabledServerModList ?? Enumerable.Empty<ReleaseCoordinates>());
                 var newTemplate = new ServerTemplateVM(template, enabled, ModManager);
                 ServerTemplates.Add(newTemplate);
             }

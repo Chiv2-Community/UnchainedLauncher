@@ -32,7 +32,7 @@
                                     <CheckBox.IsChecked>
                                         <MultiBinding Converter="{StaticResource ReleaseEnabledConverter}" Mode="OneWay">
                                             <Binding />
-                                            <Binding RelativeSource="{RelativeSource AncestorType=UserControl}" Path="DataContext.EnabledModMarkerList" />
+                                            <Binding RelativeSource="{RelativeSource AncestorType=UserControl}" Path="DataContext.EnabledServerModList" />
                                         </MultiBinding>
                                     </CheckBox.IsChecked>
                                 </CheckBox>

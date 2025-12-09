@@ -1,5 +1,4 @@
-﻿using log4net;
-using PropertyChanged;
+﻿using PropertyChanged;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -11,28 +10,26 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
     public record SavedServerTemplate(
         ServerInfoFormData ServerInfo,
-        List<ReleaseCoordinates>? EnabledModMarkerList
+        List<ReleaseCoordinates>? EnabledServerModList
     );
 
     [AddINotifyPropertyChangedInterface]
     public partial class ServerTemplateVM {
-        private static readonly ILog Logger = LogManager.GetLogger(nameof(ServerTemplateVM));
-
         public ServerInfoFormVM Form { get; }
-        public ObservableCollection<ReleaseCoordinates> EnabledModMarkerList { get; }
+        public ObservableCollection<ReleaseCoordinates> EnabledServerModList { get; }
         public ObservableCollection<Release> AvailableMods { get; }
 
-        public ServerTemplateVM(SavedServerTemplate saved, ObservableCollection<ReleaseCoordinates> enabledModList, IModManager modManager) {
+        public ServerTemplateVM(SavedServerTemplate saved, ObservableCollection<ReleaseCoordinates> enabledServerModList, IModManager modManager) {
             Form = new ServerInfoFormVM(data: saved.ServerInfo);
-            EnabledModMarkerList = enabledModList;
+            EnabledServerModList = enabledServerModList;
             AvailableMods = new ObservableCollection<Release>(modManager.GetEnabledModReleases());
 
             modManager.ModDisabled += RemoveAvailableMod;
             modManager.ModEnabled += AddAvailableMod;
         }
 
-        public void EnableModMarker(Release release) => EnabledModMarkerList.Add(ReleaseCoordinates.FromRelease(release));
-        public void DisableModMarker(Release release) => EnabledModMarkerList.Remove(ReleaseCoordinates.FromRelease(release));
+        public void EnableServerMod(Release release) => EnabledServerModList.Add(ReleaseCoordinates.FromRelease(release));
+        public void DisableServerMod(Release release) => EnabledServerModList.Remove(ReleaseCoordinates.FromRelease(release));
 
 
         public void AddAvailableMod(Release release, string? previousVersion) => AvailableMods.Add(release);
@@ -41,7 +38,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public SavedServerTemplate Saved() {
             var savedTemplate = new SavedServerTemplate(
                 Form.Data,
-                EnabledModMarkerList.ToList()
+                EnabledServerModList.ToList()
             );
             return savedTemplate;
         }

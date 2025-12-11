@@ -1,4 +1,5 @@
 ﻿using DiscriminatedUnions;
+using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
@@ -11,7 +12,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
             metadata switch {
                 StandardModManagerMetadata m => new ModManager(
                     registry,
-                    m.EnabledModReleases
+                    m.EnabledModReleases,
+                    m.CachedMods
                 ),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(metadata), metadata,
@@ -21,7 +23,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public static ModManagerMetadata ToJsonType(IModManager manager) =>
             manager switch {
                 ModManager m => new StandardModManagerMetadata(
-                    m.EnabledModReleaseCoordinates
+                    m.EnabledModReleaseCoordinates,
+                    m.Mods
                 ),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(manager), manager,
@@ -34,7 +37,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
     public abstract record ModManagerMetadata(string Kind);
 
     public record StandardModManagerMetadata(
-        IEnumerable<ReleaseCoordinates> EnabledModReleases
+        IEnumerable<ReleaseCoordinates> EnabledModReleases,
+        IEnumerable<Mod>? CachedMods
     ) : ModManagerMetadata(ModManagerMetadataKind.StandardModManager);
 
     internal static class ModManagerMetadataKind {

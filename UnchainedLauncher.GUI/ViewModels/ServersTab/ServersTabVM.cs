@@ -35,7 +35,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public IModManager ModManager { get; }
         public IUserDialogueSpawner DialogueSpawner;
         public ObservableCollection<ServerConfigurationVM> ServerConfigs { get; }
-        public ObservableCollection<(ServerConfigurationVM template, ServerVM live)> RunningServers { get; } = new();
+        public ObservableCollection<(ServerConfigurationVM configuration, ServerVM live)> RunningServers { get; } = new();
 
         public ServerConfigurationVM? SelectedConfiguration {
             get;
@@ -139,7 +139,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                     new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort))
                 );
                 var serverVm = new ServerVM(server);
-                var runningTuple = (SelectedTemplate: SelectedConfiguration, serverVm);
+                var runningTuple = (SelectedConfiguration, serverVm);
                 process.Exited += (_, _) => {
                     RunningServers.Remove(runningTuple);
                     runningTuple.serverVm.Dispose();
@@ -150,7 +150,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public void UpdateVisibility() {
             SelectedServer = RunningServers.Choose(
-                (e) => e.template == SelectedConfiguration ? e.live : Option<ServerVM>.None
+                (e) => e.configuration == SelectedConfiguration ? e.live : Option<ServerVM>.None
             ).FirstOrDefault();
             var isSelectedRunning = SelectedServer != null;
 

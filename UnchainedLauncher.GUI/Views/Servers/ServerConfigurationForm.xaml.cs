@@ -4,11 +4,8 @@ using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 
 namespace UnchainedLauncher.GUI.Views.Servers {
-    /// <summary>
-    ///     Interaction logic for ServerTemplate.xaml
-    /// </summary>
-    public partial class ServerTemplate : UserControl {
-        public ServerTemplate() {
+    public partial class ServerConfigurationForm : UserControl {
+        public ServerConfigurationForm() {
             InitializeComponent();
         }
 

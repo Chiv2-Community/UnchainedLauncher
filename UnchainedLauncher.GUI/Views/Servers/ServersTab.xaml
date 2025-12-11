@@ -119,7 +119,7 @@
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           CanContentScroll="True">
-                <local:ServerTemplate DataContext="{Binding SelectedConfiguration}" />
+                <local:ServerConfigurationForm DataContext="{Binding SelectedConfiguration}" />
             </ScrollViewer>
             <!-- Launch buttons fixed at bottom -->
             <Grid Grid.Row="2">

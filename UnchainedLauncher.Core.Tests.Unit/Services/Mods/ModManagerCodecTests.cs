@@ -23,7 +23,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
             VerifyCodecRoundtrip(originalManager, manager => {
                 manager.EnabledModReleaseCoordinates.Should().BeEquivalentTo(enabledMods);
-                manager.Registry.Should().BeSameAs(Registry);
+                manager.ModRegistry.Should().BeSameAs(Registry);
             });
         }
 
@@ -34,7 +34,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
             VerifyCodecRoundtrip(originalManager, manager => {
                 manager.EnabledModReleaseCoordinates.Should().BeEmpty();
-                manager.Registry.Should().BeSameAs(Registry);
+                manager.ModRegistry.Should().BeSameAs(Registry);
             });
         }
     }

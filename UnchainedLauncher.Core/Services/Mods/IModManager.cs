@@ -27,7 +27,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// Triggered any time the EnabledModReleases collection has an item removed
         /// </summary>
         event ModDisabledHandler ModDisabled;
-
+        
+        IModRegistry ModRegistry { get; }
 
         /// <summary>
         /// A List of all currently enabled mods
@@ -92,6 +93,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// </summary>
         /// <returns>A Task containing a GetAllModsResult which has the aggregate list of errors and mods from all registries this ModManager instance has</returns>
         Task<GetAllModsResult> UpdateModsList();
+
     }
 
     public static class ModManagerExtensions {

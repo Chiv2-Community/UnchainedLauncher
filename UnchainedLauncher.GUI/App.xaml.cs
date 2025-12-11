@@ -1,7 +1,6 @@
 ﻿using LanguageExt;
 using log4net;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -177,7 +176,8 @@ namespace UnchainedLauncher.GUI {
                 userDialogueSpawner);
             var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
-            modListViewModel.RefreshModListCommand.Execute(null);
+            if (!modManager.Mods.Any())
+                modListViewModel.RefreshModListCommand.Execute(null);
 
             var envArgs = Environment.GetCommandLineArgs().ToList();
 
@@ -197,13 +197,14 @@ namespace UnchainedLauncher.GUI {
                 return null;
             }
 
+            var serverConfigurationVMs = InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager);
+
             var serversTabViewModel = new ServersTabVM(
                 settingsViewModel,
                 modManager,
                 userDialogueSpawner,
                 unchainedLauncher,
-                modRegistry,
-                new FileBackedSettings<IEnumerable<SavedServerTemplate>>(FilePaths.ServerTemplatesFilePath));
+                serverConfigurationVMs);
 
             var mainWindowViewModel = new MainWindowVM(
                 homeViewModel,
@@ -242,6 +243,14 @@ namespace UnchainedLauncher.GUI {
             return modManager;
         }
 
+        private ObservableCollection<ServerConfigurationVM> InitializeServerConfigurations(string jsonPath, IModManager modManager) {
+            Func<ObservableCollection<ServerConfigurationVM>> initializeDefault = () => new ObservableCollection<ServerConfigurationVM>();
+
+            var codec = new ServerConfigurationCodec(modManager);
+            var serverConfigurations = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
+            RegisterSaveToFileOnExit(serverConfigurations, codec, jsonPath);
+            return serverConfigurations;
+        }
 
         private T InitializeFromFileWithCodec<T>(ICodec<T> codec, string filePath, Func<T> initializeDefault) {
             _log.Info($"Loading {typeof(T).Name} from {filePath} using {codec.GetType().Name}({codec})...");

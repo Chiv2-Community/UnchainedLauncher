@@ -83,12 +83,12 @@
             </Grid.ColumnDefinitions>
             <ComboBox
                 Grid.Column="0"
-                ItemsSource="{Binding ServerTemplates}"
-                SelectedItem="{Binding SelectedTemplate}">
+                ItemsSource="{Binding ServerConfigs}"
+                SelectedItem="{Binding SelectedConfiguration}">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
                         <TextBlock>
-                            <Run Text="{Binding Path=Form.Name, Mode=OneWay}" />
+                            <Run Text="{Binding Path=Name, Mode=OneWay}" />
                         </TextBlock>
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
@@ -96,32 +96,30 @@
             <StackPanel Orientation="Horizontal" Grid.Column="1" Margin="8 0 0 0">
                 <!-- Split buttons: inner edges squared to appear as one control -->
                 <Button Width="50"
-                        Command="{Binding AddTemplateCommand}"
+                        Command="{Binding CreateNewConfigCommand}"
                         Style="{StaticResource Button.Success.SplitLeft}"
                         Content="+"
                         Margin="8 0 -2 0" />
                 <Button Width="50"
-                        Command="{Binding RemoveTemplateCommand}"
+                        Command="{Binding RemoveConfigurationCommand}"
                         Style="{StaticResource Button.Danger.SplitRight}"
                         Content="-"
                         Margin="0" />
-                <Button Width="100" Command="{Binding SaveCommand}" Style="{StaticResource Button.Primary}"
-                        Content="Save" Margin="8 0 0 0" />
             </StackPanel>
         </Grid>
-        <!-- Template editor & launch buttons (scrollable content, fixed buttons at bottom) -->
-        <Grid Grid.Row="1" Visibility="{Binding TemplateEditorVisibility}" Margin="0, 8, 0, 0">
+        <!-- Configuration editor & launch buttons (scrollable content, fixed buttons at bottom) -->
+        <Grid Grid.Row="1" Visibility="{Binding ConfigurationEditorVisibility}" Margin="0, 8, 0, 0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" />
                 <RowDefinition Height="8" />
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
-            <!-- Scrollable template content -->
+            <!-- Scrollable configuration content -->
             <ScrollViewer Grid.Row="0"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
                           CanContentScroll="True">
-                <local:ServerTemplate DataContext="{Binding SelectedTemplate}" />
+                <local:ServerConfigurationForm DataContext="{Binding SelectedConfiguration}" />
             </ScrollViewer>
             <!-- Launch buttons fixed at bottom -->
             <Grid Grid.Row="2">
@@ -145,7 +143,7 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="auto" />
             </Grid.RowDefinitions>
-            <local:Server DataContext="{Binding SelectedLive}" Grid.Row="0" />
+            <local:Server DataContext="{Binding SelectedServer}" Grid.Row="0" />
             <Button Grid.Row="1"
                     Command="{Binding ShutdownServerCommand}"
                     DockPanel.Dock="Bottom"

@@ -1,7 +1,6 @@
 ﻿using LanguageExt;
 using log4net;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -177,7 +176,7 @@ namespace UnchainedLauncher.GUI {
                 userDialogueSpawner);
             var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
-            if(!modManager.Mods.Any())
+            if (!modManager.Mods.Any())
                 modListViewModel.RefreshModListCommand.Execute(null);
 
             var envArgs = Environment.GetCommandLineArgs().ToList();
@@ -199,7 +198,7 @@ namespace UnchainedLauncher.GUI {
             }
 
             var serverConfigurationVMs = InitializeServerTemplates(FilePaths.ServerTemplatesFilePath, modManager);
-            
+
             var serversTabViewModel = new ServersTabVM(
                 settingsViewModel,
                 modManager,
@@ -246,7 +245,7 @@ namespace UnchainedLauncher.GUI {
 
         private ObservableCollection<ServerConfigurationVM> InitializeServerTemplates(string jsonPath, IModManager modManager) {
             Func<ObservableCollection<ServerConfigurationVM>> initializeDefault = () => new ObservableCollection<ServerConfigurationVM>();
-            
+
             var codec = new ServerConfigurationCodec(modManager);
             var serverTemplates = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
             RegisterSaveToFileOnExit(serverTemplates, codec, jsonPath);

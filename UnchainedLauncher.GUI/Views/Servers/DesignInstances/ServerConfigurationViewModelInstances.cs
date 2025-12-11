@@ -1,7 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using UnchainedLauncher.Core.Services.Mods;
-using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.GUI.ViewModels.ServersTab;
+﻿using UnchainedLauncher.GUI.ViewModels.ServersTab;
 
 namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
     public static class ServerConfigurationViewModelInstances {
@@ -9,8 +6,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
     }
 
     public class ServerConfigurationDesignVM : ServerConfigurationVM {
-        public ServerConfigurationDesignVM() : base(Mods.DesignInstances.ModListViewModelInstances.DEFAULTMODMANAGER)
-        {
+        public ServerConfigurationDesignVM() : base(Mods.DesignInstances.ModListViewModelInstances.DEFAULTMODMANAGER) {
         }
     }
 }

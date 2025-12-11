@@ -11,7 +11,7 @@ namespace UnchainedLauncher.GUI.Views.Servers {
             InitializeComponent();
         }
     }
-    
+
     public class PortRangeValidationRule : ValidationRule {
         public override ValidationResult Validate(object value, CultureInfo cultureInfo) {
             int numVal;

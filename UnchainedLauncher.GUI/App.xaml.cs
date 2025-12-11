@@ -198,7 +198,7 @@ namespace UnchainedLauncher.GUI {
             }
 
             var serverConfigurationVMs = InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager);
-            
+
             var serversTabViewModel = new ServersTabVM(
                 settingsViewModel,
                 modManager,

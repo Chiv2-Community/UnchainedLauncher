@@ -72,8 +72,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         public override string ToString() {
+            var modListStr = EnabledServerModList == null
+                ? "null"
+                : string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"));
             return
-                $"ServerConfiguration({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {SelectedMap}, {ShowInServerBrowser}, {EnabledServerModList})";
+                $"ServerConfiguration({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {SelectedMap}, {ShowInServerBrowser}, [{modListStr}])";
         }
     }
 
@@ -197,7 +200,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public ServerConfiguration ToServerConfiguration() => new ServerConfiguration(Name, Description, Password, LocalIp, GamePort, RconPort, A2SPort, PingPort, SelectedMap, ShowInServerBrowser, EnabledServerModList);
 
         public override string ToString() {
-            return $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {SelectedMap}, {ShowInServerBrowser}, {EnabledServerModList})";
+            var enabledMods = EnabledServerModList != null
+                ? string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"))
+                : "null";
+            return $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {SelectedMap}, {ShowInServerBrowser}, [{enabledMods}])";
         }
     }
 }

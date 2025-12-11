@@ -72,8 +72,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         public override string ToString() {
+            var modListStr = EnabledServerModList == null
+                ? "null"
+                : string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"));
             return
-                $"ServerConfiguration({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {SelectedMap}, {ShowInServerBrowser}, {EnabledServerModList})";
+                $"ServerConfiguration({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {SelectedMap}, {ShowInServerBrowser}, [{modListStr}])";
         }
     }
 

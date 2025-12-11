@@ -19,14 +19,13 @@ using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
-using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
     using static Successors;
-    
+
     [AddINotifyPropertyChangedInterface]
     public partial class ServersTabVM : IDisposable, INotifyPropertyChanged {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServersTabVM));
@@ -56,11 +55,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                             IChivalry2Launcher launcher,
                             ObservableCollection<ServerConfigurationVM> serverConfigs) {
             ServerConfigs = serverConfigs;
-            
+
             ServerConfigs.CollectionChanged += (_, _) => {
                 UpdateVisibility();
             };
-            
+
             RunningServers.CollectionChanged += (_, _) => UpdateVisibility();
             Settings = settings;
             Launcher = launcher;
@@ -179,7 +178,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             if (SelectedConfiguration == null) return None;
 
-            var nextMapModActors = 
+            var nextMapModActors =
                 SelectedConfiguration.EnabledServerModList
                     .SelectMany(rc => ModManager.GetRelease(rc))
                     .Where(release => release.Manifest.OptionFlags.ActorMod)

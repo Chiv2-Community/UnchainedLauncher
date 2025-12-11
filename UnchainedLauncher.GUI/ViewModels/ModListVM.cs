@@ -46,7 +46,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             this.DisplayMods = new ObservableCollection<ModVM>();
 
             this.ModFilters = new ObservableCollection<ModFilter>();
-            
+
             PopulateModsFromModManager();
 
             // Watch the unfiltered mod view and mod filters for changes, and update our view accordingly
@@ -194,9 +194,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     throw new Exception("Unhandled NotifyCollectionChangedAction: " + e.Action);
             }
         }
-        
-        public void PopulateModsFromModManager()
-        {
+
+        public void PopulateModsFromModManager() {
             _modManager.Mods.ToList().ForEach(mod =>
                 UnfilteredModView.Add(
                     new ModVM(

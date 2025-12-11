@@ -32,7 +32,7 @@ namespace UnchainedLauncher.GUI.Views.Servers {
                 return ValidationResult.ValidResult;
             }
             catch {
-                return new ValidationResult(false, "ip address is not valid");
+                return new ValidationResult(false, "IP address is not valid");
             }
         }
     }

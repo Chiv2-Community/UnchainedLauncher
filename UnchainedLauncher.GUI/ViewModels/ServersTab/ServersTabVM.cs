@@ -26,73 +26,52 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
     using static Successors;
+    
     [AddINotifyPropertyChangedInterface]
     public partial class ServersTabVM : IDisposable, INotifyPropertyChanged {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServersTabVM));
         public SettingsVM Settings { get; }
-        public IModRegistry ModRegistry { get; }
         public readonly IChivalry2Launcher Launcher;
         public IModManager ModManager { get; }
         public IUserDialogueSpawner DialogueSpawner;
-        public FileBackedSettings<IEnumerable<SavedServerTemplate>>? SaveLocation;
-        public ObservableCollection<ServerTemplateVM> ServerTemplates { get; }
-        public ObservableCollection<(ServerTemplateVM template, ServerVM live)> RunningTemplates { get; } = new();
+        public ObservableCollection<ServerConfigurationVM> ServerConfigs { get; }
+        public ObservableCollection<(ServerConfigurationVM template, ServerVM live)> RunningServers { get; } = new();
 
-        private void OnTemplateFormChanged(object? o, PropertyChangedEventArgs e) {
-            // this saves all templates, but since we're not using a very complex
-            // file format, there's no real way to save just one without just saving
-            // all of them. Partial updates don't give value since the data size
-            // is so small.
-            Save();
-        }
-
-        private ServerTemplateVM? _selectedTemplate;
-        public ServerTemplateVM? SelectedTemplate {
-            get => _selectedTemplate;
+        public ServerConfigurationVM? SelectedConfiguration {
+            get;
             set {
-                if (_selectedTemplate != null) {
-                    _selectedTemplate.Form.PropertyChanged -= OnTemplateFormChanged;
-                }
-
-                if (value != null) {
-                    value.Form.PropertyChanged += OnTemplateFormChanged;
-                }
-
-                _selectedTemplate = value;
+                field = value;
                 UpdateVisibility();
             }
         }
-        public ServerVM? SelectedLive { get; private set; }
 
-        public Visibility TemplateEditorVisibility { get; private set; }
+        public ServerVM? SelectedServer { get; private set; }
+
+        public Visibility ConfigurationEditorVisibility { get; private set; }
         public Visibility LiveServerVisibility { get; private set; }
 
         public ServersTabVM(SettingsVM settings,
                             IModManager modManager,
                             IUserDialogueSpawner dialogueSpawner,
                             IChivalry2Launcher launcher,
-                            IModRegistry modRegistry,
-                            FileBackedSettings<IEnumerable<SavedServerTemplate>>? saveLocation = null) {
-            ServerTemplates = new ObservableCollection<ServerTemplateVM>();
-            ServerTemplates.CollectionChanged += (_, _) => {
+                            ObservableCollection<ServerConfigurationVM> serverConfigs) {
+            ServerConfigs = serverConfigs;
+            
+            ServerConfigs.CollectionChanged += (_, _) => {
                 UpdateVisibility();
-                Save();
             };
-            RunningTemplates.CollectionChanged += (_, _) => UpdateVisibility();
+            
+            RunningServers.CollectionChanged += (_, _) => UpdateVisibility();
             Settings = settings;
-            ModRegistry = modRegistry;
             Launcher = launcher;
             DialogueSpawner = dialogueSpawner;
             ModManager = modManager;
-            SaveLocation = saveLocation;
 
-            Load();
-
-            if (ServerTemplates?.Count == 0) {
-                AddTemplate().Wait();
+            if (ServerConfigs?.Count == 0) {
+                CreateNewConfig().Wait();
             }
 
-            SelectedTemplate = ServerTemplates?.FirstOrDefault();
+            SelectedConfiguration = ServerConfigs?.FirstOrDefault();
             UpdateVisibility();
         }
 
@@ -103,58 +82,52 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public async Task LaunchServer() => await LaunchSelected(false);
 
         [RelayCommand]
-        public Task ShutdownServer() => Task.Run(() => SelectedLive?.Dispose());
+        public Task ShutdownServer() => Task.Run(() => SelectedServer?.Dispose());
 
         [RelayCommand]
-        public async Task AddTemplate() {
-            var saved = new SavedServerTemplate(
-                new ServerInfoFormData("127.0.0.1"),
-                new List<ReleaseCoordinates> { }
-            );
-            var enabled = new ObservableCollection<ReleaseCoordinates>(saved.EnabledServerModList);
-            var newTemplate = new ServerTemplateVM(saved, enabled, ModManager);
-            var occupiedPorts = ServerTemplates.Select(
+        public async Task CreateNewConfig() {
+            var newConfig = new ServerConfigurationVM(ModManager);
+            var occupiedPorts = ServerConfigs.Select(
                 (e) => new Set<int>(new List<int> {
-                    e.Form.A2SPort,
-                    e.Form.RconPort,
-                    e.Form.PingPort,
-                    e.Form.GamePort
+                    e.A2SPort,
+                    e.RconPort,
+                    e.PingPort,
+                    e.GamePort
                 })
             ).Aggregate(Set<int>(), (s1, s2) => s1.AddRange(s2));
 
             // try to make the new template nice
-            if (SelectedTemplate != null) {
+            if (SelectedConfiguration != null) {
                 // increment ports so that added server is not incompatible with other templates
-                var oldForm = SelectedTemplate.Form;
-                var newForm = newTemplate.Form;
-                (newForm.GamePort, occupiedPorts) = ReserveRestrictedSuccessor(oldForm.GamePort, occupiedPorts);
-                (newForm.PingPort, occupiedPorts) = ReserveRestrictedSuccessor(oldForm.PingPort, occupiedPorts);
-                (newForm.A2SPort, occupiedPorts) = ReserveRestrictedSuccessor(oldForm.A2SPort, occupiedPorts);
-                (newForm.RconPort, _) = ReserveRestrictedSuccessor(oldForm.RconPort, occupiedPorts);
+                var oldConfig = SelectedConfiguration;
+                (newConfig.GamePort, occupiedPorts) = ReserveRestrictedSuccessor(oldConfig.GamePort, occupiedPorts);
+                (newConfig.PingPort, occupiedPorts) = ReserveRestrictedSuccessor(oldConfig.PingPort, occupiedPorts);
+                (newConfig.A2SPort, occupiedPorts) = ReserveRestrictedSuccessor(oldConfig.A2SPort, occupiedPorts);
+                (newConfig.RconPort, _) = ReserveRestrictedSuccessor(oldConfig.RconPort, occupiedPorts);
 
-                // increment name in a similar way, so the user doesn't get things confused
-                newForm.Name = TextualSuccessor(oldForm.Name);
+                newConfig.Name = TextualSuccessor(oldConfig.Name);
             }
 
-            ServerTemplates.Add(newTemplate);
-            SelectedTemplate = newTemplate;
+            ServerConfigs.Add(newConfig);
+            SelectedConfiguration = newConfig;
         }
 
         [RelayCommand]
-        public void RemoveTemplate() {
-            if (SelectedTemplate != null) {
-                ServerTemplates.Remove(SelectedTemplate);
+        public void RemoveConfiguration() {
+            if (SelectedConfiguration != null) {
+                ServerConfigs.Remove(SelectedConfiguration);
             }
-            SelectedTemplate = ServerTemplates.FirstOrDefault();
+            SelectedConfiguration = ServerConfigs.FirstOrDefault();
         }
 
         public async Task LaunchSelected(bool headless = false) {
-            if (SelectedTemplate == null) return;
+            if (SelectedConfiguration == null) return;
 
-            var formData = SelectedTemplate.Form.Data;
+            var formData = SelectedConfiguration.ToServerConfiguration();
 
+            // Resolve selected releases from the template's EnabledServerModList
             var enabledModActors =
-                SelectedTemplate.EnabledServerModList
+                SelectedConfiguration.EnabledServerModList
                     .Select(rc => ModManager.GetRelease(rc))
                     .Collect(x => x.AsEnumerable());
 
@@ -166,58 +139,27 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                     new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort))
                 );
                 var serverVm = new ServerVM(server);
-                var runningTuple = (SelectedTemplate, serverVm);
+                var runningTuple = (SelectedTemplate: SelectedConfiguration, serverVm);
                 process.Exited += (_, _) => {
-                    RunningTemplates.Remove(runningTuple);
+                    RunningServers.Remove(runningTuple);
                     runningTuple.serverVm.Dispose();
                 };
-                RunningTemplates.Add(runningTuple);
+                RunningServers.Add(runningTuple);
             });
         }
 
-        [RelayCommand]
-        public void Save() {
-            if (SaveLocation == null) {
-                Logger.Warn("Tried to save server templates, but no file is selected.");
-                return;
-            }
-            Logger.Info("Saving server templates...");
-            SaveLocation.SaveSettings(ServerTemplates.Select(template => template.Saved()));
-            Logger.Info($"Saved {ServerTemplates.Count} server templates.");
-        }
-
-        public void Load() {
-            if (SaveLocation == null) {
-                Logger.Warn("Tried to load server templates, but no file is selected.");
-                return;
-            }
-
-            var loaded = SaveLocation.LoadSettings();
-            if (loaded == null) {
-                Logger.Warn("Failed to load server templates. Error unavailable, but likely invalid JSON.");
-                return;
-            }
-
-            foreach (var template in loaded) {
-                var enabled = new ObservableCollection<ReleaseCoordinates>(template.EnabledServerModList ?? Enumerable.Empty<ReleaseCoordinates>());
-                var newTemplate = new ServerTemplateVM(template, enabled, ModManager);
-                ServerTemplates.Add(newTemplate);
-            }
-            Logger.Info($"Loaded {ServerTemplates.Count} server templates.");
-        }
-
         public void UpdateVisibility() {
-            SelectedLive = RunningTemplates.Choose(
-                (e) => e.template == SelectedTemplate ? e.live : Option<ServerVM>.None
+            SelectedServer = RunningServers.Choose(
+                (e) => e.template == SelectedConfiguration ? e.live : Option<ServerVM>.None
             ).FirstOrDefault();
-            var isSelectedRunning = SelectedLive != null;
+            var isSelectedRunning = SelectedServer != null;
 
-            TemplateEditorVisibility = isSelectedRunning || ServerTemplates.Length() == 0 ? Visibility.Hidden : Visibility.Visible;
+            ConfigurationEditorVisibility = isSelectedRunning || ServerConfigs.Length() == 0 ? Visibility.Hidden : Visibility.Visible;
             LiveServerVisibility = !isSelectedRunning ? Visibility.Hidden : Visibility.Visible;
         }
 
         // TODO: this should really be a part of Chivalry2Server
-        private async Task<Option<Process>> LaunchProcessForSelected(ServerInfoFormData formData, bool headless) {
+        private async Task<Option<Process>> LaunchProcessForSelected(ServerConfiguration formData, bool headless) {
             if (!Settings.IsLauncherReusable()) {
                 Settings.CanClick = false;
             }
@@ -235,11 +177,29 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 return illegalCharsRemoved;
             };
 
-            if (SelectedTemplate == null) return None;
+            if (SelectedConfiguration == null) return None;
 
-            var serverLaunchOptions = formData.ToServerLaunchOptions(headless);
+            var nextMapModActors = 
+                SelectedConfiguration.EnabledServerModList
+                    .SelectMany(rc => ModManager.GetRelease(rc))
+                    .Where(release => release.Manifest.OptionFlags.ActorMod)
+                    .Select(release => release.Manifest.Name.Replace(" ", ""));
+
+            var serverLaunchOptions = new ServerLaunchOptions(
+                headless,
+                formData.Name,
+                formData.Description,
+                Option<string>.Some(formData.Password).Map(pw => pw.Trim()).Filter(pw => pw != ""),
+                formData.SelectedMap,
+                formData.GamePort,
+                formData.PingPort,
+                formData.A2SPort,
+                formData.RconPort,
+                nextMapModActors
+            );
+
             var options = new LaunchOptions(
-                ModManager.EnabledModReleaseCoordinates,
+                SelectedConfiguration.EnabledServerModList,
                 Settings.ServerBrowserBackend,
                 Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
@@ -267,7 +227,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         // TODO: this should really be a part of Chivalry2Server
-        public A2SBoundRegistration RegisterWithBackend(ServerInfoFormData formData, IEnumerable<Release> enabledMods) {
+        public A2SBoundRegistration RegisterWithBackend(ServerConfiguration formData, IEnumerable<Release> enabledMods) {
             var ports = formData.ToPublicPorts();
             var serverInfo = new C2ServerInfo {
                 Ports = ports,
@@ -291,12 +251,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         public void Dispose() {
-            SelectedLive?.Dispose();
-            foreach (var runningTemplate in RunningTemplates) {
-                runningTemplate.live.Dispose();
+            SelectedServer?.Dispose();
+            foreach (var runningServer in RunningServers) {
+                runningServer.live.Dispose();
             }
 
-            Save(); // save templates to file
             GC.SuppressFinalize(this);
         }
     }

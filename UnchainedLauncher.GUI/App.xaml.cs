@@ -197,13 +197,14 @@ namespace UnchainedLauncher.GUI {
                 return null;
             }
 
+            var serverConfigurationVMs = InitializeServerTemplates(FilePaths.ServerTemplatesFilePath, modManager);
+            
             var serversTabViewModel = new ServersTabVM(
                 settingsViewModel,
                 modManager,
                 userDialogueSpawner,
                 unchainedLauncher,
-                modRegistry,
-                new FileBackedSettings<IEnumerable<SavedServerTemplate>>(FilePaths.ServerTemplatesFilePath));
+                serverConfigurationVMs);
 
             var mainWindowViewModel = new MainWindowVM(
                 homeViewModel,
@@ -242,6 +243,14 @@ namespace UnchainedLauncher.GUI {
             return modManager;
         }
 
+        private ObservableCollection<ServerConfigurationVM> InitializeServerTemplates(string jsonPath, IModManager modManager) {
+            Func<ObservableCollection<ServerConfigurationVM>> initializeDefault = () => new ObservableCollection<ServerConfigurationVM>();
+            
+            var codec = new ServerConfigurationCodec(modManager);
+            var serverTemplates = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
+            RegisterSaveToFileOnExit(serverTemplates, codec, jsonPath);
+            return serverTemplates;
+        }
 
         private T InitializeFromFileWithCodec<T>(ICodec<T> codec, string filePath, Func<T> initializeDefault) {
             _log.Info($"Loading {typeof(T).Name} from {filePath} using {codec.GetType().Name}({codec})...");

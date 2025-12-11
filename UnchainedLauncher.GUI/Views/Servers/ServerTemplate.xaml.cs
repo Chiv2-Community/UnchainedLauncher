@@ -13,14 +13,14 @@ namespace UnchainedLauncher.GUI.Views.Servers {
         }
 
         private void CheckBox_OnChecked(object sender, RoutedEventArgs e) {
-            if (DataContext is not ServerTemplateVM vm) return;
+            if (DataContext is not ServerConfigurationVM vm) return;
             if (sender is CheckBox cb && cb.DataContext is Release release) {
                 vm.EnableServerMod(release);
             }
         }
 
         private void CheckBox_OnUnchecked(object sender, RoutedEventArgs e) {
-            if (DataContext is not ServerTemplateVM vm) return;
+            if (DataContext is not ServerConfigurationVM vm) return;
             if (sender is CheckBox cb && cb.DataContext is Release release) {
                 vm.DisableServerMod(release);
             }

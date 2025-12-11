@@ -185,20 +185,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return maps;
         }
 
-        // https://stackoverflow.com/a/24814027
-        public static string[] GetAllLocalIPv4() {
-            List<string> ipAddrList = new List<string>();
-            foreach (var item in NetworkInterface.GetAllNetworkInterfaces()) {
-                if (item.OperationalStatus == OperationalStatus.Up) {
-                    foreach (var ip in item.GetIPProperties().UnicastAddresses) {
-                        if (ip.Address.AddressFamily == AddressFamily.InterNetwork) {
-                            ipAddrList.Add(ip.Address.ToString());
-                        }
-                    }
-                }
-            }
-            return ipAddrList.ToArray();
-        }
+        public static string[] GetAllLocalIPv4() =>
+            NetworkInterface
+                .GetAllNetworkInterfaces()
+                .Where(x => x.OperationalStatus == OperationalStatus.Up)
+                .SelectMany(x => x.GetIPProperties().UnicastAddresses)
+                .Where(ip => ip.Address.AddressFamily == AddressFamily.InterNetwork)
+                .Select(x => x.Address.ToString())
+                .ToArray();
 
         public ServerConfiguration ToServerConfiguration() => new ServerConfiguration(Name, Description, Password, LocalIp, GamePort, RconPort, A2SPort, PingPort, SelectedMap, ShowInServerBrowser, EnabledServerModList);
 

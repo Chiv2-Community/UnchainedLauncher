@@ -129,6 +129,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             modManager.GetEnabledAndDependencyReleases()
                 .Where(r => r.Manifest.ModType == ModType.Server || r.Manifest.ModType == ModType.Shared)
                 .ForEach(x => AddAvailableMod(x, null));
+            
 
             LocalIp = localIp == null ? DetermineLocalIp() : localIp.Trim();
                 
@@ -140,7 +141,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public void DisableServerMod(Release release) => EnabledServerModList.Remove(ReleaseCoordinates.FromRelease(release));
         
         public void AddAvailableMod(Release release, string? previousVersion) {
-            var existingMod =AvailableMods.Find(x => x.Manifest.RepoUrl == release.Manifest.RepoUrl);
+            var existingMod = AvailableMods.Find(x => x.Manifest.RepoUrl == release.Manifest.RepoUrl);
             var existingMaps = existingMod.Map(x => x.Manifest.Maps).FirstOrDefault() ?? new List<string>();
             
             
@@ -152,6 +153,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             
             existingMod.IfSome(x => AvailableMods.Remove(x));
             AvailableMods.Add(release);
+            
         }
 
         public void RemoveAvailableMod(Release release) {
@@ -165,7 +167,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public void AutoFillIp() {
             LocalIp = DetermineLocalIp();
         }
-
 
         private string DetermineLocalIp() => GetAllLocalIPv4().FirstOrDefault("127.0.0.1");
 

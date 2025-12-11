@@ -46,6 +46,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
             this.DisplayMods = new ObservableCollection<ModVM>();
 
             this.ModFilters = new ObservableCollection<ModFilter>();
+            
+            PopulateModsFromModManager();
 
             // Watch the unfiltered mod view and mod filters for changes, and update our view accordingly
             this.UnfilteredModView.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
@@ -68,19 +70,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     UserDialogueSpawner.DisplayMessage("Errors encountered while refreshing mod list. Check the logs for details.");
                 }
                 UnfilteredModView.Clear();
-
-                updatedModsList.ToList().ForEach(mod =>
-                    UnfilteredModView.Add(
-                        new ModVM(
-                            mod,
-                            _modManager.GetCurrentlyEnabledReleaseForMod(mod),
-                            _modManager
-                        )
-                    )
-                );
-
+                PopulateModsFromModManager();
                 _logger.Info("Mod list refreshed.");
-
             }
             catch (Exception ex) {
                 _logger.Error(ex);
@@ -202,6 +193,21 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 default:
                     throw new Exception("Unhandled NotifyCollectionChangedAction: " + e.Action);
             }
+        }
+        
+        public void PopulateModsFromModManager()
+        {
+            _modManager.Mods.ToList().ForEach(mod =>
+                UnfilteredModView.Add(
+                    new ModVM(
+                        mod,
+                        _modManager.GetCurrentlyEnabledReleaseForMod(mod),
+                        _modManager
+                    )
+                )
+            );
+
+            RebuildDisplay();
         }
     }
 

@@ -111,7 +111,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                                     bool showInServerBrowser = true,
                                     ObservableCollection<ReleaseCoordinates>? enabledServerModList = null
                                 ) {
-            SelectedMap = selectedMap;
             Name = name;
             Description = description;
             Password = password;
@@ -131,6 +130,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 .Where(r => r.Manifest.ModType == ModType.Server || r.Manifest.ModType == ModType.Shared)
                 .ForEach(x => AddAvailableMod(x, null));
 
+            SelectedMap = selectedMap;
 
             LocalIp = localIp == null ? DetermineLocalIp() : localIp.Trim();
 

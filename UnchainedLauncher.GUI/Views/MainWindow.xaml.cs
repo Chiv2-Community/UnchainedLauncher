@@ -13,11 +13,11 @@ namespace UnchainedLauncher.GUI.Views {
         public MainWindow(MainWindowVM vm) {
             DataContext = ViewModel = vm;
             InitializeComponent();
-            
+
             // Bridge VM visibility intent to actual Window.Show/Hide calls.
             // Binding to Window.Visibility is not reliable for showing/hiding a Window in WPF.
             vm.HomeVM.PropertyChanged += HomeVmOnPropertyChanged;
-            
+
             Closed += MainWindow_Closed;
         }
 

@@ -1,7 +1,6 @@
 using LanguageExt;
 using LanguageExt.Common;
 using log4net;
-using log4net.Repository.Hierarchy;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;

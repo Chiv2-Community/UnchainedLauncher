@@ -1,6 +1,5 @@
 ﻿using LanguageExt;
 using System.Collections.Immutable;
-using System.Runtime.CompilerServices;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using static LanguageExt.Prelude;
@@ -28,7 +27,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// Triggered any time the EnabledModReleases collection has an item removed
         /// </summary>
         event ModDisabledHandler ModDisabled;
-        
+
         IModRegistry ModRegistry { get; }
 
         /// <summary>
@@ -99,7 +98,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
     public static class ModManagerExtensions {
         private static readonly ModIdentifier UnchainedMods = new("Chiv2-Community", "Unchained-Mods");
-        
+
         public static bool EnableMod(this IModManager modManager, Mod mod) =>
             modManager.EnableMod(ModIdentifier.FromMod(mod));
 
@@ -198,7 +197,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         public static IEnumerable<ReleaseCoordinates> GetEnabledAndDependencies(this IModManager modManager) {
-            var enabled = 
+            var enabled =
                 modManager
                     .GetEnabledAndDependencyReleases()
                     .Map(ReleaseCoordinates.FromRelease)
@@ -216,17 +215,17 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         public static IEnumerable<Release> GetEnabledAndDependencyReleases(this IModManager modManager) {
-            var enabledModsWithDependencies = 
+            var enabledModsWithDependencies =
                 modManager
                     .GetEnabledModReleases()
                     .ToImmutableHashSet();
-            
+
             var enabledModsWithAllDependencies = enabledModsWithDependencies.Fold(
                 enabledModsWithDependencies,
                 (s, r) =>
                     s.Union(modManager.GetNewDependenciesForRelease(r, s))
             );
-            
+
             var unchainedModsRelease =
                 modManager.Mods
                     .Find(x => ModIdentifier.FromMod(x) == UnchainedMods)

@@ -191,13 +191,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
         }
 
-        private Thread CreateChivalryProcessWatcher(Process process) {
-            //TODO: add a Process.Exited event instead. 
-            var thread = new Thread(async void () => {
+        private void CreateChivalryProcessWatcher(Process process) {
+            process.Exited += (_, _) => {
                 try {
-                    await process.WaitForExitAsync();
-                    if (IsReusable()) Settings.CanClick = true;
-
                     if (process.ExitCode == 0) return;
 
                     Logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
@@ -208,13 +204,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     Logger.Error("Failure occured while waiting for Chivalry process to exit", e);
                 }
                 finally {
-                    MainWindowVisibility = Visibility.Visible;
+                    if (!IsReusable())
+                        Application.Current.Shutdown(0);
+                    else {
+                        MainWindowVisibility = Visibility.Visible;
+                        Settings.CanClick = true;
+                    }
                 }
-            });
-
-            thread.Start();
-
-            return thread;
+            };
         }
     }
 }

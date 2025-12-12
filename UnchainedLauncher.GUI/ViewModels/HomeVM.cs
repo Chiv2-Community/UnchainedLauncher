@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using PropertyChanged;
 using LanguageExt;
 using log4net;
 using System;
@@ -19,6 +20,7 @@ using UnchainedLauncher.GUI.Services;
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
+    [AddINotifyPropertyChangedInterface]
     public partial class HomeVM : INotifyPropertyChanged {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(HomeVM));
 

@@ -1,5 +1,6 @@
 ﻿using LanguageExt;
 using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using static LanguageExt.Prelude;
@@ -97,6 +98,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
     }
 
     public static class ModManagerExtensions {
+        private static readonly ModIdentifier UnchainedMods = new("Chiv2-Community", "Unchained-Mods");
+        
         public static bool EnableMod(this IModManager modManager, Mod mod) =>
             modManager.EnableMod(ModIdentifier.FromMod(mod));
 
@@ -195,32 +198,44 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         public static IEnumerable<ReleaseCoordinates> GetEnabledAndDependencies(this IModManager modManager) {
-            var enabled = modManager.GetEnabledAndDependencyReleases()
-                .Map(ReleaseCoordinates.FromRelease);
+            var enabled = 
+                modManager
+                    .GetEnabledAndDependencyReleases()
+                    .Map(ReleaseCoordinates.FromRelease)
+                    .ToList();
 
             // make sure unchained-mods always comes first
-            var unchainedMods = new ModIdentifier("Chiv2-Community", "Unchained-Mods");
             var installedUnchainedMods = enabled
-                .Filter(r => r.Matches(unchainedMods))
+                .Filter(r => r.Matches(UnchainedMods))
                 .ToOption();
 
             return installedUnchainedMods.Match(
-                r => enabled.Filter(release => !release.Matches(unchainedMods)).Append(r),
+                r => enabled.Filter(release => !release.Matches(UnchainedMods)).Append(r),
                 () => enabled
                 );
         }
 
         public static IEnumerable<Release> GetEnabledAndDependencyReleases(this IModManager modManager) {
-            var modsSet = modManager
-                .GetEnabledModReleases()
-                .ToImmutableHashSet();
+            var enabledModsWithDependencies = 
+                modManager
+                    .GetEnabledModReleases()
+                    .ToImmutableHashSet();
+            
+            var enabledModsWithAllDependencies = enabledModsWithDependencies.Fold(
+                enabledModsWithDependencies,
+                (s, r) =>
+                    s.Union(modManager.GetNewDependenciesForRelease(r, s))
+            );
+            
+            var unchainedModsRelease =
+                modManager.Mods
+                    .Find(x => ModIdentifier.FromMod(x) == UnchainedMods)
+                    .Bind(x => x.LatestRelease);
 
-            return modsSet
-                .Fold(
-                    modsSet,
-                    (s, r) =>
-                        s.Union(modManager.GetNewDependenciesForRelease(r, s))
-                    );
+            return unchainedModsRelease.Match(
+                unchainedMods => enabledModsWithAllDependencies.Append(unchainedMods),
+                () => enabledModsWithAllDependencies
+            );
         }
 
         public static IEnumerable<Release> GetNewDependenciesForRelease(this IModManager modManager, Release release, IEnumerable<Release> existingDependencies) =>

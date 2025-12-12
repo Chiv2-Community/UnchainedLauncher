@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
@@ -33,6 +34,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private IUserDialogueSpawner UserDialogueSpawner { get; }
         private IModManager ModManager { get; }
+        public Visibility MainWindowVisibility { get; set; }
 
         public bool IsReusable() => Settings.InstallationType == InstallationType.Steam;
 
@@ -139,6 +141,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     return None;
                 },
                 Right: process => {
+                    MainWindowVisibility = Visibility.Hidden;
                     CreateChivalryProcessWatcher(process);
                     return Some(process);
                 }
@@ -170,6 +173,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     return None;
                 },
                 Right: process => {
+                    MainWindowVisibility = Visibility.Hidden;
                     CreateChivalryProcessWatcher(process);
                     return Some(process);
                 }
@@ -186,10 +190,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     if (process.ExitCode == 0) return;
 
                     Logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
-                    UserDialogueSpawner.DisplayMessage($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
+                    UserDialogueSpawner.DisplayMessage(
+                        $"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
                 }
                 catch (Exception e) {
                     Logger.Error("Failure occured while waiting for Chivalry process to exit", e);
+                }
+                finally {
+                    MainWindowVisibility = Visibility.Visible;
                 }
             });
 

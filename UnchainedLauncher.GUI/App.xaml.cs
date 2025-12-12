@@ -59,7 +59,7 @@ namespace UnchainedLauncher.GUI {
 
 
             var installationFinder = new Chivalry2InstallationFinder();
-            var installer = new UnchainedLauncherInstaller(Environment.Exit);
+            var installer = new UnchainedLauncherInstaller(Shutdown);
 
             // figure out if we need to install by checking our current working directory
             var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -81,6 +81,8 @@ namespace UnchainedLauncher.GUI {
             }
             catch (Exception ex) {
                 _log.Error("Failed to initialize window", ex);
+                MessageBox.Show("Failed to initialize application: " + ex.Message);
+                Shutdown(1);
             }
         }
 
@@ -118,7 +120,7 @@ namespace UnchainedLauncher.GUI {
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
-            var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService, installationFinder, installer, launcherReleaseLocator, pakDir, userDialogueSpawner, Environment.Exit);
+            var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService, installationFinder, installer, launcherReleaseLocator, pakDir, userDialogueSpawner, Shutdown);
 
 
 

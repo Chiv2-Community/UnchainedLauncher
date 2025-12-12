@@ -34,8 +34,12 @@ namespace UnchainedLauncher.Core.Services.Processes {
         }
     }
 
-    public record LaunchFailed(string ExecutablePath, string Args, Error Underlying)
-        : Expected($"Failed to launch executable '{ExecutablePath}' with args '{Args}'", 0, Underlying);
+    public class LaunchFailed(string executablePath, string args, Error underlying)
+        : Exception($"Failed to launch executable '{executablePath}' with args '{args}'", underlying) {
+        public Error Underlying { get; } = underlying;
+        public string Args { get; } = args;
+        public string ExecutablePath { get; } = executablePath;
+    }
 
 
     /// <summary>

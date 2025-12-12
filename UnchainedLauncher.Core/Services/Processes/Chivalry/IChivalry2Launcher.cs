@@ -19,7 +19,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
     public abstract record UnchainedLaunchFailure(string Message, int Code, Option<Error> Underlying) : Expected(Message, Code, Underlying) {
         public record InjectionFailedError() : UnchainedLaunchFailure("Failed to inject process with unchained code.", 0, None);
-        public record LaunchFailedError(LaunchFailed Failure) : UnchainedLaunchFailure(Failure.Message, Failure.Code, Failure.Underlying);
+        public record LaunchFailedError(LaunchFailed Failure) : UnchainedLaunchFailure(Failure.Message, 0, Failure.Underlying);
         public record DependencyDownloadFailedError(IEnumerable<string> DependencyNames)
             : UnchainedLaunchFailure($"Failed to download dependencies '{string.Join("', '", DependencyNames)}'", 0, None);
         public record LaunchCancelledError() : UnchainedLaunchFailure($"Launch Cancelled", 0, None);

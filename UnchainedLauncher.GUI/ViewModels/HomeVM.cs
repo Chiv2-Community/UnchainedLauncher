@@ -146,8 +146,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             return launchResult.Match(
                 Left: error => {
+                    Logger.Error("Failed to launch Chivalry 2: ", error);
                     UserDialogueSpawner.DisplayMessage("Failed to launch Chivalry 2. Check the logs for details.");
-                    Logger.Error(error);
                     Settings.CanClick = true;
                     return None;
                 },
@@ -176,7 +176,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             return launchResult.Match(
                 Left: e => {
-                    Logger.Error(e);
+                    Logger.Error("Failed to launch Chivalry 2 Unchained", e);
                     if (e.Underlying is not UnchainedLaunchFailure.LaunchCancelledError)
                         UserDialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
 

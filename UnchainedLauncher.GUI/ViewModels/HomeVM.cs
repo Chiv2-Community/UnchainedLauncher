@@ -34,7 +34,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private IUserDialogueSpawner UserDialogueSpawner { get; }
         private IModManager ModManager { get; }
-        public Visibility MainWindowVisibility { get; set; }
+
+        public Visibility MainWindowVisibility {
+            get;
+            set =>
+                Application.Current.Dispatcher.Invoke(() => {
+                    field = value;
+                });
+        }
 
         public bool IsReusable() => Settings.InstallationType == InstallationType.Steam;
 
@@ -46,6 +53,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             UnchainedLauncher = moddedLauncher;
             UserDialogueSpawner = dialogueSpawner;
             _ = LoadWhatsNew();
+            MainWindowVisibility = Visibility.Visible;
         }
 
         public partial class WhatsNewItem {
@@ -91,7 +99,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     };
                 }).ToList();
 
-                System.Windows.Application.Current.Dispatcher.Invoke(() => {
+                Application.Current.Dispatcher.Invoke(() => {
                     WhatsNew.Clear();
                     foreach (var item in items) WhatsNew.Add(item);
                 });
@@ -137,6 +145,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             return launchResult.Match(
                 Left: error => {
                     UserDialogueSpawner.DisplayMessage("Failed to launch Chivalry 2. Check the logs for details.");
+                    Logger.Error(error);
                     Settings.CanClick = true;
                     return None;
                 },

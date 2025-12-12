@@ -6,7 +6,6 @@
              xmlns:controls="clr-namespace:UnchainedLauncher.GUI.Views.Controls"
              xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
              mc:Ignorable="d"
-             Visibility="{Binding MainWindowVisibility}"
              d:DataContext="{d:DesignInstance instances:HomeDesignVM}"
              d:DesignHeight="450" d:DesignWidth="800">
 

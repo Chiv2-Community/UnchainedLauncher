@@ -143,7 +143,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public void AddAvailableMod(Release release, string? previousVersion) {
             var existingMod = AvailableMods.Find(x => x.Manifest.RepoUrl == release.Manifest.RepoUrl);
-            var existingMaps = existingMod.Map(x => x.Manifest.Maps).FirstOrDefault() ?? new List<string>();
+            var existingMaps = existingMod.Bind(x => Prelude.Optional(x.Manifest.Maps)).FirstOrDefault() ?? new List<string>();
 
 
             var newMaps = release.Manifest.Maps?.Filter(x => !existingMaps.Contains(x)) ?? Enumerable.Empty<string>();

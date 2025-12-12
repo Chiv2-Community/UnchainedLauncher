@@ -175,13 +175,16 @@ namespace UnchainedLauncher.GUI {
 #endif
             );
 
+            var chivProcessMonitor = new ChivalryProcessWatcher();
+
             var homeViewModel = new HomeVM(
                 settingsViewModel,
                 modManager,
                 vanillaLauncher,
                 clientsideModdedLauncher,
                 unchainedLauncher,
-                userDialogueSpawner);
+                userDialogueSpawner,
+                chivProcessMonitor);
             var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
             if (!modManager.Mods.Any())

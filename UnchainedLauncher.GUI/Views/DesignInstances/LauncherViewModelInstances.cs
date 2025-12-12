@@ -1,4 +1,5 @@
-﻿using UnchainedLauncher.GUI.Services;
+﻿using UnchainedLauncher.Core.Services.Processes.Chivalry;
+using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
@@ -13,7 +14,8 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             null,
             null,
             null,
-            new MessageBoxSpawner()
+            new MessageBoxSpawner(),
+            new ChivalryProcessWatcher()
         ) {
         }
     }

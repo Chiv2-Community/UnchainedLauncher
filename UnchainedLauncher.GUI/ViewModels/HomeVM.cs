@@ -38,10 +38,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public Visibility MainWindowVisibility {
             get;
-            set =>
-                Application.Current.Dispatcher.Invoke(() => {
-                    field = value;
-                });
+            set;
         }
 
         public bool IsReusable() => Settings.InstallationType == InstallationType.Steam;
@@ -117,6 +114,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public Task<Option<Process>> LaunchModdedVanilla() => InternalLaunchVanilla(true);
 
         private async Task<Option<Process>> InternalLaunchVanilla(bool enableMods) {
+            var withOrWithout = enableMods ? "with" : "without";
+
+            Logger.Info($"Launching vanilla {withOrWithout} mods");
+            
             // For a vanilla launch we need to pass the args through to the vanilla launcher.
             // Skip the first arg which is the path to the exe.
             var launchResult = enableMods
@@ -161,6 +162,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
         [RelayCommand]
         public async Task<Option<Process>> LaunchUnchained() {
             if (!IsReusable()) Settings.CanClick = false;
+            
+            Logger.Info("Launching Unchained");
 
             var options = new LaunchOptions(
                 ModManager.GetEnabledAndDependencies(),
@@ -190,21 +193,78 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
         }
 
-        private void CreateChivalryProcessWatcher(Process process) {
+        private static LanguageExt.HashSet<int> AcceptableExitCodes = new LanguageExt.HashSet<int>([
+            0, // Normal Exit,
+            -1073741510 // Exit via DLL Window
+        ]);
+
+        private const string TargetProcNameNoExt = "Chivalry2-Win64-Shipping";
+        
+        private async Task CreateChivalryProcessWatcher(Process process) {
+            // When launching vanilla, an EAC process is launched before launching chiv 2.
+            // If the process passed in here isn't the actual game process, try to locate the real one and bind this event to it instead.
+            var name = process.ProcessName;
+            var isTarget = string.Equals(name, TargetProcNameNoExt, StringComparison.OrdinalIgnoreCase)
+                           || string.Equals(name, TargetProcNameNoExt + ".exe", StringComparison.OrdinalIgnoreCase);
+            
+            if (!isTarget) {
+                Logger.Info($"EAC MiddleMan ({name}) detected... Polling for Chiv2.");
+                var maybeChiv2Proc = await FindChivalry2Process();
+                if (maybeChiv2Proc is not null) {
+                    Logger.Info($"Found actual Chivalry 2 process: {maybeChiv2Proc.ProcessName}");
+                    process = maybeChiv2Proc;
+                    process.EnableRaisingEvents = true;
+                } else {
+                    Logger.Warn($"Failed to locate actual vanilla game process '{TargetProcNameNoExt}'. Launcher exiting. User can open a new one later.");
+                    Application.Current.Shutdown(0);
+                    return;
+                }
+            }
+            
             process.Exited += (_, _) => {
-                if (process.ExitCode != 0) {
-                    Logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
+                Logger.Info($"Chivalry 2 exited. ({process.ExitCode})");
+                if (!AcceptableExitCodes.Contains(process.ExitCode)) {
                     UserDialogueSpawner.DisplayMessage(
-                        $"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
+                        $"Chivalry 2 exited unexpectedly with code {process.ExitCode}. Check the logs for details.");
                 }
 
-                if (!IsReusable())
+                if (!IsReusable()) {
+                    Logger.Debug("Launcher is not reusable. Exiting.");
                     Application.Current.Shutdown(0);
+                }
                 else {
-                    MainWindowVisibility = Visibility.Visible;
-                    Settings.CanClick = true;
+                    Logger.Debug("Launcher is reusable. Showing main window.");
+                    Application.Current.Dispatcher.Invoke(() => {
+                        MainWindowVisibility = Visibility.Visible;
+                        Settings.CanClick = true;
+                    });
                 }
             };
+        }
+        
+        private async Task<Process?> FindChivalry2Process()
+        {
+            Process? gameProc = null;
+            try {
+                // Poll briefly for the actual game process after the middle-man exits
+                for (var i = 0; i < 50; i++) {
+                    // ~25 seconds total
+                    var candidates = Process.GetProcessesByName(TargetProcNameNoExt);
+                    gameProc = candidates
+                        .OrderByDescending(c => {
+                            try { return c.StartTime; }
+                            catch { return DateTime.MinValue; }
+                        })
+                        .FirstOrDefault();
+                    if (gameProc is not null) return gameProc;
+                    await Task.Delay(500);
+                }
+            }
+            catch (Exception ex) {
+                Logger.Warn("Failed to poll for game process", ex);
+            }
+
+            return null;
         }
     }
 }

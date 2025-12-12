@@ -73,6 +73,7 @@ namespace UnchainedLauncher.Core.Services.Processes {
             };
             try {
                 proc.Start();
+                proc.EnableRaisingEvents = true;
                 return Right(proc);
             }
             catch (Exception e) {

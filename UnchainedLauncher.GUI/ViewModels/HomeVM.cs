@@ -244,13 +244,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
         
         private async Task<Process?> FindChivalry2Process()
         {
-            Process? gameProc = null;
             try {
                 // Poll briefly for the actual game process after the middle-man exits
                 for (var i = 0; i < 50; i++) {
                     // ~25 seconds total
                     var candidates = Process.GetProcessesByName(TargetProcNameNoExt);
-                    gameProc = candidates
+                    var gameProc = candidates
                         .OrderByDescending(c => {
                             try { return c.StartTime; }
                             catch { return DateTime.MinValue; }

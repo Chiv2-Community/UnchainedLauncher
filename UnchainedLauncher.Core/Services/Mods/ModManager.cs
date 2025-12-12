@@ -44,13 +44,13 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public IEnumerable<Mod> Mods => _mods;
         private readonly List<Mod> _mods;
 
-        public readonly IModRegistry Registry;
+        public IModRegistry ModRegistry { get; }
 
         public ModManager(
-            IModRegistry registry,
+            IModRegistry modRegistry,
             IEnumerable<ReleaseCoordinates> enabledMods,
             IEnumerable<Mod>? mods = null) {
-            Registry = registry;
+            ModRegistry = modRegistry;
             _enabledModReleases = enabledMods.ToList();
             _mods = mods?.ToList() ?? new List<Mod>();
         }
@@ -119,8 +119,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public async Task<GetAllModsResult> UpdateModsList() {
             logger.Info("Updating mods list...");
-            var result = await Registry.GetAllMods();
-            logger.Info($"Got a total of {result.Mods.Count()} mods from {Registry.Name}");
+            var result = await ModRegistry.GetAllMods();
+            logger.Info($"Got a total of {result.Mods.Count()} mods from {ModRegistry.Name}");
 
             if (result.HasErrors) {
                 var errorCount = result.Errors.Count();

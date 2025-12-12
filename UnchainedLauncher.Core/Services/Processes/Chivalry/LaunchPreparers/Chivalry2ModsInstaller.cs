@@ -3,6 +3,7 @@ using LanguageExt.Common;
 using log4net;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Utilities;
@@ -14,9 +15,9 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         private readonly ILog _logger = LogManager.GetLogger(typeof(Chivalry2ModsInstaller));
         private readonly IUserDialogueSpawner _userDialogueSpawner;
         private readonly IPakDir _pakDir;
-        private IModRegistry _modRegistry { get; }
-        public Chivalry2ModsInstaller(IModRegistry registry, IPakDir pakDir, IUserDialogueSpawner dialogueSpawner) {
-            _modRegistry = registry;
+        private IModManager _modManager { get; }
+        public Chivalry2ModsInstaller(IModManager modManager, IPakDir pakDir, IUserDialogueSpawner dialogueSpawner) {
+            _modManager = modManager;
             _pakDir = pakDir;
             _userDialogueSpawner = dialogueSpawner;
         }
@@ -79,25 +80,22 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             var releasesList = new List<ReleaseCoordinates>(releases);
             _logger.LogListInfo("Installing the following releases:", releasesList);
             // get release metadatas
-            var (failures, metas) =
-                (
-                    await Task.WhenAll(
-                        releasesList
-                        .Map(_modRegistry.GetModRelease)
-                        .Map(async t => await t)
-                    )
-                    ).Partition();
+            var (errs, metas) =
+                releasesList
+                    .Select(x => _modManager.GetRelease(x).ToEither(x))
+                    .Partition()
+                    .BiMap(x => x.ToList(), x => x.ToList());
 
-            var failuresCount = failures.Fold(0, (c, e) => {
-                _logger.Error($"Failed to get registry metadata: {e.Message}");
-                return c + 1;
-            });
+            if (errs.Any()) {
+                _logger.Error($"Failed to get release metadatas for: {string.Join(", ", errs)}");
+                var humanReadableFailedVersions = string.Join(", ", errs.Select(x => $"{x.ModuleName} {x.Version}"));
+                var selection = _userDialogueSpawner.DisplayYesNoMessage($"Failed to get release metadatas for: {humanReadableFailedVersions}. Would you like to proceed anyway? The listed mods will not be downloaded.", "Failed to get release metadatas");
 
-            if (failuresCount != 0) {
-                return None;
+                if (selection == UserDialogueChoice.No) return None;
             }
 
-            await ValidateHashes(metas);
+            var enumerable = metas.ToList();
+            await ValidateHashes(enumerable);
 
             // TODO: do something more clever than just deleting. This weirdness ultimately comes
             // from the fact that launches share a pak dir, and can affect each other.
@@ -106,12 +104,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             // that allows doing some kind of per-process pak dir isolation
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");
             var installOnlyResult = _pakDir.InstallOnly(
-                metas.Map<Release, (ReleaseCoordinates, IPakDir.MakeFileWriter, string)>(m => {
+                enumerable.Map<Release, (ReleaseCoordinates, IPakDir.MakeFileWriter, string)>(m => {
                     var coords = ReleaseCoordinates.FromRelease(m);
 
                     return (
                         coords,
-                        (outputPath) => _modRegistry.DownloadPak(coords, outputPath)
+                        (outputPath) => _modManager.ModRegistry.DownloadPak(coords, outputPath)
                             .MapLeft(e => Error.New(e)),
                         m.PakFileName
                     );

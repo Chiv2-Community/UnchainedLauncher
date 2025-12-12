@@ -137,7 +137,7 @@ namespace UnchainedLauncher.GUI {
                 userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
-                modRegistry, pakDir, userDialogueSpawner
+                modManager, pakDir, userDialogueSpawner
             );
 
             var vanillaLauncher = new Chivalry2Launcher(

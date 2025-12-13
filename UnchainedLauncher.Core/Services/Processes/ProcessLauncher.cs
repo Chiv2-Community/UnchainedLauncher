@@ -8,12 +8,14 @@ namespace UnchainedLauncher.Core.Services.Processes {
     using static LanguageExt.Prelude;
 
     public interface IProcessLauncher {
+        string Executable { get; }
         public Either<LaunchFailed, Process> Launch(string workingDirectory, string args);
     }
 
     public class PowershellProcessLauncher : IProcessLauncher {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(PowershellProcessLauncher));
         public string Tag { get; }
+        public string Executable => "powershell.exe";
         public PowershellProcessLauncher(string tag) {
             Tag = tag;
         }
@@ -39,6 +41,7 @@ namespace UnchainedLauncher.Core.Services.Processes {
         public Error Underlying { get; } = underlying;
         public string Args { get; } = args;
         public string ExecutablePath { get; } = executablePath;
+        
     }
 
 
@@ -48,10 +51,10 @@ namespace UnchainedLauncher.Core.Services.Processes {
     public class ProcessLauncher : IProcessLauncher {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ProcessLauncher));
 
-        public string ExecutableLocation { get; }
+        public string Executable { get; }
 
-        public ProcessLauncher(string executableLocation) {
-            ExecutableLocation = executableLocation;
+        public ProcessLauncher(string executable) {
+            Executable = executable;
         }
 
         /// <summary>
@@ -66,7 +69,7 @@ namespace UnchainedLauncher.Core.Services.Processes {
         public Either<LaunchFailed, Process> Launch(string workingDirectory, string args) {
             var proc = new Process {
                 StartInfo = new ProcessStartInfo() {
-                    FileName = ExecutableLocation,
+                    FileName = Executable,
                     Arguments = args,
                     WorkingDirectory = Path.GetFullPath(workingDirectory),
                 }

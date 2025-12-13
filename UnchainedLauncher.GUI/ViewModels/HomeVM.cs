@@ -13,7 +13,6 @@ using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.GUI.Services;
 
@@ -120,7 +119,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var withOrWithout = enableMods ? "with" : "without";
 
             Logger.Info($"Launching vanilla {withOrWithout} mods");
-            
+
             // For a vanilla launch we need to pass the args through to the vanilla launcher.
             // Skip the first arg which is the path to the exe.
             var launchResult = enableMods
@@ -160,7 +159,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         Application.Current.Shutdown(0);
                         return None;
                     }
-                    
+
                     MainWindowVisibility = Visibility.Hidden;
                     _ = CreateChivalryProcessWatcher(process);
                     return Some(process);
@@ -171,7 +170,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         [RelayCommand]
         public async Task<Option<Process>> LaunchUnchained() {
             if (!IsReusable()) Settings.CanClick = false;
-            
+
             Logger.Info("Launching Unchained");
 
             var options = new LaunchOptions(
@@ -200,7 +199,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         Application.Current.Shutdown(0);
                         return None;
                     }
-                    
+
                     MainWindowVisibility = Visibility.Hidden;
                     _ = CreateChivalryProcessWatcher(process);
                     return Some(process);

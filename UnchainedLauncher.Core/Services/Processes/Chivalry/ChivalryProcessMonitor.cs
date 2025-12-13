@@ -1,8 +1,5 @@
 ﻿using log4net;
-using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
     public interface IChivalryProcessWatcher {
@@ -80,7 +77,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
                 Logger.Warn($"Failed to locate actual vanilla game process '{TargetProcessNameNoExt}'.");
                 return false;
             }
- 
+
             try { resolved.EnableRaisingEvents = true; }
             catch (Exception ex) {
                 Logger.Warn("Failed to enable process exit events", ex);

@@ -3,7 +3,6 @@ using LanguageExt.Common;
 using log4net;
 using System.Diagnostics;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
-using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
     using static LanguageExt.Prelude;

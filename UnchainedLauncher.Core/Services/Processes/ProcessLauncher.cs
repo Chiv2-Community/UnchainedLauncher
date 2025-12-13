@@ -41,7 +41,7 @@ namespace UnchainedLauncher.Core.Services.Processes {
         public Error Underlying { get; } = underlying;
         public string Args { get; } = args;
         public string ExecutablePath { get; } = executablePath;
-        
+
     }
 
 

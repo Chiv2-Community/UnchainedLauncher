@@ -215,7 +215,8 @@ namespace UnchainedLauncher.GUI {
                 modManager,
                 userDialogueSpawner,
                 unchainedLauncher,
-                serverConfigurationVMs);
+                serverConfigurationVMs,
+                chivProcessMonitor);
 
             var mainWindowViewModel = new MainWindowVM(
                 homeViewModel,

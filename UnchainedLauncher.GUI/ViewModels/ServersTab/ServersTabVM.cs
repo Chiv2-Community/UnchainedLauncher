@@ -21,6 +21,7 @@ using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
@@ -35,6 +36,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public IUserDialogueSpawner DialogueSpawner;
         public ObservableCollection<ServerConfigurationVM> ServerConfigs { get; }
         public ObservableCollection<(ServerConfigurationVM configuration, ServerVM live)> RunningServers { get; } = new();
+        private IChivalryProcessWatcher ProcessWatcher { get; }
 
         public ServerConfigurationVM? SelectedConfiguration {
             get;
@@ -53,7 +55,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                             IModManager modManager,
                             IUserDialogueSpawner dialogueSpawner,
                             IChivalry2Launcher launcher,
-                            ObservableCollection<ServerConfigurationVM> serverConfigs) {
+                            ObservableCollection<ServerConfigurationVM> serverConfigs,
+                            IChivalryProcessWatcher processWatcher) {
             ServerConfigs = serverConfigs;
 
             ServerConfigs.CollectionChanged += (_, _) => {
@@ -65,6 +68,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             Launcher = launcher;
             DialogueSpawner = dialogueSpawner;
             ModManager = modManager;
+            ProcessWatcher = processWatcher;
 
             if (ServerConfigs?.Count == 0) {
                 CreateNewConfig().Wait();
@@ -122,15 +126,20 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public async Task LaunchSelected(bool headless = false) {
             if (SelectedConfiguration == null) return;
 
+            if (!Settings.IsLauncherReusable()) {
+                Settings.CanClick = false;
+            }
+
             var formData = SelectedConfiguration.ToServerConfiguration();
 
             // Resolve selected releases from the template's EnabledServerModList
+            var enabledCoordinates = SelectedConfiguration.EnabledServerModList.ToList();
             var enabledModActors =
-                SelectedConfiguration.EnabledServerModList
+                enabledCoordinates
                     .Select(rc => ModManager.GetRelease(rc))
                     .Collect(x => x.AsEnumerable());
 
-            var maybeProcess = await LaunchProcessForSelected(formData, headless);
+            var maybeProcess = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
             maybeProcess.IfSome(process => {
                 var server = new Chivalry2Server(
                     process,
@@ -139,11 +148,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 );
                 var serverVm = new ServerVM(server);
                 var runningTuple = (SelectedConfiguration, serverVm);
-                process.Exited += (_, _) => {
-                    RunningServers.Remove(runningTuple);
-                    runningTuple.serverVm.Dispose();
-                };
-                RunningServers.Add(runningTuple);
+                Application.Current.Dispatcher.Invoke(() => RunningServers.Add(runningTuple));
+
+                _ = AttachServerExitWatcher(process, formData, enabledCoordinates, headless, runningTuple);
             });
         }
 
@@ -157,34 +164,26 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             LiveServerVisibility = !isSelectedRunning ? Visibility.Hidden : Visibility.Visible;
         }
 
-        // TODO: this should really be a part of Chivalry2Server
-        private async Task<Option<Process>> LaunchProcessForSelected(ServerConfiguration formData, bool headless) {
-            if (!Settings.IsLauncherReusable()) {
-                Settings.CanClick = false;
-            }
+        // Helper to create a filesystem-friendly save dir suffix
+        private static string SanitizeSaveddirSuffix(string s) {
+            var substitutedUnderscores = s.Trim()
+                .Replace(' ', '_')
+                .Replace('(', '_')
+                .Replace(')', '_')
+                .ReplaceLineEndings("_");
 
-            Func<string, string> sanitizeSaveddirSuffix = s => {
-                var substitutedUnderscores = s.Trim()
-                    .Replace(' ', '_')
-                    .Replace('(', '_')
-                    .Replace(')', '_')
-                    .ReplaceLineEndings("_");
+            var illegalCharsRemoved = string.Join("_", substitutedUnderscores.Split(Path.GetInvalidFileNameChars()));
+            return illegalCharsRemoved;
+        }
 
-                var illegalCharsRemoved =
-                    string.Join("_", substitutedUnderscores.Split(Path.GetInvalidFileNameChars()));
-
-                return illegalCharsRemoved;
-            };
-
-            if (SelectedConfiguration == null) return None;
-
+        private ServerLaunchOptions BuildServerLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<ReleaseCoordinates> enabledCoordinates) {
             var nextMapModActors =
-                SelectedConfiguration.EnabledServerModList
+                enabledCoordinates
                     .SelectMany(rc => ModManager.GetRelease(rc))
                     .Where(release => release.Manifest.OptionFlags.ActorMod)
                     .Select(release => release.Manifest.Name.Replace(" ", ""));
 
-            var serverLaunchOptions = new ServerLaunchOptions(
+            return new ServerLaunchOptions(
                 headless,
                 formData.Name,
                 formData.Description,
@@ -196,32 +195,73 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 formData.RconPort,
                 nextMapModActors
             );
+        }
 
-            var options = new LaunchOptions(
-                SelectedConfiguration.EnabledServerModList,
+        private LaunchOptions BuildLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<ReleaseCoordinates> enabledCoordinates) {
+            var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, enabledCoordinates);
+            return new LaunchOptions(
+                enabledCoordinates,
                 Settings.ServerBrowserBackend,
                 Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
-                Some(sanitizeSaveddirSuffix(formData.Name)),
+                Some(SanitizeSaveddirSuffix(formData.Name)),
                 Some(serverLaunchOptions)
             );
+        }
 
+        private async Task AttachServerExitWatcher(
+            Process process,
+            ServerConfiguration formData,
+            IEnumerable<ReleaseCoordinates> enabledCoordinates,
+            bool headless,
+            (ServerConfigurationVM configuration, ServerVM live) runningTuple) {
+            var attached = await ProcessWatcher.OnExit(process, async (exitCode, acceptable) => {
+                Application.Current.Dispatcher.Invoke(() => {
+                    RunningServers.Remove(runningTuple);
+                    runningTuple.live.Dispose();
+                });
+
+                if (!acceptable) {
+                    Logger.Error($"Server exited unexpectedly with code {exitCode}. Attempting automatic restart...");
+                    DialogueSpawner.DisplayMessage($"Server exited with code {exitCode}. Attempting automatic restart...");
+
+                    // Small delay to avoid tight restart loops
+                    await Task.Delay(2000);
+
+                    var relaunched = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
+                    relaunched.IfSome(newProc => {
+                        var enabledModActors = enabledCoordinates
+                            .Select(rc => ModManager.GetRelease(rc))
+                            .Collect(x => x.AsEnumerable());
+                        var newServer = new Chivalry2Server(
+                            newProc,
+                            RegisterWithBackend(formData, enabledModActors),
+                            new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort))
+                        );
+                        var newVm = new ServerVM(newServer);
+                        var newTuple = (runningTuple.configuration, newVm);
+                        Application.Current.Dispatcher.Invoke(() => RunningServers.Add(newTuple));
+                        _ = AttachServerExitWatcher(newProc, formData, enabledCoordinates, headless, newTuple);
+                    });
+                }
+            });
+
+            if (!attached) {
+                Logger.Warn($"Failed to attach exit watcher to server process. No automatic restart will occur.");
+            }
+        }
+
+        private async Task<Option<Process>> LaunchServerWithOptions(ServerConfiguration formData, bool headless, IEnumerable<ReleaseCoordinates> enabledCoordinates) {
+            var options = BuildLaunchOptions(formData, headless, enabledCoordinates);
             var launchResult = await Launcher.Launch(options);
             return launchResult.Match(
                 Left: _ => {
-                    DialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
+                    Logger.Error("Failed to launch server. Check logs for details.");
+                    DialogueSpawner.DisplayMessage("Failed to launch server. Check logs for details.");
                     Settings.CanClick = true;
                     return None;
                 },
-                Right: process => {
-                    process.EnableRaisingEvents = true;
-                    process.Exited += (sender, e) => {
-                        if (process.ExitCode == 0) return;
-                        Logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
-                        DialogueSpawner.DisplayMessage($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
-                    };
-                    return Some(process);
-                }
+                Right: process => Some(process)
             );
         }
 

@@ -21,6 +21,7 @@ namespace UnchainedLauncher.Core.Services.Processes {
                 process.StartInfo.RedirectStandardError = !createWindow;
                 process.StartInfo.CreateNoWindow = !createWindow;
                 process.Start();
+                process.EnableRaisingEvents = true;
             }
             catch (Exception e) {
                 Logger.Error($"Failed to execute powershell command.", e);

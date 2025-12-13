@@ -1,13 +1,14 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
 using log4net;
+using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
@@ -18,6 +19,7 @@ using UnchainedLauncher.GUI.Services;
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
 
+    [AddINotifyPropertyChangedInterface]
     public partial class HomeVM : INotifyPropertyChanged {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(HomeVM));
 
@@ -33,17 +35,25 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private IUserDialogueSpawner UserDialogueSpawner { get; }
         private IModManager ModManager { get; }
+        private IChivalryProcessWatcher ProcessWatcher { get; }
+
+        public Visibility MainWindowVisibility {
+            get;
+            set;
+        }
 
         public bool IsReusable() => Settings.InstallationType == InstallationType.Steam;
 
-        public HomeVM(SettingsVM settings, IModManager modManager, IChivalry2Launcher vanillaLauncher, IChivalry2Launcher clientSideModdedLauncher, IChivalry2Launcher moddedLauncher, IUserDialogueSpawner dialogueSpawner) {
+        public HomeVM(SettingsVM settings, IModManager modManager, IChivalry2Launcher vanillaLauncher, IChivalry2Launcher clientSideModdedLauncher, IChivalry2Launcher moddedLauncher, IUserDialogueSpawner dialogueSpawner, IChivalryProcessWatcher processWatcher) {
             Settings = settings;
             ModManager = modManager;
             VanillaLauncher = vanillaLauncher;
             ClientSideModdedLauncher = clientSideModdedLauncher;
             UnchainedLauncher = moddedLauncher;
             UserDialogueSpawner = dialogueSpawner;
+            ProcessWatcher = processWatcher;
             _ = LoadWhatsNew();
+            MainWindowVisibility = Visibility.Visible;
         }
 
         public partial class WhatsNewItem {
@@ -89,7 +99,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     };
                 }).ToList();
 
-                System.Windows.Application.Current.Dispatcher.Invoke(() => {
+                Application.Current.Dispatcher.Invoke(() => {
                     WhatsNew.Clear();
                     foreach (var item in items) WhatsNew.Add(item);
                 });
@@ -106,6 +116,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public Task<Option<Process>> LaunchModdedVanilla() => InternalLaunchVanilla(true);
 
         private async Task<Option<Process>> InternalLaunchVanilla(bool enableMods) {
+            var withOrWithout = enableMods ? "with" : "without";
+
+            Logger.Info($"Launching vanilla {withOrWithout} mods");
+
             // For a vanilla launch we need to pass the args through to the vanilla launcher.
             // Skip the first arg which is the path to the exe.
             var launchResult = enableMods
@@ -134,12 +148,20 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             return launchResult.Match(
                 Left: error => {
+                    Logger.Error("Failed to launch Chivalry 2: ", error);
                     UserDialogueSpawner.DisplayMessage("Failed to launch Chivalry 2. Check the logs for details.");
                     Settings.CanClick = true;
                     return None;
                 },
                 Right: process => {
-                    CreateChivalryProcessWatcher(process);
+                    if (!IsReusable()) {
+                        Logger.Debug("Launcher is not reusable. Exiting.");
+                        Application.Current.Shutdown(0);
+                        return None;
+                    }
+
+                    MainWindowVisibility = Visibility.Hidden;
+                    _ = CreateChivalryProcessWatcher(process);
                     return Some(process);
                 }
             );
@@ -148,6 +170,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
         [RelayCommand]
         public async Task<Option<Process>> LaunchUnchained() {
             if (!IsReusable()) Settings.CanClick = false;
+
+            Logger.Info("Launching Unchained");
 
             var options = new LaunchOptions(
                 ModManager.GetEnabledAndDependencies(),
@@ -162,7 +186,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             return launchResult.Match(
                 Left: e => {
-                    Logger.Error(e);
+                    Logger.Error("Failed to launch Chivalry 2 Unchained", e);
                     if (e.Underlying is not UnchainedLaunchFailure.LaunchCancelledError)
                         UserDialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
 
@@ -170,32 +194,36 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     return None;
                 },
                 Right: process => {
-                    CreateChivalryProcessWatcher(process);
+                    if (!IsReusable()) {
+                        Logger.Debug("Launcher is not reusable. Exiting.");
+                        Application.Current.Shutdown(0);
+                        return None;
+                    }
+
+                    MainWindowVisibility = Visibility.Hidden;
+                    _ = CreateChivalryProcessWatcher(process);
                     return Some(process);
                 }
             );
         }
 
-        private Thread CreateChivalryProcessWatcher(Process process) {
-            //TODO: add a Process.Exited event instead. 
-            var thread = new Thread(async void () => {
-                try {
-                    await process.WaitForExitAsync();
-                    if (IsReusable()) Settings.CanClick = true;
-
-                    if (process.ExitCode == 0) return;
-
-                    Logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
-                    UserDialogueSpawner.DisplayMessage($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
+        private async Task CreateChivalryProcessWatcher(Process process) {
+            var attached = await ProcessWatcher.OnExit(process, (exitCode, acceptable) => {
+                if (!acceptable) {
+                    UserDialogueSpawner.DisplayMessage(
+                        $"Chivalry 2 exited unexpectedly with code {exitCode}. Check the logs for details.");
                 }
-                catch (Exception e) {
-                    Logger.Error("Failure occured while waiting for Chivalry process to exit", e);
-                }
+
+                Application.Current.Dispatcher.Invoke(() => {
+                    MainWindowVisibility = Visibility.Visible;
+                    Settings.CanClick = true;
+                });
             });
 
-            thread.Start();
-
-            return thread;
+            if (!attached) {
+                Logger.Warn($"Failed to locate actual vanilla game process '{ProcessWatcher.TargetProcessNameNoExt}'. Launcher exiting. User can open a new one later.");
+                Application.Current.Shutdown(0);
+            }
         }
     }
 }

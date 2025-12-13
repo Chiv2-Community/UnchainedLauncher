@@ -1,4 +1,5 @@
 ﻿using LanguageExt;
+using LanguageExt.Common;
 using log4net;
 using System.Diagnostics;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
@@ -28,7 +29,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
                 None: () => Left(new LaunchFailed(
                     FilePaths.OriginalLauncherPath,
                     options.LaunchArgs,
-                    "launch preparer(s) failed.")),
+                    Error.New("Launch preparers failed"))),
                 Some: _ => Launcher.Launch(WorkingDirectory, options.LaunchArgs)
                 );
         }

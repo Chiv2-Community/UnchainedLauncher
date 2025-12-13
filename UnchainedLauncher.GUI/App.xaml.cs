@@ -59,7 +59,7 @@ namespace UnchainedLauncher.GUI {
 
 
             var installationFinder = new Chivalry2InstallationFinder();
-            var installer = new UnchainedLauncherInstaller(Environment.Exit);
+            var installer = new UnchainedLauncherInstaller(Shutdown);
 
             // figure out if we need to install by checking our current working directory
             var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -70,12 +70,20 @@ namespace UnchainedLauncher.GUI {
             if (forceSkipInstallation && needsInstallation)
                 _log.Info("Skipping installation");
 
-            var window =
-                needsInstallation && !forceSkipInstallation
-                    ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
-                    : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator, pluginReleaseLocator);
+            try {
+                var window =
+                    needsInstallation && !forceSkipInstallation
+                        ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
+                        : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator,
+                            pluginReleaseLocator);
 
-            window?.Show();
+                window?.Show();
+            }
+            catch (Exception ex) {
+                _log.Error("Failed to initialize window", ex);
+                MessageBox.Show("Failed to initialize application: " + ex.Message);
+                Shutdown(1);
+            }
         }
 
         // Removed class-level command bindings; handled by Views.UnchainedWindow type.
@@ -112,7 +120,7 @@ namespace UnchainedLauncher.GUI {
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
-            var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService, installationFinder, installer, launcherReleaseLocator, pakDir, userDialogueSpawner, Environment.Exit);
+            var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService, installationFinder, installer, launcherReleaseLocator, pakDir, userDialogueSpawner, Shutdown);
 
 
 
@@ -167,13 +175,16 @@ namespace UnchainedLauncher.GUI {
 #endif
             );
 
+            var chivProcessMonitor = new ChivalryProcessWatcher();
+
             var homeViewModel = new HomeVM(
                 settingsViewModel,
                 modManager,
                 vanillaLauncher,
                 clientsideModdedLauncher,
                 unchainedLauncher,
-                userDialogueSpawner);
+                userDialogueSpawner,
+                chivProcessMonitor);
             var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
             if (!modManager.Mods.Any())

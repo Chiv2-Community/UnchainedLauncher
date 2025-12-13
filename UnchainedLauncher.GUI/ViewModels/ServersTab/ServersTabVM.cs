@@ -19,9 +19,9 @@ using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;

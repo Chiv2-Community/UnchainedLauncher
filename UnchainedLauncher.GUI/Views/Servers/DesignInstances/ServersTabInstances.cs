@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views.DesignInstances;
@@ -15,7 +16,8 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
             ModListViewModelInstances.DEFAULTMODMANAGER,
             new MessageBoxSpawner(),
             null,
-            new ObservableCollection<ServerConfigurationVM> { ServerConfigurationViewModelInstances.DEFAULT }
+            new ObservableCollection<ServerConfigurationVM> { ServerConfigurationViewModelInstances.DEFAULT },
+            new ChivalryProcessWatcher()
         ) {
         }
     }

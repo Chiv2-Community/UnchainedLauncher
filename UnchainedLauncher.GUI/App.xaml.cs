@@ -132,7 +132,8 @@ namespace UnchainedLauncher.GUI {
                 "Unchained Chivalry 2"
             );
 #else
-            var officialProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.OriginalLauncherPath));
+            var originalLauncherPath = File.Exists(FilePaths.OriginalLauncherPath) ? FilePaths.OriginalLauncherPath : FilePaths.LauncherPath;
+            var officialProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), originalLauncherPath));
             var unchainedProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 #endif
 

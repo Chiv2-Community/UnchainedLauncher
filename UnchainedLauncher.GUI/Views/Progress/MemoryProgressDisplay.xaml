@@ -75,7 +75,7 @@
             </Grid>
         </DataTemplate>
     </UserControl.Resources>
-    <Grid>
+    <Grid Background="{DynamicResource Brush.Background}">
         <ContentControl Content="{Binding }" />
     </Grid>
 </UserControl>

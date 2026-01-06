@@ -11,7 +11,6 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
-using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
@@ -23,7 +22,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
 
     [AddINotifyPropertyChangedInterface]
     public partial class LocalModRegistryDetailsVM {
-        private static readonly ILog Logger = LogManager.GetLogger(nameof(PersistentServerRegistration));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(LocalModRegistryDetailsVM));
 
         private IRegistryWindowService _windowService;
 

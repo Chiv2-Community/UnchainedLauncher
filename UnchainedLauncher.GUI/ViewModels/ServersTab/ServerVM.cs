@@ -2,7 +2,9 @@
 using PropertyChanged;
 using System;
 using System.Threading.Tasks;
-using UnchainedLauncher.Core.API;
+using System.Windows.Media;
+using UnchainedLauncher.Core.Services.Server;
+using UnchainedLauncher.Core.Services.Server.A2S;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     // TODO? listplayers integration.
@@ -11,17 +13,31 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     // 3. neatly display response information in-window
 
     [AddINotifyPropertyChangedInterface]
-    public partial class ServerVM : IDisposable {
+    public partial class ServerVM : IDisposable, System.ComponentModel.INotifyPropertyChanged {
+        public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(name));
+
         // TODO: make Chivalry2Server handle the game process, Pid, and Rcon stuff
         // instead of having the ViewModel do it
         public Chivalry2Server Server { get; private set; }
         public string CurrentRconCommand { get; set; } = "";
 
-        // TODO: This binding won't work and I've spent enough time tearing my hair out to fix it for now.
-        // I think the property changed notification is not getting propagated up when LastException is changed.
-        // Swapping to a different template and coming back will show the updated value in the tooltip
-        public string? LastA2SExceptionMessage => Server.RegistrationHandler.A2SWatcher.LastException?.Message;
-        public bool IsA2SOk => Server.RegistrationHandler.A2SWatcher.A2SOk;
+        public string? LastA2SExceptionMessage => Server.RegistrationHandler?.RegistrationState
+        
+        // Helper for View compatibility
+        public ServerRegistrationOptions? ServerInfo => Server.RegistrationHandler?.Options;
+
+        // Color properties for A2S status
+        public Brush A2SStatusColor => A2SStatus switch {
+            this.A2SStatus.AwaitingServerStart => new SolidColorBrush(Colors.Orange), // Yellow
+            this.A2SStatus.Active => new SolidColorBrush(Colors.Green),
+            this.A2SStatus.Reconnecting => new SolidColorBrush(Colors.Orange), // Yellow (will flash in XAML)
+            this.A2SStatus.Dead => new SolidColorBrush(Colors.Red),
+            _ => new SolidColorBrush(Colors.Gray)
+        };
+        
+        public bool IsA2SReconnecting => A2SStatus == this.A2SStatus.Reconnecting;
+        
         public string RconHistory { get; set; }
 
         private bool _disposed = false;
@@ -35,6 +51,40 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             // 3. sending RCON commands
             this.Server = server;
             this.RconHistory = "";
+            
+            if (this.Server?.RegistrationHandler != null)
+            {
+                this.Server.RegistrationHandler.PropertyChanged += RegistrationHandler_PropertyChanged;
+                if (this.Server.RegistrationHandler.A2SWatcher != null)
+                {
+                    this.Server.RegistrationHandler.A2SWatcher.PropertyChanged += A2SWatcher_PropertyChanged;
+                }
+            }
+        }
+
+        private void RegistrationHandler_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) {
+            if (e.PropertyName == nameof(ServerRegistrationService.A2SWatcher)) {
+                if (Server.RegistrationHandler.A2SWatcher != null) {
+                    Server.RegistrationHandler.A2SWatcher.PropertyChanged += A2SWatcher_PropertyChanged;
+                }
+                NotifyA2SProperties();
+            }
+            if (e.PropertyName == nameof(ServerRegistrationService.Options)) {
+                OnPropertyChanged(nameof(ServerInfo));
+            }
+        }
+
+        private void A2SWatcher_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) {
+            NotifyA2SProperties();
+        }
+
+        private void NotifyA2SProperties() {
+            OnPropertyChanged(nameof(A2SStatus));
+            OnPropertyChanged(nameof(A2SStatusColor));
+            OnPropertyChanged(nameof(IsA2SOk));
+            OnPropertyChanged(nameof(LastA2SExceptionMessage));
+            OnPropertyChanged(nameof(IsA2SReconnecting));
+            OnPropertyChanged(nameof(IsA2SStarting));
         }
 
         [RelayCommand]

@@ -25,15 +25,24 @@
                 <StackPanel>
                     <!-- A2S status display -->
                     <TextBlock ToolTip="{Binding LastA2SExceptionMessage, Mode=OneWay}">
-                        <Run Text="A2S Status (hover for errors): " />
+                        <Run Text="A2S Status: " />
+                        <Run Text="{Binding A2SStatus, Mode=OneWay}" />
+                        <Run Text=" (hover for errors)" />
                         <InlineUIContainer BaselineAlignment="Center">
-                            <Ellipse Width="13" Height="13">
+                            <Ellipse Width="13" Height="13" Fill="{Binding A2SStatusColor, Mode=OneWay}">
                                 <Ellipse.Style>
                                     <Style TargetType="Ellipse">
-                                        <Setter Property="Fill" Value="{DynamicResource Brush.Success}" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsA2SOk}" Value="False">
-                                                <Setter Property="Fill" Value="{DynamicResource Brush.Danger}" />
+                                            <DataTrigger Binding="{Binding IsA2SReconnecting}" Value="True">
+                                                <DataTrigger.EnterActions>
+                                                    <BeginStoryboard>
+                                                        <Storyboard RepeatBehavior="Forever">
+                                                            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                           From="1.0" To="0.2" Duration="0:0:0.6"
+                                                                           AutoReverse="True" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </DataTrigger.EnterActions>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>

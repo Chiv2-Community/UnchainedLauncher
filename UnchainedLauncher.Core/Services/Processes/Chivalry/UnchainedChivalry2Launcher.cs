@@ -47,13 +47,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             var offsetIndex = tblLoc == -1 ? 0 : tblLoc + 3;
 
             var launchOpts = updatedLaunchOpts.Map(x => x.ToCLIArgs()).ValueUnsafe();
-
+            
             moddedLaunchArgs = moddedLaunchArgs.Insert(offsetIndex, $" {string.Join(" ", launchOpts)} ");
-            moddedLaunchArgs += " -unchained";
 
             Logger.Info($"Launch args: {moddedLaunchArgs}");
 
-            var launchResult = Launcher.Launch(Path.Combine(InstallationRootDir, FilePaths.BinDir), moddedLaunchArgs);
+            var launchResult = Launcher.Launch(Path.Combine(InstallationRootDir, FilePaths.BinDir), "-unchained " + moddedLaunchArgs);
 
             return launchResult.Match(
                 Left: error => {

@@ -13,15 +13,20 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Windows;
-using UnchainedLauncher.Core.API;
-using UnchainedLauncher.Core.API.A2S;
-using UnchainedLauncher.Core.API.ServerBrowser;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
+using System.Net.Http;
+using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Unchained.ServerBrowser.Api;
+using UnchainedLauncher.Core.Services.Server;
+using UnchainedLauncher.Core.Services.Server.A2S;
+
+// using Unchained.ServerBrowser.Client; // avoid Option<> name collision with LanguageExt
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
@@ -156,7 +161,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public void UpdateVisibility() {
             SelectedServer = RunningServers.Choose(
-                (e) => e.configuration == SelectedConfiguration ? e.live : Option<ServerVM>.None
+                (e) => e.configuration == SelectedConfiguration ? e.live : LanguageExt.Option<ServerVM>.None
             ).FirstOrDefault();
             var isSelectedRunning = SelectedServer != null;
 
@@ -187,7 +192,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 headless,
                 formData.Name,
                 formData.Description,
-                Option<string>.Some(formData.Password).Map(pw => pw.Trim()).Filter(pw => pw != ""),
+                LanguageExt.Option<string>.Some(formData.Password).Map(pw => pw.Trim()).Filter(pw => pw != ""),
                 formData.SelectedMap,
                 formData.GamePort,
                 formData.PingPort,
@@ -198,9 +203,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         private LaunchOptions BuildLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<ReleaseCoordinates> enabledCoordinates) {
-            var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, enabledCoordinates);
+            var releaseCoordinatesEnumerable = enabledCoordinates as ReleaseCoordinates[] ?? enabledCoordinates.ToArray();
+            var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, releaseCoordinatesEnumerable);
             return new LaunchOptions(
-                enabledCoordinates,
+                releaseCoordinatesEnumerable,
                 Settings.ServerBrowserBackend,
                 Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
@@ -266,27 +272,30 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         // TODO: this should really be a part of Chivalry2Server
-        public A2SBoundRegistration RegisterWithBackend(ServerConfiguration formData, IEnumerable<Release> enabledMods) {
+        public ServerRegistrationService RegisterWithBackend(ServerConfiguration formData, IEnumerable<Release> enabledMods) {
             var ports = formData.ToPublicPorts();
-            var serverInfo = new C2ServerInfo {
-                Ports = ports,
-                Name = formData.Name,
-                Description = formData.Description,
-                PasswordProtected = formData.Password.Length != 0,
-                Mods = enabledMods.Select(release =>
-                    new ServerBrowserMod(
-                        release.Manifest.Name,
-                        release.Manifest.Organization,
-                        release.Tag.ToString()
-                    )
-                ).ToArray()
-            };
 
-            return new A2SBoundRegistration(
-                new ServerBrowser(new Uri(Settings.ServerBrowserBackend + "/api/v1")),
-                new A2S(new IPEndPoint(IPAddress.Loopback, ports.A2S)),
-                serverInfo,
-                formData.LocalIp);
+            var options = new ServerRegistrationOptions(
+                Name: formData.Name,
+                Description: formData.Description,
+                PasswordProtected: formData.Password.Length != 0,
+                Ports: new ServerPorts(ports.Game, ports.A2S, ports.Ping),
+                Mods: enabledMods.Select(release => release.Manifest.Name).ToList()
+            );
+
+            // Build generated API client (lightweight, per-registration instance)
+            var loggerFactory = LoggerFactory.Create(builder => { });
+            var logger = loggerFactory.CreateLogger<DefaultApi>();
+            var httpClient = new HttpClient { BaseAddress = new Uri(Settings.ServerBrowserBackend) };
+            var jsonProvider = new Unchained.ServerBrowser.Client.JsonSerializerOptionsProvider(new JsonSerializerOptions());
+            var events = new DefaultApiEvents();
+            IDefaultApi api = new DefaultApi(logger, loggerFactory, httpClient, jsonProvider, events);
+
+            var service = new ServerRegistrationService(api);
+            // Use 5 second timeout per request; A2SWatcher will retry indefinitely until server starts
+            var a2s = new A2S(new IPEndPoint(IPAddress.Loopback, ports.A2S), timeOutMillis: 5000);
+            service.Start(options, a2s, formData.LocalIp);
+            return service;
         }
 
         public void Dispose() {

@@ -6,8 +6,9 @@
     },
     "Main": {
       "commandName": "Project",
-      "nativeDebugging": false,
-      "commandLineArgs": "--no-install"
+      "nativeDebugging": true,
+      "commandLineArgs": "--no-install",
+      "workingDirectory": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Chivalry 2"
     }
   }
 }

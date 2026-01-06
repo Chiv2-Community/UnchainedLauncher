@@ -53,7 +53,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             ServerLaunchOptions.IfSome(opts => args.AddRange(opts.ToCLIArgs()));
 
             var suffix = SavedDirSuffix.IfNone("Unchained");
-            args.Add($"-saveddirsuffix={suffix}");
+            // args.Add($"-saveddirsuffix={suffix}");
 
             return args;
         }
@@ -84,8 +84,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             args.Add($"Port={GamePort}");
             args.Add($"GameServerPingPort={BeaconPort}");
             args.Add($"GameServerQueryPort={QueryPort}");
-            args.Add($"--rcon {RconPort}");
-            args.Add($"--next-map-mod-actors {string.Join(",", NextMapModActors)}");
+            args.Add($"-rcon {RconPort}");
+            
+            if(NextMapModActors.Any())
+                args.Add($"--next-map-mod-actors {string.Join(",", NextMapModActors)}");
 
             return args;
         }

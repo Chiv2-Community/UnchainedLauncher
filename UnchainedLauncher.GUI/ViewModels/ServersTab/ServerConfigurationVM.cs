@@ -9,11 +9,12 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
-using UnchainedLauncher.Core.API.ServerBrowser;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
@@ -67,8 +68,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         bool ShowInServerBrowser = true,
         ObservableCollection<ReleaseCoordinates>? EnabledServerModList = null) {
 
-        public PublicPorts ToPublicPorts() {
-            return new PublicPorts(GamePort, PingPort, A2SPort);
+        public ServerPorts ToPublicPorts() {
+            // ServerPorts(Game, A2S, Ping)
+            return new ServerPorts(GamePort, A2SPort, PingPort);
         }
 
         public override string ToString() {
@@ -142,6 +144,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public void DisableServerMod(Release release) => EnabledServerModList.Remove(ReleaseCoordinates.FromRelease(release));
 
         public void AddAvailableMod(Release release, string? previousVersion) {
+            // This will be enabled by default
+            if (ModIdentifier.FromRelease(release) == CommonMods.UnchainedMods) return;
+            
             var existingMod = AvailableMods.Find(x => x.Manifest.RepoUrl == release.Manifest.RepoUrl);
             var existingMaps = existingMod.Bind(x => Prelude.Optional(x.Manifest.Maps)).FirstOrDefault() ?? new List<string>();
 

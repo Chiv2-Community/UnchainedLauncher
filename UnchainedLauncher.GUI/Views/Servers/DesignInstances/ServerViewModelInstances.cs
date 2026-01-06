@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Net;
-using UnchainedLauncher.Core.API;
-using UnchainedLauncher.Core.API.A2S;
-using UnchainedLauncher.Core.API.ServerBrowser;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
+using Microsoft.Extensions.Logging;
+using System.Net.Http;
+using System.Text.Json;
+using Unchained.ServerBrowser.Api;
+using UnchainedLauncher.Core.Services.Server;
 
 namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
     public static class ServerViewModelInstances {
@@ -15,18 +18,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
         public ServerDesignVM() : base(
             new Chivalry2Server(
                 new Process(),
-                new A2SBoundRegistration(
-                    new NullServerBrowser(),
-                    new A2S(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 1111)),
-                    new C2ServerInfo {
-                        Description = "Design View Only. Do not use default constructor.",
-                        Name = "Test Server",
-                        Mods = Array.Empty<ServerBrowserMod>(),
-                        PasswordProtected = false,
-                        Ports = new PublicPorts(123, 456, 789)
-                    },
-                    "127.0.0.1"
-                ),
+                CreateDesignRegistrationService(),
                 new RCON(new IPEndPoint(IPAddress.Loopback, 1520))
             )
         ) {
@@ -34,6 +26,17 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                           "Ignore my output\n" +
                           "I'm just here to make the GUI look nice\n" +
                           "While you design it\n";
+        }
+
+        private static ServerRegistrationService CreateDesignRegistrationService() {
+            var loggerFactory = LoggerFactory.Create(builder => { });
+            var logger = loggerFactory.CreateLogger<DefaultApi>();
+            var httpClient = new HttpClient { BaseAddress = new Uri("http://localhost:5000") };
+            var jsonProvider = new Unchained.ServerBrowser.Client.JsonSerializerOptionsProvider(new JsonSerializerOptions());
+            var events = new DefaultApiEvents();
+            IDefaultApi api = new DefaultApi(logger, loggerFactory, httpClient, jsonProvider, events);
+            // Do not start the service in design mode to avoid network calls
+            return new ServerRegistrationService(api);
         }
     }
 }

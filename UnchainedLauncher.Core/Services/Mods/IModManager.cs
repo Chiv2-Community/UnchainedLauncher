@@ -97,8 +97,6 @@ namespace UnchainedLauncher.Core.Services.Mods {
     }
 
     public static class ModManagerExtensions {
-        private static readonly ModIdentifier UnchainedMods = new("Chiv2-Community", "Unchained-Mods");
-
         public static bool EnableMod(this IModManager modManager, Mod mod) =>
             modManager.EnableMod(ModIdentifier.FromMod(mod));
 
@@ -205,11 +203,11 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
             // make sure unchained-mods always comes first
             var installedUnchainedMods = enabled
-                .Filter(r => r.Matches(UnchainedMods))
+                .Filter(r => r.Matches(CommonMods.UnchainedMods))
                 .ToOption();
 
             return installedUnchainedMods.Match(
-                r => enabled.Filter(release => !release.Matches(UnchainedMods)).Append(r),
+                r => enabled.Filter(release => !release.Matches(CommonMods.UnchainedMods)).Append(r),
                 () => enabled
                 );
         }
@@ -228,7 +226,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
             var unchainedModsRelease =
                 modManager.Mods
-                    .Find(x => ModIdentifier.FromMod(x) == UnchainedMods)
+                    .Find(x => ModIdentifier.FromMod(x) == CommonMods.UnchainedMods)
                     .Bind(x => x.LatestRelease);
 
             return unchainedModsRelease.Match(

@@ -1,17 +1,27 @@
-﻿using System.Text;
+﻿using System.Reflection;
+using System.Text;
 
 namespace StructuredINI {
     public class StructuredINIWriter {
         private readonly StructuredINIParser _parser = new();
 
-        // Preserve insertion order of section names
         private readonly List<string> _sectionOrder = new();
         private readonly Dictionary<string, string> _bufferedSections = new(StringComparer.OrdinalIgnoreCase);
 
+        public static bool Save<T>(string path, T t) {
+            var writer = new StructuredINIWriter();
+            return writer.BufferWrite(t) && writer.WriteOut(path);
+        }
+        
         public bool BufferWrite<T>(T iniSection) {
             if (iniSection == null) return false;
 
             try {
+                var type = iniSection.GetType();
+                if (type.GetCustomAttribute<INIFileAttribute>() != null) {
+                    return BufferWriteFileObject(iniSection);
+                }
+
                 var ini = _parser.Serialize(iniSection);
 
                 // Extract the section name from the first line: [SectionName]
@@ -33,6 +43,37 @@ namespace StructuredINI {
             catch {
                 return false;
             }
+        }
+
+        private bool BufferWriteFileObject(object iniFile) {
+            var fileType = iniFile.GetType();
+            var props = fileType
+                .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+                .Where(p => p.GetIndexParameters().Length == 0)
+                .Where(p => p.PropertyType.GetCustomAttribute<INISectionAttribute>() != null)
+                .OrderBy(p => p.MetadataToken)
+                .ToList();
+
+            if (props.Count == 0) return false;
+
+            var duplicateSectionNames = props
+                .Select(p => p.PropertyType.GetCustomAttribute<INISectionAttribute>()?.SectionName)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .GroupBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+
+            if (duplicateSectionNames.Count > 0) return false;
+
+            var any = false;
+            foreach (var prop in props) {
+                var sectionObj = prop.GetValue(iniFile);
+                if (sectionObj == null) continue;
+                any |= BufferWrite((dynamic)sectionObj);
+            }
+
+            return any;
         }
 
         public bool WriteOut(string path) {

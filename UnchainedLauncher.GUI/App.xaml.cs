@@ -72,20 +72,13 @@ namespace UnchainedLauncher.GUI {
             if (forceSkipInstallation && needsInstallation)
                 _log.Info("Skipping installation");
 
-            try {
-                var window =
-                    needsInstallation && !forceSkipInstallation
-                        ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
-                        : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator,
-                            pluginReleaseLocator);
+            var window =
+                needsInstallation && !forceSkipInstallation
+                    ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
+                    : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator,
+                        pluginReleaseLocator);
 
-                window?.Show();
-            }
-            catch (Exception ex) {
-                _log.Error("Failed to initialize window", ex);
-                MessageBox.Show("Failed to initialize application: " + ex.Message);
-                Shutdown(1);
-            }
+            window?.Show();
         }
 
         // Removed class-level command bindings; handled by Views.UnchainedWindow type.

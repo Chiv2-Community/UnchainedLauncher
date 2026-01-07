@@ -8,6 +8,7 @@ namespace StructuredINI {
             Register(new StringCodec());
             Register(new IntCodec());
             Register(new DoubleCodec());
+            Register(new FloatCodec());
         }
 
         public static void Register<T>(IINICodec<T> codec) {
@@ -31,7 +32,7 @@ namespace StructuredINI {
                 return codec;
             }
 
-            throw new KeyNotFoundException($"No codec registered for type {type.Name}");
+            throw new KeyNotFoundException($"No codec registered for type {TypeNameFormatter.Format(type)}");
         }
 
         private static bool TryDeriveAndRegisterCodec(Type type, out object codec) {

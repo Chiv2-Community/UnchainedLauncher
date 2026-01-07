@@ -168,7 +168,7 @@ namespace StructuredINI {
                 HandleCollectionOperation(prefix, key, valuePart, elementType, propertyValues[prop.Name]);
             }
             else {
-                HandleScalarOperation(prefix, prop.Name, valuePart, prop.PropertyType, propertyValues);
+                HandleScalarOperation(prefix, key, prop, valuePart, propertyValues);
             }
         }
 
@@ -189,14 +189,21 @@ namespace StructuredINI {
             return false;
         }
 
-        private void HandleScalarOperation(char prefix, string key, string valueStr, Type type, Dictionary<string, object> values) {
+        private void HandleScalarOperation(char prefix, string iniKey, PropertyInfo prop, string valueStr, Dictionary<string, object> values) {
             // Scalars mostly support Set (=).
             // Maybe ! to clear (null)?
 
             if (prefix == '\0') {
-                var codec = CodecRegistry.Get(type) as dynamic;
-                var value = codec.Decode(valueStr);
-                values[key] = value;
+                try {
+                    var codec = CodecRegistry.Get(prop.PropertyType) as dynamic;
+                    var value = codec.Decode(valueStr);
+                    values[prop.Name] = value;
+                }
+                catch (KeyNotFoundException ex) {
+                    throw new InvalidOperationException(
+                        $"Missing codec while parsing INI key '{iniKey}' (property '{prop.Name}', type {TypeNameFormatter.Format(prop.PropertyType)}).",
+                        ex);
+                }
             }
             // Ignore other prefixes for scalars for now or implement if needed
         }
@@ -213,7 +220,15 @@ namespace StructuredINI {
             }
 
             // Decode value
-            var codec = CodecRegistry.Get(elementType) as dynamic;
+            dynamic codec;
+            try {
+                codec = CodecRegistry.Get(elementType) as dynamic;
+            }
+            catch (KeyNotFoundException ex) {
+                throw new InvalidOperationException(
+                    $"Missing codec while parsing INI key '{key}' (collection element type {TypeNameFormatter.Format(elementType)}).",
+                    ex);
+            }
             // The codec interface is generic, so we use dynamic dispatch or reflection invoke.
             // But CodecRegistry.Get(Type) returns object.
             // We can cast to IINICodec<T> but we don't know T at compile time easily here without MakeGenericType.

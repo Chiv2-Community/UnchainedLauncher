@@ -14,5 +14,9 @@
         public const string RegistryConfigPath = $"{ModCachePath}\\registry_config.json";
         public const string ModManagerConfigPath = $"{ModCachePath}\\mod_manager_config.json";
 
+        public static string Chiv2ConfigPath(string? savedDirSuffix) {
+            var unexpandedPath = $@"%LOCALAPPDATA%\Chivalry 2\Saved_{savedDirSuffix}\Config\WindowsNoEditor";
+            return Environment.ExpandEnvironmentVariables(unexpandedPath);
+        }
     }
 }

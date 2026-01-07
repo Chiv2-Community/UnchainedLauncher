@@ -30,6 +30,93 @@
         <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
     </Style>
 
+    <!--
+        Underline tabs (matches MainWindow top-level tabs).
+        Keyed so embedded TabControls can opt-in without changing the default TabControl behavior.
+    -->
+    <Style TargetType="TabItem" x:Key="UnderlineTabItemStyle">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <!-- Make the entire header area hit-testable so clicking whitespace switches tabs -->
+                    <Grid Background="Transparent">
+                        <Border x:Name="Spacer"
+                                Margin="20 0 20 10"
+                                BorderBrush="Transparent"
+                                Background="Transparent">
+                            <ContentPresenter x:Name="ContentSite"
+                                              ContentSource="Header"
+                                              RecognizesAccessKey="True"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+
+                        <!-- Underline for selected tab -->
+                        <Border x:Name="Underline"
+                                Height="2"
+                                VerticalAlignment="Bottom"
+                                Background="{DynamicResource Brush.Primary}"
+                                Visibility="Collapsed" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Primary}" />
+                            <Setter TargetName="Underline" Property="Visibility" Value="Visible" />
+                            <Setter Property="Panel.ZIndex" Value="1" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.6" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.PrimaryHover}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="TabControl" x:Key="UnderlineTabControlStyle">
+        <Setter Property="Background" Value="{DynamicResource Brush.Background}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabControl">
+                    <Grid KeyboardNavigation.TabNavigation="Local"
+                          Background="{TemplateBinding Background}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <TabPanel Grid.Row="0"
+                                  x:Name="HeaderPanel"
+                                  IsItemsHost="True"
+                                  HorizontalAlignment="Left"
+                                  VerticalAlignment="Bottom"
+                                  Background="{TemplateBinding Background}" />
+
+                        <!-- Thin separator line between headers and content (full width) -->
+                        <Rectangle Grid.Row="0"
+                                   VerticalAlignment="Bottom"
+                                   Height="1"
+                                   Fill="{DynamicResource Brush.Border}" />
+
+                        <ContentPresenter Grid.Row="1"
+                                          x:Name="PART_SelectedContentHost"
+                                          Margin="0,10,0,0"
+                                          ContentSource="SelectedContent"
+                                          SnapsToDevicePixels="True" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 
     <Style x:Key="Card" TargetType="Border">
         <Setter Property="CornerRadius" Value="6" />
@@ -47,7 +134,52 @@
     </Style>
 
     <Style TargetType="GroupBox">
-        <Setter Property="Margin" Value="{StaticResource Spacing.MD}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
+        <!-- Ensure the control template doesn't introduce extra (default) layered borders -->
+        <Setter Property="Background" Value="{StaticResource Brush.Background}" />
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GroupBox">
+                    <Grid SnapsToDevicePixels="True">
+                        <!--
+                            Single border only.
+                            We push the border down slightly so the header can sit in the border line area,
+                            recreating the classic GroupBox look where the header breaks the top border.
+                        -->
+                        <Border x:Name="OuterBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Margin="0,8,0,0" />
+
+                        <Grid Margin="{TemplateBinding Padding}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0"
+                                    Background="{TemplateBinding Background}"
+                                    Padding="6,0"
+                                    Margin="12,0,12,0"
+                                    HorizontalAlignment="Left">
+                                <ContentPresenter ContentSource="Header"
+                                                  RecognizesAccessKey="True"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}" />
+                            </Border>
+
+                            <ContentPresenter Grid.Row="1"
+                                              Margin="0,8,0,0"
+                                              ContentSource="Content" />
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style TargetType="ProgressBar">

@@ -1,7 +1,10 @@
 ﻿namespace StructuredINI.Tests {
     public class ParserTests {
         [INISection("SomeINISectionName")]
-        public record SomeINISection(int Foo, string Bar, double Baz, int[] MyConfigArray);
+        public record SomeINISection(int Foo, string Bar, double Baz, float Quux, int[] MyConfigArray);
+
+        [INISection("MissingCodecSection")]
+        public record MissingCodecSection(decimal Price);
 
         [Fact]
         public void TestArrayOperations() {
@@ -36,18 +39,20 @@ MyConfigArray=7
 Foo=42
 Bar=Hello World
 Baz=3.14
+Quux=60.5
 ";
             var result = parser.Deserialize<SomeINISection>(iniContent);
 
             Assert.Equal(42, result.Foo);
             Assert.Equal("Hello World", result.Bar);
             Assert.Equal(3.14, result.Baz);
+            Assert.Equal(60.5f, result.Quux);
         }
 
         [Fact]
         public void TestSerialization() {
             var parser = new StructuredINIParser();
-            var instance = new SomeINISection(42, "Hello", 3.14, new[] { 2, 3, 2 });
+            var instance = new SomeINISection(42, "Hello", 3.14, 60.5f, new[] { 2, 3, 2 });
 
             var ini = parser.Serialize(instance);
 
@@ -60,6 +65,7 @@ Baz=3.14
             Assert.Contains("Foo=42", lines);
             Assert.Contains("Bar=Hello", lines);
             Assert.Contains("Baz=3.14", lines);
+            Assert.Contains("Quux=60.5", lines);
 
             // Array verification
             // Expected order:
@@ -78,6 +84,20 @@ Baz=3.14
 
             Assert.True(idx1 < idx2, "Order wrong: 2 before 3");
             Assert.True(idx2 < idx3, "Order wrong: 3 before duplicate 2");
+        }
+
+        [Fact]
+        public void MissingCodecErrorIncludesKeyAndFriendlyTypeName() {
+            var parser = new StructuredINIParser();
+            var iniContent = @"
+[MissingCodecSection]
+Price=12.5
+";
+
+            var ex = Assert.Throws<InvalidOperationException>(() => parser.Deserialize<MissingCodecSection>(iniContent));
+            Assert.Contains("Price", ex.Message);
+            Assert.Contains("decimal", ex.Message);
+            Assert.DoesNotContain("System.Decimal", ex.Message);
         }
     }
 }

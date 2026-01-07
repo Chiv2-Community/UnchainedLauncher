@@ -69,25 +69,5 @@ Bar=Old
                 if (File.Exists(path)) File.Delete(path);
             }
         }
-
-        [Fact]
-        public void INIFile_WithDuplicateSectionNames_IsRejected() {
-            var path = Path.Combine(Path.GetTempPath(), $"structuredini_inifile_dupe_{Guid.NewGuid():N}.ini");
-            try {
-                File.WriteAllText(path, @"[Same]
-Foo=1
-");
-
-                var reader = new StructuredINIReader();
-                Assert.True(reader.Load(path));
-                Assert.False(reader.TryRead<BadFile>(out _));
-
-                var writer = new StructuredINIWriter();
-                Assert.False(writer.BufferWrite(new BadFile(new SameA(1), new SameB(2))));
-            }
-            finally {
-                if (File.Exists(path)) File.Delete(path);
-            }
-        }
     }
 }

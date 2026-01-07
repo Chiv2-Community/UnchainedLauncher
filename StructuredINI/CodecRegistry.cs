@@ -6,6 +6,7 @@ namespace StructuredINI {
 
         static CodecRegistry() {
             Register(new StringCodec());
+            Register(new BoolCodec());
             Register(new IntCodec());
             Register(new DoubleCodec());
             Register(new FloatCodec());

@@ -1,7 +1,10 @@
-﻿using System.Reflection;
+﻿using log4net;
+using System.Reflection;
 
 namespace StructuredINI {
     public class StructuredINIReader {
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(StructuredINIReader));
+        
         private readonly StructuredINIParser _parser = new();
 
         private readonly Dictionary<string, string> _sectionBuffers = new(StringComparer.OrdinalIgnoreCase);
@@ -17,7 +20,9 @@ namespace StructuredINI {
                 var readValue = reader.Read<T>();
                 return readValue == null ? fallback : readValue;
             }
-            catch {
+            catch(Exception ex) {
+                Logger.Error($"Failed to load INI file {path}", ex);
+                Logger.Warn("Falling back to default value.");
                 return fallback;
             }
         }
@@ -65,7 +70,8 @@ namespace StructuredINI {
                 FlushCurrent();
                 return _sectionBuffers.Count > 0;
             }
-            catch {
+            catch(Exception ex) {
+                Logger.Error($"Failed to load INI file {path}", ex);
                 return false;
             }
         }
@@ -94,7 +100,8 @@ namespace StructuredINI {
                 value = _parser.Deserialize<T>(sectionContent);
                 return true;
             }
-            catch {
+            catch(Exception ex) {
+                Logger.Error($"Failed to read INI section {typeof(T).Name}", ex);
                 return false;
             }
         }
@@ -135,11 +142,6 @@ namespace StructuredINI {
                 .Select(g => g.Key)
                 .ToList();
 
-            if (duplicateSectionNames.Count > 0) {
-                return false;
-            }
-
-            // Prefer the constructor with the most parameters so records work naturally.
             var ctor = fileType.GetConstructors().OrderByDescending(c => c.GetParameters().Length).FirstOrDefault();
 
             if (ctor != null) {

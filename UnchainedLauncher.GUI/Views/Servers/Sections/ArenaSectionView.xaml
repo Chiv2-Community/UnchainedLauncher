@@ -1,0 +1,55 @@
+﻿<UserControl x:Class="UnchainedLauncher.GUI.Views.Servers.Sections.ArenaSectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:ini="clr-namespace:UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=ini:ArenaGameModeSectionVM}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="8">
+            <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" CornerRadius="6" Padding="8">
+                <StackPanel>
+                    <TextBlock Text="Arena" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="RoundsToWin" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBox Text="{Binding RoundsToWin}" Grid.Row="0" Grid.Column="1" Width="80" />
+
+                        <TextBlock Text="RoundTimeLimit" Grid.Row="0" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBox Text="{Binding RoundTimeLimit}" Grid.Row="0" Grid.Column="4" Width="80" />
+
+                        <TextBlock Text="MinTimeBeforeStartingMatch" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBox Text="{Binding MinTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="1" Width="80" />
+
+                        <TextBlock Text="MaxTimeBeforeStartingMatch" Grid.Row="1" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBox Text="{Binding MaxTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="4" Width="80" />
+
+                        <TextBlock Text="TeamLives" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBox Text="{Binding TeamLives}" Grid.Row="2" Grid.Column="1" Width="80" />
+                    </Grid>
+
+                    <UniformGrid Columns="2">
+                        <CheckBox IsChecked="{Binding ClearWeaponsPostRound}" Content="Clear Weapons Post Round" Margin="0,0,12,6" />
+                        <CheckBox IsChecked="{Binding ClearHorsesPostRound}" Content="Clear Horses Post Round" Margin="0,0,0,6" />
+                        <CheckBox IsChecked="{Binding ResetTaggedActorsPostRound}" Content="Reset Tagged Actors Post Round" Margin="0,0,12,0" />
+                        <CheckBox IsChecked="{Binding UsePreCountdownForCustomizationLoading}" Content="Use PreCountdown For Customization Loading" />
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

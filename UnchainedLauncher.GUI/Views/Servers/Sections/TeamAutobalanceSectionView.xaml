@@ -1,0 +1,42 @@
+﻿<UserControl x:Class="UnchainedLauncher.GUI.Views.Servers.Sections.TeamAutobalanceSectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:ini="clr-namespace:UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=ini:TBLGameModeSectionVM}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="8">
+            <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" CornerRadius="6" Padding="8">
+                <StackPanel>
+                    <TextBlock Text="Team Autobalance" FontWeight="SemiBold" Margin="0,0,0,8" />
+
+                    <UniformGrid Columns="2" Margin="0,0,0,10">
+                        <CheckBox IsChecked="{Binding AutoBalanceEnabled}" Content="Auto Balance Enabled" Margin="0,0,12,0" />
+                        <CheckBox IsChecked="{Binding TeamBalanceEnabled}" Content="Team Balance Enabled" />
+                    </UniformGrid>
+
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Auto Balance Grace Period (s)" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBox Text="{Binding StartOfMatchGracePeriodForAutoBalance, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Width="80" />
+
+                        <TextBlock Text="Team Switch Grace Period (s)" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBox Text="{Binding StartOfMatchGracePeriodForTeamSwitching, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Column="4" Width="80" />
+                    </Grid>
+
+                    <CheckBox IsChecked="{Binding UseStrictTeamBalanceEnforcement}" Content="Strict Team Balance Enforcement" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

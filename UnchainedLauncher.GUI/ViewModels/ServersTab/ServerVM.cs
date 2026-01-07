@@ -132,7 +132,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         [RelayCommand]
         private async Task StartNextMapAsync() {
             try {
-                await Server.RCON.SendCommand("tbsendgame");
+                await Server.RCON.SendCommand("tbsendgame 1");
             }
             catch (Exception ex) {
                 Logger.Error($"Failed to start next map via RCON: {ex.Message}");

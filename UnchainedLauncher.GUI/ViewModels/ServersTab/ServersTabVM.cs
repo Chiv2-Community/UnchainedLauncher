@@ -141,6 +141,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             // Resolve selected releases from the template's EnabledServerModList
             var enabledCoordinates = SelectedConfiguration.EnabledServerModList.ToArray();
+            
+            SelectedConfiguration.SaveINI();
 
             var maybeProcess = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
             maybeProcess.IfSome(process => {
@@ -160,18 +162,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             ConfigurationEditorVisibility = isSelectedRunning || ServerConfigs.Length() == 0 ? Visibility.Hidden : Visibility.Visible;
             LiveServerVisibility = !isSelectedRunning ? Visibility.Hidden : Visibility.Visible;
-        }
-
-        // Helper to create a filesystem-friendly save dir suffix
-        private static string SanitizeSaveddirSuffix(string s) {
-            var substitutedUnderscores = s.Trim()
-                .Replace(' ', '_')
-                .Replace('(', '_')
-                .Replace(')', '_')
-                .ReplaceLineEndings("_");
-
-            var illegalCharsRemoved = string.Join("_", substitutedUnderscores.Split(Path.GetInvalidFileNameChars()));
-            return illegalCharsRemoved;
         }
 
         private ServerLaunchOptions BuildServerLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<ReleaseCoordinates> enabledCoordinates) {
@@ -203,7 +193,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 Settings.ServerBrowserBackend,
                 Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
-                Some(SanitizeSaveddirSuffix(formData.Name)),
+                Some(formData.SavedDirSuffix),
                 Some(serverLaunchOptions)
             );
         }

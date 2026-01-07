@@ -5,6 +5,11 @@ namespace StructuredINI.Codecs {
         public string Decode(string value) => value;
         public string Encode(string value) => value;
     }
+    
+    public class BoolCodec : IINICodec<bool> {
+        public bool Decode(string value) => bool.Parse(value);
+        public string Encode(bool value) => value.ToString();
+    }
 
     public class IntCodec : IINICodec<int> {
         public int Decode(string value) => int.Parse(value);

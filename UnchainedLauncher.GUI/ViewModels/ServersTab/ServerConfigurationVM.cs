@@ -24,6 +24,8 @@ using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
+using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
@@ -78,6 +80,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         bool ShowInServerBrowser = true,
         ObservableCollection<ReleaseCoordinates>? EnabledServerModList = null) {
 
+        public string SavedDirSuffix => ServerConfigurationVM.SavedDirSuffix(Name);
+
         public override string ToString() {
             var modListStr = EnabledServerModList == null
                 ? "null"
@@ -91,23 +95,16 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     public partial class ServerConfigurationVM : INotifyPropertyChanged {
         private readonly ILog Logger = LogManager.GetLogger(nameof(ServerConfigurationVM));
 
-        public class AutoBalanceVM {
-            public int MinNumPlayers { get; set; }
-            public int MaxNumPlayers { get; set; }
-            public int AllowedNumPlayersDifference { get; set; }
+        public IpNetDriverSectionVM IpNetDriver { get; } = new();
+        public GameSessionSectionVM GameSession { get; } = new();
+        public TBLGameModeSectionVM GameMode { get; } = new();
+        public LtsGameModeSectionVM Lts { get; } = new();
+        public ArenaGameModeSectionVM Arena { get; } = new();
+        public TBLGameUserSettingsSectionVM UserSettings { get; } = new();
 
-            public AutoBalanceVM() { }
+        public BaseConfigurationSectionVM BaseConfigurationSection { get; }
+        public AdvancedConfigurationSectionVM AdvancedConfigurationSection { get; }
 
-            public AutoBalanceVM(AutoBalance ab) {
-                MinNumPlayers = ab.MinNumPlayers;
-                MaxNumPlayers = ab.MaxNumPlayers;
-                AllowedNumPlayersDifference = ab.AllowedNumPlayersDifference;
-            }
-
-            public AutoBalance ToModel() => new AutoBalance(MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference);
-        }
-
-        private bool _syncingFps;
         public string Name {
             get;
             set {
@@ -116,10 +113,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                     return;
                 }
 
-                var oldSuffix = SavedDirSuffix();
+                var oldSuffix = SavedDirSuffix(Name);
                 
                 field = value.Trim();
-                var newSuffix = SavedDirSuffix();
+                var newSuffix = SavedDirSuffix(Name);
                 
                 if (Directory.Exists(FilePaths.Chiv2ConfigPath(oldSuffix))) {
                     Directory.Move(FilePaths.Chiv2ConfigPath(oldSuffix), FilePaths.Chiv2ConfigPath(newSuffix));
@@ -137,127 +134,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public bool ShowInServerBrowser { get; set; }
         public string LocalIp { get; set; }
 
-        // Engine.ini -> [/Script/OnlineSubsystemUtils.IpNetDriver]
-        public int NetServerMaxTickRate { get; set; }
-        public int MaxClientRate { get; set; }
-        public int MaxInternetClientRate { get; set; }
-        public float InitialConnectTimeout { get; set; }
-        public float ConnectionTimeout { get; set; }
-        public int LanServerMaxTickRate { get; set; }
-        public float RelevantTimeout { get; set; }
-        public int SpawnPrioritySeconds { get; set; }
-        public float ServerTravelPause { get; set; }
-
-        // Game.ini -> [/Script/Engine.GameSession]
-        public int MaxPlayers { get; set; }
-
-        // Game.ini -> [/Script/TBL.TBLGameMode]
-        public string IniServerName { get; set; }
-        public string ServerIdentifier { get; set; }
-        public bool BotBackfillEnabled { get; set; }
-        public int BotBackfillLowPlayers { get; set; }
-        public int BotBackfillLowBots { get; set; }
-        public int BotBackfillHighPlayers { get; set; }
-        public int BotBackfillHighBots { get; set; }
-        public float MinTimeBeforeStartingMatch { get; set; }
-        public int IdleKickTimerSpectate { get; set; }
-        public int IdleKickTimerDisconnect { get; set; }
-        public ObservableCollection<string> MapList { get; set; }
-        public string? MapToAdd { get; set; }
-        public int MapListIndex { get; set; }
-        public bool HorseCompatibleServer { get; set; }
-        public ObservableCollection<AutoBalanceVM> TeamBalanceOptions { get; set; }
-        public ObservableCollection<AutoBalanceVM> AutoBalanceOptions { get; set; }
-        public int StartOfMatchGracePeriodForAutoBalance { get; set; }
-        public int StartOfMatchGracePeriodForTeamSwitching { get; set; }
-        public bool UseStrictTeamBalanceEnforcement { get; set; }
-
-        public bool AutoBalanceEnabled {
-            get => AutoBalanceOptions.Count > 0;
-            set {
-                if (value) {
-                    if (AutoBalanceOptions.Count == 0) {
-                        AutoBalanceOptions.Add(new AutoBalanceVM(new AutoBalance(0, MaxPlayers, 1)));
-                    }
-                }
-                else {
-                    AutoBalanceOptions.Clear();
-                }
-
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutoBalanceEnabled)));
-            }
-        }
-
-        public bool TeamBalanceEnabled {
-            get => TeamBalanceOptions.Count > 0;
-            set {
-                if (value) {
-                    if (TeamBalanceOptions.Count == 0) {
-                        TeamBalanceOptions.Add(new AutoBalanceVM(new AutoBalance(0, MaxPlayers, 1)));
-                    }
-                }
-                else {
-                    TeamBalanceOptions.Clear();
-                }
-
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TeamBalanceEnabled)));
-            }
-        }
-
-        // Game.ini -> [/Script/TBL.LTSGameMode]
-        public int LtsPreCountdownDelay { get; set; }
-        public int LtsRoundsToWin { get; set; }
-
-        // Game.ini -> [/Script/TBL.ArenaGameMode]
-        public int ArenaRoundsToWin { get; set; }
-        public int ArenaRoundTimeLimit { get; set; }
-        public bool ArenaClearWeaponsPostRound { get; set; }
-        public bool ArenaClearHorsesPostRound { get; set; }
-        public bool ArenaResetTaggedActorsPostRound { get; set; }
-        public bool ArenaUsePreCountdownForCustomizationLoading { get; set; }
-        public int ArenaMinTimeBeforeStartingMatch { get; set; }
-        public int ArenaMaxTimeBeforeStartingMatch { get; set; }
-        public int ArenaTeamLives { get; set; }
-
-        // GameUserSettings.ini -> [/Script/TBL.TBLGameUserSettings]
-        public int MaxFPS { get; set; }
-        public float FrameRateLimit { get; set; }
-
-        public int FpsLimit {
-            get => MaxFPS;
-            set {
-                _syncingFps = true;
-                MaxFPS = value;
-                FrameRateLimit = value;
-                _syncingFps = false;
-            }
-        }
-
-        private void OnMaxFPSChanged() {
-            if (_syncingFps) return;
-            _syncingFps = true;
-            FrameRateLimit = MaxFPS;
-            _syncingFps = false;
-        }
-
-        private void OnFrameRateLimitChanged() {
-            if (_syncingFps) return;
-            _syncingFps = true;
-            MaxFPS = (int)FrameRateLimit;
-            _syncingFps = false;
-        }
-
-        private static int ToRoundsToWin(int rounds) {
-            return (rounds + 1) / 2;
-        }
-
-        private static int FromRoundsToWin(int roundsToWin) {
-            if (roundsToWin < 1) roundsToWin = 1;
-            return (2 * roundsToWin) - 1;
-        }
-
-        public string SavedDirSuffix() {
-            var substitutedUnderscores = Name.Trim()
+        public static string SavedDirSuffix(string name) {
+            var substitutedUnderscores = name.Trim()
             .Replace(' ', '_')
             .Replace('(', '_')
             .Replace(')', '_')
@@ -268,132 +146,34 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         public void LoadINI() {
-            var ini = Chivalry2INI.LoadINIProfile(SavedDirSuffix());
+            var ini = Chivalry2INI.LoadINIProfile(SavedDirSuffix(Name));
 
-            var ipNetDriver = ini.Engine.IpNetDriver;
-            
-            NetServerMaxTickRate = ipNetDriver.NetServerMaxTickRate;
-            MaxClientRate = ipNetDriver.MaxClientRate;
-            MaxInternetClientRate = ipNetDriver.MaxInternetClientRate;
-            InitialConnectTimeout = ipNetDriver.InitialConnectTimeout;
-            ConnectionTimeout = ipNetDriver.ConnectionTimeout;
-            LanServerMaxTickRate = ipNetDriver.LanServerMaxTickRate;
-            RelevantTimeout = ipNetDriver.RelevantTimeout;
-            SpawnPrioritySeconds = ipNetDriver.SpawnPrioritySeconds;
-            ServerTravelPause = ipNetDriver.ServerTravelPause;
+            IpNetDriver.LoadFrom(ini.Engine.IpNetDriver);
+            GameSession.LoadFrom(ini.Game.GameSession);
 
-            var gameSession = ini.Game.GameSession;
-            MaxPlayers = gameSession.MaxPlayers;
+            GameMode.DefaultMaxPlayers = GameSession.MaxPlayers;
+            GameMode.LoadFrom(ini.Game.TBLGameMode);
 
-            var tblGameMode = ini.Game.TBLGameMode;
-            IniServerName = tblGameMode.ServerName;
-            ServerIdentifier = tblGameMode.ServerIdentifier;
-            BotBackfillEnabled = tblGameMode.BotBackfillEnabled;
-            BotBackfillLowPlayers = tblGameMode.BotBackfillLowPlayers;
-            BotBackfillLowBots = tblGameMode.BotBackfillLowBots;
-            BotBackfillHighPlayers = tblGameMode.BotBackfillHighPlayers;
-            BotBackfillHighBots = tblGameMode.BotBackfillHighBots;
-            MinTimeBeforeStartingMatch = tblGameMode.MinTimeBeforeStartingMatch;
-            IdleKickTimerSpectate = tblGameMode.IdleKickTimerSpectate;
-            IdleKickTimerDisconnect = tblGameMode.IdleKickTimerDisconnect;
-
-            MapList.Clear();
-            foreach (var map in tblGameMode.MapList) {
-                MapList.Add(map);
-            }
-
-            MapListIndex = tblGameMode.MapListIndex;
-            HorseCompatibleServer = tblGameMode.bHorseCompatibleServer;
-
-            TeamBalanceOptions.Clear();
-            foreach (var opt in tblGameMode.TeamBalanceOptions) {
-                TeamBalanceOptions.Add(new AutoBalanceVM(opt));
-            }
-
-            AutoBalanceOptions.Clear();
-            foreach (var opt in tblGameMode.AutoBalanceOptions) {
-                AutoBalanceOptions.Add(new AutoBalanceVM(opt));
-            }
-
-            StartOfMatchGracePeriodForAutoBalance = tblGameMode.StartOfMatchGracePeriodForAutoBalance;
-            StartOfMatchGracePeriodForTeamSwitching = tblGameMode.StartOfMatchGracePeriodForTeamSwitching;
-            UseStrictTeamBalanceEnforcement = tblGameMode.bUseStrictTeamBalanceEnforcement;
-
-            var lts = ini.Game.LTSGameMode;
-            LtsPreCountdownDelay = lts.PreCountdownDelay;
-            LtsRoundsToWin = ToRoundsToWin(lts.Rounds);
-
-            var arena = ini.Game.ArenaGameMode;
-            ArenaRoundsToWin = ToRoundsToWin(arena.Rounds);
-            ArenaRoundTimeLimit = arena.RoundTimeLimit;
-            ArenaClearWeaponsPostRound = arena.bClearWeaponsPostRound;
-            ArenaClearHorsesPostRound = arena.bClearHorsesPostRound;
-            ArenaResetTaggedActorsPostRound = arena.bResetTaggedActorsPostRound;
-            ArenaUsePreCountdownForCustomizationLoading = arena.bUsePreCountdownForCustomizationLoading;
-            ArenaMinTimeBeforeStartingMatch = arena.MinTimeBeforeStartingMatch;
-            ArenaMaxTimeBeforeStartingMatch = arena.MaxTimeBeforeStartingMatch;
-            ArenaTeamLives = arena.TeamLives;
-
-            var userSettings = ini.GameUserSettings.TBLGameUserSettings;
-            MaxFPS = userSettings.MaxFPS;
-            FrameRateLimit = userSettings.FrameRateLimit;
+            Lts.LoadFrom(ini.Game.LTSGameMode);
+            Arena.LoadFrom(ini.Game.ArenaGameMode);
+            UserSettings.LoadFrom(ini.GameUserSettings.TBLGameUserSettings);
         }
 
         public bool SaveINI() {
             var ini = ToChivalry2INI();
-            return ini.SaveINIProfile(SavedDirSuffix());
+            return ini.SaveINIProfile(SavedDirSuffix(Name));
         }
 
         private Chivalry2INI ToChivalry2INI() {
-            var engineIni = new EngineINI(new IpNetDriver(
-                NetServerMaxTickRate,
-                MaxClientRate,
-                MaxInternetClientRate,
-                InitialConnectTimeout,
-                ConnectionTimeout,
-                LanServerMaxTickRate,
-                RelevantTimeout,
-                SpawnPrioritySeconds,
-                ServerTravelPause
-            ));
-
+            var engineIni = new EngineINI(IpNetDriver.ToModel());
             var gameIni = new GameINI(
-                new GameSession(MaxPlayers),
-                new TBLGameMode(
-                    IniServerName,
-                    ServerIdentifier,
-                    BotBackfillEnabled,
-                    BotBackfillLowPlayers,
-                    BotBackfillLowBots,
-                    BotBackfillHighPlayers,
-                    BotBackfillHighBots,
-                    MinTimeBeforeStartingMatch,
-                    IdleKickTimerSpectate,
-                    IdleKickTimerDisconnect,
-                    MapList.ToArray(),
-                    MapListIndex,
-                    HorseCompatibleServer,
-                    TeamBalanceOptions.Select(o => o.ToModel()).ToArray(),
-                    AutoBalanceOptions.Select(o => o.ToModel()).ToArray(),
-                    StartOfMatchGracePeriodForAutoBalance,
-                    StartOfMatchGracePeriodForTeamSwitching,
-                    UseStrictTeamBalanceEnforcement
-                ),
-                new LTSGameMode(LtsPreCountdownDelay, FromRoundsToWin(LtsRoundsToWin)),
-                new ArenaGameMode(
-                    FromRoundsToWin(ArenaRoundsToWin),
-                    ArenaRoundTimeLimit,
-                    ArenaClearWeaponsPostRound,
-                    ArenaClearHorsesPostRound,
-                    ArenaResetTaggedActorsPostRound,
-                    ArenaUsePreCountdownForCustomizationLoading,
-                    ArenaMinTimeBeforeStartingMatch,
-                    ArenaMaxTimeBeforeStartingMatch,
-                    ArenaTeamLives
-                )
+                GameSession.ToModel(),
+                GameMode.ToModel(),
+                Lts.ToModel(),
+                Arena.ToModel()
             );
 
-            var userSettingsIni = new GameUserSettingsINI(new TBLGameUserSettings(MaxFPS, FrameRateLimit));
+            var userSettingsIni = new GameUserSettingsINI(UserSettings.ToModel());
             return new Chivalry2INI(engineIni, gameIni, userSettingsIni);
         }
 
@@ -401,9 +181,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public ObservableCollection<ReleaseCoordinates> EnabledServerModList { get; }
         public ObservableCollection<Release> AvailableMods { get; }
-
-        public IRelayCommand AddMapCommand { get; }
-        public IRelayCommand<string> RemoveMapCommand { get; }
 
         public ServerConfigurationVM(IModManager modManager,
             string name = "My Server",
@@ -430,10 +207,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             EnabledServerModList = enabledServerModList ?? new ObservableCollection<ReleaseCoordinates>();
 
             AvailableMaps = new ObservableCollection<string>(GetDefaultMaps());
-
-            MapList = new ObservableCollection<string>();
-            AutoBalanceOptions = new ObservableCollection<AutoBalanceVM>();
-            TeamBalanceOptions = new ObservableCollection<AutoBalanceVM>();
             
             LoadINI();
 
@@ -449,9 +222,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             modManager.ModDisabled += RemoveAvailableMod;
             modManager.ModEnabled += AddAvailableMod;
-        }
 
-        public void ApplyINI() {
+            BaseConfigurationSection = new BaseConfigurationSectionVM(this);
+            AdvancedConfigurationSection = new AdvancedConfigurationSectionVM(this);
         }
 
         public void EnableServerMod(Release release) =>

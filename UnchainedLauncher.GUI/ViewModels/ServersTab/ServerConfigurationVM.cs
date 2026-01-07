@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using DiscriminatedUnions;
 using LanguageExt;
 using PropertyChanged;
 using System.Collections.Generic;
@@ -10,7 +9,6 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
-using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
@@ -232,7 +230,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             new UEINIParameter("Game", "/Script/TBL.TBLGameMode", "BotBackfillHighBots", BotBackfillHighBots.ToString())
         };
     }
-    
+
     public readonly record struct NetworkConfiguration(
         int NetServerMaxTickRate = 60,
         int MaxClientRate = 100000,
@@ -274,14 +272,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         NetworkConfiguration NetworkConfiguration,
         GameModeTypeConfig GameModeConfig) {
         public abstract IReadOnlyList<CLIArg> GetCLIArgs();
-        
+
         protected IReadOnlyList<CLIArg> GetBaseConfiguration() {
             var args = new List<CLIArg> {
                 new UEINIParameter("Game", "/Script/Engine.GameSession", "MaxPlayers", MaxPlayers.ToString()),
                 new UEINIParameter("GameUserSettings", "/Script/TBL.TBLGameUserSettings", "MaxFPS", FPS.ToString()),
                 new UEINIParameter("GameUserSettings", "/Script/TBL.TBLGameUserSettings", "FrameRateLimit",
                     FPS.ToString()),
-                new UEINIParameter("Game", "/Script/TBL.TBLGameMode", "IdleKickTimerSpectate", IdleSpectateTimeout.ToString()), 
+                new UEINIParameter("Game", "/Script/TBL.TBLGameMode", "IdleKickTimerSpectate", IdleSpectateTimeout.ToString()),
                 new UEINIParameter("Game", "/Script/TBL.TBLGameMode", "IdleKickTimerDisconnect", IdleKickTimeout.ToString()),
                 new UEINIParameter("Game", "/Script/TBL.TBLGameMode", "MinTimeBeforeStartingMatch", MinimumWarmupTime.ToString()),
                 new UEINIParameter("Game", "/Script/TBL.TBLGameMode", "bHorseCompatibleServer", EnableHorses.ToString()),
@@ -292,10 +290,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             args.AddRange(GameModeConfig.GetCLIArgs());
             return args;
         }
-        
+
         protected IReadOnlyList<CLIArg> GetBotConfiguration() =>
             BotConfiguration.Match(
-                bot => 
+                bot =>
                     new UEINIParameter("Game", "/Script/TBL.TBLGameMode", "BotBackfillEnabled", "True")
                         .Cons(bot.GetCLIArgs())
                         .ToList(),
@@ -313,11 +311,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     public abstract record GameModeTypeConfig() {
         public abstract IReadOnlyList<CLIArg> GetCLIArgs();
     }
-    
+
     public record FFAConfig() : GameModeTypeConfig() {
         public override IReadOnlyList<CLIArg> GetCLIArgs() => new List<CLIArg>();
     }
-    
+
     // Auto balance options are applicable for the range of players (inclusive) between MinNumPlayers and MaxNumPlayers, allowing AllowedNumPlayersDifference between team size
     public record AutoBalanceOption(int MinNumPlayers, int MaxNumPlayers, int AllowedNumPlayersDifference);
 
@@ -370,7 +368,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             };
         }
     }
-    
+
     public record TOConfig() : TeamGameModeTypeConfig {
         public override IReadOnlyList<CLIArg> GetCLIArgs() => new List<CLIArg>();
     }
@@ -384,7 +382,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         bool UsePreCountdownForCustomizationLoading,
         int MinTimeBeforeStartingMatch,
         int MaxTimeBeforeStartingMatch,
-        int ExtraLivesPerPlayer): TeamGameModeTypeConfig {
+        int ExtraLivesPerPlayer) : TeamGameModeTypeConfig {
         public override IReadOnlyList<CLIArg> GetCLIArgs() {
             var rounds = (RoundsToWin * 2) - 1;
             return new List<CLIArg> {

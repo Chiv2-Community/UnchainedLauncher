@@ -1,10 +1,5 @@
-﻿using System.Collections.Generic;
-using Xunit;
-
-namespace StructuredINI.Tests
-{
-    public class KeyAnnotationTests
-    {
+﻿namespace StructuredINI.Tests {
+    public class KeyAnnotationTests {
         [INISection("RenamedSection")]
         public record RenamedProps(
             [property: INIKey("RealName")] int Foo,
@@ -12,8 +7,7 @@ namespace StructuredINI.Tests
         );
 
         [Fact]
-        public void TestSerialization_RenamedKeys()
-        {
+        public void TestSerialization_RenamedKeys() {
             var parser = new StructuredINIParser();
             var instance = new RenamedProps(42, "hello");
             var ini = parser.Serialize(instance);
@@ -25,8 +19,7 @@ namespace StructuredINI.Tests
         }
 
         [Fact]
-        public void TestDeserialization_RenamedKeys()
-        {
+        public void TestDeserialization_RenamedKeys() {
             var parser = new StructuredINIParser();
             var ini = @"
 [RenamedSection]

@@ -43,10 +43,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
 
         private bool alreadyChecked = false;
-        
+
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
             if (alreadyChecked) return Some(options);
-            
+
             if (!options.CheckForDependencyUpdates) {
                 return options;
             }
@@ -78,7 +78,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 "no",
                 null,
                 update);
-            
+
 
             if (choice != UserDialogueChoice.Yes) {
                 alreadyChecked = true;

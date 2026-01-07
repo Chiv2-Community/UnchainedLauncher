@@ -2,17 +2,13 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Net;
-using UnchainedLauncher.Core.Services;
-using UnchainedLauncher.GUI.ViewModels.ServersTab;
-using System.Net.Http;
-using System.Text.Json;
 using System.Threading.Tasks;
-using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
+using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
-using Environment = UnchainedLauncher.Core.Services.Server.A2S.Environment;
+using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using static LanguageExt.Prelude;
+using Environment = UnchainedLauncher.Core.Services.Server.A2S.Environment;
 
 namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
     public static class ServerViewModelInstances {
@@ -66,7 +62,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                 )), new MockRcon()
             ),
             "Example Server",
-            new ObservableCollection<string>(){"FFA_Wardenglade", "TDM_Wardenglade"}
+            new ObservableCollection<string>() { "FFA_Wardenglade", "TDM_Wardenglade" }
         ) {
             RestartCount = 2;
             LastStartTime = DateTimeOffset.Now.AddMinutes(-17);
@@ -78,7 +74,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
             CurrentMap = "FFA_Wardenglade";
             GameType = "Free For All";
             HasA2SInfo = true;
-            
+
 
             // Seed some recent samples.
             var rnd = new Random(1);

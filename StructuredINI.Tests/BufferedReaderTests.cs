@@ -1,11 +1,5 @@
-﻿using System;
-using System.IO;
-using Xunit;
-
-namespace StructuredINI.Tests
-{
-    public class StructuredINIReaderTests
-    {
+﻿namespace StructuredINI.Tests {
+    public class StructuredINIReaderTests {
         [INISection("SectionA")]
         public record SectionA(int Foo, string Bar);
 
@@ -13,11 +7,9 @@ namespace StructuredINI.Tests
         public record SectionB(double Baz);
 
         [Fact]
-        public void LoadAndRead_MultipleSections()
-        {
+        public void LoadAndRead_MultipleSections() {
             var tempPath = Path.Combine(Path.GetTempPath(), $"structuredini_bufferedreader_{Guid.NewGuid():N}.ini");
-            try
-            {
+            try {
                 File.WriteAllText(tempPath, @"[SectionA]
 Foo=42
 Bar=Hello
@@ -36,18 +28,15 @@ Baz=3.14
                 Assert.True(reader.TryRead<SectionB>(out var b));
                 Assert.Equal(3.14, b.Baz);
             }
-            finally
-            {
+            finally {
                 if (File.Exists(tempPath)) File.Delete(tempPath);
             }
         }
 
         [Fact]
-        public void TryRead_MissingSection_ReturnsFalse()
-        {
+        public void TryRead_MissingSection_ReturnsFalse() {
             var tempPath = Path.Combine(Path.GetTempPath(), $"structuredini_bufferedreader_{Guid.NewGuid():N}.ini");
-            try
-            {
+            try {
                 File.WriteAllText(tempPath, @"[SectionA]
 Foo=1
 Bar=X
@@ -58,18 +47,15 @@ Bar=X
 
                 Assert.False(reader.TryRead<SectionB>(out _));
             }
-            finally
-            {
+            finally {
                 if (File.Exists(tempPath)) File.Delete(tempPath);
             }
         }
 
         [Fact]
-        public void DuplicateSections_LastOneWins()
-        {
+        public void DuplicateSections_LastOneWins() {
             var tempPath = Path.Combine(Path.GetTempPath(), $"structuredini_bufferedreader_{Guid.NewGuid():N}.ini");
-            try
-            {
+            try {
                 File.WriteAllText(tempPath, @"[SectionA]
 Foo=1
 Bar=First
@@ -86,8 +72,7 @@ Bar=Second
                 Assert.Equal(2, a.Foo);
                 Assert.Equal("Second", a.Bar);
             }
-            finally
-            {
+            finally {
                 if (File.Exists(tempPath)) File.Delete(tempPath);
             }
         }

@@ -283,11 +283,11 @@ namespace UnchainedLauncher.GUI {
             return codec.DeserializeFile(filePath).Match(
                 None: initializeDefault,
                 Some: deserializationResult => Optional(deserializationResult.Result).IfNone(() => {
-                        _log.Error(
-                            $"Failed to deserialize saved {typeof(T).Name} data from {filePath} using {codec.GetType().Name}({codec}). Falling back to default.",
-                            deserializationResult.Exception);
-                        return initializeDefault();
-                    }
+                    _log.Error(
+                        $"Failed to deserialize saved {typeof(T).Name} data from {filePath} using {codec.GetType().Name}({codec}). Falling back to default.",
+                        deserializationResult.Exception);
+                    return initializeDefault();
+                }
                 ));
         }
 

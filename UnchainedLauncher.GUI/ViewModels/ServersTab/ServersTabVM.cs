@@ -13,18 +13,14 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Windows;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using System.Windows.Threading;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
-using UnchainedLauncher.Core.Utilities;
-using System.Net.Http;
-using System.Text.Json;
-using System.Windows.Threading;
-using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
+using UnchainedLauncher.Core.Utilities;
 
 // using Unchained.ServerBrowser.Client; // avoid Option<> name collision with LanguageExt
 
@@ -109,7 +105,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var occupiedPorts = new Set<int>().AddRange(
                 ServerConfigs.SelectMany(conf => new[] { conf.A2SPort, conf.GamePort, conf.PingPort, conf.RconPort })
             );
-            
+
             // try to make the new template nice
             if (SelectedConfiguration != null) {
                 // increment ports so that added server is not incompatible with other templates
@@ -188,7 +184,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return new ServerLaunchOptions(
                 headless,
                 formData.Name,
-                formData.Description, 
+                formData.Description,
                 Optional(formData.Password.Trim()).Filter(pw => pw.Length != 0),
                 formData.SelectedMap,
                 formData.GamePort,
@@ -239,7 +235,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
                 // Keep the existing ServerVM around so UI can show downtime + restart timeline.
                 await UiInvokeAsync(() => { runningTuple.live.IsUp = false; });
-                    
+
                 Logger.Error($"Server exited unexpectedly with code {exitCode}. Attempting automatic restart...");
 
                 // Small delay to avoid tight restart loops

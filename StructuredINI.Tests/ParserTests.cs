@@ -1,18 +1,10 @@
-﻿using System;
-using System.Linq;
-using Xunit;
-using StructuredINI;
-
-namespace StructuredINI.Tests
-{
-    public class ParserTests
-    {
+﻿namespace StructuredINI.Tests {
+    public class ParserTests {
         [INISection("SomeINISectionName")]
         public record SomeINISection(int Foo, string Bar, double Baz, int[] MyConfigArray);
 
         [Fact]
-        public void TestArrayOperations()
-        {
+        public void TestArrayOperations() {
             var parser = new StructuredINIParser();
             var iniContent = @"
 [SomeINISectionName]
@@ -28,7 +20,7 @@ MyConfigArray=7
 
             Assert.NotNull(result);
             Assert.NotNull(result.MyConfigArray);
-            
+
             // Expected: [2, 3, 2]
             Assert.Equal(3, result.MyConfigArray.Length);
             Assert.Equal(2, result.MyConfigArray[0]);
@@ -37,8 +29,7 @@ MyConfigArray=7
         }
 
         [Fact]
-        public void TestScalars()
-        {
+        public void TestScalars() {
             var parser = new StructuredINIParser();
             var iniContent = @"
 [SomeINISectionName]
@@ -54,13 +45,12 @@ Baz=3.14
         }
 
         [Fact]
-        public void TestSerialization()
-        {
+        public void TestSerialization() {
             var parser = new StructuredINIParser();
             var instance = new SomeINISection(42, "Hello", 3.14, new[] { 2, 3, 2 });
-            
+
             var ini = parser.Serialize(instance);
-            
+
             // Normalize line endings
             var lines = ini.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
                            .Select(l => l.Trim())
@@ -70,22 +60,22 @@ Baz=3.14
             Assert.Contains("Foo=42", lines);
             Assert.Contains("Bar=Hello", lines);
             Assert.Contains("Baz=3.14", lines);
-            
+
             // Array verification
             // Expected order:
             // MyConfigArray=2
             // +MyConfigArray=3
             // .MyConfigArray=2
-            
+
             int idx1 = Array.IndexOf(lines, "MyConfigArray=2");
             Assert.True(idx1 >= 0, "MyConfigArray=2 not found");
-            
+
             int idx2 = Array.IndexOf(lines, "+MyConfigArray=3");
             Assert.True(idx2 >= 0, "+MyConfigArray=3 not found");
-            
+
             int idx3 = Array.IndexOf(lines, ".MyConfigArray=2");
             Assert.True(idx3 >= 0, ".MyConfigArray=2 not found");
-            
+
             Assert.True(idx1 < idx2, "Order wrong: 2 before 3");
             Assert.True(idx2 < idx3, "Order wrong: 3 before duplicate 2");
         }

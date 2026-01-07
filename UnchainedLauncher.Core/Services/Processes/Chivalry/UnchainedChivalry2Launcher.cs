@@ -41,17 +41,16 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             if (maybeUpdatedLaunchOpts.IsNone) {
                 return Left(UnchainedLaunchFailure.LaunchCancelled());
             }
-            
+
             var updatedLaunchOpts = maybeUpdatedLaunchOpts.ValueUnsafe();
 
             var moddedLaunchArgs = launchOptions.LaunchArgs;
             var launchOpts = updatedLaunchOpts.ToCLIArgs();
             Logger.Info($"Launch args:");
-            foreach (var launchOpt in launchOpts)
-            {
+            foreach (var launchOpt in launchOpts) {
                 Logger.Info($"    {launchOpt.Rendered}");
             }
-            
+
             var workingDir = Path.Combine(InstallationRootDir, FilePaths.BinDir);
             var launchOptString = string.Join(" ", launchOpts.Select(x => x.Rendered));
             var launchResult = Launcher.Launch(workingDir, launchOptString);

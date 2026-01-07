@@ -1,8 +1,5 @@
-﻿using System;
-
-namespace StructuredINI;
+﻿namespace StructuredINI;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct)]
-public sealed class DeriveCodecAttribute : Attribute
-{
+public sealed class DeriveCodecAttribute : Attribute {
 }

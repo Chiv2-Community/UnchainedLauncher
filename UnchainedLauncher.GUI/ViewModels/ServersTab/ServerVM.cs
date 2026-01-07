@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using LanguageExt;
 using log4net;
-using log4net.Repository.Hierarchy;
 using PropertyChanged;
 using System;
 using System.Collections.ObjectModel;
@@ -9,8 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using LanguageExt;
-using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Server;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
@@ -28,7 +26,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     [AddINotifyPropertyChangedInterface]
     public partial class ServerVM(Chivalry2Server server, string serverName, ObservableCollection<string> availableMaps) {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServerVM));
-        
+
         public Chivalry2Server Server { get; private set; } = server;
         private bool _disposed;
 
@@ -208,14 +206,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             }
             catch (Exception ex) {
                 HasA2SInfo = false;
-                if(_hasSeenA2SSuccessSinceStart)
+                if (_hasSeenA2SSuccessSinceStart)
                     Logger.Error($"Failed to poll A2S: {ex.Message}");
             }
             finally {
                 Interlocked.Exchange(ref _a2sPollInFlight, 0);
             }
         }
-        
+
         public void UpdateUsageValues() {
             try {
                 var process = Server.ServerProcess;
@@ -233,7 +231,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
                 HandleCount = process.HandleCount;
                 PrivateMemorySize64 = process.PrivateMemorySize64;
-                if(PrivateMemorySize64 > PeakPrivateMemorySize64) PeakPrivateMemorySize64 = PrivateMemorySize64;
+                if (PrivateMemorySize64 > PeakPrivateMemorySize64) PeakPrivateMemorySize64 = PrivateMemorySize64;
 
                 IsUp = true;
 
@@ -352,8 +350,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
 
         public void DisposeServer() {
-            if(_updateTimer == null) return;
-            
+            if (_updateTimer == null) return;
+
             _updateTimer?.Stop();
             _updateTimer = null;
             Server.Dispose();

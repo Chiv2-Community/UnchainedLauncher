@@ -4,6 +4,7 @@ using System.Diagnostics;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry;
+
 using static LanguageExt.Prelude;
 public interface IChivalry2Launcher {
     /// <summary>
@@ -52,10 +53,10 @@ public record LaunchOptions(
             new UEParameter("-savedirsuffix", SavedDirSuffix.IfNone("Unchained")),
             new Flag("-unchained")
         };
-        
+
         ServerLaunchOptions.IfSome(opts => args.AddRange(opts.ToCLIArgs()));
         ServerBrowserBackend.IfSome(backend => args.Add(new Parameter("--server-browser-backend", backend)));
-        
+
         return args;
     }
 };
@@ -83,18 +84,18 @@ public record ServerLaunchOptions(
             new UEParameter("GameServerQueryPort", QueryPort.ToString()),
             new Parameter("-rcon", RconPort.ToString())
         };
-        
+
         if (Headless) {
             args.Add(new Flag("-nullrhi"));
             args.Add(new Flag("-unattended"));
             args.Add(new Flag("-nosound"));
         }
 
-        Password.IfSome(password => args.Add(new UEParameter("ServerPassword",password.Trim())));
-        
-        if(NextMapModActors.Any())
+        Password.IfSome(password => args.Add(new UEParameter("ServerPassword", password.Trim())));
+
+        if (NextMapModActors.Any())
             args.Add(new Parameter("--next-map-mod-actors", string.Join(",", NextMapModActors)));
-        
+
         LocalIp.IfSome(ip => args.Add(new Parameter("--local-ip", ip)));
 
         return args;
@@ -105,7 +106,7 @@ public record ServerLaunchOptions(
 public abstract record CLIArg(string Rendered);
 
 public record RawArgs(string Args) : CLIArg(Args);
-public record Flag(string FlagName): CLIArg(FlagName);
-public record Parameter(string ParamName, string Value): CLIArg($"{ParamName} \"{Value}\"");
-public record UEParameter(string ParamName, string Value): CLIArg($"{ParamName}={Value}");
-public record UEINIParameter(string Type, string Section, string Key, string Value): CLIArg($"-ini:{Type}:[{Section}]:{Key}=\"{Value}\"");
+public record Flag(string FlagName) : CLIArg(FlagName);
+public record Parameter(string ParamName, string Value) : CLIArg($"{ParamName} \"{Value}\"");
+public record UEParameter(string ParamName, string Value) : CLIArg($"{ParamName}={Value}");
+public record UEINIParameter(string Type, string Section, string Key, string Value) : CLIArg($"-ini:{Type}:[{Section}]:{Key}=\"{Value}\"");

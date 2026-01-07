@@ -26,8 +26,7 @@ public record TBLGameMode(
     int StartOfMatchGracePeriodForAutoBalance = 60,
     int StartOfMatchGracePeriodForTeamSwitching = 30,
     bool bUseStrictTeamBalanceEnforcement = false
-)
-{
+) {
     private static readonly string[] DefaultMapList = { "FFA_Courtyard", "FFA_Wardenglade" };
 
     public string[] MapList { get; init; } = MapList ?? DefaultMapList;

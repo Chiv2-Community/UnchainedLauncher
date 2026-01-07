@@ -37,22 +37,24 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         public async Task<Either<UnchainedLaunchFailure, Process>> TryLaunch(LaunchOptions launchOptions) {
             Logger.Info("Attempting to launch modded game.");
 
-            var updatedLaunchOpts = await LaunchPreparer.PrepareLaunch(launchOptions);
-            if (updatedLaunchOpts.IsNone) {
+            var maybeUpdatedLaunchOpts = await LaunchPreparer.PrepareLaunch(launchOptions);
+            if (maybeUpdatedLaunchOpts.IsNone) {
                 return Left(UnchainedLaunchFailure.LaunchCancelled());
             }
+            
+            var updatedLaunchOpts = maybeUpdatedLaunchOpts.ValueUnsafe();
 
             var moddedLaunchArgs = launchOptions.LaunchArgs;
-            var tblLoc = moddedLaunchArgs.IndexOf("TBL", StringComparison.Ordinal);
-            var offsetIndex = tblLoc == -1 ? 0 : tblLoc + 3;
-
-            var launchOpts = updatedLaunchOpts.Map(x => x.ToCLIArgs()).ValueUnsafe();
+            var launchOpts = updatedLaunchOpts.ToCLIArgs();
+            Logger.Info($"Launch args:");
+            foreach (var launchOpt in launchOpts)
+            {
+                Logger.Info($"    {launchOpt.Rendered}");
+            }
             
-            moddedLaunchArgs = moddedLaunchArgs.Insert(offsetIndex, $" {string.Join(" ", launchOpts)} ");
-
-            Logger.Info($"Launch args: {moddedLaunchArgs}");
-
-            var launchResult = Launcher.Launch(Path.Combine(InstallationRootDir, FilePaths.BinDir), "-unchained " + moddedLaunchArgs);
+            var workingDir = Path.Combine(InstallationRootDir, FilePaths.BinDir);
+            var launchOptString = string.Join(" ", launchOpts.Select(x => x.Rendered));
+            var launchResult = Launcher.Launch(workingDir, launchOptString);
 
             return launchResult.Match(
                 Left: error => {

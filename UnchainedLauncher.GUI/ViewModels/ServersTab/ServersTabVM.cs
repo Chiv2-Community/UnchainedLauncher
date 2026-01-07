@@ -21,8 +21,8 @@ using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 using System.Net.Http;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using Unchained.ServerBrowser.Api;
+using System.Windows.Threading;
+using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
 
@@ -35,6 +35,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     [AddINotifyPropertyChangedInterface]
     public partial class ServersTabVM : IDisposable, INotifyPropertyChanged {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServersTabVM));
+
+        private static Dispatcher UiDispatcher => Application.Current.Dispatcher;
+
+        private static Task UiInvokeAsync(Action action) => UiDispatcher.InvokeAsync(action).Task;
+
+        private static Task<T> UiInvokeAsync<T>(Func<Task<T>> func) => UiDispatcher.InvokeAsync(func).Task.Unwrap();
+
         public SettingsVM Settings { get; }
         public readonly IChivalry2Launcher Launcher;
         public IModManager ModManager { get; }
@@ -76,7 +83,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             ProcessWatcher = processWatcher;
 
             if (ServerConfigs?.Count == 0) {
-                CreateNewConfig().Wait();
+                CreateNewConfig();
             }
 
             SelectedConfiguration = ServerConfigs?.FirstOrDefault();
@@ -90,20 +97,19 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public async Task LaunchServer() => await LaunchSelected(false);
 
         [RelayCommand]
-        public Task ShutdownServer() => Task.Run(() => SelectedServer?.Dispose());
+        public Task ShutdownServer() {
+            if (SelectedServer == null) return Task.CompletedTask;
+            return Task.Run(() => SelectedServer.DisposeServer());
+        }
 
         [RelayCommand]
-        public async Task CreateNewConfig() {
+        public void CreateNewConfig() {
             var newConfig = new ServerConfigurationVM(ModManager);
-            var occupiedPorts = ServerConfigs.Select(
-                (e) => new Set<int>(new List<int> {
-                    e.A2SPort,
-                    e.RconPort,
-                    e.PingPort,
-                    e.GamePort
-                })
-            ).Aggregate(Set<int>(), (s1, s2) => s1.AddRange(s2));
 
+            var occupiedPorts = new Set<int>().AddRange(
+                ServerConfigs.SelectMany(conf => new[] { conf.A2SPort, conf.GamePort, conf.PingPort, conf.RconPort })
+            );
+            
             // try to make the new template nice
             if (SelectedConfiguration != null) {
                 // increment ports so that added server is not incompatible with other templates
@@ -138,31 +144,22 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var formData = SelectedConfiguration.ToServerConfiguration();
 
             // Resolve selected releases from the template's EnabledServerModList
-            var enabledCoordinates = SelectedConfiguration.EnabledServerModList.ToList();
-            var enabledModActors =
-                enabledCoordinates
-                    .Select(rc => ModManager.GetRelease(rc))
-                    .Collect(x => x.AsEnumerable());
+            var enabledCoordinates = SelectedConfiguration.EnabledServerModList.ToArray();
 
             var maybeProcess = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
             maybeProcess.IfSome(process => {
-                var server = new Chivalry2Server(
-                    process,
-                    RegisterWithBackend(formData, enabledModActors),
-                    new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort))
-                );
-                var serverVm = new ServerVM(server);
+                var server = CreateServer(process, formData, headless, enabledCoordinates);
+                var serverVm = new ServerVM(server, formData.Name, SelectedConfiguration.AvailableMaps);
+                serverVm.StartUpdateLoop();
                 var runningTuple = (SelectedConfiguration, serverVm);
-                Application.Current.Dispatcher.Invoke(() => RunningServers.Add(runningTuple));
+                UiDispatcher.Invoke(() => RunningServers.Add(runningTuple));
 
                 _ = AttachServerExitWatcher(process, formData, enabledCoordinates, headless, runningTuple);
             });
         }
 
         public void UpdateVisibility() {
-            SelectedServer = RunningServers.Choose(
-                (e) => e.configuration == SelectedConfiguration ? e.live : LanguageExt.Option<ServerVM>.None
-            ).FirstOrDefault();
+            SelectedServer = RunningServers.FirstOrDefault(e => e.configuration == SelectedConfiguration).live;
             var isSelectedRunning = SelectedServer != null;
 
             ConfigurationEditorVisibility = isSelectedRunning || ServerConfigs.Length() == 0 ? Visibility.Hidden : Visibility.Visible;
@@ -191,22 +188,22 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return new ServerLaunchOptions(
                 headless,
                 formData.Name,
-                formData.Description,
-                LanguageExt.Option<string>.Some(formData.Password).Map(pw => pw.Trim()).Filter(pw => pw != ""),
+                formData.Description, 
+                Optional(formData.Password.Trim()).Filter(pw => pw.Length != 0),
                 formData.SelectedMap,
                 formData.GamePort,
                 formData.PingPort,
                 formData.A2SPort,
                 formData.RconPort,
+                formData.LocalIp,
                 nextMapModActors
             );
         }
 
-        private LaunchOptions BuildLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<ReleaseCoordinates> enabledCoordinates) {
-            var releaseCoordinatesEnumerable = enabledCoordinates as ReleaseCoordinates[] ?? enabledCoordinates.ToArray();
-            var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, releaseCoordinatesEnumerable);
+        private LaunchOptions BuildLaunchOptions(ServerConfiguration formData, bool headless, ReleaseCoordinates[] enabledCoordinates) {
+            var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, enabledCoordinates);
             return new LaunchOptions(
-                releaseCoordinatesEnumerable,
+                enabledCoordinates,
                 Settings.ServerBrowserBackend,
                 Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
@@ -215,41 +212,45 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             );
         }
 
+        private Chivalry2Server CreateServer(Process process,
+                                             ServerConfiguration formData,
+                                             bool headless,
+                                             ReleaseCoordinates[] enabledCoordinates) {
+            var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, enabledCoordinates);
+            var a2s = new A2S(new IPEndPoint(IPAddress.Loopback, formData.A2SPort));
+            var rcon = new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort));
+            return new Chivalry2Server(process, serverLaunchOptions, a2s, rcon);
+        }
+
         private async Task AttachServerExitWatcher(
             Process process,
             ServerConfiguration formData,
-            IEnumerable<ReleaseCoordinates> enabledCoordinates,
+            ReleaseCoordinates[] enabledCoordinates,
             bool headless,
             (ServerConfigurationVM configuration, ServerVM live) runningTuple) {
             var attached = await ProcessWatcher.OnExit(process, async (exitCode, acceptable) => {
-                Application.Current.Dispatcher.Invoke(() => {
-                    RunningServers.Remove(runningTuple);
-                    runningTuple.live.Dispose();
-                });
-
-                if (!acceptable) {
-                    Logger.Error($"Server exited unexpectedly with code {exitCode}. Attempting automatic restart...");
-                    DialogueSpawner.DisplayMessage($"Server exited with code {exitCode}. Attempting automatic restart...");
-
-                    // Small delay to avoid tight restart loops
-                    await Task.Delay(2000);
-
-                    var relaunched = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
-                    relaunched.IfSome(newProc => {
-                        var enabledModActors = enabledCoordinates
-                            .Select(rc => ModManager.GetRelease(rc))
-                            .Collect(x => x.AsEnumerable());
-                        var newServer = new Chivalry2Server(
-                            newProc,
-                            RegisterWithBackend(formData, enabledModActors),
-                            new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort))
-                        );
-                        var newVm = new ServerVM(newServer);
-                        var newTuple = (runningTuple.configuration, newVm);
-                        Application.Current.Dispatcher.Invoke(() => RunningServers.Add(newTuple));
-                        _ = AttachServerExitWatcher(newProc, formData, enabledCoordinates, headless, newTuple);
+                if (acceptable) {
+                    await UiInvokeAsync(() => {
+                        RunningServers.Remove(runningTuple);
+                        runningTuple.live.DisposeServer();
                     });
+                    return;
                 }
+
+                // Keep the existing ServerVM around so UI can show downtime + restart timeline.
+                await UiInvokeAsync(() => { runningTuple.live.IsUp = false; });
+                    
+                Logger.Error($"Server exited unexpectedly with code {exitCode}. Attempting automatic restart...");
+
+                // Small delay to avoid tight restart loops
+                await Task.Delay(2000);
+
+                var relaunched = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
+                relaunched.IfSome(newProc => {
+                    var newServer = CreateServer(newProc, formData, headless, enabledCoordinates);
+                    UiDispatcher.Invoke(() => runningTuple.live.ReplaceServer(newServer, countAsRestart: true));
+                    _ = AttachServerExitWatcher(newProc, formData, enabledCoordinates, headless, runningTuple);
+                });
             });
 
             if (!attached) {
@@ -257,51 +258,26 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             }
         }
 
-        private async Task<Option<Process>> LaunchServerWithOptions(ServerConfiguration formData, bool headless, IEnumerable<ReleaseCoordinates> enabledCoordinates) {
+        private async Task<Option<Process>> LaunchServerWithOptions(ServerConfiguration formData, bool headless, ReleaseCoordinates[] enabledCoordinates) {
             var options = BuildLaunchOptions(formData, headless, enabledCoordinates);
-            var launchResult = await Launcher.Launch(options);
-            return launchResult.Match(
-                Left: _ => {
-                    Logger.Error("Failed to launch server. Check logs for details.");
-                    DialogueSpawner.DisplayMessage("Failed to launch server. Check logs for details.");
-                    Settings.CanClick = true;
-                    return None;
-                },
-                Right: process => Some(process)
-            );
-        }
-
-        // TODO: this should really be a part of Chivalry2Server
-        public ServerRegistrationService RegisterWithBackend(ServerConfiguration formData, IEnumerable<Release> enabledMods) {
-            var ports = formData.ToPublicPorts();
-
-            var options = new ServerRegistrationOptions(
-                Name: formData.Name,
-                Description: formData.Description,
-                PasswordProtected: formData.Password.Length != 0,
-                Ports: new ServerPorts(ports.Game, ports.A2S, ports.Ping),
-                Mods: enabledMods.Select(release => release.Manifest.Name).ToList()
-            );
-
-            // Build generated API client (lightweight, per-registration instance)
-            var loggerFactory = LoggerFactory.Create(builder => { });
-            var logger = loggerFactory.CreateLogger<DefaultApi>();
-            var httpClient = new HttpClient { BaseAddress = new Uri(Settings.ServerBrowserBackend) };
-            var jsonProvider = new Unchained.ServerBrowser.Client.JsonSerializerOptionsProvider(new JsonSerializerOptions());
-            var events = new DefaultApiEvents();
-            IDefaultApi api = new DefaultApi(logger, loggerFactory, httpClient, jsonProvider, events);
-
-            var service = new ServerRegistrationService(api);
-            // Use 5 second timeout per request; A2SWatcher will retry indefinitely until server starts
-            var a2s = new A2S(new IPEndPoint(IPAddress.Loopback, ports.A2S), timeOutMillis: 5000);
-            service.Start(options, a2s, formData.LocalIp);
-            return service;
+            return await UiInvokeAsync(async () => {
+                var launchResult = await Launcher.Launch(options);
+                return launchResult.Match(
+                    Left: _ => {
+                        Logger.Error("Failed to launch server. Check logs for details.");
+                        DialogueSpawner.DisplayMessage("Failed to launch server. Check logs for details.");
+                        Settings.CanClick = true;
+                        return None;
+                    },
+                    Right: process => Some(process)
+                );
+            });
         }
 
         public void Dispose() {
-            SelectedServer?.Dispose();
+            SelectedServer?.DisposeServer();
             foreach (var runningServer in RunningServers) {
-                runningServer.live.Dispose();
+                runningServer.live.DisposeServer();
             }
 
             GC.SuppressFinalize(this);

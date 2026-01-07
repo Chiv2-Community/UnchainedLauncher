@@ -1,6 +1,5 @@
 ﻿using LanguageExt;
 using log4net;
-using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -24,13 +23,6 @@ using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
 using Application = System.Windows.Application;
-
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Unchained.ServerBrowser.Api;
-using Unchained.ServerBrowser.Client;
-using Unchained.ServerBrowser.Model;
-using Unchained.ServerBrowser.Extensions;
 
 namespace UnchainedLauncher.GUI {
     using static LanguageExt.Prelude;

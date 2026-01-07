@@ -9,7 +9,7 @@ namespace UnchainedLauncher.Core.Services.Server.A2S {
         byte ProtocolVersion,
         string Name,
         string Map,
-        string Folder,
+        string GameType,
         string Game,
         ushort GameId,
         byte Players,

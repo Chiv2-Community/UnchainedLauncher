@@ -23,7 +23,7 @@
   
   <ItemGroup>
       <ProjectReference Include="..\DiscriminatedUnions\DiscriminatedUnions.csproj"/>
-      <ProjectReference Include="..\generated-client\src\Unchained.ServerBrowser\Unchained.ServerBrowser.csproj"/>
+      <ProjectReference Include="..\StructuredINI\StructuredINI.csproj"/>
 
     <PackageReference Include="LanguageExt.Core" Version="4.4.9"/>
     <PackageReference Include="LanguageExt.Sys" Version="4.4.9"/>

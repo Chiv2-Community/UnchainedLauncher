@@ -166,7 +166,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             if (model.TeamBalanceOptions.Length == 0) {
                 TeamBalanceOptions.Add(new AutoBalanceVM(new AutoBalance(0, DefaultMaxPlayers, 8)));
             }
-            
+
             foreach (var opt in model.TeamBalanceOptions) {
                 TeamBalanceOptions.Add(new AutoBalanceVM(opt));
             }

@@ -285,7 +285,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public void RemoveAvailableMod(Release release) {
             AvailableMods.Remove(release);
 
-            var removedMaps = release.Manifest.Maps;
+            var removedMaps = release.Manifest.Maps ?? Enumerable.Empty<string>();
             removedMaps.ForEach(AvailableMaps.Remove);
         }
 

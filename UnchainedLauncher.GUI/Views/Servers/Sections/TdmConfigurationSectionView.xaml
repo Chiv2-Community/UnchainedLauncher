@@ -27,11 +27,11 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="TDMTimeLimit" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" />
+                <TextBlock Text="TDM Time Limit" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" />
                 <TextBox Text="{Binding TDMTimeLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullableIntConverter}}"
                          Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" />
 
-                <TextBlock Text="TDMTicketCount" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" />
+                <TextBlock Text="TDM Ticket Count" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" />
                 <TextBox Text="{Binding TDMTicketCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullableIntConverter}}"
                          Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" />
             </Grid>

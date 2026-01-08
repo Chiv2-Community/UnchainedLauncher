@@ -32,15 +32,15 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <TextBlock Text="PreCountdownDelay" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
+            <TextBlock Text="Pre Countdown Delay" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
                        ToolTip="Time in seconds before the match countdown begins. Example: 5" />
             <TextBox Text="{Binding PreCountdownDelay}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
                      ToolTip="Time in seconds before the match countdown begins. Example: 5" />
 
-            <TextBlock Text="RoundsToWin" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
-                       ToolTip="Number of round wins needed to win the match. Stored in INI as Rounds = (2 * RoundsToWin) - 1. Example: first to 20 wins -> RoundsToWin=20 (Rounds=39)." />
+            <TextBlock Text="Rounds To Win" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
+                       ToolTip="Number of round wins needed to win the match." />
             <TextBox Text="{Binding RoundsToWin}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch"
-                     ToolTip="Number of round wins needed to win the match. Stored in INI as Rounds = (2 * RoundsToWin) - 1." />
+                     ToolTip="Number of round wins needed to win the match." />
         </Grid>
     </StackPanel>
 </UserControl>

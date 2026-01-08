@@ -76,11 +76,8 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <TextBlock Text="IniServerName" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
-                        <TextBox Text="{Binding GameMode.ServerName}" Grid.Row="0" Grid.Column="1" MinWidth="220" />
-
-                        <TextBlock Text="ServerIdentifier" Grid.Row="0" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,6,0" />
-                        <TextBox Text="{Binding GameMode.ServerIdentifier}" Grid.Row="0" Grid.Column="4" MinWidth="220" />
+                        <TextBlock Text="ServerIdentifier" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBox Text="{Binding GameMode.ServerIdentifier}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4" MinWidth="220" />
 
                         <TextBlock Text="MinTimeBeforeStartingMatch" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
                         <TextBox Text="{Binding GameMode.MinTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="1" Width="80" />

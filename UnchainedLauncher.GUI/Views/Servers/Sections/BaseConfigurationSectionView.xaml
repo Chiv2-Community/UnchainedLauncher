@@ -7,6 +7,13 @@
              d:DataContext="{d:DesignInstance designInstances:BaseConfigurationSectionDesignVM}"
              mc:Ignorable="d">
 
+    <UserControl.Resources>
+        <!-- Match ModView enabled highlight (success tint) -->
+        <SolidColorBrush x:Key="Brush.SuccessTint"
+                         Color="{StaticResource Color.Success}"
+                         Opacity="0.05" />
+    </UserControl.Resources>
+
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="8">
             <Grid.ColumnDefinitions>
@@ -57,6 +64,7 @@
                 <ListBox Grid.Row="2"
                          Grid.ColumnSpan="2"
                          ItemsSource="{Binding GameMode.MapList}"
+                         SelectedIndex="{Binding GameMode.MapListIndex, Mode=TwoWay}"
                          BorderBrush="{StaticResource Brush.Border}"
                          BorderThickness="1"
                          MinHeight="140"
@@ -66,6 +74,26 @@
                         <Style TargetType="ListBoxItem">
                             <Setter Property="HorizontalContentAlignment" Value="Left" />
                             <Setter Property="Padding" Value="0" />
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                            <!-- Remove default ListBoxItem chrome (it draws a rectangular selection border). 
+                                 The rounded border is provided by the item DataTemplate instead. -->
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter />
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="Background" Value="Transparent" />
+                            <!-- Keep thickness constant to avoid layout/width changes on selection -->
+                            <Setter Property="BorderThickness" Value="2" />
+                            <Setter Property="BorderBrush" Value="Transparent" />
+                            <Style.Triggers>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="BorderBrush" Value="{StaticResource Brush.Success}" />
+                                    <Setter Property="Background" Value="{StaticResource Brush.SuccessTint}" />
+                                </Trigger>
+                            </Style.Triggers>
                         </Style>
                     </ListBox.ItemContainerStyle>
                     <ListBox.ItemsPanel>
@@ -75,7 +103,12 @@
                     </ListBox.ItemsPanel>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border Margin="0,2,8,2" Padding="8,4">
+                            <Border Margin="0,2,8,2"
+                                    Padding="8,4"
+                                    Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                    BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                    BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                    CornerRadius="4">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />

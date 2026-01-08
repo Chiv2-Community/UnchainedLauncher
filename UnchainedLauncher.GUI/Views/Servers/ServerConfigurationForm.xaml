@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:behaviors="clr-namespace:UnchainedLauncher.GUI.Behaviors"
              xmlns:sections="clr-namespace:UnchainedLauncher.GUI.Views.Servers.Sections"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Servers.DesignInstances"
              d:DataContext="{d:DesignInstance designInstances:ServerConfigurationDesignVM}"
@@ -19,7 +20,8 @@
 
                 <TabControl Margin="0,8,0,0"
                             Style="{StaticResource UnderlineTabControlStyle}"
-                            ItemContainerStyle="{StaticResource UnderlineTabItemStyle}">
+                            ItemContainerStyle="{StaticResource UnderlineTabItemStyle}"
+                            behaviors:MouseWheelScrollForwardingBehavior.IsEnabled="True">
                     <TabItem Header="Base Configuration">
                         <sections:BaseConfigurationSectionView DataContext="{Binding BaseConfigurationSection}" />
                     </TabItem>

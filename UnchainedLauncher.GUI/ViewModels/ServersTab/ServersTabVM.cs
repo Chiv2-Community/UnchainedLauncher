@@ -176,7 +176,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 formData.Name,
                 formData.Description,
                 Optional(formData.Password.Trim()).Filter(pw => pw.Length != 0),
-                formData.SelectedMap,
+                formData.NextMapName,
                 formData.GamePort,
                 formData.PingPort,
                 formData.A2SPort,

@@ -52,7 +52,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                         conf.RconPort,
                         conf.A2SPort,
                         conf.PingPort,
-                        conf.SelectedMap,
                         conf.ShowInServerBrowser,
                         conf.EnabledServerModList
                     )
@@ -76,7 +75,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         int RconPort = 9001,
         int A2SPort = 7071,
         int PingPort = 3075,
-        string SelectedMap = "FFA_Courtyard",
+        string NextMapName = "FFA_Courtyard",
         bool ShowInServerBrowser = true,
         ObservableCollection<ReleaseCoordinates>? EnabledServerModList = null) {
 
@@ -87,7 +86,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 ? "null"
                 : string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"));
             return
-                $"ServerConfiguration({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {SelectedMap}, {ShowInServerBrowser}, [{modListStr}])";
+                $"ServerConfiguration({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {NextMapName}, {ShowInServerBrowser}, [{modListStr}])";
         }
     }
 
@@ -130,7 +129,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public int RconPort { get; set; }
         public int A2SPort { get; set; }
         public int PingPort { get; set; }
-        public string SelectedMap { get; set; }
         public bool ShowInServerBrowser { get; set; }
         public string LocalIp { get; set; }
 
@@ -191,7 +189,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             int rconPort = 9001,
             int a2SPort = 7071,
             int pingPort = 3075,
-            string selectedMap = "FFA_Courtyard",
             bool showInServerBrowser = true,
             ObservableCollection<ReleaseCoordinates>? enabledServerModList = null
         ) {
@@ -213,10 +210,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             AvailableMods = new ObservableCollection<Release>();
 
             modManager.GetEnabledAndDependencyReleases()
-                .Where(r => r.Manifest.ModType == ModType.Server || r.Manifest.ModType == ModType.Shared)
+                .Where(r => r.Manifest.ModType is ModType.Server or ModType.Shared)
                 .ForEach(x => AddAvailableMod(x, null));
-
-            SelectedMap = selectedMap;
 
             LocalIp = localIp == null ? DetermineLocalIp() : localIp.Trim();
 
@@ -296,14 +291,26 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 .ToArray();
 
         public ServerConfiguration ToServerConfiguration() => new ServerConfiguration(Name, Description, Password,
-            LocalIp, GamePort, RconPort, A2SPort, PingPort, SelectedMap, ShowInServerBrowser, EnabledServerModList);
+            LocalIp, GamePort, RconPort, A2SPort, PingPort, DetermineNextMapName(), ShowInServerBrowser, EnabledServerModList);
+
+        private string DetermineNextMapName() {
+            // Prefer the selected rotation entry. If rotation is empty, fall back to a safe default.
+            if (GameMode.MapList.Count == 0) return "FFA_Courtyard";
+
+            var idx = GameMode.MapListIndex;
+            if (idx < 0 || idx >= GameMode.MapList.Count) {
+                idx = 0;
+            }
+
+            return GameMode.MapList[idx];
+        }
 
         public override string ToString() {
             var enabledMods = EnabledServerModList != null
                 ? string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"))
                 : "null";
             return
-                $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {SelectedMap}, {ShowInServerBrowser}, [{enabledMods}])";
+                $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {DetermineNextMapName()}, {ShowInServerBrowser}, [{enabledMods}])";
         }
     }
 }

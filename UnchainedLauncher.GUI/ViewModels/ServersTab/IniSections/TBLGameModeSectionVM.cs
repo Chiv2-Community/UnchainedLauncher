@@ -3,6 +3,7 @@ using PropertyChanged;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System;
 using StructuredINI.Codecs;
 using UnchainedLauncher.Core.INIModels.Game;
 
@@ -93,17 +94,49 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             RemoveMapCommand = new RelayCommand<string>(RemoveMap);
         }
 
+        private void EnsureMapListIndexValid() {
+            if (MapList.Count == 0) {
+                MapListIndex = -1;
+                return;
+            }
+
+            if (MapListIndex < 0) {
+                MapListIndex = 0;
+                return;
+            }
+
+            if (MapListIndex >= MapList.Count) {
+                MapListIndex = MapList.Count - 1;
+            }
+        }
+
         private void AddMap() {
             if (string.IsNullOrWhiteSpace(MapToAdd)) return;
             var map = MapToAdd.Trim();
             if (MapList.Contains(map)) return;
             MapList.Add(map);
+            EnsureMapListIndexValid();
             MapToAdd = null;
         }
 
         private void RemoveMap(string? map) {
             if (string.IsNullOrWhiteSpace(map)) return;
-            MapList.Remove(map);
+            var idx = MapList.IndexOf(map);
+            if (idx < 0) return;
+
+            MapList.RemoveAt(idx);
+
+            if (MapList.Count == 0) {
+                MapListIndex = -1;
+                return;
+            }
+
+            if (idx < MapListIndex) {
+                MapListIndex = Math.Max(MapListIndex - 1, 0);
+                return;
+            }
+
+            EnsureMapListIndexValid();
         }
 
         public void LoadFrom(TBLGameMode model) {
@@ -124,6 +157,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             }
 
             MapListIndex = model.MapListIndex;
+            EnsureMapListIndexValid();
             HorseCompatibleServer = model.bHorseCompatibleServer;
 
             TeamBalanceOptions.Clear();

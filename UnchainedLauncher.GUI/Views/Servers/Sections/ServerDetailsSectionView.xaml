@@ -9,7 +9,21 @@
              mc:Ignorable="d">
 
     <StackPanel>
-        <TextBlock Text="Server Details" Style="{DynamicResource Heading.H3}" />
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Server Details" Style="{DynamicResource Heading.H3}" />
+            <CheckBox Grid.Column="1"
+                      IsChecked="{Binding ShowInServerBrowser}"
+                      Content="Show in Server Browser"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Right"
+                      Margin="8,0,0,0" />
+        </Grid>
+
         <Grid HorizontalAlignment="Stretch" Margin="0,0,0,0" Width="NaN" VerticalAlignment="Stretch">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -29,30 +43,20 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <TextBlock Text="Server Name :" Grid.Row="0" Grid.ColumnSpan="2" HorizontalAlignment="Left"
+            <TextBlock Text="Server Name :" Grid.Row="0" Grid.ColumnSpan="3" HorizontalAlignment="Left"
                        VerticalAlignment="Center" Margin="5" />
-            <TextBox Text="{Binding Name}" Grid.Row="1" Grid.ColumnSpan="2" Grid.Column="0" TextWrapping="Wrap" Margin="5,0,5,0"
+            <TextBox Text="{Binding Name}" Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0" TextWrapping="Wrap" Margin="5,0,5,0"
                      IsManipulationEnabled="True" AcceptsReturn="False" />
 
-            <TextBlock Text="Password:" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Left"
+            <TextBlock Text="Password:" Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="2" HorizontalAlignment="Left"
                        VerticalAlignment="Center" Margin="5" />
-            <TextBox Text="{Binding Password}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" TextWrapping="Wrap"
+            <TextBox Text="{Binding Password}" Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="2" TextWrapping="Wrap"
                      Margin="5,0,5,0" IsManipulationEnabled="True" AcceptsReturn="False" />
-
-            <TextBlock Text="Select Starting Map:" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Left"
-                       VerticalAlignment="Center" Margin="5" />
-            <ComboBox ItemsSource="{Binding AvailableMaps}" SelectedItem="{Binding SelectedMap, Mode=TwoWay}"
-                      Grid.Row="1" Grid.Column="4"
-                      Margin="5,0,5,0" IsManipulationEnabled="True" />
 
             <TextBlock Text="Server Description:" Grid.Row="2" Grid.ColumnSpan="5" Grid.Column="0" HorizontalAlignment="Left"
                        VerticalAlignment="Center" Margin="5" />
             <TextBox Text="{Binding Description}" Grid.Row="3" Grid.ColumnSpan="5" Grid.Column="0" MinLines="3" TextWrapping="Wrap"
                      IsManipulationEnabled="True" AcceptsReturn="True" />
-
-            <CheckBox IsChecked="{Binding ShowInServerBrowser}" Grid.Column="2" Grid.Row="2" Grid.ColumnSpan="2"
-                      Content="Show in Server Browser" Margin="5" Height="NaN" VerticalAlignment="Stretch" Width="NaN"
-                      HorizontalAlignment="Right" FlowDirection="RightToLeft" />
 
             <TextBlock Text="Game port:" Grid.Row="4" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center"
                        Margin="5" />

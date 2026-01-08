@@ -3,7 +3,7 @@
     <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     
     <Style TargetType="ToolTip">
-        <Setter Property="Background" Value="{DynamicResource Brush.Dark}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Background}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
         <Setter Property="BorderThickness" Value="1" />
@@ -26,8 +26,8 @@
     </Style>
 
     <Style TargetType="TabControl">
-        <Setter Property="Background" Value="{StaticResource Brush.Background}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Background}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
     </Style>
 
     <!--
@@ -119,8 +119,8 @@
     
     <Style x:Key="Card" TargetType="Border">
         <Setter Property="CornerRadius" Value="6" />
-        <Setter Property="Background" Value="{StaticResource Brush.Background}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Background}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Padding" Value="12" />
         <Setter Property="Margin" Value="0 8 0 0" />
@@ -133,11 +133,11 @@
     </Style>
 
     <Style TargetType="GroupBox">
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
         <!-- Ensure the control template doesn't introduce extra (default) layered borders -->
-        <Setter Property="Background" Value="{StaticResource Brush.Background}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Background}" />
         <Setter Property="Padding" Value="10" />
         <Setter Property="Template">
             <Setter.Value>

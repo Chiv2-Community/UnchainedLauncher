@@ -6,6 +6,7 @@ namespace UnchainedLauncher.GUI.JsonModels {
         [property: JsonPropertyName("installation_type")] InstallationType? InstallationType,
         [property: JsonPropertyName("enable_plugin_automatic_updates")] bool? EnablePluginAutomaticUpdates,
         [property: JsonPropertyName("additional_mod_actors")] string? AdditionalModActors,
-        [property: JsonPropertyName("server_browser_backend")] string? ServerBrowserBackend
+        [property: JsonPropertyName("server_browser_backend")] string? ServerBrowserBackend,
+        [property: JsonPropertyName("use_light_theme")] bool? UseLightTheme
     );
 }

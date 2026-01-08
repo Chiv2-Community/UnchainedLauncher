@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:controls="clr-namespace:UnchainedLauncher.GUI.Views.Controls"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Servers.DesignInstances"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance designInstances:AdvancedConfigurationSectionDesignVM}">
@@ -14,152 +15,151 @@
     </UserControl.Resources>
 
     <StackPanel Margin="8">
-        <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" Padding="8">
+        <controls:CollapsibleCard Header="Server Browser" IsExpanded="True">
             <StackPanel>
-                <TextBlock Text="Game Options (Map URL)" FontWeight="SemiBold" Margin="0,0,0,8" />
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="20" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="20" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    
-                    <TextBlock Text="Warmup Time" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" ToolTip="Warmup duration. Leave blank for default" />
-                    <TextBox Text="{Binding WarmupTime, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" ToolTip="Warmup duration. Leave blank for default" />
-
-                    <TextBlock Text="Num Player Bots" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" ToolTip="Number of PlayerBots. Leave blank for default (0). WARNING: PlayerBots may cause server instability." />
-                    <TextBox Text="{Binding PlayerBotCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" ToolTip="Number of PlayerBots. Leave blank for default (0). WARNING: PlayerBots may cause server instability." />
-
-                </Grid>
+                <CheckBox IsChecked="{Binding ShowInServerBrowser}"
+                          Content="Show in Server Browser"
+                          VerticalAlignment="Center" />
             </StackPanel>
-        </Border>
-        <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" Padding="8">
+        </controls:CollapsibleCard>
+
+        <controls:CollapsibleCard Header="Game Options (Map URL)" IsExpanded="True">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Warmup Time" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" ToolTip="Warmup duration. Leave blank for default" />
+                <TextBox Text="{Binding WarmupTime, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" ToolTip="Warmup duration. Leave blank for default" />
+
+                <TextBlock Text="Num Player Bots" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" ToolTip="Number of PlayerBots. Leave blank for default (0). WARNING: PlayerBots may cause server instability." />
+                <TextBox Text="{Binding PlayerBotCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" ToolTip="Number of PlayerBots. Leave blank for default (0). WARNING: PlayerBots may cause server instability." />
+
+            </Grid>
+        </controls:CollapsibleCard>
+
+        <controls:CollapsibleCard Header="Network (Engine.ini)" IsExpanded="True">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Net Server Max Tick Rate" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
+                           ToolTip="Server updates per second. Recommended: 30 (low), 60 (balanced), 120 (high)." />
+                <TextBox Text="{Binding IpNetDriver.NetServerMaxTickRate}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+                         ToolTip="Server updates per second. Recommended: 30 (low), 60 (balanced), 120 (high)." />
+
+                <TextBlock Text="LAN Server Max Tick Rate" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
+                           ToolTip="Max tick rate for LAN. Typically the same value as NetServerMaxTickRate." />
+                <TextBox Text="{Binding IpNetDriver.LanServerMaxTickRate}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch"
+                         ToolTip="Max tick rate for LAN. Typically the same value as NetServerMaxTickRate." />
+
+                <TextBlock Text="Max Client Rate" Grid.Row="0" Grid.Column="6" Style="{StaticResource FormLabel}"
+                           ToolTip="Max bytes/sec to LAN clients. Recommended: 50000 (low), 100000 (balanced), 150000 (high)." />
+                <TextBox Text="{Binding IpNetDriver.MaxClientRate}" Grid.Row="0" Grid.Column="7" HorizontalAlignment="Stretch"
+                         ToolTip="Max bytes/sec to LAN clients. Recommended: 50000 (low), 100000 (balanced), 150000 (high)." />
+
+                <TextBlock Text="Max Internet Client Rate" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}"
+                           ToolTip="Max bytes/sec to internet clients. Recommended: 50000 (low), 100000 (balanced), 150000 (high)." />
+                <TextBox Text="{Binding IpNetDriver.MaxInternetClientRate}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
+                         ToolTip="Max bytes/sec to internet clients. Recommended: 50000 (low), 100000 (balanced), 150000 (high)." />
+
+                <TextBlock Text="Initial Connect Timeout" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}"
+                           ToolTip="Seconds to establish connection. Example: 60.0" />
+                <TextBox Text="{Binding IpNetDriver.InitialConnectTimeout}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch"
+                         ToolTip="Seconds to establish connection. Example: 60.0" />
+
+                <TextBlock Text="Connection Timeout" Grid.Row="1" Grid.Column="6" Style="{StaticResource FormLabel}"
+                           ToolTip="Seconds before disconnect. Example: 60.0" />
+                <TextBox Text="{Binding IpNetDriver.ConnectionTimeout}" Grid.Row="1" Grid.Column="7" HorizontalAlignment="Stretch"
+                         ToolTip="Seconds before disconnect. Example: 60.0" />
+
+                <TextBlock Text="Relevant Timeout" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}"
+                           ToolTip="Actor relevance timeout (seconds). Example: 5.0" />
+                <TextBox Text="{Binding IpNetDriver.RelevantTimeout}" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+                         ToolTip="Actor relevance timeout (seconds). Example: 5.0" />
+
+                <TextBlock Text="Spawn Priority Seconds" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
+                           ToolTip="Spawn priority window (seconds). Example: 1" />
+                <TextBox Text="{Binding IpNetDriver.SpawnPrioritySeconds}" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
+                         ToolTip="Spawn priority window (seconds). Example: 1" />
+
+                <TextBlock Text="Server Travel Pause" Grid.Row="2" Grid.Column="6" Style="{StaticResource FormLabel}"
+                           ToolTip="Map change pause (seconds). Example: 4.0" />
+                <TextBox Text="{Binding IpNetDriver.ServerTravelPause}" Grid.Row="2" Grid.Column="7" HorizontalAlignment="Stretch"
+                         ToolTip="Map change pause (seconds). Example: 4.0"/>
+            </Grid>
+        </controls:CollapsibleCard>
+
+        <controls:CollapsibleCard Header="TBLGameMode (Game.ini)" IsExpanded="True">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Server Identifier" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
+                           ToolTip="The server identifier displayed in the upper left corner when pressing Tab in-game. Example: id" />
+                <TextBox Text="{Binding GameMode.ServerIdentifier}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="7" MinWidth="220" HorizontalAlignment="Stretch"
+                         ToolTip="The server identifier displayed in the upper left corner when pressing Tab in-game. Example: id" />
+
+                <TextBlock Text="Min Time Before Starting Match" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}"
+                           ToolTip="Minimum warmup time (seconds) before a match starts. Example: 1.000000" />
+                <TextBox Text="{Binding GameMode.MinTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
+                         ToolTip="Minimum warmup time (seconds) before a match starts. Example: 1.000000" />
+
+                <TextBlock Text="Max Time Before Starting Match" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}"
+                           ToolTip="Maximum warmup time (seconds) before a match starts. Example: 10" />
+                <TextBox Text="{Binding GameMode.MaxTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch"
+                         ToolTip="Maximum warmup time (seconds) before a match starts. Example: 10" />
+
+                <TextBlock Text="Idle Kick Timer Spectate" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}"
+                           ToolTip="Seconds before an idle player is moved to spectator (0 to disable). Example: 0.000000" />
+                <TextBox Text="{Binding GameMode.IdleKickTimerSpectate}" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+                         ToolTip="Seconds before an idle player is moved to spectator (0 to disable). Example: 0.000000" />
+
+                <TextBlock Text="Idle Kick Timer Disconnect" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
+                           ToolTip="Seconds before an idle player is disconnected (0 to disable). Example: 0.000000" />
+                <TextBox Text="{Binding GameMode.IdleKickTimerDisconnect}" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
+                         ToolTip="Seconds before an idle player is disconnected (0 to disable). Example: 0.000000" />
+            </Grid>
+        </controls:CollapsibleCard>
+
+        <controls:CollapsibleCard Header="Balance Options" IsExpanded="True">
             <StackPanel>
-                <TextBlock Text="Network (Engine.ini)" FontWeight="SemiBold" Margin="0,0,0,8" />
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="20" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="20" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Text="Net Server Max Tick Rate" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
-                               ToolTip="Server updates per second. Recommended: 30 (low), 60 (balanced), 120 (high)." />
-                    <TextBox Text="{Binding IpNetDriver.NetServerMaxTickRate}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
-                             ToolTip="Server updates per second. Recommended: 30 (low), 60 (balanced), 120 (high)." />
-
-                    <TextBlock Text="LAN Server Max Tick Rate" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
-                               ToolTip="Max tick rate for LAN. Typically the same value as NetServerMaxTickRate." />
-                    <TextBox Text="{Binding IpNetDriver.LanServerMaxTickRate}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch"
-                             ToolTip="Max tick rate for LAN. Typically the same value as NetServerMaxTickRate." />
-
-                    <TextBlock Text="Max Client Rate" Grid.Row="0" Grid.Column="6" Style="{StaticResource FormLabel}"
-                               ToolTip="Max bytes/sec to LAN clients. Recommended: 50000 (low), 100000 (balanced), 150000 (high)." />
-                    <TextBox Text="{Binding IpNetDriver.MaxClientRate}" Grid.Row="0" Grid.Column="7" HorizontalAlignment="Stretch"
-                             ToolTip="Max bytes/sec to LAN clients. Recommended: 50000 (low), 100000 (balanced), 150000 (high)." />
-
-                    <TextBlock Text="Max Internet Client Rate" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}"
-                               ToolTip="Max bytes/sec to internet clients. Recommended: 50000 (low), 100000 (balanced), 150000 (high)." />
-                    <TextBox Text="{Binding IpNetDriver.MaxInternetClientRate}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
-                             ToolTip="Max bytes/sec to internet clients. Recommended: 50000 (low), 100000 (balanced), 150000 (high)." />
-
-                    <TextBlock Text="Initial Connect Timeout" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}"
-                               ToolTip="Seconds to establish connection. Example: 60.0" />
-                    <TextBox Text="{Binding IpNetDriver.InitialConnectTimeout}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch"
-                             ToolTip="Seconds to establish connection. Example: 60.0" />
-
-                    <TextBlock Text="Connection Timeout" Grid.Row="1" Grid.Column="6" Style="{StaticResource FormLabel}"
-                               ToolTip="Seconds before disconnect. Example: 60.0" />
-                    <TextBox Text="{Binding IpNetDriver.ConnectionTimeout}" Grid.Row="1" Grid.Column="7" HorizontalAlignment="Stretch"
-                             ToolTip="Seconds before disconnect. Example: 60.0" />
-
-                    <TextBlock Text="Relevant Timeout" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}"
-                               ToolTip="Actor relevance timeout (seconds). Example: 5.0" />
-                    <TextBox Text="{Binding IpNetDriver.RelevantTimeout}" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
-                             ToolTip="Actor relevance timeout (seconds). Example: 5.0" />
-
-                    <TextBlock Text="Spawn Priority Seconds" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
-                               ToolTip="Spawn priority window (seconds). Example: 1" />
-                    <TextBox Text="{Binding IpNetDriver.SpawnPrioritySeconds}" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
-                             ToolTip="Spawn priority window (seconds). Example: 1" />
-
-                    <TextBlock Text="Server Travel Pause" Grid.Row="2" Grid.Column="6" Style="{StaticResource FormLabel}"
-                               ToolTip="Map change pause (seconds). Example: 4.0" />
-                    <TextBox Text="{Binding IpNetDriver.ServerTravelPause}" Grid.Row="2" Grid.Column="7" HorizontalAlignment="Stretch"
-                             ToolTip="Map change pause (seconds). Example: 4.0"/>
-                </Grid>
-            </StackPanel>
-        </Border>
-
-        <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" Padding="8">
-            <StackPanel>
-                <TextBlock Text="TBLGameMode (Game.ini)" FontWeight="SemiBold" Margin="0,0,0,8" />
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="20" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="20" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Text="Server Identifier" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
-                               ToolTip="The server identifier displayed in the upper left corner when pressing Tab in-game. Example: id" />
-                    <TextBox Text="{Binding GameMode.ServerIdentifier}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="7" MinWidth="220" HorizontalAlignment="Stretch"
-                             ToolTip="The server identifier displayed in the upper left corner when pressing Tab in-game. Example: id" />
-
-                    <TextBlock Text="Min Time Before Starting Match" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}"
-                               ToolTip="Minimum warmup time (seconds) before a match starts. Example: 1.000000" />
-                    <TextBox Text="{Binding GameMode.MinTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
-                             ToolTip="Minimum warmup time (seconds) before a match starts. Example: 1.000000" />
-
-                    <TextBlock Text="Max Time Before Starting Match" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}"
-                               ToolTip="Maximum warmup time (seconds) before a match starts. Example: 10" />
-                    <TextBox Text="{Binding GameMode.MaxTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch"
-                             ToolTip="Maximum warmup time (seconds) before a match starts. Example: 10" />
-
-                    <TextBlock Text="Idle Kick Timer Spectate" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}"
-                               ToolTip="Seconds before an idle player is moved to spectator (0 to disable). Example: 0.000000" />
-                    <TextBox Text="{Binding GameMode.IdleKickTimerSpectate}" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
-                             ToolTip="Seconds before an idle player is moved to spectator (0 to disable). Example: 0.000000" />
-
-                    <TextBlock Text="Idle Kick Timer Disconnect" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
-                               ToolTip="Seconds before an idle player is disconnected (0 to disable). Example: 0.000000" />
-                    <TextBox Text="{Binding GameMode.IdleKickTimerDisconnect}" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
-                             ToolTip="Seconds before an idle player is disconnected (0 to disable). Example: 0.000000" />
-                </Grid>
-            </StackPanel>
-        </Border>
-
-        <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" Padding="8">
-            <StackPanel>
-                <TextBlock Text="Balance Options" FontWeight="SemiBold" Margin="0,0,0,8" />
                 <TextBlock Text="Auto Balance Options" Margin="0,0,0,4"
                            ToolTip="Auto-balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference). Example: (MinNumPlayers=0,MaxNumPlayers=24,AllowedNumPlayersDifference=1)" />
                 <DataGrid ItemsSource="{Binding GameMode.AutoBalanceOptions}" AutoGenerateColumns="False" CanUserAddRows="True" MinHeight="100" Margin="0,0,0,8"
@@ -182,6 +182,6 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </StackPanel>
-        </Border>
+        </controls:CollapsibleCard>
     </StackPanel>
 </UserControl>

@@ -214,7 +214,8 @@ namespace UnchainedLauncher.GUI {
             var serverConfigurationVMs =
                 InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager);
 
-            var serversTabViewModel = new ServersTabVM(
+            var serversTabViewModel = InitializeServersTab(
+                FilePaths.ServersTabConfigurationPath,
                 settingsViewModel,
                 modManager,
                 userDialogueSpawner,
@@ -269,6 +270,22 @@ namespace UnchainedLauncher.GUI {
             var serverConfigurations = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
             RegisterSaveToFileOnExit(serverConfigurations, codec, jsonPath);
             return serverConfigurations;
+        }
+
+        private ServersTabVM InitializeServersTab(string jsonPath, SettingsVM settings, IModManager modManager, IUserDialogueSpawner dialogueSpawner, IChivalry2Launcher launcher, ObservableCollection<ServerConfigurationVM> serverConfigurations, IChivalryProcessWatcher processWatcher) {
+            Func<ServersTabVM> initializeDefault = () => new ServersTabVM(
+                settings,
+                modManager,
+                dialogueSpawner,
+                launcher,
+                serverConfigurations,
+                processWatcher
+            );
+            
+            var codec = new ServerTabCodec(settings, modManager, dialogueSpawner, launcher, serverConfigurations, processWatcher);
+            var serversTab = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
+            RegisterSaveToFileOnExit(serversTab, codec, jsonPath);
+            return serversTab;
         }
 
         private T InitializeFromFileWithCodec<T>(ICodec<T> codec, string filePath, Func<T> initializeDefault) {

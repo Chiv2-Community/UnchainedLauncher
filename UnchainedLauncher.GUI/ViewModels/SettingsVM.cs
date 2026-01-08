@@ -30,6 +30,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public bool EnablePluginAutomaticUpdates { get; set; }
         public string AdditionalModActors { get; set; }
         public string ServerBrowserBackend { get; set; }
+        public bool UseLightTheme { get; set; }
 
         private string _cliArgs;
         public string CLIArgs {
@@ -65,7 +66,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private RegistryWindowService RegistryWindowService { get; }
         private RegistryWindowVM RegistryWindowVM { get; }
 
-        public SettingsVM(RegistryWindowVM registryWindowVM, RegistryWindowService registryWindowService, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakDir, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
+        public SettingsVM(RegistryWindowVM registryWindowVM, RegistryWindowService registryWindowService, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakDir, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, bool useLightTheme, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
             RegistryWindowVM = registryWindowVM;
             RegistryWindowService = registryWindowService;
             Installer = installer;
@@ -77,11 +78,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
             AdditionalModActors = additionalModActors;
             LauncherSettings = launcherSettings;
             ServerBrowserBackend = serverBrowserBackend;
+            UseLightTheme = useLightTheme;
             ExitProgram = exitProgram;
             CanClick = true;
 
             _cliArgs = cliArgs;
             CLIArgsModified = false;
+
+            ThemeService.Apply(UseLightTheme ? ThemeVariant.Light : ThemeVariant.Dark);
         }
 
 
@@ -103,6 +107,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 loadedSettings?.EnablePluginAutomaticUpdates ?? true,
                 loadedSettings?.AdditionalModActors ?? "",
                 loadedSettings?.ServerBrowserBackend ?? "https://servers.polehammer.net",
+                loadedSettings?.UseLightTheme ?? false,
                 fileBackedSettings,
                 cliArgs,
                 exitProgram
@@ -111,8 +116,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public void SaveSettings() {
             LauncherSettings.SaveSettings(
-                new LauncherSettings(InstallationType, EnablePluginAutomaticUpdates, AdditionalModActors, ServerBrowserBackend)
+                new LauncherSettings(InstallationType, EnablePluginAutomaticUpdates, AdditionalModActors, ServerBrowserBackend, UseLightTheme)
             );
+        }
+
+        private void OnUseLightThemeChanged() {
+            ThemeService.Apply(UseLightTheme ? ThemeVariant.Light : ThemeVariant.Dark);
+            SaveSettings();
         }
 
         [RelayCommand]

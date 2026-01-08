@@ -8,6 +8,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Constants.xaml"/>
+                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/DarkConstants.xaml"/>
 
                 <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Buttons.xaml"/>
 

@@ -12,7 +12,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
 
             if (_parent is INotifyPropertyChanged npc) {
                 npc.PropertyChanged += (_, e) => {
-                    if (e.PropertyName is nameof(ServerConfigurationVM.PlayerBotCount) or nameof(ServerConfigurationVM.WarmupTime)) {
+                    if (e.PropertyName is nameof(ServerConfigurationVM.PlayerBotCount)
+                        or nameof(ServerConfigurationVM.WarmupTime)
+                        or nameof(ServerConfigurationVM.ShowInServerBrowser)) {
                         PropertyChanged?.Invoke(this, e);
                     }
                 };
@@ -30,6 +32,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
         public int? WarmupTime {
             get => _parent.WarmupTime;
             set => _parent.WarmupTime = value;
+        }
+
+        public bool ShowInServerBrowser {
+            get => _parent.ShowInServerBrowser;
+            set => _parent.ShowInServerBrowser = value;
         }
     }
 }

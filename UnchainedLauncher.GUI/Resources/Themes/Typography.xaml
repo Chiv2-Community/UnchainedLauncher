@@ -5,14 +5,14 @@
 
     <Style TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource Font.Default}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
 
 
     <Style TargetType="Label">
         <Setter Property="FontFamily" Value="{StaticResource Font.Default}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextSecondary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
 

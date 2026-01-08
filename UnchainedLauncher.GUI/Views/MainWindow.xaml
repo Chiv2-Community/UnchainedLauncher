@@ -12,6 +12,8 @@
     x:Class="UnchainedLauncher.GUI.Views.MainWindow"
     Style="{DynamicResource UnchainedChrome}"
     ShowWindowTitle="False"
+    ShowThemeToggle="True"
+    ThemeToggleContext="{Binding SettingsViewModel}"
     Title="Unchained Launcher" Height="500" Width="1000">
     <Window.Resources>
         <Style TargetType="TabItem" x:Key="UnderlineTabItemStyle">

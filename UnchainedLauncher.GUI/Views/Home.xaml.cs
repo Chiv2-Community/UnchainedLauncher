@@ -2,6 +2,7 @@
 using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
+using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views {
@@ -14,6 +15,14 @@ namespace UnchainedLauncher.GUI.Views {
         public Home() {
             InitializeComponent();
             DataContextChanged += Home_DataContextChanged;
+
+            Loaded += (_, _) => ThemeService.ThemeChanged += ThemeService_ThemeChanged;
+            Unloaded += (_, _) => ThemeService.ThemeChanged -= ThemeService_ThemeChanged;
+        }
+
+        private void ThemeService_ThemeChanged(object? sender, ThemeVariant e) {
+            // Theme change means `MarkdownRenderer` should be re-run so embedded CSS variables use the new palette.
+            Dispatcher.Invoke(UpdatePreviewHtml);
         }
 
         private void Home_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e) {
@@ -54,7 +63,7 @@ namespace UnchainedLauncher.GUI.Views {
 
         private void UpdatePreviewHtml() {
             if (WhatsNewList.SelectedItem is HomeVM.WhatsNewItem item) {
-                WhatsNewHtml.Html = item.Html;
+                WhatsNewHtml.Html = MarkdownRenderer.RenderHtml(item.Markdown, item.AppendHtml);
             }
             else {
                 if (WhatsNewList.SelectedItem != null) {

@@ -257,7 +257,14 @@
                           ItemsSource="{Binding AvailableMaps}"
                           SelectedItem="{Binding SelectedMapToChange}"
                           HorizontalAlignment="Stretch"
-                          VerticalAlignment="Center" />
+                          VerticalAlignment="Center">
+                    <!-- Preserve '_' in map names (avoid AccessText underscore handling for raw string items) -->
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
                 <Button Grid.Column="1"
                         Content="Change Map"
                         Margin="10,0,0,0"

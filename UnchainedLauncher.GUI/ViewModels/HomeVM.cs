@@ -59,7 +59,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public partial class WhatsNewItem {
             public required string Title { get; init; }
             public required DateTime Date { get; init; }
-            public required string Html { get; init; }
+            public required string Markdown { get; init; }
+            public string? AppendHtml { get; init; }
             public required string Url { get; init; }
 
             [RelayCommand]
@@ -93,8 +94,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     return new WhatsNewItem {
                         Title = $"{r.Manifest.Name} {r.Tag}",
                         Date = r.ReleaseDate,
-                        Html = MarkdownRenderer.RenderHtml(markdown,
-                            $"<br /><hr /><a style='float:right;' href='{r.ReleaseUrl}'>View on GitHub</a>"),
+                        Markdown = markdown,
+                        AppendHtml = $"<br /><hr /><a style='float:right;' href='{r.ReleaseUrl}'>View on GitHub</a>",
                         Url = r.ReleaseUrl
                     };
                 }).ToList();

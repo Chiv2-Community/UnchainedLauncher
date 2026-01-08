@@ -97,12 +97,12 @@
                 <!-- Split buttons: inner edges squared to appear as one control -->
                 <Button Width="50"
                         Command="{Binding CreateNewConfigCommand}"
-                        Style="{StaticResource Button.Success.SplitLeft}"
+                        Style="{DynamicResource Button.Success.SplitLeft}"
                         Content="+"
                         Margin="8 0 -2 0" />
                 <Button Width="50"
                         Command="{Binding RemoveConfigurationCommand}"
-                        Style="{StaticResource Button.Danger.SplitRight}"
+                        Style="{DynamicResource Button.Danger.SplitRight}"
                         Content="-"
                         Margin="0" />
             </StackPanel>
@@ -121,16 +121,15 @@
                           CanContentScroll="True">
                 <local:ServerConfigurationForm DataContext="{Binding SelectedConfiguration}" />
             </ScrollViewer>
-            <!-- Launch buttons fixed at bottom -->
             <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="10" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Button Grid.Column="0" Command="{Binding LaunchServerCommand}" Style="{StaticResource Button.Secondary}">Launch server</Button>
+                <Button Grid.Column="0" Command="{Binding LaunchServerCommand}" Style="{DynamicResource Button.Secondary}">Launch server</Button>
                 <Button Grid.Column="2" Command="{Binding LaunchHeadlessCommand}"
-                        Style="{StaticResource Button.Primary}">
+                        Style="{DynamicResource Button.Primary}">
                     Launch Headless Server
                 </Button>
             </Grid>
@@ -148,7 +147,7 @@
             <Button Grid.Row="2"
                     Command="{Binding ShutdownServerCommand}"
                     DockPanel.Dock="Bottom"
-                    Style="{StaticResource Button.Danger}">
+                    Style="{DynamicResource Button.Danger}">
                 Shut Down
             </Button>
         </Grid>

@@ -9,7 +9,8 @@ using UnchainedLauncher.Core.INIModels.Game;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
     [AddINotifyPropertyChangedInterface]
-    public class TBLGameModeSectionVM : INotifyPropertyChanged {
+    public partial class TBLGameModeSectionVM {
+        [AddINotifyPropertyChangedInterface]
         public class AutoBalanceVM {
             public int MinNumPlayers { get; set; }
             public int MaxNumPlayers { get; set; }
@@ -87,12 +88,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             }
         }
 
-        public IRelayCommand AddMapCommand { get; }
-        public IRelayCommand<string> RemoveMapCommand { get; }
 
         public TBLGameModeSectionVM() {
-            AddMapCommand = new RelayCommand(AddMap);
-            RemoveMapCommand = new RelayCommand<string>(RemoveMap);
         }
 
         private void EnsureMapListIndexValid() {
@@ -111,15 +108,16 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             }
         }
 
+        [RelayCommand]
         private void AddMap() {
             if (string.IsNullOrWhiteSpace(MapToAdd)) return;
             var map = MapToAdd.Trim();
-            if (MapList.Contains(map)) return;
             MapList.Add(map);
             EnsureMapListIndexValid();
             MapToAdd = null;
         }
 
+        [RelayCommand]
         private void RemoveMap(string? map) {
             if (string.IsNullOrWhiteSpace(map)) return;
             var idx = MapList.IndexOf(map);
@@ -205,7 +203,5 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             StartOfMatchGracePeriodForTeamSwitching,
             UseStrictTeamBalanceEnforcement
         );
-
-        public event PropertyChangedEventHandler? PropertyChanged;
     }
 }

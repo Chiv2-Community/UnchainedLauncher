@@ -10,12 +10,16 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
+using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
@@ -27,8 +31,60 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
     using static Successors;
 
+    public class ServerTabCodec : DerivedJsonCodec<ServersTabMetadata, ServersTabVM> {
+
+        public ServerTabCodec(SettingsVM settings,
+            IModManager modManager,
+            IUserDialogueSpawner dialogueSpawner,
+            IChivalry2Launcher launcher,
+            ObservableCollection<ServerConfigurationVM> serverConfigs,
+            IChivalryProcessWatcher processWatcher) : base(
+            ToJsonType,
+            conf => ToClassType(conf, settings, modManager, dialogueSpawner, launcher, serverConfigs, processWatcher)
+        ) { }
+
+            public static ServersTabVM ToClassType(
+                ServersTabMetadata serversTabMetadata,
+                SettingsVM settings,
+                IModManager modManager,
+                IUserDialogueSpawner dialogueSpawner,
+                IChivalry2Launcher launcher,
+                ObservableCollection<ServerConfigurationVM> serverConfigs,
+                IChivalryProcessWatcher processWatcher
+            ) {
+                var vm = new ServersTabVM(settings, modManager, dialogueSpawner, launcher, serverConfigs, processWatcher);
+                serversTabMetadata.ConfigNameToProcessIDMap.ForEach(pair => {
+                    var (confName, pid) = pair;
+                    var config = serverConfigs.FirstOrDefault(conf => conf.Name == confName);
+                    if (config == null) return;
+                    vm.AttachRunningServerByPid(config, pid);
+                });
+                vm.SetSelectedConfigurationByName(serversTabMetadata.SelectedConfigurationName);
+                
+                return vm;
+            }
+
+
+            public static ServersTabMetadata ToJsonType(ServersTabVM serversTabVM) {
+                var selectedConfig = 
+                    serversTabVM.SelectedConfiguration ?? serversTabVM.ServerConfigs.First();
+                
+                var procMap = 
+                    serversTabVM.RunningServers.Select(conf => (conf.configuration.Name, conf.live.Server.ServerProcess.Id));                
+ 
+                return new ServersTabMetadata(selectedConfig.Name, procMap.ToDictionary());
+            }
+
+    }
+
+    public record ServersTabMetadata(
+        string SelectedConfigurationName,
+        Dictionary<string, int> ConfigNameToProcessIDMap
+    );
+        
+    
     [AddINotifyPropertyChangedInterface]
-    public partial class ServersTabVM : IDisposable, INotifyPropertyChanged {
+    public partial class ServersTabVM : IDisposable {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServersTabVM));
 
         private static Dispatcher UiDispatcher => Application.Current.Dispatcher;
@@ -153,6 +209,47 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
                 _ = AttachServerExitWatcher(process, formData, enabledCoordinates, headless, runningTuple);
             });
+        }
+
+        public void AttachRunningServerByPid(ServerConfigurationVM conf, int pid) {
+            var proc = FindExistingRunningServer(conf, pid);
+
+            if (proc == null) {
+                Logger.Debug($"Failed to find existing server process with PID {pid}. It has probably been shutdown since the launcher was last launched.");
+                return;
+            }
+            
+            var server = CreateServer(proc, conf.ToServerConfiguration(), false, conf.EnabledServerModList.ToArray());
+            var serverVm = new ServerVM(server, conf.Name, conf.AvailableMaps);
+            serverVm.StartUpdateLoop();
+            RunningServers.Add((conf, serverVm));
+        }
+
+        public void SetSelectedConfigurationByName(string name) {
+            SelectedConfiguration = ServerConfigs.FirstOrDefault(conf => conf.Name == name);
+        }
+
+        private static Process? FindProcessByID(int pid) {
+            try { return Process.GetProcessById(pid); }
+            catch (ArgumentException) { return null; }
+        }
+
+        private Process? FindExistingRunningServer(ServerConfigurationVM config, int pid) {
+            var proc = FindProcessByID(pid);
+
+            if (proc == null) return null;
+
+            // We just check if it has all the ports in the arg list somewhere. Don't really want to bother
+            // with making sure the args are all correct. This should be good enough for a presumptive check.
+            string[] argsToFind = [
+                config.A2SPort.ToString(),
+                config.RconPort.ToString(),
+                config.GamePort.ToString(),
+                config.PingPort.ToString(),
+            ];
+
+            ExternalProcess.Retrieve(proc, out var procCmdLine);
+            return argsToFind.Any(arg => !procCmdLine.Contains(arg)) ? null : proc;
         }
 
         public void UpdateVisibility() {

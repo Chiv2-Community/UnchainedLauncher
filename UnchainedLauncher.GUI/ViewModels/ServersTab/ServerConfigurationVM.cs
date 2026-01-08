@@ -127,6 +127,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 var newSuffix = SavedDirSuffix(Name);
 
                 if (Directory.Exists(FilePaths.Chiv2ConfigPath(oldSuffix))) {
+                    if (Directory.Exists(FilePaths.Chiv2ConfigPath(newSuffix))) {
+                        // Replace the old one
+                        Directory.Delete(FilePaths.Chiv2ConfigPath(newSuffix), true);
+                    }
+                    
+                    Directory.CreateDirectory(Directory.GetParent(FilePaths.Chiv2ConfigPath(newSuffix))!.FullName);
                     Directory.Move(FilePaths.Chiv2ConfigPath(oldSuffix), FilePaths.Chiv2ConfigPath(newSuffix));
                 }
             }
@@ -161,8 +167,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return illegalCharsRemoved;
         }
 
-        public void LoadINI() {
-            var ini = Chivalry2INI.LoadINIProfile(SavedDirSuffix(Name));
+        public void LoadINI(string? name) {
+            var ini = Chivalry2INI.LoadINIProfile(SavedDirSuffix(name ?? Name));
 
             IpNetDriver.LoadFrom(ini.Engine.IpNetDriver);
             GameSession.LoadFrom(ini.Game.GameSession);
@@ -216,7 +222,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             int? warmupTime = null,
             ObservableCollection<ReleaseCoordinates>? enabledServerModList = null
         ) {
-            Name = name;
             Description = description;
             Password = password;
             RconPort = rconPort;
@@ -236,7 +241,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             AvailableMaps = new ObservableCollection<string>(GetDefaultMaps());
 
-            LoadINI();
+            // We set the Name after loading INI, because there may be some existing config that we want to load first
+            // And setting the name overwrites it.
+            LoadINI(name);
+            Name = name;
 
             AvailableMods = new ObservableCollection<Release>();
 
@@ -383,7 +391,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         [RelayCommand]
         private void ReloadIni() {
-            LoadINI();
+            LoadINI(Name);
         }
     }
 }

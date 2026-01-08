@@ -77,7 +77,14 @@
                       ItemsSource="{Binding AvailableMaps}"
                       SelectedItem="{Binding GameMode.MapToAdd, Mode=TwoWay}"
                       MinWidth="220"
-                      ToolTip="Add a map to the Maplist (repeat to add multiple maps)." />
+                      ToolTip="Add a map to the Maplist (repeat to add multiple maps).">
+                <!-- WPF may treat '_' as an access key when rendering raw strings; use TextBlock to preserve underscores -->
+                <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
             <Button Grid.Row="1" Grid.Column="1" Content="Add" Command="{Binding GameMode.AddMapCommand}" Margin="8,0,0,0" />
 
             <ListBox Grid.Row="2"

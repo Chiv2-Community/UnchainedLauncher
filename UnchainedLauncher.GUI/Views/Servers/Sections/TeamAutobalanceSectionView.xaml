@@ -69,7 +69,7 @@
                                   ToolTip="Enables or disables team balance behavior (uses TeamBalanceOptions ranges)." />
 
                         <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding UseStrictTeamBalanceEnforcement}" Content="Strict Team Balance Enforcement"
-                                  ToolTip="Enables or disables strict team balance enforcement. Example: False" />
+                                  ToolTip="Enables or disables strict team balance enforcement." />
                     </Grid>
                 </StackPanel>
             </Border>

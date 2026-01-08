@@ -37,12 +37,12 @@
             <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,8">
                 <CheckBox IsChecked="{Binding GameMode.BotBackfillEnabled}"
                           Content="Bot Backfill Enabled"
-                          ToolTip="Enables or disables the bot backfill feature. Example: True"
+                          ToolTip="Enables or disables the bot backfill feature."
                           Margin="0,0,0,6" />
 
                 <CheckBox IsChecked="{Binding GameMode.HorseCompatibleServer}"
                           Content="Enable Horses"
-                          ToolTip="Enables or disables horses on the server. Example: true" />
+                          ToolTip="Enables or disables horses on the server." />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="1" Margin="0,0,12,8">

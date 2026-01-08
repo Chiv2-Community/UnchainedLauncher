@@ -134,7 +134,7 @@ namespace StructuredINI {
             var sbOut = sb.ToString();
             var tripleNewline = Environment.NewLine + Environment.NewLine + Environment.NewLine;
             var doubleNewline = Environment.NewLine + Environment.NewLine;
-            while(sbOut.Contains(tripleNewline)) {
+            while (sbOut.Contains(tripleNewline)) {
                 sbOut = sbOut.Replace(tripleNewline, doubleNewline);
             }
 

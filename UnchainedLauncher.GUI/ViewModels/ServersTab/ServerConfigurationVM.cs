@@ -108,7 +108,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public TBLGameUserSettingsSectionVM UserSettings { get; } = new();
         public FfaConfigurationSectionVM FFA { get; private set; }
         public TdmConfigurationSectionVM TDM { get; private set; }
-        
+
 
         public BaseConfigurationSectionVM BaseConfigurationSection { get; }
         public AdvancedConfigurationSectionVM AdvancedConfigurationSection { get; }
@@ -140,13 +140,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public int PingPort { get; set; }
         public bool ShowInServerBrowser { get; set; }
         public string LocalIp { get; set; }
-        
+
         public int? FFATimeLimit { get; set; }
         public int? FFAScoreLimit { get; set; }
-        
+
         public int? TDMTimeLimit { get; set; }
         public int? TDMTicketCount { get; set; }
-        
+
         public int? PlayerBotCount { get; set; }
         public int? WarmupTime { get; set; }
 
@@ -251,7 +251,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             BaseConfigurationSection = new BaseConfigurationSectionVM(this);
             AdvancedConfigurationSection = new AdvancedConfigurationSectionVM(this);
-            
+
             TDM = new TdmConfigurationSectionVM(this);
             FFA = new FfaConfigurationSectionVM(this);
         }
@@ -363,8 +363,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return
                 $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {DetermineNextMapName()}, {ShowInServerBrowser}, [{enabledMods}])";
         }
-        
-        
+
+
         [RelayCommand]
         private void OpenIniFolder() {
             try {

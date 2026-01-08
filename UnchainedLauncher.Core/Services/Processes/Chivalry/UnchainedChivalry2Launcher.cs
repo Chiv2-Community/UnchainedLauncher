@@ -48,12 +48,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             var allArgs = updatedLaunchOpts.ToCLIArgs();
             var mapUriArgs = allArgs.Filter(x => x is UEMapUrlParameter);
             var launchOpts = allArgs.Filter<CLIArg>(x => x is not UEMapUrlParameter);
-            
+
             var mapString = "TBL";
             foreach (var mapUriArg in mapUriArgs) {
                 mapString += mapUriArg.Rendered;
             }
-            
+
             Logger.Info($"Launch args:");
             Logger.Info($"    {mapString}");
             foreach (var launchOpt in launchOpts) {

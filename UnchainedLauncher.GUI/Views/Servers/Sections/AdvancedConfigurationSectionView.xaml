@@ -32,13 +32,12 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     
-                    <TextBlock Text="Warmup Time" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                    <TextBox Text="{Binding WarmupTime, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" />
+                    <TextBlock Text="Warmup Time" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" ToolTip="Warmup duration. Leave blank for default" />
+                    <TextBox Text="{Binding WarmupTime, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" ToolTip="Warmup duration. Leave blank for default" />
 
-                    <TextBlock Text="Num Player Bots" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" />
-                    <TextBox Text="{Binding PlayerBotCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" />
+                    <TextBlock Text="Num Player Bots" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" ToolTip="Number of PlayerBots. Leave blank for default (0). WARNING: PlayerBots may cause server instability." />
+                    <TextBox Text="{Binding PlayerBotCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" ToolTip="Number of PlayerBots. Leave blank for default (0). WARNING: PlayerBots may cause server instability." />
 
-            
                 </Grid>
             </StackPanel>
         </Border>

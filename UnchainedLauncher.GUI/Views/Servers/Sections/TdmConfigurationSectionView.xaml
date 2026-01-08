@@ -27,13 +27,13 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="TDM Time Limit" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" />
+                <TextBlock Text="TDM Time Limit" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" ToolTip="Duration of a TDM match in seconds. Leave blank for default." />
                 <TextBox Text="{Binding TDMTimeLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullableIntConverter}}"
-                         Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" />
+                         Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" ToolTip="Duration of a TDM match in seconds. Leave blank for default." />
 
-                <TextBlock Text="TDM Ticket Count" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" />
+                <TextBlock Text="TDM Ticket Count" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" ToolTip="Number of tickets each team receives at the start of a match. Leave blank for default." />
                 <TextBox Text="{Binding TDMTicketCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullableIntConverter}}"
-                         Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" />
+                         Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" ToolTip="Number of tickets each team receives at the start of a match. Leave blank for default." />
             </Grid>
         </StackPanel>
     </StackPanel>

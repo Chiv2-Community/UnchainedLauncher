@@ -20,13 +20,13 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="Free For All Time Limit" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" />
+                <TextBlock Text="Free For All Time Limit" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" ToolTip="Duration of an FFA match in seconds. Leave blank for default." />
                 <TextBox Text="{Binding FFATimeLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullableIntConverter}}"
-                         Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" />
+                         Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" ToolTip="Duration of an FFA match in seconds. Leave blank for default." />
 
-                <TextBlock Text="Free For All Score Limit" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" />
+                <TextBlock Text="Free For All Score Limit" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" ToolTip="Score needed to win. Leave blank for default." />
                 <TextBox Text="{Binding FFAScoreLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullableIntConverter}}"
-                         Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" />
+                         Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" ToolTip="Score needed to win. Leave blank for default." />
             </Grid>
         </StackPanel>
     </StackPanel>

@@ -12,7 +12,7 @@ namespace StructuredINI {
             var writer = new StructuredINIWriter();
             return writer.BufferWrite(t) && writer.WriteOut(path);
         }
-        
+
         public bool BufferWrite<T>(T iniSection) {
             if (iniSection == null) return false;
 

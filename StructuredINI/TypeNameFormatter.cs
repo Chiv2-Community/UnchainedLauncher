@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace StructuredINI {
+﻿namespace StructuredINI {
     internal static class TypeNameFormatter {
         private static readonly Dictionary<Type, string> CSharpAliases = new() {
             { typeof(bool), "bool" },

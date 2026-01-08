@@ -4,7 +4,7 @@ using System.Reflection;
 namespace StructuredINI {
     public class StructuredINIReader {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(StructuredINIReader));
-        
+
         private readonly StructuredINIParser _parser = new();
 
         private readonly Dictionary<string, string> _sectionBuffers = new(StringComparer.OrdinalIgnoreCase);
@@ -20,13 +20,13 @@ namespace StructuredINI {
                 var readValue = reader.Read<T>();
                 return readValue == null ? fallback : readValue;
             }
-            catch(Exception ex) {
+            catch (Exception ex) {
                 Logger.Error($"Failed to load INI file {path}", ex);
                 Logger.Warn("Falling back to default value.");
                 return fallback;
             }
         }
-        
+
         public bool Load(string path) {
             if (string.IsNullOrWhiteSpace(path)) return false;
 
@@ -70,7 +70,7 @@ namespace StructuredINI {
                 FlushCurrent();
                 return _sectionBuffers.Count > 0;
             }
-            catch(Exception ex) {
+            catch (Exception ex) {
                 Logger.Error($"Failed to load INI file {path}", ex);
                 return false;
             }
@@ -100,7 +100,7 @@ namespace StructuredINI {
                 value = _parser.Deserialize<T>(sectionContent);
                 return true;
             }
-            catch(Exception ex) {
+            catch (Exception ex) {
                 Logger.Error($"Failed to read INI section {typeof(T).Name}", ex);
                 return false;
             }

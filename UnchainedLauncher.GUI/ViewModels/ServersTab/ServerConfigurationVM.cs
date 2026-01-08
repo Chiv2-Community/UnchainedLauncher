@@ -1,28 +1,20 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
 using log4net;
-using log4net.Core;
-using log4net.Repository.Hierarchy;
 using PropertyChanged;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
-using StructuredINI.Codecs;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.INIModels;
-using UnchainedLauncher.Core.INIModels.Engine;
-using UnchainedLauncher.Core.INIModels.Game;
-using UnchainedLauncher.Core.INIModels.GameUserSettings;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
@@ -113,10 +105,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 }
 
                 var oldSuffix = SavedDirSuffix(Name);
-                
+
                 field = value.Trim();
                 var newSuffix = SavedDirSuffix(Name);
-                
+
                 if (Directory.Exists(FilePaths.Chiv2ConfigPath(oldSuffix))) {
                     Directory.Move(FilePaths.Chiv2ConfigPath(oldSuffix), FilePaths.Chiv2ConfigPath(newSuffix));
                 }
@@ -204,7 +196,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             EnabledServerModList = enabledServerModList ?? new ObservableCollection<ReleaseCoordinates>();
 
             AvailableMaps = new ObservableCollection<string>(GetDefaultMaps());
-            
+
             LoadINI();
 
             AvailableMods = new ObservableCollection<Release>();

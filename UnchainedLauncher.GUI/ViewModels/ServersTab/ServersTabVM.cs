@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -141,7 +140,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             // Resolve selected releases from the template's EnabledServerModList
             var enabledCoordinates = SelectedConfiguration.EnabledServerModList.ToArray();
-            
+
             SelectedConfiguration.SaveINI();
 
             var maybeProcess = await LaunchServerWithOptions(formData, headless, enabledCoordinates);

@@ -1,10 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using PropertyChanged;
+using StructuredINI.Codecs;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using System;
-using StructuredINI.Codecs;
 using UnchainedLauncher.Core.INIModels.Game;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {

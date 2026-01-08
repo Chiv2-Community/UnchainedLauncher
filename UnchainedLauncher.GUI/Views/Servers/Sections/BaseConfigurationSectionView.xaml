@@ -12,6 +12,14 @@
         <SolidColorBrush x:Key="Brush.SuccessTint"
                          Color="{StaticResource Color.Success}"
                          Opacity="0.05" />
+
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+
+        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -36,12 +44,12 @@
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="1" Margin="0,0,12,8">
-                <TextBlock Text="FPS Limit" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <TextBlock Text="FPS Limit" Style="{StaticResource FormLabel}" />
                 <TextBox Text="{Binding UserSettings.FpsLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80" />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="2" Margin="0,0,0,8">
-                <TextBlock Text="Max Players" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <TextBlock Text="Max Players" Style="{StaticResource FormLabel}" />
                 <TextBox Text="{Binding GameSession.MaxPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80" />
             </StackPanel>
 

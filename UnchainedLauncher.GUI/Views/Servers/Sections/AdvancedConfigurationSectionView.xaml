@@ -7,6 +7,12 @@
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance designInstances:AdvancedConfigurationSectionDesignVM}">
 
+    <UserControl.Resources>
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+    </UserControl.Resources>
+
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="8">
             <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" Padding="8">
@@ -28,31 +34,31 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <TextBlock Text="NetServerMaxTickRate" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="NetServerMaxTickRate" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding IpNetDriver.NetServerMaxTickRate}" Grid.Row="0" Grid.Column="1" Width="90" />
 
-                        <TextBlock Text="LanServerMaxTickRate" Grid.Row="0" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="LanServerMaxTickRate" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding IpNetDriver.LanServerMaxTickRate}" Grid.Row="0" Grid.Column="4" Width="90" />
 
-                        <TextBlock Text="MaxClientRate" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="MaxClientRate" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding IpNetDriver.MaxClientRate}" Grid.Row="1" Grid.Column="1" Width="120" />
 
-                        <TextBlock Text="MaxInternetClientRate" Grid.Row="1" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="MaxInternetClientRate" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding IpNetDriver.MaxInternetClientRate}" Grid.Row="1" Grid.Column="4" Width="120" />
 
-                        <TextBlock Text="InitialConnectTimeout" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="InitialConnectTimeout" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding IpNetDriver.InitialConnectTimeout}" Grid.Row="2" Grid.Column="1" Width="90" />
 
-                        <TextBlock Text="ConnectionTimeout" Grid.Row="2" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="ConnectionTimeout" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding IpNetDriver.ConnectionTimeout}" Grid.Row="2" Grid.Column="4" Width="90" />
 
-                        <TextBlock Text="RelevantTimeout" Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="RelevantTimeout" Grid.Row="3" Grid.Column="0" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding IpNetDriver.RelevantTimeout}" Grid.Row="3" Grid.Column="1" Width="90" />
 
-                        <TextBlock Text="SpawnPrioritySeconds" Grid.Row="3" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="SpawnPrioritySeconds" Grid.Row="3" Grid.Column="3" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding IpNetDriver.SpawnPrioritySeconds}" Grid.Row="3" Grid.Column="4" Width="90" />
 
-                        <TextBlock Text="ServerTravelPause" Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="ServerTravelPause" Grid.Row="4" Grid.Column="0" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding IpNetDriver.ServerTravelPause}" Grid.Row="4" Grid.Column="1" Width="90" />
                     </Grid>
                 </StackPanel>
@@ -75,16 +81,16 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <TextBlock Text="ServerIdentifier" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="ServerIdentifier" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding GameMode.ServerIdentifier}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4" MinWidth="220" />
 
-                        <TextBlock Text="MinTimeBeforeStartingMatch" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="MinTimeBeforeStartingMatch" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding GameMode.MinTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="1" Width="80" />
 
-                        <TextBlock Text="IdleKickTimerSpectate" Grid.Row="1" Grid.Column="3" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="IdleKickTimerSpectate" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding GameMode.IdleKickTimerSpectate}" Grid.Row="1" Grid.Column="4" Width="80" />
 
-                        <TextBlock Text="IdleKickTimerDisconnect" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBlock Text="IdleKickTimerDisconnect" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding GameMode.IdleKickTimerDisconnect}" Grid.Row="2" Grid.Column="1" Width="80" />
                     </Grid>
                 </StackPanel>

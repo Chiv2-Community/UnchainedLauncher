@@ -45,17 +45,18 @@
 
             <TextBlock Text="Server Name :" Grid.Row="0" Grid.ColumnSpan="3" HorizontalAlignment="Left"
                        VerticalAlignment="Center" Margin="5" />
-            <TextBox Text="{Binding Name}" Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0" TextWrapping="Wrap" Margin="5,0,5,0"
+            <TextBox Text="{Binding Name}" Grid.Row="1" Grid.ColumnSpan="3" Grid.Column="0" TextWrapping="Wrap" Margin="5,0,5,8"
                      IsManipulationEnabled="True" AcceptsReturn="False" />
 
             <TextBlock Text="Password:" Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="2" HorizontalAlignment="Left"
                        VerticalAlignment="Center" Margin="5" />
             <TextBox Text="{Binding Password}" Grid.Row="1" Grid.Column="3" Grid.ColumnSpan="2" TextWrapping="Wrap"
-                     Margin="5,0,5,0" IsManipulationEnabled="True" AcceptsReturn="False" />
+                     Margin="5,0,5,8" IsManipulationEnabled="True" AcceptsReturn="False" />
 
             <TextBlock Text="Server Description:" Grid.Row="2" Grid.ColumnSpan="5" Grid.Column="0" HorizontalAlignment="Left"
                        VerticalAlignment="Center" Margin="5" />
             <TextBox Text="{Binding Description}" Grid.Row="3" Grid.ColumnSpan="5" Grid.Column="0" MinLines="3" TextWrapping="Wrap"
+                     Margin="5,0,5,8"
                      IsManipulationEnabled="True" AcceptsReturn="True" />
 
             <TextBlock Text="Game port:" Grid.Row="4" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center"

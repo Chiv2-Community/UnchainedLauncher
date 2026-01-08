@@ -90,7 +90,7 @@
                      Margin="0,6,0,0"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      behaviors:MouseWheelScrollForwardingBehavior.IsEnabled="True"
-                     ToolTip="Maplist entries (one per line). Selected item sets MapListIndex (-1 for random start).">
+                     ToolTip="Map rotation from left to right, top to bottom. Selected item is the starting map.">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="HorizontalContentAlignment" Value="Left" />

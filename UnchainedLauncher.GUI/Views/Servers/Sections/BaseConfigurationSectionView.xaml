@@ -26,11 +26,14 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <CheckBox IsChecked="{Binding GameMode.BotBackfillEnabled}"
-                      Content="Bot Backfill Enabled"
-                      Grid.Row="0"
-                      Grid.Column="0"
-                      Margin="0,0,12,8" />
+            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,8">
+                <CheckBox IsChecked="{Binding GameMode.BotBackfillEnabled}"
+                          Content="Bot Backfill Enabled"
+                          Margin="0,0,0,6" />
+
+                <CheckBox IsChecked="{Binding GameMode.HorseCompatibleServer}"
+                          Content="Enable Horses" />
+            </StackPanel>
 
             <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="1" Margin="0,0,12,8">
                 <TextBlock Text="FPS Limit" VerticalAlignment="Center" Margin="0,0,6,0" />

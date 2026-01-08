@@ -37,20 +37,26 @@
             <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,8">
                 <CheckBox IsChecked="{Binding GameMode.BotBackfillEnabled}"
                           Content="Bot Backfill Enabled"
+                          ToolTip="Enables or disables the bot backfill feature. Example: True"
                           Margin="0,0,0,6" />
 
                 <CheckBox IsChecked="{Binding GameMode.HorseCompatibleServer}"
-                          Content="Enable Horses" />
+                          Content="Enable Horses"
+                          ToolTip="Enables or disables horses on the server. Example: true" />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="1" Margin="0,0,12,8">
-                <TextBlock Text="FPS Limit" Style="{StaticResource FormLabel}" />
-                <TextBox Text="{Binding UserSettings.FpsLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                <TextBlock Text="FPS Limit" Style="{StaticResource FormLabel}"
+                           ToolTip="MaxFPS / FrameRateLimit for the server. Important: players should match this FPS to avoid desync issues. Example: 80" />
+                <TextBox Text="{Binding UserSettings.FpsLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"
+                         ToolTip="MaxFPS / FrameRateLimit for the server. Important: players should match this FPS to avoid desync issues. Example: 80" />
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="2" Margin="0,0,0,8">
-                <TextBlock Text="Max Players" Style="{StaticResource FormLabel}" />
-                <TextBox Text="{Binding GameSession.MaxPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80" />
+                <TextBlock Text="Max Players" Style="{StaticResource FormLabel}"
+                           ToolTip="Maximum number of players allowed on the server. Example: 256" />
+                <TextBox Text="{Binding GameSession.MaxPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"
+                         ToolTip="Maximum number of players allowed on the server. Example: 256" />
             </StackPanel>
 
             <Grid Grid.Row="1" Grid.ColumnSpan="3">
@@ -64,12 +70,14 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <TextBlock Text="Map Rotation" Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,4" />
+                <TextBlock Text="Map Rotation" Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,4"
+                           ToolTip="Maplist: add one map per line. Set MapListIndex to choose the current map in rotation (-1 for random start)." />
 
                 <ComboBox Grid.Row="1" Grid.Column="0"
                           ItemsSource="{Binding AvailableMaps}"
                           SelectedItem="{Binding GameMode.MapToAdd, Mode=TwoWay}"
-                          MinWidth="220" />
+                          MinWidth="220"
+                          ToolTip="Add a map to the Maplist (repeat to add multiple maps)." />
                 <Button Grid.Row="1" Grid.Column="1" Content="Add" Command="{Binding GameMode.AddMapCommand}" Margin="8,0,0,0" />
 
                 <ListBox Grid.Row="2"
@@ -80,7 +88,8 @@
                          BorderThickness="1"
                          MinHeight="140"
                          Margin="0,6,0,0"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ToolTip="Maplist entries (one per line). Selected item sets MapListIndex (-1 for random start).">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem">
                             <Setter Property="HorizontalContentAlignment" Value="Left" />

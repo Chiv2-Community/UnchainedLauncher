@@ -36,11 +36,15 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Auto Balance Grace Period (s)" Style="{StaticResource FormLabel}" />
-                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding StartOfMatchGracePeriodForAutoBalance, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch" />
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Auto Balance Grace Period (s)" Style="{StaticResource FormLabel}"
+                                   ToolTip="Grace period (seconds) before auto-balance begins at match start. Example: 30" />
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding StartOfMatchGracePeriodForAutoBalance, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch"
+                                 ToolTip="Grace period (seconds) before auto-balance begins at match start. Example: 30" />
 
-                        <TextBlock Grid.Row="0" Grid.Column="3" Text="Team Switch Grace Period (s)" Style="{StaticResource FormLabel}" />
-                        <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding StartOfMatchGracePeriodForTeamSwitching, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch" />
+                        <TextBlock Grid.Row="0" Grid.Column="3" Text="Team Switch Grace Period (s)" Style="{StaticResource FormLabel}"
+                                   ToolTip="Grace period (seconds) for team switching at match start. Example: 0" />
+                        <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding StartOfMatchGracePeriodForTeamSwitching, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Stretch"
+                                 ToolTip="Grace period (seconds) for team switching at match start. Example: 0" />
                     </Grid>
 
                     <Grid Margin="0,14,0,0">
@@ -59,10 +63,13 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
-                        <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding AutoBalanceEnabled}" Content="Auto Balance Enabled" Margin="0,0,12,6" />
-                        <CheckBox Grid.Column="3" Grid.Row="0" IsChecked="{Binding TeamBalanceEnabled}" Content="Team Balance Enabled" Margin="0,0,12,6" />
+                        <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding AutoBalanceEnabled}" Content="Auto Balance Enabled" Margin="0,0,12,6"
+                                  ToolTip="Enables or disables auto-balance behavior (uses AutoBalanceOptions ranges)." />
+                        <CheckBox Grid.Column="3" Grid.Row="0" IsChecked="{Binding TeamBalanceEnabled}" Content="Team Balance Enabled" Margin="0,0,12,6"
+                                  ToolTip="Enables or disables team balance behavior (uses TeamBalanceOptions ranges)." />
 
-                        <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding UseStrictTeamBalanceEnforcement}" Content="Strict Team Balance Enforcement" />
+                        <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding UseStrictTeamBalanceEnforcement}" Content="Strict Team Balance Enforcement"
+                                  ToolTip="Enables or disables strict team balance enforcement. Example: False" />
                     </Grid>
                 </StackPanel>
             </Border>

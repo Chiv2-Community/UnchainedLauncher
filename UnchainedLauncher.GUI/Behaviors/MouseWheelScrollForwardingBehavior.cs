@@ -46,7 +46,7 @@ namespace UnchainedLauncher.GUI.Behaviors {
             e.Handled = true;
 
             // Mouse wheel delta is typically 120 per notch; use a simple pixel/DIU mapping.
-            var newOffset = scrollViewer.VerticalOffset - e.Delta;
+            var newOffset = scrollViewer.VerticalOffset - (e.Delta / 2d);
             if (newOffset < 0d) newOffset = 0d;
             if (newOffset > scrollViewer.ScrollableHeight) newOffset = scrollViewer.ScrollableHeight;
             scrollViewer.ScrollToVerticalOffset(newOffset);

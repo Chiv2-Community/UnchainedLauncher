@@ -13,36 +13,34 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="8">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="20" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="20" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+    <StackPanel Margin="8">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-                <TextBlock Text="PreCountdownDelay" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
-                           ToolTip="Time in seconds before the match countdown begins. Example: 5" />
-                <TextBox Text="{Binding PreCountdownDelay}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
-                         ToolTip="Time in seconds before the match countdown begins. Example: 5" />
+            <TextBlock Text="PreCountdownDelay" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
+                       ToolTip="Time in seconds before the match countdown begins. Example: 5" />
+            <TextBox Text="{Binding PreCountdownDelay}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+                     ToolTip="Time in seconds before the match countdown begins. Example: 5" />
 
-                <TextBlock Text="RoundsToWin" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
-                           ToolTip="Number of round wins needed to win the match. Stored in INI as Rounds = (2 * RoundsToWin) - 1. Example: first to 20 wins -> RoundsToWin=20 (Rounds=39)." />
-                <TextBox Text="{Binding RoundsToWin}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch"
-                         ToolTip="Number of round wins needed to win the match. Stored in INI as Rounds = (2 * RoundsToWin) - 1." />
-            </Grid>
-        </StackPanel>
-    </ScrollViewer>
+            <TextBlock Text="RoundsToWin" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
+                       ToolTip="Number of round wins needed to win the match. Stored in INI as Rounds = (2 * RoundsToWin) - 1. Example: first to 20 wins -> RoundsToWin=20 (Rounds=39)." />
+            <TextBox Text="{Binding RoundsToWin}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch"
+                     ToolTip="Number of round wins needed to win the match. Stored in INI as Rounds = (2 * RoundsToWin) - 1." />
+        </Grid>
+    </StackPanel>
 </UserControl>

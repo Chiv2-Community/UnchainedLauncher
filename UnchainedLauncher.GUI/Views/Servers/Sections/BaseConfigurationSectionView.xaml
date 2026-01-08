@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Servers.DesignInstances"
+             xmlns:behaviors="clr-namespace:UnchainedLauncher.GUI.Behaviors"
              d:DataContext="{d:DesignInstance designInstances:BaseConfigurationSectionDesignVM}"
              mc:Ignorable="d">
 
@@ -22,134 +23,133 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <Grid Margin="8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+    <Grid Margin="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,8">
+            <CheckBox IsChecked="{Binding GameMode.BotBackfillEnabled}"
+                      Content="Bot Backfill Enabled"
+                      ToolTip="Enables or disables the bot backfill feature."
+                      Margin="0,0,0,6" />
+
+            <CheckBox IsChecked="{Binding GameMode.HorseCompatibleServer}"
+                      Content="Enable Horses"
+                      ToolTip="Enables or disables horses on the server." />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="1" Margin="0,0,12,8">
+            <TextBlock Text="FPS Limit" Style="{StaticResource FormLabel}"
+                       ToolTip="MaxFPS / FrameRateLimit for the server. Important: players should match this FPS to avoid desync issues. Example: 80" />
+            <TextBox Text="{Binding UserSettings.FpsLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"
+                     ToolTip="MaxFPS / FrameRateLimit for the server. Important: players should match this FPS to avoid desync issues. Example: 80" />
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="2" Margin="0,0,0,8">
+            <TextBlock Text="Max Players" Style="{StaticResource FormLabel}"
+                       ToolTip="Maximum number of players allowed on the server. Example: 256" />
+            <TextBox Text="{Binding GameSession.MaxPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"
+                     ToolTip="Maximum number of players allowed on the server. Example: 256" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" Grid.ColumnSpan="3">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,8">
-                <CheckBox IsChecked="{Binding GameMode.BotBackfillEnabled}"
-                          Content="Bot Backfill Enabled"
-                          ToolTip="Enables or disables the bot backfill feature."
-                          Margin="0,0,0,6" />
+            <TextBlock Text="Map Rotation" Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,4"
+                       ToolTip="Maplist: add one map per line. Set MapListIndex to choose the current map in rotation (-1 for random start)." />
 
-                <CheckBox IsChecked="{Binding GameMode.HorseCompatibleServer}"
-                          Content="Enable Horses"
-                          ToolTip="Enables or disables horses on the server." />
-            </StackPanel>
+            <ComboBox Grid.Row="1" Grid.Column="0"
+                      ItemsSource="{Binding AvailableMaps}"
+                      SelectedItem="{Binding GameMode.MapToAdd, Mode=TwoWay}"
+                      MinWidth="220"
+                      ToolTip="Add a map to the Maplist (repeat to add multiple maps)." />
+            <Button Grid.Row="1" Grid.Column="1" Content="Add" Command="{Binding GameMode.AddMapCommand}" Margin="8,0,0,0" />
 
-            <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="1" Margin="0,0,12,8">
-                <TextBlock Text="FPS Limit" Style="{StaticResource FormLabel}"
-                           ToolTip="MaxFPS / FrameRateLimit for the server. Important: players should match this FPS to avoid desync issues. Example: 80" />
-                <TextBox Text="{Binding UserSettings.FpsLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"
-                         ToolTip="MaxFPS / FrameRateLimit for the server. Important: players should match this FPS to avoid desync issues. Example: 80" />
-            </StackPanel>
+            <ListBox Grid.Row="2"
+                     Grid.ColumnSpan="2"
+                     ItemsSource="{Binding GameMode.MapList}"
+                     SelectedIndex="{Binding GameMode.MapListIndex, Mode=TwoWay}"
+                     BorderBrush="{StaticResource Brush.Border}"
+                     BorderThickness="1"
+                     MinHeight="140"
+                     Margin="0,6,0,0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     behaviors:MouseWheelScrollForwardingBehavior.IsEnabled="True"
+                     ToolTip="Maplist entries (one per line). Selected item sets MapListIndex (-1 for random start).">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Left" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                        <!-- Remove default ListBoxItem chrome (it draws a rectangular selection border). 
+                             The rounded border is provided by the item DataTemplate instead. -->
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <ContentPresenter />
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="Background" Value="Transparent" />
+                        <!-- Keep thickness constant to avoid layout/width changes on selection -->
+                        <Setter Property="BorderThickness" Value="2" />
+                        <Setter Property="BorderBrush" Value="Transparent" />
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="BorderBrush" Value="{StaticResource Brush.Success}" />
+                                <Setter Property="Background" Value="{StaticResource Brush.SuccessTint}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,2,8,2"
+                                Padding="8,4"
+                                Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
+                                CornerRadius="4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
 
-            <StackPanel Orientation="Horizontal" Grid.Row="0" Grid.Column="2" Margin="0,0,0,8">
-                <TextBlock Text="Max Players" Style="{StaticResource FormLabel}"
-                           ToolTip="Maximum number of players allowed on the server. Example: 256" />
-                <TextBox Text="{Binding GameSession.MaxPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80"
-                         ToolTip="Maximum number of players allowed on the server. Example: 256" />
-            </StackPanel>
+                                <TextBlock Text="{Binding}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,6,0" />
 
-            <Grid Grid.Row="1" Grid.ColumnSpan="3">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <TextBlock Text="Map Rotation" Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,4"
-                           ToolTip="Maplist: add one map per line. Set MapListIndex to choose the current map in rotation (-1 for random start)." />
-
-                <ComboBox Grid.Row="1" Grid.Column="0"
-                          ItemsSource="{Binding AvailableMaps}"
-                          SelectedItem="{Binding GameMode.MapToAdd, Mode=TwoWay}"
-                          MinWidth="220"
-                          ToolTip="Add a map to the Maplist (repeat to add multiple maps)." />
-                <Button Grid.Row="1" Grid.Column="1" Content="Add" Command="{Binding GameMode.AddMapCommand}" Margin="8,0,0,0" />
-
-                <ListBox Grid.Row="2"
-                         Grid.ColumnSpan="2"
-                         ItemsSource="{Binding GameMode.MapList}"
-                         SelectedIndex="{Binding GameMode.MapListIndex, Mode=TwoWay}"
-                         BorderBrush="{StaticResource Brush.Border}"
-                         BorderThickness="1"
-                         MinHeight="140"
-                         Margin="0,6,0,0"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                         ToolTip="Maplist entries (one per line). Selected item sets MapListIndex (-1 for random start).">
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="HorizontalContentAlignment" Value="Left" />
-                            <Setter Property="Padding" Value="0" />
-                            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-                            <!-- Remove default ListBoxItem chrome (it draws a rectangular selection border). 
-                                 The rounded border is provided by the item DataTemplate instead. -->
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <ContentPresenter />
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                            <Setter Property="Background" Value="Transparent" />
-                            <!-- Keep thickness constant to avoid layout/width changes on selection -->
-                            <Setter Property="BorderThickness" Value="2" />
-                            <Setter Property="BorderBrush" Value="Transparent" />
-                            <Style.Triggers>
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="BorderBrush" Value="{StaticResource Brush.Success}" />
-                                    <Setter Property="Background" Value="{StaticResource Brush.SuccessTint}" />
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Border Margin="0,2,8,2"
-                                    Padding="8,4"
-                                    Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
-                                    BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
-                                    BorderThickness="{Binding BorderThickness, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
-                                    CornerRadius="4">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <TextBlock Text="{Binding}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,6,0" />
-
-                                    <Button Grid.Column="1"
-                                            Width="28"
-                                            Height="28"
-                                            Padding="0"
-                                            Content="✕"
-                                            Command="{Binding DataContext.GameMode.RemoveMapCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                            CommandParameter="{Binding}" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Grid>
+                                <Button Grid.Column="1"
+                                        Width="28"
+                                        Height="28"
+                                        Padding="0"
+                                        Content="✕"
+                                        Command="{Binding DataContext.GameMode.RemoveMapCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </Grid>
-    </ScrollViewer>
+    </Grid>
 </UserControl>

@@ -21,45 +21,46 @@
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="20" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="20" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock Text="NetServerMaxTickRate" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding IpNetDriver.NetServerMaxTickRate}" Grid.Row="0" Grid.Column="1" Width="90" />
+                        <TextBox Text="{Binding IpNetDriver.NetServerMaxTickRate}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" />
 
                         <TextBlock Text="LanServerMaxTickRate" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding IpNetDriver.LanServerMaxTickRate}" Grid.Row="0" Grid.Column="4" Width="90" />
+                        <TextBox Text="{Binding IpNetDriver.LanServerMaxTickRate}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" />
 
-                        <TextBlock Text="MaxClientRate" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding IpNetDriver.MaxClientRate}" Grid.Row="1" Grid.Column="1" Width="90" />
+                        <TextBlock Text="MaxClientRate" Grid.Row="0" Grid.Column="6" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding IpNetDriver.MaxClientRate}" Grid.Row="0" Grid.Column="7" HorizontalAlignment="Stretch" />
 
-                        <TextBlock Text="MaxInternetClientRate" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding IpNetDriver.MaxInternetClientRate}" Grid.Row="1" Grid.Column="4" Width="90" />
+                        <TextBlock Text="MaxInternetClientRate" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding IpNetDriver.MaxInternetClientRate}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" />
 
-                        <TextBlock Text="InitialConnectTimeout" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding IpNetDriver.InitialConnectTimeout}" Grid.Row="2" Grid.Column="1" Width="90" />
+                        <TextBlock Text="InitialConnectTimeout" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding IpNetDriver.InitialConnectTimeout}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch" />
 
-                        <TextBlock Text="ConnectionTimeout" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding IpNetDriver.ConnectionTimeout}" Grid.Row="2" Grid.Column="4" Width="90" />
+                        <TextBlock Text="ConnectionTimeout" Grid.Row="1" Grid.Column="6" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding IpNetDriver.ConnectionTimeout}" Grid.Row="1" Grid.Column="7" HorizontalAlignment="Stretch" />
 
-                        <TextBlock Text="RelevantTimeout" Grid.Row="3" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding IpNetDriver.RelevantTimeout}" Grid.Row="3" Grid.Column="1" Width="90" />
+                        <TextBlock Text="RelevantTimeout" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding IpNetDriver.RelevantTimeout}" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" />
 
-                        <TextBlock Text="SpawnPrioritySeconds" Grid.Row="3" Grid.Column="3" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding IpNetDriver.SpawnPrioritySeconds}" Grid.Row="3" Grid.Column="4" Width="90" />
+                        <TextBlock Text="SpawnPrioritySeconds" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding IpNetDriver.SpawnPrioritySeconds}" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch" />
 
-                        <TextBlock Text="ServerTravelPause" Grid.Row="4" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding IpNetDriver.ServerTravelPause}" Grid.Row="4" Grid.Column="1" Width="90" />
+                        <TextBlock Text="ServerTravelPause" Grid.Row="2" Grid.Column="6" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding IpNetDriver.ServerTravelPause}" Grid.Row="2" Grid.Column="7" HorizontalAlignment="Stretch"/>
                     </Grid>
                 </StackPanel>
             </Border>
@@ -74,6 +75,9 @@
                             <ColumnDefinition Width="20" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -82,16 +86,16 @@
                         </Grid.RowDefinitions>
 
                         <TextBlock Text="ServerIdentifier" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding GameMode.ServerIdentifier}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4" MinWidth="220" />
+                        <TextBox Text="{Binding GameMode.ServerIdentifier}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="7" MinWidth="220" HorizontalAlignment="Stretch" />
 
                         <TextBlock Text="MinTimeBeforeStartingMatch" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding GameMode.MinTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="1" Width="80" />
+                        <TextBox Text="{Binding GameMode.MinTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" />
 
                         <TextBlock Text="IdleKickTimerSpectate" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding GameMode.IdleKickTimerSpectate}" Grid.Row="1" Grid.Column="4" Width="80" />
+                        <TextBox Text="{Binding GameMode.IdleKickTimerSpectate}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch" />
 
-                        <TextBlock Text="IdleKickTimerDisconnect" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding GameMode.IdleKickTimerDisconnect}" Grid.Row="2" Grid.Column="1" Width="80" />
+                        <TextBlock Text="IdleKickTimerDisconnect" Grid.Row="1" Grid.Column="6" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding GameMode.IdleKickTimerDisconnect}" Grid.Row="1" Grid.Column="7" HorizontalAlignment="Stretch" />
                     </Grid>
                 </StackPanel>
             </Border>

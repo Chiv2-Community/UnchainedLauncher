@@ -131,7 +131,14 @@ namespace StructuredINI {
                 Directory.CreateDirectory(dir);
             }
 
-            File.WriteAllText(path, sb.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            var sbOut = sb.ToString();
+            var tripleNewline = Environment.NewLine + Environment.NewLine + Environment.NewLine;
+            var doubleNewline = Environment.NewLine + Environment.NewLine;
+            while(sbOut.Contains(tripleNewline)) {
+                sbOut = sbOut.Replace(tripleNewline, doubleNewline);
+            }
+
+            File.WriteAllText(path, sbOut, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
             return true;
         }
 

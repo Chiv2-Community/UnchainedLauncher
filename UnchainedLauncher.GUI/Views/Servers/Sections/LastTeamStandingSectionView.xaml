@@ -21,17 +21,26 @@
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="20" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="20" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="PreCountdownDelay" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding PreCountdownDelay}" Grid.Column="1" Width="80" />
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                        <TextBlock Text="RoundsToWin" Grid.Column="3" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding RoundsToWin}" Grid.Column="4" Width="80" />
+                        <TextBlock Text="PreCountdownDelay" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding PreCountdownDelay}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" />
+
+                        <TextBlock Text="RoundsToWin" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding RoundsToWin}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" />
                     </Grid>
                 </StackPanel>
             </Border>

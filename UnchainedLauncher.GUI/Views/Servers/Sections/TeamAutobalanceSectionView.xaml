@@ -22,59 +22,62 @@
                     <!-- 3x3 options grid: checkbox / label / input -->
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="3*" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="*"  />
-                            <RowDefinition Height="*"  />
-                            <RowDefinition Height="*"  />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <CheckBox Grid.Row="0"
                                   Grid.Column="0"
+                                  Grid.ColumnSpan="2"
                                   IsChecked="{Binding AutoBalanceEnabled}"
                                   Content="Auto Balance Enabled"
                                   VerticalAlignment="Center"
-                                  Margin="0,0,12,6" />
+                                  Margin="0,0,0,6" />
 
                         <CheckBox Grid.Row="1"
                                   Grid.Column="0"
+                                  Grid.ColumnSpan="2"
                                   IsChecked="{Binding TeamBalanceEnabled}"
                                   Content="Team Balance Enabled"
                                   VerticalAlignment="Center"
-                                  Margin="0,0,12,6" />
+                                  Margin="0,0,0,6" />
 
                         <CheckBox Grid.Row="2"
                                   Grid.Column="0"
+                                  Grid.ColumnSpan="2"
                                   IsChecked="{Binding UseStrictTeamBalanceEnforcement}"
                                   Content="Strict Team Balance Enforcement"
                                   VerticalAlignment="Center"
-                                  Margin="0,0,12,6" />
+                                  Margin="0,0,0,6" />
 
                         <TextBlock Grid.Row="0"
-                                   Grid.Column="1"
+                                   Grid.Column="3"
                                    Text="Auto Balance Grace Period (s)"
                                    Style="{StaticResource FormLabel}" />
                         <TextBox Grid.Row="0"
-                                 Grid.Column="2"
+                                 Grid.Column="4"
                                  Text="{Binding StartOfMatchGracePeriodForAutoBalance, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 Width="80" 
-                                 HorizontalAlignment="Left"/>
+                                 HorizontalAlignment="Stretch" />
 
                         <TextBlock Grid.Row="1"
-                                   Grid.Column="1"
+                                   Grid.Column="3"
                                    Text="Team Switch Grace Period (s)"
                                    Style="{StaticResource FormLabel}" />
                         <TextBox Grid.Row="1"
-                                 Grid.Column="2"
+                                 Grid.Column="4"
                                  Text="{Binding StartOfMatchGracePeriodForTeamSwitching, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 Width="80"
-                                 HorizontalAlignment="Left"/>
-                        
-                        <!-- Invisible unfocusable box to make rows equal height -->
-                        <TextBox Grid.Row="2" Grid.Column="2" Text="" BorderBrush="Transparent" Focusable="False" />
+                                 HorizontalAlignment="Stretch" />
                                  
                     </Grid>
                 </StackPanel>

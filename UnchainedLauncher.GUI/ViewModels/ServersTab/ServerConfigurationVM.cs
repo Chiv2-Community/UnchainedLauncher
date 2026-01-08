@@ -2,9 +2,11 @@
 using LanguageExt;
 using log4net;
 using PropertyChanged;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
@@ -303,6 +305,28 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 : "null";
             return
                 $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {DetermineNextMapName()}, {ShowInServerBrowser}, [{enabledMods}])";
+        }
+        
+        
+        [RelayCommand]
+        private void OpenIniFolder() {
+            try {
+                var iniDir = FilePaths.Chiv2ConfigPath(SavedDirSuffix(Name));
+                Directory.CreateDirectory(iniDir);
+
+                Process.Start(new ProcessStartInfo {
+                    FileName = iniDir,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex) {
+                Logger.Warn("Failed to open INI folder", ex);
+            }
+        }
+
+        [RelayCommand]
+        private void ReloadIni() {
+            LoadINI();
         }
     }
 }

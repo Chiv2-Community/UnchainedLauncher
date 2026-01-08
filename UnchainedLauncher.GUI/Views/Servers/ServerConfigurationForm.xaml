@@ -42,6 +42,10 @@
                         <sections:AdvancedConfigurationSectionView DataContext="{Binding AdvancedConfigurationSection}" />
                     </TabItem>
                 </TabControl>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 0 7 0">
+                    <Button Content="Open INI Folder" Command="{Binding OpenIniFolderCommand}" Margin="0,0,8,0" />
+                    <Button Content="Reload INI" Command="{Binding ReloadIniCommand}" />
+                </StackPanel>
             </StackPanel>
         </Border>
 

@@ -41,10 +41,10 @@
                         <TextBox Text="{Binding IpNetDriver.LanServerMaxTickRate}" Grid.Row="0" Grid.Column="4" Width="90" />
 
                         <TextBlock Text="MaxClientRate" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding IpNetDriver.MaxClientRate}" Grid.Row="1" Grid.Column="1" Width="120" />
+                        <TextBox Text="{Binding IpNetDriver.MaxClientRate}" Grid.Row="1" Grid.Column="1" Width="90" />
 
                         <TextBlock Text="MaxInternetClientRate" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding IpNetDriver.MaxInternetClientRate}" Grid.Row="1" Grid.Column="4" Width="120" />
+                        <TextBox Text="{Binding IpNetDriver.MaxInternetClientRate}" Grid.Row="1" Grid.Column="4" Width="90" />
 
                         <TextBlock Text="InitialConnectTimeout" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding IpNetDriver.InitialConnectTimeout}" Grid.Row="2" Grid.Column="1" Width="90" />

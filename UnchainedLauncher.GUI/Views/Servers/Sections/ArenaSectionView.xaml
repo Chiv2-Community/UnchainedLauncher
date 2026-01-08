@@ -25,11 +25,16 @@
                             <ColumnDefinition Width="20" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="20" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
                         <TextBlock Text="RoundsToWin" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" />
@@ -44,16 +49,18 @@
                         <TextBlock Text="MaxTimeBeforeStartingMatch" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding MaxTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="4" Width="80" />
 
-                        <TextBlock Text="TeamLives" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding TeamLives}" Grid.Row="2" Grid.Column="1" Width="80" />
-                    </Grid>
+                        <TextBlock Text="TeamLives" Grid.Row="0" Grid.Column="6" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding TeamLives}" Grid.Row="0" Grid.Column="7" Width="80" />
 
-                    <UniformGrid Columns="2">
-                        <CheckBox IsChecked="{Binding ClearWeaponsPostRound}" Content="Clear Weapons Post Round" Margin="0,0,12,6" />
-                        <CheckBox IsChecked="{Binding ClearHorsesPostRound}" Content="Clear Horses Post Round" Margin="0,0,0,6" />
-                        <CheckBox IsChecked="{Binding ResetTaggedActorsPostRound}" Content="Reset Tagged Actors Post Round" Margin="0,0,12,0" />
-                        <CheckBox IsChecked="{Binding UsePreCountdownForCustomizationLoading}" Content="Use PreCountdown For Customization Loading" />
-                    </UniformGrid>
+                        <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding ClearWeaponsPostRound}" Content="Clear Weapons Post Round" Margin="0,0,12,6" />
+                        <CheckBox Grid.Column="0" Grid.Row="4"  IsChecked="{Binding ClearHorsesPostRound}" Content="Clear Horses Post Round" Margin="0,0,0,6" />
+                        <CheckBox Grid.Column="3" Grid.Row="3" IsChecked="{Binding ResetTaggedActorsPostRound}" Content="Reset Tagged Actors Post Round" Margin="0,0,12,0" />
+                        <CheckBox Grid.Column="3" Grid.Row="4" IsChecked="{Binding UsePreCountdownForCustomizationLoading}" Content="Use PreCountdown For Customization Loading" />
+                        
+                        <TextBox Grid.Column="6" Grid.Row="3" Text="" BorderBrush="Transparent" Focusable="False" />
+                        <TextBox Grid.Column="6" Grid.Row="4" Text="" BorderBrush="Transparent" Focusable="False" />
+                        
+                    </Grid>
                 </StackPanel>
             </Border>
         </StackPanel>

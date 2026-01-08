@@ -191,7 +191,7 @@ namespace UnchainedLauncher.GUI {
             var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
             if (!modManager.Mods.Any())
-                modListViewModel.RefreshModListCommand.Execute(null);
+                modListViewModel.RefreshModListCommand.ExecuteAsync(null);
 
             var envArgs = Environment.GetCommandLineArgs().ToList();
 

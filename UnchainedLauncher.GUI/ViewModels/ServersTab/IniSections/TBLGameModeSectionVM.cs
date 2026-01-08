@@ -36,6 +36,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
         public int BotBackfillHighBots { get; set; }
 
         public float MinTimeBeforeStartingMatch { get; set; }
+        public float MaxTimeBeforeStartingMatch { get; set; }
         public int IdleKickTimerSpectate { get; set; }
         public int IdleKickTimerDisconnect { get; set; }
 
@@ -148,6 +149,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             BotBackfillHighPlayers = model.BotBackfillHighPlayers;
             BotBackfillHighBots = model.BotBackfillHighBots;
             MinTimeBeforeStartingMatch = model.MinTimeBeforeStartingMatch;
+            MaxTimeBeforeStartingMatch = model.MaxTimeBeforeStartingMatch;
             IdleKickTimerSpectate = model.IdleKickTimerSpectate;
             IdleKickTimerDisconnect = model.IdleKickTimerDisconnect;
 
@@ -184,6 +186,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             BotBackfillHighPlayers,
             BotBackfillHighBots,
             MinTimeBeforeStartingMatch,
+            MaxTimeBeforeStartingMatch,
             IdleKickTimerSpectate,
             IdleKickTimerDisconnect,
             MapList.ToArray(),

@@ -10,8 +10,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
         public bool ClearHorsesPostRound { get; set; }
         public bool ResetTaggedActorsPostRound { get; set; }
         public bool UsePreCountdownForCustomizationLoading { get; set; }
-        public int MinTimeBeforeStartingMatch { get; set; }
-        public int MaxTimeBeforeStartingMatch { get; set; }
+        public int TimeBetweenRounds { get; set; }
         public int TeamLives { get; set; }
 
         public void LoadFrom(ArenaGameMode model) {
@@ -21,8 +20,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             ClearHorsesPostRound = model.bClearHorsesPostRound;
             ResetTaggedActorsPostRound = model.bResetTaggedActorsPostRound;
             UsePreCountdownForCustomizationLoading = model.bUsePreCountdownForCustomizationLoading;
-            MinTimeBeforeStartingMatch = model.MinTimeBeforeStartingMatch;
-            MaxTimeBeforeStartingMatch = model.MaxTimeBeforeStartingMatch;
+            TimeBetweenRounds = model.TimeBetweenRounds;
             TeamLives = model.TeamLives;
         }
 
@@ -33,8 +31,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             ClearHorsesPostRound,
             ResetTaggedActorsPostRound,
             UsePreCountdownForCustomizationLoading,
-            MinTimeBeforeStartingMatch,
-            MaxTimeBeforeStartingMatch,
+            TimeBetweenRounds,
             TeamLives
         );
 

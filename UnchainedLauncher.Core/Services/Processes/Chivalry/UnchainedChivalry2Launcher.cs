@@ -45,14 +45,23 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             var updatedLaunchOpts = maybeUpdatedLaunchOpts.ValueUnsafe();
 
             var moddedLaunchArgs = launchOptions.LaunchArgs;
-            var launchOpts = updatedLaunchOpts.ToCLIArgs();
+            var allArgs = updatedLaunchOpts.ToCLIArgs();
+            var mapUriArgs = allArgs.Filter(x => x is UEMapUrlParameter);
+            var launchOpts = allArgs.Filter<CLIArg>(x => x is not UEMapUrlParameter);
+            
+            var mapString = "TBL";
+            foreach (var mapUriArg in mapUriArgs) {
+                mapString += mapUriArg.Rendered;
+            }
+            
             Logger.Info($"Launch args:");
+            Logger.Info($"    {mapString}");
             foreach (var launchOpt in launchOpts) {
                 Logger.Info($"    {launchOpt.Rendered}");
             }
 
             var workingDir = Path.Combine(InstallationRootDir, FilePaths.BinDir);
-            var launchOptString = string.Join(" ", launchOpts.Select(x => x.Rendered));
+            var launchOptString = mapString + string.Join(" ", launchOpts.Select(x => x.Rendered));
             var launchResult = Launcher.Launch(workingDir, launchOptString);
 
             return launchResult.Match(

@@ -47,6 +47,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                         conf.A2SPort,
                         conf.PingPort,
                         conf.ShowInServerBrowser,
+                        conf.FFAScoreLimit,
+                        conf.FFATimeLimit,
+                        conf.TDMTicketCount,
+                        conf.TDMTimeLimit,
+                        conf.PlayerBotCount,
+                        conf.WarmupTime,
                         conf.EnabledServerModList
                     )
             ));
@@ -71,6 +77,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         int PingPort = 3075,
         string NextMapName = "FFA_Courtyard",
         bool ShowInServerBrowser = true,
+        int? FFAScoreLimit = null,
+        int? FFATimeLimit = null,
+        int? TDMTicketCount = null,
+        int? TDMTimeLimit = null,
+        int? PlayerBotCount = null,
+        int? WarmupTime = null,
         ObservableCollection<ReleaseCoordinates>? EnabledServerModList = null) {
 
         public string SavedDirSuffix => ServerConfigurationVM.SavedDirSuffix(Name);
@@ -91,9 +103,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public IpNetDriverSectionVM IpNetDriver { get; } = new();
         public GameSessionSectionVM GameSession { get; } = new();
         public TBLGameModeSectionVM GameMode { get; } = new();
-        public LtsGameModeSectionVM Lts { get; } = new();
+        public LtsGameModeSectionVM LTS { get; } = new();
         public ArenaGameModeSectionVM Arena { get; } = new();
         public TBLGameUserSettingsSectionVM UserSettings { get; } = new();
+        public FfaConfigurationSectionVM FFA { get; private set; }
+        public TdmConfigurationSectionVM TDM { get; private set; }
+        
 
         public BaseConfigurationSectionVM BaseConfigurationSection { get; }
         public AdvancedConfigurationSectionVM AdvancedConfigurationSection { get; }
@@ -125,6 +140,15 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public int PingPort { get; set; }
         public bool ShowInServerBrowser { get; set; }
         public string LocalIp { get; set; }
+        
+        public int? FFATimeLimit { get; set; }
+        public int? FFAScoreLimit { get; set; }
+        
+        public int? TDMTimeLimit { get; set; }
+        public int? TDMTicketCount { get; set; }
+        
+        public int? PlayerBotCount { get; set; }
+        public int? WarmupTime { get; set; }
 
         public static string SavedDirSuffix(string name) {
             var substitutedUnderscores = name.Trim()
@@ -146,7 +170,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             GameMode.DefaultMaxPlayers = GameSession.MaxPlayers;
             GameMode.LoadFrom(ini.Game.TBLGameMode);
 
-            Lts.LoadFrom(ini.Game.LTSGameMode);
+            LTS.LoadFrom(ini.Game.LTSGameMode);
             Arena.LoadFrom(ini.Game.ArenaGameMode);
             UserSettings.LoadFrom(ini.GameUserSettings.TBLGameUserSettings);
         }
@@ -161,7 +185,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var gameIni = new GameINI(
                 GameSession.ToModel(),
                 GameMode.ToModel(),
-                Lts.ToModel(),
+                LTS.ToModel(),
                 Arena.ToModel()
             );
 
@@ -184,6 +208,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             int a2SPort = 7071,
             int pingPort = 3075,
             bool showInServerBrowser = true,
+            int? ffaScoreLimit = null,
+            int? ffaTimeLimit = null,
+            int? tdmTicketCount = null,
+            int? tdmTimeLimit = null,
+            int? playerBotCount = null,
+            int? warmupTime = null,
             ObservableCollection<ReleaseCoordinates>? enabledServerModList = null
         ) {
             Name = name;
@@ -194,6 +224,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             PingPort = pingPort;
             GamePort = gamePort;
             ShowInServerBrowser = showInServerBrowser;
+
+            FFAScoreLimit = ffaScoreLimit;
+            FFATimeLimit = ffaTimeLimit;
+            TDMTicketCount = tdmTicketCount;
+            TDMTimeLimit = tdmTimeLimit;
+            PlayerBotCount = playerBotCount;
+            WarmupTime = warmupTime;
 
             EnabledServerModList = enabledServerModList ?? new ObservableCollection<ReleaseCoordinates>();
 
@@ -214,6 +251,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             BaseConfigurationSection = new BaseConfigurationSectionVM(this);
             AdvancedConfigurationSection = new AdvancedConfigurationSectionVM(this);
+            
+            TDM = new TdmConfigurationSectionVM(this);
+            FFA = new FfaConfigurationSectionVM(this);
         }
 
         public void EnableServerMod(Release release) =>
@@ -284,8 +324,25 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 .Select(x => x.Address.ToString())
                 .ToArray();
 
-        public ServerConfiguration ToServerConfiguration() => new ServerConfiguration(Name, Description, Password,
-            LocalIp, GamePort, RconPort, A2SPort, PingPort, DetermineNextMapName(), ShowInServerBrowser, EnabledServerModList);
+        public ServerConfiguration ToServerConfiguration() => new ServerConfiguration(
+            Name,
+            Description,
+            Password,
+            LocalIp,
+            GamePort,
+            RconPort,
+            A2SPort,
+            PingPort,
+            DetermineNextMapName(),
+            ShowInServerBrowser,
+            FFAScoreLimit,
+            FFATimeLimit,
+            TDMTicketCount,
+            TDMTimeLimit,
+            PlayerBotCount,
+            WarmupTime,
+            EnabledServerModList
+        );
 
         private string DetermineNextMapName() {
             // Prefer the selected rotation entry. If rotation is empty, fall back to a safe default.

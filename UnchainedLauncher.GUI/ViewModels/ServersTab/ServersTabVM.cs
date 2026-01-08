@@ -180,6 +180,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 formData.PingPort,
                 formData.A2SPort,
                 formData.RconPort,
+                formData.FFATimeLimit,
+                formData.FFAScoreLimit,
+                formData.TDMTimeLimit,
+                formData.TDMTicketCount,
+                formData.PlayerBotCount,
+                formData.WarmupTime,
                 formData.LocalIp,
                 nextMapModActors
             );

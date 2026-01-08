@@ -42,6 +42,12 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                     BeaconPort: 15000,
                     QueryPort: 27015,
                     RconPort: 27020,
+                    FFATimeLimit: 10,
+                    FFAScoreLimit: 100,
+                    TDMTimeLimit: 10,
+                    TDMTicketCount: 10,
+                    PlayerBotCount: 10,
+                    WarmupTime: 10,
                     LocalIp: Some("127.0.0.1"),
                     NextMapModActors: new[] { "ExampleActorModA", "ExampleActorModB" }
                 ),

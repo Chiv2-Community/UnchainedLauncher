@@ -25,13 +25,21 @@
                     <TabItem Header="Base Configuration">
                         <sections:BaseConfigurationSectionView DataContext="{Binding BaseConfigurationSection}" />
                     </TabItem>
-
+                    
+                    <TabItem Header="Free For All">
+                        <sections:TdmConfigurationSectionView DataContext="{Binding  FFA}" />
+                    </TabItem>
+                    
                     <TabItem Header="Team Autobalance">
                         <sections:TeamAutobalanceSectionView DataContext="{Binding GameMode}" />
                     </TabItem>
+                    
+                    <TabItem Header="Team Deathmatch">
+                        <sections:TdmConfigurationSectionView DataContext="{Binding  TDM}" />
+                    </TabItem>
 
                     <TabItem Header="Last Team Standing">
-                        <sections:LastTeamStandingSectionView DataContext="{Binding Lts}" />
+                        <sections:LastTeamStandingSectionView DataContext="{Binding LTS}" />
                     </TabItem>
 
                     <TabItem Header="Arena">

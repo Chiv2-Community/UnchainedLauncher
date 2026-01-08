@@ -17,6 +17,34 @@
         <StackPanel Margin="8">
             <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" Padding="8">
                 <StackPanel>
+                    <TextBlock Text="Game Options (Map URL)" FontWeight="SemiBold" Margin="0,0,0,8" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock Text="WarmupTime" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding WarmupTime, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch" />
+
+                        <TextBlock Text="NumPlayerBots" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding PlayerBotCount, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" />
+
+                
+                    </Grid>
+                </StackPanel>
+            </Border>
+            <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" CornerRadius="6" Margin="0,0,0,8" Padding="8">
+                <StackPanel>
                     <TextBlock Text="Network (Engine.ini)" FontWeight="SemiBold" Margin="0,0,0,8" />
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -91,11 +119,14 @@
                         <TextBlock Text="MinTimeBeforeStartingMatch" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding GameMode.MinTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" />
 
-                        <TextBlock Text="IdleKickTimerSpectate" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding GameMode.IdleKickTimerSpectate}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch" />
+                        <TextBlock Text="MaxTimeBeforeStartingMatch" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding GameMode.MaxTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch" />
 
-                        <TextBlock Text="IdleKickTimerDisconnect" Grid.Row="1" Grid.Column="6" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding GameMode.IdleKickTimerDisconnect}" Grid.Row="1" Grid.Column="7" HorizontalAlignment="Stretch" />
+                        <TextBlock Text="IdleKickTimerSpectate" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding GameMode.IdleKickTimerSpectate}" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch" />
+
+                        <TextBlock Text="IdleKickTimerDisconnect" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding GameMode.IdleKickTimerDisconnect}" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch" />
                     </Grid>
                 </StackPanel>
             </Border>

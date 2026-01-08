@@ -71,6 +71,12 @@ public record ServerLaunchOptions(
     int BeaconPort,
     int QueryPort,
     int RconPort,
+    int? FFATimeLimit,
+    int? FFAScoreLimit,
+    int? TDMTimeLimit,
+    int? TDMTicketCount,
+    int? PlayerBotCount,
+    int? WarmupTime,
     Option<string> LocalIp,
     IEnumerable<String> NextMapModActors
 ) {
@@ -98,6 +104,13 @@ public record ServerLaunchOptions(
 
         LocalIp.IfSome(ip => args.Add(new Parameter("--local-ip", ip)));
 
+        FFAScoreLimit.IfSome(limit => new UEMapUrlParameter("FFAScoreLimit", limit.ToString()));
+        FFATimeLimit.IfSome(limit => new UEMapUrlParameter("FFATimeLimit", limit.ToString()));
+        TDMTimeLimit.IfSome(limit => new UEMapUrlParameter("TDMTimeLimit", limit.ToString()));
+        TDMTicketCount.IfSome(count => new UEMapUrlParameter("TDMTicketCount", count.ToString()));
+        PlayerBotCount.IfSome(count => new UEMapUrlParameter("NumPlayerBots", count.ToString()));
+        WarmupTime.IfSome(time => new UEMapUrlParameter("WarmupTime", time.ToString()));
+
         return args;
     }
 };
@@ -110,3 +123,4 @@ public record Flag(string FlagName) : CLIArg(FlagName);
 public record Parameter(string ParamName, string Value) : CLIArg($"{ParamName} \"{Value}\"");
 public record UEParameter(string ParamName, string Value) : CLIArg($"{ParamName}={Value}");
 public record UEINIParameter(string Type, string Section, string Key, string Value) : CLIArg($"-ini:{Type}:[{Section}]:{Key}=\"{Value}\"");
+public record UEMapUrlParameter(string Key, string Value) : CLIArg($"?{Key}={Value}");

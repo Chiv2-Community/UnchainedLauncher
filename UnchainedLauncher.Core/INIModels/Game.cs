@@ -15,7 +15,8 @@ public record TBLGameMode(
     int BotBackfillLowBots = 12,
     int BotBackfillHighPlayers = 30,
     int BotBackfillHighBots = 0,
-    float MinTimeBeforeStartingMatch = 1.0f,
+    float MinTimeBeforeStartingMatch = 10,
+    float MaxTimeBeforeStartingMatch = 60,
     int IdleKickTimerSpectate = 180,
     int IdleKickTimerDisconnect = 360,
     string[]? MapList = null,
@@ -48,7 +49,6 @@ public record ArenaGameMode(
     bool bClearHorsesPostRound = true,
     bool bResetTaggedActorsPostRound = true,
     bool bUsePreCountdownForCustomizationLoading = true,
-    int MinTimeBeforeStartingMatch = 5,
-    int MaxTimeBeforeStartingMatch = 10,
+    int TimeBetweenRounds = 30,
     int TeamLives = 0
 );

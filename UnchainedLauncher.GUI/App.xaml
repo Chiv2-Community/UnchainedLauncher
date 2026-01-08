@@ -21,6 +21,7 @@
             <!-- Converters -->
             <converters:InstallationTypeConverter x:Key="InstallationTypeConverter"/>
             <converters:ModSortModeToStringConverter x:Key="ModSortModeToStringConverter"/>
+            <converters:NullableIntToStringConverter x:Key="NullableIntConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

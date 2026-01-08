@@ -18,7 +18,7 @@
             <Border BorderBrush="{StaticResource Brush.Border}" BorderThickness="1" CornerRadius="6" Padding="8">
                 <StackPanel>
                     <TextBlock Text="Arena" FontWeight="SemiBold" Margin="0,0,0,8" />
-                    <Grid Margin="0,0,0,10">
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
@@ -32,8 +32,6 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="20" />
-                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
@@ -46,20 +44,31 @@
                         <TextBlock Text="TeamLives" Grid.Row="0" Grid.Column="6" Style="{StaticResource FormLabel}" />
                         <TextBox Text="{Binding TeamLives}" Grid.Row="0" Grid.Column="7" HorizontalAlignment="Stretch" />
 
-                        <TextBlock Text="MinTimeBeforeStartingMatch" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding MinTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" />
+                        <TextBlock Text="TimeBetweenRounds" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}" />
+                        <TextBox Text="{Binding TimeBetweenRounds}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch" />
+                    </Grid>
 
-                        <TextBlock Text="MaxTimeBeforeStartingMatch" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}" />
-                        <TextBox Text="{Binding MaxTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch" />
+                    <Grid Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                        <CheckBox Grid.Column="0" Grid.Row="3" IsChecked="{Binding ClearWeaponsPostRound}" Content="Clear Weapons Post Round" Margin="0,0,12,6" />
-                        <CheckBox Grid.Column="0" Grid.Row="4"  IsChecked="{Binding ClearHorsesPostRound}" Content="Clear Horses Post Round" Margin="0,0,0,6" />
-                        <CheckBox Grid.Column="3" Grid.Row="3" IsChecked="{Binding ResetTaggedActorsPostRound}" Content="Reset Tagged Actors Post Round" Margin="0,0,12,0" />
-                        <CheckBox Grid.Column="3" Grid.Row="4" IsChecked="{Binding UsePreCountdownForCustomizationLoading}" Content="Use PreCountdown For Customization Loading" />
-                        
-                        <TextBox Grid.Column="6" Grid.Row="3" Text="" BorderBrush="Transparent" Focusable="False" />
-                        <TextBox Grid.Column="6" Grid.Row="4" Text="" BorderBrush="Transparent" Focusable="False" />
-                        
+                        <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding ClearWeaponsPostRound}" Content="Clear Weapons Post Round" Margin="0,0,12,6" />
+                        <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding ClearHorsesPostRound}" Content="Clear Horses Post Round" />
+
+                        <CheckBox Grid.Column="3" Grid.Row="0" IsChecked="{Binding ResetTaggedActorsPostRound}" Content="Reset Tagged Actors Post Round" Margin="0,0,12,6" />
+                        <CheckBox Grid.Column="3" Grid.Row="1" IsChecked="{Binding UsePreCountdownForCustomizationLoading}" Content="Use PreCountdown For Customization Loading" />
                     </Grid>
                 </StackPanel>
             </Border>

@@ -1,5 +1,5 @@
-﻿using System.Collections.ObjectModel;
-using PropertyChanged;
+﻿using PropertyChanged;
+using System.Collections.ObjectModel;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {

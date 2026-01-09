@@ -1,6 +1,6 @@
-﻿using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
+﻿using System.Collections.ObjectModel;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
-using System.Collections.ObjectModel;
+using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
 
 namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
     public class BaseConfigurationSectionDesignVM : BaseConfigurationSectionVM {

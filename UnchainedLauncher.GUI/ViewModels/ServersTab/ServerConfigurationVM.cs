@@ -131,7 +131,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                         // Replace the old one
                         Directory.Delete(FilePaths.Chiv2ConfigPath(newSuffix), true);
                     }
-                    
+
                     Directory.CreateDirectory(Directory.GetParent(FilePaths.Chiv2ConfigPath(newSuffix))!.FullName);
                     Directory.Move(FilePaths.Chiv2ConfigPath(oldSuffix), FilePaths.Chiv2ConfigPath(newSuffix));
                 }

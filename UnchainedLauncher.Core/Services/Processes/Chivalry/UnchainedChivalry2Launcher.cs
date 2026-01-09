@@ -58,7 +58,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
                 if (Regex.IsMatch(rawArgsString, @"\bTBL\b")) {
                     // Insert map url params immediately after the `TBL` token (not at the end of all raw args)
                     mapString = new Regex(@"\bTBL\b").Replace(rawArgsString, $"TBL{mapUriString}", 1);
-                } else {
+                }
+                else {
                     mapString = string.IsNullOrWhiteSpace(rawArgsString)
                         ? $"TBL{mapUriString}"
                         : $"TBL{mapUriString} {rawArgsString}";
@@ -76,7 +77,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
             var launchOptString = string.Join(" ", new[] { mapString }
                 .Concat(cliArgs.Select(x => x.Rendered))
                 .Where(x => !string.IsNullOrWhiteSpace(x)));
-            
+
             var launchResult = Launcher.Launch(workingDir, launchOptString);
 
             return launchResult.Match(

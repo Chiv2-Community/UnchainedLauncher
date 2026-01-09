@@ -22,7 +22,7 @@ using UnchainedLauncher.GUI.ViewModels.Registry;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
-    public partial class SettingsVM : IDisposable { 
+    public partial class SettingsVM : IDisposable {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(SettingsVM));
         private static readonly Version Version = Assembly.GetExecutingAssembly().GetName().Version!;
 
@@ -31,10 +31,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string AdditionalModActors { get; set; }
         public string ServerBrowserBackend { get; set; }
         public bool UseLightTheme { get; set; }
-        
+
         public bool HasLaunched { get; set; }
 
-        public bool CanLaunch => !HasLaunched || IsLauncherReusable(); 
+        public bool CanLaunch => !HasLaunched || IsLauncherReusable();
 
         private string _cliArgs;
         public string CLIArgs {

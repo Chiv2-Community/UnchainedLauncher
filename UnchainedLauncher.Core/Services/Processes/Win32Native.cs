@@ -108,21 +108,18 @@ namespace UnchainedLauncher.Core.Services.Processes {
 
             return rc;
         }
-        
-        private static class Win32Native
-        {
+
+        private static class Win32Native {
             public const uint PROCESS_BASIC_INFORMATION = 0;
 
             [Flags]
-            public enum OpenProcessDesiredAccessFlags : uint
-            {
+            public enum OpenProcessDesiredAccessFlags : uint {
                 PROCESS_VM_READ = 0x0010,
                 PROCESS_QUERY_INFORMATION = 0x0400,
             }
 
             [StructLayout(LayoutKind.Sequential)]
-            public struct ProcessBasicInformation
-            {
+            public struct ProcessBasicInformation {
                 public IntPtr Reserved1;
                 public IntPtr PebBaseAddress;
                 [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
@@ -132,8 +129,7 @@ namespace UnchainedLauncher.Core.Services.Processes {
             }
 
             [StructLayout(LayoutKind.Sequential)]
-            public struct UnicodeString
-            {
+            public struct UnicodeString {
                 public ushort Length;
                 public ushort MaximumLength;
                 public IntPtr Buffer;
@@ -144,16 +140,14 @@ namespace UnchainedLauncher.Core.Services.Processes {
             // Actual struct definition:
             // https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb
             [StructLayout(LayoutKind.Sequential)]
-            public struct PEB
-            {
+            public struct PEB {
                 [MarshalAs(UnmanagedType.ByValArray, SizeConst = 4)]
                 public IntPtr[] Reserved;
                 public IntPtr ProcessParameters;
             }
 
             [StructLayout(LayoutKind.Sequential)]
-            public struct RtlUserProcessParameters
-            {
+            public struct RtlUserProcessParameters {
                 [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
                 public byte[] Reserved1;
                 [MarshalAs(UnmanagedType.ByValArray, SizeConst = 10)]

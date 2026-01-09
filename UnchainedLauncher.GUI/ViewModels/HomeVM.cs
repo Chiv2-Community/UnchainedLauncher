@@ -14,7 +14,6 @@ using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
-using UnchainedLauncher.GUI.Services;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -127,7 +126,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     )
                 );
 
-            
+
             return launchResult.Match(
                 Left: error => {
                     Logger.Error("Failed to launch Chivalry 2: ", error);
@@ -160,12 +159,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 None,
                 None
             );
-            
+
             Settings.HasLaunched = true;
 
             var launchResult = await UnchainedLauncher.Launch(options);
 
-            
+
             return launchResult.Match(
                 Left: e => {
                     Logger.Error("Failed to launch Chivalry 2 Unchained", e);

@@ -6,12 +6,9 @@ using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -43,37 +40,37 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             conf => ToClassType(conf, settings, modManager, dialogueSpawner, launcher, serverConfigs, processWatcher)
         ) { }
 
-            public static ServersTabVM ToClassType(
-                ServersTabMetadata serversTabMetadata,
-                SettingsVM settings,
-                IModManager modManager,
-                IUserDialogueSpawner dialogueSpawner,
-                IChivalry2Launcher launcher,
-                ObservableCollection<ServerConfigurationVM> serverConfigs,
-                IChivalryProcessWatcher processWatcher
-            ) {
-                var vm = new ServersTabVM(settings, modManager, dialogueSpawner, launcher, serverConfigs, processWatcher);
-                serversTabMetadata.ConfigNameToProcessIDMap.ForEach(pair => {
-                    var (confName, pid) = pair;
-                    var config = serverConfigs.FirstOrDefault(conf => conf.Name == confName);
-                    if (config == null) return;
-                    vm.AttachRunningServerByPid(config, pid);
-                });
-                vm.SetSelectedConfigurationByName(serversTabMetadata.SelectedConfigurationName);
-                
-                return vm;
-            }
+        public static ServersTabVM ToClassType(
+            ServersTabMetadata serversTabMetadata,
+            SettingsVM settings,
+            IModManager modManager,
+            IUserDialogueSpawner dialogueSpawner,
+            IChivalry2Launcher launcher,
+            ObservableCollection<ServerConfigurationVM> serverConfigs,
+            IChivalryProcessWatcher processWatcher
+        ) {
+            var vm = new ServersTabVM(settings, modManager, dialogueSpawner, launcher, serverConfigs, processWatcher);
+            serversTabMetadata.ConfigNameToProcessIDMap.ForEach(pair => {
+                var (confName, pid) = pair;
+                var config = serverConfigs.FirstOrDefault(conf => conf.Name == confName);
+                if (config == null) return;
+                vm.AttachRunningServerByPid(config, pid);
+            });
+            vm.SetSelectedConfigurationByName(serversTabMetadata.SelectedConfigurationName);
+
+            return vm;
+        }
 
 
-            public static ServersTabMetadata ToJsonType(ServersTabVM serversTabVM) {
-                var selectedConfig = 
-                    serversTabVM.SelectedConfiguration ?? serversTabVM.ServerConfigs.First();
-                
-                var procMap = 
-                    serversTabVM.RunningServers.Select(conf => (conf.configuration.Name, conf.live.Server.ServerProcess.Id));                
- 
-                return new ServersTabMetadata(selectedConfig.Name, procMap.ToDictionary());
-            }
+        public static ServersTabMetadata ToJsonType(ServersTabVM serversTabVM) {
+            var selectedConfig =
+                serversTabVM.SelectedConfiguration ?? serversTabVM.ServerConfigs.First();
+
+            var procMap =
+                serversTabVM.RunningServers.Select(conf => (conf.configuration.Name, conf.live.Server.ServerProcess.Id));
+
+            return new ServersTabMetadata(selectedConfig.Name, procMap.ToDictionary());
+        }
 
     }
 
@@ -81,8 +78,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         string SelectedConfigurationName,
         Dictionary<string, int> ConfigNameToProcessIDMap
     );
-        
-    
+
+
     [AddINotifyPropertyChangedInterface]
     public partial class ServersTabVM : IDisposable {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServersTabVM));
@@ -188,7 +185,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public async Task LaunchSelected(bool headless = false) {
             if (SelectedConfiguration == null) return;
-            
+
             var formData = SelectedConfiguration.ToServerConfiguration();
 
             // Resolve selected releases from the template's EnabledServerModList
@@ -215,7 +212,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 Logger.Debug($"Failed to find existing server process with PID {pid}. It has probably been shutdown since the launcher was last launched.");
                 return;
             }
-            
+
             var formData = conf.ToServerConfiguration();
             var server = CreateServer(proc, formData, false, conf.EnabledServerModList.ToArray());
             var serverVm = new ServerVM(server, conf.Name, conf.AvailableMaps);
@@ -336,13 +333,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 await UiInvokeAsync(() => { runningTuple.live.IsUp = false; });
 
                 Logger.Error($"Server exited unexpectedly with code {exitCode}. Attempting automatic restart...");
-                
+
                 if (!Settings.CanLaunch) return; // EGS can't restart automatically.
 
                 // Small delay to avoid tight restart loops
                 await Task.Delay(2000);
 
-                
+
                 var relaunched = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
                 relaunched.IfSome(newProc => {
                     var newServer = CreateServer(newProc, formData, headless, enabledCoordinates);

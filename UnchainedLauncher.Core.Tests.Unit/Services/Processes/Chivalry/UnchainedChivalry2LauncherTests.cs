@@ -91,7 +91,7 @@ public class UnchainedChivalry2LauncherTests {
         capturingLauncher.Args.Should().NotBeNull();
         capturingLauncher.Args!.Should().Contain("TBL?FFAScoreLimit=25 -someOtherArg");
     }
-    
+
     [Fact]
     public async Task TryLaunch_WhenRawArgsContainsTBLAndOthers_ShoulSuffixTBLWithMapUriString() {
         var preparer = Chivalry2LaunchPreparer.Create<LaunchOptions>(opts => Prelude.Some(opts));

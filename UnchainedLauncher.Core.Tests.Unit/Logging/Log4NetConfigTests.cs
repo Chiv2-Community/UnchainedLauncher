@@ -1,8 +1,6 @@
-﻿using System;
-using FluentAssertions;
+﻿using FluentAssertions;
 using log4net;
 using log4net.Config;
-using Xunit;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Logging {
     public class Log4NetConfigTests {

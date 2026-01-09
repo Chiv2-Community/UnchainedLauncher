@@ -275,7 +275,7 @@ namespace UnchainedLauncher.GUI {
                 serverConfigurations,
                 processWatcher
             );
-            
+
             var codec = new ServerTabCodec(settings, modManager, dialogueSpawner, launcher, serverConfigurations, processWatcher);
             var serversTab = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
             RegisterSaveToFileOnExit(serversTab, codec, jsonPath);

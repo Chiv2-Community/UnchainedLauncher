@@ -144,17 +144,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public int RconPort { get; set; }
         public int A2SPort { get; set; }
         public int PingPort { get; set; }
-        public bool ShowInServerBrowser { get; set; }
         public string LocalIp { get; set; }
-
-        public int? FFATimeLimit { get; set; }
-        public int? FFAScoreLimit { get; set; }
-
-        public int? TDMTimeLimit { get; set; }
-        public int? TDMTicketCount { get; set; }
-
-        public int? PlayerBotCount { get; set; }
-        public int? WarmupTime { get; set; }
 
         public static string SavedDirSuffix(string name) {
             var substitutedUnderscores = name.Trim()
@@ -228,14 +218,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             A2SPort = a2SPort;
             PingPort = pingPort;
             GamePort = gamePort;
-            ShowInServerBrowser = showInServerBrowser;
-
-            FFAScoreLimit = ffaScoreLimit;
-            FFATimeLimit = ffaTimeLimit;
-            TDMTicketCount = tdmTicketCount;
-            TDMTimeLimit = tdmTimeLimit;
-            PlayerBotCount = playerBotCount;
-            WarmupTime = warmupTime;
 
             EnabledServerModList = enabledServerModList ?? new ObservableCollection<ReleaseCoordinates>();
 
@@ -257,11 +239,23 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             modManager.ModDisabled += RemoveAvailableMod;
             modManager.ModEnabled += AddAvailableMod;
 
-            BaseConfigurationSection = new BaseConfigurationSectionVM(this);
-            AdvancedConfigurationSection = new AdvancedConfigurationSectionVM(this);
+            BaseConfigurationSection = new BaseConfigurationSectionVM(
+                GameMode,
+                UserSettings,
+                GameSession,
+                AvailableMaps
+            );
 
-            TDM = new TdmConfigurationSectionVM(this);
-            FFA = new FfaConfigurationSectionVM(this);
+            AdvancedConfigurationSection = new AdvancedConfigurationSectionVM(
+                IpNetDriver,
+                GameMode,
+                showInServerBrowser,
+                playerBotCount,
+                warmupTime
+            );
+
+            TDM = new TdmConfigurationSectionVM(tdmTimeLimit, tdmTicketCount);
+            FFA = new FfaConfigurationSectionVM(ffaTimeLimit, ffaScoreLimit);
         }
 
         public void EnableServerMod(Release release) =>
@@ -342,13 +336,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             A2SPort,
             PingPort,
             DetermineNextMapName(),
-            ShowInServerBrowser,
-            FFAScoreLimit,
-            FFATimeLimit,
-            TDMTicketCount,
-            TDMTimeLimit,
-            PlayerBotCount,
-            WarmupTime,
+            AdvancedConfigurationSection.ShowInServerBrowser,
+            FFA.FFAScoreLimit,
+            FFA.FFATimeLimit,
+            TDM.TDMTicketCount,
+            TDM.TDMTimeLimit,
+            AdvancedConfigurationSection.PlayerBotCount,
+            AdvancedConfigurationSection.WarmupTime,
             EnabledServerModList
         );
 
@@ -369,7 +363,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 ? string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"))
                 : "null";
             return
-                $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {DetermineNextMapName()}, {ShowInServerBrowser}, [{enabledMods}])";
+                $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {DetermineNextMapName()}, {AdvancedConfigurationSection.ShowInServerBrowser}, [{enabledMods}])";
         }
 
 

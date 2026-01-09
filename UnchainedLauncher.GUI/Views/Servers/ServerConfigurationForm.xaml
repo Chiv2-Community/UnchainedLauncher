@@ -25,7 +25,7 @@
                     </TabItem>
                     
                     <TabItem Header="Free For All">
-                        <sections:TdmConfigurationSectionView DataContext="{Binding  FFA}" />
+                        <sections:FfaConfigurationSectionView DataContext="{Binding  FFA}" />
                     </TabItem>
                     
                     <TabItem Header="Team Autobalance">

@@ -1,19 +1,14 @@
-﻿namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
+﻿using PropertyChanged;
+
+namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
+    [AddINotifyPropertyChangedInterface]
     public class TdmConfigurationSectionVM {
-        private readonly ServerConfigurationVM _parent;
-
-        public TdmConfigurationSectionVM(ServerConfigurationVM parent) {
-            _parent = parent;
+        public TdmConfigurationSectionVM(int? tdmTimeLimit = null, int? tdmTicketCount = null) {
+            TDMTimeLimit = tdmTimeLimit;
+            TDMTicketCount = tdmTicketCount;
         }
 
-        public int? TDMTimeLimit {
-            get => _parent.TDMTimeLimit;
-            set => _parent.TDMTimeLimit = value;
-        }
-
-        public int? TDMTicketCount {
-            get => _parent.TDMTicketCount;
-            set => _parent.TDMTicketCount = value;
-        }
+        public int? TDMTimeLimit { get; set; }
+        public int? TDMTicketCount { get; set; }
     }
 }

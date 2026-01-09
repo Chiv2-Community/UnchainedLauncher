@@ -38,7 +38,7 @@
         <!-- Header -->
         <TextBlock Grid.Row="0"
                    Text="{Binding CurrentPageTitle}"
-                   Style="{StaticResource Heading.H2}"
+                   Style="{DynamicResource Heading.H2}"
                    Margin="0,0,0,10" />
 
         <!-- Page Content, Grid, Two columns, left side houses a descripton, right side houses some user control that changes per page -->
@@ -50,7 +50,7 @@
 
             <!-- Left side, description in a card container -->
             <Border Grid.Column="0"
-                    Style="{StaticResource Card}"
+                    Style="{DynamicResource Card}"
                     Margin="0,0,10,0"
                     Visibility="{Binding DisplayDescription}">
                 <TextBlock Text="{Binding CurrentPageDescription}"
@@ -79,7 +79,7 @@
                     Padding="20,6"
                     Margin="0,0,10,0"
                     HorizontalAlignment="Right"
-                    Style="{StaticResource Button.Secondary}" />
+                    Style="{DynamicResource Button.Secondary}" />
 
             <!-- Right-aligned Continue button -->
             <Button Grid.Column="2"
@@ -88,7 +88,7 @@
                     IsEnabled="{Binding CanContinue}"
                     Padding="20,6"
                     HorizontalAlignment="Right"
-                    Style="{StaticResource Button.Primary}" />
+                    Style="{DynamicResource Button.Primary}" />
         </Grid>
     </Grid>
 </views:UnchainedWindow>

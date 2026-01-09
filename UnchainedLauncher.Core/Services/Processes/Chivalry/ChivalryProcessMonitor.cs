@@ -34,7 +34,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
         private static readonly HashSet<int> AcceptableExitCodes = new() {
             0,                // Normal Exit
-            -1073741510       // Exit via DLL Window
+            -1073741510,      // Exit via DLL Window
+            -1,               // Shutdown via process handle exit
         };
 
         public bool IsAcceptableExitCode(int code) => AcceptableExitCodes.Contains(code);

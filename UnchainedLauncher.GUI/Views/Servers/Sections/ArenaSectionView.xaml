@@ -1,0 +1,82 @@
+﻿<UserControl x:Class="UnchainedLauncher.GUI.Views.Servers.Sections.ArenaSectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:ini="clr-namespace:UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=ini:ArenaGameModeSectionVM}">
+
+    <UserControl.Resources>
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel Margin="8">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Rounds To Win" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
+                       ToolTip="Number of round wins needed to win the match." />
+            <TextBox Text="{Binding RoundsToWin}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+                     ToolTip="Number of round wins needed to win the match." />
+
+            <TextBlock Text="Round Time Limit" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
+                       ToolTip="Time limit in seconds for each round. Example: 300" />
+            <TextBox Text="{Binding RoundTimeLimit}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch"
+                     ToolTip="Time limit in seconds for each round. Example: 300" />
+
+            <TextBlock Text="Team Lives" Grid.Row="0" Grid.Column="6" Style="{StaticResource FormLabel}"
+                       ToolTip="Extra lives given to a team (per player). Example: 0. In a 6v6 with TeamLives=1, the first player who dies on each team gets an extra life." />
+            <TextBox Text="{Binding TeamLives}" Grid.Row="0" Grid.Column="7" HorizontalAlignment="Stretch"
+                     ToolTip="Extra lives given to a team (per player). Example: 0" />
+
+            <TextBlock Text="Time Between Rounds" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}"
+                       ToolTip="Seconds between rounds." />
+            <TextBox Text="{Binding TimeBetweenRounds}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
+                     ToolTip="Seconds between rounds." />
+        </Grid>
+
+        <Grid Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <CheckBox Grid.Column="0" Grid.Row="0" IsChecked="{Binding ClearWeaponsPostRound}" Content="Clear Weapons Post Round" Margin="0,0,12,6"
+                      ToolTip="Whether to clear weapons after each round." />
+            <CheckBox Grid.Column="0" Grid.Row="1" IsChecked="{Binding ClearHorsesPostRound}" Content="Clear Horses Post Round"
+                      ToolTip="Whether to clear horses after each round." />
+
+            <CheckBox Grid.Column="3" Grid.Row="0" IsChecked="{Binding ResetTaggedActorsPostRound}" Content="Reset Tagged Actors Post Round" Margin="0,0,12,6"
+                      ToolTip="Whether to reset tagged actors after each round." />
+            <CheckBox Grid.Column="3" Grid.Row="1" IsChecked="{Binding UsePreCountdownForCustomizationLoading}" Content="Use PreCountdown For Customization Loading"
+                      ToolTip="Whether to use pre-countdown for customization loading." />
+        </Grid>
+    </StackPanel>
+</UserControl>

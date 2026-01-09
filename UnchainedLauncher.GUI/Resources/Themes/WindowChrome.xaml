@@ -8,8 +8,8 @@
         <Setter Property="WindowStyle" Value="None" />
         <Setter Property="ResizeMode" Value="CanResize" />
         <Setter Property="AllowsTransparency" Value="False" />
-        <Setter Property="Background" Value="{StaticResource Brush.Background}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Background}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
         <Setter Property="shell:WindowChrome.WindowChrome">
             <Setter.Value>
                 <shell:WindowChrome
@@ -47,6 +47,11 @@
 
                             <!-- Window buttons on the right -->
                             <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <ToggleButton Style="{DynamicResource ToggleButton.TitleBar}"
+                                              Visibility="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=ShowThemeToggle, Converter={StaticResource BoolToVisibilityConverter}}"
+                                              IsChecked="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=ThemeToggleContext.UseLightTheme, Mode=TwoWay}"
+                                              ToolTip="Toggle light/dark theme"
+                                              shell:WindowChrome.IsHitTestVisibleInChrome="True" />
                                 <Button Style="{DynamicResource Button.TitleBar.Minimize}"
                                         Command="{x:Static SystemCommands.MinimizeWindowCommand}"
                                         CommandParameter="{Binding RelativeSource={RelativeSource AncestorType=Window}}"
@@ -95,13 +100,52 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="bd" Property="Background"
-                                    Value="{StaticResource Brush.LightTransparent}" />
+                                    Value="{DynamicResource Brush.LightTransparent}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="bd" Property="Opacity" Value="0.9" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="bd" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ToggleButton.TitleBar" TargetType="ToggleButton">
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="Content" Value="🌙" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="bd"
+                            CornerRadius="0"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="0">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background"
+                                    Value="{DynamicResource Brush.LightTransparent}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="bd" Property="Opacity" Value="0.9" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="bd" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter Property="Content" Value="☀" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -120,8 +164,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.Danger}" />
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Light}" />
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Brush.Danger}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Light}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="bd" Property="Opacity" Value="0.9" />
@@ -144,8 +188,8 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bd" Property="Background" Value="{StaticResource Brush.PrimaryHover}" />
-                            <Setter Property="Foreground" Value="{StaticResource Brush.Light}" />
+                            <Setter TargetName="bd" Property="Background" Value="{DynamicResource Brush.PrimaryHover}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Light}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="bd" Property="Opacity" Value="0.9" />

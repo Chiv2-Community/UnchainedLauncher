@@ -7,7 +7,7 @@
         <Setter Property="Margin" Value="0,0,0,0" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="BorderBrush" Value="Transparent" />
-        <Setter Property="Background" Value="{StaticResource Brush.Secondary}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Secondary}" />
         <Setter Property="Foreground" Value="White" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -41,25 +41,25 @@
     <Style TargetType="Button" BasedOn="{StaticResource Button.Base}" />
 
     <Style x:Key="Button.Primary" TargetType="Button" BasedOn="{StaticResource Button.Base}">
-        <Setter Property="Background" Value="{StaticResource Brush.Primary}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.Light}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Primary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Light}" />
     </Style>
 
     <Style x:Key="Button.Secondary" TargetType="Button" BasedOn="{StaticResource Button.Base}">
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextSecondary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextSecondary}" />
     </Style>
 
     <Style x:Key="Button.Success" TargetType="Button" BasedOn="{StaticResource Button.Base}">
-        <Setter Property="Background" Value="{StaticResource Brush.Success}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Success}" />
     </Style>
 
     <Style x:Key="Button.Danger" TargetType="Button" BasedOn="{StaticResource Button.Base}">
-        <Setter Property="Background" Value="{StaticResource Brush.Danger}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
     </Style>
 
     <Style x:Key="Button.Light" TargetType="Button" BasedOn="{StaticResource Button.Base}">
-        <Setter Property="Background" Value="{StaticResource Brush.Light}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Light}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
     </Style>
 </ResourceDictionary>

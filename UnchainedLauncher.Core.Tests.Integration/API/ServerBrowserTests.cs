@@ -1,6 +1,8 @@
-﻿using UnchainedLauncher.Core.API.A2S;
+﻿// TEMP DISABLED: legacy tests reference removed ServerBrowser API. Replace with ServerRegistrationService tests.
+#if FALSE
 using UnchainedLauncher.Core.API.ServerBrowser;
-using Environment = UnchainedLauncher.Core.API.A2S.Environment;
+using UnchainedLauncher.Core.Services.A2S;
+using Environment = UnchainedLauncher.Core.Services.A2S.Environment;
 
 namespace UnchainedLauncher.Core.Tests.Integration.API {
 
@@ -64,3 +66,4 @@ namespace UnchainedLauncher.Core.Tests.Integration.API {
         }
     }
 }
+#endif

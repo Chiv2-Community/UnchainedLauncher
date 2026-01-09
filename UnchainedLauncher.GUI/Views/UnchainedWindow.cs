@@ -16,6 +16,20 @@ namespace UnchainedLauncher.GUI.Views {
                 typeof(UnchainedWindow),
                 new PropertyMetadata(true));
 
+        public static readonly DependencyProperty ShowThemeToggleProperty =
+            DependencyProperty.Register(
+                nameof(ShowThemeToggle),
+                typeof(bool),
+                typeof(UnchainedWindow),
+                new PropertyMetadata(false));
+
+        public static readonly DependencyProperty ThemeToggleContextProperty =
+            DependencyProperty.Register(
+                nameof(ThemeToggleContext),
+                typeof(object),
+                typeof(UnchainedWindow),
+                new PropertyMetadata(null));
+
         static UnchainedWindow() {
             // Register command bindings on this class type so any derived window benefits.
             CommandManager.RegisterClassCommandBinding(typeof(UnchainedWindow),
@@ -34,6 +48,16 @@ namespace UnchainedLauncher.GUI.Views {
         public bool ShowWindowTitle {
             get => (bool)GetValue(ShowWindowTitleProperty);
             set => SetValue(ShowWindowTitleProperty, value);
+        }
+
+        public bool ShowThemeToggle {
+            get => (bool)GetValue(ShowThemeToggleProperty);
+            set => SetValue(ShowThemeToggleProperty, value);
+        }
+
+        public object? ThemeToggleContext {
+            get => GetValue(ThemeToggleContextProperty);
+            set => SetValue(ThemeToggleContextProperty, value);
         }
 
         private static void OnCloseWindow(object sender, ExecutedRoutedEventArgs e) {

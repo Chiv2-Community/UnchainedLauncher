@@ -2,6 +2,7 @@ using LanguageExt;
 using LanguageExt.UnsafeValueAccess;
 using log4net;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using UnchainedLauncher.Core.Utilities;
 
@@ -37,23 +38,47 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
         public async Task<Either<UnchainedLaunchFailure, Process>> TryLaunch(LaunchOptions launchOptions) {
             Logger.Info("Attempting to launch modded game.");
 
-            var updatedLaunchOpts = await LaunchPreparer.PrepareLaunch(launchOptions);
-            if (updatedLaunchOpts.IsNone) {
+            var maybeUpdatedLaunchOpts = await LaunchPreparer.PrepareLaunch(launchOptions);
+            if (maybeUpdatedLaunchOpts.IsNone) {
                 return Left(UnchainedLaunchFailure.LaunchCancelled());
             }
 
-            var moddedLaunchArgs = launchOptions.LaunchArgs;
-            var tblLoc = moddedLaunchArgs.IndexOf("TBL", StringComparison.Ordinal);
-            var offsetIndex = tblLoc == -1 ? 0 : tblLoc + 3;
+            var updatedLaunchOpts = maybeUpdatedLaunchOpts.ValueUnsafe();
 
-            var launchOpts = updatedLaunchOpts.Map(x => x.ToCLIArgs()).ValueUnsafe();
+            var allArgs = updatedLaunchOpts.ToCLIArgs();
+            var rawArgs = allArgs.Filter(x => x is RawArgs);
+            var mapUriArgs = allArgs.Filter(x => x is UEMapUrlParameter);
+            var launchOpts = allArgs.Filter(x => x is not (UEMapUrlParameter or RawArgs));
 
-            moddedLaunchArgs = moddedLaunchArgs.Insert(offsetIndex, $" {string.Join(" ", launchOpts)} ");
-            moddedLaunchArgs += " -unchained";
+            var mapUriString = string.Join("", mapUriArgs.Select(x => x.Rendered));
 
-            Logger.Info($"Launch args: {moddedLaunchArgs}");
+            var rawArgsString = string.Join(" ", rawArgs.Select(x => x.Rendered));
+            var mapString = rawArgsString;
+            if (!string.IsNullOrWhiteSpace(mapUriString)) {
+                if (Regex.IsMatch(rawArgsString, @"\bTBL\b")) {
+                    // Insert map url params immediately after the `TBL` token (not at the end of all raw args)
+                    mapString = new Regex(@"\bTBL\b").Replace(rawArgsString, $"TBL{mapUriString}", 1);
+                }
+                else {
+                    mapString = string.IsNullOrWhiteSpace(rawArgsString)
+                        ? $"TBL{mapUriString}"
+                        : $"TBL{mapUriString} {rawArgsString}";
+                }
+            }
 
-            var launchResult = Launcher.Launch(Path.Combine(InstallationRootDir, FilePaths.BinDir), moddedLaunchArgs);
+            Logger.Info($"Launch args:");
+            Logger.Info($"    {mapString}");
+            var cliArgs = launchOpts as CLIArg[] ?? launchOpts.ToArray();
+            foreach (var launchOpt in cliArgs) {
+                Logger.Info($"    {launchOpt.Rendered}");
+            }
+
+            var workingDir = Path.Combine(InstallationRootDir, FilePaths.BinDir);
+            var launchOptString = string.Join(" ", new[] { mapString }
+                .Concat(cliArgs.Select(x => x.Rendered))
+                .Where(x => !string.IsNullOrWhiteSpace(x)));
+
+            var launchResult = Launcher.Launch(workingDir, launchOptString);
 
             return launchResult.Match(
                 Left: error => {

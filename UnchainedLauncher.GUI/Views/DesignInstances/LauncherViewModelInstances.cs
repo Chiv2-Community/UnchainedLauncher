@@ -13,7 +13,6 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             null,
             null,
             null,
-            null,
             new MessageBoxSpawner(),
             new ChivalryProcessWatcher()
         ) {

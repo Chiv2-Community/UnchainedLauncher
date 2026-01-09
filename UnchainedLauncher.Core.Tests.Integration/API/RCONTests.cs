@@ -1,5 +1,5 @@
 ﻿using System.Net;
-using UnchainedLauncher.Core.API;
+using UnchainedLauncher.Core.Services.Server;
 
 namespace UnchainedLauncher.Core.Tests.Integration.API {
     // make sure there is a Chivalry 2 server running

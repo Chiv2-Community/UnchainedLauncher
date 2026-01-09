@@ -1,0 +1,47 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Dark theme color palette -->
+    <Color x:Key="Color.Primary">#FF4C8DFF</Color>
+    <Color x:Key="Color.PrimaryHover">#FF3B78E7</Color>
+    <Color x:Key="Color.Secondary">#FF5A6472</Color>
+    <Color x:Key="Color.Success">#FF2EAD76</Color>
+    <Color x:Key="Color.Danger">#FFFF6B81</Color>
+    <Color x:Key="Color.Warning">#FFFFC857</Color>
+    <Color x:Key="Color.Info">#FF3AC7E8</Color>
+    <Color x:Key="Color.Light">#FF2A2A2A</Color>
+    <Color x:Key="Color.Dark">#FF0E0E10</Color>
+
+    <Color x:Key="Color.TextPrimary">#FFEDEDEF</Color>
+    <Color x:Key="Color.TextSecondary">#FFB0B3B8</Color>
+    <Color x:Key="Color.Border">#FF4A4A4A</Color>
+    <Color x:Key="Color.Background">#FF1E1E1E</Color>
+    <Color x:Key="Color.Muted">#FF8A8F98</Color>
+
+    <Color x:Key="Color.InputBorder">#FF3A3A3A</Color>
+    <Color x:Key="Color.InputBackground">#FF1E1E22</Color>
+
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="Brush.Primary" Color="{DynamicResource Color.Primary}" />
+    <SolidColorBrush x:Key="Brush.PrimaryHover" Color="{DynamicResource Color.PrimaryHover}" />
+    <SolidColorBrush x:Key="Brush.Secondary" Color="{DynamicResource Color.Secondary}" />
+    <SolidColorBrush x:Key="Brush.Success" Color="{DynamicResource Color.Success}" />
+    <SolidColorBrush x:Key="Brush.Danger" Color="{DynamicResource Color.Danger}" />
+    <SolidColorBrush x:Key="Brush.Warning" Color="{DynamicResource Color.Warning}" />
+    <SolidColorBrush x:Key="Brush.Info" Color="{DynamicResource Color.Info}" />
+    <SolidColorBrush x:Key="Brush.Light" Color="{DynamicResource Color.Light}" />
+    <SolidColorBrush x:Key="Brush.Dark" Color="{DynamicResource Color.Dark}" />
+
+    <SolidColorBrush x:Key="Brush.TextPrimary" Color="{DynamicResource Color.TextPrimary}" />
+    <SolidColorBrush x:Key="Brush.TextSecondary" Color="{DynamicResource Color.TextSecondary}" />
+    <SolidColorBrush x:Key="Brush.Border" Color="{DynamicResource Color.Border}" />
+    <SolidColorBrush x:Key="Brush.Background" Color="{DynamicResource Color.Background}" />
+    <SolidColorBrush x:Key="Brush.Muted" Color="{DynamicResource Color.Muted}" />
+
+    <SolidColorBrush x:Key="Brush.InputBorder" Color="{DynamicResource Color.InputBorder}" />
+    <SolidColorBrush x:Key="Brush.InputBackground" Color="{DynamicResource Color.InputBackground}" />
+    <SolidColorBrush x:Key="Brush.White" Color="#FFFFFFFF" />
+
+    <SolidColorBrush x:Key="Brush.LightTransparent" Color="{DynamicResource Color.Light}" Opacity="0.5" />
+    <SolidColorBrush x:Key="Brush.PrimaryTransparent" Color="{DynamicResource Color.Primary}" Opacity="0.2" />
+
+</ResourceDictionary>

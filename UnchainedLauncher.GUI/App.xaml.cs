@@ -45,7 +45,8 @@ namespace UnchainedLauncher.GUI {
                 log4net.Config.XmlConfigurator.Configure(new FileInfo("Resources/log4net.config"));
             }
             else {
-                using var configStream = assembly.GetManifestResourceStream("UnchainedLauncher.GUI.Resources.log4net.config");
+                using var configStream =
+                    assembly.GetManifestResourceStream("UnchainedLauncher.GUI.Resources.log4net.config");
                 if (configStream != null) {
                     log4net.Config.XmlConfigurator.Configure(configStream);
                 }
@@ -54,7 +55,8 @@ namespace UnchainedLauncher.GUI {
 
             // Init common dependencies
             var githubClient = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("UnchainedLauncher"));
-            var unchainedLauncherReleaseLocator = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedLauncher");
+            var unchainedLauncherReleaseLocator =
+                new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedLauncher");
             var pluginReleaseLocator = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedPlugin");
 
 
@@ -70,48 +72,43 @@ namespace UnchainedLauncher.GUI {
             if (forceSkipInstallation && needsInstallation)
                 _log.Info("Skipping installation");
 
-            try {
-                var window =
-                    needsInstallation && !forceSkipInstallation
-                        ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
-                        : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator,
-                            pluginReleaseLocator);
+            var window =
+                needsInstallation && !forceSkipInstallation
+                    ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
+                    : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator,
+                        pluginReleaseLocator);
 
-                window?.Show();
-            }
-            catch (Exception ex) {
-                _log.Error("Failed to initialize window", ex);
-                MessageBox.Show("Failed to initialize application: " + ex.Message);
-                Shutdown(1);
-            }
+            window?.Show();
         }
 
         // Removed class-level command bindings; handled by Views.UnchainedWindow type.
 
-        private Window? InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
+        private Window? InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder,
+            IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
             var installationSelectionVM = new InstallationSelectionPageViewModel(installationFinder);
             var versionSelectionVM = new VersionSelectionPageViewModel(launcherReleaseLocator);
             var installationLogVM = new InstallerLogPageViewModel(
                 installer,
                 () =>
-                      from chiv2Installations in installationSelectionVM.Installations
-                      where chiv2Installations.IsSelected
-                      select chiv2Installations.Path
+                    from chiv2Installations in installationSelectionVM.Installations
+                    where chiv2Installations.IsSelected
+                    select chiv2Installations.Path
                 ,
                 () => versionSelectionVM.SelectedVersion!
             );
 
             var installerPageViewModels = new ObservableCollection<IInstallerPageViewModel> {
-                installationSelectionVM,
-                versionSelectionVM,
-                installationLogVM
+                installationSelectionVM, versionSelectionVM, installationLogVM
             };
 
-            var installerWindowVM = new InstallerWindowViewModel(installerPageViewModels, installationSelectionVM.Installations);
+            var installerWindowVM =
+                new InstallerWindowViewModel(installerPageViewModels, installationSelectionVM.Installations);
             return new InstallerWindow(installerWindowVM);
         }
 
-        private Window? InitializeMainWindow(IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator, IReleaseLocator pluginReleaseLocator) {
+        private Window? InitializeMainWindow(IChivalry2InstallationFinder installationFinder,
+            IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator,
+            IReleaseLocator pluginReleaseLocator) {
             var userDialogueSpawner = new MessageBoxSpawner();
             var registryWindowService = new RegistryWindowService();
 
@@ -120,7 +117,8 @@ namespace UnchainedLauncher.GUI {
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
-            var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService, installationFinder, installer, launcherReleaseLocator, pakDir, userDialogueSpawner, Shutdown);
+            var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService,
+                installationFinder, installer, launcherReleaseLocator, pakDir, userDialogueSpawner, Shutdown);
 
 
 
@@ -132,9 +130,13 @@ namespace UnchainedLauncher.GUI {
                 "Unchained Chivalry 2"
             );
 #else
-            var originalLauncherPath = File.Exists(FilePaths.OriginalLauncherPath) ? FilePaths.OriginalLauncherPath : FilePaths.LauncherPath;
-            var officialProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), originalLauncherPath));
-            var unchainedProcessLauncher = new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
+            var originalLauncherPath = File.Exists(FilePaths.OriginalLauncherPath)
+                ? FilePaths.OriginalLauncherPath
+                : FilePaths.LauncherPath;
+            var officialProcessLauncher =
+                new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), originalLauncherPath));
+            var unchainedProcessLauncher =
+                new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 #endif
 
             var noSigLaunchPreparer = NoSigPreparer.Create(pakDir, userDialogueSpawner);
@@ -182,14 +184,13 @@ namespace UnchainedLauncher.GUI {
                 settingsViewModel,
                 modManager,
                 vanillaLauncher,
-                clientsideModdedLauncher,
                 unchainedLauncher,
                 userDialogueSpawner,
                 chivProcessMonitor);
             var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
             if (!modManager.Mods.Any())
-                modListViewModel.RefreshModListCommand.Execute(null);
+                modListViewModel.RefreshModListCommand.ExecuteAsync(null);
 
             var envArgs = Environment.GetCommandLineArgs().ToList();
 
@@ -199,24 +200,22 @@ namespace UnchainedLauncher.GUI {
                 return null;
             }
 
-            if (envArgs.Contains("--startmodded")) {
-                homeViewModel.LaunchModdedVanilla().Wait();
-                return null;
-            }
-
             if (envArgs.Contains("--startunchained")) {
                 homeViewModel.LaunchUnchained().Wait();
                 return null;
             }
 
-            var serverConfigurationVMs = InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager);
+            var serverConfigurationVMs =
+                InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager);
 
-            var serversTabViewModel = new ServersTabVM(
+            var serversTabViewModel = InitializeServersTab(
+                FilePaths.ServersTabConfigurationPath,
                 settingsViewModel,
                 modManager,
                 userDialogueSpawner,
                 unchainedLauncher,
-                serverConfigurationVMs);
+                serverConfigurationVMs,
+                chivProcessMonitor);
 
             var mainWindowViewModel = new MainWindowVM(
                 homeViewModel,
@@ -241,12 +240,13 @@ namespace UnchainedLauncher.GUI {
             RegisterSaveToFileOnExit(registry, ModRegistryCodec.Instance, jsonPath);
             return registry;
         }
+
         private ModManager InitializeModManager(string jsonPath, IModRegistry registry) {
             Func<ModManager> initializeDefaultModManager = () =>
                 new ModManager(
                     registry,
                     Enumerable.Empty<ReleaseCoordinates>()
-            );
+                );
 
             var codec = new ModManagerCodec(registry);
             var modManager = InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
@@ -255,13 +255,31 @@ namespace UnchainedLauncher.GUI {
             return modManager;
         }
 
-        private ObservableCollection<ServerConfigurationVM> InitializeServerConfigurations(string jsonPath, IModManager modManager) {
-            Func<ObservableCollection<ServerConfigurationVM>> initializeDefault = () => new ObservableCollection<ServerConfigurationVM>();
+        private ObservableCollection<ServerConfigurationVM> InitializeServerConfigurations(string jsonPath,
+            IModManager modManager) {
+            Func<ObservableCollection<ServerConfigurationVM>> initializeDefault =
+                () => new ObservableCollection<ServerConfigurationVM>();
 
             var codec = new ServerConfigurationCodec(modManager);
             var serverConfigurations = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
             RegisterSaveToFileOnExit(serverConfigurations, codec, jsonPath);
             return serverConfigurations;
+        }
+
+        private ServersTabVM InitializeServersTab(string jsonPath, SettingsVM settings, IModManager modManager, IUserDialogueSpawner dialogueSpawner, IChivalry2Launcher launcher, ObservableCollection<ServerConfigurationVM> serverConfigurations, IChivalryProcessWatcher processWatcher) {
+            Func<ServersTabVM> initializeDefault = () => new ServersTabVM(
+                settings,
+                modManager,
+                dialogueSpawner,
+                launcher,
+                serverConfigurations,
+                processWatcher
+            );
+
+            var codec = new ServerTabCodec(settings, modManager, dialogueSpawner, launcher, serverConfigurations, processWatcher);
+            var serversTab = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
+            RegisterSaveToFileOnExit(serversTab, codec, jsonPath);
+            return serversTab;
         }
 
         private T InitializeFromFileWithCodec<T>(ICodec<T> codec, string filePath, Func<T> initializeDefault) {
@@ -274,7 +292,7 @@ namespace UnchainedLauncher.GUI {
                         deserializationResult.Exception);
                     return initializeDefault();
                 }
-            ));
+                ));
         }
 
         private void RegisterSaveToFileOnExit<T>(T t, ICodec<T> codec, string filePath) {

@@ -8,6 +8,7 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Constants.xaml"/>
+                <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/DarkConstants.xaml"/>
 
                 <ResourceDictionary Source="/UnchainedLauncher;component/Resources/Themes/Buttons.xaml"/>
 
@@ -21,6 +22,7 @@
             <!-- Converters -->
             <converters:InstallationTypeConverter x:Key="InstallationTypeConverter"/>
             <converters:ModSortModeToStringConverter x:Key="ModSortModeToStringConverter"/>
+            <converters:NullableIntToStringConverter x:Key="NullableIntConverter" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

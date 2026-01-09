@@ -3,155 +3,58 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Servers"
-             xmlns:mods="clr-namespace:UnchainedLauncher.GUI.Views.Mods"
-             xmlns:conv="clr-namespace:UnchainedLauncher.GUI.Converters"
+             xmlns:behaviors="clr-namespace:UnchainedLauncher.GUI.Behaviors"
+             xmlns:controls="clr-namespace:UnchainedLauncher.GUI.Views.Controls"
+             xmlns:sections="clr-namespace:UnchainedLauncher.GUI.Views.Servers.Sections"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Servers.DesignInstances"
              d:DataContext="{d:DesignInstance designInstances:ServerConfigurationDesignVM}"
              mc:Ignorable="d"
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignWidth="800">
     <StackPanel>
-        <Border Style="{DynamicResource Card}">
+        <sections:ServerDetailsSectionView />
+
+        <controls:CollapsibleCard
+            Header="Server Configuration"
+            IsExpanded="True">
             <StackPanel>
-                <TextBlock Text="Server Details" Style="{DynamicResource Heading.H3}" />
-                 <Grid HorizontalAlignment="Stretch" Margin="0,0,0,0" Width="NaN" VerticalAlignment="Stretch">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+                <TabControl Margin="0,8,0,0"
+                            Style="{StaticResource UnderlineTabControlStyle}"
+                            ItemContainerStyle="{StaticResource UnderlineTabItemStyle}">
+                    <TabItem Header="Base Configuration">
+                        <sections:BaseConfigurationSectionView DataContext="{Binding BaseConfigurationSection}" />
+                    </TabItem>
+                    
+                    <TabItem Header="Free For All">
+                        <sections:TdmConfigurationSectionView DataContext="{Binding  FFA}" />
+                    </TabItem>
+                    
+                    <TabItem Header="Team Autobalance">
+                        <sections:TeamAutobalanceSectionView DataContext="{Binding GameMode}" />
+                    </TabItem>
+                    
+                    <TabItem Header="Team Deathmatch">
+                        <sections:TdmConfigurationSectionView DataContext="{Binding  TDM}" />
+                    </TabItem>
 
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+                    <TabItem Header="Last Team Standing">
+                        <sections:LastTeamStandingSectionView DataContext="{Binding LTS}" />
+                    </TabItem>
 
-        <TextBlock Text="Server Name :" Grid.Row="0" Grid.ColumnSpan="2" HorizontalAlignment="Left"
-                   VerticalAlignment="Center" Margin="5" />
-        <TextBox Text="{Binding Name}" Grid.Row="1" Grid.ColumnSpan="2" Grid.Column="0" TextWrapping="Wrap" Margin="5,0,5,0"
-                 IsManipulationEnabled="True" AcceptsReturn="False" />
+                    <TabItem Header="Arena">
+                        <sections:ArenaSectionView DataContext="{Binding Arena}" />
+                    </TabItem>
 
-        <TextBlock Text="Password:" Grid.Row="0" Grid.Column="2" Grid.ColumnSpan="2" HorizontalAlignment="Left"
-                   VerticalAlignment="Center" Margin="5" />
-        <TextBox Text="{Binding Password}" Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" TextWrapping="Wrap"
-                 Margin="5,0,5,0" IsManipulationEnabled="True" AcceptsReturn="False" />
-
-        <TextBlock Text="Select Starting Map:" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Left"
-                   VerticalAlignment="Center" Margin="5" />
-        <ComboBox ItemsSource="{Binding AvailableMaps}" SelectedItem="{Binding SelectedMap, Mode=TwoWay}"
-                  Grid.Row="1" Grid.Column="4"
-                  Margin="5,0,5,0" IsManipulationEnabled="True" />
-
-        <TextBlock Text="Server Description:" Grid.Row="2" Grid.ColumnSpan="5" Grid.Column="0" HorizontalAlignment="Left"
-                   VerticalAlignment="Center" Margin="5" />
-        <TextBox Text="{Binding Description}" Grid.Row="3" Grid.ColumnSpan="5" Grid.Column="0" MinLines="3" TextWrapping="Wrap"
-                 IsManipulationEnabled="True" AcceptsReturn="True" />
-
-        <CheckBox IsChecked="{Binding ShowInServerBrowser}" Grid.Column="2" Grid.Row="2" Grid.ColumnSpan="2"
-                  Content="Show in Server Browser" Margin="5" Height="NaN" VerticalAlignment="Stretch" Width="NaN"
-                  HorizontalAlignment="Right" FlowDirection="RightToLeft" />
-
-        <TextBlock Text="Game port:" Grid.Row="4" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center"
-                   Margin="5" />
-        <TextBox MaxLength="5" Grid.Row="5" Grid.Column="0" Margin="5">
-            <Binding Path="GamePort">
-                <Binding.ValidationRules>
-                    <local:PortRangeValidationRule />
-                </Binding.ValidationRules>
-            </Binding>
-        </TextBox>
-
-        <TextBlock Text="RCON port:" Grid.Row="4" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center"
-                   Margin="5" />
-        <TextBox MaxLength="5" Grid.Row="5" Grid.Column="1" Margin="5">
-            <Binding Path="RconPort">
-                <Binding.ValidationRules>
-                    <local:PortRangeValidationRule />
-                </Binding.ValidationRules>
-            </Binding>
-        </TextBox>
-
-        <TextBlock Text="A2S port:" Grid.Row="4" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center"
-                   Margin="5" />
-        <TextBox MaxLength="5" Grid.Row="5" Grid.Column="2" Margin="5">
-            <Binding Path="A2SPort">
-                <Binding.ValidationRules>
-                    <local:PortRangeValidationRule />
-                </Binding.ValidationRules>
-            </Binding>
-        </TextBox>
-
-        <TextBlock Text="Ping port:" Grid.Row="4" Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center"
-                   Margin="5" />
-        <TextBox MaxLength="5" Grid.Row="5" Grid.Column="3" Margin="5">
-            <Binding Path="PingPort">
-                <Binding.ValidationRules>
-                    <local:PortRangeValidationRule />
-                </Binding.ValidationRules>
-            </Binding>
-        </TextBox>
-
-        <TextBlock Text="Local IP Address:" Grid.Row="4" Grid.Column="4" HorizontalAlignment="Left"
-                   VerticalAlignment="Center" Margin="5" />
-        <Grid Grid.Row="5" Grid.Column="4">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="auto" />
-            </Grid.ColumnDefinitions>
-            <TextBox Grid.Column="0" Margin="5">
-                <Binding Path="LocalIp" UpdateSourceTrigger="PropertyChanged">
-                    <Binding.ValidationRules>
-                        <local:IPAddressValidationRule ValidatesOnTargetUpdated="True" />
-                    </Binding.ValidationRules>
-                </Binding>
-            </TextBox>
-            <Button Grid.Column="1" Command="{Binding AutoFillIpCommand}">Detect</Button>
-        </Grid>
-
-    </Grid>
+                    <TabItem Header="Advanced">
+                        <sections:AdvancedConfigurationSectionView DataContext="{Binding AdvancedConfigurationSection}" />
+                    </TabItem>
+                </TabControl>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0 0 7 0">
+                    <Button Content="Open INI Folder" Command="{Binding OpenIniFolderCommand}" Margin="0,0,8,0" />
+                    <Button Content="Reload INI" Command="{Binding ReloadIniCommand}" />
+                </StackPanel>
             </StackPanel>
-        </Border>
-        <Border Style="{StaticResource Card}">
-            <StackPanel>
-                <StackPanel.Resources>
-                    <conv:ReleaseEnabledConverter x:Key="ReleaseEnabledConverter" />
-                </StackPanel.Resources>
-                <TextBlock Text="Server Mod Actors" Style="{DynamicResource Heading.H3}" />
-                <ListBox ItemsSource="{Binding AvailableMods}" BorderThickness="0">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Margin="0,4">
-                                <CheckBox
-                                    VerticalAlignment="Center"
-                                    Checked="CheckBox_OnChecked"
-                                    Unchecked="CheckBox_OnUnchecked">
-                                    <CheckBox.IsChecked>
-                                        <MultiBinding Converter="{StaticResource ReleaseEnabledConverter}" Mode="OneWay">
-                                            <Binding />
-                                            <Binding RelativeSource="{RelativeSource AncestorType=UserControl}" Path="DataContext.EnabledServerModList" />
-                                            <!-- Bind to Count to force re-evaluation when collection changes -->
-                                            <Binding RelativeSource="{RelativeSource AncestorType=UserControl}" Path="DataContext.EnabledServerModList.Count" />
-                                        </MultiBinding>
-                                    </CheckBox.IsChecked>
-                                </CheckBox>
-                                <TextBlock Margin="8,0,0,0" VerticalAlignment="Center">
-                                    <Run Text="{Binding Manifest.Name}" />
-                                    <Run Text="  (" />
-                                    <Run Text="{Binding Tag}" />
-                                    <Run Text=")" />
-                                </TextBlock>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </StackPanel>
-        </Border>
+        </controls:CollapsibleCard>
+
+        <sections:ServerModActorsSectionView />
     </StackPanel>
 </UserControl>

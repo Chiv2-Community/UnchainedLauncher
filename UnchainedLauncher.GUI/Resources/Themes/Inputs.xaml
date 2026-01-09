@@ -1,35 +1,79 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:conv="clr-namespace:UnchainedLauncher.GUI.Converters">
+
+    <conv:RoundedRectClipConverter x:Key="RoundedRectClipConverter" />
+
+    <!-- Common form field label styling (used alongside inputs) -->
+    <Style x:Key="FormLabel" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,6,6" />
+    </Style>
+
     <Style TargetType="TextBox">
         <Setter Property="FontFamily" Value="{StaticResource Font.Default}" />
-        <Setter Property="Padding" Value="8,6" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.InputBorder}" />
-        <Setter Property="Background" Value="{StaticResource Brush.InputBackground}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
-        <Setter Property="CaretBrush" Value="{StaticResource Brush.TextPrimary}" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.InputBorder}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource Brush.TextPrimary}" />
         <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="MinHeight" Value="32" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Grid>
+                        <Border x:Name="OuterBorder"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6" />
+
+                        <ScrollViewer x:Name="PART_ContentHost"
+                                      Background="{TemplateBinding Background}"
+                                      Margin="{TemplateBinding Padding}"
+                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="OuterBorder" Property="BorderBrush"
+                                    Value="{DynamicResource Brush.Primary}" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="OuterBorder" Property="BorderBrush"
+                                    Value="{DynamicResource Brush.PrimaryHover}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="OuterBorder" Property="Opacity" Value="0.6" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style TargetType="ListBox">
-        <Setter Property="Background" Value="{StaticResource Brush.InputBackground}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
     </Style>
 
     <Style TargetType="ListBoxItem">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Padding" Value="4" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{StaticResource Brush.LightTransparent}" />
+                <Setter Property="Background" Value="{DynamicResource Brush.LightTransparent}" />
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Background" Value="{StaticResource Brush.InputBackground}" />
-                <Setter Property="BorderBrush" Value="{StaticResource Brush.Primary}" />
+                <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
                 <Setter Property="BorderThickness" Value="1" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
@@ -39,12 +83,12 @@
     </Style>
 
     <Style TargetType="ComboBox">
-        <Setter Property="Background" Value="{StaticResource Brush.InputBackground}" />
-        <Setter Property="BorderBrush" Value="{StaticResource Brush.InputBorder}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.InputBorder}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="Padding" Value="8,4" />
         <Setter Property="MinHeight" Value="32" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
@@ -63,7 +107,7 @@
 
                             <!-- Content of selected item / editable text -->
                             <ContentPresenter x:Name="ContentPresenter"
-                                              Margin="8,0,4,0"
+                                              Margin="12,0,4,0"
                                               VerticalAlignment="Center"
                                               HorizontalAlignment="Left"
                                               Content="{TemplateBinding SelectionBoxItem}"
@@ -113,12 +157,19 @@
                                PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}">
                             <Grid SnapsToDevicePixels="True">
                                 <Border x:Name="PopupBorder"
-                                        Background="{StaticResource Brush.InputBackground}"
-                                        BorderBrush="{StaticResource Brush.InputBorder}"
+                                        Background="{DynamicResource Brush.InputBackground}"
+                                        BorderBrush="{DynamicResource Brush.InputBorder}"
                                         BorderThickness="1"
                                         CornerRadius="6"
                                         Margin="0,0,0,0"
                                         MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                                    <Border.Clip>
+                                        <MultiBinding Converter="{StaticResource RoundedRectClipConverter}">
+                                            <Binding ElementName="PopupBorder" Path="ActualWidth" />
+                                            <Binding ElementName="PopupBorder" Path="ActualHeight" />
+                                            <Binding ElementName="PopupBorder" Path="CornerRadius.TopLeft" />
+                                        </MultiBinding>
+                                    </Border.Clip>
                                     <Border.Effect>
                                         <DropShadowEffect BlurRadius="12" ShadowDepth="3" Opacity="0.25" />
                                     </Border.Effect>
@@ -132,13 +183,23 @@
                         </Popup>
                     </Grid>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                            <Setter TargetName="OuterBorder" Property="BorderBrush"
-                                    Value="{StaticResource Brush.Primary}" />
+                        <Trigger Property="IsDropDownOpen" Value="True">
+                            <!-- Make the closed box and opened popup feel like one continuous rounded shape -->
+                            <Setter TargetName="OuterBorder" Property="CornerRadius" Value="6,6,0,0" />
+                            <Setter TargetName="OuterBorder" Property="BorderThickness" Value="1,1,1,0" />
+
+                            <Setter TargetName="PopupBorder" Property="CornerRadius" Value="0,0,6,6" />
+                            <Setter TargetName="PopupBorder" Property="Margin" Value="0,-1,0,0" />
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="OuterBorder" Property="BorderBrush"
-                                    Value="{StaticResource Brush.PrimaryHover}" />
+                                    Value="{DynamicResource Brush.PrimaryHover}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="OuterBorder" Property="BorderBrush"
+                                    Value="{DynamicResource Brush.Primary}" />
+                            <Setter TargetName="PopupBorder" Property="BorderBrush"
+                                    Value="{DynamicResource Brush.Primary}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="OuterBorder" Property="Opacity" Value="0.6" />
@@ -154,16 +215,16 @@
 
     <Style TargetType="ComboBoxItem">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
         <Setter Property="Padding" Value="8,6" />
         <Setter Property="BorderThickness" Value="0" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{StaticResource Brush.LightTransparent}" />
+                <Setter Property="Background" Value="{DynamicResource Brush.LightTransparent}" />
             </Trigger>
             <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Background" Value="{StaticResource Brush.InputBackground}" />
-                <Setter Property="BorderBrush" Value="{StaticResource Brush.Primary}" />
+                <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
                 <Setter Property="BorderThickness" Value="1" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
@@ -174,6 +235,69 @@
 
     <Style TargetType="CheckBox">
         <Setter Property="FontFamily" Value="{StaticResource Font.Default}" />
-        <Setter Property="Foreground" Value="{StaticResource Brush.TextPrimary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+    </Style>
+    
+    <Style TargetType="DataGrid">
+        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.InputBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="RowHeaderWidth" Value="0" />
+        <Setter Property="GridLinesVisibility" Value="All" />
+        <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource Brush.InputBorder}" />
+        <Setter Property="VerticalGridLinesBrush" Value="{DynamicResource Brush.InputBorder}" />
+        <Setter Property="HeadersVisibility" Value="Column" />
+        <Setter Property="AutoGenerateColumns" Value="False" />
+        <Setter Property="CanUserAddRows" Value="True" />
+    </Style>
+
+    <Style TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{DynamicResource Brush.Background}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="BorderThickness" Value="0,0,1,1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.InputBorder}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style TargetType="DataGridRow">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.LightTransparent}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.PrimaryTransparent}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="DataGridCell">
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridCell">
+                    <Border Padding="{TemplateBinding Padding}" 
+                            Background="{TemplateBinding Background}" 
+                            BorderBrush="{TemplateBinding BorderBrush}" 
+                            BorderThickness="{TemplateBinding BorderThickness}" 
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 </ResourceDictionary>

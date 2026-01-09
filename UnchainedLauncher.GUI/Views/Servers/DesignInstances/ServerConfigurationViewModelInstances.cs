@@ -6,7 +6,11 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
     }
 
     public class ServerConfigurationDesignVM : ServerConfigurationVM {
-        public ServerConfigurationDesignVM() : base(Mods.DesignInstances.ModListViewModelInstances.DEFAULTMODMANAGER) {
+        public ServerConfigurationDesignVM() : base(
+            Mods.DesignInstances.ModListViewModelInstances.DEFAULTMODMANAGER,
+            playerBotCount: 10,
+            warmupTime: 10
+        ) {
         }
     }
 }

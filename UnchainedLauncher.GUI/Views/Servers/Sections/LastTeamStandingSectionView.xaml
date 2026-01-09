@@ -1,0 +1,46 @@
+﻿<UserControl x:Class="UnchainedLauncher.GUI.Views.Servers.Sections.LastTeamStandingSectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:ini="clr-namespace:UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=ini:LtsGameModeSectionVM}">
+
+    <UserControl.Resources>
+        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel Margin="8">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="20" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Pre Countdown Delay" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
+                       ToolTip="Time in seconds before the match countdown begins. Example: 5" />
+            <TextBox Text="{Binding PreCountdownDelay}" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+                     ToolTip="Time in seconds before the match countdown begins. Example: 5" />
+
+            <TextBlock Text="Rounds To Win" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
+                       ToolTip="Number of round wins needed to win the match." />
+            <TextBox Text="{Binding RoundsToWin}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch"
+                     ToolTip="Number of round wins needed to win the match." />
+        </Grid>
+    </StackPanel>
+</UserControl>

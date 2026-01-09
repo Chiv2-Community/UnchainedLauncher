@@ -6,35 +6,98 @@ using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Windows;
-using UnchainedLauncher.Core.API;
-using UnchainedLauncher.Core.API.A2S;
-using UnchainedLauncher.Core.API.ServerBrowser;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using System.Windows.Threading;
+using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
+using UnchainedLauncher.Core.Services.Server;
+using UnchainedLauncher.Core.Services.Server.A2S;
 using UnchainedLauncher.Core.Utilities;
+
+// using Unchained.ServerBrowser.Client; // avoid Option<> name collision with LanguageExt
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     using static LanguageExt.Prelude;
     using static Successors;
 
+    public class ServerTabCodec : DerivedJsonCodec<ServersTabMetadata, ServersTabVM> {
+
+        public ServerTabCodec(SettingsVM settings,
+            IModManager modManager,
+            IUserDialogueSpawner dialogueSpawner,
+            IChivalry2Launcher launcher,
+            ObservableCollection<ServerConfigurationVM> serverConfigs,
+            IChivalryProcessWatcher processWatcher) : base(
+            ToJsonType,
+            conf => ToClassType(conf, settings, modManager, dialogueSpawner, launcher, serverConfigs, processWatcher)
+        ) { }
+
+        public static ServersTabVM ToClassType(
+            ServersTabMetadata serversTabMetadata,
+            SettingsVM settings,
+            IModManager modManager,
+            IUserDialogueSpawner dialogueSpawner,
+            IChivalry2Launcher launcher,
+            ObservableCollection<ServerConfigurationVM> serverConfigs,
+            IChivalryProcessWatcher processWatcher
+        ) {
+            var vm = new ServersTabVM(settings, modManager, dialogueSpawner, launcher, serverConfigs, processWatcher);
+            serversTabMetadata.ConfigNameToProcessIDMap.ForEach(pair => {
+                var (confName, pid) = pair;
+                var config = serverConfigs.FirstOrDefault(conf => conf.Name == confName);
+                if (config == null) return;
+                vm.AttachRunningServerByPid(config, pid);
+            });
+            vm.SetSelectedConfigurationByName(serversTabMetadata.SelectedConfigurationName);
+
+            return vm;
+        }
+
+
+        public static ServersTabMetadata ToJsonType(ServersTabVM serversTabVM) {
+            var selectedConfig =
+                serversTabVM.SelectedConfiguration ?? serversTabVM.ServerConfigs.First();
+
+            var procMap =
+                serversTabVM.RunningServers.Select(conf => (conf.configuration.Name, conf.live.Server.ServerProcess.Id));
+
+            return new ServersTabMetadata(selectedConfig.Name, procMap.ToDictionary());
+        }
+
+    }
+
+    public record ServersTabMetadata(
+        string SelectedConfigurationName,
+        Dictionary<string, int> ConfigNameToProcessIDMap
+    );
+
+
     [AddINotifyPropertyChangedInterface]
-    public partial class ServersTabVM : IDisposable, INotifyPropertyChanged {
+    public partial class ServersTabVM : IDisposable {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServersTabVM));
+        private static Dispatcher UiDispatcher => Application.Current.Dispatcher;
+
+        private static Task UiInvokeAsync(Action action) => UiDispatcher.InvokeAsync(action).Task;
+
+        private static Task<T> UiInvokeAsync<T>(Func<Task<T>> func) => UiDispatcher.InvokeAsync(func).Task.Unwrap();
+
         public SettingsVM Settings { get; }
         public readonly IChivalry2Launcher Launcher;
         public IModManager ModManager { get; }
         public IUserDialogueSpawner DialogueSpawner;
         public ObservableCollection<ServerConfigurationVM> ServerConfigs { get; }
         public ObservableCollection<(ServerConfigurationVM configuration, ServerVM live)> RunningServers { get; } = new();
+        private IChivalryProcessWatcher ProcessWatcher { get; }
+
+        public bool CanLaunch { get; private set; }
 
         public ServerConfigurationVM? SelectedConfiguration {
             get;
@@ -53,7 +116,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                             IModManager modManager,
                             IUserDialogueSpawner dialogueSpawner,
                             IChivalry2Launcher launcher,
-                            ObservableCollection<ServerConfigurationVM> serverConfigs) {
+                            ObservableCollection<ServerConfigurationVM> serverConfigs,
+                            IChivalryProcessWatcher processWatcher) {
             ServerConfigs = serverConfigs;
 
             ServerConfigs.CollectionChanged += (_, _) => {
@@ -65,9 +129,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             Launcher = launcher;
             DialogueSpawner = dialogueSpawner;
             ModManager = modManager;
+            ProcessWatcher = processWatcher;
 
             if (ServerConfigs?.Count == 0) {
-                CreateNewConfig().Wait();
+                CreateNewConfig();
             }
 
             SelectedConfiguration = ServerConfigs?.FirstOrDefault();
@@ -81,19 +146,18 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public async Task LaunchServer() => await LaunchSelected(false);
 
         [RelayCommand]
-        public Task ShutdownServer() => Task.Run(() => SelectedServer?.Dispose());
+        public Task ShutdownServer() {
+            if (SelectedServer == null) return Task.CompletedTask;
+            return Task.Run(() => SelectedServer.DisposeServer());
+        }
 
         [RelayCommand]
-        public async Task CreateNewConfig() {
+        public void CreateNewConfig() {
             var newConfig = new ServerConfigurationVM(ModManager);
-            var occupiedPorts = ServerConfigs.Select(
-                (e) => new Set<int>(new List<int> {
-                    e.A2SPort,
-                    e.RconPort,
-                    e.PingPort,
-                    e.GamePort
-                })
-            ).Aggregate(Set<int>(), (s1, s2) => s1.AddRange(s2));
+
+            var occupiedPorts = new Set<int>().AddRange(
+                ServerConfigs.SelectMany(conf => new[] { conf.A2SPort, conf.GamePort, conf.PingPort, conf.RconPort })
+            );
 
             // try to make the new template nice
             if (SelectedConfiguration != null) {
@@ -125,134 +189,190 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var formData = SelectedConfiguration.ToServerConfiguration();
 
             // Resolve selected releases from the template's EnabledServerModList
-            var enabledModActors =
-                SelectedConfiguration.EnabledServerModList
-                    .Select(rc => ModManager.GetRelease(rc))
-                    .Collect(x => x.AsEnumerable());
+            var enabledCoordinates = SelectedConfiguration.EnabledServerModList.ToArray();
 
-            var maybeProcess = await LaunchProcessForSelected(formData, headless);
+            SelectedConfiguration.SaveINI();
+
+            var maybeProcess = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
             maybeProcess.IfSome(process => {
-                var server = new Chivalry2Server(
-                    process,
-                    RegisterWithBackend(formData, enabledModActors),
-                    new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort))
-                );
-                var serverVm = new ServerVM(server);
+                var server = CreateServer(process, formData, headless, enabledCoordinates);
+                var serverVm = new ServerVM(server, formData.Name, SelectedConfiguration.AvailableMaps);
+                serverVm.StartUpdateLoop();
                 var runningTuple = (SelectedConfiguration, serverVm);
-                process.Exited += (_, _) => {
-                    RunningServers.Remove(runningTuple);
-                    runningTuple.serverVm.Dispose();
-                };
-                RunningServers.Add(runningTuple);
+                UiDispatcher.Invoke(() => RunningServers.Add(runningTuple));
+
+                _ = AttachServerExitWatcher(process, formData, enabledCoordinates, headless, runningTuple);
             });
         }
 
+        public void AttachRunningServerByPid(ServerConfigurationVM conf, int pid) {
+            var proc = FindExistingRunningServer(conf, pid);
+
+            if (proc == null) {
+                Logger.Debug($"Failed to find existing server process with PID {pid}. It has probably been shutdown since the launcher was last launched.");
+                return;
+            }
+
+            var formData = conf.ToServerConfiguration();
+            var server = CreateServer(proc, formData, false, conf.EnabledServerModList.ToArray());
+            var serverVm = new ServerVM(server, conf.Name, conf.AvailableMaps);
+            serverVm.StartUpdateLoop();
+            RunningServers.Add((conf, serverVm));
+            _ = AttachServerExitWatcher(proc, formData, conf.EnabledServerModList.ToArray(), false, (conf, serverVm));
+        }
+
+        public void AttachServerExitWatcher(Process process, ServerConfigurationVM config, ObservableCollection<ReleaseCoordinates>? enabledCoordinates, bool headless, (ServerConfigurationVM, ServerVM) runningTuple) {
+            process.EnableRaisingEvents = true;
+            process.Exited += (sender, args) => {
+                RunningServers.Remove(runningTuple);
+                Logger.Debug($"Server process with PID {process.Id} has exited. Removing from running servers list.");
+            };
+        }
+
+        public void SetSelectedConfigurationByName(string name) {
+            SelectedConfiguration = ServerConfigs.FirstOrDefault(conf => conf.Name == name);
+        }
+
+        private static Process? FindProcessByID(int pid) {
+            try { return Process.GetProcessById(pid); }
+            catch (ArgumentException) { return null; }
+        }
+
+        private Process? FindExistingRunningServer(ServerConfigurationVM config, int pid) {
+            var proc = FindProcessByID(pid);
+
+            if (proc == null) return null;
+
+            // We just check if it has all the ports in the arg list somewhere. Don't really want to bother
+            // with making sure the args are all correct. This should be good enough for a presumptive check.
+            string[] argsToFind = [
+                config.A2SPort.ToString(),
+                config.RconPort.ToString(),
+                config.GamePort.ToString(),
+                config.PingPort.ToString(),
+            ];
+
+            ExternalProcess.Retrieve(proc, out var procCmdLine);
+            return argsToFind.Any(arg => !procCmdLine.Contains(arg)) ? null : proc;
+        }
+
         public void UpdateVisibility() {
-            SelectedServer = RunningServers.Choose(
-                (e) => e.configuration == SelectedConfiguration ? e.live : Option<ServerVM>.None
-            ).FirstOrDefault();
+            SelectedServer = RunningServers.FirstOrDefault(e => e.configuration == SelectedConfiguration).live;
             var isSelectedRunning = SelectedServer != null;
 
             ConfigurationEditorVisibility = isSelectedRunning || ServerConfigs.Length() == 0 ? Visibility.Hidden : Visibility.Visible;
             LiveServerVisibility = !isSelectedRunning ? Visibility.Hidden : Visibility.Visible;
         }
 
-        // TODO: this should really be a part of Chivalry2Server
-        private async Task<Option<Process>> LaunchProcessForSelected(ServerConfiguration formData, bool headless) {
-            if (!Settings.IsLauncherReusable()) {
-                Settings.CanClick = false;
-            }
-
-            Func<string, string> sanitizeSaveddirSuffix = s => {
-                var substitutedUnderscores = s.Trim()
-                    .Replace(' ', '_')
-                    .Replace('(', '_')
-                    .Replace(')', '_')
-                    .ReplaceLineEndings("_");
-
-                var illegalCharsRemoved =
-                    string.Join("_", substitutedUnderscores.Split(Path.GetInvalidFileNameChars()));
-
-                return illegalCharsRemoved;
-            };
-
-            if (SelectedConfiguration == null) return None;
-
+        private ServerLaunchOptions BuildServerLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<ReleaseCoordinates> enabledCoordinates) {
             var nextMapModActors =
-                SelectedConfiguration.EnabledServerModList
+                enabledCoordinates
                     .SelectMany(rc => ModManager.GetRelease(rc))
                     .Where(release => release.Manifest.OptionFlags.ActorMod)
                     .Select(release => release.Manifest.Name.Replace(" ", ""));
 
-            var serverLaunchOptions = new ServerLaunchOptions(
+            return new ServerLaunchOptions(
                 headless,
                 formData.Name,
                 formData.Description,
-                Option<string>.Some(formData.Password).Map(pw => pw.Trim()).Filter(pw => pw != ""),
-                formData.SelectedMap,
+                Optional(formData.Password.Trim()).Filter(pw => pw.Length != 0),
+                formData.NextMapName,
                 formData.GamePort,
                 formData.PingPort,
                 formData.A2SPort,
                 formData.RconPort,
+                formData.FFATimeLimit,
+                formData.FFAScoreLimit,
+                formData.TDMTimeLimit,
+                formData.TDMTicketCount,
+                formData.PlayerBotCount,
+                formData.WarmupTime,
+                formData.LocalIp,
                 nextMapModActors
             );
+        }
 
-            var options = new LaunchOptions(
-                SelectedConfiguration.EnabledServerModList,
+        private LaunchOptions BuildLaunchOptions(ServerConfiguration formData, bool headless, ReleaseCoordinates[] enabledCoordinates) {
+            var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, enabledCoordinates);
+            return new LaunchOptions(
+                enabledCoordinates,
                 Settings.ServerBrowserBackend,
                 Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
-                Some(sanitizeSaveddirSuffix(formData.Name)),
+                Some(formData.SavedDirSuffix),
                 Some(serverLaunchOptions)
-            );
-
-            var launchResult = await Launcher.Launch(options);
-            return launchResult.Match(
-                Left: _ => {
-                    DialogueSpawner.DisplayMessage($"Failed to launch Chivalry 2 Unchained. Check the logs for details.");
-                    Settings.CanClick = true;
-                    return None;
-                },
-                Right: process => {
-                    process.EnableRaisingEvents = true;
-                    process.Exited += (sender, e) => {
-                        if (process.ExitCode == 0) return;
-                        Logger.Error($"Chivalry 2 Unchained exited with code {process.ExitCode}.");
-                        DialogueSpawner.DisplayMessage($"Chivalry 2 Unchained exited with code {process.ExitCode}. Check the logs for details.");
-                    };
-                    return Some(process);
-                }
             );
         }
 
-        // TODO: this should really be a part of Chivalry2Server
-        public A2SBoundRegistration RegisterWithBackend(ServerConfiguration formData, IEnumerable<Release> enabledMods) {
-            var ports = formData.ToPublicPorts();
-            var serverInfo = new C2ServerInfo {
-                Ports = ports,
-                Name = formData.Name,
-                Description = formData.Description,
-                PasswordProtected = formData.Password.Length != 0,
-                Mods = enabledMods.Select(release =>
-                    new ServerBrowserMod(
-                        release.Manifest.Name,
-                        release.Manifest.Organization,
-                        release.Tag.ToString()
-                    )
-                ).ToArray()
-            };
+        private Chivalry2Server CreateServer(Process process,
+                                             ServerConfiguration formData,
+                                             bool headless,
+                                             ReleaseCoordinates[] enabledCoordinates) {
+            var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, enabledCoordinates);
+            var a2s = new A2S(new IPEndPoint(IPAddress.Loopback, formData.A2SPort));
+            var rcon = new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort));
+            return new Chivalry2Server(process, serverLaunchOptions, a2s, rcon);
+        }
 
-            return new A2SBoundRegistration(
-                new ServerBrowser(new Uri(Settings.ServerBrowserBackend + "/api/v1")),
-                new A2S(new IPEndPoint(IPAddress.Loopback, ports.A2S)),
-                serverInfo,
-                formData.LocalIp);
+        private async Task AttachServerExitWatcher(
+            Process process,
+            ServerConfiguration formData,
+            ReleaseCoordinates[] enabledCoordinates,
+            bool headless,
+            (ServerConfigurationVM configuration, ServerVM live) runningTuple) {
+            var attached = await ProcessWatcher.OnExit(process, async (exitCode, acceptable) => {
+                if (acceptable) {
+                    await UiInvokeAsync(() => {
+                        RunningServers.Remove(runningTuple);
+                        runningTuple.live.DisposeServer();
+                    });
+                    return;
+                }
+
+                // Keep the existing ServerVM around so UI can show downtime + restart timeline.
+                await UiInvokeAsync(() => { runningTuple.live.IsUp = false; });
+
+                Logger.Error($"Server exited unexpectedly with code {exitCode}. Attempting automatic restart...");
+
+                if (!Settings.CanLaunch) return; // EGS can't restart automatically.
+
+                // Small delay to avoid tight restart loops
+                await Task.Delay(2000);
+
+
+                var relaunched = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
+                relaunched.IfSome(newProc => {
+                    var newServer = CreateServer(newProc, formData, headless, enabledCoordinates);
+                    UiDispatcher.Invoke(() => runningTuple.live.ReplaceServer(newServer, countAsRestart: true));
+                    _ = AttachServerExitWatcher(newProc, formData, enabledCoordinates, headless, runningTuple);
+                });
+            });
+
+            if (!attached) {
+                Logger.Warn($"Failed to attach exit watcher to server process. No automatic restart will occur.");
+            }
+        }
+
+        private async Task<Option<Process>> LaunchServerWithOptions(ServerConfiguration formData, bool headless, ReleaseCoordinates[] enabledCoordinates) {
+            var options = BuildLaunchOptions(formData, headless, enabledCoordinates);
+            return await UiInvokeAsync(async () => {
+                Settings.HasLaunched = true;
+                var launchResult = await Launcher.Launch(options);
+                return launchResult.Match(
+                    Left: _ => {
+                        Logger.Error("Failed to launch server. Check logs for details.");
+                        DialogueSpawner.DisplayMessage("Failed to launch server. Check logs for details.");
+                        return None;
+                    },
+                    Right: process => Some(process)
+                );
+            });
         }
 
         public void Dispose() {
-            SelectedServer?.Dispose();
+            SelectedServer?.DisposeServer();
             foreach (var runningServer in RunningServers) {
-                runningServer.live.Dispose();
+                runningServer.live.DisposeServer();
             }
 
             GC.SuppressFinalize(this);

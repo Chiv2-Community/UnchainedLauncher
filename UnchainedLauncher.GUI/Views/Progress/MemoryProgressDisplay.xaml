@@ -61,7 +61,7 @@
                     Foreground="{StaticResource Brush.Primary}"
                     BorderThickness="1" />
                 <Expander Grid.Row="4"
-                          IsExpanded="False"
+                          IsExpanded="True"
                           Header="Details"
                           BorderThickness="0">
                     <ListView

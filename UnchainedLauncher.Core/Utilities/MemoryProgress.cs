@@ -42,7 +42,7 @@ namespace UnchainedLauncher.Core.Utilities {
         }
 
         private void OnProgressPropertyChanged(object? sender, PropertyChangedEventArgs e) {
-            if (e.PropertyName == nameof(MemoryProgress.ProgressPercentage)) {
+            if (e.PropertyName == nameof(ProgressPercentage)) {
                 ProgressPercentage = CalcAggregatePercentage();
             }
         }

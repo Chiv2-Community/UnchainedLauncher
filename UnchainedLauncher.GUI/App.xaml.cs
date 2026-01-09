@@ -263,10 +263,10 @@ namespace UnchainedLauncher.GUI {
 
             var codec = new ServerConfigurationCodec(modManager);
             var serverConfigurations = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
-            
+
             RegisterSaveToFileOnExit(serverConfigurations, codec, jsonPath);
             Exit += (_, _) => serverConfigurations.ForEach(x => x.SaveINI());
-            
+
             return serverConfigurations;
         }
 

@@ -39,7 +39,7 @@ namespace StructuredINI {
 
         private static bool TryDeriveAndRegisterCodec(Type type, out object codec) {
             codec = null;
-            
+
             if (!type.IsDefined(typeof(DeriveCodecAttribute), inherit: false)) {
                 return false;
             }

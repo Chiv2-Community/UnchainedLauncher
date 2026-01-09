@@ -9,7 +9,7 @@ public enum CharacterClass {
     Vanguard,
     Footman,
     Knight,
-    
+
     Longbowman,
     Crossbowman,
     Skirmisher,

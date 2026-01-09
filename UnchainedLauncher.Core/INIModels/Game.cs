@@ -35,11 +35,11 @@ public record TBLGameMode(
     public AutoBalance[] TeamBalanceOptions { get; init; } = TeamBalanceOptions ?? [
         new AutoBalance(0, 64, 32)
     ];
-    
+
     public AutoBalance[] AutoBalanceOptions { get; init; } = AutoBalanceOptions ?? [
         new AutoBalance(0, 64, 32)
     ];
-    
+
     public ClassLimit[] ClassLimits { get; init; } = ClassLimits ?? [
         new ClassLimit(CharacterClass.Archer, 0.25m)
     ];

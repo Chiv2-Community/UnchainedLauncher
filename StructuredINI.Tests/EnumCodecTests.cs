@@ -1,6 +1,6 @@
 ﻿namespace StructuredINI.Tests {
     public class EnumCodecTests {
-        [DeriveCodec] 
+        [DeriveCodec]
         private enum TestEnum {
             Foo,
             BarBaz

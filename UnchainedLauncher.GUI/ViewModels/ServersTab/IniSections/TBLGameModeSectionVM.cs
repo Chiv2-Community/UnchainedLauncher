@@ -56,37 +56,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
 
         public int DefaultMaxPlayers { get; set; }
 
-        public bool AutoBalanceEnabled {
-            get => AutoBalanceOptions.Count > 0;
-            set {
-                if (value) {
-                    if (AutoBalanceOptions.Count == 0) {
-                        AutoBalanceOptions.Add(new AutoBalanceVM(new AutoBalance(0, DefaultMaxPlayers, 1)));
-                    }
-                }
-                else {
-                    AutoBalanceOptions.Clear();
-                }
-
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutoBalanceEnabled)));
-            }
-        }
-
-        public bool TeamBalanceEnabled {
-            get => TeamBalanceOptions.Count > 0;
-            set {
-                if (value) {
-                    if (TeamBalanceOptions.Count == 0) {
-                        TeamBalanceOptions.Add(new AutoBalanceVM(new AutoBalance(0, DefaultMaxPlayers, 1)));
-                    }
-                }
-                else {
-                    TeamBalanceOptions.Clear();
-                }
-
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TeamBalanceEnabled)));
-            }
-        }
+        public bool AutoBalanceEnabled { get; set; }
+        public bool TeamBalanceEnabled { get; set; }
 
 
         public TBLGameModeSectionVM() {

@@ -184,7 +184,6 @@ namespace UnchainedLauncher.GUI {
                 settingsViewModel,
                 modManager,
                 vanillaLauncher,
-                clientsideModdedLauncher,
                 unchainedLauncher,
                 userDialogueSpawner,
                 chivProcessMonitor);
@@ -198,11 +197,6 @@ namespace UnchainedLauncher.GUI {
             // TODO: Replace this if/else chain with a real CLI
             if (envArgs.Contains("--startvanilla")) {
                 homeViewModel.LaunchVanilla().Wait();
-                return null;
-            }
-
-            if (envArgs.Contains("--startmodded")) {
-                homeViewModel.LaunchModdedVanilla().Wait();
                 return null;
             }
 

@@ -28,7 +28,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServerVM));
 
         public Chivalry2Server Server { get; private set; } = server;
-        private bool _disposed;
 
         public string ServerName { get; set; } = serverName;
 

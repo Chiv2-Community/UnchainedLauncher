@@ -4,11 +4,15 @@
       "commandName": "Project",
       "nativeDebugging": false
     },
-    "Main": {
+    "Main - Steam": {
       "commandName": "Project",
       "nativeDebugging": true,
-      "commandLineArgs": "--no-install",
       "workingDirectory": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Chivalry 2"
+    },
+    "Main - EGS": {
+      "commandName": "Project",
+      "nativeDebugging": true,
+      "workingDirectory": "C:\\Program Files\\Epic Games\\Chivalry2"
     }
   }
 }

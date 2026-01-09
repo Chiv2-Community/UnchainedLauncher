@@ -86,7 +86,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     [AddINotifyPropertyChangedInterface]
     public partial class ServersTabVM : IDisposable {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServersTabVM));
-
         private static Dispatcher UiDispatcher => Application.Current.Dispatcher;
 
         private static Task UiInvokeAsync(Action action) => UiDispatcher.InvokeAsync(action).Task;
@@ -100,6 +99,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public ObservableCollection<ServerConfigurationVM> ServerConfigs { get; }
         public ObservableCollection<(ServerConfigurationVM configuration, ServerVM live)> RunningServers { get; } = new();
         private IChivalryProcessWatcher ProcessWatcher { get; }
+
+        public bool CanLaunch { get; private set; }
 
         public ServerConfigurationVM? SelectedConfiguration {
             get;
@@ -187,11 +188,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public async Task LaunchSelected(bool headless = false) {
             if (SelectedConfiguration == null) return;
-
-            if (!Settings.IsLauncherReusable()) {
-                Settings.CanClick = false;
-            }
-
+            
             var formData = SelectedConfiguration.ToServerConfiguration();
 
             // Resolve selected releases from the template's EnabledServerModList
@@ -219,10 +216,20 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 return;
             }
             
-            var server = CreateServer(proc, conf.ToServerConfiguration(), false, conf.EnabledServerModList.ToArray());
+            var formData = conf.ToServerConfiguration();
+            var server = CreateServer(proc, formData, false, conf.EnabledServerModList.ToArray());
             var serverVm = new ServerVM(server, conf.Name, conf.AvailableMaps);
             serverVm.StartUpdateLoop();
             RunningServers.Add((conf, serverVm));
+            _ = AttachServerExitWatcher(proc, formData, conf.EnabledServerModList.ToArray(), false, (conf, serverVm));
+        }
+
+        public void AttachServerExitWatcher(Process process, ServerConfigurationVM config, ObservableCollection<ReleaseCoordinates>? enabledCoordinates, bool headless, (ServerConfigurationVM, ServerVM) runningTuple) {
+            process.EnableRaisingEvents = true;
+            process.Exited += (sender, args) => {
+                RunningServers.Remove(runningTuple);
+                Logger.Debug($"Server process with PID {process.Id} has exited. Removing from running servers list.");
+            };
         }
 
         public void SetSelectedConfigurationByName(string name) {
@@ -329,10 +336,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 await UiInvokeAsync(() => { runningTuple.live.IsUp = false; });
 
                 Logger.Error($"Server exited unexpectedly with code {exitCode}. Attempting automatic restart...");
+                
+                if (!Settings.CanLaunch) return; // EGS can't restart automatically.
 
                 // Small delay to avoid tight restart loops
                 await Task.Delay(2000);
 
+                
                 var relaunched = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
                 relaunched.IfSome(newProc => {
                     var newServer = CreateServer(newProc, formData, headless, enabledCoordinates);
@@ -349,12 +359,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private async Task<Option<Process>> LaunchServerWithOptions(ServerConfiguration formData, bool headless, ReleaseCoordinates[] enabledCoordinates) {
             var options = BuildLaunchOptions(formData, headless, enabledCoordinates);
             return await UiInvokeAsync(async () => {
+                Settings.HasLaunched = true;
                 var launchResult = await Launcher.Launch(options);
                 return launchResult.Match(
                     Left: _ => {
                         Logger.Error("Failed to launch server. Check logs for details.");
                         DialogueSpawner.DisplayMessage("Failed to launch server. Check logs for details.");
-                        Settings.CanClick = true;
                         return None;
                     },
                     Right: process => Some(process)

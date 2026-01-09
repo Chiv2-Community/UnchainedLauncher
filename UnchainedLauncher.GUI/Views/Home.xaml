@@ -59,28 +59,19 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="8" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="8" />
-                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <Button Grid.Row="0"
                     Content="Chivalry 2"
                     ToolTip="{Binding ButtonToolTip}"
                     Command="{Binding LaunchVanillaCommand}"
-                    IsEnabled="{Binding Settings.CanClick}"
+                    IsEnabled="{Binding Settings.CanLaunch}"
                     Style="{DynamicResource Button.Primary}" />
-
+            
             <Button Grid.Row="2"
-                    Content="Chivalry 2 with Mods"
-                    ToolTip="{Binding ButtonToolTip}"
-                    Command="{Binding LaunchModdedVanillaCommand}"
-                    IsEnabled="{Binding Settings.CanClick}"
-                    Style="{DynamicResource Button.Primary}" />
-
-            <Button Grid.Row="4"
                     Content="Chivalry 2 Unchained"
                     ToolTip="{Binding ButtonToolTip}"
                     Command="{Binding LaunchUnchainedCommand}"
-                    IsEnabled="{Binding Settings.CanClick}"
+                    IsEnabled="{Binding Settings.CanLaunch}"
                     Style="{DynamicResource Button.Primary}" />
         </Grid>
     </Grid>

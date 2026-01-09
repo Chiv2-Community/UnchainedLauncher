@@ -22,7 +22,7 @@ using UnchainedLauncher.GUI.ViewModels.Registry;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
-    public partial class SettingsVM : IDisposable {
+    public partial class SettingsVM : IDisposable { 
         private static readonly ILog Logger = LogManager.GetLogger(nameof(SettingsVM));
         private static readonly Version Version = Assembly.GetExecutingAssembly().GetName().Version!;
 
@@ -31,6 +31,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string AdditionalModActors { get; set; }
         public string ServerBrowserBackend { get; set; }
         public bool UseLightTheme { get; set; }
+        
+        public bool HasLaunched { get; set; }
+
+        public bool CanLaunch => !HasLaunched || IsLauncherReusable(); 
 
         private string _cliArgs;
         public string CLIArgs {
@@ -61,8 +65,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public IUnchainedLauncherInstaller Installer { get; }
         public IReleaseLocator UnchainedReleaseLocator { get; set; }
         public readonly Action<int> ExitProgram;
-        public bool CanClick { get; set; }
-
         private RegistryWindowService RegistryWindowService { get; }
         private RegistryWindowVM RegistryWindowVM { get; }
 
@@ -80,7 +82,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
             ServerBrowserBackend = serverBrowserBackend;
             UseLightTheme = useLightTheme;
             ExitProgram = exitProgram;
-            CanClick = true;
 
             _cliArgs = cliArgs;
             CLIArgsModified = false;
@@ -91,6 +92,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public static SettingsVM LoadSettings(RegistryWindowVM registryWindowVM, RegistryWindowService registryWindowService, IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakDir, IUserDialogueSpawner userDialogueSpawner, Action<int> exitProgram) {
             var cliArgsList = Environment.GetCommandLineArgs();
+            Logger.Debug($"CLI args: {cliArgsList.Aggregate((x, y) => $"{x} {y}")}");
             var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => $"{x} {y}") : "";
 
             var fileBackedSettings = new FileBackedSettings<LauncherSettings>(FilePaths.LauncherSettingsFilePath);

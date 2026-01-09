@@ -2,6 +2,7 @@ using LanguageExt;
 using LanguageExt.UnsafeValueAccess;
 using log4net;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using UnchainedLauncher.Core.Utilities;
 
@@ -44,24 +45,38 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
             var updatedLaunchOpts = maybeUpdatedLaunchOpts.ValueUnsafe();
 
-            var moddedLaunchArgs = launchOptions.LaunchArgs;
             var allArgs = updatedLaunchOpts.ToCLIArgs();
+            var rawArgs = allArgs.Filter(x => x is RawArgs);
             var mapUriArgs = allArgs.Filter(x => x is UEMapUrlParameter);
-            var launchOpts = allArgs.Filter<CLIArg>(x => x is not UEMapUrlParameter);
+            var launchOpts = allArgs.Filter(x => x is not (UEMapUrlParameter or RawArgs));
 
-            var mapString = "TBL";
-            foreach (var mapUriArg in mapUriArgs) {
-                mapString += mapUriArg.Rendered;
+            var mapUriString = string.Join("", mapUriArgs.Select(x => x.Rendered));
+
+            var rawArgsString = string.Join(" ", rawArgs.Select(x => x.Rendered));
+            var mapString = rawArgsString;
+            if (!string.IsNullOrWhiteSpace(mapUriString)) {
+                if (Regex.IsMatch(rawArgsString, @"\bTBL\b")) {
+                    // Insert map url params immediately after the `TBL` token (not at the end of all raw args)
+                    mapString = new Regex(@"\bTBL\b").Replace(rawArgsString, $"TBL{mapUriString}", 1);
+                } else {
+                    mapString = string.IsNullOrWhiteSpace(rawArgsString)
+                        ? $"TBL{mapUriString}"
+                        : $"TBL{mapUriString} {rawArgsString}";
+                }
             }
 
             Logger.Info($"Launch args:");
             Logger.Info($"    {mapString}");
-            foreach (var launchOpt in launchOpts) {
+            var cliArgs = launchOpts as CLIArg[] ?? launchOpts.ToArray();
+            foreach (var launchOpt in cliArgs) {
                 Logger.Info($"    {launchOpt.Rendered}");
             }
 
             var workingDir = Path.Combine(InstallationRootDir, FilePaths.BinDir);
-            var launchOptString = mapString + string.Join(" ", launchOpts.Select(x => x.Rendered));
+            var launchOptString = string.Join(" ", new[] { mapString }
+                .Concat(cliArgs.Select(x => x.Rendered))
+                .Where(x => !string.IsNullOrWhiteSpace(x)));
+            
             var launchResult = Launcher.Launch(workingDir, launchOptString);
 
             return launchResult.Match(

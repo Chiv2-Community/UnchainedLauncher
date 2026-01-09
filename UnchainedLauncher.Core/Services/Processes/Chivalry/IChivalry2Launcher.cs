@@ -104,12 +104,12 @@ public record ServerLaunchOptions(
 
         LocalIp.IfSome(ip => args.Add(new Parameter("--local-ip", ip)));
 
-        FFAScoreLimit.IfSome(limit => new UEMapUrlParameter("FFAScoreLimit", limit.ToString()));
-        FFATimeLimit.IfSome(limit => new UEMapUrlParameter("FFATimeLimit", limit.ToString()));
-        TDMTimeLimit.IfSome(limit => new UEMapUrlParameter("TDMTimeLimit", limit.ToString()));
-        TDMTicketCount.IfSome(count => new UEMapUrlParameter("TDMTicketCount", count.ToString()));
-        PlayerBotCount.IfSome(count => new UEMapUrlParameter("NumPlayerBots", count.ToString()));
-        WarmupTime.IfSome(time => new UEMapUrlParameter("WarmupTime", time.ToString()));
+        FFAScoreLimit.IfSome(limit => args.Add(new UEMapUrlParameter("FFAScoreLimit", limit.ToString())));
+        FFATimeLimit.IfSome(limit => args.Add(new UEMapUrlParameter("FFATimeLimit", limit.ToString())));
+        TDMTimeLimit.IfSome(limit => args.Add(new UEMapUrlParameter("TDMTimeLimit", limit.ToString())));
+        TDMTicketCount.IfSome(count => args.Add(new UEMapUrlParameter("TDMTicketCount", count.ToString())));
+        PlayerBotCount.IfSome(count => args.Add(new UEMapUrlParameter("NumPlayerBots", count.ToString())));
+        WarmupTime.IfSome(time => args.Add(new UEMapUrlParameter("WarmupTime", time.ToString())));
 
         return args;
     }

@@ -1,42 +1,28 @@
-﻿using System.ComponentModel;
+﻿using PropertyChanged;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
-    public class AdvancedConfigurationSectionVM : INotifyPropertyChanged {
-        private readonly ServerConfigurationVM _parent;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        public AdvancedConfigurationSectionVM(ServerConfigurationVM parent) {
-            _parent = parent;
-
-            if (_parent is INotifyPropertyChanged npc) {
-                npc.PropertyChanged += (_, e) => {
-                    if (e.PropertyName is nameof(ServerConfigurationVM.PlayerBotCount)
-                        or nameof(ServerConfigurationVM.WarmupTime)
-                        or nameof(ServerConfigurationVM.ShowInServerBrowser)) {
-                        PropertyChanged?.Invoke(this, e);
-                    }
-                };
-            }
+    [AddINotifyPropertyChangedInterface]
+    public class AdvancedConfigurationSectionVM {
+        public AdvancedConfigurationSectionVM(
+            IpNetDriverSectionVM ipNetDriver,
+            TBLGameModeSectionVM gameMode,
+            bool showInServerBrowser,
+            int? playerBotCount,
+            int? warmupTime
+        ) {
+            IpNetDriver = ipNetDriver;
+            GameMode = gameMode;
+            ShowInServerBrowser = showInServerBrowser;
+            PlayerBotCount = playerBotCount;
+            WarmupTime = warmupTime;
         }
 
-        public IpNetDriverSectionVM IpNetDriver => _parent.IpNetDriver;
-        public TBLGameModeSectionVM GameMode => _parent.GameMode;
+        public IpNetDriverSectionVM IpNetDriver { get; }
+        public TBLGameModeSectionVM GameMode { get; }
 
-        public int? PlayerBotCount {
-            get => _parent.PlayerBotCount;
-            set => _parent.PlayerBotCount = value;
-        }
-
-        public int? WarmupTime {
-            get => _parent.WarmupTime;
-            set => _parent.WarmupTime = value;
-        }
-
-        public bool ShowInServerBrowser {
-            get => _parent.ShowInServerBrowser;
-            set => _parent.ShowInServerBrowser = value;
-        }
+        public int? PlayerBotCount { get; set; }
+        public int? WarmupTime { get; set; }
+        public bool ShowInServerBrowser { get; set; }
     }
 }

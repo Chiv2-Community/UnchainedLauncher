@@ -1,19 +1,14 @@
-﻿namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
+﻿using PropertyChanged;
+
+namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
+    [AddINotifyPropertyChangedInterface]
     public class FfaConfigurationSectionVM {
-        private readonly ServerConfigurationVM _parent;
-
-        public FfaConfigurationSectionVM(ServerConfigurationVM parent) {
-            _parent = parent;
+        public FfaConfigurationSectionVM(int? ffaTimeLimit = null, int? ffaScoreLimit = null) {
+            FFATimeLimit = ffaTimeLimit;
+            FFAScoreLimit = ffaScoreLimit;
         }
 
-        public int? FFATimeLimit {
-            get => _parent.FFATimeLimit;
-            set => _parent.FFATimeLimit = value;
-        }
-
-        public int? FFAScoreLimit {
-            get => _parent.FFAScoreLimit;
-            set => _parent.FFAScoreLimit = value;
-        }
+        public int? FFATimeLimit { get; set; }
+        public int? FFAScoreLimit { get; set; }
     }
 }

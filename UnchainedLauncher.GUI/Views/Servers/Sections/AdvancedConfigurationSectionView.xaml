@@ -114,73 +114,100 @@
         </controls:CollapsibleCard>
 
         <controls:CollapsibleCard Header="TBLGameMode (Game.ini)" IsExpanded="True">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="20" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="20" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-
-                <TextBlock Text="Server Identifier" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
-                           ToolTip="The server identifier displayed in the upper left corner when pressing Tab in-game. Example: id" />
-                <TextBox Text="{Binding GameMode.ServerIdentifier}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="7" MinWidth="220" HorizontalAlignment="Stretch"
-                         ToolTip="The server identifier displayed in the upper left corner when pressing Tab in-game. Example: id" />
-
-                <TextBlock Text="Min Time Before Starting Match" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}"
-                           ToolTip="Minimum warmup time (seconds) before a match starts. Example: 1.000000" />
-                <TextBox Text="{Binding GameMode.MinTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
-                         ToolTip="Minimum warmup time (seconds) before a match starts. Example: 1.000000" />
-
-                <TextBlock Text="Max Time Before Starting Match" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}"
-                           ToolTip="Maximum warmup time (seconds) before a match starts. Example: 10" />
-                <TextBox Text="{Binding GameMode.MaxTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch"
-                         ToolTip="Maximum warmup time (seconds) before a match starts. Example: 10" />
-
-                <TextBlock Text="Idle Kick Timer Spectate" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}"
-                           ToolTip="Seconds before an idle player is moved to spectator (0 to disable). Example: 0.000000" />
-                <TextBox Text="{Binding GameMode.IdleKickTimerSpectate}" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
-                         ToolTip="Seconds before an idle player is moved to spectator (0 to disable). Example: 0.000000" />
-
-                <TextBlock Text="Idle Kick Timer Disconnect" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
-                           ToolTip="Seconds before an idle player is disconnected (0 to disable). Example: 0.000000" />
-                <TextBox Text="{Binding GameMode.IdleKickTimerDisconnect}" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
-                         ToolTip="Seconds before an idle player is disconnected (0 to disable). Example: 0.000000" />
-            </Grid>
-        </controls:CollapsibleCard>
-
-        <controls:CollapsibleCard Header="Balance Options" IsExpanded="True">
             <StackPanel>
-                <TextBlock Text="Auto Balance Options" Margin="0,0,0,4"
-                           ToolTip="Auto-balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference). Example: (MinNumPlayers=0,MaxNumPlayers=24,AllowedNumPlayersDifference=1)" />
-                <DataGrid ItemsSource="{Binding GameMode.AutoBalanceOptions}" AutoGenerateColumns="False" CanUserAddRows="True" MinHeight="100" Margin="0,0,0,8"
-                          ToolTip="Auto-balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference).">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Min" Binding="{Binding MinNumPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        <DataGridTextColumn Header="Max" Binding="{Binding MaxNumPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        <DataGridTextColumn Header="Allowed Diff" Binding="{Binding AllowedNumPlayersDifference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                    </DataGrid.Columns>
-                </DataGrid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <TextBlock Text="Team Balance Options" Margin="0,0,0,4"
-                           ToolTip="Team balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference). Example: (MinNumPlayers=0,MaxNumPlayers=32,AllowedNumPlayersDifference=2)" />
-                <DataGrid ItemsSource="{Binding GameMode.TeamBalanceOptions}" AutoGenerateColumns="False" CanUserAddRows="True" MinHeight="100"
-                          ToolTip="Team balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference).">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Min" Binding="{Binding MinNumPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        <DataGridTextColumn Header="Max" Binding="{Binding MaxNumPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        <DataGridTextColumn Header="Allowed Diff" Binding="{Binding AllowedNumPlayersDifference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                    </DataGrid.Columns>
-                </DataGrid>
+                    <TextBlock Text="Server Identifier" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
+                               ToolTip="The server identifier displayed in the upper left corner when pressing Tab in-game. Example: id" />
+                    <TextBox Text="{Binding GameMode.ServerIdentifier}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="7" MinWidth="220" HorizontalAlignment="Stretch"
+                             ToolTip="The server identifier displayed in the upper left corner when pressing Tab in-game. Example: id" />
+
+                    <TextBlock Text="Min Time Before Starting Match" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}"
+                               ToolTip="Minimum warmup time (seconds) before a match starts. Example: 1.000000" />
+                    <TextBox Text="{Binding GameMode.MinTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
+                             ToolTip="Minimum warmup time (seconds) before a match starts. Example: 1.000000" />
+
+                    <TextBlock Text="Max Time Before Starting Match" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}"
+                               ToolTip="Maximum warmup time (seconds) before a match starts. Example: 10" />
+                    <TextBox Text="{Binding GameMode.MaxTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch"
+                             ToolTip="Maximum warmup time (seconds) before a match starts. Example: 10" />
+
+                    <TextBlock Text="Idle Kick Timer Spectate" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}"
+                               ToolTip="Seconds before an idle player is moved to spectator (0 to disable). Example: 0.000000" />
+                    <TextBox Text="{Binding GameMode.IdleKickTimerSpectate}" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+                             ToolTip="Seconds before an idle player is moved to spectator (0 to disable). Example: 0.000000" />
+
+                    <TextBlock Text="Idle Kick Timer Disconnect" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
+                               ToolTip="Seconds before an idle player is disconnected (0 to disable). Example: 0.000000" />
+                    <TextBox Text="{Binding GameMode.IdleKickTimerDisconnect}" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
+                             ToolTip="Seconds before an idle player is disconnected (0 to disable). Example: 0.000000" />
+                </Grid>
+                
+                <controls:CollapsibleCard Header="Class Limits" IsExpanded="True">
+                    <DataGrid ItemsSource="{Binding GameMode.ClassLimits}" AutoGenerateColumns="False" CanUserAddRows="True" MinHeight="100" Margin="0,0,0,8"
+                              ToolTip="Create limits for specific classes. For example, Class=Archer Limit Percent=10% would allow 1 archer per team of 10 players.">
+                        <DataGrid.Columns>
+                            <!-- DataGridComboBoxColumn isn't in the visual/logical tree, so it cannot reliably bind to the parent view model.
+                                 Use a template column so the ComboBox can bind via RelativeSource to the DataGrid's DataContext. -->
+                            <DataGridTemplateColumn Header="Class" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Class}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <ComboBox
+                                            ItemsSource="{Binding DataContext.GameMode.CharacterClassValues, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                            SelectedItem="{Binding Class, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Limit Percent" Binding="{Binding ClassLimitPercent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </controls:CollapsibleCard>
+
+                <controls:CollapsibleCard Header="Balance Options" IsExpanded="True">
+                    <StackPanel>
+                        <TextBlock Text="Auto Balance Options" Margin="0,0,0,4"
+                                   ToolTip="Auto-balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference). Example: (MinNumPlayers=0,MaxNumPlayers=24,AllowedNumPlayersDifference=1)" />
+                        <DataGrid ItemsSource="{Binding GameMode.AutoBalanceOptions}" AutoGenerateColumns="False" CanUserAddRows="True" MinHeight="100" Margin="0,0,0,8"
+                                  ToolTip="Auto-balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference).">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Min" Binding="{Binding MinNumPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                                <DataGridTextColumn Header="Max" Binding="{Binding MaxNumPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                                <DataGridTextColumn Header="Allowed Diff" Binding="{Binding AllowedNumPlayersDifference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBlock Text="Team Balance Options" Margin="0,0,0,4"
+                                   ToolTip="Team balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference). Example: (MinNumPlayers=0,MaxNumPlayers=32,AllowedNumPlayersDifference=2)" />
+                        <DataGrid ItemsSource="{Binding GameMode.TeamBalanceOptions}" AutoGenerateColumns="False" CanUserAddRows="True" MinHeight="100"
+                                  ToolTip="Team balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference).">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Min" Binding="{Binding MinNumPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                                <DataGridTextColumn Header="Max" Binding="{Binding MaxNumPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                                <DataGridTextColumn Header="Allowed Diff" Binding="{Binding AllowedNumPlayersDifference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </controls:CollapsibleCard>
             </StackPanel>
         </controls:CollapsibleCard>
     </StackPanel>

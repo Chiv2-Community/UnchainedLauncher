@@ -10,6 +10,7 @@ namespace StructuredINI {
             Register(new IntCodec());
             Register(new DoubleCodec());
             Register(new FloatCodec());
+            Register(new DecimalCodec());
         }
 
         public static void Register<T>(IINICodec<T> codec) {
@@ -38,9 +39,20 @@ namespace StructuredINI {
 
         private static bool TryDeriveAndRegisterCodec(Type type, out object codec) {
             codec = null;
-
+            
             if (!type.IsDefined(typeof(DeriveCodecAttribute), inherit: false)) {
                 return false;
+            }
+
+            if (type.IsEnum) {
+                var enumCodecType = typeof(EnumNameCodec<>).MakeGenericType(type);
+                codec = Activator.CreateInstance(enumCodecType);
+                if (codec == null) {
+                    return false;
+                }
+
+                Register(type, codec);
+                return true;
             }
 
             var codecType = typeof(DerivedRecordCodec<>).MakeGenericType(type);

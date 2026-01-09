@@ -11,6 +11,11 @@ namespace StructuredINI.Codecs {
         public string Encode(bool value) => value.ToString();
     }
 
+    public class DecimalCodec : IINICodec<decimal> {
+        public decimal Decode(string value) => decimal.Parse(value, CultureInfo.InvariantCulture);
+        public string Encode(decimal value) => value.ToString(CultureInfo.InvariantCulture);
+    }
+
     public class IntCodec : IINICodec<int> {
         public int Decode(string value) => int.Parse(value);
         public string Encode(int value) => value.ToString();

@@ -4,7 +4,7 @@
         public record SomeINISection(int Foo, string Bar, double Baz, float Quux, int[] MyConfigArray);
 
         [INISection("MissingCodecSection")]
-        public record MissingCodecSection(decimal Price);
+        public record MissingCodecSection(DateTime When);
 
         [Fact]
         public void TestArrayOperations() {
@@ -91,13 +91,13 @@ Quux=60.5
             var parser = new StructuredINIParser();
             var iniContent = @"
 [MissingCodecSection]
-Price=12.5
+When=2026-01-09T08:24:00
 ";
 
             var ex = Assert.Throws<InvalidOperationException>(() => parser.Deserialize<MissingCodecSection>(iniContent));
-            Assert.Contains("Price", ex.Message);
-            Assert.Contains("decimal", ex.Message);
-            Assert.DoesNotContain("System.Decimal", ex.Message);
+            Assert.Contains("When", ex.Message);
+            Assert.Contains("DateTime", ex.Message);
+            Assert.DoesNotContain("System.DateTime", ex.Message);
         }
     }
 }

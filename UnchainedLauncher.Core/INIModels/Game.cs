@@ -22,6 +22,7 @@ public record TBLGameMode(
     string[]? MapList = null,
     int MapListIndex = -1,
     bool bHorseCompatibleServer = false,
+    ClassLimit[]? ClassLimits = null,
     AutoBalance[]? TeamBalanceOptions = null,
     AutoBalance[]? AutoBalanceOptions = null,
     int StartOfMatchGracePeriodForAutoBalance = 60,
@@ -31,8 +32,17 @@ public record TBLGameMode(
     private static readonly string[] DefaultMapList = { "FFA_Courtyard", "FFA_Wardenglade" };
 
     public string[] MapList { get; init; } = MapList ?? DefaultMapList;
-    public AutoBalance[] TeamBalanceOptions { get; init; } = TeamBalanceOptions ?? [];
-    public AutoBalance[] AutoBalanceOptions { get; init; } = AutoBalanceOptions ?? [];
+    public AutoBalance[] TeamBalanceOptions { get; init; } = TeamBalanceOptions ?? [
+        new AutoBalance(0, 64, 32)
+    ];
+    
+    public AutoBalance[] AutoBalanceOptions { get; init; } = AutoBalanceOptions ?? [
+        new AutoBalance(0, 64, 32)
+    ];
+    
+    public ClassLimit[] ClassLimits { get; init; } = ClassLimits ?? [
+        new ClassLimit(CharacterClass.Archer, 0.25m)
+    ];
 }
 
 [INISection("/Script/TBL.LTSGameMode")]

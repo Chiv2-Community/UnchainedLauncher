@@ -3,7 +3,6 @@ using PropertyChanged;
 using StructuredINI.Codecs;
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
 using UnchainedLauncher.Core.INIModels.Game;
 

@@ -15,12 +15,31 @@
     </UserControl.Resources>
 
     <StackPanel Margin="8">
-        <controls:CollapsibleCard Header="Server Browser" IsExpanded="True">
-            <StackPanel>
-                <CheckBox IsChecked="{Binding ShowInServerBrowser}"
+        <controls:CollapsibleCard Header="Integrations" IsExpanded="True">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="20" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <CheckBox Grid.ColumnSpan="2" IsChecked="{Binding ShowInServerBrowser}"
                           Content="Show in Server Browser"
                           VerticalAlignment="Center" />
-            </StackPanel>
+                
+                <TextBlock Text="Discord Bot Token" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}" />
+                <TextBox Text="{Binding DiscordBotToken, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch" ToolTip="Warmup duration. Leave blank for default" />
+                
+                <TextBlock Text="Discord Channel ID" Grid.Row="0" Grid.Column="6" Style="{StaticResource FormLabel}" ToolTip="Warmup duration. Leave blank for default" />
+                <TextBox Text="{Binding DiscordChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="7" HorizontalAlignment="Stretch" ToolTip="Warmup duration. Leave blank for default" />
+            </Grid>
         </controls:CollapsibleCard>
 
         <controls:CollapsibleCard Header="Game Options (Map URL)" IsExpanded="True">

@@ -271,6 +271,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                     .Where(release => release.Manifest.OptionFlags.ActorMod)
                     .Select(release => release.Manifest.Name.Replace(" ", ""));
 
+            var discordIntegration =
+                string.IsNullOrEmpty(formData.DiscordBotToken) || string.IsNullOrEmpty(formData.DiscordChannelId)
+                    ? null
+                    : new DiscordIntegrationParams(formData.DiscordBotToken, formData.DiscordChannelId);
+            
             return new ServerLaunchOptions(
                 headless,
                 formData.Name,
@@ -287,6 +292,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 formData.TDMTicketCount,
                 formData.PlayerBotCount,
                 formData.WarmupTime,
+                discordIntegration,
                 formData.LocalIp,
                 nextMapModActors
             );

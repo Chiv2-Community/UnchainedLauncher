@@ -48,6 +48,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                     TDMTicketCount: 10,
                     PlayerBotCount: 10,
                     WarmupTime: 10,
+                    new DiscordIntegrationParams("abc", "123"),
                     LocalIp: Some("127.0.0.1"),
                     NextMapModActors: new[] { "ExampleActorModA", "ExampleActorModB" }
                 ),

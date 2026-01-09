@@ -77,6 +77,7 @@ public record ServerLaunchOptions(
     int? TDMTicketCount,
     int? PlayerBotCount,
     int? WarmupTime,
+    Option<DiscordIntegrationParams> DiscordIntegrationParams,
     Option<string> LocalIp,
     IEnumerable<String> NextMapModActors
 ) {
@@ -111,6 +112,11 @@ public record ServerLaunchOptions(
         PlayerBotCount.IfSome(count => args.Add(new UEMapUrlParameter("NumPlayerBots", count.ToString())));
         WarmupTime.IfSome(time => args.Add(new UEMapUrlParameter("WarmupTime", time.ToString())));
 
+        DiscordIntegrationParams.IfSome(discordConf => {
+            args.Add(new Parameter("--discord-bot-token", discordConf.BotToken));
+            args.Add(new Parameter("--discord-channel-id", discordConf.ChannelID));
+        });
+        
         return args;
     }
 };
@@ -124,3 +130,5 @@ public record Parameter(string ParamName, string Value) : CLIArg($"{ParamName} \
 public record UEParameter(string ParamName, string Value) : CLIArg($"{ParamName}={Value}");
 public record UEINIParameter(string Type, string Section, string Key, string Value) : CLIArg($"-ini:{Type}:[{Section}]:{Key}=\"{Value}\"");
 public record UEMapUrlParameter(string Key, string Value) : CLIArg($"?{Key}={Value}");
+
+public record DiscordIntegrationParams(string BotToken, string ChannelID);

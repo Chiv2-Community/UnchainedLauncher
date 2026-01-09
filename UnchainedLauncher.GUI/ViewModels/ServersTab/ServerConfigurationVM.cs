@@ -53,6 +53,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                         conf.TDMTimeLimit,
                         conf.PlayerBotCount,
                         conf.WarmupTime,
+                        conf.DiscordBotToken,
+                        conf.DiscordChannelId,
                         conf.EnabledServerModList
                     )
             ));
@@ -83,6 +85,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         int? TDMTimeLimit = null,
         int? PlayerBotCount = null,
         int? WarmupTime = null,
+        string DiscordBotToken = "",
+        string DiscordChannelId = "",
         ObservableCollection<ReleaseCoordinates>? EnabledServerModList = null) {
 
         public string SavedDirSuffix => ServerConfigurationVM.SavedDirSuffix(Name);
@@ -146,7 +150,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public int PingPort { get; set; }
         public bool ShowInServerBrowser { get; set; }
         public string LocalIp { get; set; }
-
+        
+        public string DiscordBotToken { get; set; }
+        public string DiscordChannelId { get; set; }
+        
         public int? FFATimeLimit { get; set; }
         public int? FFAScoreLimit { get; set; }
 
@@ -220,6 +227,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             int? tdmTimeLimit = null,
             int? playerBotCount = null,
             int? warmupTime = null,
+            string discordBotToken = "",
+            string discordChannelId = "",
             ObservableCollection<ReleaseCoordinates>? enabledServerModList = null
         ) {
             Description = description;
@@ -229,6 +238,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             PingPort = pingPort;
             GamePort = gamePort;
             ShowInServerBrowser = showInServerBrowser;
+            
+            DiscordBotToken = discordBotToken;
+            DiscordChannelId = discordChannelId;
 
             FFAScoreLimit = ffaScoreLimit;
             FFATimeLimit = ffaTimeLimit;
@@ -349,6 +361,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             TDMTimeLimit,
             PlayerBotCount,
             WarmupTime,
+            DiscordBotToken,
+            DiscordChannelId,
             EnabledServerModList
         );
 

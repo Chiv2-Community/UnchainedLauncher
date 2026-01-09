@@ -38,5 +38,23 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
             get => _parent.ShowInServerBrowser;
             set => _parent.ShowInServerBrowser = value;
         }
+
+        public string DiscordBotToken {
+            get {
+                return _parent.DiscordBotToken;
+            } 
+            set {
+                _parent.DiscordBotToken = value;
+            }
+        }
+
+        public string DiscordChannelId {
+            get {
+                return _parent.DiscordChannelId;
+            } 
+            set {
+                _parent.DiscordChannelId = value;
+            }
+        }
     }
 }

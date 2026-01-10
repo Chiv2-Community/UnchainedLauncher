@@ -23,4 +23,11 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
         ) {
         }
     }
+
+    public class BalanceSectionDesignVM : BalanceSectionVM {
+        public BalanceSectionDesignVM() : base(
+            new TBLGameModeSectionVM()
+        ) {
+        }
+    }
 }

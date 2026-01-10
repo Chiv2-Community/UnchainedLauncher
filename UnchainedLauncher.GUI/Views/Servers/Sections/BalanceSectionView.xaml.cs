@@ -1,8 +1,8 @@
 ﻿using System.Windows.Controls;
 
 namespace UnchainedLauncher.GUI.Views.Servers.Sections {
-    public partial class TeamAutobalanceSectionView : UserControl {
-        public TeamAutobalanceSectionView() {
+    public partial class BalanceSectionView : UserControl {
+        public BalanceSectionView() {
             InitializeComponent();
         }
     }

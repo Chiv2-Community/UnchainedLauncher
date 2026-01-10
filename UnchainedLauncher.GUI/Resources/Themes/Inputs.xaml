@@ -11,7 +11,7 @@
     </Style>
 
     <Style TargetType="TextBox">
-        <Setter Property="FontFamily" Value="{StaticResource Font.Default}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.Default}" />
         <Setter Property="Padding" Value="8,4" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.InputBorder}" />
         <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}" />
@@ -30,13 +30,14 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6" />
-
-                        <ScrollViewer x:Name="PART_ContentHost"
-                                      Background="{TemplateBinding Background}"
-                                      Margin="{TemplateBinding Padding}"
-                                      VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                                Padding="3"
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Padding="{TemplateBinding Padding}"
+                                          VerticalAlignment="Stretch"
+                                          HorizontalAlignment="Stretch"
+                                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                        </Border>
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsKeyboardFocusWithin" Value="True">
@@ -90,6 +91,7 @@
         <Setter Property="MinHeight" Value="32" />
         <Setter Property="VerticalAlignment" Value="Stretch" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="UseLayoutRounding" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">

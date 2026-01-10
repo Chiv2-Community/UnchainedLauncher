@@ -3,16 +3,13 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:behaviors="clr-namespace:UnchainedLauncher.GUI.Behaviors"
              xmlns:controls="clr-namespace:UnchainedLauncher.GUI.Views.Controls"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Servers.DesignInstances"
              mc:Ignorable="d"
+             Background="{DynamicResource Brush.Background}"
+             d:DesignWidth="800"
              d:DataContext="{d:DesignInstance designInstances:AdvancedConfigurationSectionDesignVM}">
-
-    <UserControl.Resources>
-        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="Margin" Value="0,0,0,6" />
-        </Style>
-    </UserControl.Resources>
 
     <StackPanel Margin="8">
         <controls:CollapsibleCard Header="Server Browser" IsExpanded="True">
@@ -62,7 +59,9 @@
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="8" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="8" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
@@ -81,34 +80,34 @@
                 <TextBox Text="{Binding IpNetDriver.MaxClientRate}" Grid.Row="0" Grid.Column="7" HorizontalAlignment="Stretch"
                          ToolTip="Max bytes/sec to LAN clients. Recommended: 50000 (low), 100000 (balanced), 150000 (high)." />
 
-                <TextBlock Text="Max Internet Client Rate" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}"
+                <TextBlock Text="Max Internet Client Rate" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}"
                            ToolTip="Max bytes/sec to internet clients. Recommended: 50000 (low), 100000 (balanced), 150000 (high)." />
-                <TextBox Text="{Binding IpNetDriver.MaxInternetClientRate}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
+                <TextBox Text="{Binding IpNetDriver.MaxInternetClientRate}" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
                          ToolTip="Max bytes/sec to internet clients. Recommended: 50000 (low), 100000 (balanced), 150000 (high)." />
 
-                <TextBlock Text="Initial Connect Timeout" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}"
+                <TextBlock Text="Initial Connect Timeout" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
                            ToolTip="Seconds to establish connection. Example: 60.0" />
-                <TextBox Text="{Binding IpNetDriver.InitialConnectTimeout}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch"
+                <TextBox Text="{Binding IpNetDriver.InitialConnectTimeout}" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
                          ToolTip="Seconds to establish connection. Example: 60.0" />
 
-                <TextBlock Text="Connection Timeout" Grid.Row="1" Grid.Column="6" Style="{StaticResource FormLabel}"
+                <TextBlock Text="Connection Timeout" Grid.Row="2" Grid.Column="6" Style="{StaticResource FormLabel}"
                            ToolTip="Seconds before disconnect. Example: 60.0" />
-                <TextBox Text="{Binding IpNetDriver.ConnectionTimeout}" Grid.Row="1" Grid.Column="7" HorizontalAlignment="Stretch"
+                <TextBox Text="{Binding IpNetDriver.ConnectionTimeout}" Grid.Row="2" Grid.Column="7" HorizontalAlignment="Stretch"
                          ToolTip="Seconds before disconnect. Example: 60.0" />
 
-                <TextBlock Text="Relevant Timeout" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}"
+                <TextBlock Text="Relevant Timeout" Grid.Row="4" Grid.Column="0" Style="{StaticResource FormLabel}"
                            ToolTip="Actor relevance timeout (seconds). Example: 5.0" />
-                <TextBox Text="{Binding IpNetDriver.RelevantTimeout}" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+                <TextBox Text="{Binding IpNetDriver.RelevantTimeout}" Grid.Row="4" Grid.Column="1" HorizontalAlignment="Stretch"
                          ToolTip="Actor relevance timeout (seconds). Example: 5.0" />
 
-                <TextBlock Text="Spawn Priority Seconds" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
+                <TextBlock Text="Spawn Priority Seconds" Grid.Row="4" Grid.Column="3" Style="{StaticResource FormLabel}"
                            ToolTip="Spawn priority window (seconds). Example: 1" />
-                <TextBox Text="{Binding IpNetDriver.SpawnPrioritySeconds}" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
+                <TextBox Text="{Binding IpNetDriver.SpawnPrioritySeconds}" Grid.Row="4" Grid.Column="4" HorizontalAlignment="Stretch"
                          ToolTip="Spawn priority window (seconds). Example: 1" />
 
-                <TextBlock Text="Server Travel Pause" Grid.Row="2" Grid.Column="6" Style="{StaticResource FormLabel}"
+                <TextBlock Text="Server Travel Pause" Grid.Row="4" Grid.Column="6" Style="{StaticResource FormLabel}"
                            ToolTip="Map change pause (seconds). Example: 4.0" />
-                <TextBox Text="{Binding IpNetDriver.ServerTravelPause}" Grid.Row="2" Grid.Column="7" HorizontalAlignment="Stretch"
+                <TextBox Text="{Binding IpNetDriver.ServerTravelPause}" Grid.Row="4" Grid.Column="7" HorizontalAlignment="Stretch"
                          ToolTip="Map change pause (seconds). Example: 4.0"/>
             </Grid>
         </controls:CollapsibleCard>
@@ -128,7 +127,9 @@
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
@@ -137,77 +138,26 @@
                     <TextBox Text="{Binding GameMode.ServerIdentifier}" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="7" MinWidth="220" HorizontalAlignment="Stretch"
                              ToolTip="The server identifier displayed in the upper left corner when pressing Tab in-game. Example: id" />
 
-                    <TextBlock Text="Min Time Before Starting Match" Grid.Row="1" Grid.Column="0" Style="{StaticResource FormLabel}"
+                    <TextBlock Text="Min Time Before Starting Match" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}"
                                ToolTip="Minimum warmup time (seconds) before a match starts. Example: 1.000000" />
-                    <TextBox Text="{Binding GameMode.MinTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Stretch"
+                    <TextBox Text="{Binding GameMode.MinTimeBeforeStartingMatch}" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
                              ToolTip="Minimum warmup time (seconds) before a match starts. Example: 1.000000" />
 
-                    <TextBlock Text="Max Time Before Starting Match" Grid.Row="1" Grid.Column="3" Style="{StaticResource FormLabel}"
+                    <TextBlock Text="Max Time Before Starting Match" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
                                ToolTip="Maximum warmup time (seconds) before a match starts. Example: 10" />
-                    <TextBox Text="{Binding GameMode.MaxTimeBeforeStartingMatch}" Grid.Row="1" Grid.Column="4" HorizontalAlignment="Stretch"
+                    <TextBox Text="{Binding GameMode.MaxTimeBeforeStartingMatch}" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
                              ToolTip="Maximum warmup time (seconds) before a match starts. Example: 10" />
 
-                    <TextBlock Text="Idle Kick Timer Spectate" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}"
+                    <TextBlock Text="Idle Kick Timer Spectate" Grid.Row="4" Grid.Column="0" Style="{StaticResource FormLabel}"
                                ToolTip="Seconds before an idle player is moved to spectator (0 to disable). Example: 0.000000" />
-                    <TextBox Text="{Binding GameMode.IdleKickTimerSpectate}" Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+                    <TextBox Text="{Binding GameMode.IdleKickTimerSpectate}" Grid.Row="4" Grid.Column="1" HorizontalAlignment="Stretch"
                              ToolTip="Seconds before an idle player is moved to spectator (0 to disable). Example: 0.000000" />
 
-                    <TextBlock Text="Idle Kick Timer Disconnect" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
+                    <TextBlock Text="Idle Kick Timer Disconnect" Grid.Row="4" Grid.Column="3" Style="{StaticResource FormLabel}"
                                ToolTip="Seconds before an idle player is disconnected (0 to disable). Example: 0.000000" />
-                    <TextBox Text="{Binding GameMode.IdleKickTimerDisconnect}" Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
+                    <TextBox Text="{Binding GameMode.IdleKickTimerDisconnect}" Grid.Row="4" Grid.Column="4" HorizontalAlignment="Stretch"
                              ToolTip="Seconds before an idle player is disconnected (0 to disable). Example: 0.000000" />
                 </Grid>
-                
-                <controls:CollapsibleCard Header="Class Limits" IsExpanded="True">
-                    <DataGrid ItemsSource="{Binding GameMode.ClassLimits}" AutoGenerateColumns="False" CanUserAddRows="True" MinHeight="100" Margin="0,0,0,8"
-                              ToolTip="Create limits for specific classes. For example, Class=Archer Limit Percent=10% would allow 1 archer per team of 10 players.">
-                        <DataGrid.Columns>
-                            <!-- DataGridComboBoxColumn isn't in the visual/logical tree, so it cannot reliably bind to the parent view model.
-                                 Use a template column so the ComboBox can bind via RelativeSource to the DataGrid's DataContext. -->
-                            <DataGridTemplateColumn Header="Class" Width="*">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Class}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                                <DataGridTemplateColumn.CellEditingTemplate>
-                                    <DataTemplate>
-                                        <ComboBox
-                                            ItemsSource="{Binding DataContext.GameMode.CharacterClassValues, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                            SelectedItem="{Binding Class, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellEditingTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Limit Percent" Binding="{Binding ClassLimitPercent, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </controls:CollapsibleCard>
-
-                <controls:CollapsibleCard Header="Balance Options" IsExpanded="True">
-                    <StackPanel>
-                        <TextBlock Text="Auto Balance Options" Margin="0,0,0,4"
-                                   ToolTip="Auto-balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference). Example: (MinNumPlayers=0,MaxNumPlayers=24,AllowedNumPlayersDifference=1)" />
-                        <DataGrid ItemsSource="{Binding GameMode.AutoBalanceOptions}" AutoGenerateColumns="False" CanUserAddRows="True" MinHeight="100" Margin="0,0,0,8"
-                                  ToolTip="Auto-balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference).">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Min" Binding="{Binding MinNumPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                                <DataGridTextColumn Header="Max" Binding="{Binding MaxNumPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                                <DataGridTextColumn Header="Allowed Diff" Binding="{Binding AllowedNumPlayersDifference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-
-                        <TextBlock Text="Team Balance Options" Margin="0,0,0,4"
-                                   ToolTip="Team balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference). Example: (MinNumPlayers=0,MaxNumPlayers=32,AllowedNumPlayersDifference=2)" />
-                        <DataGrid ItemsSource="{Binding GameMode.TeamBalanceOptions}" AutoGenerateColumns="False" CanUserAddRows="True" MinHeight="100"
-                                  ToolTip="Team balance settings per player-count range: (MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference).">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Min" Binding="{Binding MinNumPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                                <DataGridTextColumn Header="Max" Binding="{Binding MaxNumPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                                <DataGridTextColumn Header="Allowed Diff" Binding="{Binding AllowedNumPlayersDifference, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </StackPanel>
-                </controls:CollapsibleCard>
             </StackPanel>
         </controls:CollapsibleCard>
     </StackPanel>

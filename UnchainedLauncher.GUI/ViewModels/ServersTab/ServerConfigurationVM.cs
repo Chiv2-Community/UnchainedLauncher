@@ -112,6 +112,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public BaseConfigurationSectionVM BaseConfigurationSection { get; }
         public AdvancedConfigurationSectionVM AdvancedConfigurationSection { get; }
+        public BalanceSectionVM BalanceSection { get; }
 
         public string Name {
             get;
@@ -253,6 +254,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 playerBotCount,
                 warmupTime
             );
+
+            BalanceSection = new BalanceSectionVM(GameMode);
 
             TDM = new TdmConfigurationSectionVM(tdmTimeLimit, tdmTicketCount);
             FFA = new FfaConfigurationSectionVM(ffaTimeLimit, ffaScoreLimit);

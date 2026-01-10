@@ -2,6 +2,7 @@
 using log4net;
 using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -35,51 +36,61 @@ namespace UnchainedLauncher.GUI {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
 
         protected override void OnStartup(StartupEventArgs e) {
-            base.OnStartup(e);
+            try {
+                base.OnStartup(e);
 
-            var assembly = Assembly.GetExecutingAssembly();
-            if (File.Exists("log4net.config")) {
-                log4net.Config.XmlConfigurator.Configure(new FileInfo("log4net.config"));
-            }
-            else if (File.Exists("Resources/log4net.config")) {
-                // for running in Visual Studio
-                log4net.Config.XmlConfigurator.Configure(new FileInfo("Resources/log4net.config"));
-            }
-            else {
-                using var configStream =
-                    assembly.GetManifestResourceStream("UnchainedLauncher.GUI.Resources.log4net.config");
-                if (configStream != null) {
-                    log4net.Config.XmlConfigurator.Configure(configStream);
+                var assembly = Assembly.GetExecutingAssembly();
+                if (File.Exists("log4net.config")) {
+                    log4net.Config.XmlConfigurator.Configure(new FileInfo("log4net.config"));
                 }
+                else if (File.Exists("Resources/log4net.config")) {
+                    // for running in Visual Studio
+                    log4net.Config.XmlConfigurator.Configure(new FileInfo("Resources/log4net.config"));
+                }
+                else {
+                    using var configStream =
+                        assembly.GetManifestResourceStream("UnchainedLauncher.GUI.Resources.log4net.config");
+                    if (configStream != null) {
+                        log4net.Config.XmlConfigurator.Configure(configStream);
+                    }
+                }
+
+
+                // Init common dependencies
+                var githubClient = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("UnchainedLauncher"));
+                var unchainedLauncherReleaseLocator =
+                    new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedLauncher");
+                var pluginReleaseLocator = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedPlugin");
+
+
+                var installationFinder = new Chivalry2InstallationFinder();
+                var installer = new UnchainedLauncherInstaller(Shutdown);
+
+                // figure out if we need to install by checking our current working directory
+                var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
+                var needsInstallation = !installationFinder.IsValidInstallation(currentDirectory);
+
+                var forceSkipInstallation = Environment.GetCommandLineArgs().ToList().Contains("--no-install");
+
+                if (forceSkipInstallation && needsInstallation)
+                    _log.Info("Skipping installation");
+
+                var window =
+                    needsInstallation && !forceSkipInstallation
+                        ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
+                        : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator,
+                            pluginReleaseLocator);
+
+                window?.Show();
             }
-
-
-            // Init common dependencies
-            var githubClient = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("UnchainedLauncher"));
-            var unchainedLauncherReleaseLocator =
-                new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedLauncher");
-            var pluginReleaseLocator = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedPlugin");
-
-
-            var installationFinder = new Chivalry2InstallationFinder();
-            var installer = new UnchainedLauncherInstaller(Shutdown);
-
-            // figure out if we need to install by checking our current working directory
-            var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
-            var needsInstallation = !installationFinder.IsValidInstallation(currentDirectory);
-
-            var forceSkipInstallation = Environment.GetCommandLineArgs().ToList().Contains("--no-install");
-
-            if (forceSkipInstallation && needsInstallation)
-                _log.Info("Skipping installation");
-
-            var window =
-                needsInstallation && !forceSkipInstallation
-                    ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
-                    : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator,
-                        pluginReleaseLocator);
-
-            window?.Show();
+            catch (Exception ex) {
+                Debug.WriteLine($"Error starting application: {ex.Message}");
+                if(ex.StackTrace != null)
+                    Debug.WriteLine(ex.StackTrace!);
+                
+                MessageBox.Show($"Failed to start application. Please report this to a developer: {ex.Message}", "Error", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
 
         // Removed class-level command bindings; handled by Views.UnchainedWindow type.

@@ -75,7 +75,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
             catch (Exception ex) {
                 _logger.Error(ex);
-                UserDialogueSpawner.DisplayMessage(ex.ToString());
             }
         }
 

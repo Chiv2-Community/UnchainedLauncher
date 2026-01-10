@@ -55,6 +55,14 @@ namespace UnchainedLauncher.GUI {
                     }
                 }
 
+                AppDomain.CurrentDomain.UnhandledException += 
+                    (sender, args) => {
+                        var ex = (Exception)args.ExceptionObject;
+                        _log.Fatal("Unhandled exception", ex);
+                        File.WriteAllText("crash.log", ex.ToString());
+                        var currentDirectory = Directory.GetCurrentDirectory();
+                        MessageBox.Show($"An unhandled exception occurred. Please report this to a developer with {currentDirectory}\\crash.log ", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    };
 
                 // Init common dependencies
                 var githubClient = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("UnchainedLauncher"));

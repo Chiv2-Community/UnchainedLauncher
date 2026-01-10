@@ -24,6 +24,10 @@
             </Setter.Value>
         </Setter>
     </Style>
+    
+    <Style TargetType="UserControl">
+        <Setter Property="Background" Value="{DynamicResource Brush.Background}"></Setter>
+    </Style>
 
     <Style TargetType="TabControl">
         <Setter Property="Background" Value="{DynamicResource Brush.Background}" />

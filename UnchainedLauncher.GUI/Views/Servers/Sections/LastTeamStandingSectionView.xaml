@@ -5,13 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:ini="clr-namespace:UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections"
              mc:Ignorable="d"
+             Background="{DynamicResource Brush.Background}"
              d:DataContext="{d:DesignInstance Type=ini:LtsGameModeSectionVM}">
-
-    <UserControl.Resources>
-        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="Margin" Value="0,0,0,6" />
-        </Style>
-    </UserControl.Resources>
 
     <StackPanel Margin="8">
         <Grid>

@@ -28,10 +28,6 @@
                         <sections:FfaConfigurationSectionView DataContext="{Binding  FFA}" />
                     </TabItem>
                     
-                    <TabItem Header="Team Autobalance">
-                        <sections:TeamAutobalanceSectionView DataContext="{Binding GameMode}" />
-                    </TabItem>
-                    
                     <TabItem Header="Team Deathmatch">
                         <sections:TdmConfigurationSectionView DataContext="{Binding  TDM}" />
                     </TabItem>
@@ -42,6 +38,10 @@
 
                     <TabItem Header="Arena">
                         <sections:ArenaSectionView DataContext="{Binding Arena}" />
+                    </TabItem>
+                    
+                    <TabItem Header="Balance">
+                        <sections:BalanceSectionView DataContext="{Binding BalanceSection}" />
                     </TabItem>
 
                     <TabItem Header="Advanced">

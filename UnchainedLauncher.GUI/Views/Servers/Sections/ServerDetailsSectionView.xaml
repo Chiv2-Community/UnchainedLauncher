@@ -6,6 +6,7 @@
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Servers.DesignInstances"
              xmlns:servers="clr-namespace:UnchainedLauncher.GUI.Views.Servers"
              xmlns:controls="clr-namespace:UnchainedLauncher.GUI.Views.Controls"
+             Background="{DynamicResource Brush.Background}"
              d:DataContext="{d:DesignInstance designInstances:ServerConfigurationDesignVM}"
              mc:Ignorable="d">
     <controls:CollapsibleCard
@@ -48,7 +49,7 @@
 
             <TextBlock Text="Game port:" Grid.Row="4" Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center"
                        Margin="5" />
-            <TextBox MaxLength="5" Grid.Row="5" Grid.Column="0" Margin="5">
+            <TextBox MaxLength="5" Grid.Row="5" Grid.Column="0" Margin="5 0">
                 <Binding Path="GamePort">
                     <Binding.ValidationRules>
                         <servers:PortRangeValidationRule />
@@ -57,8 +58,8 @@
             </TextBox>
 
             <TextBlock Text="RCON port:" Grid.Row="4" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center"
-                       Margin="5" />
-            <TextBox MaxLength="5" Grid.Row="5" Grid.Column="1" Margin="5">
+                       Margin="5 0" />
+            <TextBox MaxLength="5" Grid.Row="5" Grid.Column="1" Margin="5 0">
                 <Binding Path="RconPort">
                     <Binding.ValidationRules>
                         <servers:PortRangeValidationRule />
@@ -68,7 +69,7 @@
 
             <TextBlock Text="A2S port:" Grid.Row="4" Grid.Column="2" HorizontalAlignment="Left" VerticalAlignment="Center"
                        Margin="5" />
-            <TextBox MaxLength="5" Grid.Row="5" Grid.Column="2" Margin="5">
+            <TextBox MaxLength="5" Grid.Row="5" Grid.Column="2" Margin="5 0">
                 <Binding Path="A2SPort">
                     <Binding.ValidationRules>
                         <servers:PortRangeValidationRule />
@@ -77,8 +78,8 @@
             </TextBox>
 
             <TextBlock Text="Ping port:" Grid.Row="4" Grid.Column="3" HorizontalAlignment="Left" VerticalAlignment="Center"
-                       Margin="5" />
-            <TextBox MaxLength="5" Grid.Row="5" Grid.Column="3" Margin="5">
+                       Margin="5 0" />
+            <TextBox MaxLength="5" Grid.Row="5" Grid.Column="3" Margin="5 0">
                 <Binding Path="PingPort">
                     <Binding.ValidationRules>
                         <servers:PortRangeValidationRule />
@@ -93,7 +94,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="auto" />
                 </Grid.ColumnDefinitions>
-                <TextBox Grid.Column="0" Margin="5">
+                <TextBox Grid.Column="0" Margin="5 0">
                     <Binding Path="LocalIp" UpdateSourceTrigger="PropertyChanged">
                         <Binding.ValidationRules>
                             <servers:IPAddressValidationRule ValidatesOnTargetUpdated="True" />

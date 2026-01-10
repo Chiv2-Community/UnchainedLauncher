@@ -270,17 +270,13 @@
                         Margin="10,0,0,0"
                         Command="{Binding ChangeMapCommand}"
                         IsEnabled="{Binding CanChangeMap}"
-                        Style="{StaticResource Button.Primary}"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Center" />
+                        Style="{StaticResource Button.Primary}" />
 
                 <Button Grid.Column="2"
                         Content="Start Next Map"
                         Margin="10,0,0,0"
                         Command="{Binding StartNextMapCommand}"
-                        Style="{StaticResource Button.Secondary}"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Center" />
+                        Style="{StaticResource Button.Secondary}" />
             </Grid>
         </Grid>
     </Border>

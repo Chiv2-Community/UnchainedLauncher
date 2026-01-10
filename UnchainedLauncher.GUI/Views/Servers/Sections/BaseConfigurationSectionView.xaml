@@ -6,6 +6,7 @@
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Servers.DesignInstances"
              xmlns:behaviors="clr-namespace:UnchainedLauncher.GUI.Behaviors"
              d:DataContext="{d:DesignInstance designInstances:BaseConfigurationSectionDesignVM}"
+             Background="{DynamicResource Brush.Background}"
              mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -14,13 +15,6 @@
                          Color="{StaticResource Color.Success}"
                          Opacity="0.05" />
 
-        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-            <Setter Property="Margin" Value="0,0,0,6" />
-        </Style>
-
-        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
-            <Setter Property="Margin" Value="0,0,0,6" />
-        </Style>
     </UserControl.Resources>
 
     <Grid Margin="8">
@@ -131,7 +125,7 @@
                 </ListBox.ItemsPanel>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Border Margin="0,2,8,2"
+                        <Border Margin="4"
                                 Padding="8,4"
                                 Background="{Binding Background, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"
                                 BorderBrush="{Binding BorderBrush, RelativeSource={RelativeSource AncestorType=ListBoxItem}}"

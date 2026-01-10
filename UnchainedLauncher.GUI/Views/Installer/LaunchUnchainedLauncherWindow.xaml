@@ -7,8 +7,8 @@
                        xmlns:views="clr-namespace:UnchainedLauncher.GUI.Views"
                        mc:Ignorable="d"
                        Title="Unchained Launcher"
-                       Height="180"
-                       Width="600"
+                       Height="100"
+                       Width="550"
                        Style="{DynamicResource UnchainedChrome}">
 
     <d:DesignProperties.DataContext>
@@ -18,33 +18,34 @@
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="10" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"></ColumnDefinition>
+            <ColumnDefinition Width="10"></ColumnDefinition>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
 
         <TextBlock
             Grid.Row="0"
+            Grid.ColumnSpan="3"
             Text="Select the Chivalry 2 Installation you would like to launch"
-            HorizontalAlignment="Left"
             Style="{StaticResource Heading.H2}" />
 
         <ComboBox
-            Grid.Row="1"
+            Grid.Column="0"
+            Grid.Row="2"
             ItemsSource="{Binding LaunchTargets}"
             SelectedItem="{Binding SelectedTarget}"
             DisplayMemberPath="DisplayText"
-            HorizontalAlignment="Stretch"
-            VerticalAlignment="Center"
-            VerticalContentAlignment="Center"
-            Margin="0,8,120,0" />
+            VerticalContentAlignment="Center" />
 
         <Button
-            Grid.Row="1"
+            Grid.Row="2"
+            Grid.Column="2"
             Content="Launch"
             Command="{Binding LaunchCommand}"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Center"
-            VerticalContentAlignment="Center"
-            Padding="20,6"
             Style="{StaticResource Button.Primary}" />
 
     </Grid>

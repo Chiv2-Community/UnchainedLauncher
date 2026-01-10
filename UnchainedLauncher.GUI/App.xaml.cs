@@ -85,9 +85,9 @@ namespace UnchainedLauncher.GUI {
             }
             catch (Exception ex) {
                 Debug.WriteLine($"Error starting application: {ex.Message}");
-                if(ex.StackTrace != null)
+                if (ex.StackTrace != null)
                     Debug.WriteLine(ex.StackTrace!);
-                
+
                 MessageBox.Show($"Failed to start application. Please report this to a developer: {ex.Message}", "Error", MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }

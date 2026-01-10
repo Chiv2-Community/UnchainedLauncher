@@ -93,7 +93,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public static SettingsVM LoadSettings(RegistryWindowVM registryWindowVM, RegistryWindowService registryWindowService, IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakDir, IUserDialogueSpawner userDialogueSpawner, Action<int> exitProgram) {
             var cliArgsList = Environment.GetCommandLineArgs();
             Logger.Debug($"CLI args: {cliArgsList.Aggregate((x, y) => $"{x} {y}")}");
-            var cliArgs = string.Join(" ", 
+            var cliArgs = string.Join(" ",
                 Environment.GetCommandLineArgs()
                     .Skip(1)
                     .ToList()
@@ -246,9 +246,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
             Logger.Info("Restarting launcher...");
 
             var currentExecutableName = Process.GetCurrentProcess().ProcessName;
-            
+
             var cliPass =
-             string.Join(" ", 
+             string.Join(" ",
                             Environment.GetCommandLineArgs()
                                 .Skip(1)
                                 .ToList()

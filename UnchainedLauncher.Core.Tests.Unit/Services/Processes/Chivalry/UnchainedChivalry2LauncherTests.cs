@@ -32,6 +32,7 @@ public class UnchainedChivalry2LauncherTests {
             Headless: false,
             Name: "Test Server",
             Description: "Test Description",
+            RegisterWithBackend: false,
             Password: Option<string>.None,
             Map: "TestMap",
             GamePort: 7777,

@@ -36,6 +36,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                     Headless: true,
                     Name: "Example Server",
                     Description: "",
+                    RegisterWithBackend: false,
                     Password: None,
                     Map: "FFA_Wardenglade",
                     GamePort: 7777,

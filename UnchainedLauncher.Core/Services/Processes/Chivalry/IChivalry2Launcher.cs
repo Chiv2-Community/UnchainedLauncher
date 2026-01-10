@@ -2,6 +2,7 @@
 using LanguageExt.Common;
 using System.Diagnostics;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry;
 
@@ -65,6 +66,7 @@ public record ServerLaunchOptions(
     bool Headless,
     string Name,
     string Description,
+    bool RegisterWithBackend,
     Option<string> Password,
     string Map,
     int GamePort,
@@ -88,7 +90,8 @@ public record ServerLaunchOptions(
             new UEParameter("Port", GamePort.ToString()),
             new UEParameter("GameServerPingPort", BeaconPort.ToString()),
             new UEParameter("GameServerQueryPort", QueryPort.ToString()),
-            new Parameter("-rcon", RconPort.ToString())
+            new Parameter("-rcon", RconPort.ToString()),
+            new Parameter("--server-browser-description", Description),
         };
 
         if (Headless) {
@@ -96,6 +99,9 @@ public record ServerLaunchOptions(
             args.Add(new Flag("-unattended"));
             args.Add(new Flag("-nosound"));
         }
+
+        if (RegisterWithBackend)
+            args.Add(new Flag("--register"));
 
         Password.IfSome(password => args.Add(new UEParameter("ServerPassword", password.Trim())));
 
@@ -110,7 +116,6 @@ public record ServerLaunchOptions(
         TDMTicketCount.IfSome(count => args.Add(new UEMapUrlParameter("TDMTicketCount", count.ToString())));
         PlayerBotCount.IfSome(count => args.Add(new UEMapUrlParameter("NumPlayerBots", count.ToString())));
         WarmupTime.IfSome(time => args.Add(new UEMapUrlParameter("WarmupTime", time.ToString())));
-
         return args;
     }
 };
@@ -120,7 +125,7 @@ public abstract record CLIArg(string Rendered);
 
 public record RawArgs(string Args) : CLIArg(Args);
 public record Flag(string FlagName) : CLIArg(FlagName);
-public record Parameter(string ParamName, string Value) : CLIArg($"{ParamName} \"{Value}\"");
-public record UEParameter(string ParamName, string Value) : CLIArg($"{ParamName}={Value}");
-public record UEINIParameter(string Type, string Section, string Key, string Value) : CLIArg($"-ini:{Type}:[{Section}]:{Key}=\"{Value}\"");
+public record Parameter(string ParamName, string Value) : CLIArg($"{ParamName} \"{ArgumentEscaper.Escape(Value)}\"");
+public record UEParameter(string ParamName, string Value) : CLIArg($"{ParamName}={ArgumentEscaper.Escape(Value)}");
+public record UEINIParameter(string Type, string Section, string Key, string Value) : CLIArg($"-ini:{Type}:[{Section}]:{Key}=\"{ArgumentEscaper.Escape(Value)}\"");
 public record UEMapUrlParameter(string Key, string Value) : CLIArg($"?{Key}={Value}");

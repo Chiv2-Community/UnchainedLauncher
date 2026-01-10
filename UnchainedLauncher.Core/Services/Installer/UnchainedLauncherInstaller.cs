@@ -81,7 +81,13 @@ namespace UnchainedLauncher.Core.Services.Installer {
 
 
 
-                    var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
+                    var commandLinePass = string.Join(" ",
+                        Environment.GetCommandLineArgs()
+                            .Skip(1)
+                            .ToList()
+                            .Select(ArgumentEscaper.Escape)
+                            );
+
                     var powershellCommand = new List<string>() {
                         $"Wait-Process -Id {Environment.ProcessId} -ErrorAction 'Ignore'",
                         $"Start-Sleep -Milliseconds 1000",

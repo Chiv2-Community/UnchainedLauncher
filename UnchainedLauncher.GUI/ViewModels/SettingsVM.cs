@@ -93,7 +93,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public static SettingsVM LoadSettings(RegistryWindowVM registryWindowVM, RegistryWindowService registryWindowService, IChivalry2InstallationFinder installationFinder, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakDir, IUserDialogueSpawner userDialogueSpawner, Action<int> exitProgram) {
             var cliArgsList = Environment.GetCommandLineArgs();
             Logger.Debug($"CLI args: {cliArgsList.Aggregate((x, y) => $"{x} {y}")}");
-            var cliArgs = cliArgsList.Length > 1 ? Environment.GetCommandLineArgs().Skip(1).Aggregate((x, y) => $"{x} {y}") : "";
+            var cliArgs = string.Join(" ", 
+                Environment.GetCommandLineArgs()
+                    .Skip(1)
+                    .ToList()
+                    .Select(ArgumentEscaper.Escape)
+                );
+
 
             var fileBackedSettings = new FileBackedSettings<LauncherSettings>(FilePaths.LauncherSettingsFilePath);
             var loadedSettings = fileBackedSettings.LoadSettings();
@@ -240,8 +246,16 @@ namespace UnchainedLauncher.GUI.ViewModels {
             Logger.Info("Restarting launcher...");
 
             var currentExecutableName = Process.GetCurrentProcess().ProcessName;
+            
+            var cliPass =
+             string.Join(" ", 
+                            Environment.GetCommandLineArgs()
+                                .Skip(1)
+                                .ToList()
+                                .Select(ArgumentEscaper.Escape)
+                            );
 
-            var commandLinePass = string.Join(" ", Environment.GetCommandLineArgs().Skip(1));
+            var commandLinePass = string.Join(" ", cliPass);
             var powershellCommands = new List<string>() {
                 $"Wait-Process -Id {Environment.ProcessId} -ErrorAction 'Ignore'",
                 $"Start-Sleep -Milliseconds 500",

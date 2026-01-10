@@ -193,7 +193,8 @@ namespace UnchainedLauncher.GUI {
             if (!modManager.Mods.Any())
                 modListViewModel.RefreshModListCommand.ExecuteAsync(null);
 
-            var envArgs = Environment.GetCommandLineArgs().ToList();
+            // Rebuild the arguments used to launch the application
+            var envArgs = Environment.GetCommandLineArgs().Skip(1).ToList();
 
             // TODO: Replace this if/else chain with a real CLI
             if (envArgs.Contains("--startvanilla")) {

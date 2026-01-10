@@ -99,8 +99,8 @@ public record ServerLaunchOptions(
             args.Add(new Flag("-unattended"));
             args.Add(new Flag("-nosound"));
         }
-        
-        if(RegisterWithBackend)
+
+        if (RegisterWithBackend)
             args.Add(new Flag("--register"));
 
         Password.IfSome(password => args.Add(new UEParameter("ServerPassword", password.Trim())));

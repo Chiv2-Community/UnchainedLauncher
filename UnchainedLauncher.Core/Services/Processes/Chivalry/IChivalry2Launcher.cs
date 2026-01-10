@@ -65,6 +65,7 @@ public record ServerLaunchOptions(
     bool Headless,
     string Name,
     string Description,
+    bool RegisterWithBackend,
     Option<string> Password,
     string Map,
     int GamePort,
@@ -88,7 +89,8 @@ public record ServerLaunchOptions(
             new UEParameter("Port", GamePort.ToString()),
             new UEParameter("GameServerPingPort", BeaconPort.ToString()),
             new UEParameter("GameServerQueryPort", QueryPort.ToString()),
-            new Parameter("-rcon", RconPort.ToString())
+            new Parameter("-rcon", RconPort.ToString()),
+            new Parameter("--server-browser-description", Description),
         };
 
         if (Headless) {
@@ -96,6 +98,9 @@ public record ServerLaunchOptions(
             args.Add(new Flag("-unattended"));
             args.Add(new Flag("-nosound"));
         }
+        
+        if(RegisterWithBackend)
+            args.Add(new Flag("--register"));
 
         Password.IfSome(password => args.Add(new UEParameter("ServerPassword", password.Trim())));
 

@@ -29,7 +29,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
         public int MapListIndex { get; set; }
 
         public bool HorseCompatibleServer { get; set; }
-        
+
         public ObservableCollection<BalanceSectionVM.ClassLimitVM> ClassLimits { get; } = new();
         public ObservableCollection<BalanceSectionVM.AutoBalanceVM> TeamBalanceOptions { get; } = new();
         public ObservableCollection<BalanceSectionVM.AutoBalanceVM> AutoBalanceOptions { get; } = new();
@@ -91,7 +91,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
 
             EnsureMapListIndexValid();
         }
-        
+
         public void LoadFrom(TBLGameMode model) {
             ServerName = model.ServerName;
             ServerIdentifier = model.ServerIdentifier;

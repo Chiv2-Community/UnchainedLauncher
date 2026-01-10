@@ -2,10 +2,7 @@
 using PropertyChanged;
 using StructuredINI.Codecs;
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
-using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
@@ -44,10 +41,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
 
 
         public Array CharacterClassValues { get; } = Enum.GetValues(typeof(CharacterClass));
-        
+
         public CharacterClass? ClassLimitClassToAdd { get; set; }
         public int? ClassLimitPercentToAdd { get; set; }
-        
+
         public int? AutoBalanceMinToAdd { get; set; }
         public int? AutoBalanceMaxToAdd { get; set; }
         public int? AutoBalanceDiffToAdd { get; set; }

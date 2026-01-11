@@ -62,3 +62,9 @@ public record ArenaGameMode(
     int TimeBetweenRounds = 30,
     int TeamLives = 0
 );
+
+[INISection("/Script/TBL.TBLTitleScreen")]
+public record TBLTitleScreen(bool bSavedHasAgreedToTOS = true);
+
+[INISection("/Script/TBL.TBLGameInstance")]
+public record TBLGameInstance(bool FirstLoadCompleted = true);

@@ -85,8 +85,6 @@ public record ServerLaunchOptions(
     public IReadOnlyList<CLIArg> ToCLIArgs() {
         var args = new List<CLIArg>() {
             new UEINIParameter("Game", "/Script/TBL.TBLGameMode", "ServerName", Name),
-            new UEINIParameter("Game", "/Script/TBL.TBLTitleScreen", "bSavedHasAgreedToTOS", "True"),
-            new UEINIParameter("Game", "/Script/TBL.TBLGameInstance", "FirstLoadCompleted", "True"),
             new Parameter("--next-map-name", Map),
             new UEParameter("Port", GamePort.ToString()),
             new UEParameter("GameServerPingPort", BeaconPort.ToString()),

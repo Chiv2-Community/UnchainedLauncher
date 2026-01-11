@@ -71,6 +71,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public string GithubReleaseUrl => (EnabledRelease?.ReleaseUrl) ?? Mod.LatestManifest.RepoUrl;
 
+        public string? IconUrl => Mod.LatestManifest.IconUrl;
+
+        public Components Components => 
+            Prelude.Optional(EnabledRelease).Match(
+                None: () => Mod.LatestManifest.Components,
+                Some: x => x.Manifest.Components
+            );
+
         public ModVM(Mod mod, Option<Release> enabledRelease, IModManager modManager) {
             EnabledRelease = enabledRelease.ValueUnsafe();
 

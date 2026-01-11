@@ -1,0 +1,272 @@
+﻿diff --git a/UnchainedLauncher.GUI/Views/Mods/Mod.xaml b/UnchainedLauncher.GUI/Views/Mods/Mod.xaml
+index 600d692..ffff648 100644
+--- a/UnchainedLauncher.GUI/Views/Mods/Mod.xaml
++++ b/UnchainedLauncher.GUI/Views/Mods/Mod.xaml
+@@ -8,7 +8,7 @@
+              xmlns:sys="clr-namespace:System;assembly=mscorlib"
+              mc:Ignorable="d"
+              d:DataContext="{d:DesignInstance designInstances:ModDesignVM}"
+-             d:DesignHeight="160" d:DesignWidth="800"
++             d:DesignHeight="500" d:DesignWidth="800"
+              Focusable="True">
+
+     <UserControl.Resources>
+@@ -61,17 +61,37 @@
+                 <RowDefinition Height="Auto" />
+                 <RowDefinition Height="Auto" />
+                 <RowDefinition Height="Auto" />
+-                <RowDefinition Height="Auto" />
+             </Grid.RowDefinitions>
+
+-            <!-- Header: Name, Enable/Disable, Version selector -->
++            <!-- Header: Icon, Name, Enable/Disable, Version selector -->
+             <Grid Grid.Row="0">
+                 <Grid.ColumnDefinitions>
++                    <ColumnDefinition Width="Auto" />
+                     <ColumnDefinition Width="*" />
+                     <ColumnDefinition Width="Auto" />
+                     <ColumnDefinition Width="220" />
+                 </Grid.ColumnDefinitions>
+-                <Button Grid.Column="0"
++
++                <!-- Mod Icon -->
++                <Image Grid.Column="0"
++                       Source="{Binding IconUrl}"
++                       Width="48"
++                       Height="48"
++                       Margin="0,0,12,0"
++                       VerticalAlignment="Center"
++                       Stretch="Uniform">
++                    <Image.Style>
++                        <Style TargetType="Image">
++                            <Style.Triggers>
++                                <DataTrigger Binding="{Binding IconUrl}" Value="{x:Null}">
++                                    <Setter Property="Visibility" Value="Collapsed" />
++                                </DataTrigger>
++                            </Style.Triggers>
++                        </Style>
++                    </Image.Style>
++                </Image>
++
++                <Button Grid.Column="1"
+                         Content="{Binding Mod.LatestManifest.Name}"
+                         Command="{Binding ViewOnGithubCommand}"
+                         FontWeight="SemiBold"
+@@ -81,7 +101,7 @@
+                         Width="Auto" HorizontalAlignment="Left"
+                         BorderThickness="1"
+                         BorderBrush="{DynamicResource Brush.Border}" />
+-                <Button Grid.Column="1"
++                <Button Grid.Column="2"
+                         Content="{Binding ButtonText}"
+                         Command="{Binding EnableOrDisableCommand}"
+                         Margin="0,0,8,0">
+@@ -98,7 +118,7 @@
+                         </Style>
+                     </Button.Style>
+                 </Button>
+-                <ComboBox Grid.Column="2"
++                <ComboBox Grid.Column="3"
+                           ItemsSource="{Binding Mod.Releases}"
+                           SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
+                           DisplayMemberPath="Tag"
+@@ -106,16 +126,8 @@
+                           VerticalAlignment="Center" />
+             </Grid>
+
+-            <!-- Tags / Enabled info -->
+-            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+-                <TextBlock Text="Type: " Foreground="{StaticResource Brush.Muted}" />
+-                <TextBlock Text="{Binding Mod.LatestManifest.ModType}" Margin="4,0,12,0" />
+-                <TextBlock Text="Tags: " Foreground="{StaticResource Brush.Muted}" />
+-                <TextBlock Text="{Binding TagsString}" />
+-            </StackPanel>
+-
+             <!-- Description: visible by default, clipped when long; expands on focus -->
+-            <Border Grid.Row="2"
++            <Border Grid.Row="1"
+                     Margin="0,8,0,0"
+                     BorderBrush="{StaticResource Brush.Border}"
+                     BorderThickness="1"
+@@ -126,6 +138,180 @@
+                 <TextBlock Text="{Binding Description, Mode=OneWay}"
+                            TextWrapping="Wrap" />
+             </Border>
++
++            <!-- Components Section -->
++            <StackPanel Grid.Row="2" Margin="0,8,0,0">
++                <!-- Actors Section -->
++                <Expander Header="Actors" IsExpanded="True" Margin="0,0,0,4">
++                    <Expander.Style>
++                        <Style TargetType="Expander">
++                            <Style.Triggers>
++                                <DataTrigger Binding="{Binding Components.Actors}" Value="{x:Null}">
++                                    <Setter Property="Visibility" Value="Collapsed" />
++                                </DataTrigger>
++                                <DataTrigger Binding="{Binding Components.Actors.Count}" Value="0">
++                                    <Setter Property="Visibility" Value="Collapsed" />
++                                </DataTrigger>
++                            </Style.Triggers>
++                        </Style>
++                    </Expander.Style>
++                    <ItemsControl ItemsSource="{Binding Components.Actors}" Margin="8">
++                        <ItemsControl.ItemTemplate>
++                            <DataTemplate>
++                                <Border BorderBrush="{StaticResource Brush.Border}"
++                                        BorderThickness="1"
++                                        Padding="8"
++                                        Margin="0,0,0,8"
++                                        CornerRadius="4">
++                                    <StackPanel>
++                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
++                                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Margin="0,4,0,0" />
++                                        <TextBlock Text="{Binding Path, StringFormat='Path: {0}'}"
++                                                   Foreground="{StaticResource Brush.Muted}"
++                                                   Margin="0,4,0,0" />
++                                        <TextBlock Margin="0,4,0,0">
++                                            <TextBlock.Style>
++                                                <Style TargetType="TextBlock">
++                                                    <Setter Property="Visibility" Value="Collapsed" />
++                                                    <Style.Triggers>
++                                                        <DataTrigger Binding="{Binding ClientsideOnly}" Value="True">
++                                                            <Setter Property="Visibility" Value="Visible" />
++                                                        </DataTrigger>
++                                                    </Style.Triggers>
++                                                </Style>
++                                            </TextBlock.Style>
++                                            <Run Text="[Clientside Only]" Foreground="{StaticResource Brush.Warning}" />
++                                        </TextBlock>
++                                        <!-- Images -->
++                                        <ItemsControl ItemsSource="{Binding Images}" Margin="0,8,0,0">
++                                            <ItemsControl.ItemsPanel>
++                                                <ItemsPanelTemplate>
++                                                    <WrapPanel />
++                                                </ItemsPanelTemplate>
++                                            </ItemsControl.ItemsPanel>
++                                            <ItemsControl.ItemTemplate>
++                                                <DataTemplate>
++                                                    <Image Source="{Binding}"
++                                                           Width="100"
++                                                           Height="100"
++                                                           Margin="0,0,8,8"
++                                                           Stretch="UniformToFill" />
++                                                </DataTemplate>
++                                            </ItemsControl.ItemTemplate>
++                                        </ItemsControl>
++                                    </StackPanel>
++                                </Border>
++                            </DataTemplate>
++                        </ItemsControl.ItemTemplate>
++                    </ItemsControl>
++                </Expander>
++
++                <!-- Maps Section -->
++                <Expander Header="Maps" IsExpanded="True" Margin="0,0,0,4">
++                    <Expander.Style>
++                        <Style TargetType="Expander">
++                            <Style.Triggers>
++                                <DataTrigger Binding="{Binding Components.Maps}" Value="{x:Null}">
++                                    <Setter Property="Visibility" Value="Collapsed" />
++                                </DataTrigger>
++                                <DataTrigger Binding="{Binding Components.Maps.Count}" Value="0">
++                                    <Setter Property="Visibility" Value="Collapsed" />
++                                </DataTrigger>
++                            </Style.Triggers>
++                        </Style>
++                    </Expander.Style>
++                    <ItemsControl ItemsSource="{Binding Components.Maps}" Margin="8">
++                        <ItemsControl.ItemTemplate>
++                            <DataTemplate>
++                                <Border BorderBrush="{StaticResource Brush.Border}"
++                                        BorderThickness="1"
++                                        Padding="8"
++                                        Margin="0,0,0,8"
++                                        CornerRadius="4">
++                                    <StackPanel>
++                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
++                                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Margin="0,4,0,0" />
++                                        <TextBlock Text="{Binding Path, StringFormat='Path: {0}'}"
++                                                   Foreground="{StaticResource Brush.Muted}"
++                                                   Margin="0,4,0,0" />
++                                        <!-- Images -->
++                                        <ItemsControl ItemsSource="{Binding Images}" Margin="0,8,0,0">
++                                            <ItemsControl.ItemsPanel>
++                                                <ItemsPanelTemplate>
++                                                    <WrapPanel />
++                                                </ItemsPanelTemplate>
++                                            </ItemsControl.ItemsPanel>
++                                            <ItemsControl.ItemTemplate>
++                                                <DataTemplate>
++                                                    <Image Source="{Binding}"
++                                                           Width="100"
++                                                           Height="100"
++                                                           Margin="0,0,8,8"
++                                                           Stretch="UniformToFill" />
++                                                </DataTemplate>
++                                            </ItemsControl.ItemTemplate>
++                                        </ItemsControl>
++                                    </StackPanel>
++                                </Border>
++                            </DataTemplate>
++                        </ItemsControl.ItemTemplate>
++                    </ItemsControl>
++                </Expander>
++
++                <!-- Replacements Section -->
++                <Expander Header="Replacements" IsExpanded="True">
++                    <Expander.Style>
++                        <Style TargetType="Expander">
++                            <Style.Triggers>
++                                <DataTrigger Binding="{Binding Components.Replacements}" Value="{x:Null}">
++                                    <Setter Property="Visibility" Value="Collapsed" />
++                                </DataTrigger>
++                            </Style.Triggers>
++                        </Style>
++                    </Expander.Style>
++                    <Border BorderBrush="{StaticResource Brush.Border}"
++                            BorderThickness="1"
++                            Padding="8"
++                            Margin="8"
++                            CornerRadius="4">
++                        <StackPanel>
++                            <TextBlock Text="{Binding Components.Replacements.Name}" FontWeight="SemiBold" />
++                            <TextBlock Text="{Binding Components.Replacements.Description}"
++                                       TextWrapping="Wrap"
++                                       Margin="0,4,0,0" />
++                            <TextBlock Text="Paths:"
++                                       Foreground="{StaticResource Brush.Muted}"
++                                       Margin="0,8,0,4" />
++                            <ItemsControl ItemsSource="{Binding Components.Replacements.Paths}">
++                                <ItemsControl.ItemTemplate>
++                                    <DataTemplate>
++                                        <TextBlock Text="{Binding}"
++                                                   Foreground="{StaticResource Brush.Muted}"
++                                                   Margin="8,0,0,2" />
++                                    </DataTemplate>
++                                </ItemsControl.ItemTemplate>
++                            </ItemsControl>
++                            <!-- Images -->
++                            <ItemsControl ItemsSource="{Binding Components.Replacements.Images}" Margin="0,8,0,0">
++                                <ItemsControl.ItemsPanel>
++                                    <ItemsPanelTemplate>
++                                        <WrapPanel />
++                                    </ItemsPanelTemplate>
++                                </ItemsControl.ItemsPanel>
++                                <ItemsControl.ItemTemplate>
++                                    <DataTemplate>
++                                        <Image Source="{Binding}"
++                                               Width="100"
++                                               Height="100"
++                                               Margin="0,0,8,8"
++                                               Stretch="UniformToFill" />
++                                    </DataTemplate>
++                                </ItemsControl.ItemTemplate>
++                            </ItemsControl>
++                        </StackPanel>
++                    </Border>
++                </Expander>
++            </StackPanel>
+         </Grid>
+     </Border>
+ </UserControl>
+\ No newline at end of file

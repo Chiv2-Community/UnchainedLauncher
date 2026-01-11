@@ -100,11 +100,7 @@ namespace UnchainedLauncher.Core.Utilities {
         /// <param name="func"></param>
         /// <returns></returns>
         public DeserializationResult<T2> Select<T2>(Func<T, T2> func) {
-            if (Success) {
-                return new DeserializationResult<T2>(func(Result!), Exception);
-            }
-
-            return new DeserializationResult<T2>(default, Exception);
+            return Success ? new DeserializationResult<T2>(func(Result!), Exception) : new DeserializationResult<T2>(default, Exception);
         }
 
         public DeserializationResult<T2> Map<T2>(Func<T, T2> func) => Select(func);

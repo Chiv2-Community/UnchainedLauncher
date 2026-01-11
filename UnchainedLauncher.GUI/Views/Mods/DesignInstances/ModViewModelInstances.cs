@@ -1,7 +1,7 @@
 ﻿using LanguageExt;
 using System;
 using System.Collections.Generic;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.GUI.ViewModels;
@@ -27,7 +27,7 @@ namespace UnchainedLauncher.GUI.Views.Mods.DesignInstances {
         public static readonly Release DesignViewRelease = new("v1.0.0", "abcd", "ExamplePak", DateTime.Now,
             DesignViewManifest, "## Example Release Notes\n\n* Foo\n* bar\n* baz");
 
-        public static readonly Core.JsonModels.Metadata.V3.Mod DesignViewMod = new(
+        public static readonly Core.JsonModels.Metadata.V4.Mod DesignViewMod = new(
             DesignViewManifest,
             new List<Release> { DesignViewRelease }
         );

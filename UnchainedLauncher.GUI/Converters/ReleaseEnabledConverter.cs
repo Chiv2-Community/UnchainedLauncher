@@ -2,7 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows.Data;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.GUI.Converters {

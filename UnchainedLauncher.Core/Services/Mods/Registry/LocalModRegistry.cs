@@ -2,10 +2,10 @@
 using LanguageExt.Common;
 using LanguageExt.UnsafeValueAccess;
 using System.Collections.Immutable;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
-using Release = UnchainedLauncher.Core.JsonModels.Metadata.V3.Release;
+using Release = UnchainedLauncher.Core.JsonModels.Metadata.V4.Release;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class LocalModRegistry : JsonRegistry {

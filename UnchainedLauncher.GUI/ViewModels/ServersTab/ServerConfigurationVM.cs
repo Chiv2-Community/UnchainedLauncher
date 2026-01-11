@@ -14,7 +14,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.INIModels;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;

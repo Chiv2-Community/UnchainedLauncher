@@ -2,7 +2,7 @@
 using Semver;
 using System.Text.Json.Serialization;
 
-namespace UnchainedLauncher.Core.JsonModels.Metadata.V3 {
+namespace UnchainedLauncher.Core.JsonModels.Metadata.V4 {
     public record Mod(
         [property: JsonPropertyName("latest_manifest")] ModManifest LatestManifest,
         [property: JsonPropertyName("releases")] List<Release> Releases

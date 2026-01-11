@@ -1,4 +1,5 @@
-﻿using Microsoft.Web.WebView2.Core;
+﻿using log4net;
+using Microsoft.Web.WebView2.Core;
 using System;
 using System.IO;
 using System.Threading;
@@ -12,6 +13,8 @@ namespace UnchainedLauncher.GUI.Views.Controls {
     ///     Initializes an isolated user data folder per control instance to avoid state bleed.
     /// </summary>
     public partial class HtmlWebView : UserControl {
+        public static readonly ILog Logger = LogManager.GetLogger(typeof(HtmlWebView));
+
         // Shared app-wide WebView2 environment to avoid per-control mismatches
         private static readonly object EnvLock = new();
         private static Task<CoreWebView2Environment>? _sharedEnvTask;
@@ -23,8 +26,11 @@ namespace UnchainedLauncher.GUI.Views.Controls {
         private readonly SemaphoreSlim _initGate = new(1, 1);
 
         private bool _initialized;
+        private bool _webViewUnavailable;
         private string _lastNavigated = string.Empty;
         private bool _pendingSizeRefresh;
+
+        private static string FallbackText = "";
 
         public HtmlWebView() {
             InitializeComponent();
@@ -40,10 +46,18 @@ namespace UnchainedLauncher.GUI.Views.Controls {
         private static async void OnHtmlChanged(DependencyObject d, DependencyPropertyChangedEventArgs e) {
             if (d is HtmlWebView ctrl) {
                 await ctrl.EnsureInitialized();
-                ctrl.NavigateToHtml(e.NewValue as string ?? string.Empty);
-                // If size is 0 (not yet measured), mark for a refresh once sized
-                if (ctrl.ActualWidth <= 0 || ctrl.ActualHeight <= 0) {
-                    ctrl._pendingSizeRefresh = true;
+
+                var html = e.NewValue as string ?? string.Empty;
+
+                if (ctrl._webViewUnavailable) {
+                    ctrl.ShowFallbackText();
+                }
+                else {
+                    ctrl.NavigateToHtml(html);
+                    // If size is 0 (not yet measured), mark for a refresh once sized
+                    if (ctrl.ActualWidth <= 0 || ctrl.ActualHeight <= 0) {
+                        ctrl._pendingSizeRefresh = true;
+                    }
                 }
             }
         }
@@ -63,12 +77,25 @@ namespace UnchainedLauncher.GUI.Views.Controls {
             try {
                 var environment = await GetSharedEnvironmentAsync();
                 await WebView.EnsureCoreWebView2Async(environment);
+
                 _initialized = true;
+
 
                 // After init, if Html already set but not navigated (due to race), navigate now
                 if (!string.IsNullOrEmpty(Html) && _lastNavigated != Html) {
                     NavigateToHtml(Html);
                 }
+            }
+            catch (WebView2RuntimeNotFoundException) {
+                FallbackText = "⚠️ WebView2 Runtime is not installed.\n\n" +
+                               "To view this content, please install the WebView2 Runtime from:\n" +
+                               "https://developer.microsoft.com/en-us/microsoft-edge/webview2?form=MA13LH";
+                ShowFallbackText();
+            }
+            catch (Exception ex) {
+                Logger.Error("Failed to initialize WebView2", ex);
+                FallbackText = "⚠️ Failed to initialize WebView2:\n\n" + ex.Message;
+                ShowFallbackText();
             }
             finally {
                 _initGate.Release();
@@ -100,6 +127,14 @@ namespace UnchainedLauncher.GUI.Views.Controls {
             catch (Exception) {
                 // ignore navigation issues; this is best-effort rendering
             }
+        }
+
+        private void ShowFallbackText() {
+            _webViewUnavailable = true;
+            _initialized = true;
+            WebView.Visibility = Visibility.Collapsed;
+            FallbackTextBox.Visibility = Visibility.Visible;
+            FallbackTextBox.Text = FallbackText;
         }
 
         private void WebView_SizeChanged(object sender, SizeChangedEventArgs e) {

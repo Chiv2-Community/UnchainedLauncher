@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.INIModels;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
@@ -148,14 +149,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public string LocalIp { get; set; }
 
         public static string SavedDirSuffix(string name) {
-            var substitutedUnderscores = name.Trim()
-            .Replace(' ', '_')
-            .Replace('(', '_')
-            .Replace(')', '_')
-            .ReplaceLineEndings("_");
-
-            var illegalCharsRemoved = string.Join("_", substitutedUnderscores.Split(Path.GetInvalidFileNameChars()));
-            return illegalCharsRemoved;
+            var validChars = "_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+            var sb = new StringBuilder();
+            name.ForEach(c => sb.Append(validChars.Contains(c) ? c : '_'));
+            return sb.ToString();
         }
 
         public void LoadINI(string? name) {
@@ -183,7 +180,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 GameSession.ToModel(),
                 GameMode.ToModel(),
                 LTS.ToModel(),
-                Arena.ToModel()
+                Arena.ToModel(),
+                null,
+                null
             );
 
             var userSettingsIni = new GameUserSettingsINI(UserSettings.ToModel());
@@ -374,7 +373,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private void OpenIniFolder() {
             try {
                 var iniDir = FilePaths.Chiv2ConfigPath(SavedDirSuffix(Name));
-                Directory.CreateDirectory(iniDir);
+                SaveINI();
 
                 Process.Start(new ProcessStartInfo {
                     FileName = iniDir,

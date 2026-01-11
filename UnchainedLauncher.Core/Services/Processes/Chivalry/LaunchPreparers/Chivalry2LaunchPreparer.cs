@@ -9,6 +9,9 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
         public static IChivalry2LaunchPreparer<T> Create<T>(Func<T, Option<T>> f) =>
             new FunctionalChivalry2LaunchPreparer<T>(t => Task.FromResult(f(t)));
+        
+        public static IChivalry2LaunchPreparer<T> Noop<T>() =>
+            new FunctionalChivalry2LaunchPreparer<T>(t => Task.FromResult(Some(t)));
 
         public static IChivalry2LaunchPreparer<T> IgnoreOptions<T>(this IChivalry2LaunchPreparer<Unit> u) {
             return Create<T>(

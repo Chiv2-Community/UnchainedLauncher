@@ -159,9 +159,6 @@ namespace UnchainedLauncher.GUI {
                 new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 #endif
 
-            var noSigLaunchPreparer = NoSigPreparer.Create(pakDir, userDialogueSpawner);
-            var sigLaunchPreparer = SigPreparer.Create(pakDir, userDialogueSpawner);
-
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new UnchainedPluginUpdateChecker(
                 pluginReleaseLocator,
                 new FileInfoVersionExtractor(),
@@ -172,22 +169,14 @@ namespace UnchainedLauncher.GUI {
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
-                noSigLaunchPreparer.IgnoreOptions<LaunchOptions>(),
-                officialProcessLauncher,
-                Directory.GetCurrentDirectory()
-            );
-
-            var clientsideModdedLauncher = new Chivalry2Launcher(
-                modInstaller
-                    .Sub(sigLaunchPreparer),
+                Chivalry2LaunchPreparer.Noop<LaunchOptions>(),
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
                 pluginInstaller
-                    .AndThen(modInstaller)
-                    .Sub(sigLaunchPreparer),
+                    .AndThen(modInstaller),
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
 #if DEBUG_FAKECHIVALRYLAUNCH

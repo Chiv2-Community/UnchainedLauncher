@@ -190,7 +190,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return new Chivalry2INI(engineIni, gameIni, userSettingsIni);
         }
 
-        public ObservableCollection<string> AvailableMaps { get; }
+        public ObservableCollection<Chivalry2Map> AvailableMaps { get; }
 
         public ObservableCollection<ReleaseCoordinates> EnabledServerModList { get; }
         public ObservableCollection<Release> AvailableMods { get; }
@@ -222,7 +222,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             EnabledServerModList = enabledServerModList ?? new ObservableCollection<ReleaseCoordinates>();
 
-            AvailableMaps = new ObservableCollection<string>(GetDefaultMaps());
+            AvailableMaps = new ObservableCollection<Chivalry2Map>(GetDefaultMaps());
 
             // We set the Name after loading INI, because there may be some existing config that we want to load first
             // And setting the name overwrites it.
@@ -232,7 +232,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             AvailableMods = new ObservableCollection<Release>();
 
             modManager.GetEnabledAndDependencyReleases()
-                .Where(r => r.Manifest.ModType is ModType.Server or ModType.Shared)
+                .Where(r => !r.Manifest.ClientsideOnly)
                 .ForEach(x => AddAvailableMod(x, null));
 
             LocalIp = localIp == null ? DetermineLocalIp() : localIp.Trim();
@@ -272,12 +272,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             if (ModIdentifier.FromRelease(release) == CommonMods.UnchainedMods) return;
 
             var existingMod = AvailableMods.Find(x => x.Manifest.RepoUrl == release.Manifest.RepoUrl);
-            var existingMaps = existingMod.Bind(x => Prelude.Optional(x.Manifest.Maps)).FirstOrDefault() ??
-                               new List<string>();
+            var existingMaps = existingMod.Bind(x => Prelude.Optional(x.Manifest.Components?.Maps)).FirstOrDefault() ??
+                               new List<Chivalry2Map>();
 
 
-            var newMaps = release.Manifest.Maps?.Filter(x => !existingMaps.Contains(x)) ?? Enumerable.Empty<string>();
-            var removedMaps = existingMaps.Filter(x => !release.Manifest.Maps?.Contains(x) ?? false);
+            var newMaps = release.Manifest.Components.Maps?.Filter(x => !existingMaps.Contains(x)) ?? Enumerable.Empty<Chivalry2Map>();
+            var removedMaps = existingMaps.Filter(x => !release.Manifest.Components.Maps?.Contains(x) ?? false);
 
             removedMaps.ForEach(AvailableMaps.Remove);
             newMaps.ForEach(AvailableMaps.Add);
@@ -290,7 +290,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public void RemoveAvailableMod(Release release) {
             AvailableMods.Remove(release);
 
-            var removedMaps = release.Manifest.Maps ?? Enumerable.Empty<string>();
+            var removedMaps = release.Manifest.Components?.Maps ?? Enumerable.Empty<Chivalry2Map>();
             removedMaps.ForEach(AvailableMaps.Remove);
         }
 
@@ -301,21 +301,24 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         private string DetermineLocalIp() => GetAllLocalIPv4().FirstOrDefault("127.0.0.1");
 
-        private static IEnumerable<string> GetDefaultMaps() {
-            List<string> maps = new List<string>();
-            using (var defaultMapsListStream = Assembly.GetExecutingAssembly()
-                       .GetManifestResourceStream("UnchainedLauncher.GUI.Resources.DefaultMaps.txt")) {
-                if (defaultMapsListStream != null) {
-                    using var reader = new StreamReader(defaultMapsListStream);
+        private static IEnumerable<Chivalry2Map> GetDefaultMaps() {
+            var maps = new List<Chivalry2Map>();
+            using var defaultMapsListStream = Assembly.GetExecutingAssembly()
+                .GetManifestResourceStream("UnchainedLauncher.GUI.Resources.DefaultMaps.txt");
 
-                    var defaultMapsString = reader.ReadToEnd();
-                    defaultMapsString
-                        .Split("\n")
-                        .Select(x => x.Trim())
-                        .ToList()
-                        .ForEach(maps.Add);
-                }
+            if (defaultMapsListStream == null) {
+                return maps;
             }
+
+            using var reader = new StreamReader(defaultMapsListStream);
+
+            var defaultMapsString = reader.ReadToEnd();
+            defaultMapsString
+                .Split("\n")
+                .Select(x => x.Trim())
+                .Select(x => new Chivalry2Map(x, "", x, null))
+                .ToList()
+                .ForEach(maps.Add);
 
             return maps;
         }

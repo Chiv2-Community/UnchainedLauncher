@@ -31,23 +31,11 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         /// <param name="modPath"></param>
         /// <returns></returns>
         public EitherAsync<RegistryMetadataException, JsonModels.Metadata.V4.Mod> GetMod(ModIdentifier modPath) {
-            return GetModMetadataString(modPath).Bind(json =>
-                // Try to deserialize as V3 first
-                JsonHelpers.Deserialize<JsonModels.Metadata.V4.Mod>(json).RecoverWith(e => {
-                    // If that fails, try to deserialize as V2
-                    Logger.Warn("Falling back to V2 deserialization: " + e?.Message ?? "unknown failure");
-                    return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Mod>(json)
-                        .Select(JsonModels.Metadata.V4.Mod.FromV2);
-                }).RecoverWith(e => {
-                    // If that fails, try to deserialize as V1
-                    Logger.Warn("Falling back to V1 deserialization" + e?.Message ?? "unknown failure");
-                    return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Mod>(json)
-                        .Select(JsonModels.Metadata.V2.Mod.FromV1)
-                        .Select(JsonModels.Metadata.V4.Mod.FromV2);
-                })
-                .ToEither()
-                .ToAsync()
-                .MapLeft(err => RegistryMetadataException.Parse($"Failed to parse mod manifest at {modPath}", Expected.New(err)))
+            return GetModMetadataString(modPath).Bind(json => 
+                JsonHelpers.Deserialize<JsonModels.Metadata.V4.Mod>(json)
+                    .ToEither()
+                    .ToAsync()
+                    .MapLeft(err => RegistryMetadataException.Parse($"Failed to parse mod manifest at {modPath}", Expected.New(err)))
             );
         }
 

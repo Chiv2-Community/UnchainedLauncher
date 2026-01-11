@@ -23,7 +23,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private readonly ILog _logger = LogManager.GetLogger(nameof(ModListVM));
         public readonly IModManager _modManager;
         private ObservableCollection<ModVM> UnfilteredModView { get; }
-        private ObservableCollection<ModFilter> ModFilters { get; }
 
         // UI state: filtering and sorting
         public string? SearchTerm { get; set; }
@@ -45,13 +44,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
             this.UnfilteredModView = new ObservableCollection<ModVM>();
             this.DisplayMods = new ObservableCollection<ModVM>();
 
-            this.ModFilters = new ObservableCollection<ModFilter>();
-
             PopulateModsFromModManager();
 
             // Watch the unfiltered mod view and mod filters for changes, and update our view accordingly
             this.UnfilteredModView.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
-            this.ModFilters.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
         }
 
         // Property change hooks (PropertyChanged.Fody will call these)
@@ -136,9 +132,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private void RebuildDisplay() {
             IEnumerable<ModVM> query = this.UnfilteredModView;
 
-            // Apply tag-based filters if any exist
-            query = query.Where(modView => this.ModFilters.All(modFilter => modFilter.ShouldInclude(modView)));
-
             // Enabled only toggle
             if (ShowEnabledOnly)
                 query = query.Where(m => m.IsEnabled);
@@ -147,10 +140,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var term = (SearchTerm ?? string.Empty).Trim();
             if (!string.IsNullOrWhiteSpace(term)) {
                 var t = term.ToLowerInvariant();
-                query = query.Where(m =>
-                    m.Mod.LatestManifest.Name.ToLowerInvariant().Contains(t)
-                    || m.TagsString.ToLowerInvariant().Contains(t)
-                );
+                query = query.Where(m => m.Mod.LatestManifest.Name.ToLowerInvariant().Contains(t));
             }
 
             // Sorting
@@ -215,19 +205,4 @@ namespace UnchainedLauncher.GUI.ViewModels {
         LatestReleaseDateFirst,
         NewestModsFirst
     }
-
-    public record ModFilter(ModTag Tag, FilterType Type) {
-        public bool ShouldInclude(ModVM mod) {
-            return Type switch {
-                FilterType.Include => mod.Mod.LatestManifest.Tags.Contains(Tag),
-                FilterType.Exclude => !mod.Mod.LatestManifest.Tags.Contains(Tag),
-                _ => throw new Exception("Unhandled FilterType: " + Type)
-            };
-        }
-    }
-
-    public enum FilterType {
-        Include,
-        Exclude
-    };
 }

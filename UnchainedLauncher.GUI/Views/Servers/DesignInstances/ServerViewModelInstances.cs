@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
@@ -69,7 +70,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                 )), new MockRcon()
             ),
             "Example Server",
-            new ObservableCollection<string>() { "FFA_Wardenglade", "TDM_Wardenglade" }
+            new ObservableCollection<Chivalry2Map>() { Chivalry2Map.LegacyFromName("FFA_Wardenglade"), Chivalry2Map.LegacyFromName("TDM_Wardenglade") }
         ) {
             RestartCount = 2;
             LastStartTime = DateTimeOffset.Now.AddMinutes(-17);

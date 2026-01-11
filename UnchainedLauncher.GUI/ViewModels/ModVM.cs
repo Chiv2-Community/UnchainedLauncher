@@ -59,8 +59,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
 
 
-        public string TagsString => string.Join(", ", Mod.LatestManifest.Tags);
-
         public bool IsEnabled => EnabledRelease != null;
 
         public string EnabledVersion =>

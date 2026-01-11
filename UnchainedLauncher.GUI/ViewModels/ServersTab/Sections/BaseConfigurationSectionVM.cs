@@ -1,5 +1,6 @@
 ﻿using PropertyChanged;
 using System.Collections.ObjectModel;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
@@ -9,7 +10,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
             TBLGameModeSectionVM gameMode,
             TBLGameUserSettingsSectionVM userSettings,
             GameSessionSectionVM gameSession,
-            ObservableCollection<string> availableMaps
+            ObservableCollection<Chivalry2Map> availableMaps
         ) {
             GameMode = gameMode;
             UserSettings = userSettings;
@@ -21,6 +22,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
         public TBLGameUserSettingsSectionVM UserSettings { get; }
         public GameSessionSectionVM GameSession { get; }
 
-        public ObservableCollection<string> AvailableMaps { get; }
+        public ObservableCollection<Chivalry2Map> AvailableMaps { get; }
     }
 }

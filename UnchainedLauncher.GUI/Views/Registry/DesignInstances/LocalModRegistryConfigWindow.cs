@@ -35,12 +35,9 @@ namespace UnchainedLauncher.GUI.Views.Registry.DesignInstances {
                     "Example Description",
                     null,
                     null,
-                    ModType.Shared,
                     new List<string> { "DrLong", "JayKobe6k" },
                     new List<Dependency>(),
-                    new List<ModTag> { ModTag.Doodad, ModTag.Mutator },
-                    new List<string> { "ffa_exampleMap", "tdm_exampleMap" },
-                    new OptionFlags(true)
+                    null // components
                 ),
                 "# Example Release Notes\n\n* Your release notes here"
             ),

@@ -268,7 +268,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var nextMapModActors =
                 enabledCoordinates
                     .SelectMany(rc => ModManager.GetRelease(rc))
-                    .Where(release => release.Manifest.OptionFlags.ActorMod)
                     .Select(release => release.Manifest.Name.Replace(" ", ""));
 
             return new ServerLaunchOptions(

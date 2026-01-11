@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Services.Server;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
@@ -24,14 +25,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     // 3. neatly display response information in-window
 
     [AddINotifyPropertyChangedInterface]
-    public partial class ServerVM(Chivalry2Server server, string serverName, ObservableCollection<string> availableMaps) {
+    public partial class ServerVM(Chivalry2Server server, string serverName, ObservableCollection<Chivalry2Map> availableMaps) {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServerVM));
 
         public Chivalry2Server Server { get; private set; } = server;
 
         public string ServerName { get; set; } = serverName;
 
-        public ObservableCollection<string> AvailableMaps { get; } = availableMaps;
+        public ObservableCollection<Chivalry2Map> AvailableMaps { get; } = availableMaps;
         public string SelectedMapToChange { get; set; } = "";
 
         public bool CanChangeMap =>

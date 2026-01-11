@@ -16,12 +16,9 @@ namespace UnchainedLauncher.GUI.Views.Mods.DesignInstances {
             "It has finally been done",
             "https://example.com",
             "https://avatars.githubusercontent.com/u/108312122?s=96&v=4",
-            ModType.Shared,
             new List<string> { "Finally", "Gooner" },
             new List<Dependency> { new("https://Gooner/BaseMod", "v1.0.0") },
-            new List<ModTag> { ModTag.Cosmetic },
-            new List<string> { "TDM_Dungeon" },
-            new OptionFlags(false)
+            null // components
         );
 
         public static readonly Release DesignViewRelease = new("v1.0.0", "abcd", "ExamplePak", DateTime.Now,

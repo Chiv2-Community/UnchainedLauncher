@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
 
@@ -8,7 +9,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
             new TBLGameModeSectionVM(),
             new TBLGameUserSettingsSectionVM(),
             new GameSessionSectionVM(),
-            new ObservableCollection<string>()
+            new ObservableCollection<Chivalry2Map>()
         ) {
         }
     }

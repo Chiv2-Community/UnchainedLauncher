@@ -48,12 +48,9 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                     "Example Description",
                     null,
                     null,
-                    ModType.Shared,
                     new List<string> { "Example Author" },
                     new List<Dependency>(),
-                    new List<ModTag> { ModTag.Doodad },
-                    new List<string> { "ffa_exampleMap", "tdm_exampleMap" },
-                    new OptionFlags(true)
+                    null // components
                 ),
                 "# Example Release Notes\n\n* Your release notes here"
             );
@@ -203,29 +200,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public string Name { get; set; }
         public string Description { get; set; }
         public string? HomePage { get; set; }
-        public string? ImageUrl { get; set; }
+        public string? IconUrl { get; set; }
 
-        public static readonly Hashtable ModTypeMap = new Hashtable {
-            {"Client", ModType.Client},
-            {"Server", ModType.Server},
-            {"Shared", ModType.Shared}
-        };
-
-        public string SelectedModType {
-            get =>
-                ModTypeMap.Keys.Cast<string>().ToList()
-                    .Filter((k) => (ModType)ModTypeMap[k]! == ModType)
-                    .First();
-            set => ModType = (ModType)ModTypeMap[value]!;
-        }
-
-        public static List<string> ModTypeChoices { get; } = ModTypeMap.Keys.Cast<string>().ToList();
-        public ModType ModType { get; set; }
         public List<string> Authors { get; set; }
         public List<Dependency> Dependencies { get; set; }
-        public List<ModTag> Tags { get; set; }
         public List<string> Maps { get; set; }
-        public OptionFlags OptionFlags { get; set; }
 
         public string ReleaseNotesMarkdown { get; set; }
 
@@ -252,13 +231,9 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             Name = release.Manifest.Name;
             Description = release.Manifest.Description;
             HomePage = release.Manifest.HomePage;
-            ImageUrl = release.Manifest.ImageUrl;
-            ModType = release.Manifest.ModType;
+            IconUrl = release.Manifest.IconUrl;
             Authors = release.Manifest.Authors;
             Dependencies = release.Manifest.Dependencies;
-            Tags = release.Manifest.Tags;
-            Maps = release.Manifest.Maps;
-            OptionFlags = release.Manifest.OptionFlags;
             ReleaseNotesMarkdown = release.ReleaseNotesMarkdown ?? "";
         }
 
@@ -268,13 +243,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                 Name,
                 Description,
                 HomePage,
-                ImageUrl,
-                ModType,
+                IconUrl,
                 Authors,
                 Dependencies,
-                Tags,
-                Maps,
-                OptionFlags);
+                null // components
+                    );
 
             if (PakFilePath == null) {
                 throw new InvalidOperationException("Pak file path is not set");

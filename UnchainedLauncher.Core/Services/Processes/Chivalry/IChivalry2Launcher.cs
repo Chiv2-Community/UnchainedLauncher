@@ -125,7 +125,7 @@ public abstract record CLIArg(string Rendered);
 
 public record RawArgs(string Args) : CLIArg(Args);
 public record Flag(string FlagName) : CLIArg(FlagName);
-public record Parameter(string ParamName, string Value) : CLIArg($"{ParamName} \"{ArgumentEscaper.Escape(Value)}\"");
+public record Parameter(string ParamName, string Value) : CLIArg($"{ParamName} {ArgumentEscaper.Escape(Value)}");
 public record UEParameter(string ParamName, string Value) : CLIArg($"{ParamName}={ArgumentEscaper.Escape(Value)}");
-public record UEINIParameter(string Type, string Section, string Key, string Value) : CLIArg($"-ini:{Type}:[{Section}]:{Key}=\"{ArgumentEscaper.Escape(Value)}\"");
+public record UEINIParameter(string Type, string Section, string Key, string Value) : CLIArg($"-ini:{Type}:[{Section}]:{Key}={ArgumentEscaper.Escape(Value)}");
 public record UEMapUrlParameter(string Key, string Value) : CLIArg($"?{Key}={Value}");

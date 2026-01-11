@@ -51,7 +51,7 @@ public record LaunchOptions(
     public IReadOnlyList<CLIArg> ToCLIArgs() {
         var args = new List<CLIArg> {
             new RawArgs(LaunchArgs),
-            new UEParameter("-savedirsuffix", SavedDirSuffix.IfNone("Unchained")),
+            new UEParameter("-saveddirsuffix", SavedDirSuffix.IfNone("Unchained")),
             new Flag("-unchained")
         };
 

@@ -180,7 +180,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 GameSession.ToModel(),
                 GameMode.ToModel(),
                 LTS.ToModel(),
-                Arena.ToModel()
+                Arena.ToModel(),
+                null,
+                null
             );
 
             var userSettingsIni = new GameUserSettingsINI(UserSettings.ToModel());

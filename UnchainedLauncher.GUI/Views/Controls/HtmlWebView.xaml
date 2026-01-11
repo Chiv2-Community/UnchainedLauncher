@@ -9,5 +9,12 @@
              d:DesignHeight="200" d:DesignWidth="300">
     <Grid>
         <wv2:WebView2 x:Name="WebView" />
+        <TextBox x:Name="FallbackTextBox"
+                 Visibility="Collapsed"
+                 IsReadOnly="True"
+                 TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto"
+                 Background="{DynamicResource SystemControlPageBackgroundChromeLowBrush}"
+                 BorderThickness="0" />
     </Grid>
 </UserControl>

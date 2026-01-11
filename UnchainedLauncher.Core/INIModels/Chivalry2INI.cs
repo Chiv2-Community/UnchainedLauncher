@@ -18,19 +18,25 @@ public record GameINI(
     GameSession _gameSession,
     TBLGameMode _tBLGameMode,
     LTSGameMode _lTSGameMode,
-    ArenaGameMode _arenaGameMode
+    ArenaGameMode _arenaGameMode,
+    TBLTitleScreen _tBLTitleScreen,
+    TBLGameInstance _tBLGameInstance
 ) {
     public static GameINI Default = new GameINI(
         new GameSession(),
         new TBLGameMode(),
         new LTSGameMode(),
-        new ArenaGameMode()
+        new ArenaGameMode(),
+        new TBLTitleScreen(),
+        new TBLGameInstance()
     );
 
     public GameSession GameSession => _gameSession ?? Default.GameSession;
     public TBLGameMode TBLGameMode => _tBLGameMode ?? Default.TBLGameMode;
     public LTSGameMode LTSGameMode => _lTSGameMode ?? Default.LTSGameMode;
     public ArenaGameMode ArenaGameMode => _arenaGameMode ?? Default.ArenaGameMode;
+    public TBLTitleScreen TBLTitleScreen => _tBLTitleScreen ?? Default.TBLTitleScreen;
+    public TBLGameInstance TBLGameInstance => _tBLGameInstance ?? Default.TBLGameInstance;
 };
 
 [INIFile]

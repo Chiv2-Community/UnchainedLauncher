@@ -189,7 +189,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var formData = SelectedConfiguration.ToServerConfiguration();
 
             // Resolve selected releases from the template's EnabledServerModList
-            var enabledCoordinates = SelectedConfiguration.EnabledServerModList.ToArray();
+            var enabledCoordinates = ModManager.EnabledModReleaseCoordinates.ToArray();
 
             SelectedConfiguration.SaveINI();
 
@@ -265,12 +265,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         private ServerLaunchOptions BuildServerLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<ReleaseCoordinates> enabledCoordinates) {
-            var nextMapModActors =
-                enabledCoordinates
-                    .SelectMany(rc => ModManager.GetRelease(rc))
-                    .Where(release => release.Manifest.OptionFlags.ActorMod)
-                    .Select(release => release.Manifest.Name.Replace(" ", ""));
-
             return new ServerLaunchOptions(
                 headless,
                 formData.Name,
@@ -289,7 +283,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 formData.PlayerBotCount,
                 formData.WarmupTime,
                 formData.LocalIp,
-                nextMapModActors
+                Enumerable.Empty<string>()
             );
         }
 

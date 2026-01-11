@@ -35,7 +35,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.INIModels {
                     new GameSession(),
                     new TBLGameMode(),
                     new LTSGameMode(),
-                    new ArenaGameMode(TimeBetweenRounds: 12)
+                    new ArenaGameMode(TimeBetweenRounds: 12),
+                    null,
+                    null
                 );
 
                 StructuredINIWriter.Save(tmpPath, gameIni).Should().BeTrue();

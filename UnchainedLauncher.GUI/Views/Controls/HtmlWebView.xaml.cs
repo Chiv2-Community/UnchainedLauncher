@@ -14,7 +14,7 @@ namespace UnchainedLauncher.GUI.Views.Controls {
     /// </summary>
     public partial class HtmlWebView : UserControl {
         public static readonly ILog Logger = LogManager.GetLogger(typeof(HtmlWebView));
-        
+
         // Shared app-wide WebView2 environment to avoid per-control mismatches
         private static readonly object EnvLock = new();
         private static Task<CoreWebView2Environment>? _sharedEnvTask;
@@ -77,9 +77,9 @@ namespace UnchainedLauncher.GUI.Views.Controls {
             try {
                 var environment = await GetSharedEnvironmentAsync();
                 await WebView.EnsureCoreWebView2Async(environment);
-                
+
                 _initialized = true;
-                
+
 
                 // After init, if Html already set but not navigated (due to race), navigate now
                 if (!string.IsNullOrEmpty(Html) && _lastNavigated != Html) {

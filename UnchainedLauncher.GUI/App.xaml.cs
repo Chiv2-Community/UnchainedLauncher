@@ -55,7 +55,7 @@ namespace UnchainedLauncher.GUI {
                     }
                 }
 
-                AppDomain.CurrentDomain.UnhandledException += 
+                AppDomain.CurrentDomain.UnhandledException +=
                     (sender, args) => {
                         var ex = (Exception)args.ExceptionObject;
                         _log.Fatal("Unhandled exception", ex);

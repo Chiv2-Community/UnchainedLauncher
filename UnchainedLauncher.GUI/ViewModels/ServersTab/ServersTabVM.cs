@@ -189,7 +189,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var formData = SelectedConfiguration.ToServerConfiguration();
 
             // Resolve selected releases from the template's EnabledServerModList
-            var enabledCoordinates = SelectedConfiguration.AvailableMods.Select(ReleaseCoordinates.FromRelease).ToArray();
+            var enabledCoordinates = ModManager.EnabledModReleaseCoordinates.ToArray();
 
             SelectedConfiguration.SaveINI();
 

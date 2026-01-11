@@ -152,6 +152,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             .Replace(' ', '_')
             .Replace('(', '_')
             .Replace(')', '_')
+            .Replace('\'', '_')
             .ReplaceLineEndings("_");
 
             var illegalCharsRemoved = string.Join("_", substitutedUnderscores.Split(Path.GetInvalidFileNameChars()));
@@ -374,7 +375,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private void OpenIniFolder() {
             try {
                 var iniDir = FilePaths.Chiv2ConfigPath(SavedDirSuffix(Name));
-                Directory.CreateDirectory(iniDir);
+                SaveINI();
 
                 Process.Start(new ProcessStartInfo {
                     FileName = iniDir,

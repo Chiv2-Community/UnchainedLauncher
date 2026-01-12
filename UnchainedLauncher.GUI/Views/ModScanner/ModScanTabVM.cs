@@ -1,34 +1,72 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScanner.Models;
-using UnchainedLauncher.UnrealModScanner.Scanning;
+using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;
 using UnrealModScanner.Export;
 using UnrealModScanner.Models;
 
 public sealed class ModScanTabVM : ObservableObject {
-    private readonly ModScanner _scanner;
 
     public ObservableCollection<PakScanResult> ScanResults { get; } = new();
 
-    public ModScanTabVM(ModScanner scanner) {
-        _scanner = scanner;
-    }
+  
     public async Task ScanAsync(string pakDir) {
         // Clear old results
         ScanResults.Clear();
 
         // Run your scanner
-        var context = await _scanner.ScanAsync(pakDir);
 
-        foreach (var (pakName, scanResult) in context.Merged) {
+        // TODO
+        var progressReporter = new Progress<double>(percent =>
+        {
+            System.Diagnostics.Debug.WriteLine($"Scan Progress: {percent:F2}%");
+        });
 
-            var num_mods = scanResult.Markers.Sum(m => m.Blueprints.Length());
-            var num_replacements = scanResult.AssetReplacements.Length();
-            var num_maps = scanResult.Maps.Length();
+        // 1. Regular Mod Scan (Fast)
+        var swMod = Stopwatch.StartNew();
+        var officialDirs = new[] { "Abilities","AI","Animation","Audio","Blueprint","Characters","Cinematics"
+            ,"Collections","Config","Custom_Lens_Flare_VFX","Customization","Debug"
+            ,"Developers","Environments","FX","Game","GameModes","Gameplay","Interactables"
+            ,"Inventory","Localization","MapGen","Maps","MapsTest","Materials","Meshes"
+            ,"Trailer_Cinematic","UI","Weapons","Engine","Mannequin" };
+        var modScanner = ScannerFactory.CreateModScanner(officialDirs);
+        var context = await modScanner.RunScanAsync(pakDir, ScanMode.ModsOnly, progressReporter);
+        swMod.Stop();
+        Debug.WriteLine($"Mod Scan completed in: {swMod.ElapsedMilliseconds}ms ({swMod.Elapsed.TotalSeconds:F2}s)");
+
+        // old scan
+        //var swOld = Stopwatch.StartNew();
+        //var context = await _scanner.ScanAsync(pakDir);
+        //swOld.Stop();
+        //Debug.WriteLine($"Mod Scan completed in: {swOld.ElapsedMilliseconds}ms ({swOld.Elapsed.TotalSeconds:F2}s)");
+
+        // slooow scan
+        //var internalScanner = ScannerFactory.CreateInternalScanner();
+        //var swInternal = Stopwatch.StartNew();
+        //var gameData = await internalScanner.RunScanAsync(pakDir, ScanMode.GameInternal, progressReporter);
+        //swInternal.Stop();
+        //Debug.WriteLine($"Internal Scan completed in: {swInternal.ElapsedMilliseconds}ms ({swInternal.Elapsed.TotalSeconds:F2}s)");
+        
+        // check AR
+        //var internalScanner = ScannerFactory.CreateInternalScanner();
+        //var swInternal = Stopwatch.StartNew();
+        //var gameData = await internalScanner.QuickSearchMainPak(pakDir);
+        //swInternal.Stop();
+        //Debug.WriteLine($"Internal Scan completed in: {swInternal.ElapsedMilliseconds}ms ({swInternal.Elapsed.TotalSeconds:F2}s)");
+
+
+        foreach (var (pakName, scanResult) in context.Paks) {
+
+
+            var num_mods = scanResult._Markers.Sum(m => m.Blueprints.Length());
+            var num_replacements = scanResult._AssetReplacements.Length();
+            var num_maps = scanResult._Maps.Length();
 
             var parts = new List<string>();
             if (num_mods > 0)
@@ -43,7 +81,7 @@ public sealed class ModScanTabVM : ObservableObject {
             // Mods group
             var modsGroup = new PakGroupNode(string.Format("Mods ({0})", num_mods));
 
-            foreach (var marker in scanResult.Markers)
+            foreach (var marker in scanResult._Markers)
                 foreach (var mod in marker.Blueprints)
                     modsGroup.Children.Add(new ModTreeNode(mod));
 
@@ -53,7 +91,7 @@ public sealed class ModScanTabVM : ObservableObject {
             // Asset replacements group
             var replacementsGroup = new PakGroupNode(string.Format("Asset Replacements ({0})", num_replacements), false);
 
-            foreach (var repl in scanResult.AssetReplacements)
+            foreach (var repl in scanResult._AssetReplacements)
                 replacementsGroup.Children.Add(new AssetReplacementTreeNode(repl));
 
             if (replacementsGroup.Children.Count > 0)
@@ -62,7 +100,7 @@ public sealed class ModScanTabVM : ObservableObject {
             // Asset replacements group
             var mapsGroup = new PakGroupNode(string.Format("Maps ({0})", num_maps));
 
-            foreach (var map in scanResult.Maps)
+            foreach (var map in scanResult._Maps)
                 mapsGroup.Children.Add(new AssetReplacementTreeNode(
                     new AssetReplacementInfo {
                         AssetHash = map.AssetHash,
@@ -75,6 +113,18 @@ public sealed class ModScanTabVM : ObservableObject {
 
             if (mapsGroup.Children.Count > 0)
                 scanResult.Children.Add(mapsGroup);
+
+
+            var otherGroup = new PakGroupNode(string.Format("Other {0}", scanResult.ArbitraryAssets.Length()));
+            foreach (var map in scanResult.ArbitraryAssets)
+                otherGroup.Children.Add(new AssetReplacementTreeNode(
+                    new AssetReplacementInfo {
+                        AssetHash = map.AssetHash,
+                        AssetPath = map.AssetPath,
+                        ClassType = map.ModName ?? map.ObjectName,
+                    }));
+            if (otherGroup.Children.Count > 0)
+                scanResult.Children.Add(otherGroup);
 
             scanResult.PakPathExpanded = collapsedText;
             scanResult.IsExpanded = false;
@@ -113,36 +163,36 @@ public sealed class ModScanTabVM : ObservableObject {
         return;
 
         // Loop over all paks that have mods
-        foreach (var (pakName, mods) in context.ModsByPak) {
-            var result = new PakScanResult { PakPath = pakName };
+        //foreach (var (pakName, mods) in context.ModsByPak) {
+        //    var result = new PakScanResult { PakPath = pakName };
 
-            // Add mods as child nodes
-            foreach (var mod in mods)
-                result.Children.Add(new ModTreeNode ( mod ));
+        //    // Add mods as child nodes
+        //    foreach (var mod in mods)
+        //        result.Children.Add(new ModTreeNode ( mod ));
 
-            // Add replacements as child nodes if any
-            if (context.ReplacementsByPak.TryGetValue(pakName, out var repls)) {
-                foreach (var r in repls)
-                    result.Children.Add(new AssetReplacementTreeNode (  r ));
-            }
+        //    // Add replacements as child nodes if any
+        //    if (context.ReplacementsByPak.TryGetValue(pakName, out var repls)) {
+        //        foreach (var r in repls)
+        //            result.Children.Add(new AssetReplacementTreeNode (  r ));
+        //    }
 
-            // Add the PakScanResult to the observable collection bound to TreeView
-            ScanResults.Add(result);
-        }
+        //    // Add the PakScanResult to the observable collection bound to TreeView
+        //    ScanResults.Add(result);
+        //}
 
-        // Add paks that only have replacements (no mods)
-        foreach (var (pakName, repls) in context.ReplacementsByPak) {
-            // Skip paks already added above
-            if (ScanResults.Any(r => r.PakPath == pakName))
-                continue;
+        //// Add paks that only have replacements (no mods)
+        //foreach (var (pakName, repls) in context.ReplacementsByPak) {
+        //    // Skip paks already added above
+        //    if (ScanResults.Any(r => r.PakPath == pakName))
+        //        continue;
 
-            var result = new PakScanResult { PakPath = pakName };
+        //    var result = new PakScanResult { PakPath = pakName };
 
-            foreach (var r in repls)
-                result.Children.Add(new AssetReplacementTreeNode (r));
+        //    foreach (var r in repls)
+        //        result.Children.Add(new AssetReplacementTreeNode (r));
 
-            ScanResults.Add(result);
-        }
+        //    ScanResults.Add(result);
+        //}
     }
 
 

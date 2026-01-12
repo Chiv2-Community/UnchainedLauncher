@@ -1,6 +1,7 @@
 ﻿
 
 
+using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -50,41 +51,48 @@ public sealed class PakScanResult {
     public string PakPathExpanded { get; set; }
     public string? PakHash { get; set; }
 
-    public List<BlueprintModInfo> Mods { get; } = new();
-    public List<ModMarkerInfo> Markers { get; } = new();
-    public List<GameMapInfo> Maps { get; } = new();
-    public List<AssetReplacementInfo> AssetReplacements { get; } = new();
+    //public List<BlueprintModInfo> Mods { get; } = new();
+    //public List<ModMarkerInfo> Markers { get; } = new();
+    //public List<GameMapInfo> Maps { get; } = new();
+    //public List<AssetReplacementInfo> AssetReplacements { get; } = new();
     public ObservableCollection<PakChildNode> Children { get; } = new();
 
-    public void MergeFrom(PakScanResult other) {
-        Mods.AddRange(other.Mods);
-        Markers.AddRange(other.Markers);
-        Maps.AddRange(other.Maps);
-        AssetReplacements.AddRange(other.AssetReplacements);
-
-        foreach (var child in other.Children)
-            Children.Add(child);
+    public ConcurrentBag<ModMarkerInfo> _Markers { get; } = new();
+    public ConcurrentBag<AssetReplacementInfo> _AssetReplacements { get; } = new();
+    public ConcurrentBag<GameMapInfo> _Maps { get; } = new();
+    public ConcurrentBag<ArbitraryAssetInfo> ArbitraryAssets { get; } = new();
+    public ConcurrentBag<GameInternalAssetInfo> InternalAssets { get; } = new();
 
 
-        // Fill missing scalar values
-        PakHash ??= other.PakHash;
-    }
+    //public void MergeFrom(PakScanResult other) {
+    //    Mods.AddRange(other.Mods);
+    //    Markers.AddRange(other.Markers);
+    //    Maps.AddRange(other.Maps);
+    //    AssetReplacements.AddRange(other.AssetReplacements);
 
-    public static Dictionary<string, PakScanResult> MergeAll(
-    params Dictionary<string, PakScanResult>[] dictionaries) {
-        var result = new Dictionary<string, PakScanResult>();
+    //    foreach (var child in other.Children)
+    //        Children.Add(child);
 
-        foreach (var dict in dictionaries) {
-            foreach (var (key, value) in dict) {
-                if (!result.TryGetValue(key, out var existing))
-                    result[key] = value;
-                else
-                    existing.MergeFrom(value);
-            }
-        }
 
-        return result;
-    }
+    //    // Fill missing scalar values
+    //    PakHash ??= other.PakHash;
+    //}
+
+    //public static Dictionary<string, PakScanResult> MergeAll(
+    //params Dictionary<string, PakScanResult>[] dictionaries) {
+    //    var result = new Dictionary<string, PakScanResult>();
+
+    //    foreach (var dict in dictionaries) {
+    //        foreach (var (key, value) in dict) {
+    //            if (!result.TryGetValue(key, out var existing))
+    //                result[key] = value;
+    //            else
+    //                existing.MergeFrom(value);
+    //        }
+    //    }
+
+    //    return result;
+    //}
 
 }
 // TreeView children (ONE collection!)

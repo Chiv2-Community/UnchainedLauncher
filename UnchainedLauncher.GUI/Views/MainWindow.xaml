@@ -5,6 +5,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views"
     xmlns:mods="clr-namespace:UnchainedLauncher.GUI.Views.Mods"
+    xmlns:models="clr-namespace:UnrealModScanner.Models;assembly=UnchainedLauncher.UnrealModScanner"
+    xmlns:nodes="clr-namespace:UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;assembly=UnchainedLauncher.UnrealModScanner"
     xmlns:servers="clr-namespace:UnchainedLauncher.GUI.Views.Servers"
     xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
     mc:Ignorable="d"
@@ -147,6 +149,144 @@
                 </StackPanel>
             </TabItem.Header>
             <mods:ModList DataContext="{Binding ModListViewModel}" />
+        </TabItem>
+        <!--<TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🧩" Margin="0,0,6,0" />
+                    <TextBlock Text="Unreal Mods" />
+                </StackPanel>
+            </TabItem.Header>
+        <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+                    <Button Content="Scan" Click="Scan_UnrealMods_Click" Width="100" Margin="0,0,10,0"/>
+                    <Button Content="Export JSON" Click="Export_UnrealMods_Click" Width="100"/>
+                </StackPanel>
+
+                <TreeView ItemsSource="{Binding ModScanTabVM.ScanResults}">
+                    <TreeView.Resources>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="Black"/>
+                        </Style>
+                    </TreeView.Resources>
+                    <TreeView.ItemTemplate>
+                        <HierarchicalDataTemplate ItemsSource="{Binding Mods}">
+                            <TextBlock Text="{Binding PakPath}" FontWeight="Bold" Foreground="Black"/>
+                            <HierarchicalDataTemplate.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="10,0,0,0">
+                                        <TextBlock Foreground="Black">
+                                            <Run Text="Mod Name: "/>
+                                            <Run Text="{Binding Blueprint.ModName}"/>
+                                        </TextBlock>
+
+                                        <TextBlock Foreground="Black">
+                                            <Run Text="Version: "/>
+                                            <Run Text="{Binding Blueprint.Version}"/>
+                                        </TextBlock>
+
+                                        <TextBlock Foreground="Black">
+                                            <Run Text="Author: "/>
+                                            <Run Text="{Binding Blueprint.Author}"/>
+                                        </TextBlock>
+
+                                        <TextBlock Foreground="Black">
+                                            <Run Text="Clientside: "/>
+                                            <Run Text="{Binding Blueprint.IsClientSide}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </HierarchicalDataTemplate.ItemTemplate>
+                        </HierarchicalDataTemplate>
+                    </TreeView.ItemTemplate>
+                </TreeView>
+            </DockPanel>
+        </TabItem>-->
+
+
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🧩" Margin="0,0,6,0" />
+                        <TextBlock Text="Unreal Mods" />
+                    </StackPanel>
+                </TabItem.Header>
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+                    <Button Content="Expand" Click="Expand_UnrealMods_Click" Width="60" Margin="0,0,10,0"/>
+                    <Button Content="Collapse" Click="Collapse_UnrealMods_Click" Width="60" Margin="0,0,10,0"/>
+                    <Button Content="Scan" Click="Scan_UnrealMods_Click" Width="100" Margin="0,0,10,0"/>
+                    <Button Content="Export JSON" Click="Export_UnrealMods_Click" Width="100" Margin="0,0,10,0"/>
+                </StackPanel>
+                <TreeView ItemsSource="{Binding ModScanTabVM.ScanResults}">
+                    <TreeView.Resources>
+                        <!-- Force black text -->
+                        <Style TargetType="TreeViewItem">
+                            <Setter Property="Foreground" Value="Black"/>
+                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        </Style>
+
+                        <!-- Mod node template -->
+                        <DataTemplate DataType="{x:Type nodes:ModTreeNode}">
+                            <StackPanel Margin="10,2,0,4">
+                                <TextBlock><Run Text="Mod Name: "/><Run Text="{Binding Blueprint.ModName}"/></TextBlock>
+                                <TextBlock><Run Text="Version: "/><Run Text="{Binding Blueprint.Version}"/></TextBlock>
+                                <TextBlock><Run Text="Author: "/><Run Text="{Binding Blueprint.Author}"/></TextBlock>
+                                <TextBlock><Run Text="Clientside: "/><Run Text="{Binding Blueprint.IsClientSide}"/></TextBlock>
+                            </StackPanel>
+                        </DataTemplate>
+
+                        <DataTemplate DataType="{x:Type nodes:AssetReplacementTreeNode}">
+                            <StackPanel Margin="10,2,0,4">
+                                <TextBlock><Run Text="Asset: "/><Run Text="{Binding Replacement.AssetPath}"/></TextBlock>
+                                <TextBlock><Run Text="Class: "/><Run Text="{Binding Replacement.ClassType}"/></TextBlock>
+                            </StackPanel>
+                        </DataTemplate>
+                        
+                        <!-- Replacement node template -->
+                        <HierarchicalDataTemplate DataType="{x:Type nodes:PakGroupNode}" ItemsSource="{Binding Children}">
+                            <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" Foreground="Black"/>
+                        </HierarchicalDataTemplate>
+
+                        <!-- PakScanResult template -->
+                        <HierarchicalDataTemplate 
+                            DataType="{x:Type models:PakScanResult}"
+                            ItemsSource="{Binding Children}">
+
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Checkbox -->
+                                <CheckBox
+                                IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                VerticalAlignment="Center"
+                                Margin="0,0,6,0"/>
+
+                                <!-- Label -->
+                                <TextBlock FontWeight="Bold" FontSize="14" Foreground="Black">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <!-- Default (collapsed) -->
+                                            <Setter Property="Text" Value="{Binding PakPathExpanded}" />
+
+                                            <Style.Triggers>
+                                                <!-- Expanded -->
+                                                <DataTrigger
+                                                    Binding="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=TreeViewItem}}"
+                                                    Value="True">
+                                                    <Setter Property="Text" Value="{Binding PakPath}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+
+                        </HierarchicalDataTemplate>
+                    </TreeView.Resources>
+                </TreeView>
+
+
+
+            </DockPanel>
         </TabItem>
         <TabItem>
             <TabItem.Header>

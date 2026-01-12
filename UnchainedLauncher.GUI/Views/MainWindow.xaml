@@ -147,7 +147,6 @@
                     <TextBlock Text="Mod Manager" />
                 </StackPanel>
             </TabItem.Header>
-
             <mods:ModList DataContext="{Binding ModScanTabVM}" />
         </TabItem>
         <TabItem>

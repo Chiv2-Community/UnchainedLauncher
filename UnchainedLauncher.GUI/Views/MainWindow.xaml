@@ -148,7 +148,7 @@
                     <TextBlock Text="Mod Manager" />
                 </StackPanel>
             </TabItem.Header>
-            <mods:ModList DataContext="{Binding ModScanTabVM}" />
+            <mods:ModList DataContext="{Binding ModListViewModel}" />
         </TabItem>
         <TabItem Visibility="{Binding SettingsViewModel.IsUnrealScannerEnabled, Converter={StaticResource BoolToVis}}">
             <TabItem.Header>

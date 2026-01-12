@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.IO;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using UnchainedLauncher.UnrealModScanner.Models;
 //using UnrealModScanner.Models;

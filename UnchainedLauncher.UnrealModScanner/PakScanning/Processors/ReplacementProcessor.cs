@@ -1,4 +1,5 @@
 ﻿
+using System.IO;
 using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScanner.Models;
 using UnrealModScanner.Models;
 

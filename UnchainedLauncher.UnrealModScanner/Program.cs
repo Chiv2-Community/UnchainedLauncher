@@ -6,6 +6,7 @@ using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Versions;
+using System.IO;
 using System.Security.Cryptography;
 using UnchainedLauncher.UnrealModScanner.Scanning;
 

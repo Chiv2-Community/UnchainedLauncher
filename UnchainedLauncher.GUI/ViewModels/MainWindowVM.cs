@@ -1,22 +1,23 @@
 ﻿using System;
 using System.ComponentModel;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
+using UnchainedLauncher.UnrealModScanner.ViewModels;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     public partial class MainWindowVM : INotifyPropertyChanged, IDisposable {
         public HomeVM HomeVM { get; }
         public ModListVM ModListViewModel { get; }
         public ModScanTabVM ModScanTabVM { get; }
-    //    public MainWindowVM(
-    //    ModListVM modListViewModel,
-    //    HomeVM homeVM
-    //    /* other existing deps */
-    //) {
-    //        HomeVM = homeVM;
-    //        ModListViewModel = modListViewModel;
+        //    public MainWindowVM(
+        //    ModListVM modListViewModel,
+        //    HomeVM homeVM
+        //    /* other existing deps */
+        //) {
+        //        HomeVM = homeVM;
+        //        ModListViewModel = modListViewModel;
 
-    //        // 👇 Create scanners explicitly
-    //    }
+        //        // 👇 Create scanners explicitly
+        //    }
         public SettingsVM SettingsViewModel { get; }
         public ServersTabVM ServersTab { get; }
 

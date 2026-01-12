@@ -1,0 +1,66 @@
+<UserControl x:Class="UnchainedLauncher.UnrealModScanner.Views.UnrealModsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:models="clr-namespace:UnrealModScanner.Models"
+             xmlns:viewModels="clr-namespace:UnchainedLauncher.UnrealModScanner.ViewModels"
+             xmlns:nodes="clr-namespace:UnchainedLauncher.UnrealModScanner.ViewModels.Nodes"
+             mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance Type=viewModels:ModScanTabViewModel, IsDesignTimeCreatable=True}">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+            <Button Content="Expand" Click="Expand_UnrealMods_Click" Width="60" Margin="0,0,10,0"/>
+            <Button Content="Collapse" Click="Collapse_UnrealMods_Click" Width="60" Margin="0,0,10,0"/>
+            <Button Content="Scan" Click="Scan_UnrealMods_Click" Width="100" Margin="0,0,10,0"/>
+            <Button Content="Export JSON" Click="Export_UnrealMods_Click" Width="100" Margin="0,0,10,0"/>
+        </StackPanel>
+
+        <TreeView ItemsSource="{Binding ModScanTabVM.ScanResults}">
+            <TreeView.Resources>
+                <Style TargetType="TreeViewItem">
+                    <Setter Property="Foreground" Value="Black"/>
+                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                </Style>
+
+                <DataTemplate DataType="{x:Type nodes:ModTreeNode}">
+                    <StackPanel Margin="10,2,0,4">
+                        <TextBlock><Run Text="Mod Name: "/><Run Text="{Binding Blueprint.ModName}"/></TextBlock>
+                        <TextBlock><Run Text="Version: "/><Run Text="{Binding Blueprint.Version}"/></TextBlock>
+                        <TextBlock><Run Text="Author: "/><Run Text="{Binding Blueprint.Author}"/></TextBlock>
+                        <TextBlock><Run Text="Clientside: "/><Run Text="{Binding Blueprint.IsClientSide}"/></TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+
+                <DataTemplate DataType="{x:Type nodes:AssetReplacementTreeNode}">
+                    <StackPanel Margin="10,2,0,4">
+                        <TextBlock><Run Text="Asset: "/><Run Text="{Binding Replacement.AssetPath}"/></TextBlock>
+                        <TextBlock><Run Text="Class: "/><Run Text="{Binding Replacement.ClassType}"/></TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+
+                <HierarchicalDataTemplate DataType="{x:Type nodes:PakGroupNode}" ItemsSource="{Binding Children}">
+                    <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" Foreground="Black"/>
+                </HierarchicalDataTemplate>
+
+                <HierarchicalDataTemplate DataType="{x:Type models:PakScanResult}" ItemsSource="{Binding Children}">
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <TextBlock FontWeight="Bold" FontSize="14" Foreground="Black">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="{Binding PakPathExpanded}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
+                                            <Setter Property="Text" Value="{Binding PakPath}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </HierarchicalDataTemplate>
+            </TreeView.Resources>
+        </TreeView>
+    </DockPanel>
+</UserControl>

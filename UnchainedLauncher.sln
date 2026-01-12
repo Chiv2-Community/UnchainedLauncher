@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.1.11312.151
+VisualStudioVersion = 18.1.11312.151 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncher.GUI", "UnchainedLauncher.GUI\UnchainedLauncher.GUI.csproj", "{0C235765-7B68-48BB-A3E5-87E12C512540}"
 EndProject
@@ -18,8 +18,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StructuredINI.Tests", "StructuredINI.Tests\StructuredINI.Tests.csproj", "{7B88D08E-B424-4B8E-9F1D-CBC8F34C331B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnchainedLauncher.UnrealModScanner", "UnchainedLauncher.UnrealModScanner\UnchainedLauncher.UnrealModScanner.csproj", "{271EF2F1-A5C2-41EC-B910-F0C5AF1D4050}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnchainedLauncher.UnchainedPakScanner", "UnchainedLauncher.UnchainedPakScanner\UnchainedLauncher.UnchainedPakScanner.vcxproj", "{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -178,24 +176,6 @@ Global
 		{271EF2F1-A5C2-41EC-B910-F0C5AF1D4050}.Release|x64.Build.0 = Release|Any CPU
 		{271EF2F1-A5C2-41EC-B910-F0C5AF1D4050}.Release|x86.ActiveCfg = Release|Any CPU
 		{271EF2F1-A5C2-41EC-B910-F0C5AF1D4050}.Release|x86.Build.0 = Release|Any CPU
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Debug|Any CPU.ActiveCfg = Debug|x64
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Debug|Any CPU.Build.0 = Debug|x64
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Debug|x64.ActiveCfg = Debug|x64
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Debug|x64.Build.0 = Debug|x64
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Debug|x86.ActiveCfg = Debug|Win32
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Debug|x86.Build.0 = Debug|Win32
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Debug-FakeChivalryLaunch|Any CPU.ActiveCfg = Debug|x64
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Debug-FakeChivalryLaunch|Any CPU.Build.0 = Debug|x64
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Debug-FakeChivalryLaunch|x64.ActiveCfg = Debug|x64
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Debug-FakeChivalryLaunch|x64.Build.0 = Debug|x64
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Debug-FakeChivalryLaunch|x86.ActiveCfg = Debug|Win32
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Debug-FakeChivalryLaunch|x86.Build.0 = Debug|Win32
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Release|Any CPU.ActiveCfg = Release|x64
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Release|Any CPU.Build.0 = Release|x64
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Release|x64.ActiveCfg = Release|x64
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Release|x64.Build.0 = Release|x64
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Release|x86.ActiveCfg = Release|Win32
-		{1F2290DB-3819-49AB-86F6-AA3AD5E0C2A5}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

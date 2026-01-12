@@ -28,6 +28,11 @@
 						Click="Collapse_UnrealMods_Click"
 						IsEnabled="{Binding ModScannerVM.IsNotScanning, 
                     RelativeSource={RelativeSource AncestorType=UserControl}}" />
+				
+				<Button Content="Add to registry"
+						Click="PushToRegistry_Click"
+						IsEnabled="{Binding ModScannerVM.IsNotScanning, 
+                    RelativeSource={RelativeSource AncestorType=UserControl}}" />
 				<ProgressBar Minimum="0"
                  Maximum="100"
                  Value="{Binding ModScannerVM.ScanProgress, RelativeSource={RelativeSource AncestorType=UserControl}}"

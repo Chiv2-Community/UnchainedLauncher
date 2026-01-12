@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;
@@ -14,8 +15,9 @@ using UnrealModScanner.Models;
 public sealed class ModScanTabVM : ObservableObject {
 
     public ObservableCollection<PakScanResult> ScanResults { get; } = new();
+    public TechnicalManifest ScanManifest { get; set; } = new();
 
-  
+
     public async Task ScanAsync(string pakDir) {
         // Clear old results
         ScanResults.Clear();
@@ -39,6 +41,8 @@ public sealed class ModScanTabVM : ObservableObject {
         var context = await modScanner.RunScanAsync(pakDir, ScanMode.ModsOnly, progressReporter);
         swMod.Stop();
         Debug.WriteLine($"Mod Scan completed in: {swMod.ElapsedMilliseconds}ms ({swMod.Elapsed.TotalSeconds:F2}s)");
+
+        ScanManifest = MetadataProcessor.ProcessModScan(context);
 
         // old scan
         //var swOld = Stopwatch.StartNew();
@@ -242,8 +246,9 @@ public sealed class ModScanTabVM : ObservableObject {
 
 
     public void ExportJson(string path) {
-            ModScanJsonExporter.ExportToFile(ScanResults.ToList(), path);
-        }
+        //ModScanJsonExporter.ExportToFile(ScanResults.ToList(), path);
+        ModScanJsonExporter.ExportToFile(ScanManifest, path);
+    }
     }
 
 ////using System.Collections.ObjectModel;

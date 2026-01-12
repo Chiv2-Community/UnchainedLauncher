@@ -10,6 +10,7 @@ using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScann
 using UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;
 
 namespace UnrealModScanner.Models;
+
 public sealed class PakScanResult {
 
     public PakScanResult(bool isExpanded = true) {

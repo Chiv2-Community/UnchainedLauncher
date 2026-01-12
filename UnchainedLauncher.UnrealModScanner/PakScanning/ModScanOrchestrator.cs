@@ -57,7 +57,7 @@ public class ModScanOrchestrator {
             int processed = 0;
             var partitioner = Partitioner.Create(files, EnumerablePartitionerOptions.NoBuffering);
             Parallel.ForEach(partitioner, new ParallelOptions { MaxDegreeOfParallelism = -1 }, file => {
-            //Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = -1 }, file => {
+                //Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = -1 }, file => {
                 try {
                     // Try to peek and skip if not relevant
                     //if (!provider.TrySaveAsset(file.Key, out var data)) return;

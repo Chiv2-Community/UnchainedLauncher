@@ -81,7 +81,7 @@ internal class Program {
                                 var ModName = cdo.GetOrDefault<String>("ModName");
                                 var ModVersion = cdo.GetOrDefault<String>("ModVersion");
                                 var Author = cdo.GetOrDefault<String>("Author");
-                                var bClientside  = cdo.GetOrDefault<bool>("bClientside");
+                                var bClientside = cdo.GetOrDefault<bool>("bClientside");
                                 var PathName = resolvedKey?.GetPathName();
 
                                 Console.WriteLine("    PathName:     {0}", PathName);

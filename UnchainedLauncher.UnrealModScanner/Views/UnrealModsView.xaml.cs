@@ -29,8 +29,7 @@ namespace UnchainedLauncher.UnrealModScanner.Views {
         public UnrealModsView() {
             InitializeComponent();
 
-            this.DataContextChanged += (s, e) =>
-            {
+            this.DataContextChanged += (s, e) => {
                 // If we currently have the MainWindowVM, try to "drill down" to the Scanner VM
                 if (e.NewValue != null && e.NewValue.GetType().Name == "MainWindowVM") {
                     try {

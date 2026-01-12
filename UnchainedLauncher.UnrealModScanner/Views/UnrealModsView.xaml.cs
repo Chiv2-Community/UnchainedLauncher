@@ -28,6 +28,23 @@ namespace UnchainedLauncher.UnrealModScanner.Views {
         }
         public UnrealModsView() {
             InitializeComponent();
+
+            this.DataContextChanged += (s, e) =>
+            {
+                // If we currently have the MainWindowVM, try to "drill down" to the Scanner VM
+                if (e.NewValue != null && e.NewValue.GetType().Name == "MainWindowVM") {
+                    try {
+                        dynamic dw = e.NewValue;
+                        // Update the DataContext of THIS view to be the sub-ViewModel
+                        if (dw.ModScanTabVM is ModScanTabVM subVM) {
+                            this.DataContext = subVM;
+                        }
+                    }
+                    catch (Exception ex) {
+                        Debug.WriteLine($"Failed to switch DataContext: {ex.Message}");
+                    }
+                }
+            };
         }
         private async void Scan_UnrealMods_Click(object sender, RoutedEventArgs e) {
             if (ModScannerVM == null) return;
@@ -65,10 +82,5 @@ namespace UnchainedLauncher.UnrealModScanner.Views {
                 MessageBox.Show("Export completed", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
-
-        //private void Expand_UnrealMods_Click(object sender, RoutedEventArgs e) { /* move logic here */ }
-        //private void Collapse_UnrealMods_Click(object sender, RoutedEventArgs e) { /* move logic here */ }
-        //private void Scan_UnrealMods_Click(object sender, RoutedEventArgs e) { /* move logic here */ }
-        //private void Export_UnrealMods_Click(object sender, RoutedEventArgs e) { /* move logic here */ }
     }
 }

@@ -20,12 +20,24 @@ public partial class ModScanTabVM : ObservableObject {
     [ObservableProperty]
     private TechnicalManifest _scanManifest = new();
 
+    [ObservableProperty]
+    private double _scanProgress;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsNotScanning))] // Updates the helper property below
+    private bool _isScanning;
+    public bool IsNotScanning => !IsScanning;
+
     public async Task ScanAsync(string pakDir) {
+        IsScanning = true;
+        ScanProgress = 0;
+
         // 1. UI Reset (Must be on UI Thread)
         Application.Current.Dispatcher.Invoke(() => ScanResults.Clear());
 
         var progressReporter = new Progress<double>(percent => {
-            Debug.WriteLine($"Scan Progress: {percent:F2}%");
+            ScanProgress = percent;
+            //Debug.WriteLine($"Scan Progress: {percent:F2}%");
         });
 
         // 2. Configuration for Scanner
@@ -37,6 +49,7 @@ public partial class ModScanTabVM : ObservableObject {
             "Trailer_Cinematic","UI","Weapons","Engine","Mannequin"
         };
 
+        await Task.Yield();
         // 3. Execution
         var swMod = Stopwatch.StartNew();
         var modScanner = ScannerFactory.CreateModScanner(officialDirs);
@@ -117,6 +130,7 @@ public partial class ModScanTabVM : ObservableObject {
             // 6. Push to UI Collection
             Application.Current.Dispatcher.Invoke(() => ScanResults.Add(scanResult));
         }
+        IsScanning = false;
     }
 
     public void ExportJson(string path) {

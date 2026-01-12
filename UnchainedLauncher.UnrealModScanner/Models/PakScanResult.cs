@@ -10,8 +10,6 @@ using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScann
 using UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;
 
 namespace UnrealModScanner.Models;
-
-
 public sealed class PakScanResult {
 
     public PakScanResult(bool isExpanded = true) {
@@ -51,10 +49,6 @@ public sealed class PakScanResult {
     public string PakPathExpanded { get; set; }
     public string? PakHash { get; set; }
 
-    //public List<BlueprintModInfo> Mods { get; } = new();
-    //public List<ModMarkerInfo> Markers { get; } = new();
-    //public List<GameMapInfo> Maps { get; } = new();
-    //public List<AssetReplacementInfo> AssetReplacements { get; } = new();
     public ObservableCollection<PakChildNode> Children { get; } = new();
 
     public ConcurrentBag<ModMarkerInfo> _Markers { get; } = new();
@@ -62,44 +56,4 @@ public sealed class PakScanResult {
     public ConcurrentBag<GameMapInfo> _Maps { get; } = new();
     public ConcurrentBag<ArbitraryAssetInfo> ArbitraryAssets { get; } = new();
     public ConcurrentBag<GameInternalAssetInfo> InternalAssets { get; } = new();
-
-
-    //public void MergeFrom(PakScanResult other) {
-    //    Mods.AddRange(other.Mods);
-    //    Markers.AddRange(other.Markers);
-    //    Maps.AddRange(other.Maps);
-    //    AssetReplacements.AddRange(other.AssetReplacements);
-
-    //    foreach (var child in other.Children)
-    //        Children.Add(child);
-
-
-    //    // Fill missing scalar values
-    //    PakHash ??= other.PakHash;
-    //}
-
-    //public static Dictionary<string, PakScanResult> MergeAll(
-    //params Dictionary<string, PakScanResult>[] dictionaries) {
-    //    var result = new Dictionary<string, PakScanResult>();
-
-    //    foreach (var dict in dictionaries) {
-    //        foreach (var (key, value) in dict) {
-    //            if (!result.TryGetValue(key, out var existing))
-    //                result[key] = value;
-    //            else
-    //                existing.MergeFrom(value);
-    //        }
-    //    }
-
-    //    return result;
-    //}
-
 }
-// TreeView children (ONE collection!)
-//    public IReadOnlyList<ITreeNode> Children =>
-//        Mods.Select(m => new ModTreeNode(m))
-//            .Cast<ITreeNode>()
-//            .Concat(AssetReplacements.Select(a => new AssetReplacementTreeNode(a)))
-//            .ToList();
-//}
-

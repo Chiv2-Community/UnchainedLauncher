@@ -8,12 +8,34 @@
              xmlns:nodes="clr-namespace:UnchainedLauncher.UnrealModScanner.ViewModels.Nodes"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=viewModels:ModScanTabViewModel, IsDesignTimeCreatable=True}">
+	<UserControl.Resources>
+		<BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+	</UserControl.Resources>
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
-            <Button Content="Expand" Click="Expand_UnrealMods_Click" Width="60" Margin="0,0,10,0"/>
-            <Button Content="Collapse" Click="Collapse_UnrealMods_Click" Width="60" Margin="0,0,10,0"/>
-            <Button Content="Scan" Click="Scan_UnrealMods_Click" Width="100" Margin="0,0,10,0"/>
-            <Button Content="Export JSON" Click="Export_UnrealMods_Click" Width="100" Margin="0,0,10,0"/>
+			<StackPanel Orientation="Horizontal">
+				<Button Content="Scan"
+						Click="Scan_UnrealMods_Click"
+						IsEnabled="{Binding ModScannerVM.IsNotScanning, 
+                    RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+				<Button Content="Export"
+						Click="Export_UnrealMods_Click"
+						IsEnabled="{Binding ModScannerVM.IsNotScanning, 
+                    RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+				<Button Content="Collapse All"
+						Click="Collapse_UnrealMods_Click"
+						IsEnabled="{Binding ModScannerVM.IsNotScanning, 
+                    RelativeSource={RelativeSource AncestorType=UserControl}}" />
+				<ProgressBar Minimum="0"
+                 Maximum="100"
+                 Value="{Binding ModScannerVM.ScanProgress, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                 Height="20"
+                 Margin="5"
+				 Width="500"			 
+                 Visibility="{Binding ModScannerVM.IsScanning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+			</StackPanel>
         </StackPanel>
 
         <TreeView ItemsSource="{Binding ModScanTabVM.ScanResults}">

@@ -17,6 +17,7 @@
     ThemeToggleContext="{Binding SettingsViewModel}"
     Title="Unchained Launcher" Height="500" Width="1000">
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
         <Style TargetType="TabItem" x:Key="UnderlineTabItemStyle">
             <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
             <Setter Property="FontWeight" Value="SemiBold" />
@@ -149,14 +150,15 @@
             </TabItem.Header>
             <mods:ModList DataContext="{Binding ModScanTabVM}" />
         </TabItem>
-        <TabItem>
+        <TabItem Visibility="{Binding SettingsViewModel.IsUnrealScannerEnabled, Converter={StaticResource BoolToVis}}">
             <TabItem.Header>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="🧩" Margin="0,0,6,0" />
-                    <TextBlock Text="Unreal Mods" />
+                    <TextBlock Text="🔎" Margin="0,0,6,0" />
+                    <TextBlock Text="Local Mods" />
                 </StackPanel>
             </TabItem.Header>
-            <scanner:UnrealModsView />
+
+            <scanner:UnrealModsView DataContext="{Binding ModScanTabVM}" />
         </TabItem>
         <TabItem>
             <TabItem.Header>

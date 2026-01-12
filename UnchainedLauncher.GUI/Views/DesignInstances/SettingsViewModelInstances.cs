@@ -20,6 +20,7 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             new MessageBoxSpawner(),
             InstallationType.Steam,
             true,
+            true,
             "--design-time-only-default-constructor",
             "https://servers.polehammer.net",
             false,

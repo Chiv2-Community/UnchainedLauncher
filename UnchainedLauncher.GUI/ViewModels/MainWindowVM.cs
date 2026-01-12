@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.UnrealModScanner.ViewModels;
 
@@ -14,12 +15,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public MainWindowVM(HomeVM launcherVM,
                             ModListVM modListViewModel,
                             SettingsVM settingsViewModel,
-                            ServersTabVM serversTab) {
+                            ServersTabVM serversTab,
+                            AggregateModRegistry modRegistry) {
             HomeVM = launcherVM;
             ModListViewModel = modListViewModel;
             SettingsViewModel = settingsViewModel;
             ServersTab = serversTab;
-            ModScanTabVM = new ModScanTabVM();
+            ModScanTabVM = new ModScanTabVM(modRegistry);
         }
 
         public void Dispose() {

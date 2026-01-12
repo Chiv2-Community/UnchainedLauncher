@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows; // Required for Application.Current.Dispatcher
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
@@ -15,6 +16,7 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels;
 public partial class ModScanTabVM : ObservableObject {
     // The collection bound to your TreeView
     public ObservableCollection<PakScanResult> ScanResults { get; } = new();
+    public AggregateModRegistry ModRegistry {  get; set; }
 
     // The technical DTO for JSON export
     [ObservableProperty]
@@ -27,6 +29,10 @@ public partial class ModScanTabVM : ObservableObject {
     [NotifyPropertyChangedFor(nameof(IsNotScanning))] // Updates the helper property below
     private bool _isScanning;
     public bool IsNotScanning => !IsScanning;
+
+    public ModScanTabVM(AggregateModRegistry modRegistry) {
+        ModRegistry = modRegistry;
+    }
 
     public async Task ScanAsync(string pakDir) {
         IsScanning = true;

@@ -1,4 +1,5 @@
-﻿using UnchainedLauncher.GUI.ViewModels;
+﻿using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.Views.Mods.DesignInstances;
 using UnchainedLauncher.GUI.Views.Servers.DesignInstances;
 
@@ -12,7 +13,8 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             LauncherViewModelInstances.DEFAULT,
             ModListViewModelInstances.DEFAULT,
             SettingsViewModelInstances.DEFAULT,
-            ServersTabInstances.DEFAULT
+            ServersTabInstances.DEFAULT,
+            new AggregateModRegistry()
         ) {
         }
     }

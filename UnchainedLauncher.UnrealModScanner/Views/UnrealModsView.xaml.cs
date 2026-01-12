@@ -8,11 +8,14 @@ using System.Windows.Controls;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.UnrealModScanner.ViewModels;
 using UnrealModScanner.Services;
+
+using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 //using UnchainedLauncher.UnrealModScanner.ViewModels;
 
 namespace UnchainedLauncher.UnrealModScanner.Views {
     public partial class UnrealModsView : UserControl {
-        public AggregateModRegistry? Registry {get; set;}
+        //public AggregateModRegistry? Registry {get; set;}
         public string LastScanPath { get; set;}
 
         public ModScanTabVM? ModScannerVM {
@@ -22,7 +25,6 @@ namespace UnchainedLauncher.UnrealModScanner.Views {
                 if (DataContext != null) {
                     try {
                         dynamic context = DataContext;
-                        return context.ModScanTabVM as ModScanTabVM;
                     }
                     catch {
                         return null;
@@ -32,62 +34,54 @@ namespace UnchainedLauncher.UnrealModScanner.Views {
                 return null;
             }
         }
-        private object? GetHiddenProperty(object obj, string name) {
-            return obj.GetType()
-                      .GetProperty(name, System.Reflection.BindingFlags.Public |
-                                         System.Reflection.BindingFlags.NonPublic |
-                                         System.Reflection.BindingFlags.Instance)
-                      ?.GetValue(obj);
-        }
 
         public UnrealModsView() {
             InitializeComponent();
 
-            //this.DataContextChanged += (s, e) => {
-            //    // If we currently have the MainWindowVM, try to "drill down" to the Scanner VM
-            //    if (e.NewValue != null && e.NewValue.GetType().Name == "MainWindowVM") {
-            //        try {
-            //            dynamic dw = e.NewValue;
-            //            // Update the DataContext of THIS view to be the sub-ViewModel
-            //            if (dw.ModScanTabVM is ModScanTabVM subVM) {
-            //                this.DataContext = subVM;
-            //                this.Registry = dw.SettingsViewModel.RegistryWindowVM.Registry;
-            //            }
-            //        }
-            //        catch (Exception ex) {
-            //            Debug.WriteLine($"Failed to switch DataContext: {ex.Message}");
-            //        }
-            //    }
-            //};
-
-            // This is fucking nasty
-
             this.DataContextChanged += (s, e) => {
+                // If we currently have the MainWindowVM, try to "drill down" to the Scanner VM
                 if (e.NewValue != null && e.NewValue.GetType().Name == "MainWindowVM") {
                     try {
                         dynamic dw = e.NewValue;
-
-                        // 1. Switch the View's DataContext to the Scanner VM
+                        // Update the DataContext of THIS view to be the sub-ViewModel
                         if (dw.ModScanTabVM is ModScanTabVM subVM) {
                             this.DataContext = subVM;
                         }
-
-                        // 2. Use Reflection to "Steal" the Registry through the private/internal layers
-                        var settings = GetHiddenProperty(e.NewValue, "SettingsViewModel");
-                        if (settings != null) {
-                            var registryVM = GetHiddenProperty(settings, "RegistryWindowVM");
-                            if (registryVM != null) {
-                                var registryObj = GetHiddenProperty(registryVM, "Registry");
-                                // Cast to the Core type (which is public and accessible)
-                                this.Registry = registryObj as AggregateModRegistry;
-                            }
-                        }
                     }
                     catch (Exception ex) {
-                        Debug.WriteLine($"Failed to resolve Registry: {ex.Message}");
+                        Debug.WriteLine($"Failed to switch DataContext: {ex.Message}");
                     }
                 }
             };
+
+            // This is fucking nasty
+
+            //this.DataContextChanged += (s, e) => {
+            //    if (e.NewValue != null && e.NewValue.GetType().Name == "MainWindowVM") {
+            //        try {
+            //            dynamic dw = e.NewValue;
+
+            //            // 1. Switch the View's DataContext to the Scanner VM
+            //            if (dw.ModScanTabVM is ModScanTabVM subVM) {
+            //                this.DataContext = subVM;
+            //            }
+
+            //            // 2. Use Reflection to "Steal" the Registry through the private/internal layers
+            //            var settings = GetHiddenProperty(e.NewValue, "SettingsViewModel");
+            //            if (settings != null) {
+            //                var registryVM = GetHiddenProperty(settings, "RegistryWindowVM");
+            //                if (registryVM != null) {
+            //                    var registryObj = GetHiddenProperty(registryVM, "Registry");
+            //                    // Cast to the Core type (which is public and accessible)
+            //                    this.Registry = registryObj as AggregateModRegistry;
+            //                }
+            //            }
+            //        }
+            //        catch (Exception ex) {
+            //            Debug.WriteLine($"Failed to resolve Registry: {ex.Message}");
+            //        }
+            //    }
+            //};
 
         }
         private async void Scan_UnrealMods_Click(object sender, RoutedEventArgs e) {
@@ -129,18 +123,24 @@ namespace UnchainedLauncher.UnrealModScanner.Views {
 
         private async void PushToRegistry_Click(object sender, RoutedEventArgs e) {
             var vm = ModScannerVM;
-            var registry = Registry; // Use our new smart property
+            var registry = ModScannerVM.ModRegistry; // Use our new smart property
 
             if (vm == null || registry == null) {
                 MessageBox.Show("Could not find ViewModel or Registry Service.");
                 return;
             }
 
-            var local_Reg  = Registry.ModRegistries.Where(reg => reg is LocalModRegistry).FirstOrDefault();
+            var local_Reg  = registry.ModRegistries.Where(reg => reg is LocalModRegistry).FirstOrDefault();
+
+            // FIXME: Initialize if not present. Where do we get the path?
+            //if (local_Reg == null) {
+            //    local_Reg = new LocalModRegistry();
+            //    registry.ModRegistries.Add(local_Reg);
+            //}
             if (local_Reg is not LocalModRegistry local_mod_registry) {
                 return;
             }
-            foreach (var reg in Registry.ModRegistries) {
+            foreach (var reg in registry.ModRegistries) {
                     Debug.WriteLine("Reg: {0}", reg.Name);
             }
 

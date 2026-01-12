@@ -7,7 +7,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
         private static readonly ConcurrentDictionary<string, string> _hashStore = new();
         private static readonly ConcurrentDictionary<string, string> _hashCache = new();
 
-        public static string GetFastHash(byte[] data) {
+        private static string GetFastHash(byte[] data) {
             if (data == null || data.Length == 0) return string.Empty;
 
             // Only hash the first 16KB to save massive CPU/IO time
@@ -23,9 +23,9 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
             // across different processors.
             return _hashStore.GetOrAdd(path, _ => {
                 if (provider.TrySaveAsset(path, out var data)) {
-                    return GetFastHash(data);
-                    //byte[] hashBytes = System.Security.Cryptography.SHA1.HashData(data);
-                    //return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+                    //return GetFastHash(data);
+                    byte[] hashBytes = System.Security.Cryptography.SHA512.HashData(data);
+                    return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
                 }
                 return fallback.GetHashCode().ToString();
             });

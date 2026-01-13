@@ -18,8 +18,6 @@ jobs:
     strategy:
       matrix:
         configuration: [Debug, Release]
-        project: [UnchainedLauncher.GUI, UnchainedLauncher.PakScannerApp]
-        platform: [Win64, x64]
     runs-on: windows-latest
     env:
       GUI_Project_Path: UnchainedLauncher.GUI
@@ -56,7 +54,29 @@ jobs:
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Core.Tests.Unit --logger:"console;verbosity=detailed"
 
     - name: Package ${{ matrix.configuration }} binaries
-      run: dotnet publish ${{ matrix.project }} -c ${{ matrix.configuration}} -o out/
+      run: dotnet publish UnchainedLauncher.GUI -c ${{ matrix.configuration}} -o out/
+
+    - name: Upload ${{ matrix.configuration }} Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: UnchainedLauncher_${{ matrix.configuration }}_${{ github.sha }}
+        path: out
+
+  build-pakscanner:
+    strategy:
+      matrix:
+        platform: [Win64, x64]
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install dependencies
+      run: dotnet restore
 
     - name: Package PakScannerApp binaries
       run: >
@@ -64,12 +84,6 @@ jobs:
         -c Release 
         /p:PublishProfile=PakScanner_Release_${{ matrix.platform }} 
         -o out/
-
-    - name: Upload ${{ matrix.configuration }} Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ matrix.project }}_${{ matrix.configuration }}_${{ github.sha }}
-        path: out
 
     - name: Upload PakScannerApp Artifacts
       uses: actions/upload-artifact@v4

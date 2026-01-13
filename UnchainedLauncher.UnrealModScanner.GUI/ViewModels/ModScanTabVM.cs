@@ -2,15 +2,15 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Windows; // Required for Application.Current.Dispatcher
+using System.Windows;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes; // Required for Application.Current.Dispatcher
 using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
-using UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;
 using UnrealModScanner.Export;
 using UnrealModScanner.Models;
 
-namespace UnchainedLauncher.UnrealModScanner.ViewModels;
+namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 
 public partial class ModScanTabVM : ObservableObject {
     // The collection bound to your TreeView

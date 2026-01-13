@@ -1,7 +1,7 @@
 ﻿
 using System.Collections.ObjectModel;
-
-namespace UnchainedLauncher.UnrealModScanner.ViewModels.Nodes {
+using UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;
+namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes {
     public sealed class PakGroupNode : PakChildNode {
         public PakGroupNode(string title, bool isExpanded = true) {
             Title = title;

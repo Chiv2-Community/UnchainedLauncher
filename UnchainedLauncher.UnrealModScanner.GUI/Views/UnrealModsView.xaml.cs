@@ -4,10 +4,10 @@ using Microsoft.Win32;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
-using UnchainedLauncher.UnrealModScanner.ViewModels;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 //using UnchainedLauncher.UnrealModScanner.ViewModels;
 
-namespace UnchainedLauncher.UnrealModScanner.Views {
+namespace UnchainedLauncher.UnrealModScanner.GUI.Views {
     public partial class UnrealModsView : UserControl {
         public ModScanTabVM? ModScannerVM {
             get {

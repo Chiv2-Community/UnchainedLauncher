@@ -24,7 +24,7 @@ internal class Program {
         provider.SubmitKey(new FGuid(), new FAesKey("0x0000000000000000000000000000000000000000000000000000000000000000")); // decrypt basic info (1 guid - 1 key)                                          //provider.LoadLocalization(ELanguage.English); // explicit enough
         provider.LoadVirtualPaths();
         ZlibHelper.DownloadDll(); // TODO: better way?
-        ZlibHelper.Initialize("zlib-ng2.dll");
+        ZlibHelper.Initialize("zlib-ng2.so");
         var umap_exports = provider.Files.Where(file => file.Key.Contains(".uasset"));
         foreach (var export in umap_exports) {
             //Console.WriteLine(export.Key);

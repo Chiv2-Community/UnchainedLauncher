@@ -7,7 +7,7 @@
     xmlns:mods="clr-namespace:UnchainedLauncher.GUI.Views.Mods"
     xmlns:servers="clr-namespace:UnchainedLauncher.GUI.Views.Servers"
     xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
-    xmlns:scanner="clr-namespace:UnchainedLauncher.UnrealModScanner.Views;assembly=UnchainedLauncher.UnrealModScanner"
+    xmlns:scanner="clr-namespace:UnchainedLauncher.UnrealModScanner.GUI.Views;assembly=UnchainedLauncher.UnrealModScanner.GUI"
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance instances:MainWindowDesignVM}"
     x:Class="UnchainedLauncher.GUI.Views.MainWindow"

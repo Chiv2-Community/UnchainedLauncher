@@ -1,8 +1,9 @@
 ﻿
 
 using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScanner.Models;
+using UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;
 
-namespace UnchainedLauncher.UnrealModScanner.ViewModels.Nodes {
+namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes {
     public sealed class AssetReplacementTreeNode : PakChildNode {
         public AssetReplacementInfo Replacement { get; }
 

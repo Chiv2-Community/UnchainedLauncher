@@ -1,7 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
-using UnchainedLauncher.UnrealModScanner.ViewModels;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     public partial class MainWindowVM : INotifyPropertyChanged, IDisposable {

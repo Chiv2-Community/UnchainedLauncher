@@ -60,6 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\UnchainedLauncher.Core\UnchainedLauncher.Core.csproj" />
+    <ProjectReference Include="..\UnchainedLauncher.UnrealModScanner.GUI\UnchainedLauncher.UnrealModScanner.GUI.csproj" />
     <ProjectReference Include="..\UnchainedLauncher.UnrealModScanner\UnchainedLauncher.UnrealModScanner.csproj" />
 
     <PackageReference Include="Jdenticon.Wpf" Version="3.1.2" />

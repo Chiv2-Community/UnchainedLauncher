@@ -1,7 +1,8 @@
 ﻿
 using UnchainedLauncher.UnrealModScanner.Models;
+using UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;
 
-namespace UnchainedLauncher.UnrealModScanner.ViewModels.Nodes {
+namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes {
 
 
     public sealed class ModTreeNode : PakChildNode {

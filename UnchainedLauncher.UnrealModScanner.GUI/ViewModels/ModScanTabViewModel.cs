@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using UnrealModScanner.Models;
 
-namespace UnchainedLauncher.UnrealModScanner.ViewModels;
+namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 
 public class ModScanTabViewModel : INotifyPropertyChanged {
     // This is what your TreeView ItemsSource="{Binding ModScanTabVM.ScanResults}" looks for

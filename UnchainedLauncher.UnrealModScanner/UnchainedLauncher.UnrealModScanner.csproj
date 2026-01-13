@@ -3,10 +3,10 @@
   <PropertyGroup>
     <!--<OutputType>Exe</OutputType>-->
 	<OutputType>Library</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-	<UseWPF>true</UseWPF>
+<!--	<UseWPF>true</UseWPF>-->
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,9 +19,6 @@
 
   <ItemGroup>
     <None Update="ViewModels\ModScanWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-    </None>
-    <None Update="Views\UnrealModsView.xaml">
       <Generator>MSBuild:Compile</Generator>
     </None>
   </ItemGroup>

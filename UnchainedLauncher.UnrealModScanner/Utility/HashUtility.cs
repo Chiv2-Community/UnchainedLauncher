@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 
-namespace UnchainedLauncher.UnrealModScanner.PakScanning {
+namespace UnchainedLauncher.UnrealModScanner.Utility {
     internal static class HashUtility {
         private static readonly ConcurrentDictionary<string, string> _hashStore = new();
         private static readonly ConcurrentDictionary<string, string> _hashCache = new();

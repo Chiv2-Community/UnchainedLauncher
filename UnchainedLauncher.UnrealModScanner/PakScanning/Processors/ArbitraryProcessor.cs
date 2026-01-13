@@ -2,6 +2,7 @@
 
 using CUE4Parse.UE4.Objects.UObject;
 using UnchainedLauncher.UnrealModScanner.Models;
+using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
@@ -26,11 +27,11 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
 
                         result.ArbitraryAssets.Add(new ArbitraryAssetInfo {
                             AssetPath = ctx.FilePath,
+                            AssetHash = HashUtility.GetAssetHash(ctx.Provider, ctx.FilePath, uClass),
                             ObjectName = uClass.Name,
                             // We extract ModName/Author even here, as some modders 
                             // add metadata to custom classes without using a Marker
                             ModName = cdo?.GetOrDefault<string>("ModName"),
-                            AssetHash = HashUtility.GetAssetHash(ctx.Provider, ctx.FilePath, uClass)
                         });
                     }
                 }

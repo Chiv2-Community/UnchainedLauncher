@@ -1,14 +1,18 @@
 ﻿using CUE4Parse.Compression;
 using CUE4Parse.Encryption.Aes;
 using CUE4Parse.FileProvider;
+using CUE4Parse.FileProvider.Objects;
 using CUE4Parse.UE4.AssetRegistry;
 using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Readers;
 using CUE4Parse.UE4.Versions;
 using System.Collections.Concurrent;
+using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.Models;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Processors;
 using UnchainedLauncher.UnrealModScanner.Scanning;
+using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning;
@@ -44,35 +48,37 @@ public class ModScanOrchestrator {
         return provider;
     }
 
-    public async Task<ModScanResult> RunScanAsync(string directory, ScanMode mode, IProgress<double> progress = null) {
-        return await Task.Run(() => {
-            // Use 'using' or manual dispose if FilteredFileProvider supports it
+    public async Task<ModScanResult> RunScanAsync(string directory, ScanMode mode, ScanOptions options, IProgress<double> progress = null) {
+        var discoveryProcessor = _modProcessors.OfType<ReferenceDiscoveryProcessor>().FirstOrDefault();
+        int processed = 0;
+
+        return await Task.Run(async () => {
             var provider = CreateProvider(directory, mode);
-            var scanResult = new ModScanResult();
+            //var scanResult = new ModScanResult();
+            var mainResult = new ModScanResult(); // Das Top-Level Objekt
+            //var scanResult = new PakScanResult();
 
-            var files = provider.Files
-                .Where(f => f.Key.EndsWith(".uasset") || f.Key.EndsWith(".umap"))
-                .ToList();
+            // 1. Apply Path Filtering
+            var files = provider.Files.Where(f => {
+                bool isAsset = f.Key.EndsWith(".uasset") || f.Key.EndsWith(".umap");
+                if (!isAsset) return false;
 
-            if (files.Count == 0) {
-                progress?.Report(100);
-                return scanResult;
-            }
+                if (options.PathFilters.Count == 0) return true;
 
-            int processed = 0;
-            var partitioner = Partitioner.Create(files, EnumerablePartitionerOptions.NoBuffering);
-            Parallel.ForEach(partitioner, new ParallelOptions { MaxDegreeOfParallelism = -1 }, file => {
-                //Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = -1 }, file => {
-                try {
-                    // Try to peek and skip if not relevant
-                    //if (!provider.TrySaveAsset(file.Key, out var data)) return;
+                bool matchesFilter = options.PathFilters.Any(filter => f.Key.Contains(filter, StringComparison.OrdinalIgnoreCase));
+                return options.IsWhitelist ? matchesFilter : !matchesFilter;
+            }).ToList();
 
-                    //string rawContent = System.Text.Encoding.ASCII.GetString(data, 0, Math.Min(data.Length, 5000));
-                    //bool isInteresting = rawContent.Contains("Marker") || rawContent.Contains("Settings");
+            // 2. Load-Balanced Partitioning
+            // Setting loadBalance to 'true' enables a dynamic worker-stealing-like behavior
+            var partitioner = Partitioner.Create(files, loadBalance: true);
 
-                    //if (!isInteresting && mode == ScanMode.ModsOnly) return; // Skip the heavy LoadPackage
-
-                    // Normal scan
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = -1 };
+            await Parallel.ForEachAsync<KeyValuePair<string, GameFile>>(
+                files,
+                parallelOptions,
+                async (file, ct) => { // 'ct' ist das CancellationToken
+                    try {
                     var pkg = provider.LoadPackage(file.Key);
                     if (pkg == null || file.Value is not FPakEntry pakEntry) return;
 
@@ -80,23 +86,26 @@ public class ModScanOrchestrator {
                     var pakName = pakEntry.PakFileReader.Name;
 
                     // ConcurrentDictionary handles the thread-safety here
-                    var result = scanResult.Paks.GetOrAdd(pakName, name => new PakScanResult {
+                    //var result = scanResult.Paks.GetOrAdd(pakName, name => new PakScanResult {
+                    //    PakPath = name,
+                    //    PakHash = HashUtility.CalculatePakHash(pakEntry.PakFileReader.Path)
+                    //});
+                    var currentPakResult = mainResult.Paks.GetOrAdd(pakName, (name) => new PakScanResult {
                         PakPath = name,
                         PakHash = HashUtility.CalculatePakHash(pakEntry.PakFileReader.Path)
                     });
 
-                    if (mode == ScanMode.GameInternal) {
-                        _internalProcessor?.Process(context, result);
+                        if (mode == ScanMode.GameInternal) {
+                        _internalProcessor?.Process(context, currentPakResult);
                     }
                     else {
                         foreach (var processor in _modProcessors) {
-                            processor.Process(context, result);
+                            processor.Process(context, currentPakResult);
                         }
                     }
                 }
                 catch (Exception ex) {
-                    // Log the specific file that failed
-                    System.Diagnostics.Debug.WriteLine($"Error parsing {file.Key}: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}");
                 }
                 finally {
                     var count = Interlocked.Increment(ref processed);
@@ -106,9 +115,102 @@ public class ModScanOrchestrator {
                 }
             });
 
-            return scanResult;
+            if (discoveryProcessor?.DiscoveredReferences.Any() == true) {
+                var secondPass = new SecondPassOrchestrator(provider, options); // options statt _options
+                await secondPass.ResolveReferencesAsync(discoveryProcessor.DiscoveredReferences, mainResult);
+            }
+
+            //if (discoveryProcessor.DiscoveredReferences.Any()) {
+            //    var secondPass = new SecondPassOrchestrator(provider, _options);
+
+            //    // We aggregate results into the existing PakScanResult objects
+            //    // mapped by the Blueprint's owning Pak/Path
+            //    await secondPass.ResolveReferencesAsync(
+            //        discoveryProcessor.DiscoveredReferences,
+            //        scanResult
+            //    );
+            //}
+
+            return mainResult;
         });
     }
+
+    //public async Task<ModScanResult> RunScanAsync(string directory, ScanMode mode, IProgress<double> progress = null) {
+    //    return await Task.Run(() => {
+    //        // Use 'using' or manual dispose if FilteredFileProvider supports it
+    //        var provider = CreateProvider(directory, mode);
+    //        var scanResult = new ModScanResult();
+
+    //        var files = provider.Files
+    //            .Where(f => f.Key.EndsWith(".uasset") || f.Key.EndsWith(".umap"))
+    //            .ToList();
+
+    //        if (files.Count == 0) {
+    //            progress?.Report(100);
+    //            return scanResult;
+    //        }
+
+    //        int processed = 0;
+    //        var partitioner = Partitioner.Create(files, EnumerablePartitionerOptions.NoBuffering);
+    //        Parallel.ForEach(partitioner, new ParallelOptions { MaxDegreeOfParallelism = -1 }, file => {
+    //            //Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = -1 }, file => {
+    //            try {
+    //                // Try to peek and skip if not relevant
+    //                //if (!provider.TrySaveAsset(file.Key, out var data)) return;
+
+    //                //string rawContent = System.Text.Encoding.ASCII.GetString(data, 0, Math.Min(data.Length, 5000));
+    //                //bool isInteresting = rawContent.Contains("Marker") || rawContent.Contains("Settings");
+
+    //                //if (!isInteresting && mode == ScanMode.ModsOnly) return; // Skip the heavy LoadPackage
+
+    //                // Normal scan
+    //                var pkg = provider.LoadPackage(file.Key);
+    //                if (pkg == null || file.Value is not FPakEntry pakEntry) return;
+
+    //                var context = new ScanContext(provider, pkg, file.Key, pakEntry);
+    //                var pakName = pakEntry.PakFileReader.Name;
+
+    //                // ConcurrentDictionary handles the thread-safety here
+    //                var result = scanResult.Paks.GetOrAdd(pakName, name => new PakScanResult {
+    //                    PakPath = name,
+    //                    PakHash = HashUtility.CalculatePakHash(pakEntry.PakFileReader.Path)
+    //                });
+
+    //                if (mode == ScanMode.GameInternal) {
+    //                    _internalProcessor?.Process(context, result);
+    //                }
+    //                else {
+    //                    foreach (var processor in _modProcessors) {
+    //                        processor.Process(context, result);
+    //                    }
+    //                }
+    //            }
+    //            catch (Exception ex) {
+    //                // Log the specific file that failed
+    //                System.Diagnostics.Debug.WriteLine($"Error parsing {file.Key}: {ex.Message}");
+    //            }
+    //            finally {
+    //                var count = Interlocked.Increment(ref processed);
+    //                if (count % 50 == 0 || count == files.Count) {
+    //                    progress?.Report((double)count / files.Count * 100);
+    //                }
+    //            }
+    //        });
+
+    //        if (discoveryProcessor.DiscoveredReferences.Any()) {
+    //            var secondPass = new SecondPassOrchestrator(provider, _options);
+
+    //            // We aggregate results into the existing PakScanResult objects
+    //            // mapped by the Blueprint's owning Pak/Path
+    //            await secondPass.ResolveReferencesAsync(
+    //                discoveryProcessor.DiscoveredReferences,
+    //                scanResult
+    //            );
+    //        }
+
+    //        return scanResult;
+    //    });
+    //}
     public async Task<List<GameInternalAssetInfo>> QuickSearchMainPak(string pakDir) {
         return await Task.Run(() => {
             // Mode needs to be GameInternal to target the main pak logic

@@ -1,13 +1,17 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using System.Collections.ObjectModel;
 using UnchainedLauncher.Core.JsonModels.Metadata;
-
+using UnrealModScanner.Models;
+using Newtonsoft.Json;
 namespace UnrealModScanner.Export;
 
 public static class ModScanJsonExporter {
-    private static readonly JsonSerializerOptions Options = new() {
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    //private static readonly JsonSerializerOptions Options = new() {
+    //    WriteIndented = true,
+    //    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    //};
+    private static readonly JsonSerializerSettings Settings = new() {
+        Formatting = Formatting.Indented,
+        NullValueHandling = NullValueHandling.Ignore,
     };
     public static string ExportToString(
     TechnicalManifest scanResults) {
@@ -15,11 +19,27 @@ public static class ModScanJsonExporter {
             Manifest = scanResults
         };
 
-        return JsonSerializer.Serialize(doc, Options);
+        return JsonConvert.SerializeObject(doc, Settings);
     }
 
     public static void ExportToFile(
         TechnicalManifest scanResults,
+        string outputPath) {
+        var json = ExportToString(scanResults);
+        File.WriteAllText(outputPath, json);
+    }
+
+    public static string ExportToString(
+    ObservableCollection<PakScanResult> scanResults) {
+        var doc = new ModScanDocument {
+            Results = scanResults
+        };
+
+        return JsonConvert.SerializeObject(doc, Settings);
+    }
+
+    public static void ExportToFile(
+        ObservableCollection<PakScanResult> scanResults,
         string outputPath) {
         var json = ExportToString(scanResults);
         File.WriteAllText(outputPath, json);

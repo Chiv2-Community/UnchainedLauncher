@@ -1,6 +1,7 @@
 ﻿using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.UObject;
 using UnchainedLauncher.UnrealModScanner.Models;
+using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
@@ -14,8 +15,8 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                 if (map == null) continue;
 
                 var markerInfo = new ModMarkerInfo {
-                    MarkerAssetPath = ctx.Package.Name,
-                    MarkerAssetHash = HashUtility.GetAssetHash(ctx.Provider, ctx.FilePath, marker)
+                    AssetPath = ctx.Package.Name,
+                    AssetHash = HashUtility.GetAssetHash(ctx.Provider, ctx.FilePath, marker)
                 };
 
                 foreach (var entry in map.Properties) {
@@ -30,9 +31,9 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                             ModName = cdo.GetOrDefault<string>("ModName"),
                             Author = cdo.GetOrDefault<string>("Author"),
                             Version = cdo.GetOrDefault<string>("Version"),
-                            IsClientSide = cdo.GetOrDefault<bool>("bIsClientside"),
-                            BlueprintPath = uClass.GetPathName(),
-                            BlueprintHash = HashUtility.GetAssetHash(ctx.Provider, blueprintPath, uClass)
+                            IsClientSide = cdo.GetOrDefault<bool>("bClientside"),
+                            AssetPath = uClass.GetPathName(),
+                            AssetHash = HashUtility.GetAssetHash(ctx.Provider, blueprintPath, uClass)
                         });
                     }
                 }

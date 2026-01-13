@@ -2,6 +2,7 @@
 using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Pak.Objects;
 using System.Collections.Concurrent;
+using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning {

@@ -11,6 +11,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             foreach (var export in ctx.Package.ExportsLazy) {
                 result._AssetReplacements.Add(new AssetReplacementInfo {
                     AssetPath = ctx.FilePath,
+                    // FIXME: add hash
                     ClassType = export.Value?.Class?.Name,
                     Extension = Path.GetExtension(ctx.FilePath)
                 });

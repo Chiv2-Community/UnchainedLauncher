@@ -19,8 +19,18 @@
 						Click="Scan_UnrealMods_Click"
 						IsEnabled="{Binding ModScannerVM.IsNotScanning, 
                     RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                
+                <Button Content="Save Config"
+						Click="Save_UnrealMods_Config_Click"
+						IsEnabled="{Binding ModScannerVM.IsNotScanning, 
+                    RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
-				<Button Content="Export"
+                <Button Content="Load Config"
+						Click="Load_UnrealMods_Config_Click"
+						IsEnabled="{Binding ModScannerVM.IsNotScanning, 
+                    RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <Button Content="Export"
 						Click="Export_UnrealMods_Click"
 						IsEnabled="{Binding ModScannerVM.IsNotScanning, 
                     RelativeSource={RelativeSource AncestorType=UserControl}}" />

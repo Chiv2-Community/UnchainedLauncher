@@ -32,17 +32,17 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
             // 1. Process Markers & Blueprints
             foreach (var marker in result._Markers) {
                 collections.Markers.Add(new ModMarkerDto {
-                    Path = marker.MarkerAssetPath,
-                    Hash = marker.MarkerAssetHash,
+                    Path = marker.AssetPath,
+                    Hash = marker.AssetHash,
                     ObjectClass = "ModMarker",
-                    AssociatedBlueprints = marker.Blueprints.Select(b => b.BlueprintPath).ToList()
+                    AssociatedBlueprints = marker.Blueprints.Select(b => b.AssetPath).ToList()
                 });
 
                 foreach (var bp in marker.Blueprints) {
-                    if (!collections.Blueprints.Any(x => x.Path == bp.BlueprintPath)) {
+                    if (!collections.Blueprints.Any(x => x.Path == bp.AssetPath)) {
                         collections.Blueprints.Add(new BlueprintDto {
-                            Path = bp.BlueprintPath,
-                            Hash = bp.BlueprintHash,
+                            Path = bp.AssetPath,
+                            Hash = bp.AssetHash,
                             ModName = bp.ModName,
                             Author = bp.Author,
                             Version = bp.Version,

@@ -24,12 +24,15 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
         var progress = new Progress<double>(p =>
             AnsiConsole.MarkupLine($"[grey]Progress:[/] {p:F2}%"));
 
+        var options_new = new UnchainedLauncher.UnrealModScanner.Config.ScanOptions();
         var scanner = ScannerFactory.CreateModScanner(
-            options.OfficialDirectories);
+            options.OfficialDirectories, options_new);
+
 
         var scanContext = await scanner.RunScanAsync(
             options.PakDirectory,
             options.ScanMode,
+            options_new,
             progress);
 
         var manifest = PakTechnicalManifestProcessor.ProcessModScan(scanContext);

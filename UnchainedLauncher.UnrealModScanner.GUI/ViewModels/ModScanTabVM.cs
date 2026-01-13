@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows;
 using UnchainedLauncher.Core.JsonModels.Metadata;
+using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes; // Required for Application.Current.Dispatcher
 using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
@@ -53,10 +54,12 @@ public partial class ModScanTabVM : ObservableObject {
         await Task.Yield();
         // 3. Execution
         var swMod = Stopwatch.StartNew();
-        var modScanner = ScannerFactory.CreateModScanner(officialDirs);
+        var options_new = new ScanOptions();
+        var modScanner = ScannerFactory.CreateModScanner(officialDirs, options_new);
+
 
         // Run scanner on a background thread
-        var context = await Task.Run(() => modScanner.RunScanAsync(pakDir, ScanMode.ModsOnly, progressReporter));
+        var context = await Task.Run(() => modScanner.RunScanAsync(pakDir, ScanMode.ModsOnly, options_new, progressReporter));
 
         swMod.Stop();
         Debug.WriteLine($"Mod Scan completed in: {swMod.ElapsedMilliseconds}ms");
@@ -105,8 +108,8 @@ public partial class ModScanTabVM : ObservableObject {
                 var mapsGroup = new PakGroupNode($"Maps ({numMaps})");
                 foreach (var map in scanResult._Maps) {
                     mapsGroup.Children.Add(new AssetReplacementTreeNode(new AssetReplacementInfo {
-                        AssetHash = map.AssetHash,
                         AssetPath = map.AssetPath,
+                        AssetHash = map.AssetHash,
                         ClassType = map.GameMode,
                         Extension = "umap",
                         PakName = pakName
@@ -120,8 +123,8 @@ public partial class ModScanTabVM : ObservableObject {
                 var otherGroup = new PakGroupNode($"Other ({numOther})");
                 foreach (var arb in scanResult.ArbitraryAssets) {
                     otherGroup.Children.Add(new AssetReplacementTreeNode(new AssetReplacementInfo {
-                        AssetHash = arb.AssetHash,
                         AssetPath = arb.AssetPath,
+                        AssetHash = arb.AssetHash,
                         ClassType = arb.ModName ?? arb.ObjectName
                     }));
                 }
@@ -136,6 +139,6 @@ public partial class ModScanTabVM : ObservableObject {
 
     public void ExportJson(string path) {
         if (ScanManifest == null) return;
-        ModScanJsonExporter.ExportToFile(ScanManifest, path);
+        ModScanJsonExporter.ExportToFile(ScanResults, path);
     }
 }

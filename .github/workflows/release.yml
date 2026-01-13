@@ -63,13 +63,13 @@ jobs:
         dotnet publish UnchainedLauncher.PakScannerApp
         -c Release 
         /p:PublishProfile=PakScanner_Release_${{ matrix.platform }} 
-        -o out/
+        -o out-scanner/
 
     - name: Upload PakScannerApp Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: PakScanner_Release_${{ matrix.platform }}_${{ github.sha }}
-        path: out
+        path: out-scanner
 
   publish:
     needs: [build, build-pakscanner]

@@ -112,10 +112,11 @@ jobs:
         release_name: "Release ${{ github.ref }}: ${{ env.tag_annotation }}"
         draft: false
         prerelease: true
+        preserve_order: true
         files: |
-          UnchainedLauncher_dbg.exe
           UnchainedLauncher.exe
-          PakScanner_Win64.zip
+          UnchainedLauncher_dbg.exe
           PakScanner_x64.zip
+          PakScanner_Win64.zip
         body: |
           ${{ github.ref }}

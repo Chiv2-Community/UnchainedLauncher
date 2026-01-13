@@ -96,7 +96,6 @@ jobs:
     - name: Set file names
       run: |
         mv results/Debug/UnchainedLauncher.exe UnchainedLauncher_dbg.exe
-        mv results/Debug/UnchainedLauncher.pdb UnchainedLauncher_dbg.pdb
         mv results/Release/UnchainedLauncher.exe UnchainedLauncher.exe
 
     - name: Zip scanner
@@ -115,7 +114,6 @@ jobs:
         prerelease: true
         files: |
           UnchainedLauncher_dbg.exe
-          UnchainedLauncher_dbg.pdb
           UnchainedLauncher.exe
           PakScanner_Win64.zip
           PakScanner_x64.zip

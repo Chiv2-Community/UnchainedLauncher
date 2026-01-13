@@ -16,5 +16,11 @@
       <PackageReference Include="Spectre.Console.Cli" Version="1.0.0-alpha.0.12" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="scanconfig_default.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 
 </Project>

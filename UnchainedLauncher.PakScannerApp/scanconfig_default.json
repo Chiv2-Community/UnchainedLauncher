@@ -1,0 +1,12 @@
+{
+  "PakDirectory": ".",
+  "OutputDirectory": "./out",
+  "ScanMode": "ModsOnly",
+  "OfficialDirectories": [
+    "Abilities","AI","Animation","Audio","Blueprint","Characters","Cinematics",
+    "Collections","Config","Custom_Lens_Flare_VFX","Customization","Debug",
+    "Developers","Environments","FX","Game","GameModes","Gameplay","Interactables",
+    "Inventory","Localization","MapGen","Maps","MapsTest","Materials","Meshes",
+    "Trailer_Cinematic","UI","Weapons","Engine","Mannequin"
+  ]
+}

@@ -7,8 +7,6 @@ using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Readers;
 using CUE4Parse.UE4.Versions;
 using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.IO;
 using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.Scanning;
 using UnrealModScanner.Models;

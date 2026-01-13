@@ -7,13 +7,11 @@ using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnrealModScanner.Export;
 
-public sealed class ScanCommand : AsyncCommand<ScanCommandSettings>
-{
+public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
     protected async override Task<int> ExecuteAsync(
         CommandContext context,
         ScanCommandSettings settings,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         var options = LoadOptions(settings);
 
         var outputDir = options.OutputDirectory
@@ -47,8 +45,7 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings>
         return 0;
     }
 
-    private static ScanOptions LoadOptions(ScanCommandSettings settings)
-    {
+    private static ScanOptions LoadOptions(ScanCommandSettings settings) {
         ScanOptions options = settings.ConfigFile != null
             ? LoadFromJson(settings.ConfigFile)
             : new ScanOptions();
@@ -72,15 +69,13 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings>
         return options;
     }
 
-    private static ScanOptions LoadFromJson(string path)
-    {
+    private static ScanOptions LoadFromJson(string path) {
         if (!File.Exists(path))
             throw new FileNotFoundException($"Config file not found: {path}");
 
-        var options = new JsonSerializerOptions
-        {
+        var options = new JsonSerializerOptions {
             PropertyNameCaseInsensitive = true,
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) } 
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
             // or JsonNamingPolicy.Default if your enum is PascalCase
         };
 

@@ -1,7 +1,6 @@
 ﻿using CUE4Parse.FileProvider;
 using CUE4Parse.UE4.Versions;
 using CUE4Parse.Utils;
-using System.IO;
 
 namespace UnchainedLauncher.UnrealModScanner.Scanning {
 

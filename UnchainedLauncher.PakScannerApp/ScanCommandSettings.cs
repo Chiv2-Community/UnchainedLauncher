@@ -4,9 +4,8 @@ using System.ComponentModel;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
 
 namespace UnchainedLauncher.PakScannerApp {
-    
-    public sealed class ScanCommandSettings : CommandSettings
-    {
+
+    public sealed class ScanCommandSettings : CommandSettings {
         [CommandOption("--pak <PATH>")]
         [Description("Pak directory to scan")]
         public string? PakDirectory { get; init; }
@@ -27,8 +26,7 @@ namespace UnchainedLauncher.PakScannerApp {
         [Description("Override official directories (can be repeated)")]
         public string[]? OfficialDirs { get; init; }
 
-        public override ValidationResult Validate()
-        {
+        public override ValidationResult Validate() {
             if (PakDirectory is null && ConfigFile is null)
                 return ValidationResult.Error("Either --pak or --config must be specified");
 

@@ -18,15 +18,14 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
             return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
         }
 
-        public static string CalculatePakHash(string filePath)
-        {
+        public static string CalculatePakHash(string filePath) {
             if (!File.Exists(filePath)) return "FILE_NOT_FOUND";
 
             using var sha256 = SHA512.Create();
             using var stream = File.OpenRead(filePath);
-    
+
             byte[] hashBytes = sha256.ComputeHash(stream);
-    
+
             // Convert bytes to hex string (e.g., "a3f2c1...")
             return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
         }

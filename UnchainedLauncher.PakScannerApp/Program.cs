@@ -1,5 +1,4 @@
 ﻿using Spectre.Console.Cli;
-using UnchainedLauncher.PakScannerApp;
 
 var app = new CommandApp();
 
@@ -21,8 +20,7 @@ var app = new CommandApp();
 
  */
 
-app.Configure(config =>
-{
+app.Configure(config => {
     config.SetApplicationName("UnchainedScanner");
 
     config.AddCommand<ScanCommand>("scan")

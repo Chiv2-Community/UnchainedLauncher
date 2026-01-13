@@ -7,6 +7,7 @@ using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Readers;
 using CUE4Parse.UE4.Versions;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.Scanning;
@@ -34,8 +35,14 @@ public class ModScanOrchestrator {
         provider.Initialize();
         provider.SubmitKey(new FGuid(), new FAesKey("0x0000000000000000000000000000000000000000000000000000000000000000")); // Your key here
         provider.LoadVirtualPaths();
-        ZlibHelper.DownloadDll(); // TODO: better way?
-        ZlibHelper.Initialize("zlib-ng2.dll");
+
+        var zlib_path = OperatingSystem.IsLinux() ? "libz-ng.so" : "zlib-ng2.dll";
+        var zlib_url = $"https://github.com/NotOfficer/Zlib-ng.NET/releases/download/1.0.0/{zlib_path}";
+        if (!File.Exists(zlib_path)) {
+            Console.WriteLine($"Downloading {zlib_url}");
+            ZlibHelper.DownloadDll(zlib_path, zlib_url); // TODO: better way?
+        }
+        ZlibHelper.Initialize(Path.Combine(Directory.GetCurrentDirectory(), zlib_path));
         return provider;
     }
 
@@ -77,7 +84,7 @@ public class ModScanOrchestrator {
                     // ConcurrentDictionary handles the thread-safety here
                     var result = scanResult.Paks.GetOrAdd(pakName, name => new PakScanResult {
                         PakPath = name,
-                        // Optional: Initialize PakHash here if needed for ModMode
+                        PakHash = HashUtility.CalculatePakHash(pakEntry.PakFileReader.Path)
                     });
 
                     if (mode == ScanMode.GameInternal) {

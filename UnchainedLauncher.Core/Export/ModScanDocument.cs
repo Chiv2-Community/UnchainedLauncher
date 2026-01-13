@@ -1,4 +1,4 @@
-﻿using UnchainedLauncher.UnrealModScanner.Models;
+﻿using UnchainedLauncher.Core.JsonModels.Metadata;
 //using UnrealModScanner.Models;
 
 namespace UnrealModScanner.Export;

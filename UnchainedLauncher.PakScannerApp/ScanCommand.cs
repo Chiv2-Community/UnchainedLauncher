@@ -3,8 +3,8 @@ using Spectre.Console.Cli;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using UnchainedLauncher.PakScannerApp;
-using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
+using UnchainedLauncher.UnrealModScanner.Services;
 using UnrealModScanner.Export;
 
 public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
@@ -32,7 +32,7 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
             options.ScanMode,
             progress);
 
-        var manifest = MetadataProcessor.ProcessModScan(scanContext);
+        var manifest = PakTechnicalManifestProcessor.ProcessModScan(scanContext);
 
         var outputFile = Path.Combine(outputDir, "manifest.json");
         ModScanJsonExporter.ExportToFile(manifest, outputFile);

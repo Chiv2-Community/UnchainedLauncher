@@ -2,13 +2,14 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AssemblyName>UnchainedScanner</AssemblyName>
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\UnchainedLauncher.Core\UnchainedLauncher.Core.csproj" />
       <ProjectReference Include="..\UnchainedLauncher.UnrealModScanner\UnchainedLauncher.UnrealModScanner.csproj" />
     </ItemGroup>
 

@@ -3,10 +3,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Windows;
+using UnchainedLauncher.Core.JsonModels.Metadata;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes; // Required for Application.Current.Dispatcher
-using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
+using UnchainedLauncher.UnrealModScanner.Services;
 using UnrealModScanner.Export;
 using UnrealModScanner.Models;
 
@@ -61,7 +62,7 @@ public partial class ModScanTabVM : ObservableObject {
         Debug.WriteLine($"Mod Scan completed in: {swMod.ElapsedMilliseconds}ms");
 
         // 4. Generate the Technical Manifest (The JSON model)
-        ScanManifest = MetadataProcessor.ProcessModScan(context);
+        ScanManifest = PakTechnicalManifestProcessor.ProcessModScan(context);
 
         // 5. Build TreeView Nodes (The UI model)
         foreach (var (pakName, scanResult) in context.Paks) {

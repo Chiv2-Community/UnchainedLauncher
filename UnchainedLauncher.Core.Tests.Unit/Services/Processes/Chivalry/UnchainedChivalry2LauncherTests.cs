@@ -46,7 +46,9 @@ public class UnchainedChivalry2LauncherTests {
             PlayerBotCount: null,
             WarmupTime: null,
             LocalIp: Option<string>.None,
-            NextMapModActors: Array.Empty<string>()
+            NextMapModActors: Array.Empty<string>(),
+            EnabledCoordinates: new[] { new ReleaseCoordinates("", "", "") },
+            OnUsed => { return []; }
         );
 
         return new LaunchOptions(

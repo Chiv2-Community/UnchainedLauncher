@@ -263,6 +263,43 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             ConfigurationEditorVisibility = isSelectedRunning || ServerConfigs.Length() == 0 ? Visibility.Hidden : Visibility.Visible;
             LiveServerVisibility = !isSelectedRunning ? Visibility.Hidden : Visibility.Visible;
         }
+        IEnumerable<string> PakCustomAction(ServerLaunchOptions lo) {
+            Console.WriteLine($"Handling LaunchOptions for {lo.Deconstruct}");
+            var progressReporter = new Progress<double>(percent => {
+                Debug.WriteLine($"Scan Progress: {percent:F2}%");
+            });
+
+            var EnabledModActorPaths = new List<string>();
+            var officialDirs = new[] {
+                "Abilities","AI","Animation","Audio","Blueprint","Characters","Cinematics",
+                "Collections","Config","Custom_Lens_Flare_VFX","Customization","Debug",
+                "Developers","Environments","FX","Game","GameModes","Gameplay","Interactables",
+                "Inventory","Localization","MapGen","Maps","MapsTest","Materials","Meshes",
+                "Trailer_Cinematic","UI","Weapons","Engine","Mannequin"
+            };
+
+            var swMod = Stopwatch.StartNew();
+            var modScanner = ScannerFactory.CreateModScanner(officialDirs);
+            var context = Task.Run(() =>
+                    modScanner.RunScanAsync("TBL/Content/Paks", ScanMode.ModsOnly, progressReporter)
+                ).GetAwaiter().GetResult();
+
+            swMod.Stop();
+            Debug.WriteLine($"Mod Scan completed in: {swMod.ElapsedMilliseconds}ms");
+            var ScanManifest = MetadataProcessor.ProcessModScan(context);
+            
+            foreach (var rc in lo.EnabledCoordinates) {
+                var release = ModManager.GetRelease(rc);
+                if (release == null) continue;
+                var pakInfo = ScanManifest.Paks.FirstOrDefault(pak => pak.PakName == release.ValueUnsafe().PakFileName);
+                if (pakInfo == null) continue;
+                foreach (var actor in pakInfo.Inventory.Blueprints) {
+                    var new_path = actor.Path.Replace("TBL/Content/", "/Game/");
+                    EnabledModActorPaths.Add(new_path); 
+                }
+            }
+            return EnabledModActorPaths;
+        }
 
         private ServerLaunchOptions BuildServerLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<ReleaseCoordinates> enabledCoordinates) {
             return new ServerLaunchOptions(
@@ -283,7 +320,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 formData.PlayerBotCount,
                 formData.WarmupTime,
                 formData.LocalIp,
-                Enumerable.Empty<string>()
+                Enumerable.Empty<string>(),
+                enabledCoordinates,
+                PakCustomAction
             );
         }
 

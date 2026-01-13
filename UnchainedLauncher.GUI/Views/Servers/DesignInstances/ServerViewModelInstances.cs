@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
@@ -50,7 +51,9 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                     PlayerBotCount: 10,
                     WarmupTime: 10,
                     LocalIp: Some("127.0.0.1"),
-                    NextMapModActors: new[] { "ExampleActorModA", "ExampleActorModB" }
+                    NextMapModActors: new[] { "ExampleActorModA", "ExampleActorModB" },
+                    EnabledCoordinates: new[] { new ReleaseCoordinates("","","") },
+                    OnUsed => { return []; }
                 ),
                 new MockA2S(new A2SInfo(
                     0,

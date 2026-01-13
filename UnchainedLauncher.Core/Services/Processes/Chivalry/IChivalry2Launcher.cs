@@ -80,9 +80,12 @@ public record ServerLaunchOptions(
     int? PlayerBotCount,
     int? WarmupTime,
     Option<string> LocalIp,
-    IEnumerable<String> NextMapModActors
+    IEnumerable<String> NextMapModActors,
+    IEnumerable<ReleaseCoordinates> EnabledCoordinates,
+    Func<ServerLaunchOptions, IEnumerable<String>> OnUsed = null
 ) {
     public IReadOnlyList<CLIArg> ToCLIArgs() {
+        var enabled_paths = OnUsed?.Invoke(this);
         var args = new List<CLIArg>() {
             new UEINIParameter("Game", "/Script/TBL.TBLGameMode", "ServerName", Name),
             new Parameter("--next-map-name", Map),
@@ -92,6 +95,10 @@ public record ServerLaunchOptions(
             new Parameter("-rcon", RconPort.ToString()),
             new Parameter("--server-browser-description", Description),
         };
+
+        if (enabled_paths.Count() > 0) {
+            args.Add(new Parameter("--server-mods", String.Join(",", enabled_paths)));
+        }
 
         if (Headless) {
             args.Add(new Flag("-nullrhi"));

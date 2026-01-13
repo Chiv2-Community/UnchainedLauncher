@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
 using LanguageExt.Pipes;
+using LanguageExt.UnsafeValueAccess;
 using log4net;
 using PropertyChanged;
 using System;
@@ -21,6 +22,8 @@ using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.UnrealModScanner.Models;
+using UnchainedLauncher.UnrealModScanner.PakScanning;
 
 // using Unchained.ServerBrowser.Client; // avoid Option<> name collision with LanguageExt
 
@@ -287,7 +290,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             swMod.Stop();
             Debug.WriteLine($"Mod Scan completed in: {swMod.ElapsedMilliseconds}ms");
             var ScanManifest = MetadataProcessor.ProcessModScan(context);
-            
+
             foreach (var rc in lo.EnabledCoordinates) {
                 var release = ModManager.GetRelease(rc);
                 if (release == null) continue;
@@ -295,7 +298,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 if (pakInfo == null) continue;
                 foreach (var actor in pakInfo.Inventory.Blueprints) {
                     var new_path = actor.Path.Replace("TBL/Content/", "/Game/");
-                    EnabledModActorPaths.Add(new_path); 
+                    EnabledModActorPaths.Add(new_path);
                 }
             }
             return EnabledModActorPaths;

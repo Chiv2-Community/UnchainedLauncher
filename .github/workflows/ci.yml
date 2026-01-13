@@ -18,6 +18,7 @@ jobs:
     strategy:
       matrix:
         configuration: [Debug, Release]
+        project: [UnchainedLauncher.GUI, UnchainedLauncher.PakScannerApp]
     runs-on: windows-latest
     env:
       GUI_Project_Path: UnchainedLauncher.GUI
@@ -54,11 +55,10 @@ jobs:
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Core.Tests.Unit --logger:"console;verbosity=detailed"
 
     - name: Package ${{ matrix.configuration }} binaries
-      run: dotnet publish UnchainedLauncher.GUI -c ${{ matrix.configuration}} -o out/
+      run: dotnet publish ${{ matrix.project }} -c ${{ matrix.configuration}} -o out/
 
     - name: Upload ${{ matrix.configuration }} Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: UnchainedLauncher_${{ matrix.configuration }}_${{ github.sha }}
+        name: ${{ matrix.project }}_${{ matrix.configuration }}_${{ github.sha }}
         path: out
-

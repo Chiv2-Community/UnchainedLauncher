@@ -19,6 +19,7 @@ jobs:
       matrix:
         configuration: [Debug, Release]
         project: [UnchainedLauncher.GUI, UnchainedLauncher.PakScannerApp]
+        platform: [Win64, x64]
     runs-on: windows-latest
     env:
       GUI_Project_Path: UnchainedLauncher.GUI
@@ -57,8 +58,21 @@ jobs:
     - name: Package ${{ matrix.configuration }} binaries
       run: dotnet publish ${{ matrix.project }} -c ${{ matrix.configuration}} -o out/
 
+    - name: Package PakScannerApp binaries
+      run: >
+        dotnet publish UnchainedLauncher.PakScannerApp
+        -c Release 
+        /p:PublishProfile=PakScanner_Release_${{ matrix.platform }} 
+        -o out/
+
     - name: Upload ${{ matrix.configuration }} Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.project }}_${{ matrix.configuration }}_${{ github.sha }}
+        path: out
+
+    - name: Upload PakScannerApp Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: PakScanner_Release_${{ matrix.platform }}_${{ github.sha }}
         path: out

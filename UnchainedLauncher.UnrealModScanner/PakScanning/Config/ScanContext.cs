@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 
-namespace UnchainedLauncher.UnrealModScanner.PakScanning {
+namespace UnchainedLauncher.UnrealModScanner.PakScanning.Config {
     public class ModScanResult {
         public ConcurrentDictionary<string, PakScanResult> Paks { get; } = new();
     }

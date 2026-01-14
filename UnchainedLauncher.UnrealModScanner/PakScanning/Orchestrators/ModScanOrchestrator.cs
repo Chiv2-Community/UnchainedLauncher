@@ -10,12 +10,12 @@ using CUE4Parse.UE4.Versions;
 using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.Models;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Processors;
-using UnchainedLauncher.UnrealModScanner.Scanning;
 using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 
-namespace UnchainedLauncher.UnrealModScanner.PakScanning;
+namespace UnchainedLauncher.UnrealModScanner.PakScanning.Orchestrators;
 
 public class ModScanOrchestrator {
     private readonly List<IAssetProcessor> _modProcessors = new();
@@ -218,6 +218,7 @@ public class ModScanOrchestrator {
             var results = new List<GameInternalAssetInfo>();
 
             // Look for the registry - TBL usually keeps it in the root or /Content/
+            // FIXME: Use game name from config
             if (provider.TrySaveAsset("TBL/AssetRegistry.bin", out var data)) {
                 var archive = new FByteArchive("AssetRegistry.bin", data);
 

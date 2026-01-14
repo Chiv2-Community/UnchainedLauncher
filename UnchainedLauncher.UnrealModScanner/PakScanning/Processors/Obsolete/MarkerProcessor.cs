@@ -1,11 +1,17 @@
 ﻿using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.UObject;
-using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.Models.Chivalry2;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 
-namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
+namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors.Obsolete {
+    /// <summary>
+    /// Chivalry 2 specific Marker Processor
+    /// <br/>
+    /// TODO: Switch to new CDO/ref scanner
+    /// </summary>
+    [Obsolete("Superceded by generic scanner")]
     public class MarkerProcessor : IAssetProcessor {
         public void Process(ScanContext ctx, PakScanResult result) {
             var markers = ctx.Package.ExportsLazy

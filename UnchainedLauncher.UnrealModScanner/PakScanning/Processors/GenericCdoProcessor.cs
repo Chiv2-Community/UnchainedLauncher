@@ -1,5 +1,7 @@
 ﻿
 
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
+
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
     using CUE4Parse.UE4.Assets.Exports;
     using CUE4Parse.UE4.Assets.Objects;
@@ -11,6 +13,10 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
     using UnchainedLauncher.UnrealModScanner.Models.Dto;
     using UnchainedLauncher.UnrealModScanner.Utility;
 
+    /// <summary>
+    /// Uses CDO (Blueprints) or object properties (e.g. for a DataAsset) to retrieve
+    /// a property list specified by user.
+    /// </summary>
     public class GenericCdoProcessor : IAssetProcessor {
         private readonly string _targetClassName;
         //private readonly List<(string Name, Type Type)> _fieldsToExtract;
@@ -65,9 +71,10 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
 
                     var rawValue = propTag.Tag.GetValue(propTag.Tag.GetType()) ?? propTag.Tag.GenericValue;
 
-                    if (rawValue != null)
-                        Console.WriteLine($"Actually got val {rawValue}");
-                    else continue;
+                    // if (rawValue != null)
+                    //     Console.WriteLine($"Actually got val {rawValue}");
+                    if (rawValue == null) continue;
+                    
                     entry.Properties[propConfig.Name] = propConfig.Mode switch {
                         //EExtractionMode.Json => rawValue switch {
                         //    UObject nestedObj => nestedObj.ToSafeJson(0, propConfig.MaxDepth),

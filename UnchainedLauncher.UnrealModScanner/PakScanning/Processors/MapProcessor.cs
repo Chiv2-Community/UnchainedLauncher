@@ -1,8 +1,12 @@
 ﻿using CUE4Parse.UE4.Objects.UObject;
 using UnchainedLauncher.UnrealModScanner.Models;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
+    /// <summary>
+    /// Parses .umap assets. Retrieves Game Mode name from WorldSettings
+    /// </summary>
     public class MapProcessor : IAssetProcessor {
         public void Process(ScanContext ctx, PakScanResult result) {
             if (!ctx.FilePath.EndsWith(".umap", StringComparison.OrdinalIgnoreCase)) return;

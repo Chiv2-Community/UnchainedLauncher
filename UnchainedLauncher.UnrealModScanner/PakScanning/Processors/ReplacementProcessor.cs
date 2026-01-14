@@ -1,8 +1,10 @@
 ﻿using UnchainedLauncher.UnrealModScanner.Models.Chivalry2.UnchainedLauncher.UnrealModScanner.Models;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
     public class ReplacementProcessor(IEnumerable<string> standardDirs) : IAssetProcessor {
+        // FIXME: Use game name from config
         private readonly HashSet<string> _dirs = standardDirs.Select(d => $"TBL/Content/{d}".ToLower()).ToHashSet();
 
         public void Process(ScanContext ctx, PakScanResult result) {

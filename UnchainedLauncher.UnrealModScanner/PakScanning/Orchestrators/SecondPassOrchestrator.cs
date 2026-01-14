@@ -6,10 +6,11 @@ using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.Models.Dto;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 
-namespace UnchainedLauncher.UnrealModScanner.PakScanning;
+namespace UnchainedLauncher.UnrealModScanner.PakScanning.Orchestrators;
 
 public class SecondPassOrchestrator {
     private readonly IFileProvider _provider;
@@ -82,8 +83,8 @@ public class SecondPassOrchestrator {
 
                             var rawValue = propTag.Tag.GetValue(propTag.Tag.GetType()) ?? propTag.Tag.GenericValue;
 
-                            if (rawValue != null)
-                                Console.WriteLine($"Actually got val {rawValue}");
+                            // if (rawValue != null)
+                            //     Console.WriteLine($"Actually got val {rawValue}");
 
                             entry.Properties[propConfig.Name] = propConfig.Mode switch {
                                 EExtractionMode.Json => rawValue switch {

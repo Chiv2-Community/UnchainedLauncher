@@ -8,6 +8,7 @@ using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes;
 using UnchainedLauncher.UnrealModScanner.Models.Chivalry2.UnchainedLauncher.UnrealModScanner.Models; // Required for Application.Current.Dispatcher
 using UnchainedLauncher.UnrealModScanner.PakScanning;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.Services;
 using UnrealModScanner.Export;
 using UnrealModScanner.Models;

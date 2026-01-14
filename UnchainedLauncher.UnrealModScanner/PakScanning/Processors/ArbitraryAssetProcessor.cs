@@ -1,16 +1,21 @@
 ﻿
 
 using CUE4Parse.UE4.Objects.UObject;
-using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.Models.Chivalry2;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
-    public class ArbitraryBlueprintProcessor : IAssetProcessor {
+    /// <summary>
+    /// Returns Assets from whitelisted directories which do not fall into other categories 
+    /// and are not asset replacements
+    /// </summary>
+    public class ArbitraryAssetProcessor : IAssetProcessor {
         private readonly HashSet<string> _standardDirs;
 
-        public ArbitraryBlueprintProcessor(IEnumerable<string> standardDirs) {
+        public ArbitraryAssetProcessor(IEnumerable<string> standardDirs) {
+            // FIXME: Use game name from config
             _standardDirs = standardDirs.Select(d => $"TBL/Content/{d}".ToLower()).ToHashSet();
         }
 
@@ -32,7 +37,8 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                             ClassName = uClass.Name,
                             // We extract ModName/Author even here, as some modders 
                             // add metadata to custom classes without using a Marker
-                            ModName = cdo?.GetOrDefault<string>("ModName"),
+                            // FIXME: This is deprecated
+                            ModName = cdo?.GetOrDefault<string>("ModName") ?? "Unknown",
                         });
                     }
                 }

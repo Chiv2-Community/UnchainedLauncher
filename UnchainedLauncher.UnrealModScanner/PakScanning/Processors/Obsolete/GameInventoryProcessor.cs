@@ -1,9 +1,22 @@
 ﻿using System.Collections.Concurrent;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
 
-namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors;
+namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors.Obsolete;
 
+/// <summary>
+/// Processes a pak file and retrieves a list of assets.
+/// This process is much slower than using AssetRegistry
+/// <br/>
+/// TODO: Convert this to use proper asset type or just remove 
+/// </summary>
+[Obsolete("Useless")]
 public class GameInventoryProcessor : IAssetProcessor {
+    /// <summary>
+    /// List of Folders inside Game folder
+    /// <br/>
+    /// (e.g. TBL/Content/Charaters becomes Characters)
+    /// </summary>
     public ConcurrentBag<string> DefaultFolders { get; } = new();
     public ConcurrentBag<AssetEntry> AssetManifest { get; } = new();
 
@@ -26,6 +39,7 @@ public class GameInventoryProcessor : IAssetProcessor {
     }
 }
 
+// FIXME: should this use GameInternalAssetInfo?
 public record AssetEntry {
     public string Path { get; init; }
     public string ClassName { get; init; }

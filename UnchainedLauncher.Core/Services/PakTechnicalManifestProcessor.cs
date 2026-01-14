@@ -1,6 +1,7 @@
 ﻿
 using UnchainedLauncher.Core.JsonModels.Metadata;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.Services {

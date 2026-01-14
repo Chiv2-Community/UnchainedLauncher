@@ -1,7 +1,12 @@
 ﻿using UnchainedLauncher.UnrealModScanner.Models;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
 
-namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
+namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors.Obsolete {
+    /// <summary>
+    /// Slow asset scan, only retrieving basic information
+    /// </summary>
+    [Obsolete("Useless")]
     public class GameInternalProcessor : IAssetProcessor {
         public void Process(ScanContext ctx, PakScanResult result) {
             // We only take the first export to identify the asset type

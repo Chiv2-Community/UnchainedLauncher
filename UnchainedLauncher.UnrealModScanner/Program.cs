@@ -7,11 +7,12 @@ using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Versions;
 using System.Security.Cryptography;
-using UnchainedLauncher.UnrealModScanner.Scanning;
+using UnchainedLauncher.UnrealModScanner.PakScanning;
 
 
 internal class Program {
     private static void Main(string[] args) {
+        // FIXME: Use game name from config
         var pakdir = "I:\\Epic Games\\Chivalry2_c\\TBL\\Content\\Paks";
         //var pakdir_other = "U:\\Unchained\\Cleanup\\Unchained-Mods-internal";
 
@@ -55,6 +56,7 @@ internal class Program {
                     if (keyIndex != null) {
                         // Resolve the index to get the actual object name/path
                         var resolvedKey = pkg.ResolvePackageIndex(keyIndex);
+                        // FIXME: Use game name from config
                         if (resolvedKey?.Super?.Outer?.Name != "TBL/Content/Mods/ArgonSDK/Mods/ArgonSDKModBase")
                             continue;
 

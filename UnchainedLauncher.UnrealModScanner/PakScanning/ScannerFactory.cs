@@ -1,5 +1,7 @@
 ﻿using UnchainedLauncher.UnrealModScanner.Config;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Orchestrators;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Processors;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Processors.Obsolete;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning;
 
@@ -16,34 +18,14 @@ public static class ScannerFactory {
         orchestrator.AddModProcessor(new MarkerProcessor());
         orchestrator.AddModProcessor(new MapProcessor());
         orchestrator.AddModProcessor(new ReplacementProcessor(dirs));
-        orchestrator.AddModProcessor(new ArbitraryBlueprintProcessor(dirs));
+        orchestrator.AddModProcessor(new ArbitraryAssetProcessor(dirs));
 
         foreach (var processor in options.CdoProcessors) {
             orchestrator.AddModProcessor(new GenericCdoProcessor(processor.TargetClassName, processor.Properties));
         }
         foreach (var processor in options.MarkerProcessors) {
             orchestrator.AddModProcessor(new ReferenceDiscoveryProcessor(processor.MarkerClassName, processor.MapPropertyName));
-        // B. Generic CDO Extraction: Mapping PropertyConfig to (string, Type)
-        // Note: Since you use EExtractionMode, we map it to 'object' or 'string' 
-        // depending on what your GenericCdoProcessor expects for Type.
-        //var fieldTuples = processor.ReferencedBlueprintProperties
-        //    .Select(p => (p.Name, typeof(object)))
-        //    .ToList();
-
-        //orchestrator.AddModProcessor(new GenericCdoProcessor(
-        //    processor.MarkerClassName,
-        //    fieldTuples,
-        //    processor.ReferencedBlueprintProperties
-        //));
         }
-        //foreach (var target in options.Targets) {
-        //    // If the target defines property mappings, we need a processor to find them
-        //    orchestrator.AddModProcessor(new ReferenceDiscoveryProcessor(target.ClassName, target.));
-
-        //    // 3. NEW: Generic CDO Processor
-        //    // This handles the actual extraction of the fields defined in the JSON config
-        //    orchestrator.AddModProcessor(new GenericCdoProcessor(target));
-        //}
         return orchestrator;
     }
 

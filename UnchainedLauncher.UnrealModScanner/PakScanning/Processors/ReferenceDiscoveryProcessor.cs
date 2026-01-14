@@ -2,16 +2,40 @@
 using CUE4Parse.UE4.Objects.UObject;
 using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Models.Dto;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
+    /// <summary>
+    /// Discovers assets with TMaps that hold references to other assets.
+    /// Assumes that the Marker is a (BP) DataAsset and that TMap key is the SoftClassPath to the target. 
+    /// <br/>
+    /// Mod orchestrator then initiates a second pass looking only for the references
+    /// </summary>
     public class ReferenceDiscoveryProcessor : IAssetProcessor {
+        /// <summary>
+        /// </summary>
         private readonly string _containerClassName; // e.g., "DA_ModMarker_C"
+        /// <summary>
+        /// 
+        /// </summary>
         private readonly string _mapPropertyName;     // e.g., "ModActors"
 
         // Thread-safe collection for the Orchestrator to aggregate
         public ConcurrentBag<PendingBlueprintReference> DiscoveredReferences { get; } = new();
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="containerClass">
+        /// (partial) Class Name to check. uses .Contains(). 
+        /// e.g. "DA_ModMarker_C" or "DA_ModMarker"
+        /// TODO: Convert this to use Regex
+        /// </param>
+        /// <param name="mapProperty">
+        /// Property name of the TMap containing target assets
+        /// e.g. "ModActors"
+        /// </param>
         public ReferenceDiscoveryProcessor(string containerClass, string mapProperty) {
             _containerClassName = containerClass;
             _mapPropertyName = mapProperty;

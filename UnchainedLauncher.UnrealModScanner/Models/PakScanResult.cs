@@ -40,8 +40,10 @@ public sealed class PakScanResult {
     /// <summary>
     /// Assets returned by GenericCDOProcessor and ReferenceDiscoveryProcessor
     /// </summary>
-    [JsonProperty("extracted_assets")]
+    [JsonProperty("generic_assets")]
     public ConcurrentDictionary<string, ConcurrentBag<GenericAssetEntry>> GenericEntries { get; } = new();
+    [JsonProperty("generic_markers")]
+    public ConcurrentDictionary<string, ConcurrentDictionary<string, GenericMarkerEntry>> GenericMarkers { get; } = new();
     /// <summary>
     /// Assets discovered by ReplacementProcessor
     /// </summary>
@@ -66,6 +68,47 @@ public sealed class PakScanResult {
     public void AddGenericEntry(GenericAssetEntry entry, string base_name) {
         var bag = GenericEntries.GetOrAdd(base_name, _ => new ConcurrentBag<GenericAssetEntry>());
         bag.Add(entry);
+    }
+    
+    // TODO: Find if there's a better way? class path not available without loading
+    public void RemoveEntryGlobal(string pathName)
+    {
+        Parallel.ForEach(GenericEntries, kvp =>
+        {
+            string baseName = kvp.Key;
+            ConcurrentBag<GenericAssetEntry> oldBag = kvp.Value;
+
+            // Optimization: Only attempt update if the item exists in this bag
+            if (!oldBag.Any(e => e.AssetPath == pathName)) return;
+
+            bool success = false;
+            while (!success)
+            {
+                if (!GenericEntries.TryGetValue(baseName, out oldBag)) break;
+                var filtered = oldBag.Where(e => e.AssetPath != pathName).ToList();
+
+                if (filtered.Count == oldBag.Count) break;
+
+                var newBag = new ConcurrentBag<GenericAssetEntry>(filtered);
+
+                success = GenericEntries.TryUpdate(baseName, newBag, oldBag);
+            }
+        });
+    }
+    
+    public void AddGenericMarker(GenericMarkerEntry entry, string base_name) {
+        var innerDict = GenericMarkers.GetOrAdd(base_name, 
+            _ => new ConcurrentDictionary<string, GenericMarkerEntry>());
+        innerDict.AddOrUpdate(entry.AssetPath, entry, (key, existingValue) => entry);
+    }
+    
+    public GenericMarkerEntry? GetMarker(string base_name, string marker_key) {
+        if (GenericMarkers.TryGetValue(base_name, out var innerDict)) {
+            if (innerDict.TryGetValue(marker_key, out var entry)) {
+                return entry;
+            }
+        }
+        return null;
     }
     
     // Chivalry 2 specific

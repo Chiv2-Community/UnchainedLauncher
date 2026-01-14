@@ -3,6 +3,7 @@ using CUE4Parse.UE4.Objects.UObject;
 using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Models.Dto;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
+using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
@@ -54,6 +55,13 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             foreach (var container in containers) {
                 var map = container.Value.GetOrDefault<UScriptMap>(_mapPropertyName);
                 if (map == null) continue;
+                var mainExport = ctx.Package.ExportsLazy.FirstOrDefault().Value;
+                var base_name = (mainExport.Super ?? mainExport.Template?.Outer)?.GetPathName();
+                result.AddGenericMarker(new GenericMarkerEntry {
+                    AssetPath = ctx.FilePath,
+                    // AssetHash = HashUtility.GetAssetHash(ctx.Provider, ctx.FilePath),
+                    ClassName = mainExport?.Class?.Name ?? "Unknown",// ?? uClass.Name,
+                }, base_name);
 
                 foreach (var entry in map.Properties) {
                     if (entry.Key.GetValue(typeof(FPackageIndex)) is FPackageIndex idx) {
@@ -61,6 +69,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                         if (resolved != null) {
                             DiscoveredReferences.Add(new PendingBlueprintReference {
                                 SourceMarkerPath = ctx.FilePath,
+                                SourceMarkerClassName = base_name,
                                 TargetBlueprintPath = resolved.GetPathName(),
                                 TargetClassName = resolved.Name.Text,
                                 SourcePakFile = curPakName,

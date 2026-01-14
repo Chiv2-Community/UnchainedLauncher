@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using UnchainedLauncher.Core.JsonModels.Metadata;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
 //using UnrealModScanner.Models;
 
@@ -11,4 +12,5 @@ public sealed record ModScanDocument {
     //public required IReadOnlyList<PakScanResult> Paks { get; init; }
     public TechnicalManifest Manifest { get; init; } = null;
     public ObservableCollection<PakScanResult> Results { get; init; } = null;
+    public ModScanResult ScanResults { get; init; } = null;
 }

@@ -78,16 +78,12 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.Views {
 
         private void Collapse_UnrealMods_Click(object sender, RoutedEventArgs e) {
             if (ModScannerVM == null) return;
-            foreach (var res in ModScannerVM.ScanResults) {
-                res.IsExpanded = false;
-            }
+            ModScannerVM.ResultsVisual.SetChildrenExpanded(false);
         }
 
         private void Expand_UnrealMods_Click(object sender, RoutedEventArgs e) {
             if (ModScannerVM == null) return;
-            foreach (var res in ModScannerVM.ScanResults) {
-                res.IsExpanded = true;
-            }
+            ModScannerVM.ResultsVisual.SetChildrenExpanded(true);
         }
 
         private void Export_UnrealMods_Click(object sender, RoutedEventArgs e) {

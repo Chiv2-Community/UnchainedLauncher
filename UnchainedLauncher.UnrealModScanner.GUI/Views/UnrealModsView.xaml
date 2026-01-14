@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:models="clr-namespace:UnchainedLauncher.UnrealModScanner.Models;assembly=UnchainedLauncher.UnrealModScanner"
              xmlns:viewModels="clr-namespace:UnchainedLauncher.UnrealModScanner.GUI.ViewModels"
+             xmlns:guimodels="clr-namespace:UnchainedLauncher.UnrealModScanner.GUI.ViewModels"
              xmlns:nodes="clr-namespace:UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes"
              xmlns:models1="clr-namespace:UnrealModScanner.Models;assembly=UnchainedLauncher.UnrealModScanner"
              mc:Ignorable="d" 
@@ -49,7 +50,9 @@
 			</StackPanel>
         </StackPanel>
 
-        <TreeView ItemsSource="{Binding ModScanTabVM.ScanResults}">
+        <!-- <TreeView ItemsSource="{Binding viewModels:ModScanTabVM.ResultsVisual.Results}"> -->
+        <!-- <TreeView ItemsSource="{Binding ResultsVisual.Children}"> -->
+        <TreeView ItemsSource="{Binding ModScannerVM.ResultsVisual.Children, RelativeSource={RelativeSource AncestorType=UserControl}}">
             <TreeView.Resources>
                 <Style TargetType="TreeViewItem">
                     <Setter Property="Foreground" Value="Black"/>
@@ -76,7 +79,7 @@
                     <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" Foreground="Black"/>
                 </HierarchicalDataTemplate>
 
-                <HierarchicalDataTemplate DataType="{x:Type models1:PakScanResult}" ItemsSource="{Binding Children}">
+                <HierarchicalDataTemplate DataType="{x:Type nodes:PakResultWrapperNode}" ItemsSource="{Binding Children}">
                     <StackPanel Orientation="Horizontal">
                         <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                         <TextBlock FontWeight="Bold" FontSize="14" Foreground="Black">
@@ -85,7 +88,7 @@
                                     <Setter Property="Text" Value="{Binding PakPathExpanded}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=TreeViewItem}}" Value="True">
-                                            <Setter Property="Text" Value="{Binding PakPath}" />
+                                            <Setter Property="Text" Value="{Binding PakPathCollapsed}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>

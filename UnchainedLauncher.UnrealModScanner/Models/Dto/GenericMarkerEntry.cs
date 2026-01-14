@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using System.Collections.Concurrent;
 
 namespace UnchainedLauncher.UnrealModScanner.Models.Dto {
     /// <summary>
@@ -14,6 +15,7 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Dto {
         /// Contains Markers discovered by ReferenceDiscoveryProcessor
         /// </summary>
         [JsonProperty("children")]
-        public string Children { get; set; } = string.Empty;
+        public ConcurrentBag<GenericAssetEntry> Children { get; set; } = new();
+        public void AddGenericEntry(GenericAssetEntry entry) => Children.Add(entry);
     }
 }

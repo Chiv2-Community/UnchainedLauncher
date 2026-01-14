@@ -12,11 +12,20 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
     }
 
     public class CdoProcessorConfig {
-        //public string TargetClassName { get; set; } = "TBL/Content/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C";
-        public string TargetClassName { get; set; } = "DA_ModMarker";
+        public string TargetClassName { get; set; } = "TBL/Content/Mods/ArgonSDK/Mods/ArgonSDKModBase";
         public List<PropertyConfig> Properties { get; set; } = new List<PropertyConfig> {
-                            new() { Name = "ModActors", Mode = EExtractionMode.Json },
-                            new() { Name = "CustomObjects", Mode = EExtractionMode.Json },
+                            new() { Name = "ModName", Mode = EExtractionMode.String },
+                            new() { Name = "ModVersion", Mode = EExtractionMode.String },
+                            new() { Name = "ModDescription", Mode = EExtractionMode.String },
+                            new() { Name = "ModRepoURL", Mode = EExtractionMode.String },
+                            new() { Name = "Author", Mode = EExtractionMode.String },
+                            new() { Name = "bEnableByDefault", Mode = EExtractionMode.Raw },
+                            new() { Name = "bSilentLoad", Mode = EExtractionMode.Raw },
+                            new() { Name = "bShowInGUI ", Mode = EExtractionMode.Raw },
+                            new() { Name = "bClientside", Mode = EExtractionMode.Raw },
+                            new() { Name = "bOnlineOnly", Mode = EExtractionMode.Raw },
+                            new() { Name = "bHostOnly", Mode = EExtractionMode.Raw },
+                            new() { Name = "bAllowOnFrontend", Mode = EExtractionMode.Raw },
                         };
     }
 
@@ -28,8 +37,16 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
         public List<PropertyConfig> ReferencedBlueprintProperties { get; set; } = new List<PropertyConfig> {
                             new() { Name = "ModName", Mode = EExtractionMode.String },
                             new() { Name = "ModVersion", Mode = EExtractionMode.String },
+                            new() { Name = "ModDescription", Mode = EExtractionMode.String },
+                            new() { Name = "ModRepoURL", Mode = EExtractionMode.String },
                             new() { Name = "Author", Mode = EExtractionMode.String },
+                            new() { Name = "bEnableByDefault", Mode = EExtractionMode.Raw },
+                            new() { Name = "bSilentLoad", Mode = EExtractionMode.Raw },
+                            new() { Name = "bShowInGUI ", Mode = EExtractionMode.Raw },
                             new() { Name = "bClientside", Mode = EExtractionMode.Raw },
+                            new() { Name = "bOnlineOnly", Mode = EExtractionMode.Raw },
+                            new() { Name = "bHostOnly", Mode = EExtractionMode.Raw },
+                            new() { Name = "bAllowOnFrontend", Mode = EExtractionMode.Raw },
                         };
     }
 }

@@ -8,7 +8,13 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
         /// <summary>
         /// List of path substrings to match (e.g., "/Game/Maps/", "Engine/").
         /// </summary>
-        public List<string> PathFilters { get; set; } = new();
+        public List<string> PathFilters { get; set; } = [
+            "Abilities","AI","Animation","Audio","Blueprint","Characters","Cinematics",
+            "Collections","Config","Custom_Lens_Flare_VFX","Customization","Debug",
+            "Developers","Environments","FX","Game","GameModes","Gameplay","Interactables",
+            "Inventory","Localization","MapGen","Maps","MapsTest","Materials","Meshes",
+            "Trailer_Cinematic","UI","Weapons","Engine","Mannequin"
+        ];
 
         /// <summary>
         /// If true, ONLY scan paths matching filters. If false, SKIP paths matching filters.
@@ -16,7 +22,7 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
         public bool IsWhitelist { get; set; } = false;
         public List<CdoProcessorConfig> CdoProcessors { get; set; } = new() { new CdoProcessorConfig() };
         public List<MarkerDiscoveryConfig> MarkerProcessors { get; set; } = new() { new MarkerDiscoveryConfig() };
-        public List<ProcessorTarget> Targets { get; set; } = new();
+        public List<ProcessorTarget> Targets { get; set; } = new(); // NYI
     }
 
     public class ProcessorTarget {

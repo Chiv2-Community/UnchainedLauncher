@@ -12,7 +12,7 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Dto {
         /// <summary>
         /// Class Name of this asset (PathName)
         /// </summary>
-        [JsonProperty("class_name")]
+        [JsonProperty("class_name", Order = -3)]
         public string ClassName { get; set; } = string.Empty;
 
         /// <summary>

@@ -34,7 +34,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                         result.ArbitraryAssets.Add(new ArbitraryAssetInfo {
                             AssetPath = ctx.FilePath,
                             AssetHash = HashUtility.GetAssetHash(ctx.Provider, ctx.FilePath, uClass),
-                            ClassName = uClass.Name,
+                            ClassName = uClass.SuperStruct?.Name,// ?? uClass.Name,
                             // We extract ModName/Author even here, as some modders 
                             // add metadata to custom classes without using a Marker
                             // FIXME: This is deprecated

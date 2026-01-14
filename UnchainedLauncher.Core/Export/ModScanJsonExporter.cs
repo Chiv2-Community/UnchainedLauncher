@@ -2,6 +2,8 @@
 using UnchainedLauncher.Core.JsonModels.Metadata;
 using UnrealModScanner.Models;
 using Newtonsoft.Json;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
+
 namespace UnrealModScanner.Export;
 
 public static class ModScanJsonExporter {
@@ -30,7 +32,7 @@ public static class ModScanJsonExporter {
     }
 
     public static string ExportToString(
-    ObservableCollection<PakScanResult> scanResults) {
+        ObservableCollection<PakScanResult> scanResults) {
         var doc = new ModScanDocument {
             Results = scanResults
         };
@@ -40,6 +42,22 @@ public static class ModScanJsonExporter {
 
     public static void ExportToFile(
         ObservableCollection<PakScanResult> scanResults,
+        string outputPath) {
+        var json = ExportToString(scanResults);
+        File.WriteAllText(outputPath, json);
+    }
+
+    public static string ExportToString(
+        ModScanResult scanResults) {
+        var doc = new ModScanDocument {
+            ScanResults = scanResults
+        };
+
+        return JsonConvert.SerializeObject(doc, Settings);
+    }
+
+    public static void ExportToFile(
+        ModScanResult scanResults,
         string outputPath) {
         var json = ExportToString(scanResults);
         File.WriteAllText(outputPath, json);

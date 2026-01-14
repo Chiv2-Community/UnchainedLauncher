@@ -36,9 +36,10 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             //((CUE4Parse.UE4.Assets.Exports.UObject)(new System.LazyDebugView<CUE4Parse.UE4.Assets.Exports.UObject>(((CUE4Parse.UE4.Assets.AbstractUePackage)ctx.Package).ExportsLazy[0]).Value).Template.Package).Name
             var matches = ctx.Package.ExportsLazy
                 //.Where(e => e.Value.Class?.Name.Contains(_targetClassName, StringComparison.OrdinalIgnoreCase) == true);
-                .Where(e => (e.Value.Super ?? e.Value.Template?.Outer)?.GetPathName().Contains(_targetClassName, StringComparison.OrdinalIgnoreCase) == true);
+                // .Where(e => (e.Value.Super ?? e.Value.Template?.Outer)?.GetPathName().Contains(_targetClassName, StringComparison.OrdinalIgnoreCase) == true);
+                .Where(e => (e.Value.Super ?? e.Value.Template?.Outer)?.GetPathName() == _targetClassName);
             //((CUE4Parse.UE4.Assets.Exports.UObject)(new System.LazyDebugView<CUE4Parse.UE4.Assets.Exports.UObject>(ctx.Package.ExportsLazy[8]).Value).Super.Package).Name
-
+            
             //foreach (var export in ctx.Package.ExportsLazy) {
             //    var super = export.Value.Super?.GetPathName();
             //    var template = export.Value.Template?.Outer?.GetPathName();

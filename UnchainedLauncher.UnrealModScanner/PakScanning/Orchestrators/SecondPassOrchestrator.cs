@@ -52,8 +52,10 @@ public class SecondPassOrchestrator {
                     var pakBucket = mainResult.Paks.GetOrAdd(pakName, (key) => new PakScanResult {
                         PakPath = key
                     });
-
-                    // FIXME: this could be umap
+                    
+                    // fixme
+                    // var targetMarker = pakBucket.GenericMarkers.GetOrAdd(refEntry.SourceMarkerPath, _ => new ConcurrentBag<GenericMarkerEntry>()).FirstOrDefault();
+                    var marker = pakBucket.GetMarker(refEntry.SourceMarkerClassName, refEntry.SourceMarkerPath);
                     var newAssetPath = assetPath.Split(".").First() + ".uasset";
 
                     if (!_provider.TryLoadPackage(newAssetPath, out var package)) {
@@ -71,7 +73,7 @@ public class SecondPassOrchestrator {
                         if (cdo == null) continue;
 
                         var entry = new GenericAssetEntry {
-                            AssetPath = assetPath,
+                            AssetPath = newAssetPath,
                             ClassName = bpc.Name
                         };
 
@@ -97,8 +99,12 @@ public class SecondPassOrchestrator {
                             };
                         }
 
-                        var base_name = (export.Value.Super ?? export.Value.Template?.Outer)?.GetPathName();
-                        pakBucket.AddGenericEntry(entry, base_name ?? "Marker");
+                        var base_name = export.Value.Outer.Name ?? export.Value.Template?.Outer?.Name.Text;
+                        // pakBucket.AddGenericEntry(entry, base_name ?? "Marker");
+                        marker?.AddGenericEntry(entry);
+                        pakBucket.RemoveEntryGlobal(entry.AssetPath);
+                        // pakBucket.RemoveGenericEntry(base_name, entry.AssetPath);
+                        // marker.Value.Value.FirstOrDefault().AddGenericEntry(entry);
                     }
                 }
                 catch (Exception ex) {

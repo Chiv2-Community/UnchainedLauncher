@@ -1,6 +1,4 @@
-﻿
-
-using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScanner.Models;
+﻿using UnchainedLauncher.UnrealModScanner.Models.Chivalry2.UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;
 
 namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes {

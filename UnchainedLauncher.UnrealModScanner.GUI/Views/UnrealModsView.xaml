@@ -68,7 +68,7 @@
                 <DataTemplate DataType="{x:Type nodes:AssetReplacementTreeNode}">
                     <StackPanel Margin="10,2,0,4">
                         <TextBlock><Run Text="Asset: "/><Run Text="{Binding Replacement.AssetPath}"/></TextBlock>
-                        <TextBlock><Run Text="Class: "/><Run Text="{Binding Replacement.ClassType}"/></TextBlock>
+                        <TextBlock><Run Text="Class: "/><Run Text="{Binding Replacement.ClassName}"/></TextBlock>
                     </StackPanel>
                 </DataTemplate>
 

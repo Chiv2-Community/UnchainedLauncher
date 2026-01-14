@@ -1,15 +1,21 @@
 ﻿
 using CUE4Parse.UE4.AssetRegistry.Objects;
 using Newtonsoft.Json;
+using UnchainedLauncher.UnrealModScanner.Models.Dto;
 
 namespace UnchainedLauncher.UnrealModScanner.Models {
+    /// <summary>
+    /// Holds information about an asset retrieved via AssetRegistry.bin scan
+    /// </summary>
     public class GameInternalAssetInfo : BaseAsset {
-        //[JsonProperty("asset_path")]
-        //public string AssetPath { get; set; }
-        [JsonProperty("class_name")]
-        public string ClassName { get; set; }
+        /// <summary>
+        /// Asset's Package name. Also in the AssetData
+        /// </summary>
         [JsonProperty("package_name")]
         public string FullPackageName { get; set; }
+        /// <summary>
+        /// FAssetData from AssetRegistry.bin
+        /// </summary>
         [JsonProperty("asset_data")]
         public FAssetData AssetData { get; set; }
     }

@@ -1,7 +1,7 @@
 ﻿
 using Newtonsoft.Json;
 
-namespace UnchainedLauncher.UnrealModScanner.Models {
+namespace UnchainedLauncher.UnrealModScanner.Models.Dto {
     public class BaseAsset {
         /// <summary>
         /// Full Unreal asset path including extension
@@ -9,6 +9,11 @@ namespace UnchainedLauncher.UnrealModScanner.Models {
         /// </summary>
         [JsonProperty("asset_path", Order = -2)]
         public string AssetPath { get; init; } = string.Empty;
+        /// <summary>
+        /// Class Name of this asset (PathName)
+        /// </summary>
+        [JsonProperty("class_name")]
+        public string ClassName { get; set; } = string.Empty;
 
         /// <summary>
         /// Hash of the pak entry (or file hash if available)

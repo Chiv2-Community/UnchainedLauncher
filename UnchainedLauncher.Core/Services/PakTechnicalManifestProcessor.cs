@@ -68,7 +68,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                 collections.Replacements.Add(new ReplacementDto {
                     Path = repl.AssetPath,
                     Hash = repl.AssetHash,
-                    ObjectClass = repl.ClassType
+                    ObjectClass = repl.ClassName
                 });
             }
 
@@ -78,7 +78,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                     Path = arb.AssetPath,
                     Hash = arb.AssetHash,
                     ModName = arb.ModName,
-                    ObjectClass = arb.ObjectName // Fallback as discussed
+                    ObjectClass = arb.ClassName // Fallback as discussed
                 });
             }
 

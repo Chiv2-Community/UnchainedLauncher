@@ -17,7 +17,7 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes {
                 if (_isExpanded != value) {
                     _isExpanded = value;
                     if (_isExpanded && Children.Count == 1) {
-                        Children.First().IsExpanded = true;
+                        Children.First().IsExpanded = value;
                     }
                     OnPropertyChanged();
                 }

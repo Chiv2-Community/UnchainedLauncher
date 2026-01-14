@@ -5,8 +5,8 @@ using System.Diagnostics;
 using System.Windows;
 using UnchainedLauncher.Core.JsonModels.Metadata;
 using UnchainedLauncher.UnrealModScanner.Config;
-using UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes; // Required for Application.Current.Dispatcher
-using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScanner.Models;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes;
+using UnchainedLauncher.UnrealModScanner.Models.Chivalry2.UnchainedLauncher.UnrealModScanner.Models; // Required for Application.Current.Dispatcher
 using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.Services;
 using UnrealModScanner.Export;
@@ -110,9 +110,8 @@ public partial class ModScanTabVM : ObservableObject {
                     mapsGroup.Children.Add(new AssetReplacementTreeNode(new AssetReplacementInfo {
                         AssetPath = map.AssetPath,
                         AssetHash = map.AssetHash,
-                        ClassType = map.GameMode,
-                        Extension = "umap",
-                        PakName = pakName
+                        ClassName = map.GameMode,
+                        Extension = "umap"
                     }));
                 }
                 scanResult.Children.Add(mapsGroup);
@@ -125,7 +124,7 @@ public partial class ModScanTabVM : ObservableObject {
                     otherGroup.Children.Add(new AssetReplacementTreeNode(new AssetReplacementInfo {
                         AssetPath = arb.AssetPath,
                         AssetHash = arb.AssetHash,
-                        ClassType = arb.ModName ?? arb.ObjectName
+                        ClassName = arb.ModName ?? arb.ClassName
                     }));
                 }
                 scanResult.Children.Add(otherGroup);

@@ -1,6 +1,7 @@
 ﻿using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.UObject;
 using UnchainedLauncher.UnrealModScanner.Models;
+using UnchainedLauncher.UnrealModScanner.Models.Chivalry2;
 using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 

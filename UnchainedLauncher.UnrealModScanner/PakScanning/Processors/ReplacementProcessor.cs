@@ -1,4 +1,4 @@
-﻿using UnchainedLauncher.UnrealModScanner.Models.UnchainedLauncher.UnrealModScanner.Models;
+﻿using UnchainedLauncher.UnrealModScanner.Models.Chivalry2.UnchainedLauncher.UnrealModScanner.Models;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
@@ -12,7 +12,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                 result._AssetReplacements.Add(new AssetReplacementInfo {
                     AssetPath = ctx.FilePath,
                     // FIXME: add hash
-                    ClassType = export.Value?.Class?.Name,
+                    ClassName = export.Value?.Class?.Name,
                     Extension = Path.GetExtension(ctx.FilePath)
                 });
                 break; // Found a valid export in a restricted dir

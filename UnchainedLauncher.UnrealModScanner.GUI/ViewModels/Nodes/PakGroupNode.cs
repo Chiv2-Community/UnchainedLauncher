@@ -8,7 +8,7 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes {
             IsExpanded = isExpanded;
         }
 
-        public string Title { get; }
+        public string Title { get; set; }
 
         private bool _isExpanded;
         public override bool IsExpanded {

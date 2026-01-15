@@ -8,10 +8,13 @@
              xmlns:guimodels="clr-namespace:UnchainedLauncher.UnrealModScanner.GUI.ViewModels"
              xmlns:nodes="clr-namespace:UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes"
              xmlns:models1="clr-namespace:UnrealModScanner.Models;assembly=UnchainedLauncher.UnrealModScanner"
+             xmlns:Scg="clr-namespace:System.Collections;assembly=System.Runtime"
+             xmlns:System="clr-namespace:System;assembly=System.Runtime"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=viewModels:ModScanTabViewModel, IsDesignTimeCreatable=True}">
 	<UserControl.Resources>
 		<BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <nodes:PropertyFilterConverter x:Key="PropFilter" />
 	</UserControl.Resources>
     <DockPanel>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
@@ -64,14 +67,114 @@
                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                 </Style>
 
+                <!-- <DataTemplate DataType="{x:Type nodes:ModTreeNode}"> -->
+                <!--     <StackPanel Margin="10,2,0,4"> -->
+                <!--         <TextBlock><Run Text="Mod Name: "/><Run Text="{Binding Blueprint.ModName}"/></TextBlock> -->
+                <!--         <TextBlock><Run Text="Version: "/><Run Text="{Binding Blueprint.Version}"/></TextBlock> -->
+                <!--         <TextBlock><Run Text="Author: "/><Run Text="{Binding Blueprint.Author}"/></TextBlock> -->
+                <!--         <TextBlock><Run Text="Clientside: "/><Run Text="{Binding Blueprint.IsClientSide}"/></TextBlock> -->
+                <!--     </StackPanel> -->
+                <!-- </DataTemplate> -->
                 <DataTemplate DataType="{x:Type nodes:ModTreeNode}">
                     <StackPanel Margin="10,2,0,4">
-                        <TextBlock><Run Text="Mod Name: "/><Run Text="{Binding Blueprint.ModName}"/></TextBlock>
-                        <TextBlock><Run Text="Version: "/><Run Text="{Binding Blueprint.Version}"/></TextBlock>
-                        <TextBlock><Run Text="Author: "/><Run Text="{Binding Blueprint.Author}"/></TextBlock>
-                        <TextBlock><Run Text="Clientside: "/><Run Text="{Binding Blueprint.IsClientSide}"/></TextBlock>
+                        <!-- <TextBlock><Run Text="Mod Name: "/><Run Text="{Binding Blueprint.ModName}"/></TextBlock> -->
+                        <!-- <TextBlock><Run Text="Version: "/><Run Text="{Binding Blueprint.Version}"/></TextBlock> -->
+                        <!-- <TextBlock><Run Text="Author: "/><Run Text="{Binding Blueprint.Author}"/></TextBlock> -->
+                        <!-- <TextBlock><Run Text="Clientside: "/><Run Text="{Binding Blueprint.IsClientSide}"/></TextBlock> -->
+
+                        <ItemsControl ItemsSource="{Binding Blueprint.Properties}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock>
+                                        <Run Text="{Binding Key, Mode=OneWay, StringFormat='{}{0}: '}" FontWeight="SemiBold"/>
+                                        <Run Text="{Binding Value, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                 </DataTemplate>
+                
+                
+                <!-- <DataTemplate DataType="{x:Type nodes:MapTreeNode}"> -->
+                <!--     <StackPanel Margin="10,2,0,4"> -->
+                <!--         ~1~ <TextBlock><Run Text="Mod Name: "/><Run Text="{Binding Blueprint.ModName}"/></TextBlock> @1@ -->
+                <!--         ~1~ <TextBlock><Run Text="Version: "/><Run Text="{Binding Blueprint.Version}"/></TextBlock> @1@ -->
+                <!--         ~1~ <TextBlock><Run Text="Author: "/><Run Text="{Binding Blueprint.Author}"/></TextBlock> @1@ -->
+                <!--         ~1~ <TextBlock><Run Text="Clientside: "/><Run Text="{Binding Blueprint.IsClientSide}"/></TextBlock> @1@ -->
+                <!-- -->
+                <!--         <ItemsControl ItemsSource="{Binding Map.Settings, Converter={StaticResource PropFilter}}"> -->
+                <!--             <ItemsControl.ItemTemplate> -->
+                <!--                 <DataTemplate> -->
+                <!--                     <TextBlock Margin="5,0,0,0"> -->
+                <!--                         <Run Text="{Binding Key, Mode=OneWay, StringFormat='{}{0}: '}" FontWeight="Bold" Foreground="Gray"/> -->
+                <!--                         <Run Text="{Binding Value, Mode=OneWay}"/> -->
+                <!--                     </TextBlock> -->
+                <!--                 </DataTemplate> -->
+                <!--             </ItemsControl.ItemTemplate> -->
+                <!--         </ItemsControl> -->
+                <!--     </StackPanel> -->
+                <!-- </DataTemplate> -->
+                
+
+                <DataTemplate x:Key="DynamicPropertyTemplate">
+                    <StackPanel Margin="5,0,0,2">
+                        <ContentControl Content="{Binding Value, Mode=OneWay}">
+                            <ContentControl.Resources>
+                                <DataTemplate DataType="{x:Type Scg:IDictionary}">
+                                    <Expander IsExpanded="True" Margin="0,2,0,5">
+                                        <Expander.Header>
+                                            <TextBlock Text="{Binding DataContext.Key, RelativeSource={RelativeSource AncestorType=ContentControl}, Mode=OneWay}" 
+                                                       FontWeight="Bold"/>
+                                        </Expander.Header>
+                                        <ItemsControl ItemsSource="{Binding}" 
+                                                      ItemTemplate="{StaticResource DynamicPropertyTemplate}" 
+                                                      Margin="15,0,0,0"/>
+                                    </Expander>
+                                </DataTemplate>
+
+                                <DataTemplate DataType="{x:Type System:String}">
+                                    <TextBlock>
+                                        <Run Text="{Binding DataContext.Key, RelativeSource={RelativeSource AncestorType=ContentControl}, Mode=OneWay, StringFormat='{}{0}: '}" 
+                                             FontWeight="SemiBold" Foreground="DarkGray"/>
+                                        <Run Text="{Binding Mode=OneWay}"/>
+                                    </TextBlock>
+                                </DataTemplate>
+
+                                <DataTemplate DataType="{x:Type System:ValueType}">
+                                    <TextBlock>
+                                        <Run Text="{Binding DataContext.Key, RelativeSource={RelativeSource AncestorType=ContentControl}, Mode=OneWay, StringFormat='{}{0}: '}" 
+                                             FontWeight="SemiBold" Foreground="DarkGray"/>
+                                        <Run Text="{Binding Mode=OneWay}"/>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ContentControl.Resources>
+                        </ContentControl>
+                    </StackPanel>
+                </DataTemplate>
+                
+                <DataTemplate DataType="{x:Type nodes:MapTreeNode}">
+                    <StackPanel Margin="10,2,0,4">
+                        <Separator Margin="0,5"/>
+                        <TextBlock Text="Maps" FontWeight="Bold" FontSize="14"/>
+                        <ItemsControl ItemsSource="{Binding Map.Settings}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="Gray" BorderThickness="1" Margin="0,5" Padding="5">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Key}" Foreground="SkyBlue" FontSize="10"/>
+                            
+                                            <ItemsControl ItemsSource="{Binding Value, Converter={StaticResource PropFilter}}" 
+                                                          ItemTemplate="{StaticResource DynamicPropertyTemplate}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </DataTemplate>
+                
+                
 
                 <DataTemplate DataType="{x:Type nodes:AssetReplacementTreeNode}">
                     <StackPanel Margin="10,2,0,4">

@@ -1,9 +1,16 @@
 ﻿using CUE4Parse.FileProvider;
 using CUE4Parse.UE4.Assets.Exports;
+using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.Engine;
+using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.VirtualFileSystem;
 using Newtonsoft.Json;
+using Serilog;
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+using UnchainedLauncher.UnrealModScanner.Assets;
+using UnchainedLauncher.UnrealModScanner.AssetSources;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.Models.Dto;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -56,6 +63,9 @@ public class SecondPassOrchestrator {
                     // fixme
                     // var targetMarker = pakBucket.GenericMarkers.GetOrAdd(refEntry.SourceMarkerPath, _ => new ConcurrentBag<GenericMarkerEntry>()).FirstOrDefault();
                     var marker = pakBucket.GetMarker(refEntry.SourceMarkerClassName, refEntry.SourceMarkerPath);
+                    if (marker == null) {
+                        Debug.WriteLine($"Could not find marker {refEntry.SourceMarkerClassName} ({refEntry.SourceMarkerPath})");
+                    }
                     var newAssetPath = assetPath.Split(".").First() + ".uasset";
 
                     if (!_provider.TryLoadPackage(newAssetPath, out var package)) {
@@ -66,46 +76,100 @@ public class SecondPassOrchestrator {
                     var blueprintProperties = _options.MarkerProcessors
                         .FirstOrDefault()?.ReferencedBlueprintProperties ?? new();
 
-                    foreach (var export in package.ExportsLazy) {
-                        if (export.Value is not UBlueprintGeneratedClass bpc) continue;
+                   
 
-                        var cdo = bpc.ClassDefaultObject.Load();
-                        if (cdo == null) continue;
+                    var (mainExport, index) = BaseAsset.GetMainExport(package).Value;
+                    // TODO: throw
+                    if (mainExport == null) return;
+                    var mainExportLazy = package.GetExport(index);
+                    var filteredProperties = new Dictionary<string, object?>();
 
-                        var entry = new GenericAssetEntry {
-                            AssetPath = newAssetPath,
-                            ClassName = bpc.Name
-                        };
-
-                        var propertyMap = cdo.Properties.ToDictionary(p => p.Name.Text, p => p);
-
-                        foreach (var propConfig in blueprintProperties) {
-                            if (!propertyMap.TryGetValue(propConfig.Name, out var propTag) || propTag.Tag == null)
-                                continue;
-
-                            var rawValue = propTag.Tag.GetValue(propTag.Tag.GetType()) ?? propTag.Tag.GenericValue;
-
-                            // if (rawValue != null)
-                            //     Console.WriteLine($"Actually got val {rawValue}");
-
-                            entry.Properties[propConfig.Name] = propConfig.Mode switch {
-                                EExtractionMode.Json => rawValue switch {
-                                    UObject nestedObj => nestedObj.ToSafeJson(0, propConfig.MaxDepth),
-                                    _ => JsonConvert.SerializeObject(rawValue)
-                                },
-                                EExtractionMode.String => rawValue?.ToString() ?? "null",
-                                EExtractionMode.Raw => rawValue,
-                                _ => throw new ArgumentOutOfRangeException()
-                            };
-                        }
-
-                        var base_name = export.Value.Outer.Name ?? export.Value.Template?.Outer?.Name.Text;
-                        // pakBucket.AddGenericEntry(entry, base_name ?? "Marker");
-                        marker?.AddGenericEntry(entry);
-                        pakBucket.RemoveEntryGlobal(entry.AssetPath);
-                        // pakBucket.RemoveGenericEntry(base_name, entry.AssetPath);
-                        // marker.Value.Value.FirstOrDefault().AddGenericEntry(entry);
+                    var propertyMap = new Dictionary<string, FPropertyTag>();
+                    if (mainExportLazy is UClass bgc) {
+                        var cdo = bgc.ClassDefaultObject.Load();
+                        propertyMap = propertyMap = cdo.Properties.ToDictionary(p => p.Name.Text, p => p);
                     }
+                    else {
+                        propertyMap = mainExportLazy.Properties.ToDictionary(p => p.Name.Text, p => p);   
+                    }
+                    
+                    foreach (var propConfig in blueprintProperties) {
+                        if (!propertyMap.TryGetValue(propConfig.Name, out var propTag) || propTag.Tag == null)
+                            continue;
+                        
+                        var rawValue = propTag.Tag.GetValue(propTag.Tag.GetType()) ?? propTag.Tag.GenericValue;
+                        
+                        filteredProperties[propConfig.Name] = propConfig.Mode switch {
+                            EExtractionMode.Json => rawValue switch {
+                                UObject nestedObj => nestedObj.ToSafeJson(0, propConfig.MaxDepth),
+                                _ => JsonConvert.SerializeObject(rawValue)
+                            },
+                            EExtractionMode.String => rawValue?.ToString() ?? "null",
+                            EExtractionMode.Raw => rawValue,
+                            _ => throw new ArgumentOutOfRangeException()
+                        };
+                    }
+                    
+                    // TODO: Verify
+                    var base_name = mainExportLazy.Outer.Name ?? mainExportLazy.Template?.Outer?.Name.Text;
+                    var entry = GenericAssetEntry.FromSource(
+                        new PackageAssetSource(package),
+                        filteredProperties);
+                    if (mainExportLazy is UClass uclass) {
+                        var fullName = uclass.GetFullName();
+                        entry.ClassPath = Regex.Replace(
+                            fullName,
+                            @"^.*?'[^/]+/Content(/.+)'$",
+                            "/Game$1"
+                        );
+                    }
+                    
+                    marker?.AddGenericEntry(entry);
+                    pakBucket.RemoveEntryGlobal(entry.AssetPath);
+                    
+                    // foreach (var export in package.ExportsLazy) {
+                    //     if (export.Value is not UBlueprintGeneratedClass bpc) continue;
+                    //
+                    //     var cdo = bpc.ClassDefaultObject.Load();
+                    //     if (cdo == null) continue;
+                    //
+                    //     // var entry = new GenericAssetEntry {
+                    //     //     AssetPath = newAssetPath,
+                    //     //     ClassName = bpc.Name
+                    //     // };
+                    //
+                    //     var filteredProperties = new Dictionary<string, object?>();
+                    //
+                    //     var propertyMap = cdo.Properties.ToDictionary(p => p.Name.Text, p => p);
+                    //
+                    //     foreach (var propConfig in blueprintProperties) {
+                    //         if (!propertyMap.TryGetValue(propConfig.Name, out var propTag) || propTag.Tag == null)
+                    //             continue;
+                    //
+                    //         var rawValue = propTag.Tag.GetValue(propTag.Tag.GetType()) ?? propTag.Tag.GenericValue;
+                    //
+                    //         filteredProperties[propConfig.Name] = propConfig.Mode switch {
+                    //             EExtractionMode.Json => rawValue switch {
+                    //                 UObject nestedObj => nestedObj.ToSafeJson(0, propConfig.MaxDepth),
+                    //                 _ => JsonConvert.SerializeObject(rawValue)
+                    //             },
+                    //             EExtractionMode.String => rawValue?.ToString() ?? "null",
+                    //             EExtractionMode.Raw => rawValue,
+                    //             _ => throw new ArgumentOutOfRangeException()
+                    //         };
+                    //     }
+                    //
+                    //     var base_name = export.Value.Outer.Name ?? export.Value.Template?.Outer?.Name.Text;
+                    //     // pakBucket.AddGenericEntry(entry, base_name ?? "Marker");
+                    //     var entry = GenericAssetEntry.FromSource(
+                    //         new PackageAssetSource(package),
+                    //         filteredProperties);
+                    //     
+                    //     marker?.AddGenericEntry(entry);
+                    //     pakBucket.RemoveEntryGlobal(entry.AssetPath);
+                    //     // pakBucket.RemoveGenericEntry(base_name, entry.AssetPath);
+                    //     // marker.Value.Value.FirstOrDefault().AddGenericEntry(entry);
+                    // }
                 }
                 catch (Exception ex) {
                     System.Diagnostics.Debug.WriteLine($"Pass 2 Error: {ex.Message}");

@@ -15,7 +15,7 @@ public static class ScannerFactory {
         var dirs = standardDirs.ToList();
 
         // Register the 4 mod-specific processors
-        orchestrator.AddModProcessor(new MarkerProcessor());
+        // orchestrator.AddModProcessor(new MarkerProcessor());
         orchestrator.AddModProcessor(new MapProcessor());
         orchestrator.AddModProcessor(new ReplacementProcessor(dirs));
         orchestrator.AddModProcessor(new ArbitraryAssetProcessor(dirs));

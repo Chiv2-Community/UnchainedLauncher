@@ -20,8 +20,7 @@ namespace UnchainedLauncher.UnrealModScanner.Utility {
 
         public static string CalculatePakHash(string filePath) {
             if (!File.Exists(filePath)) return "FILE_NOT_FOUND";
-
-            using var sha256 = SHA512.Create();
+            using var sha256 = SHA1.Create();
             using var stream = File.OpenRead(filePath);
 
             byte[] hashBytes = sha256.ComputeHash(stream);
@@ -31,11 +30,9 @@ namespace UnchainedLauncher.UnrealModScanner.Utility {
         }
 
         public static string GetAssetHash(IFileProvider provider, string path, object fallback) {
-            // Use the path as the key to ensure we don't re-hash the same file 
-            // across different processors.
             return _hashStore.GetOrAdd(path, _ => {
                 if (provider.TrySaveAsset(path, out var data)) {
-                    //return GetFastHash(data);
+                    // return GetFastHash(data);
                     byte[] hashBytes = System.Security.Cryptography.SHA512.HashData(data);
                     return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
                 }

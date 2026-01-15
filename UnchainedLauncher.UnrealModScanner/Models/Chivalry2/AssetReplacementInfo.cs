@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.Models.Dto;
 
 namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {

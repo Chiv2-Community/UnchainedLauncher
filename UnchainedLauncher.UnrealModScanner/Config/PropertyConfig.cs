@@ -12,7 +12,7 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
     }
 
     public class CdoProcessorConfig {
-        public string TargetClassName { get; set; } = "TBL/Content/Mods/ArgonSDK/Mods/ArgonSDKModBase";
+        public string TargetClassName { get; set; } = "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase";
         public List<PropertyConfig> Properties { get; set; } = new List<PropertyConfig> {
                             new() { Name = "ModName", Mode = EExtractionMode.String },
                             new() { Name = "ModVersion", Mode = EExtractionMode.String },

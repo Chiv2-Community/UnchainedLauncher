@@ -95,7 +95,21 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.Views {
             };
 
             if (dlg.ShowDialog() == true) {
-                ModScannerVM.ExportJson(dlg.FileName);
+                ModScannerVM.ExportJson(dlg.FileName, false);
+                MessageBox.Show("Export completed", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void Export_UnrealMods_Manifest_Click(object sender, RoutedEventArgs e) {
+            if (ModScannerVM == null) return;
+
+            var dlg = new SaveFileDialog {
+                Filter = "JSON Files (*.json)|*.json",
+                FileName = "mods.json"
+            };
+
+            if (dlg.ShowDialog() == true) {
+                ModScannerVM.ExportJson(dlg.FileName, true);
                 MessageBox.Show("Export completed", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }

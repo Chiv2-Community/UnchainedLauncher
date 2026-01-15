@@ -1,9 +1,7 @@
-﻿
-using CUE4Parse.UE4.AssetRegistry.Objects;
+﻿using CUE4Parse.UE4.AssetRegistry.Objects;
 using Newtonsoft.Json;
-using UnchainedLauncher.UnrealModScanner.Models.Dto;
 
-namespace UnchainedLauncher.UnrealModScanner.Models {
+namespace UnchainedLauncher.UnrealModScanner.Assets {
     /// <summary>
     /// Holds information about an asset retrieved via AssetRegistry.bin scan
     /// </summary>

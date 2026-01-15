@@ -32,8 +32,13 @@
                     RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
                 <Button Content="Export"
-						Click="Export_UnrealMods_Click"
-						IsEnabled="{Binding ModScannerVM.IsNotScanning, 
+                        Click="Export_UnrealMods_Click"
+                        IsEnabled="{Binding ModScannerVM.IsNotScanning, 
+                    RelativeSource={RelativeSource AncestorType=UserControl}}" />
+
+                <Button Content="Export Manifest"
+                        Click="Export_UnrealMods_Manifest_Click"
+                        IsEnabled="{Binding ModScannerVM.IsNotScanning, 
                     RelativeSource={RelativeSource AncestorType=UserControl}}" />
 
 				<Button Content="Collapse All"

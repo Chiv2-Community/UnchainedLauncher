@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.Models.Chivalry2;
 using UnchainedLauncher.UnrealModScanner.Models.Chivalry2.UnchainedLauncher.UnrealModScanner.Models;
@@ -48,7 +49,7 @@ public sealed class PakScanResult {
     /// Assets discovered by ReplacementProcessor
     /// </summary>
     [JsonProperty("asset_replacements")]
-    public ConcurrentBag<AssetReplacementInfo> _AssetReplacements { get; } = new();
+    public ConcurrentBag<GenericAssetEntry> _AssetReplacements { get; } = new();
     /// <summary>
     /// Levels extracted with MapProcessor
     /// </summary>
@@ -58,16 +59,18 @@ public sealed class PakScanResult {
     /// Uncategorized assets in pak (Not in official directories)
     /// </summary>
     [JsonProperty("arbitrary_assets")]
-    public ConcurrentBag<ArbitraryAssetInfo> ArbitraryAssets { get; } = new();
+    public ConcurrentBag<GenericAssetEntry> ArbitraryAssets { get; } = new();
+    [JsonProperty("failed_packages")]
+    public ConcurrentBag<FailedPackage> FailedPackages { get; } = new();
     /// <summary>
     /// Scan result from AssetRegistry scan
     /// </summary>
     [JsonProperty("internal_assets")]
     public ConcurrentBag<GameInternalAssetInfo> InternalAssets { get; } = new();
     
-    public void AddGenericEntry(GenericAssetEntry entry, string base_name) {
+    public void AddGenericEntry(GenericAssetEntry entryBase, string base_name) {
         var bag = GenericEntries.GetOrAdd(base_name, _ => new ConcurrentBag<GenericAssetEntry>());
-        bag.Add(entry);
+        bag.Add(entryBase);
     }
     
     // TODO: Find if there's a better way? class path not available without loading
@@ -163,9 +166,10 @@ public sealed class PakScanResult {
     
     // Serialization filters
     public bool ShouldSerializeInternalAssets() { return InternalAssets.Count > 0; }
+    public bool ShouldSerializeGenericEntries() { return GenericEntries.Any(e => e.Value.Count > 0); }
     public bool ShouldSerializeArbitraryAssets() { return ArbitraryAssets.Count > 0; }
     public bool ShouldSerialize_Maps() { return _Maps.Count > 0; }
     public bool ShouldSerialize_AssetReplacements() { return _AssetReplacements.Count > 0; }
     public bool ShouldSerialize_Markers() { return _Markers.Count > 0; }
-    public bool ShouldSerializeGenericEntries() { return GenericEntries.Count > 0; }
+    public bool ShouldSerializeFailedPackages() { return FailedPackages.Count > 0; }
 }

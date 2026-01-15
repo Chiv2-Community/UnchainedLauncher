@@ -1,4 +1,5 @@
-﻿using UnchainedLauncher.UnrealModScanner.Models;
+﻿using UnchainedLauncher.UnrealModScanner.Assets;
+using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
 

@@ -6,12 +6,13 @@ using System.Windows;
 using UnchainedLauncher.Core.JsonModels.Metadata;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.Models.Chivalry2.UnchainedLauncher.UnrealModScanner.Models; // Required for Application.Current.Dispatcher
 using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.Services;
 using UnchainedLauncher.UnrealModScanner.ViewModels;
-using UnrealModScanner.Export;
+using UnchainedLauncher.UnrealModScanner.Export;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
@@ -25,7 +26,7 @@ public partial class ModScanTabVM : ObservableObject {
 
     // The technical DTO for JSON export
     [ObservableProperty]
-    private TechnicalManifest _scanManifest = new();
+    private ModManifest _scanManifest = new();
 
     [ObservableProperty]
     private double _scanProgress;
@@ -70,7 +71,6 @@ public partial class ModScanTabVM : ObservableObject {
         Debug.WriteLine($"Mod Scan completed in: {swMod.ElapsedMilliseconds}ms");
 
         // 4. Generate the Technical Manifest (The JSON model)
-        ScanManifest = PakTechnicalManifestProcessor.ProcessModScan(LastScanResult);
         ResultsVisual = new PakScanResultVM(LastScanResult);
 
         // 5. Build TreeView Nodes (The UI model)
@@ -142,8 +142,12 @@ public partial class ModScanTabVM : ObservableObject {
         IsScanning = false;
     }
 
-    public void ExportJson(string path) {
-        if (ScanManifest == null) return;
+    public void ExportJson(string path, bool manifest) {
+        if (LastScanResult == null) return;
         ModScanJsonExporter.ExportToFile(LastScanResult, path);
+        if (manifest) {
+            ScanManifest = ModManifestConverter.ProcessModScan(LastScanResult);
+            ModScanJsonExporter.ExportToFile(ScanManifest, path);
+        }
     }
 }

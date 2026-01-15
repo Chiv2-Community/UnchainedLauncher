@@ -3,11 +3,14 @@ using CUE4Parse.Encryption.Aes;
 using CUE4Parse.FileProvider;
 using CUE4Parse.FileProvider.Objects;
 using CUE4Parse.UE4.AssetRegistry;
+using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Readers;
 using CUE4Parse.UE4.Versions;
+using Serilog;
 using System.Collections.Concurrent;
+using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -63,10 +66,11 @@ public class ModScanOrchestrator {
                 bool isAsset = f.Key.EndsWith(".uasset") || f.Key.EndsWith(".umap");
                 if (!isAsset) return false;
 
-                if (options.PathFilters.Count == 0) return true;
+                return true;
+                // if (options.PathFilters.Count == 0) return true;
 
-                bool matchesFilter = options.PathFilters.Any(filter => f.Key.Contains(filter, StringComparison.OrdinalIgnoreCase));
-                return options.IsWhitelist ? matchesFilter : !matchesFilter;
+                // bool matchesFilter = options.PathFilters.Any(filter => f.Key.Contains(filter, StringComparison.OrdinalIgnoreCase));
+                // return options.IsWhitelist ? matchesFilter : !matchesFilter;
             }).ToList();
 
             // 2. Load-Balanced Partitioning
@@ -78,10 +82,21 @@ public class ModScanOrchestrator {
                 files,
                 parallelOptions,
                 async (file, ct) => { // 'ct' ist das CancellationToken
+                
+                    if (file.Value is not FPakEntry pakEntry)
+                        return;
+                    IPackage? pkg = null;
+                    bool packageLoaded;
                     try {
-                    var pkg = provider.LoadPackage(file.Key);
-                    if (pkg == null || file.Value is not FPakEntry pakEntry) return;
-
+                        pkg = provider.LoadPackage(file.Key);
+                    }
+                    catch (Exception e) {
+                        Log.Error($"Failed to load package: {e.Message}");
+                        throw;
+                    }
+                    if (pkg == null) return;
+                    
+                try {
                     var context = new ScanContext(provider, pkg, file.Key, pakEntry);
                     var pakName = pakEntry.PakFileReader.Name;
 
@@ -100,7 +115,13 @@ public class ModScanOrchestrator {
                     }
                     else {
                         foreach (var processor in _modProcessors) {
-                            processor.Process(context, currentPakResult);
+                            try {
+                                processor.Process(context, currentPakResult);
+                                
+                            }
+                            catch (Exception ex) {
+                                System.Diagnostics.Debug.WriteLine($"Processor Error: {ex.Message}");
+                            }
                         }
                     }
                 }

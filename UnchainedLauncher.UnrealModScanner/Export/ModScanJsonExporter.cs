@@ -1,10 +1,10 @@
-﻿using System.Collections.ObjectModel;
-using UnchainedLauncher.Core.JsonModels.Metadata;
-using UnrealModScanner.Models;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using System.Collections.ObjectModel;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
+using UnrealModScanner.Models;
 
-namespace UnrealModScanner.Export;
+namespace UnchainedLauncher.UnrealModScanner.Export;
 
 public static class ModScanJsonExporter {
     //private static readonly JsonSerializerOptions Options = new() {
@@ -16,7 +16,7 @@ public static class ModScanJsonExporter {
         NullValueHandling = NullValueHandling.Ignore,
     };
     public static string ExportToString(
-    TechnicalManifest scanResults) {
+    ModManifest scanResults) {
         var doc = new ModScanDocument {
             Manifest = scanResults
         };
@@ -25,7 +25,7 @@ public static class ModScanJsonExporter {
     }
 
     public static void ExportToFile(
-        TechnicalManifest scanResults,
+        ModManifest scanResults,
         string outputPath) {
         var json = ExportToString(scanResults);
         File.WriteAllText(outputPath, json);

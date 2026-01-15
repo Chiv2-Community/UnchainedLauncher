@@ -60,7 +60,10 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
                 if (numReplacements > 0) {
                     var replGroup = new PakGroupNode($"Asset Replacements ({numReplacements})", false);
                     foreach (var repl in scanResult._AssetReplacements)
-                        replGroup.Children.Add(new AssetReplacementTreeNode(repl));
+                        replGroup.Children.Add(new AssetReplacementTreeNode(new AssetReplacementInfo {
+                            AssetPath = repl.AssetPath,
+                            ClassName = repl.ClassName,
+                        }));
 
                     wrapper.Children.Add(replGroup);
                 }

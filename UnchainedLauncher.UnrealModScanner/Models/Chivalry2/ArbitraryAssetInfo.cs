@@ -1,4 +1,6 @@
 ﻿using Newtonsoft.Json;
+using UnchainedLauncher.UnrealModScanner.Assets;
+using UnchainedLauncher.UnrealModScanner.AssetSources;
 using UnchainedLauncher.UnrealModScanner.Models.Dto;
 
 namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
@@ -11,6 +13,19 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
         /// Fallback for old Chivalry 2 mod actors (no Mod marker provided)
         /// </summary>
         [JsonProperty("mod_name")]
-        public string ModName { get; init; } = string.Empty;
+        public string ModName { get; set; } = string.Empty;
+        
+        
+        public static ArbitraryAssetInfo FromSource(
+            IAssetSource source,
+            string? modName)
+        {
+            var asset = new ArbitraryAssetInfo();
+            asset.Initialize(source);
+            asset.ModName = modName;
+            return asset;
+        }
     }
+    
+    
 }

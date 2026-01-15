@@ -15,9 +15,8 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes {
         }
         public string DisplayName => Map.AssetPath;
     }
-    
-    public class PropertyFilterConverter : IValueConverter
-    {
+
+    public class PropertyFilterConverter : IValueConverter {
         // Define the list of keys you want to HIDE from the UI
         private static readonly HashSet<string> Blacklist = new()
         {
@@ -28,24 +27,19 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes {
             "KillZ"
         };
 
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture) {
             // 1. Handle Generic Dictionaries (Dictionary<string, object>)
-            if (value is IEnumerable<KeyValuePair<string, object>> genericDict)
-            {
+            if (value is IEnumerable<KeyValuePair<string, object>> genericDict) {
                 return genericDict
                     .Where(kvp => !Blacklist.Contains(kvp.Key))
                     .ToList();
             }
 
             // 2. Fallback for non-generic dictionaries (just in case)
-            if (value is IDictionary dict)
-            {
+            if (value is IDictionary dict) {
                 var filtered = new List<DictionaryEntry>();
-                foreach (DictionaryEntry entry in dict)
-                {
-                    if (!Blacklist.Contains(entry.Key.ToString()))
-                    {
+                foreach (DictionaryEntry entry in dict) {
+                    if (!Blacklist.Contains(entry.Key.ToString())) {
                         filtered.Add(entry);
                     }
                 }
@@ -55,7 +49,7 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes {
             return value;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) 
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 }

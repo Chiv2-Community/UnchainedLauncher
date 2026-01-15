@@ -14,30 +14,30 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
     public class PakScanResultVM {
         public PakScanResultVM() {
             Results = new ObservableCollection<PakScanResult>();
-            Children = new ObservableCollection<PakChildNode>(); 
+            Children = new ObservableCollection<PakChildNode>();
         }
-        public PakScanResultVM( ModScanResult scanResults) {
+        public PakScanResultVM(ModScanResult scanResults) {
             Results = new ObservableCollection<PakScanResult>();
-            Children = InitChildren(scanResults); 
+            Children = InitChildren(scanResults);
         }
 
         private ObservableCollection<PakChildNode> InitChildren(ModScanResult scanResults) {
             Application.Current.Dispatcher.Invoke(() => Results.Clear());
             var children = new ObservableCollection<PakChildNode>();
-            
+
             foreach (var (pakName, scanResult) in scanResults.Paks) {
                 int numMods = scanResult._Markers.Sum(m => m.Blueprints.Count);
                 int numReplacements = scanResult._AssetReplacements.Count;
                 int numMaps = scanResult._Maps.Count;
                 int numOther = scanResult.ArbitraryAssets.Count;
-                
+
                 var wrapper = new PakResultWrapperNode("", false, scanResult.PakPath, scanResult);
 
                 // --- Group: Mods ---
                 numMods = 0;
-                    var modsGroup = new PakGroupNode("");
-                    foreach (var (key, markers) in scanResult.GenericMarkers.Where(m => m.Key == "DA_ModMarker_C"))
-                        foreach (var (path, marker) in markers)
+                var modsGroup = new PakGroupNode("");
+                foreach (var (key, markers) in scanResult.GenericMarkers.Where(m => m.Key == "DA_ModMarker_C"))
+                    foreach (var (path, marker) in markers)
                         foreach (var mod in marker.Children) {
                             modsGroup.Children.Add(new ModTreeNode(mod));
                             numMods++;
@@ -100,7 +100,7 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
                 // 6. Push to UI Collection
                 Application.Current.Dispatcher.Invoke(() => Results.Add(scanResult));
             }
-            
+
             return children;
         }
 
@@ -109,12 +109,12 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
                 res.IsExpanded = false;
             }
         }
-        
+
         [JsonIgnore]
         public ObservableCollection<PakChildNode> Children { get; init; } = new();
-        
+
         public ObservableCollection<PakScanResult> Results { get; } = new();
-    
+
         private bool _isChecked;
         /// <summary>
         /// GUI View state
@@ -125,7 +125,7 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
         /// </summary>
         [JsonIgnore]
         public string PakPathExpanded { get; set; }
-    
+
         [JsonIgnore]
         public bool IsExpanded {
             get => _isExpanded;
@@ -139,7 +139,7 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
                 }
             }
         }
-    
+
         [JsonIgnore]
         public bool IsChecked {
             get => _isChecked;
@@ -150,7 +150,7 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
                 }
             }
         }
-    
+
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

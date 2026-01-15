@@ -1,7 +1,5 @@
 ﻿
 using UnchainedLauncher.UnrealModScanner.Assets;
-using UnchainedLauncher.UnrealModScanner.Models;
-using UnchainedLauncher.UnrealModScanner.Models.Chivalry2;
 using UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;
 
 namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes {
@@ -14,7 +12,7 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes {
         //     Blueprint = blueprint;
         //     IsExpanded = isExpanded;
         // }
-        
+
         public GenericAssetEntry Blueprint { get; set; }
         public ModTreeNode(GenericAssetEntry blueprint, bool isExpanded = true) {
             Blueprint = blueprint;

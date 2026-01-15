@@ -32,12 +32,12 @@ public class SecondPassOrchestrator {
 {
         await Task.Run(() => {
             // Group by path to avoid reloading the same package multiple times
-            var groupedRefs = pendingRefs.GroupBy(r => r.TargetBlueprintPath);
+            var groupedRefs = pendingRefs.GroupBy(r => (r.TargetBlueprintPath, r.SourcePakFile));
 
             // We use Parallel.ForEach for high-speed resolution
             Parallel.ForEach(groupedRefs, new ParallelOptions { MaxDegreeOfParallelism = -1 }, group => {
                 try {
-                    var assetPath = group.Key;
+                    var (assetPath, refPak) = group.Key;
                     var refEntry = group.First();
                     //var refEntry = pendingRefs.Where(en => en.TargetBlueprintPath == assetPath).FirstOrDefault();
 

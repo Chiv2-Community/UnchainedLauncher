@@ -1,4 +1,3 @@
-using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 
 namespace UnchainedLauncher.PakScannerApp {

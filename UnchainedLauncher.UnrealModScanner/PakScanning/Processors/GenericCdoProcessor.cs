@@ -1,9 +1,4 @@
-﻿
-
-using CUE4Parse.UE4.Assets;
-using CUE4Parse.UE4.Objects.UObject;
-using Serilog;
-using System.Diagnostics;
+﻿using CUE4Parse.UE4.Objects.UObject;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -11,12 +6,10 @@ using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
     using CUE4Parse.UE4.Assets.Exports;
     using CUE4Parse.UE4.Assets.Objects;
-    using CUE4Parse.UE4.Objects.Engine;
     using global::UnrealModScanner.Models;
     using Newtonsoft.Json;
     using Newtonsoft.Json.Linq;
     using UnchainedLauncher.UnrealModScanner.Config;
-    using UnchainedLauncher.UnrealModScanner.Models.Dto;
     using UnchainedLauncher.UnrealModScanner.Utility;
 
     /// <summary>
@@ -38,7 +31,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             var (mainExport, index) = BaseAsset.GetMainExport(ctx.Package).Value;
             // TODO: throw
             if (mainExport == null) return;
-            
+
             var mainExportLazy = ctx.Package.GetExport(index);
             // var pathname = (mainExportLazy.Super ?? mainExportLazy.Template?.Outer)?.GetPathName();
             var PathName = mainExport.ClassIndex.ResolvedObject.GetPathName();
@@ -47,40 +40,40 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                     PathName = mainExport.SuperIndex.ResolvedObject.GetPathName();
                     PathName = PathName.Split('.')[0];
                 }
-                    
+
             }
             if (_targetClassName != "*" && PathName != _targetClassName)
                 return;
-            
+
             var propertyMap = new Dictionary<string, FPropertyTag>();
             if (mainExportLazy is UClass bgc) {
                 var cdo = bgc.ClassDefaultObject.Load();
                 propertyMap = propertyMap = cdo.Properties.ToDictionary(p => p.Name.Text, p => p);
             }
             else {
-                propertyMap = mainExportLazy.Properties.ToDictionary(p => p.Name.Text, p => p);   
+                propertyMap = mainExportLazy.Properties.ToDictionary(p => p.Name.Text, p => p);
             }
-            var properties = new Dictionary<string,object?>();
+            var properties = new Dictionary<string, object?>();
             var childClassName = String.Empty;
-            
+
             var filteredProperties = new Dictionary<string, object?>();
             foreach (var propConfig in _propertyConfigs) {
                 if (!propertyMap.TryGetValue(propConfig.Name, out var propTag) || propTag.Tag == null)
                     continue;
-                
+
                 var rawValue = propTag.Tag.GetValue(propTag.Tag.GetType()) ?? propTag.Tag.GenericValue;
-                
+
                 // if (rawValue != null)
                 //     Console.WriteLine($"Actually got val {rawValue}");
                 if (rawValue == null) continue;
-                
+
                 filteredProperties[propConfig.Name] = propConfig.Mode switch {
                     EExtractionMode.Json => rawValue switch {
                         UObject nestedObj => JToken.Parse(nestedObj.ToSafeJson(0, propConfig.MaxDepth)?.ToString() ?? ""),
-            
+
                         UScriptMap map => JToken.Parse(JsonConvert.SerializeObject(rawValue)).Children<JObject>().ToDictionary(
                                                     obj => obj["Key"]?.ToString() ?? "UnknownKey",
-                                                    obj => obj["Value"] 
+                                                    obj => obj["Value"]
                                                 ),
                         _ => JToken.Parse(JsonConvert.SerializeObject(rawValue))
                     },
@@ -93,8 +86,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             var className = mainExport.ClassName;
             if (mainExportLazy is null)
                 return;
-            if (mainExportLazy.ExportType.EndsWith("BlueprintGeneratedClass"))
-            {
+            if (mainExportLazy.ExportType.EndsWith("BlueprintGeneratedClass")) {
                 className = mainExportLazy.Class.Name;
                 if (mainExportLazy is UStruct ustruct) {
                     if (ustruct.SuperStruct != null)

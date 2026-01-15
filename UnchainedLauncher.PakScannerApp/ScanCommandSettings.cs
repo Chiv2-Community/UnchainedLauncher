@@ -1,7 +1,6 @@
 using Spectre.Console;
 using Spectre.Console.Cli;
 using System.ComponentModel;
-using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 
 namespace UnchainedLauncher.PakScannerApp {

@@ -14,17 +14,17 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
     public class PakScanResultVM {
         public PakScanResultVM() {
             Results = new ObservableCollection<PakScanResult>();
-            Children = new ObservableCollection<PakChildNode>(); 
+            Children = new ObservableCollection<PakChildNode>();
         }
-        public PakScanResultVM( ModScanResult scanResults) {
+        public PakScanResultVM(ModScanResult scanResults) {
             Results = new ObservableCollection<PakScanResult>();
-            Children = InitChildren(scanResults); 
+            Children = InitChildren(scanResults);
         }
 
         private ObservableCollection<PakChildNode> InitChildren(ModScanResult scanResults) {
             Application.Current.Dispatcher.Invoke(() => Results.Clear());
             var children = new ObservableCollection<PakChildNode>();
-            
+
             foreach (var (pakName, scanResult) in scanResults.Paks) {
                 int numMods = scanResult._Markers.Sum(m => m.Blueprints.Count);
                 int numReplacements = scanResult._AssetReplacements.Count;
@@ -40,7 +40,7 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
                 var summary = string.Join(", ", parts);
                 scanResult.PakPathExpanded = $"📦 {scanResult.PakPath}" + (summary.Length > 0 ? $" ({summary})" : "");
                 scanResult.IsExpanded = false;
-                
+
                 var wrapper = new PakResultWrapperNode(summary, false, scanResult.PakPath, scanResult);
                 wrapper.PakPath = scanResult.PakPath;
                 wrapper.PakPathCollapsed = $"📦 {scanResult.PakPath}";
@@ -99,7 +99,7 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
                 // 6. Push to UI Collection
                 Application.Current.Dispatcher.Invoke(() => Results.Add(scanResult));
             }
-            
+
             return children;
         }
 
@@ -108,12 +108,12 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
                 res.IsExpanded = false;
             }
         }
-        
+
         [JsonIgnore]
         public ObservableCollection<PakChildNode> Children { get; init; } = new();
-        
+
         public ObservableCollection<PakScanResult> Results { get; } = new();
-    
+
         private bool _isChecked;
         /// <summary>
         /// GUI View state
@@ -124,7 +124,7 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
         /// </summary>
         [JsonIgnore]
         public string PakPathExpanded { get; set; }
-    
+
         [JsonIgnore]
         public bool IsExpanded {
             get => _isExpanded;
@@ -138,7 +138,7 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
                 }
             }
         }
-    
+
         [JsonIgnore]
         public bool IsChecked {
             get => _isChecked;
@@ -149,7 +149,7 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
                 }
             }
         }
-    
+
         public event PropertyChangedEventHandler PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

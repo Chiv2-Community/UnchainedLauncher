@@ -1,15 +1,6 @@
-﻿
-
-using CUE4Parse.UE4.Assets;
-using CUE4Parse.UE4.Assets.Exports;
-using CUE4Parse.UE4.Objects.UObject;
-using Serilog;
-using System.Diagnostics;
-using UnchainedLauncher.UnrealModScanner.Assets;
+﻿using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
-using UnchainedLauncher.UnrealModScanner.Models.Chivalry2;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
-using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
@@ -29,7 +20,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             if (ctx.FilePath.EndsWith(".umap")) return;
             bool isStandard = _standardDirs.Any(dir => ctx.FilePath.ToLower().StartsWith(dir.ToLower()));
             if (isStandard) return;
-            
+
             // Debug.WriteLine($"Processing: {ctx.FilePath}");
             var entry = GenericAssetEntry.FromSource(
                 new ScanContextAssetSource(ctx),
@@ -65,7 +56,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             // catch (Exception ex) {
             //     Debug.WriteLine(ex.Message);
             // }
-            
+
             // Skip if it's a map or already identified as a replacement
             // if (ctx.FilePath.EndsWith(".umap")) return;
             //

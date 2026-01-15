@@ -3,12 +3,10 @@ using CUE4Parse.UE4.Objects.UObject;
 using UnchainedLauncher.UnrealModScanner.Utility;
 
 namespace UnchainedLauncher.UnrealModScanner.AssetSources {
-    public sealed class PackageAssetSource : IAssetSource
-    {
+    public sealed class PackageAssetSource : IAssetSource {
         private readonly IPackage _package;
 
-        public PackageAssetSource(IPackage package)
-        {
+        public PackageAssetSource(IPackage package) {
             _package = package;
         }
         public IPackage Package => _package; // FIXME: Yikes

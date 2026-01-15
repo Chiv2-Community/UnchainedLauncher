@@ -7,9 +7,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using UnchainedLauncher.UnrealModScanner.Assets;
-using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.Models.Chivalry2;
-using UnchainedLauncher.UnrealModScanner.Models.Chivalry2.UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.Models.Dto;
 using UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;
 
@@ -67,17 +65,15 @@ public sealed class PakScanResult {
     /// </summary>
     [JsonProperty("internal_assets")]
     public ConcurrentBag<GameInternalAssetInfo> InternalAssets { get; } = new();
-    
+
     public void AddGenericEntry(GenericAssetEntry entryBase, string base_name) {
         var bag = GenericEntries.GetOrAdd(base_name, _ => new ConcurrentBag<GenericAssetEntry>());
         bag.Add(entryBase);
     }
-    
+
     // TODO: Find if there's a better way? class path not available without loading
-    public void RemoveEntryGlobal(string pathName)
-    {
-        Parallel.ForEach(GenericEntries, kvp =>
-        {
+    public void RemoveEntryGlobal(string pathName) {
+        Parallel.ForEach(GenericEntries, kvp => {
             string baseName = kvp.Key;
             ConcurrentBag<GenericAssetEntry> oldBag = kvp.Value;
 
@@ -85,8 +81,7 @@ public sealed class PakScanResult {
             if (!oldBag.Any(e => e.AssetPath == pathName)) return;
 
             bool success = false;
-            while (!success)
-            {
+            while (!success) {
                 if (!GenericEntries.TryGetValue(baseName, out oldBag)) break;
                 var filtered = oldBag.Where(e => e.AssetPath != pathName).ToList();
 
@@ -98,13 +93,13 @@ public sealed class PakScanResult {
             }
         });
     }
-    
+
     public void AddGenericMarker(GenericMarkerEntry entry, string base_name) {
-        var innerDict = GenericMarkers.GetOrAdd(base_name, 
+        var innerDict = GenericMarkers.GetOrAdd(base_name,
             _ => new ConcurrentDictionary<string, GenericMarkerEntry>());
         innerDict.AddOrUpdate(entry.AssetPath, entry, (key, existingValue) => entry);
     }
-    
+
     public GenericMarkerEntry? GetMarker(string base_name, string marker_key) {
         if (GenericMarkers.TryGetValue(base_name, out var innerDict)) {
             if (innerDict.TryGetValue(marker_key, out var entry)) {
@@ -113,17 +108,17 @@ public sealed class PakScanResult {
         }
         return null;
     }
-    
+
     // Chivalry 2 specific
-    
+
     [JsonProperty("markers")]
     public ConcurrentBag<ModMarkerInfo> _Markers { get; } = new();
-    
+
     // UI 
-    
+
     [JsonIgnore]
     public ObservableCollection<PakChildNode> Children { get; } = new();
-    
+
     private bool _isChecked;
     /// <summary>
     /// GUI View state
@@ -134,7 +129,7 @@ public sealed class PakScanResult {
     /// </summary>
     [JsonIgnore]
     public string PakPathExpanded { get; set; }
-    
+
     [JsonIgnore]
     public bool IsExpanded {
         get => _isExpanded;
@@ -148,7 +143,7 @@ public sealed class PakScanResult {
             }
         }
     }
-    
+
     [JsonIgnore]
     public bool IsChecked {
         get => _isChecked;
@@ -159,11 +154,11 @@ public sealed class PakScanResult {
             }
         }
     }
-    
+
     public event PropertyChangedEventHandler PropertyChanged;
     protected void OnPropertyChanged([CallerMemberName] string name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-    
+
     // Serialization filters
     public bool ShouldSerializeInternalAssets() { return InternalAssets.Count > 0; }
     public bool ShouldSerializeGenericEntries() { return GenericEntries.Any(e => e.Value.Count > 0); }

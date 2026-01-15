@@ -1,13 +1,10 @@
 ﻿using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Assets.Exports;
-using CUE4Parse.UE4.Objects.Engine;
 using CUE4Parse.UE4.Objects.UObject;
 using Newtonsoft.Json;
 using Serilog;
 using System.Diagnostics;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
-using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
-using UnchainedLauncher.UnrealModScanner.Utility;
 
 namespace UnchainedLauncher.UnrealModScanner.Assets {
     public class BaseAsset {
@@ -17,7 +14,7 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
         /// </summary>
         [JsonProperty("asset_path", Order = -2)]
         public string AssetPath { get; set; } = string.Empty;
-        
+
         [JsonProperty("class_path", Order = -2)]
         public string ClassPath { get; set; } = null;
 
@@ -32,19 +29,15 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
         /// </summary>
         [JsonProperty("asset_hash", Order = 100)]
         public string AssetHash { get; set; } = string.Empty;
-        
-        public static UObject? FindMainExport(IPackage package)
-        {
+
+        public static UObject? FindMainExport(IPackage package) {
             // TODO: can iterate Exportmap here?
-            foreach (var lazy in package.ExportsLazy)
-            {
+            foreach (var lazy in package.ExportsLazy) {
                 UObject obj;
-                try
-                {
+                try {
                     obj = lazy.Value;
                 }
-                catch
-                {
+                catch {
                     // Corrupt export, skip
                     continue;
                 }
@@ -62,9 +55,8 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
             //var nulled = pkg.ExportMap.Where(o => o.OuterIndex.IsNull).FirstOrDefault();
             if (package.ExportMapLength == 1)
                 return (pkg.ExportMap[0], 0);
-            
-            for (int i = 0; i< package.ExportMapLength; i++)
-            {
+
+            for (int i = 0; i < package.ExportMapLength; i++) {
                 try {
 
                     UObject? exp = null;
@@ -83,7 +75,7 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
                     // }
                     if (pkg.ExportMap[i].OuterIndex.IsNull)
                         return (pkg.ExportMap[i], i);
-                    
+
                     // var _exp = pkg.ExportMap[i];
                     // if (!_exp.IsAsset)
                     //     continue;
@@ -98,7 +90,7 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
 
             return (null, 0);
         }
-            
+
 
         protected void Initialize(IAssetSource source) {
             var filePath = source.FilePath;
@@ -109,9 +101,9 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
             //     filePath = filePath.Replace(".umap", "");
             // }
             AssetPath = filePath;
-            
+
             AssetHash = source.GetHash(null);
-            
+
             var (mainExport, index) = GetMainExport(source.Package).Value;
             if (mainExport is null) {
                 Debug.WriteLine($"Failed to get mainexport for {source.Package.Name}");

@@ -1,27 +1,20 @@
-﻿using System.Collections.Concurrent;
-using UnchainedLauncher.UnrealModScanner.Assets;
+﻿using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
 
-namespace UnchainedLauncher.UnrealModScanner.Services
-{
-    public static class ModManifestConverter
-    {
-        public static ModManifest ProcessModScan(ModScanResult scanResult)
-        {
-            var manifest = new ModManifest
-            {
+namespace UnchainedLauncher.UnrealModScanner.Services {
+    public static class ModManifestConverter {
+        public static ModManifest ProcessModScan(ModScanResult scanResult) {
+            var manifest = new ModManifest {
                 SchemaVersion = 1,
                 ScannerVersion = "3.3.1",
                 GeneratedAt = DateTime.UtcNow.ToString("u"),
                 Paks = new List<PakInventoryDto>()
             };
 
-            foreach (var entry in scanResult.Paks)
-            {
-                var pakInventory = new PakInventoryDto
-                {
+            foreach (var entry in scanResult.Paks) {
+                var pakInventory = new PakInventoryDto {
                     PakName = entry.Key,
                     PakPath = entry.Value.PakPath,
                     PakHash = entry.Value.PakHash,
@@ -34,20 +27,16 @@ namespace UnchainedLauncher.UnrealModScanner.Services
             return manifest;
         }
 
-        private static AssetCollections MapAssets(PakScanResult result)
-        {
+        private static AssetCollections MapAssets(PakScanResult result) {
             var collections = new AssetCollections();
 
             // 1. Process Generic Markers
             // Structure: ConcurrentDictionary<string, ConcurrentDictionary<string, GenericMarkerEntry>>
-            foreach (var outerKvp in result.GenericMarkers)
-            {
-                foreach (var innerKvp in outerKvp.Value)
-                {
+            foreach (var outerKvp in result.GenericMarkers) {
+                foreach (var innerKvp in outerKvp.Value) {
                     GenericMarkerEntry marker = innerKvp.Value;
 
-                    var markerDto = new ModMarkerDto
-                    {
+                    var markerDto = new ModMarkerDto {
                         Path = marker.AssetPath,
                         Hash = marker.AssetHash,
                         ClassPath = marker.ClassPath,
@@ -59,10 +48,8 @@ namespace UnchainedLauncher.UnrealModScanner.Services
                     collections.Markers.Add(markerDto);
 
                     // Process the children (Blueprints) into the main collection
-                    foreach (var childAsset in marker.Children)
-                    {
-                        if (!collections.Blueprints.Any(x => x.Path == childAsset.AssetPath))
-                        {
+                    foreach (var childAsset in marker.Children) {
+                        if (!collections.Blueprints.Any(x => x.Path == childAsset.AssetPath)) {
                             collections.Blueprints.Add(MapToBlueprintDto(childAsset));
                         }
                     }
@@ -70,10 +57,8 @@ namespace UnchainedLauncher.UnrealModScanner.Services
             }
 
             // 2. Process Maps
-            foreach (var map in result._Maps)
-            {
-                collections.Maps.Add(new MapDto
-                {
+            foreach (var map in result._Maps) {
+                collections.Maps.Add(new MapDto {
                     Path = map.AssetPath,
                     Hash = map.AssetHash,
                     ClassPath = map.ClassPath,
@@ -89,10 +74,8 @@ namespace UnchainedLauncher.UnrealModScanner.Services
             }
 
             // 3. Process Replacements
-            foreach (var repl in result._AssetReplacements)
-            {
-                collections.Replacements.Add(new ReplacementDto
-                {
+            foreach (var repl in result._AssetReplacements) {
+                collections.Replacements.Add(new ReplacementDto {
                     Path = repl.AssetPath,
                     Hash = repl.AssetHash,
                     ClassPath = repl.ClassPath,
@@ -101,10 +84,8 @@ namespace UnchainedLauncher.UnrealModScanner.Services
             }
 
             // 4. Process Arbitrary
-            foreach (var arb in result.ArbitraryAssets)
-            {
-                collections.Arbitrary.Add(new ArbitraryDto
-                {
+            foreach (var arb in result.ArbitraryAssets) {
+                collections.Arbitrary.Add(new ArbitraryDto {
                     Path = arb.AssetPath,
                     Hash = arb.AssetHash,
                     ClassPath = arb.ClassPath,
@@ -115,21 +96,19 @@ namespace UnchainedLauncher.UnrealModScanner.Services
             return collections;
         }
 
-        private static BlueprintDto MapToBlueprintDto(GenericAssetEntry bp)
-        {
-            return new BlueprintDto
-            {
+        private static BlueprintDto MapToBlueprintDto(GenericAssetEntry bp) {
+            return new BlueprintDto {
                 Path = bp.AssetPath,
                 Hash = bp.AssetHash,
                 ClassPath = bp.ClassPath,
                 ObjectClass = bp.ClassName,
-                
+
                 ModName = GetProp<string>(bp.Properties, "ModName") ?? "",
                 Author = GetProp<string>(bp.Properties, "Author") ?? "",
                 Version = GetProp<string>(bp.Properties, "Version") ?? "1.0.0",
                 ModDescription = GetProp<string>(bp.Properties, "Description") ?? "",
                 ModRepoURL = GetProp<string>(bp.Properties, "RepoURL") ?? "",
-                
+
                 bSilentLoad = GetProp<bool>(bp.Properties, "bSilentLoad"),
                 bShowInGUI = GetProp<bool>(bp.Properties, "bShowInGUI"),
                 bClientside = GetProp<bool>(bp.Properties, "bIsClientSide"),
@@ -139,24 +118,20 @@ namespace UnchainedLauncher.UnrealModScanner.Services
             };
         }
 
-        private static string? GetSetting(Dictionary<string, Dictionary<string, object?>>? settings, string key)
-        {
+        private static string? GetSetting(Dictionary<string, Dictionary<string, object?>>? settings, string key) {
             if (settings == null) return null;
-            foreach (var category in settings.Values)
-            {
+            foreach (var category in settings.Values) {
                 if (category.TryGetValue(key, out var value))
                     return value?.ToString();
             }
             return null;
         }
 
-        private static T? GetProp<T>(Dictionary<string, object?> props, string key)
-        {
-            if (props.TryGetValue(key, out var value))
-            {
+        private static T? GetProp<T>(Dictionary<string, object?> props, string key) {
+            if (props.TryGetValue(key, out var value)) {
                 // Handle cases where numbers might be boxed as different types
                 if (value is T typedValue) return typedValue;
-                
+
                 try { return (T)Convert.ChangeType(value, typeof(T)); }
                 catch { return default; }
             }

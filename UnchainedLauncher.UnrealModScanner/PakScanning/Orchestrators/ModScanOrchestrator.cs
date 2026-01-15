@@ -12,7 +12,6 @@ using Serilog;
 using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.Config;
-using UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Processors;
 using UnchainedLauncher.UnrealModScanner.Utility;
@@ -82,7 +81,7 @@ public class ModScanOrchestrator {
                 files,
                 parallelOptions,
                 async (file, ct) => { // 'ct' ist das CancellationToken
-                
+
                     if (file.Value is not FPakEntry pakEntry)
                         return;
                     IPackage? pkg = null;
@@ -95,46 +94,46 @@ public class ModScanOrchestrator {
                         throw;
                     }
                     if (pkg == null) return;
-                    
-                try {
-                    var context = new ScanContext(provider, pkg, file.Key, pakEntry);
-                    var pakName = pakEntry.PakFileReader.Name;
 
-                    // ConcurrentDictionary handles the thread-safety here
-                    //var result = scanResult.Paks.GetOrAdd(pakName, name => new PakScanResult {
-                    //    PakPath = name,
-                    //    PakHash = HashUtility.CalculatePakHash(pakEntry.PakFileReader.Path)
-                    //});
-                    var currentPakResult = mainResult.Paks.GetOrAdd(pakName, (name) => new PakScanResult {
-                        PakPath = name,
-                        PakHash = HashUtility.CalculatePakHash(pakEntry.PakFileReader.Path)
-                    });
+                    try {
+                        var context = new ScanContext(provider, pkg, file.Key, pakEntry);
+                        var pakName = pakEntry.PakFileReader.Name;
+
+                        // ConcurrentDictionary handles the thread-safety here
+                        //var result = scanResult.Paks.GetOrAdd(pakName, name => new PakScanResult {
+                        //    PakPath = name,
+                        //    PakHash = HashUtility.CalculatePakHash(pakEntry.PakFileReader.Path)
+                        //});
+                        var currentPakResult = mainResult.Paks.GetOrAdd(pakName, (name) => new PakScanResult {
+                            PakPath = name,
+                            PakHash = HashUtility.CalculatePakHash(pakEntry.PakFileReader.Path)
+                        });
 
                         if (mode == ScanMode.GameInternal) {
-                        _internalProcessor?.Process(context, currentPakResult);
-                    }
-                    else {
-                        foreach (var processor in _modProcessors) {
-                            try {
-                                processor.Process(context, currentPakResult);
-                                
-                            }
-                            catch (Exception ex) {
-                                System.Diagnostics.Debug.WriteLine($"Processor Error: {ex.Message}");
+                            _internalProcessor?.Process(context, currentPakResult);
+                        }
+                        else {
+                            foreach (var processor in _modProcessors) {
+                                try {
+                                    processor.Process(context, currentPakResult);
+
+                                }
+                                catch (Exception ex) {
+                                    System.Diagnostics.Debug.WriteLine($"Processor Error: {ex.Message}");
+                                }
                             }
                         }
                     }
-                }
-                catch (Exception ex) {
-                    System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}");
-                }
-                finally {
-                    var count = Interlocked.Increment(ref processed);
-                    if (count % 50 == 0 || count == files.Count) {
-                        progress?.Report((double)count / files.Count * 100);
+                    catch (Exception ex) {
+                        System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}");
                     }
-                }
-            });
+                    finally {
+                        var count = Interlocked.Increment(ref processed);
+                        if (count % 50 == 0 || count == files.Count) {
+                            progress?.Report((double)count / files.Count * 100);
+                        }
+                    }
+                });
 
             if (discoveryProcessor?.DiscoveredReferences.Any() == true) {
                 var secondPass = new SecondPassOrchestrator(provider, options); // options statt _options

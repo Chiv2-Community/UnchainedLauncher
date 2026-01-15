@@ -36,10 +36,10 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
         private static readonly JsonSerializerOptions _options = new() { WriteIndented = true };
 
         public static void GenerateDefaultConfig(string outputPath) {
-            var defaultConfig = new ScanOptions ();
+            var defaultConfig = new ScanOptions();
             var json = JsonConvert.SerializeObject(defaultConfig, new JsonSerializerSettings {
                 Formatting = Formatting.Indented,
-                NullValueHandling = NullValueHandling.Include,                
+                NullValueHandling = NullValueHandling.Include,
             });
             File.WriteAllText(outputPath, json);
         }

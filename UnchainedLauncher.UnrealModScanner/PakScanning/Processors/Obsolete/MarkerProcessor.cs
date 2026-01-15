@@ -19,8 +19,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors.Obsolete {
                 .Where(e => e.Value.Class?.Name.Contains("DA_ModMarker_C") == true);
 
             foreach (var marker in markers) {
-                try
-                {
+                try {
                     var map = marker.Value.GetOrDefault<UScriptMap>("ModActors");
                     if (map == null) continue;
 
@@ -49,8 +48,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors.Obsolete {
                     }
                     result._Markers.Add(markerInfo);
                 }
-                catch (Exception ex)
-                {
+                catch (Exception ex) {
                     System.Diagnostics.Debug.WriteLine(
                         $"Error processing marker {marker.Value.Name}: {ex}");
                 }

@@ -11,7 +11,7 @@ public class ModScanTabViewModel : INotifyPropertyChanged {
     private ObservableCollection<PakScanResult> _scanResults = new();
     public PakScanResultVM ResultsVisual { get; set; } = new();
     public ModScanTabVM ModScanTab { get; set; } = new();
-    
+
     public ObservableCollection<PakScanResult> ScanResults {
         get => _scanResults;
         set { _scanResults = value; OnPropertyChanged(); }

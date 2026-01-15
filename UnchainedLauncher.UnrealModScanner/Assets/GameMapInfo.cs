@@ -1,7 +1,5 @@
 ﻿using Newtonsoft.Json;
-using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
-using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 
 namespace UnchainedLauncher.UnrealModScanner.Assets {
     public class GameMapInfo : BaseAsset {
@@ -10,8 +8,7 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
         public static GameMapInfo FromSource(
             IAssetSource source,
             string? gameMode,
-            Dictionary<string, Dictionary<string, object?>>? settings)
-        {
+            Dictionary<string, Dictionary<string, object?>>? settings) {
             var asset = new GameMapInfo();
             asset.Initialize(source);
             asset.GameMode = gameMode;
@@ -24,7 +21,7 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
         /// </summary>
         [JsonProperty("game_mode")]
         public string? GameMode { get; private set; }
-        
+
         [JsonProperty("settings")]
         public Dictionary<string, Dictionary<string, object?>>? Settings { get; set; }
     }

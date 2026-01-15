@@ -1,5 +1,4 @@
-﻿using CUE4Parse.UE4.Assets;
-using CUE4Parse.UE4.Assets.Exports;
+﻿using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.UObject;
 using Newtonsoft.Json;
@@ -9,7 +8,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
-using UnchainedLauncher.UnrealModScanner.Models.Chivalry2;
 using UnchainedLauncher.UnrealModScanner.Models.Dto;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.Utility;
@@ -55,23 +53,24 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
         public void Process(ScanContext ctx, PakScanResult result) {
             var gameMode = "";
             var settingsDictionary = new Dictionary<string, Dictionary<string, object?>>();
-            
+
             var (mainExport, index) = BaseAsset.GetMainExport(ctx.Package).Value;
             // TODO: throw
             if (mainExport == null) return;
             if (mainExport.ClassName != _containerClassName) return;
             var mainExportLazy = ctx.Package.GetExport(index);
-            
+
             var map = mainExportLazy.GetOrDefault<UScriptMap>(_mapPropertyName);
-            
-            var properties = new Dictionary<string,object?>();
+
+            var properties = new Dictionary<string, object?>();
             var childClassName = String.Empty;
             foreach (var kvp in mainExportLazy.Properties) {
                 var value = kvp.Tag?.GenericValue;
 
                 if (value == null) continue;
 
-                try {;
+                try {
+                    ;
                     var rawValue = kvp.Tag.GetValue(kvp.Tag.GetType()) ?? kvp.Tag.GenericValue;
                     if (rawValue is UScriptMap _map) {
                         _map.ToString();
@@ -89,18 +88,19 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                 catch (Exception e) {
                     Log.Error("Failed to save Marker properties");
                 }
-                
+
                 // properties.Add(kvp.Name.Text, rawValue);
             }
-            
+
             if (map == null) {
                 Debug.WriteLine($"Could not find TMap for {_mapPropertyName}");
                 return;
-            };
-            
+            }
+            ;
+
             foreach (var entry in map.Properties) {
                 if (entry.Key.GetValue(typeof(FPackageIndex)) is FPackageIndex idx) {
-                    
+
                     var resolved = ctx.Package.ResolvePackageIndex(idx);
                     if (childClassName.Length == 0 && resolved.Super != null)
                         childClassName = resolved.Super.GetPathName();
@@ -115,14 +115,14 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                     }
                 }
             }
-            
+
             result.AddGenericMarker(GenericMarkerEntry.FromSource(
                 new ScanContextAssetSource(ctx),
                 childClassName,
                 null,
                 properties
             ), mainExport.ClassName);
-            
+
             // foreach (var kvp in mainExportLazy.Properties) {
             //         // dictInner.Add($"{kvp.PropertyType.ToString()}: {kvp.Name.PlainText}" , kvp.Tag?.GenericValue.ToString());
             //         // TODO: Add a helper for pretty property values
@@ -218,8 +218,8 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             // }
 
             return;
-            
-            
+
+
             // var containers = ctx.Package.ExportsLazy
             //     .Where(e => e.Value.Class?.Name.Contains(_containerClassName) == true);
             //

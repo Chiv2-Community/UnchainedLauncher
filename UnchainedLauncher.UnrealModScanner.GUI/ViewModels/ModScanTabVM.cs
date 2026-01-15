@@ -1,19 +1,13 @@
 ﻿
 using CommunityToolkit.Mvvm.ComponentModel;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Windows;
-using UnchainedLauncher.Core.JsonModels.Metadata;
 using UnchainedLauncher.UnrealModScanner.Config;
-using UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes;
+using UnchainedLauncher.UnrealModScanner.Export;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
-using UnchainedLauncher.UnrealModScanner.Models.Chivalry2.UnchainedLauncher.UnrealModScanner.Models; // Required for Application.Current.Dispatcher
 using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.Services;
 using UnchainedLauncher.UnrealModScanner.ViewModels;
-using UnchainedLauncher.UnrealModScanner.Export;
-using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 

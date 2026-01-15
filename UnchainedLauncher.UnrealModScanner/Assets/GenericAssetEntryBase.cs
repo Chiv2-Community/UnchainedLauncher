@@ -1,16 +1,12 @@
 ﻿using Newtonsoft.Json;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
-using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
-using System.Collections.Generic;
 
-namespace UnchainedLauncher.UnrealModScanner.Assets
-{
+namespace UnchainedLauncher.UnrealModScanner.Assets {
     /// <summary>
     /// Base class for all generic asset entries 
     /// </summary>
     public abstract class GenericAssetEntryBase<TDerived> : BaseAsset
-        where TDerived : GenericAssetEntryBase<TDerived>, new()
-    {
+        where TDerived : GenericAssetEntryBase<TDerived>, new() {
         [JsonProperty("properties")]
         public Dictionary<string, object?> Properties { get; protected set; } = new();
 
@@ -20,8 +16,7 @@ namespace UnchainedLauncher.UnrealModScanner.Assets
         /// <summary>
         /// Intermediate initialization for derived types
         /// </summary>
-        protected void InitializeGeneric(IAssetSource source, Dictionary<string, object?>? properties)
-        {
+        protected void InitializeGeneric(IAssetSource source, Dictionary<string, object?>? properties) {
             Initialize(source);      // BaseAsset logic
             Properties = properties; // ?? new Dictionary<string, object?>();
         }
@@ -29,8 +24,7 @@ namespace UnchainedLauncher.UnrealModScanner.Assets
         /// <summary>
         /// Factory for any derived type
         /// </summary>
-        public static TDerived FromSource(IAssetSource source, Dictionary<string, object?>? properties)
-        {
+        public static TDerived FromSource(IAssetSource source, Dictionary<string, object?>? properties) {
             var asset = new TDerived();
             asset.InitializeGeneric(source, properties);
             return asset;

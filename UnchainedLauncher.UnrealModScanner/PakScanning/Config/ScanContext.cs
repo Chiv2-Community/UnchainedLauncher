@@ -29,28 +29,27 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Config {
         public string GetHash(UObject export) {
             return HashUtility.GetAssetHash(Provider, FilePath, PakEntry);
         }
-        
+
 
         /// <summary>
         /// Returns the CDOs of all classes defined in this package.
         /// </summary>
         public IEnumerable<UObject> GetClassDefaultObjects() => PackageUtility.GetClassDefaultObjects(Package);
-        
+
         public T GetSingleCDO<T>() where T : UObject => PackageUtility.GetSingleCDO<T>(Package);
 
         public UObject GetSingleCDO() => PackageUtility.GetSingleCDO(Package);
-        
+
         /// <summary>
         /// Returns the CDOs of all classes defined in this package.
         /// </summary>
         public IEnumerable<UClass> GetClassExports() => PackageUtility.GetClassExports(Package);
         public UClass GetSingleClassExport() => PackageUtility.GetSingleClassExport(Package);
-        
+
         public List<AssetProcessingError> ProcessingErrors { get; } = new();
     }
-    
-    public class AssetProcessingError
-    {
+
+    public class AssetProcessingError {
         public string ProcessorName { get; set; } = "";
         public string PackagePath { get; set; } = "";
         public string? AssetName { get; set; }
@@ -58,4 +57,3 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Config {
         public string Message { get; set; } = "";
     }
 }
-

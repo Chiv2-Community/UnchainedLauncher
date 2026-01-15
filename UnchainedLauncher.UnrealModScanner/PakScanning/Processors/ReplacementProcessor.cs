@@ -1,7 +1,5 @@
-﻿using System.Diagnostics;
-using UnchainedLauncher.UnrealModScanner.Assets;
+﻿using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
-using UnchainedLauncher.UnrealModScanner.Models.Chivalry2.UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
 
@@ -13,7 +11,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
         public void Process(ScanContext ctx, PakScanResult result) {
             var replacement = (!_dirs.Any(dir => ctx.FilePath.StartsWith(dir)));
             if (!_dirs.Any(dir => ctx.FilePath.StartsWith(dir))) return;
-            
+
             var entry = GenericAssetEntry.FromSource(
                 new ScanContextAssetSource(ctx),
                 null

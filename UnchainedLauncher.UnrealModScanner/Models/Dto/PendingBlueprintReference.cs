@@ -6,7 +6,7 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Dto {
     /// </summary>
     public class PendingBlueprintReference {
         public string SourceMarkerPath { get; set; } = string.Empty;
-        
+
         public string SourceMarkerClassName { get; set; } = string.Empty;
         public string TargetBlueprintPath { get; set; } = string.Empty;
         public string TargetClassName { get; set; } = string.Empty;

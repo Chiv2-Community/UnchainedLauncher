@@ -41,7 +41,6 @@ public class ModScanOrchestrator {
 
         provider.Initialize();
         provider.SubmitKey(new FGuid(), new FAesKey("0x0000000000000000000000000000000000000000000000000000000000000000")); // Your key here
-        provider.LoadVirtualPaths();
 
         var zlib_path = OperatingSystem.IsLinux() ? "libz-ng.so" : "zlib-ng2.dll";
         var zlib_url = $"https://github.com/NotOfficer/Zlib-ng.NET/releases/download/1.0.0/{zlib_path}";
@@ -50,6 +49,7 @@ public class ModScanOrchestrator {
             ZlibHelper.DownloadDll(zlib_path, zlib_url); // TODO: better way?
         }
         ZlibHelper.Initialize(Path.Combine(Directory.GetCurrentDirectory(), zlib_path));
+        provider.LoadVirtualPaths();
         return provider;
     }
 
@@ -96,14 +96,10 @@ public class ModScanOrchestrator {
                     bool packageLoaded;
                     try {
                         pkg = provider.LoadPackage(file.Key);
-                    }
-                    catch (Exception e) {
-                        Log.Error($"Failed to load package: {e.Message}");
-                        throw;
-                    }
+                        // Log.Error($"Failed to load package: {e.Message}");
+                        // throw;
                     if (pkg == null) return;
 
-                    try {
                         var context = new ScanContext(provider, pkg, file.Key, pakEntry);
                         var pakName = pakEntry.PakFileReader.Name;
 

@@ -32,15 +32,12 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             // TODO: throw
             if (mainExport == null) return;
 
-            // Why does GetExport crash with 0
-            var mainExportLazy = index > 0 ? ctx.Package.GetExport(index) : ctx.Package.ExportsLazy[0].Value;
-
-            // var pathname = (mainExportLazy.Super ?? mainExportLazy.Template?.Outer)?.GetPathName();
+        // var pathname = (mainExportLazy.Super ?? mainExportLazy.Template?.Outer)?.GetPathName();
             var PathName = mainExport.ClassIndex.ResolvedObject.GetPathName();
             if (PathName.EndsWith("BlueprintGeneratedClass")) {
                 if (!mainExport.SuperIndex.IsNull) {
                     PathName = mainExport.SuperIndex.ResolvedObject.GetPathName();
-
+                    
                 }
             }
             if (PathName.EndsWith("_C"))
@@ -49,6 +46,9 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                 return;
 
             var propertyMap = new Dictionary<string, FPropertyTag>();
+            // Why does GetExport crash with 0
+            var mainExportLazy = index > 0 ? ctx.Package.GetExport(index) : ctx.Package.ExportsLazy[0].Value;
+            
             if (mainExportLazy is UClass bgc) {
                 var cdo = bgc.ClassDefaultObject.Load();
                 propertyMap = propertyMap = cdo.Properties.ToDictionary(p => p.Name.Text, p => p);

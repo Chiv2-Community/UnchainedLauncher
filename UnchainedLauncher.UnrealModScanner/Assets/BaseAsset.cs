@@ -59,20 +59,6 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
             for (int i = 0; i < package.ExportMapLength; i++) {
                 try {
 
-                    UObject? exp = null;
-                    try {
-                        exp = package.GetExport(i);
-                    }
-                    catch (Exception e) {
-                        Log.Error($"GetMainExport faile to get Export: {e.Message}");
-                        throw;
-                    }
-                    if (exp == null)
-                        continue;
-
-                    // if (exp.Outer == null) {
-                    //     Debug.WriteLine("Found the package export");
-                    // }
                     if (pkg.ExportMap[i].OuterIndex.IsNull)
                         return (pkg.ExportMap[i], i);
 

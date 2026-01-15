@@ -9,7 +9,6 @@ using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Readers;
 using CUE4Parse.UE4.Versions;
 using log4net;
-using Serilog;
 using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.Config;
@@ -98,7 +97,7 @@ public class ModScanOrchestrator {
                         pkg = provider.LoadPackage(file.Key);
                         // Log.Error($"Failed to load package: {e.Message}");
                         // throw;
-                    if (pkg == null) return;
+                        if (pkg == null) return;
 
                         var context = new ScanContext(provider, pkg, file.Key, pakEntry);
                         var pakName = pakEntry.PakFileReader.Name;

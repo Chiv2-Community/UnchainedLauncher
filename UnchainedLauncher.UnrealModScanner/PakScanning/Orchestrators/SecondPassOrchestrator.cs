@@ -79,7 +79,7 @@ public class SecondPassOrchestrator {
                     var (mainExport, index) = BaseAsset.GetMainExport(package).Value;
                     // TODO: throw
                     if (mainExport == null) return;
-                    var mainExportLazy = package.GetExport(index);
+                    var mainExportLazy = index > 0 ? package.GetExport(index) : package.ExportsLazy[0].Value;
                     var filteredProperties = new Dictionary<string, object?>();
 
                     var propertyMap = new Dictionary<string, FPropertyTag>();

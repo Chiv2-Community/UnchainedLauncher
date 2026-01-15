@@ -8,6 +8,7 @@ using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Readers;
 using CUE4Parse.UE4.Versions;
+using log4net;
 using Serilog;
 using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Assets;
@@ -23,7 +24,7 @@ public class ModScanOrchestrator {
     private readonly List<IAssetProcessor> _modProcessors = new();
     private IAssetProcessor _internalProcessor;
     private const string MainPakName = "pakchunk0-WindowsNoEditor.pak";
-
+    private static readonly ILog Logger = LogManager.GetLogger(typeof(ModScanOrchestrator));
     public void AddModProcessor(IAssetProcessor p) => _modProcessors.Add(p);
     public void SetInternalProcessor(IAssetProcessor p) => _internalProcessor = p;
 
@@ -31,9 +32,11 @@ public class ModScanOrchestrator {
         var provider = new FilteredFileProvider(pakDir, SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_UE4_25));
 
         provider.PakFilter = p => {
-            bool isMain = p.Name.Contains(MainPakName, StringComparison.OrdinalIgnoreCase);
-            // If ModsOnly: Skip main pak. If GameInternal: ONLY include main pak.
-            return mode == ScanMode.ModsOnly ? !isMain : isMain;
+            // Filter moved to file selection
+            // bool isMain = p.Name.Contains(MainPakName, StringComparison.OrdinalIgnoreCase);
+            // // If ModsOnly: Skip main pak. If GameInternal: ONLY include main pak.
+            // return mode == ScanMode.ModsOnly ? !isMain : isMain;
+            return true;
         };
 
         provider.Initialize();
@@ -65,6 +68,11 @@ public class ModScanOrchestrator {
                 bool isAsset = f.Key.EndsWith(".uasset") || f.Key.EndsWith(".umap");
                 if (!isAsset) return false;
 
+                // good idea to check here?
+                if (f.Value is FPakEntry fPakEntry) {
+                    if (fPakEntry.PakFileReader.Name == "pakchunk0-WindowsNoEditor.pak")
+                        return false;
+                }
                 return true;
                 // if (options.PathFilters.Count == 0) return true;
 

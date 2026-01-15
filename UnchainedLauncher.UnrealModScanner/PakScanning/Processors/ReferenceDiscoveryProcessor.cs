@@ -58,7 +58,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             // TODO: throw
             if (mainExport == null) return;
             if (mainExport.ClassName != _containerClassName) return;
-            var mainExportLazy = ctx.Package.GetExport(index);
+            var mainExportLazy = index > 0 ? ctx.Package.GetExport(index) : ctx.Package.ExportsLazy[0].Value;
 
             var map = mainExportLazy.GetOrDefault<UScriptMap>(_mapPropertyName);
 

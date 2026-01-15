@@ -15,19 +15,11 @@ public static class ModScanJsonExporter {
         Formatting = Formatting.Indented,
         NullValueHandling = NullValueHandling.Ignore,
     };
-    public static string ExportToString(
-    ModManifest scanResults) {
-        var doc = new ModScanDocument {
-            Manifest = scanResults
-        };
-
-        return JsonConvert.SerializeObject(doc, Settings);
-    }
-
+    
     public static void ExportToFile(
         ModManifest scanResults,
         string outputPath) {
-        var json = ExportToString(scanResults);
+        var json = JsonConvert.SerializeObject(scanResults, Settings);
         File.WriteAllText(outputPath, json);
     }
 

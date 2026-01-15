@@ -2,8 +2,11 @@
 using CUE4Parse.UE4.Versions;
 using CUE4Parse.Utils;
 
-namespace UnchainedLauncher.UnrealModScanner.Scanning {
+namespace UnchainedLauncher.UnrealModScanner.PakScanning {
 
+    /// <summary>
+    /// DefaultFileProvider
+    /// </summary>
     public class FilteredFileProvider : DefaultFileProvider {
         private readonly DirectoryInfo _workingDir;
         private readonly SearchOption _sOption;

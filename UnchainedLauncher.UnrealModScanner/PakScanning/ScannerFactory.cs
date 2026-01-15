@@ -1,4 +1,7 @@
-﻿using UnchainedLauncher.UnrealModScanner.PakScanning.Processors;
+﻿using UnchainedLauncher.UnrealModScanner.Config;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Orchestrators;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Processors;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Processors.Obsolete;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning;
 
@@ -7,16 +10,22 @@ public static class ScannerFactory {
     /// Configures an orchestrator for standard mod discovery.
     /// Excludes the main game pak and uses all 4 mod-logic processors.
     /// </summary>
-    public static ModScanOrchestrator CreateModScanner(IEnumerable<string> standardDirs) {
+    public static ModScanOrchestrator CreateModScanner(IEnumerable<string> standardDirs, ScanOptions options) {
         var orchestrator = new ModScanOrchestrator();
         var dirs = standardDirs.ToList();
 
         // Register the 4 mod-specific processors
-        orchestrator.AddModProcessor(new MarkerProcessor());
+        // orchestrator.AddModProcessor(new MarkerProcessor());
         orchestrator.AddModProcessor(new MapProcessor());
         orchestrator.AddModProcessor(new ReplacementProcessor(dirs));
-        orchestrator.AddModProcessor(new ArbitraryBlueprintProcessor(dirs));
+        orchestrator.AddModProcessor(new ArbitraryAssetProcessor(dirs));
 
+        foreach (var processor in options.CdoProcessors) {
+            orchestrator.AddModProcessor(new GenericCdoProcessor(processor.TargetClassName, processor.Properties));
+        }
+        foreach (var processor in options.MarkerProcessors) {
+            orchestrator.AddModProcessor(new ReferenceDiscoveryProcessor(processor.MarkerClassName, processor.MapPropertyName));
+        }
         return orchestrator;
     }
 

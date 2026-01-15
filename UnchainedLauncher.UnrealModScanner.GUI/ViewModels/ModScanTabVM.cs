@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Diagnostics;
 using UnchainedLauncher.UnrealModScanner.Config;
+using UnchainedLauncher.UnrealModScanner.Config.Games;
 using UnchainedLauncher.UnrealModScanner.Export;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
@@ -54,7 +55,7 @@ public partial class ModScanTabVM : ObservableObject {
         await Task.Yield();
         // 3. Execution
         var swMod = Stopwatch.StartNew();
-        var options_new = new ScanOptions();
+        var options_new = GameScanOptions.Chivalry2;
         var modScanner = ScannerFactory.CreateModScanner(officialDirs, options_new);
 
 

@@ -3,6 +3,7 @@ using Spectre.Console.Cli;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using UnchainedLauncher.PakScannerApp;
+using UnchainedLauncher.UnrealModScanner.Config.Games;
 using UnchainedLauncher.UnrealModScanner.Export;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.Services;
@@ -24,7 +25,7 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
         var progress = new Progress<double>(p =>
             AnsiConsole.MarkupLine($"[grey]Progress:[/] {p:F2}%"));
 
-        var options_new = new UnchainedLauncher.UnrealModScanner.Config.ScanOptions();
+        var options_new = GameScanOptions.Chivalry2;
         var scanner = ScannerFactory.CreateModScanner(
             options.OfficialDirectories, options_new);
 

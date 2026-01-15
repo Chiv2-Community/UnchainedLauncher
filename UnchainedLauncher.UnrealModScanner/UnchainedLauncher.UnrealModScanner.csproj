@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="CUE4Parse" Version="1.2.2" />
+    <PackageReference Include="log4net" Version="3.0.1" />
   </ItemGroup>
 
   <ItemGroup>

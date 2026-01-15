@@ -20,10 +20,10 @@ namespace UnchainedLauncher.UnrealModScanner.Utility {
 
         public static string CalculatePakHash(string filePath) {
             if (!File.Exists(filePath)) return "FILE_NOT_FOUND";
-            using var sha256 = SHA1.Create();
+            using var sha512 = SHA512.Create();
             using var stream = File.OpenRead(filePath);
 
-            byte[] hashBytes = sha256.ComputeHash(stream);
+            byte[] hashBytes = sha512.ComputeHash(stream);
 
             // Convert bytes to hex string (e.g., "a3f2c1...")
             return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();

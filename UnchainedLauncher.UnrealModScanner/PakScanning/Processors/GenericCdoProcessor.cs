@@ -32,15 +32,15 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             // TODO: throw
             if (mainExport == null) return;
 
-        // Why does GetExport crash with 0
-        var mainExportLazy = index > 0 ? ctx.Package.GetExport(index) : ctx.Package.ExportsLazy[0].Value;
+            // Why does GetExport crash with 0
+            var mainExportLazy = index > 0 ? ctx.Package.GetExport(index) : ctx.Package.ExportsLazy[0].Value;
 
-        // var pathname = (mainExportLazy.Super ?? mainExportLazy.Template?.Outer)?.GetPathName();
+            // var pathname = (mainExportLazy.Super ?? mainExportLazy.Template?.Outer)?.GetPathName();
             var PathName = mainExport.ClassIndex.ResolvedObject.GetPathName();
             if (PathName.EndsWith("BlueprintGeneratedClass")) {
                 if (!mainExport.SuperIndex.IsNull) {
                     PathName = mainExport.SuperIndex.ResolvedObject.GetPathName();
-                    
+
                 }
             }
             if (PathName.EndsWith("_C"))

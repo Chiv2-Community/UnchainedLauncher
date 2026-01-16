@@ -13,8 +13,8 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
         /// <summary>
         /// Class Name of Marker children container (TMap)
         /// </summary>
-        [JsonProperty("children_class_name")]
-        public string ChildrenClassName { get; private set; } = string.Empty;
+        [JsonProperty("children_class_path")]
+        public string ChildrenClassPath { get; private set; } = string.Empty;
 
         /// <summary>
         /// Contains Markers discovered by ReferenceDiscoveryProcessor
@@ -29,12 +29,12 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
         /// </summary>
         public static GenericMarkerEntry FromSource(
             IAssetSource source,
-            string childrenClassName,
+            string childrenClassPath,
             ConcurrentBag<GenericAssetEntry>? children = null,
             Dictionary<string, object?>? properties = null) {
             var asset = GenericAssetEntryBase<GenericMarkerEntry>.FromSource(source, properties);
 
-            asset.ChildrenClassName = childrenClassName;
+            asset.ChildrenClassPath = childrenClassPath;
             asset.Children = children ?? new ConcurrentBag<GenericAssetEntry>();
 
             return asset;

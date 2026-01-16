@@ -14,23 +14,6 @@ namespace UnchainedLauncher.UnrealModScanner.Config.Games {
             "Trailer_Cinematic","UI","Weapons","Engine","Mannequin"
             ],
             CdoProcessors = [
-                new() {
-                TargetClassName = "TBL/Content/Mods/ArgonSDK/Mods/ArgonSDKModBase",
-                Properties = [
-                    new() { Name = "ModName", Mode = EExtractionMode.String },
-                    new() { Name = "ModVersion", Mode = EExtractionMode.String },
-                    new() { Name = "ModDescription", Mode = EExtractionMode.String },
-                    new() { Name = "ModRepoURL", Mode = EExtractionMode.String },
-                    new() { Name = "Author", Mode = EExtractionMode.String },
-                    new() { Name = "bEnableByDefault", Mode = EExtractionMode.Raw },
-                    new() { Name = "bSilentLoad", Mode = EExtractionMode.Raw },
-                    new() { Name = "bShowInGUI ", Mode = EExtractionMode.Raw },
-                    new() { Name = "bClientside", Mode = EExtractionMode.Raw },
-                    new() { Name = "bOnlineOnly", Mode = EExtractionMode.Raw },
-                    new() { Name = "bHostOnly", Mode = EExtractionMode.Raw },
-                    new() { Name = "bAllowOnFrontend", Mode = EExtractionMode.Raw },
-                ]
-            },
             new() {
                 TargetClassName = "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase",
                 Properties = [

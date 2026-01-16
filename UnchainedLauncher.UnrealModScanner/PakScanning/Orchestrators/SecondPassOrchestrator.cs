@@ -115,11 +115,7 @@ public class SecondPassOrchestrator {
                         filteredProperties);
                     if (mainExportLazy is UClass uclass) {
                         var fullName = uclass.GetFullName();
-                        entry.ClassPath = Regex.Replace(
-                            fullName,
-                            @"^.*?'[^/]+/Content(/.+)'$",
-                            "/Game$1"
-                        );
+                        entry.ClassPath = PackageUtility.ToGamePathName(fullName);
                     }
 
                     marker?.AddGenericEntry(entry);

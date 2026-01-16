@@ -119,12 +119,12 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
 
                         var resolved = ctx.Package.ResolvePackageIndex(idx);
                         if (childClassName.Length == 0 && resolved.Super != null)
-                            childClassName = resolved.Super.GetPathName();
+                            childClassName = PackageUtility.ToGamePathName(resolved.Super.GetPathName());
                         if (resolved != null) {
                             DiscoveredReferences.Add(new PendingBlueprintReference {
                                 SourceMarkerPath = ctx.FilePath,
                                 SourceMarkerClassName = mainExport.ClassName,
-                                TargetBlueprintPath = resolved.GetPathName(),
+                                TargetBlueprintPath = PackageUtility.ToGamePathName(resolved.GetPathName()),
                                 TargetClassName = resolved.Name.Text,
                                 SourcePakFile = ctx.PakEntry.PakFileReader.Name,
                             });

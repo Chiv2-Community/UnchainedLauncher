@@ -124,6 +124,9 @@ public sealed class PakScanResult {
         RemoveEntryGlobal(baseAsset.AssetPath);
         RemoveByAssetPath(ref _arbitraryAssets, baseAsset.AssetPath);
     }
+    public void RemoveArbitraryAsset(BaseAsset baseAsset) {
+        RemoveByAssetPath(ref _arbitraryAssets, baseAsset.AssetPath);
+    }
 
     public void AddGenericMarker(GenericMarkerEntry entry, string base_name) {
         var innerDict = GenericMarkers.GetOrAdd(base_name,

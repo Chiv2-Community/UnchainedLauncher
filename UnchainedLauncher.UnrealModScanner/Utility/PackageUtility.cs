@@ -1,6 +1,7 @@
 using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Objects.UObject;
+using System.Text.RegularExpressions;
 
 namespace UnchainedLauncher.UnrealModScanner.Utility {
     public class PackageUtility {
@@ -50,6 +51,33 @@ namespace UnchainedLauncher.UnrealModScanner.Utility {
                 throw new InvalidOperationException(
                     $"Package '{package.Name}' is expected to have exactly one UClass export, but found {GetClassExports(package).Count()}.");
             }
+        }
+
+        public static string ToGamePathName(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return path;
+
+            string result;
+
+            // 1️⃣ Try UObject-style path: SomeClass'TBL/Content/...'
+            var uobjMatch = Regex.Match(path, @"^.*?'[^/]+/Content(/.+)'$");
+            if (uobjMatch.Success)
+            {
+                result = "/Game" + uobjMatch.Groups[1].Value;
+                return result;
+            }
+
+            // 2️⃣ Fall back to raw path: TBL/Content/...
+            var rawMatch = Regex.Match(path, @"^.*?/Content(/.+)$");
+            if (rawMatch.Success)
+            {
+                result = "/Game" + rawMatch.Groups[1].Value;
+                return result;
+            }
+
+            // 3️⃣ If nothing matches, return original
+            return path;
         }
     }
 }

@@ -36,13 +36,20 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             var PathName = mainExport.ClassIndex.ResolvedObject.GetPathName();
             if (PathName.EndsWith("BlueprintGeneratedClass")) {
                 if (!mainExport.SuperIndex.IsNull) {
-                    PathName = mainExport.SuperIndex.ResolvedObject.GetPathName();
+                    try {
+                        var resolved = ctx.Package.ResolvePackageIndex(mainExport.SuperIndex);
+                        PathName = resolved.GetPathName();
+                    }
+                    catch (Exception e) {
+                        Console.WriteLine(e);
+                        throw;
+                    }
 
                 }
             }
             if (PathName.EndsWith("_C"))
                 PathName = PathName.Split('.')[0];
-            if (_targetClassName != "*" && PathName != _targetClassName)
+            if (_targetClassName != "*" && PackageUtility.ToGamePathName(PathName) != _targetClassName)
                 return;
 
             var propertyMap = new Dictionary<string, FPropertyTag>();
@@ -95,7 +102,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                     if (ustruct.SuperStruct != null) {
                         try {
                             var resolved = ctx.Package.ResolvePackageIndex(ustruct.SuperStruct);
-                            className = resolved.GetPathName(); // Use pathname to resolve orphans
+                            className = PackageUtility.ToGamePathName(resolved.GetPathName()); // Use pathname to resolve orphans
                         }
                         catch (Exception e) {
                             className = ustruct.SuperStruct.Name;
@@ -111,6 +118,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                 filteredProperties);
             // var base_name = (mainExportLazy.Super ?? mainExportLazy.Template?.Outer)?.GetPathName();
             result.AddGenericEntry(entry, className ?? "CDO");
+            // result.RemoveArbitraryAsset(entry);
 
             return;
             // UObject? classExport = null;

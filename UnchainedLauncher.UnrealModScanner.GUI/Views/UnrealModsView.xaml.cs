@@ -104,7 +104,7 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.Views {
 
             var dlg = new SaveFileDialog {
                 Filter = "JSON Files (*.json)|*.json",
-                FileName = "mods.json"
+                FileName = "modmanifest.json"
             };
 
             if (dlg.ShowDialog() == true) {

@@ -1,4 +1,5 @@
-﻿using UnchainedLauncher.UnrealModScanner.Assets;
+﻿using System.Collections.Concurrent;
+using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
@@ -29,6 +30,8 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
 
         private static AssetCollections MapAssets(PakScanResult result) {
             var collections = new AssetCollections();
+            
+            var KnownMarkerChildClassPaths = new ConcurrentBag<string>();
 
             // 1. Process Generic Markers
             // Structure: ConcurrentDictionary<string, ConcurrentDictionary<string, GenericMarkerEntry>>
@@ -36,6 +39,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                 foreach (var innerKvp in outerKvp.Value) {
                     GenericMarkerEntry marker = innerKvp.Value;
 
+                    KnownMarkerChildClassPaths.Add(marker.ChildrenClassPath);
                     var markerDto = new ModMarkerDto {
                         Path = marker.AssetPath,
                         Hash = marker.AssetHash,
@@ -55,6 +59,17 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                     }
                 }
             }
+            
+            // Process orphaned blueprints
+            // This requires the ModBase to be parsed by GenericCdoProcessor
+            foreach (var (classPath, entries) in result.GenericEntries)
+                if (KnownMarkerChildClassPaths.Contains(classPath))
+                    foreach (var genericBlueprint in entries) {
+                        var blueprint = MapToBlueprintDto(genericBlueprint);
+                        blueprint.IsOrphaned = true;
+                        collections.Blueprints.Add(blueprint);
+                    }
+            
 
             // 2. Process Maps
             foreach (var map in result._Maps) {

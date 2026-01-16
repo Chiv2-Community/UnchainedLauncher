@@ -92,8 +92,17 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             if (mainExportLazy.ExportType.EndsWith("BlueprintGeneratedClass")) {
                 className = mainExportLazy.Class.Name;
                 if (mainExportLazy is UStruct ustruct) {
-                    if (ustruct.SuperStruct != null)
-                        className = ustruct.SuperStruct.Name;
+                    if (ustruct.SuperStruct != null) {
+                        try {
+                            var resolved = ctx.Package.ResolvePackageIndex(ustruct.SuperStruct);
+                            className = resolved.GetPathName(); // Use pathname to resolve orphans
+                        }
+                        catch (Exception e) {
+                            className = ustruct.SuperStruct.Name;
+                            Console.WriteLine(e);
+                            throw;
+                        }
+                    }
                 }
                 // Debug.WriteLine("Using BlueprintGeneratedClass");
             }

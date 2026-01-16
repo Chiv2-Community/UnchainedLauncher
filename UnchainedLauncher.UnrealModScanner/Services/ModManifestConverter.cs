@@ -30,7 +30,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
 
         private static AssetCollections MapAssets(PakScanResult result) {
             var collections = new AssetCollections();
-            
+
             var KnownMarkerChildClassPaths = new ConcurrentBag<string>();
 
             // 1. Process Generic Markers
@@ -59,7 +59,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                     }
                 }
             }
-            
+
             // Process orphaned blueprints
             // This requires the ModBase to be parsed by GenericCdoProcessor
             foreach (var (classPath, entries) in result.GenericEntries)
@@ -69,7 +69,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                         blueprint.IsOrphaned = true;
                         collections.Blueprints.Add(blueprint);
                     }
-            
+
 
             // 2. Process Maps
             foreach (var map in result._Maps) {

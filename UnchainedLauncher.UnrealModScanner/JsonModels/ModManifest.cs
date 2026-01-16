@@ -62,7 +62,7 @@ namespace UnchainedLauncher.UnrealModScanner.JsonModels {
         [JsonProperty("object_class")]
         public string? ObjectClass { get; set; }
 
-        [JsonProperty("is_orphaned")] 
+        [JsonProperty("is_orphaned")]
         public bool? IsOrphaned { get; set; } = null;
     }
 

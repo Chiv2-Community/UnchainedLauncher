@@ -58,14 +58,13 @@ public sealed class PakScanResult {
     /// </summary>
     [JsonProperty("maps")]
     public ConcurrentBag<GameMapInfo> _Maps { get; } = new();
-    
+
     private ConcurrentBag<GenericAssetEntry> _arbitraryAssets = new();
     /// <summary>
     /// Uncategorized assets in pak (Not in official directories)
     /// </summary>
     [JsonProperty("arbitrary_assets")]
-    public ConcurrentBag<GenericAssetEntry> ArbitraryAssets
-    {
+    public ConcurrentBag<GenericAssetEntry> ArbitraryAssets {
         get => _arbitraryAssets;
         set => _arbitraryAssets = value ?? new ConcurrentBag<GenericAssetEntry>();
     }
@@ -85,8 +84,7 @@ public sealed class PakScanResult {
     public static bool RemoveByAssetPath<T>(
         ref ConcurrentBag<T> bag,
         string assetPath)
-        where T : BaseAsset
-    {
+        where T : BaseAsset {
         var oldBag = bag;
 
         if (!oldBag.Any(e => e.AssetPath == assetPath))
@@ -101,15 +99,12 @@ public sealed class PakScanResult {
 
         return Interlocked.CompareExchange(ref bag, newBag, oldBag) == oldBag;
     }
-    
-    public void RemoveEntryGlobal(string assetPath)
-    {
-        Parallel.ForEach(GenericEntries, kvp =>
-        {
+
+    public void RemoveEntryGlobal(string assetPath) {
+        Parallel.ForEach(GenericEntries, kvp => {
             string baseName = kvp.Key;
 
-            while (true)
-            {
+            while (true) {
                 if (!GenericEntries.TryGetValue(baseName, out var oldBag))
                     break;
 

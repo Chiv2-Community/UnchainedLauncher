@@ -99,7 +99,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                     string directory = Path.GetDirectoryName(ctx.FilePath);
                     string fileName = Path.GetFileName(directory);
                     string bpPath = Path.Combine(directory, $"{fileName}.uasset").Replace('\\', '/');
-                    
+
                     DiscoveredReferences.Add(new PendingBlueprintReference {
                         SourceMarkerPath = ctx.FilePath,
                         SourceMarkerClassName = mainExport.ClassName,

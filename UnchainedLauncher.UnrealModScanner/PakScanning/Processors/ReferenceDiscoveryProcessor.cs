@@ -116,12 +116,14 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                 }
             }
 
-            result.AddGenericMarker(GenericMarkerEntry.FromSource(
+            var newMarker = GenericMarkerEntry.FromSource(
                 new ScanContextAssetSource(ctx),
                 childClassName,
                 null,
                 properties
-            ), mainExport.ClassName);
+            );
+            result.AddGenericMarker(newMarker, mainExport.ClassName);
+            result.RemoveSpecializedAsset(newMarker);
 
             // foreach (var kvp in mainExportLazy.Properties) {
             //         // dictInner.Add($"{kvp.PropertyType.ToString()}: {kvp.Name.PlainText}" , kvp.Tag?.GenericValue.ToString());

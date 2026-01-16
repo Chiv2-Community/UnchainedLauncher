@@ -37,10 +37,15 @@ public sealed class PakScanResult {
     [JsonProperty("pak_hash")]
     public string? PakHash { get; set; } = string.Empty;
     /// <summary>
-    /// Assets returned by GenericCDOProcessor and ReferenceDiscoveryProcessor
+    /// Assets returned by GenericCDOProcessor and ReferenceDiscoveryProcessor<br/>
+    /// structure: Dict(ClassPath: List(<see cref="GenericAssetEntry"/>))
     /// </summary>
     [JsonProperty("generic_assets")]
     public ConcurrentDictionary<string, ConcurrentBag<GenericAssetEntry>> GenericEntries { get; } = new();
+    /// <summary>
+    /// Markers discovered using <see cref="UnchainedLauncher.UnrealModScanner.PakScanning.Processors.ReferenceDiscoveryProcessor"/><br/>
+    /// structure: Dict(ClassName: Dict(AssetPath, <see cref="GenericMarkerEntry"/>))
+    /// </summary>
     [JsonProperty("generic_markers")]
     public ConcurrentDictionary<string, ConcurrentDictionary<string, GenericMarkerEntry>> GenericMarkers { get; } = new();
     /// <summary>
@@ -53,11 +58,17 @@ public sealed class PakScanResult {
     /// </summary>
     [JsonProperty("maps")]
     public ConcurrentBag<GameMapInfo> _Maps { get; } = new();
+    
+    private ConcurrentBag<GenericAssetEntry> _arbitraryAssets = new();
     /// <summary>
     /// Uncategorized assets in pak (Not in official directories)
     /// </summary>
     [JsonProperty("arbitrary_assets")]
-    public ConcurrentBag<GenericAssetEntry> ArbitraryAssets { get; } = new();
+    public ConcurrentBag<GenericAssetEntry> ArbitraryAssets
+    {
+        get => _arbitraryAssets;
+        set => _arbitraryAssets = value ?? new ConcurrentBag<GenericAssetEntry>();
+    }
     [JsonProperty("failed_packages")]
     public ConcurrentBag<FailedPackage> FailedPackages { get; } = new();
     /// <summary>
@@ -71,27 +82,52 @@ public sealed class PakScanResult {
         bag.Add(entryBase);
     }
 
-    // TODO: Find if there's a better way? class path not available without loading
-    public void RemoveEntryGlobal(string pathName) {
-        Parallel.ForEach(GenericEntries, kvp => {
+    public static bool RemoveByAssetPath<T>(
+        ref ConcurrentBag<T> bag,
+        string assetPath)
+        where T : BaseAsset
+    {
+        var oldBag = bag;
+
+        if (!oldBag.Any(e => e.AssetPath == assetPath))
+            return false;
+
+        var filtered = oldBag.Where(e => e.AssetPath != assetPath).ToList();
+
+        if (filtered.Count == oldBag.Count)
+            return false;
+
+        var newBag = new ConcurrentBag<T>(filtered);
+
+        return Interlocked.CompareExchange(ref bag, newBag, oldBag) == oldBag;
+    }
+    
+    public void RemoveEntryGlobal(string assetPath)
+    {
+        Parallel.ForEach(GenericEntries, kvp =>
+        {
             string baseName = kvp.Key;
-            ConcurrentBag<GenericAssetEntry> oldBag = kvp.Value;
 
-            // Optimization: Only attempt update if the item exists in this bag
-            if (!oldBag.Any(e => e.AssetPath == pathName)) return;
+            while (true)
+            {
+                if (!GenericEntries.TryGetValue(baseName, out var oldBag))
+                    break;
 
-            bool success = false;
-            while (!success) {
-                if (!GenericEntries.TryGetValue(baseName, out oldBag)) break;
-                var filtered = oldBag.Where(e => e.AssetPath != pathName).ToList();
+                var bagCopy = oldBag;
 
-                if (filtered.Count == oldBag.Count) break;
+                // Attempt removal using the generic helper
+                if (!RemoveByAssetPath(ref bagCopy, assetPath))
+                    break;
 
-                var newBag = new ConcurrentBag<GenericAssetEntry>(filtered);
-
-                success = GenericEntries.TryUpdate(baseName, newBag, oldBag);
+                // Swap the updated bag into the dictionary
+                if (GenericEntries.TryUpdate(baseName, bagCopy, oldBag))
+                    break;
             }
         });
+    }
+    public void RemoveSpecializedAsset(BaseAsset baseAsset) {
+        RemoveEntryGlobal(baseAsset.AssetPath);
+        RemoveByAssetPath(ref _arbitraryAssets, baseAsset.AssetPath);
     }
 
     public void AddGenericMarker(GenericMarkerEntry entry, string base_name) {

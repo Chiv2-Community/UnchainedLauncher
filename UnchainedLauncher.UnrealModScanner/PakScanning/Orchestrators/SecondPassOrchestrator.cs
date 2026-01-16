@@ -123,7 +123,7 @@ public class SecondPassOrchestrator {
                     }
 
                     marker?.AddGenericEntry(entry);
-                    pakBucket.RemoveEntryGlobal(entry.AssetPath);
+                    pakBucket.RemoveSpecializedAsset(entry);
 
                     // foreach (var export in package.ExportsLazy) {
                     //     if (export.Value is not UBlueprintGeneratedClass bpc) continue;

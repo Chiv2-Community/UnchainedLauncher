@@ -69,8 +69,7 @@ public class SecondPassOrchestrator {
                         newAssetPath = newAssetPath + ".uasset";
                     else if (_provider.TryLoadPackage(newAssetPath + ".umap", out package))
                         newAssetPath = newAssetPath + ".uasset";
-                    else
-                    {
+                    else {
                         Console.WriteLine($"SecondPathOrchestrator: Failed to load asset {assetPath}");
                         return;
                     }

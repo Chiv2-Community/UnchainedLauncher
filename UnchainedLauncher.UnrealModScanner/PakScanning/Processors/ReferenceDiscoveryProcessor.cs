@@ -94,24 +94,41 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
 
             if (map == null) {
                 Debug.WriteLine($"Could not find TMap for {_mapPropertyName}");
-                return;
+                // Fallback: if no TMap is specified, try to find an asset with the same name as the parent directory
+                try {
+                    string directory = Path.GetDirectoryName(ctx.FilePath);
+                    string fileName = Path.GetFileName(directory);
+                    string bpPath = Path.Combine(directory, $"{fileName}.uasset").Replace('\\', '/');
+                    
+                    DiscoveredReferences.Add(new PendingBlueprintReference {
+                        SourceMarkerPath = ctx.FilePath,
+                        SourceMarkerClassName = mainExport.ClassName,
+                        TargetBlueprintPath = bpPath,
+                        TargetClassName = $"{fileName}_C",
+                        SourcePakFile = ctx.PakEntry.PakFileReader.Name,
+                    });
+                }
+                catch (Exception e) {
+                    Console.WriteLine(e);
+                    throw;
+                }
             }
-            ;
+            else {
+                foreach (var entry in map.Properties) {
+                    if (entry.Key.GetValue(typeof(FPackageIndex)) is FPackageIndex idx) {
 
-            foreach (var entry in map.Properties) {
-                if (entry.Key.GetValue(typeof(FPackageIndex)) is FPackageIndex idx) {
-
-                    var resolved = ctx.Package.ResolvePackageIndex(idx);
-                    if (childClassName.Length == 0 && resolved.Super != null)
-                        childClassName = resolved.Super.GetPathName();
-                    if (resolved != null) {
-                        DiscoveredReferences.Add(new PendingBlueprintReference {
-                            SourceMarkerPath = ctx.FilePath,
-                            SourceMarkerClassName = mainExport.ClassName,
-                            TargetBlueprintPath = resolved.GetPathName(),
-                            TargetClassName = resolved.Name.Text,
-                            SourcePakFile = ctx.PakEntry.PakFileReader.Name,
-                        });
+                        var resolved = ctx.Package.ResolvePackageIndex(idx);
+                        if (childClassName.Length == 0 && resolved.Super != null)
+                            childClassName = resolved.Super.GetPathName();
+                        if (resolved != null) {
+                            DiscoveredReferences.Add(new PendingBlueprintReference {
+                                SourceMarkerPath = ctx.FilePath,
+                                SourceMarkerClassName = mainExport.ClassName,
+                                TargetBlueprintPath = resolved.GetPathName(),
+                                TargetClassName = resolved.Name.Text,
+                                SourcePakFile = ctx.PakEntry.PakFileReader.Name,
+                            });
+                        }
                     }
                 }
             }

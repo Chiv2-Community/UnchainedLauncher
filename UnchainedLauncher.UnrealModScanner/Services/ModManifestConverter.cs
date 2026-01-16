@@ -68,7 +68,6 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                         var blueprint = MapToBlueprintDto(genericBlueprint);
                         blueprint.IsHidden = result.GenericMarkers.Any(x => x.Key == "DA_ModMarker_C");
                         collections.Blueprints.Add(blueprint);
-                        Console.WriteLine($"Added {classPath}");
                     }
                 else {
                     Console.WriteLine($"Skipping {classPath}");

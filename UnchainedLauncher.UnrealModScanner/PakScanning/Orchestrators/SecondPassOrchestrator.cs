@@ -63,10 +63,15 @@ public class SecondPassOrchestrator {
                     if (marker == null) {
                         Debug.WriteLine($"Could not find marker {refEntry.SourceMarkerClassName} ({refEntry.SourceMarkerPath})");
                     }
-                    var newAssetPath = assetPath.Split(".").First() + ".uasset";
-
-                    if (!_provider.TryLoadPackage(newAssetPath, out var package)) {
-                        Console.WriteLine($"Failed to load asset {assetPath}");
+                    var newAssetPath = assetPath.Split(".").First();
+                    // FIXME: can we retrieve the asset name at this point
+                    if (_provider.TryLoadPackage(newAssetPath + ".uasset", out var package))
+                        newAssetPath = newAssetPath + ".uasset";
+                    else if (_provider.TryLoadPackage(newAssetPath + ".umap", out package))
+                        newAssetPath = newAssetPath + ".uasset";
+                    else
+                    {
+                        Console.WriteLine($"SecondPathOrchestrator: Failed to load asset {assetPath}");
                         return;
                     }
 

@@ -53,8 +53,7 @@ namespace UnchainedLauncher.UnrealModScanner.Utility {
             }
         }
 
-        public static string ToGamePathName(string path)
-        {
+        public static string ToGamePathName(string path) {
             if (string.IsNullOrWhiteSpace(path))
                 return path;
 
@@ -62,16 +61,14 @@ namespace UnchainedLauncher.UnrealModScanner.Utility {
 
             // 1️⃣ Try UObject-style path: SomeClass'TBL/Content/...'
             var uobjMatch = Regex.Match(path, @"^.*?'[^/]+/Content(/.+)'$");
-            if (uobjMatch.Success)
-            {
+            if (uobjMatch.Success) {
                 result = "/Game" + uobjMatch.Groups[1].Value;
                 return result;
             }
 
             // 2️⃣ Fall back to raw path: TBL/Content/...
             var rawMatch = Regex.Match(path, @"^.*?/Content(/.+)$");
-            if (rawMatch.Success)
-            {
+            if (rawMatch.Success) {
                 result = "/Game" + rawMatch.Groups[1].Value;
                 return result;
             }

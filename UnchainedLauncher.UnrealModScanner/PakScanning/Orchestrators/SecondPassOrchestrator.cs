@@ -6,7 +6,6 @@ using CUE4Parse.UE4.VirtualFileSystem;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Text.RegularExpressions;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
 using UnchainedLauncher.UnrealModScanner.Config;

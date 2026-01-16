@@ -104,6 +104,9 @@ namespace UnchainedLauncher.UnrealModScanner.JsonModels {
 
         [JsonProperty("allow_on_frontend")]
         public bool bAllowOnFrontend { get; set; }
+
+        [JsonProperty("is_hidden")]
+        public bool? IsHidden { get; set; } = null;
     }
 
     public record MapDto : BaseAssetDto {

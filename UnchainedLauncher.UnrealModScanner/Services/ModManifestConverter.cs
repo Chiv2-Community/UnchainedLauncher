@@ -63,12 +63,16 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
             // Process orphaned blueprints
             // This requires the ModBase to be parsed by GenericCdoProcessor
             foreach (var (classPath, entries) in result.GenericEntries)
-                if (KnownMarkerChildClassPaths.Contains(classPath))
+                if (classPath == "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C")
                     foreach (var genericBlueprint in entries) {
                         var blueprint = MapToBlueprintDto(genericBlueprint);
-                        blueprint.IsOrphaned = true;
+                        blueprint.IsHidden = result.GenericMarkers.Any(x => x.Key == "DA_ModMarker_C");
                         collections.Blueprints.Add(blueprint);
+                        Console.WriteLine($"Added {classPath}");
                     }
+                else {
+                    Console.WriteLine($"Skipping {classPath}");
+                }
 
 
             // 2. Process Maps

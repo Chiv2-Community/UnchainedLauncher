@@ -15,7 +15,7 @@ public static class ModScanJsonExporter {
         Formatting = Formatting.Indented,
         NullValueHandling = NullValueHandling.Ignore,
     };
-    
+
     public static void ExportToFile(
         ModManifest scanResults,
         string outputPath) {

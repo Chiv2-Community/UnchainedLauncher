@@ -116,6 +116,10 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
             var entry = GenericAssetEntry.FromSource(
                 new ScanContextAssetSource(ctx),
                 filteredProperties);
+            if (mainExportLazy is UClass uclass) {
+                var fullName = uclass.GetFullName();
+                entry.ClassPath = PackageUtility.ToGamePathName(fullName);
+            }
             // var base_name = (mainExportLazy.Super ?? mainExportLazy.Template?.Outer)?.GetPathName();
             result.AddGenericEntry(entry, className ?? "CDO");
             // result.RemoveArbitraryAsset(entry);

@@ -122,14 +122,14 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                 ObjectClass = bp.ClassName,
 
                 ModName = GetProp<string>(bp.Properties, "ModName") ?? "",
+                Version = GetProp<string>(bp.Properties, "ModVersion") ?? "1.0.0",
+                ModDescription = GetProp<string>(bp.Properties, "ModDescription") ?? "",
+                ModRepoURL = GetProp<string>(bp.Properties, "ModRepoURL") ?? "",
                 Author = GetProp<string>(bp.Properties, "Author") ?? "",
-                Version = GetProp<string>(bp.Properties, "Version") ?? "1.0.0",
-                ModDescription = GetProp<string>(bp.Properties, "Description") ?? "",
-                ModRepoURL = GetProp<string>(bp.Properties, "RepoURL") ?? "",
-
+                bEnableByDefault = GetProp<bool>(bp.Properties, "bEnableByDefault"),
                 bSilentLoad = GetProp<bool>(bp.Properties, "bSilentLoad"),
                 bShowInGUI = GetProp<bool>(bp.Properties, "bShowInGUI"),
-                bClientside = GetProp<bool>(bp.Properties, "bIsClientSide"),
+                bClientside = GetProp<bool>(bp.Properties, "bClientside"),
                 bOnlineOnly = GetProp<bool>(bp.Properties, "bOnlineOnly"),
                 bHostOnly = GetProp<bool>(bp.Properties, "bHostOnly"),
                 bAllowOnFrontend = GetProp<bool>(bp.Properties, "bAllowOnFrontend")

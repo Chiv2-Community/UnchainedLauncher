@@ -87,6 +87,9 @@ namespace UnchainedLauncher.UnrealModScanner.JsonModels {
         [JsonProperty("author")]
         public string Author { get; set; } = string.Empty;
 
+        [JsonProperty("enable_by_default")]
+        public bool bEnableByDefault { get; set; }
+
         [JsonProperty("silent_load")]
         public bool bSilentLoad { get; set; }
 

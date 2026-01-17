@@ -7,11 +7,11 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels.Nodes {
     public class PakChildNode {
         //string DisplayName { get; }
         public PakChildNode(bool isExpanded = true) {
-            IsExpanded = isExpanded;
+            _isExpanded = isExpanded;
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string name = null)
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
         private bool _isExpanded;

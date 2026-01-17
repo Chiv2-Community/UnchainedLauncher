@@ -1,0 +1,116 @@
+openapi: 3.0.3
+info:
+  title: Unreal Mod Scanner API
+  description: Schema for Unreal Engine 4/5 .pak file scanning and asset extraction results.
+  version: 1.0.0
+
+paths: {} # Schema only
+
+components:
+  schemas:
+    ModScanManifest:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PakScanResult'
+
+    PakScanResult:
+      type: object
+      description: The root container for a single scanned .pak file.
+      required:
+        - pak_path
+      properties:
+        pak_path:
+          type: string
+          description: Full filesystem path to the source .pak file.
+          example: "C:/Games/UnrealGame/Content/Paks/Mod_P.pak"
+        pak_hash:
+          type: string
+          nullable: true
+          description: SHA1 or MD5 hash of the pak file for versioning.
+        extracted_assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/GenericAssetEntry'
+          description: CDO properties extracted from specific assets.
+        markers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModMarkerInfo'
+        asset_replacements:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssetReplacementInfo'
+        maps:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameMapInfo'
+        arbitrary_assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArbitraryAssetInfo'
+        internal_assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/GameInternalAssetInfo'
+
+    GenericAssetEntry:
+      type: object
+      description: Generic container for properties extracted from an Unreal class instance (CDO).
+      properties:
+        asset_path:
+          type: string
+          example: "TBL/Content/Mods/ModActor.uasset"
+        class_name:
+          type: string
+          example: "BlueprintGeneratedClass"
+        properties:
+          type: object
+          additionalProperties: true
+          description: Key-value pairs of the actual property data.
+
+    BaseAsset:
+      type: object
+      description: Basic metadata shared by all Unreal assets.
+      properties:
+        asset_path:
+          type: string
+          description: The internal Unreal path (LongPackageName).
+        asset_hash:
+          type: string
+          description: Unique hash of the specific asset entry within the pak.
+
+    AssetReplacementInfo:
+      allOf:
+        - $ref: '#/components/schemas/BaseAsset'
+        - type: object
+          properties:
+            extension:
+              type: string
+              example: ".uasset"
+            class_typ:
+              type: string
+              nullable: true
+              description: The Unreal class type if resolvable.
+
+    GameMapInfo:
+      allOf:
+        - $ref: '#/components/schemas/BaseAsset'
+        - type: object
+          properties:
+            game_mode:
+              type: string
+              nullable: true
+              description: The default GameMode associated with this map (.umap).
+
+    ArbitraryAssetInfo:
+      allOf:
+        - $ref: '#/components/schemas/BaseAsset'
+        - type: object
+          properties:
+            object_class:
+              type: string
+            mod_name:
+              type: string

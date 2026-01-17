@@ -28,6 +28,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public InstallationType InstallationType { get; set; }
         public bool EnablePluginAutomaticUpdates { get; set; }
+        public bool IsUnrealScannerEnabled { get; set; }
         public string AdditionalModActors { get; set; }
         public string ServerBrowserBackend { get; set; }
         public bool UseLightTheme { get; set; }
@@ -68,7 +69,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private RegistryWindowService RegistryWindowService { get; }
         private RegistryWindowVM RegistryWindowVM { get; }
 
-        public SettingsVM(RegistryWindowVM registryWindowVM, RegistryWindowService registryWindowService, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakDir, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, string additionalModActors, string serverBrowserBackend, bool useLightTheme, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
+        public SettingsVM(RegistryWindowVM registryWindowVM, RegistryWindowService registryWindowService, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakDir, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, bool enableModScanner, string additionalModActors, string serverBrowserBackend, bool useLightTheme, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
             RegistryWindowVM = registryWindowVM;
             RegistryWindowService = registryWindowService;
             Installer = installer;
@@ -77,6 +78,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             UserDialogueSpawner = dialogueSpawner;
             InstallationType = installationType;
             EnablePluginAutomaticUpdates = enablePluginAutomaticUpdates;
+            IsUnrealScannerEnabled = enableModScanner;
             AdditionalModActors = additionalModActors;
             LauncherSettings = launcherSettings;
             ServerBrowserBackend = serverBrowserBackend;
@@ -113,6 +115,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 userDialogueSpawner,
                 loadedSettings?.InstallationType ?? DetectInstallationType(installationFinder),
                 loadedSettings?.EnablePluginAutomaticUpdates ?? true,
+                loadedSettings?.IsUnrealScannerEnabled ?? false,
                 loadedSettings?.AdditionalModActors ?? "",
                 loadedSettings?.ServerBrowserBackend ?? "https://servers.polehammer.net",
                 loadedSettings?.UseLightTheme ?? false,
@@ -124,7 +127,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public void SaveSettings() {
             LauncherSettings.SaveSettings(
-                new LauncherSettings(InstallationType, EnablePluginAutomaticUpdates, AdditionalModActors, ServerBrowserBackend, UseLightTheme)
+                new LauncherSettings(InstallationType, EnablePluginAutomaticUpdates, IsUnrealScannerEnabled, AdditionalModActors, ServerBrowserBackend, UseLightTheme)
             );
         }
 

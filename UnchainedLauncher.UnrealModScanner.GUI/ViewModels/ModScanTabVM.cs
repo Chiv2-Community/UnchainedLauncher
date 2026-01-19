@@ -20,7 +20,7 @@ public partial class ModScanTabVM : ObservableObject {
 
     // The technical DTO for JSON export
     [ObservableProperty]
-    private ModManifest _scanManifest = new();
+    private PakDirManifest _scanManifest = new();
 
     [ObservableProperty]
     private double _scanProgress;

@@ -6,16 +6,16 @@ using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.Services {
     public static class ModManifestConverter {
-        public static ModManifest ProcessModScan(ModScanResult scanResult) {
-            var manifest = new ModManifest {
+        public static PakDirManifest ProcessModScan(ModScanResult scanResult) {
+            var manifest = new PakDirManifest {
                 SchemaVersion = 1,
                 ScannerVersion = "3.3.1",
-                GeneratedAt = DateTime.UtcNow.ToString("u"),
-                Paks = new List<PakInventoryDto>()
+                GeneratedAt = DateTime.UtcNow,
+                Paks = new List<PakManifest>()
             };
 
             foreach (var entry in scanResult.Paks) {
-                var pakInventory = new PakInventoryDto {
+                var pakInventory = new PakManifest {
                     PakName = entry.Key,
                     PakPath = entry.Value.PakPath,
                     PakHash = entry.Value.PakHash,

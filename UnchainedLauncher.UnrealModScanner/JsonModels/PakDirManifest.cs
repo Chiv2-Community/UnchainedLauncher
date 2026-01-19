@@ -2,22 +2,22 @@
 using Newtonsoft.Json;
 
 namespace UnchainedLauncher.UnrealModScanner.JsonModels {
-    public record ModManifest {
+    public record PakDirManifest() {
         [JsonProperty("schema_version")]
         public int SchemaVersion { get; set; } = 1;
 
-        [JsonProperty("generated_at")]
-        public string GeneratedAt { get; set; } = DateTime.UtcNow.ToString("u");
+        [JsonProperty("generated_at")] 
+        public DateTimeOffset GeneratedAt { get; set; } = DateTimeOffset.UtcNow;
 
         [JsonProperty("scanner_version")]
         public string ScannerVersion { get; set; } = "3.3.1";
 
         // Master list of all scanned paks
         [JsonProperty("paks")]
-        public List<PakInventoryDto> Paks { get; set; } = new();
+        public List<PakManifest> Paks { get; set; } = new();
     }
 
-    public record PakInventoryDto {
+    public record PakManifest {
         [JsonProperty("pak_name")]
         public string PakName { get; set; } = string.Empty;
 

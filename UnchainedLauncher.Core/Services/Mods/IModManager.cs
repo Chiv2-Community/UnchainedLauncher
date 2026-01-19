@@ -1,6 +1,6 @@
 ﻿using LanguageExt;
 using System.Collections.Immutable;
-using UnchainedLauncher.Core.JsonModels.Metadata.V4;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using static LanguageExt.Prelude;
 

@@ -1,7 +1,7 @@
 using LanguageExt;
 using LanguageExt.UnsafeValueAccess;
 using log4net;
-using UnchainedLauncher.Core.JsonModels.Metadata.V4;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
@@ -28,7 +28,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public const string UnchainedPluginPath = $"{FilePaths.PluginDir}\\UnchainedPlugin.dll";
         public const string UnchainedPluginURL = $"{GithubBaseURL}/Chiv2-Community/UnchainedPlugin/releases/latest/download/UnchainedPlugin.dll";
 
-        public const string PackageDBBaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/db/package_db";
+        public const string PackageDBBaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/update-registry-format/package_db";
         public const string PackageDBPackageListUrl = $"{PackageDBBaseUrl}/mod_list_index.txt";
     }
 

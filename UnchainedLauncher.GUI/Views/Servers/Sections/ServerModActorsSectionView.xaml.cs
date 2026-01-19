@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using UnchainedLauncher.Core.JsonModels.Metadata.V4;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 
 namespace UnchainedLauncher.GUI.Views.Servers.Sections {

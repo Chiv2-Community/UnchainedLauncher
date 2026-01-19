@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using UnchainedLauncher.Core.JsonModels.Metadata.V4;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.Registry;

@@ -95,9 +95,11 @@ namespace UnchainedLauncher.GUI {
                 Debug.WriteLine($"Error starting application: {ex.Message}");
                 if (ex.StackTrace != null)
                     Debug.WriteLine(ex.StackTrace!);
-
-                MessageBox.Show($"Failed to start application. Please report this to a developer: {ex.Message}", "Error", MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                
+                _log.Fatal("Unhandled exception", ex);
+                File.WriteAllText("crash.log", ex.ToString());
+                var currentDirectory = Directory.GetCurrentDirectory();
+                MessageBox.Show($"An unhandled exception occurred. Please report this to a developer with {currentDirectory}\\crash.log ", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

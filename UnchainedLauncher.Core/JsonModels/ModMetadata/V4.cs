@@ -3,17 +3,11 @@ using Semver;
 using System.Text.Json.Serialization;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 
-namespace UnchainedLauncher.Core.JsonModels.Metadata.V4 {
+namespace UnchainedLauncher.Core.JsonModels.ModMetadata {
     public record Mod(
         [property: JsonPropertyName("latest_release_info")] ModInfo LatestReleaseInfo,
         [property: JsonPropertyName("releases")] List<Release> Releases
     ) {
-        public static Mod FromV3(V3.Mod input) {
-            return new Mod(
-                LatestReleaseInfo: ModInfo.FromV3(input.LatestManifest),
-                Releases: input.Releases.ConvertAll(Release.FromV3)
-            );
-        }
         public Option<Release> LatestRelease =>
             Prelude.Optional(
                 Releases.Where(x => x.Version?.IsRelease ?? false)
@@ -31,33 +25,6 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V4 {
         [property: JsonPropertyName("manifest")] PakManifest Manifest,
         [property: JsonPropertyName("release_notes_markdown")] string? ReleaseNotesMarkdown
     ) {
-        public static Release FromV3(V3.Release input) {
-            return new Release(
-                Tag: input.Tag,
-                ReleaseHash: input.ReleaseHash,
-                PakFileName: input.PakFileName,
-                ReleaseDate: input.ReleaseDate,
-                Info: ModInfo.FromV3(input.Manifest),
-                Manifest: new PakManifest {
-                    PakName = input.PakFileName,
-                    PakPath =  input.PakFileName,
-                    PakHash = input.ReleaseHash,
-                    Inventory = new AssetCollections {
-                        Arbitrary = new List<ArbitraryDto>(),
-                        Maps = input.Manifest.Maps.Select(
-                            mapName => new MapDto {
-                                MapName = mapName
-                            }
-                        ).ToList(),
-                        Blueprints = new List<BlueprintDto>(),
-                        Markers = new List<ModMarkerDto>(),
-                        Replacements = new List<ReplacementDto>()
-                    }
-                },
-                ReleaseNotesMarkdown: input.ReleaseNotesMarkdown
-            );
-        }
-
         public string ReleaseUrl => $"{Info.RepoUrl}/releases/{Tag}";
 
         public SemVersion? Version {
@@ -74,13 +41,7 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V4 {
     ) {
         public string Organization => RepoUrl.Split('/')[^2];
         public string RepoName => RepoUrl.Split('/')[^1];
-
-        public static Dependency FromV3(V3.Dependency input) {
-            return new Dependency(
-                RepoUrl: input.RepoUrl,
-                Version: input.Version
-            );
-        }
+        
     }
 
     public record ModInfo(
@@ -96,17 +57,5 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V4 {
         public string Organization => RepoUrl.Split('/')[^2];
         public string RepoName => RepoUrl.Split('/')[^1];
 
-        public static ModInfo FromV3(V3.ModManifest input) { // N.B.: ModManifest renamed to ModInfo.  Manifest is used for pak contents.
-            return new ModInfo(
-                RepoUrl: input.RepoUrl,
-                Name: input.Name,
-                Description: input.Description,
-                HomePage: input.HomePage,
-                IconUrl: input.ImageUrl,
-                ImageUrls: input.ImageUrl == null ? new List<string>() : new List<string>(){ input.ImageUrl },
-                Authors: input.Authors,
-                Dependencies: input.Dependencies.ConvertAll(Dependency.FromV3)
-            );
-        }
     }
 }

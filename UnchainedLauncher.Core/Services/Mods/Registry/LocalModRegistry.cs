@@ -2,7 +2,7 @@
 using LanguageExt.Common;
 using LanguageExt.UnsafeValueAccess;
 using System.Collections.Immutable;
-using UnchainedLauncher.Core.JsonModels.Metadata.V4;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 

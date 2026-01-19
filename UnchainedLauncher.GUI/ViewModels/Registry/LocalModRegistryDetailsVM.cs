@@ -7,14 +7,16 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels.Registry {
     using static LanguageExt.Prelude;
@@ -42,19 +44,27 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                 "",
                 "unknown",
                 DateTime.Now,
-                new ModManifest(
+                new ModInfo(
                     "Unchained-Mods/Example-Mod",
                     "MyFancyMod",
                     "Example Description",
                     null,
                     null,
-                    ModType.Shared,
+                    null,
                     new List<string> { "Example Author" },
-                    new List<Dependency>(),
-                    new List<ModTag> { ModTag.Doodad },
-                    new List<string> { "ffa_exampleMap", "tdm_exampleMap" },
-                    new OptionFlags(true)
+                    new List<Dependency>()
                 ),
+                new PakManifest {
+                    PakName="Foo.pak",
+                    PakPath = "Foo.pak",
+                    Inventory = new AssetCollections {
+                        Arbitrary = new List<ArbitraryDto>(),
+                        Blueprints = new List<BlueprintDto>(),
+                        Maps = new List<MapDto>(),
+                        Markers = new List<ModMarkerDto>(),
+                        Replacements = new List<ReplacementDto>()
+                    }
+                },
                 "# Example Release Notes\n\n* Your release notes here"
             );
 
@@ -132,8 +142,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                 };
                 var previousReleasePath = Path.Join(
                     SourceRegistry.RegistryPath,
-                    latestRelease.Manifest.Organization,
-                    latestRelease.Manifest.RepoName,
+                    latestRelease.Info.Organization,
+                    latestRelease.Info.RepoName,
                     latestRelease.Tag,
                     latestRelease.PakFileName
                 );
@@ -162,8 +172,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public void Edit() {
             var pakPath = Path.Join(
                 SourceRegistry.RegistryPath,
-                Release.Manifest.Organization,
-                Release.Manifest.RepoName,
+                Release.Info.Organization,
+                Release.Info.RepoName,
                 Release.Tag,
                 Release.PakFileName
             );
@@ -203,29 +213,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public string Name { get; set; }
         public string Description { get; set; }
         public string? HomePage { get; set; }
-        public string? ImageUrl { get; set; }
+        public string? IconUrl { get; set; }
+        public List<string> ImageUrls { get; set; }
 
-        public static readonly Hashtable ModTypeMap = new Hashtable {
-            {"Client", ModType.Client},
-            {"Server", ModType.Server},
-            {"Shared", ModType.Shared}
-        };
-
-        public string SelectedModType {
-            get =>
-                ModTypeMap.Keys.Cast<string>().ToList()
-                    .Filter((k) => (ModType)ModTypeMap[k]! == ModType)
-                    .First();
-            set => ModType = (ModType)ModTypeMap[value]!;
-        }
-
-        public static List<string> ModTypeChoices { get; } = ModTypeMap.Keys.Cast<string>().ToList();
-        public ModType ModType { get; set; }
         public List<string> Authors { get; set; }
         public List<Dependency> Dependencies { get; set; }
-        public List<ModTag> Tags { get; set; }
-        public List<string> Maps { get; set; }
-        public OptionFlags OptionFlags { get; set; }
 
         public string ReleaseNotesMarkdown { get; set; }
 
@@ -248,33 +240,28 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             ReleaseDate = release.ReleaseDate;
 
             // Manifest stuff
-            Organization = release.Manifest.Organization;
-            Name = release.Manifest.Name;
-            Description = release.Manifest.Description;
-            HomePage = release.Manifest.HomePage;
-            ImageUrl = release.Manifest.ImageUrl;
-            ModType = release.Manifest.ModType;
-            Authors = release.Manifest.Authors;
-            Dependencies = release.Manifest.Dependencies;
-            Tags = release.Manifest.Tags;
-            Maps = release.Manifest.Maps;
-            OptionFlags = release.Manifest.OptionFlags;
+            Organization = release.Info.Organization;
+            Name = release.Info.Name;
+            Description = release.Info.Description;
+            HomePage = release.Info.HomePage;
+            IconUrl = release.Info.IconUrl;
+            ImageUrls = release.Info.ImageUrls;
+            Authors = release.Info.Authors;
+            Dependencies = release.Info.Dependencies;
             ReleaseNotesMarkdown = release.ReleaseNotesMarkdown ?? "";
         }
 
         public (Release release, string pakPath) ToRelease() {
-            ModManifest m = new ModManifest(
+            ModInfo m = new ModInfo(
                 RepoUrl,
                 Name,
                 Description,
                 HomePage,
-                ImageUrl,
-                ModType,
+                IconUrl,
+                ImageUrls,
                 Authors,
-                Dependencies,
-                Tags,
-                Maps,
-                OptionFlags);
+                Dependencies
+            );
 
             if (PakFilePath == null) {
                 throw new InvalidOperationException("Pak file path is not set");
@@ -286,6 +273,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                 PakFileName,
                 ReleaseDate,
                 m,
+                null,
                 ReleaseNotesMarkdown);
 
             return (r, PakFilePath);

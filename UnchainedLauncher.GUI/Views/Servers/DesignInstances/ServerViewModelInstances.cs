@@ -7,6 +7,7 @@ using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 using static LanguageExt.Prelude;
 using Environment = UnchainedLauncher.Core.Services.Server.A2S.Environment;
 
@@ -69,7 +70,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                 )), new MockRcon()
             ),
             "Example Server",
-            new ObservableCollection<string>() { "FFA_Wardenglade", "TDM_Wardenglade" }
+            new ObservableCollection<MapDto>() { new MapDto{ MapName = "FFA_Wardenglade"}, new MapDto {MapName = "TDM_Wardenglade" }}
         ) {
             RestartCount = 2;
             LastStartTime = DateTimeOffset.Now.AddMinutes(-17);

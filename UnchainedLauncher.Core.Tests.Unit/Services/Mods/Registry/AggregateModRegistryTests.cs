@@ -56,9 +56,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
             result.IsRight.Should().BeTrue();
             var mod = result.RightToSeq().FirstOrDefault();
             mod.Should().NotBeNull();
-            mod.LatestManifest.Organization.Should().Be("Chiv2-Community");
-            mod.LatestManifest.Name.Should().Be("Unchained-Mods");
-            mod.LatestManifest.Authors.Should().Contain("Nihi");
+            mod.LatestReleaseInfo.Organization.Should().Be("Chiv2-Community");
+            mod.LatestReleaseInfo.Name.Should().Be("Unchained-Mods");
+            mod.LatestReleaseInfo.Authors.Should().Contain("Nihi");
             mod.Releases.Should().HaveCount(3);
         }
 

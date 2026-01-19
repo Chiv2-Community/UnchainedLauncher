@@ -15,12 +15,13 @@ using System.Reflection;
 using System.Text;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.INIModels;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
@@ -189,7 +190,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return new Chivalry2INI(engineIni, gameIni, userSettingsIni);
         }
 
-        public ObservableCollection<string> AvailableMaps { get; }
+        public ObservableCollection<MapDto> AvailableMaps { get; }
 
         public ObservableCollection<ReleaseCoordinates> EnabledServerModList { get; }
         public ObservableCollection<Release> AvailableMods { get; }
@@ -221,7 +222,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             EnabledServerModList = enabledServerModList ?? new ObservableCollection<ReleaseCoordinates>();
 
-            AvailableMaps = new ObservableCollection<string>(GetDefaultMaps());
+            AvailableMaps = new ObservableCollection<MapDto>(GetDefaultMaps());
 
             // We set the Name after loading INI, because there may be some existing config that we want to load first
             // And setting the name overwrites it.
@@ -231,7 +232,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             AvailableMods = new ObservableCollection<Release>();
 
             modManager.GetEnabledAndDependencyReleases()
-                .Where(r => r.Manifest.ModType is ModType.Server or ModType.Shared)
                 .ForEach(x => AddAvailableMod(x, null));
 
             LocalIp = localIp == null ? DetermineLocalIp() : localIp.Trim();
@@ -270,13 +270,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             // This will be enabled by default
             if (ModIdentifier.FromRelease(release) == CommonMods.UnchainedMods) return;
 
-            var existingMod = AvailableMods.Find(x => x.Manifest.RepoUrl == release.Manifest.RepoUrl);
-            var existingMaps = existingMod.Bind(x => Prelude.Optional(x.Manifest.Maps)).FirstOrDefault() ??
-                               new List<string>();
+            var existingMod = AvailableMods.Find(x => x.Info.RepoUrl == release.Info.RepoUrl);
+            var existingMaps =
+                existingMod.Bind(x => Prelude.Optional(x.Manifest.Inventory.Maps)).FirstOrDefault() 
+                    ?? new List<MapDto>();
 
 
-            var newMaps = release.Manifest.Maps?.Filter(x => !existingMaps.Contains(x)) ?? Enumerable.Empty<string>();
-            var removedMaps = existingMaps.Filter(x => !release.Manifest.Maps?.Contains(x) ?? false);
+            var newMaps = release.Manifest.Inventory.Maps.Filter(x => !existingMaps.Contains(x));
+            var removedMaps = existingMaps.Filter(x => !release.Manifest.Inventory.Maps.Contains(x));
 
             removedMaps.ForEach(AvailableMaps.Remove);
             newMaps.ForEach(AvailableMaps.Add);
@@ -289,7 +290,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public void RemoveAvailableMod(Release release) {
             AvailableMods.Remove(release);
 
-            var removedMaps = release.Manifest.Maps ?? Enumerable.Empty<string>();
+            var removedMaps = release.Manifest.Inventory.Maps;
             removedMaps.ForEach(AvailableMaps.Remove);
         }
 
@@ -300,8 +301,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         private string DetermineLocalIp() => GetAllLocalIPv4().FirstOrDefault("127.0.0.1");
 
-        private static IEnumerable<string> GetDefaultMaps() {
-            List<string> maps = new List<string>();
+        private static IEnumerable<MapDto> GetDefaultMaps() {
+            List<MapDto> maps = new List<MapDto>();
             using (var defaultMapsListStream = Assembly.GetExecutingAssembly()
                        .GetManifestResourceStream("UnchainedLauncher.GUI.Resources.DefaultMaps.txt")) {
                 if (defaultMapsListStream != null) {
@@ -312,6 +313,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                         .Split("\n")
                         .Select(x => x.Trim())
                         .ToList()
+                        .Select(mapName => new MapDto {MapName = mapName})
                         .ForEach(maps.Add);
                 }
             }

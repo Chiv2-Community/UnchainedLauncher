@@ -89,7 +89,7 @@ namespace UnchainedLauncher.Core.JsonModels.Metadata.V4 {
         [property: JsonPropertyName("description")] string Description,
         [property: JsonPropertyName("home_page")] string? HomePage,
         [property: JsonPropertyName("icon_url")] string? IconUrl,
-        [property: JsonPropertyName("image_urls")] List<string>? ImageUrls,
+        [property: JsonPropertyName("image_urls")] List<string> ImageUrls,
         [property: JsonPropertyName("authors")] List<string> Authors,
         [property: JsonPropertyName("dependencies")] List<Dependency> Dependencies
     ) {

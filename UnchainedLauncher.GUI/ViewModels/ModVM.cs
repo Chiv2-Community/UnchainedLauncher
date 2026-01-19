@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Services.Mods;
 
 namespace UnchainedLauncher.GUI.ViewModels {
@@ -22,7 +22,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public VersionNameSort VersionNameSortKey => new VersionNameSort(
             Optional(EnabledRelease).Map(x => x.Version).FirstOrDefault(),
-            Mod.LatestManifest.Name
+            Mod.LatestReleaseInfo.Name
         );
 
         public Release? EnabledRelease { get; set; }
@@ -31,8 +31,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string Description {
             get {
                 var description = Optional(EnabledRelease).Match(
-                    None: Mod.LatestManifest.Description,
-                    Some: x => x.Manifest.Description
+                    None: Mod.LatestReleaseInfo.Description,
+                    Some: x => x.Info.Description
                 );
 
                 var depenencies =
@@ -45,7 +45,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         ? ""
                         : depenencies.Fold(
                             "You must also enable the dependencies below:\n",
-                            (aggMessage, dep) => aggMessage + $"- {dep.Manifest.Name} {dep.Version}\n"
+                            (aggMessage, dep) => aggMessage + $"- {dep.Info.Name} {dep.Version}\n"
                         );
 
                 return description + "\n\n" + depMessage;
@@ -59,8 +59,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
 
 
-        public string TagsString => string.Join(", ", Mod.LatestManifest.Tags);
-
         public bool IsEnabled => EnabledRelease != null;
 
         public string EnabledVersion =>
@@ -71,7 +69,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public List<string> AvailableVersions => Mod.Releases.Select(x => x.Tag).ToList();
 
-        public string GithubReleaseUrl => (EnabledRelease?.ReleaseUrl) ?? Mod.LatestManifest.RepoUrl;
+        public string GithubReleaseUrl => (EnabledRelease?.ReleaseUrl) ?? Mod.LatestReleaseInfo.RepoUrl;
 
         public ModVM(Mod mod, Option<Release> enabledRelease, IModManager modManager) {
             EnabledRelease = enabledRelease.ValueUnsafe();
@@ -86,7 +84,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 }
             }, nameof(EnabledRelease));
 
-            Logger.Debug($"Initialized ModViewModel for {mod.LatestManifest.Name}. Currently enabled release: {EnabledVersion}");
+            Logger.Debug($"Initialized ModViewModel for {mod.LatestReleaseInfo.Name}. Currently enabled release: {EnabledVersion}");
         }
 
         public Option<UpdateCandidate> CheckForUpdate() {

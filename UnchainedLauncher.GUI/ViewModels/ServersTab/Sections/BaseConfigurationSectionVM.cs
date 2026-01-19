@@ -1,26 +1,20 @@
 ﻿using PropertyChanged;
 using System.Collections.ObjectModel;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
     [AddINotifyPropertyChangedInterface]
-    public class BaseConfigurationSectionVM {
-        public BaseConfigurationSectionVM(
-            TBLGameModeSectionVM gameMode,
-            TBLGameUserSettingsSectionVM userSettings,
-            GameSessionSectionVM gameSession,
-            ObservableCollection<string> availableMaps
-        ) {
-            GameMode = gameMode;
-            UserSettings = userSettings;
-            GameSession = gameSession;
-            AvailableMaps = availableMaps;
-        }
+    public class BaseConfigurationSectionVM(
+        TBLGameModeSectionVM gameMode,
+        TBLGameUserSettingsSectionVM userSettings,
+        GameSessionSectionVM gameSession,
+        ObservableCollection<MapDto> availableMaps) {
+        
+        public TBLGameModeSectionVM GameMode { get; } = gameMode;
+        public TBLGameUserSettingsSectionVM UserSettings { get; } = userSettings;
+        public GameSessionSectionVM GameSession { get; } = gameSession;
 
-        public TBLGameModeSectionVM GameMode { get; }
-        public TBLGameUserSettingsSectionVM UserSettings { get; }
-        public GameSessionSectionVM GameSession { get; }
-
-        public ObservableCollection<string> AvailableMaps { get; }
+        public ObservableCollection<MapDto> AvailableMaps { get; } = availableMaps;
     }
 }

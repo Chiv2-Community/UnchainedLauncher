@@ -1,7 +1,7 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
 using log4net;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
@@ -115,12 +115,12 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         private Mod MergeMods(Mod first, Mod second) {
             var firstLatestReleaseDate = first.LatestRelease.Select(x => x.ReleaseDate);
             var secondLatestReleaseDate = second.LatestRelease.Select(x => x.ReleaseDate);
-            var latestManifest =
-                firstLatestReleaseDate > secondLatestReleaseDate ? first.LatestManifest : second.LatestManifest;
+            var latestReleaseInfo =
+                firstLatestReleaseDate > secondLatestReleaseDate ? first.LatestReleaseInfo : second.LatestReleaseInfo;
 
             var releases = MergeReleases(first, second);
 
-            return new Mod(latestManifest, releases);
+            return new Mod(latestReleaseInfo, releases);
         }
 
         private List<Release> MergeReleases(Mod first, Mod second) {

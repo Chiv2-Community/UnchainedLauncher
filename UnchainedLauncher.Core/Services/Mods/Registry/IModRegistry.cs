@@ -2,7 +2,7 @@
 using LanguageExt.Common;
 using log4net;
 using Semver;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
@@ -10,12 +10,12 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
     public record ModIdentifier(string Org, string ModuleName) : IComparable<ModIdentifier> {
         public static ModIdentifier FromMod(Mod mod) =>
-            new ModIdentifier(mod.LatestManifest.Organization, mod.LatestManifest.RepoName);
+            new ModIdentifier(mod.LatestReleaseInfo.Organization, mod.LatestReleaseInfo.RepoName);
 
         public static ModIdentifier FromDependency(Dependency dependency) => new ModIdentifier(dependency.Organization, dependency.RepoName);
-        public static ModIdentifier FromRelease(Release release) => new ModIdentifier(release.Manifest.Organization, release.Manifest.RepoName);
+        public static ModIdentifier FromRelease(Release release) => new ModIdentifier(release.Info.Organization, release.Info.RepoName);
 
-        public bool Matches(Mod mod) => Org == mod.LatestManifest.Organization && ModuleName == mod.LatestManifest.RepoName;
+        public bool Matches(Mod mod) => Org == mod.LatestReleaseInfo.Organization && ModuleName == mod.LatestReleaseInfo.RepoName;
 
         // Intentionally not using equality of this == modId here, because the other ModIdentifier may be a ReleaseCoordinate.
         public bool Matches(ModIdentifier modId) => Org == modId.Org && ModuleName == modId.ModuleName;
@@ -31,9 +31,9 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
     public record ReleaseCoordinates(string Org, string ModuleName, string Version) : ModIdentifier(Org, ModuleName), IComparable<ReleaseCoordinates> {
         public static new ReleaseCoordinates FromRelease(Release release) =>
-            new ReleaseCoordinates(release.Manifest.Organization, release.Manifest.RepoName, release.Tag);
+            new ReleaseCoordinates(release.Info.Organization, release.Info.RepoName, release.Tag);
 
-        public bool Matches(Release release) => Org == release.Manifest.Organization && ModuleName == release.Manifest.RepoName && Version == release.Tag;
+        public bool Matches(Release release) => Org == release.Info.Organization && ModuleName == release.Info.RepoName && Version == release.Tag;
         public int CompareTo(ReleaseCoordinates? other) {
             if (other == null) return -1;
 

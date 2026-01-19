@@ -2,7 +2,7 @@
 using LanguageExt.Common;
 using LanguageExt.SomeHelp;
 using log4net;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
@@ -64,6 +64,6 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         }
 
         private string GetGithubPakDownloadUrl(Release release) =>
-            $"https://github.com/{release.Manifest.Organization}/{release.Manifest.RepoName}/releases/download/{release.Tag}/{release.PakFileName}";
+            $"https://github.com/{release.Info.Organization}/{release.Info.RepoName}/releases/download/{release.Tag}/{release.PakFileName}";
     }
 }

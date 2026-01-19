@@ -1,7 +1,7 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
 using log4net;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.Metadata.V4;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
@@ -30,20 +30,27 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         /// </summary>
         /// <param name="modPath"></param>
         /// <returns></returns>
-        public EitherAsync<RegistryMetadataException, JsonModels.Metadata.V3.Mod> GetMod(ModIdentifier modPath) {
+        public EitherAsync<RegistryMetadataException, JsonModels.Metadata.V4.Mod> GetMod(ModIdentifier modPath) {
             return GetModMetadataString(modPath).Bind(json =>
-                // Try to deserialize as V3 first
-                JsonHelpers.Deserialize<JsonModels.Metadata.V3.Mod>(json).RecoverWith(e => {
+                // Try to deserialize as V4 first
+                JsonHelpers.Deserialize<JsonModels.Metadata.V4.Mod>(json).RecoverWith(e => {
+                    Logger.Warn("Falling back to V2 deserialization: " + e?.Message ?? "unknown failure");
+                    // If that fails, try to deserialize as V3
+                    return JsonHelpers.Deserialize<JsonModels.Metadata.V3.Mod>(json)
+                        .Select(JsonModels.Metadata.V4.Mod.FromV3);
+                }).RecoverWith(e => {
                     // If that fails, try to deserialize as V2
                     Logger.Warn("Falling back to V2 deserialization: " + e?.Message ?? "unknown failure");
                     return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Mod>(json)
-                        .Select(JsonModels.Metadata.V3.Mod.FromV2);
+                        .Select(JsonModels.Metadata.V3.Mod.FromV2)
+                        .Select(JsonModels.Metadata.V4.Mod.FromV3);
                 }).RecoverWith(e => {
                     // If that fails, try to deserialize as V1
                     Logger.Warn("Falling back to V1 deserialization" + e?.Message ?? "unknown failure");
                     return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Mod>(json)
                         .Select(JsonModels.Metadata.V2.Mod.FromV1)
-                        .Select(JsonModels.Metadata.V3.Mod.FromV2);
+                        .Select(JsonModels.Metadata.V3.Mod.FromV2)
+                        .Select(JsonModels.Metadata.V4.Mod.FromV3);
                 })
                 .ToEither()
                 .ToAsync()

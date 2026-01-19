@@ -59,9 +59,16 @@
                      Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Height="NaN" Margin="5" Width="NaN" />
         </Grid>
 
-        <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates }" Grid.Column="1"
-                  Content="Enable Automatic Plugin Updates and Downloads" HorizontalAlignment="Left" Margin="5,0,0,0"
-                  VerticalAlignment="Center" />
+        <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.ColumnSpan="3" Margin="5,0,0,0">
+            <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates}" 
+              Content="Enable Automatic Plugin Updates and Downloads" 
+              VerticalAlignment="Center" />
+
+            <CheckBox IsChecked="{Binding IsUnrealScannerEnabled}" 
+              Content="Enable Unreal Mod Scanner Tab" 
+              Margin="20,0,0,0" 
+              VerticalAlignment="Center" />
+        </StackPanel>
 
         <TextBlock Text="CLI Args:" Grid.Row="2" Grid.ColumnSpan="3" HorizontalAlignment="Left" VerticalAlignment="Top"
                    Margin="5" />

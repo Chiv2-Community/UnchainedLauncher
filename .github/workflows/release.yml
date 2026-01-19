@@ -43,8 +43,36 @@ jobs:
         name: UnchainedLauncher_${{ matrix.configuration }}_${{ github.sha }}
         path: out
 
+  build-pakscanner:
+    strategy:
+      matrix:
+        platform: [Win64, x64]
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install dependencies
+      run: dotnet restore
+
+    - name: Package PakScannerApp binaries
+      run: >
+        dotnet publish UnchainedLauncher.PakScannerApp
+        -c Release 
+        /p:PublishProfile=PakScanner_Release_${{ matrix.platform }} 
+        -o out-scanner/
+
+    - name: Upload PakScannerApp Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: PakScanner_Release_${{ matrix.platform }}_${{ github.sha }}
+        path: out-scanner
+
   publish:
-    needs: build
+    needs: [build, build-pakscanner]
     runs-on: windows-latest
     steps:
     - name: Download Debug Artifacts
@@ -59,11 +87,22 @@ jobs:
         name: UnchainedLauncher_Release_${{ github.sha }}
         path: results/Release
 
+    - name: Download Scanner Artifacts
+      uses: actions/download-artifact@v4.1.8
+      with:
+        pattern: PakScanner_Release_*
+        path: results/Scanner
+
     - name: Set file names
       run: |
         mv results/Debug/UnchainedLauncher.exe UnchainedLauncher_dbg.exe
-        mv results/Debug/UnchainedLauncher.pdb UnchainedLauncher_dbg.pdb
         mv results/Release/UnchainedLauncher.exe UnchainedLauncher.exe
+
+    - name: Zip scanner
+      shell: pwsh
+      run: |
+        Compress-Archive -Path results/Scanner/PakScanner_Release_Win64_${{ github.sha }}/* -DestinationPath PakScanner_Win64.zip
+        Compress-Archive -Path results/Scanner/PakScanner_Release_x64_${{ github.sha }}/* -DestinationPath PakScanner_x64.zip
 
     - name: Create GitHub Release
       id: create_release
@@ -73,9 +112,11 @@ jobs:
         release_name: "Release ${{ github.ref }}: ${{ env.tag_annotation }}"
         draft: false
         prerelease: true
+        preserve_order: true
         files: |
-          UnchainedLauncher_dbg.exe
-          UnchainedLauncher_dbg.pdb
           UnchainedLauncher.exe
+          UnchainedLauncher_dbg.exe
+          PakScanner_x64.zip
+          PakScanner_Win64.zip
         body: |
           ${{ github.ref }}

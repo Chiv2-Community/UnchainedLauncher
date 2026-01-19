@@ -22,15 +22,20 @@
   </PropertyGroup>
   
   <ItemGroup>
-      <ProjectReference Include="..\DiscriminatedUnions\DiscriminatedUnions.csproj"/>
-      <ProjectReference Include="..\StructuredINI\StructuredINI.csproj"/>
+      <ProjectReference Include="..\DiscriminatedUnions\DiscriminatedUnions.csproj" />
+      <ProjectReference Include="..\StructuredINI\StructuredINI.csproj" />
+      <ProjectReference Include="..\UnchainedLauncher.UnrealModScanner\UnchainedLauncher.UnrealModScanner.csproj" />
 
-    <PackageReference Include="LanguageExt.Core" Version="4.4.9"/>
-    <PackageReference Include="LanguageExt.Sys" Version="4.4.9"/>
-    <PackageReference Include="log4net" Version="3.0.1"/>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2"/>
-    <PackageReference Include="Octokit" Version="13.0.1"/>
-    <PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All"/>
-    <PackageReference Include="Semver" Version="2.3.0"/>
+    <PackageReference Include="LanguageExt.Core" Version="4.4.9" />
+    <PackageReference Include="LanguageExt.Sys" Version="4.4.9" />
+    <PackageReference Include="log4net" Version="3.0.1" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="Octokit" Version="13.0.1" />
+    <PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All" />
+    <PackageReference Include="Semver" Version="2.3.0" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="Models\" />
   </ItemGroup>
 </Project>

@@ -48,9 +48,6 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
             // 1. Apply Path Filtering
             var files = provider.FilteredFiles.ToList();
 
-            // 2. Load-Balanced Partitioning
-            // Setting loadBalance to 'true' enables a dynamic worker-stealing-like behavior
-            var partitioner = Partitioner.Create(files, loadBalance: true);
 
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = -1 };
             await Parallel.ForEachAsync(
@@ -63,7 +60,7 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                     IPackage? pkg = null;
                     bool packageLoaded;
                     try {
-                        pkg = provider.LoadPackage(file.Key);
+                        pkg = await provider.LoadPackageAsync(file.Key);
                         // Log.Error($"Failed to load package: {e.Message}");
                         // throw;
                         if (pkg == null) return;

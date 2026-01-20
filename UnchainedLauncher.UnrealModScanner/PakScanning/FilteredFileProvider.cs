@@ -21,6 +21,8 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
             return isAsset;
         };
         
+        public static readonly PakContentFilter MapsOnlyFilter = kv => kv.Key.EndsWith(".umap");
+        
         public static PakContentFilter ExcludePathsContainingStrings(IEnumerable<string> paths) =>
             kv => !paths.Any(path => kv.Key.Contains(path));
 
@@ -49,7 +51,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
         string directory,
         SearchOption searchOption,
         Predicate<KeyValuePair<string, GameFile>>? pakContentFilter,
-        string AESKey,
+        string aesKey,
         VersionContainer? versions = null,
         StringComparer? pathComparer = null)
         : DefaultFileProvider(new DirectoryInfo(directory), [], searchOption, versions, pathComparer) {
@@ -63,8 +65,9 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
         /// <param name="options"></param>
         /// <param name="mode"></param>
         /// <param name="pakDir"></param>
+        /// <param name="extraPakFilter">An additional pak filter to apply after the default filters</param>
         /// <returns></returns>
-        public static FilteredFileProvider CreateFromOptions(ScanOptions options, ScanMode mode, string pakDir) {
+        public static FilteredFileProvider CreateFromOptions(ScanOptions options, ScanMode mode, string pakDir, PakContentFilter? extraPakFilter = null) {
             Predicate<KeyValuePair<string, GameFile>> CreatePakFilter() {
                 var pakFilter = mode switch {
                     ScanMode.Mods => CommonPakContentFilters.IgnorePakFilter(options.VanillaPakNames.ToArray()),
@@ -79,7 +82,8 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
                     _ => null
                 };
                 
-                return CommonPakContentFilters.Combine(CommonPakContentFilters.AssetsOnlyFilter, pakFilter, pathFilter);
+                Console.WriteLine(extraPakFilter);
+                return CommonPakContentFilters.Combine(CommonPakContentFilters.AssetsOnlyFilter, pakFilter, pathFilter, extraPakFilter);
             }
 
 
@@ -110,7 +114,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
                 }
             }
 
-            SubmitKey(new FGuid(), new FAesKey(AESKey));
+            SubmitKey(new FGuid(), new FAesKey(aesKey));
         }
     }
 }

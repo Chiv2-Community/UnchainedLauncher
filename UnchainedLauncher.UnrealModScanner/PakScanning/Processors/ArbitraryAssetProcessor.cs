@@ -8,18 +8,12 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
     /// Returns Assets from whitelisted directories which do not fall into other categories 
     /// and are not asset replacements
     /// </summary>
-    public class ArbitraryAssetProcessor : IAssetProcessor {
-        private readonly HashSet<string> _standardDirs;
-
-        public ArbitraryAssetProcessor(IEnumerable<string> standardDirs) {
-            // FIXME: Use game name from config
-            _standardDirs = standardDirs.Select(d => d.ToLower()).ToHashSet();
-        }
+    public class ArbitraryAssetProcessor(IEnumerable<string> vanillaAssetDirs) : IAssetProcessor {
 
         public void Process(ScanContext ctx, PakScanResult result) {
             if (ctx.FilePath.EndsWith(".umap")) return;
-            bool isStandard = _standardDirs.Any(dir => ctx.FilePath.ToLower().StartsWith(dir.ToLower()));
-            if (isStandard) return;
+            bool isVanillaAsset = vanillaAssetDirs.Any(dir => ctx.FilePath.StartsWith(dir, StringComparison.InvariantCultureIgnoreCase));
+            if (isVanillaAsset) return;
 
             // Debug.WriteLine($"Processing: {ctx.FilePath}");
             var entry = GenericAssetEntry.FromSource(

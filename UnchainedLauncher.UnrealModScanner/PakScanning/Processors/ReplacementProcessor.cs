@@ -5,11 +5,9 @@ using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
     public class ReplacementProcessor(IEnumerable<string> vanillaAssetDirs) : IAssetProcessor {
-        // FIXME: Use game name from config
-        private readonly HashSet<string> _dirs = vanillaAssetDirs.ToHashSet();
-
         public void Process(ScanContext ctx, PakScanResult result) {
-            if (!_dirs.Any(dir => ctx.FilePath.StartsWith(dir))) return;
+            bool isVanilla = vanillaAssetDirs.Any(dir => ctx.FilePath.StartsWith(dir, StringComparison.InvariantCultureIgnoreCase));
+            if (!isVanilla) return;
 
             var entry = GenericAssetEntry.FromSource(
                 new ScanContextAssetSource(ctx),

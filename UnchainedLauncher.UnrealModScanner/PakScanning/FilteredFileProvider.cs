@@ -12,38 +12,6 @@ using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 namespace UnchainedLauncher.UnrealModScanner.PakScanning {
     using PakContentFilter = Predicate<KeyValuePair<string, GameFile>>;
 
-
-    public static class CommonPakContentFilters {
-        
-        public static readonly PakContentFilter AssetsOnlyFilter = kv => {
-            var path = kv.Key;
-            var isAsset = path.EndsWith(".uasset") || path.EndsWith(".umap");
-            return isAsset;
-        };
-        
-        public static readonly PakContentFilter MapsOnlyFilter = kv => kv.Key.EndsWith(".umap");
-        
-        public static PakContentFilter ExcludePathsContainingStrings(IEnumerable<string> paths) =>
-            kv => !paths.Any(path => kv.Key.Contains(path));
-
-        public static PakContentFilter IncludePathsContainingStrings(IEnumerable<string> paths) =>
-            kv => paths.Any(path => kv.Key.Contains(path));
-
-        public static PakContentFilter IgnorePakFilter(params string[] pakNamesToIgnore) => 
-            kv => kv.Value is not FPakEntry fPakEntry || !pakNamesToIgnore.Contains(fPakEntry.PakFileReader.Name);
-        
-        public static PakContentFilter SpecificPakFilter(params string[] pakNamesToInclude) => 
-            kv => kv.Value is not FPakEntry fPakEntry || pakNamesToInclude.Contains(fPakEntry.PakFileReader.Name);
-        
-        public static PakContentFilter Pass => _ => true;
-        
-        public static PakContentFilter Combine(params PakContentFilter?[] filters) {
-            var noNullFilters = filters.Where(x => x != null);
-            return kv => noNullFilters.All(filter => filter!(kv));
-        }
-    }
-    
-
     /// <summary>
     /// DefaultFileProvider
     /// </summary>
@@ -68,26 +36,20 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
         /// <param name="extraPakFilter">An additional pak filter to apply after the default filters</param>
         /// <returns></returns>
         public static FilteredFileProvider CreateFromOptions(ScanOptions options, ScanMode mode, string pakDir, PakContentFilter? extraPakFilter = null) {
-            Predicate<KeyValuePair<string, GameFile>> CreatePakFilter() {
-                var pakFilter = mode switch {
-                    ScanMode.Mods => CommonPakContentFilters.IgnorePakFilter(options.VanillaPakNames.ToArray()),
-                    ScanMode.GameInternal => CommonPakContentFilters.SpecificPakFilter(options.VanillaPakNames.ToArray()),
-                    // just return true for the default case. Apply no additional filtering.
-                    _ => null
-                };
-                
-                var pathFilter = options.FilterMode switch {
-                    FilterMode.Whitelist => CommonPakContentFilters.IncludePathsContainingStrings(options.FilterPaths),
-                    FilterMode.Blacklist => CommonPakContentFilters.ExcludePathsContainingStrings(options.FilterPaths),
-                    _ => null
-                };
-                
-                Console.WriteLine(extraPakFilter);
-                return CommonPakContentFilters.Combine(CommonPakContentFilters.AssetsOnlyFilter, pakFilter, pathFilter, extraPakFilter);
-            }
+            IScanFilter? pakFilter = mode switch {
+                ScanMode.Mods => new IgnorePakScanFilter(options.VanillaPakNames.ToArray()),
+                ScanMode.GameInternal => new SpecificPakScanFilter(options.VanillaPakNames.ToArray()),
+                // just return true for the default case. Apply no additional filtering.
+                _ => null
+            };
 
 
-            return new FilteredFileProvider(pakDir, SearchOption.TopDirectoryOnly, CreatePakFilter(), options.AesKey);
+            return new FilteredFileProvider(
+                pakDir, 
+                SearchOption.TopDirectoryOnly, 
+                options.ScanFilter.With(pakFilter).CreatePakContentFilter(), 
+                options.AesKey
+            );
         }
 
         public IEnumerable<KeyValuePair<string, GameFile>> FilteredFiles {

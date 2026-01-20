@@ -6,8 +6,7 @@ namespace UnchainedLauncher.UnrealModScanner.Config.Games {
             VanillaPakNames: ["pakchunk0-WindowsNoEditor.pak"],
             GameVersion: EGame.GAME_UE4_25,
             AesKey: "0x0000000000000000000000000000000000000000000000000000000000000000",
-            FilterMode: FilterMode.Blacklist,
-            FilterPaths: new List<string>(),
+            ScanFilter: new AssetsOnlyScanFilter(), // scan everything that is an asset
             VanillaAssetPaths: new List<string>{
                 "Abilities", "AI", "Animation", "Audio", "Blueprint", "Characters", "Cinematics",
                 "Collections", "Config", "Custom_Lens_Flare_VFX", "Customization", "Debug",

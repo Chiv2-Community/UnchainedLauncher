@@ -1,6 +1,7 @@
 ﻿
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using UnchainedLauncher.UnrealModScanner.Config.Games;
 using UnchainedLauncher.UnrealModScanner.Export;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
@@ -16,11 +17,7 @@ public partial class ModScanTabVM : ObservableObject {
     // public PakScanResultVM ResultsVisual { get; set; } = new();
     [ObservableProperty]
     private PakScanResultVM _resultsVisual = new();
-    public ModScanResult LastScanResult { get; private set; }
-
-    // The technical DTO for JSON export
-    [ObservableProperty]
-    private PakDirManifest _scanManifest = new();
+    public ModScanResult? LastScanResult { get; private set; }
 
     [ObservableProperty]
     private double _scanProgress;
@@ -42,24 +39,15 @@ public partial class ModScanTabVM : ObservableObject {
             //Debug.WriteLine($"Scan Progress: {percent:F2}%");
         });
 
-        // 2. Configuration for Scanner
-        var officialDirs = new[] {
-            "Abilities","AI","Animation","Audio","Blueprint","Characters","Cinematics",
-            "Collections","Config","Custom_Lens_Flare_VFX","Customization","Debug",
-            "Developers","Environments","FX","Game","GameModes","Gameplay","Interactables",
-            "Inventory","Localization","MapGen","Maps","MapsTest","Materials","Meshes",
-            "Trailer_Cinematic","UI","Weapons","Engine","Mannequin"
-        };
-
         await Task.Yield();
         // 3. Execution
         var swMod = Stopwatch.StartNew();
-        var options_new = GameScanOptions.Chivalry2;
-        var modScanner = ScannerFactory.CreateModScanner(officialDirs, options_new);
-
-
-        // Run scanner on a background thread
-        LastScanResult = await Task.Run(() => modScanner.RunScanAsync(pakDir, ScanMode.ModsOnly, options_new, progressReporter));
+        var options = GameScanOptions.Chivalry2;
+        var modScanner = ScannerFactory.CreateModScanner(options);
+        
+        var provider = FilteredFileProvider.CreateFromOptions(options, ScanMode.Mods, pakDir);
+        
+        LastScanResult = await Task.Run(() => modScanner.RunScanAsync(provider, options, progressReporter));
 
         swMod.Stop();
         Debug.WriteLine($"Mod Scan completed in: {swMod.ElapsedMilliseconds}ms");
@@ -136,12 +124,15 @@ public partial class ModScanTabVM : ObservableObject {
         IsScanning = false;
     }
 
-    public void ExportJson(string path, bool manifest) {
+    public void ExportJson(string path, bool createManifest) {
         if (LastScanResult == null) return;
-        ModScanJsonExporter.ExportToFile(LastScanResult, path);
-        if (manifest) {
-            ScanManifest = ModManifestConverter.ProcessModScan(LastScanResult);
-            ModScanJsonExporter.ExportToFile(ScanManifest, path);
+        
+        if (createManifest) {
+            var scanManifest = ModManifestConverter.ProcessModScan(LastScanResult);
+            ModScanJsonExporter.ExportToFile(scanManifest, path);
+        }
+        else {
+            ModScanJsonExporter.ExportToFile(LastScanResult, path);
         }
     }
 }

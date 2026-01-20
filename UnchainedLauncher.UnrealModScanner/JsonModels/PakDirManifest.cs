@@ -2,139 +2,97 @@
 using Newtonsoft.Json;
 
 namespace UnchainedLauncher.UnrealModScanner.JsonModels {
-    public record PakDirManifest() {
-        [JsonProperty("schema_version")]
-        public int SchemaVersion { get; set; } = 1;
+    public record PakDirManifest(
+        [property: JsonProperty("paks")] List<PakManifest> Paks,
+        [property: JsonProperty("schema_version")] int SchemaVersion = 1,
+        [property: JsonProperty("generated_at")] DateTimeOffset GeneratedAt = default,
+        [property: JsonProperty("scanner_version")] string ScannerVersion = "3.3.1"
+    );
 
-        [JsonProperty("generated_at")] 
-        public DateTimeOffset GeneratedAt { get; set; } = DateTimeOffset.UtcNow;
+    public record PakManifest(
+        [property: JsonProperty("pak_name")] string PakName,
+        [property: JsonProperty("pak_path")] string PakPath,
+        [property: JsonProperty("pak_hash")] string? PakHash,
+        [property: JsonProperty("inventory")] AssetCollections Inventory
+    );
 
-        [JsonProperty("scanner_version")]
-        public string ScannerVersion { get; set; } = "3.3.1";
-
-        // Master list of all scanned paks
-        [JsonProperty("paks")]
-        public List<PakManifest> Paks { get; set; } = new();
-    }
-
-    public record PakManifest {
-        [JsonProperty("pak_name")]
-        public string PakName { get; set; } = string.Empty;
-
-        [JsonProperty("pak_path")]
-        public string PakPath { get; set; } = string.Empty;
-
-        [JsonProperty("pak_hash")]
-        public string? PakHash { get; set; }
-
-        [JsonProperty("inventory")]
-        public AssetCollections Inventory { get; set; } = new();
-    }
-
-    public record AssetCollections {
-        [JsonProperty("markers")]
-        public List<ModMarkerDto> Markers { get; set; } = new();
-
-        [JsonProperty("blueprints")]
-        public List<BlueprintDto> Blueprints { get; set; } = new();
-
-        [JsonProperty("maps")]
-        public List<MapDto> Maps { get; set; } = new();
-
-        [JsonProperty("replacements")]
-        public List<ReplacementDto> Replacements { get; set; } = new();
-
-        [JsonProperty("arbitrary")]
-        public List<ArbitraryDto> Arbitrary { get; set; } = new();
-    }
+    public record AssetCollections(
+        [property: JsonProperty("markers")] List<ModMarkerDto> Markers,
+        [property: JsonProperty("blueprints")] List<BlueprintDto> Blueprints,
+        [property: JsonProperty("maps")] List<MapDto> Maps,
+        [property: JsonProperty("replacements")] List<ReplacementDto> Replacements,
+        [property: JsonProperty("arbitrary")] List<ArbitraryDto> Arbitrary
+    );
 
 
-    public abstract record BaseAssetDto {
-        [JsonProperty("path")]
-        public string Path { get; set; } = string.Empty;
+    public abstract record BaseAssetDto(
+        [property: JsonProperty("path")] string Path,
+        [property: JsonProperty("hash")] string Hash,
+        [property: JsonProperty("class_path")] string? ClassPath,
+        [property: JsonProperty("object_class")] string? ObjectClass,
+        [property: JsonProperty("is_orphaned")] bool? IsOrphaned = null
+    );
 
-        [JsonProperty("hash")]
-        public string Hash { get; set; } = string.Empty;
+    public record ModMarkerDto(
+        string Path,
+        string Hash,
+        string ClassPath,
+        string? ObjectClass,
+        bool? IsOrphaned,
+        [property: JsonProperty("associated_blueprints")] List<string> AssociatedBlueprints
+    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass, IsOrphaned);
 
-        [JsonProperty("class_path")]
-        public string ClassPath { get; set; } = string.Empty;
+    public record BlueprintDto(
+        string Path,
+        string Hash,
+        string ClassPath,
+        string? ObjectClass,
+        bool? IsOrphaned,
+        [property: JsonProperty("mod_name")] string ModName,
+        [property: JsonProperty("version")] string Version,
+        [property: JsonProperty("mod_description")] string ModDescription,
+        [property: JsonProperty("mod_repo_url")] string ModRepoURL,
+        [property: JsonProperty("author")] string Author,
+        [property: JsonProperty("enable_by_default")] bool bEnableByDefault,
+        [property: JsonProperty("silent_load")] bool bSilentLoad,
+        [property: JsonProperty("show_in_gui")] bool bShowInGUI,
+        [property: JsonProperty("is_client_side")] bool bClientside,
+        [property: JsonProperty("online_only")] bool bOnlineOnly,
+        [property: JsonProperty("host_only")] bool bHostOnly,
+        [property: JsonProperty("allow_on_frontend")] bool bAllowOnFrontend,
+        [property: JsonProperty("is_hidden")] bool? IsHidden
+    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass, IsOrphaned);
 
-        [JsonProperty("object_class")]
-        public string? ObjectClass { get; set; }
-
-        [JsonProperty("is_orphaned")]
-        public bool? IsOrphaned { get; set; } = null;
-    }
-
-    public record ModMarkerDto : BaseAssetDto {
-        [JsonProperty("associated_blueprints")]
-        public List<string> AssociatedBlueprints { get; set; } = new();
-    }
-
-    public record BlueprintDto : BaseAssetDto {
-        [JsonProperty("mod_name")]
-        public string ModName { get; set; } = string.Empty;
-
-        [JsonProperty("version")]
-        public string Version { get; set; } = string.Empty;
-
-        [JsonProperty("mod_description")]
-        public string ModDescription { get; set; } = string.Empty;
-
-        [JsonProperty("mod_repo_url")]
-        public string ModRepoURL { get; set; } = string.Empty;
-
-        [JsonProperty("author")]
-        public string Author { get; set; } = string.Empty;
-
-        [JsonProperty("enable_by_default")]
-        public bool bEnableByDefault { get; set; }
-
-        [JsonProperty("silent_load")]
-        public bool bSilentLoad { get; set; }
-
-        [JsonProperty("show_in_gui")]
-        public bool bShowInGUI { get; set; }
-
-        [JsonProperty("is_client_side")]
-        public bool bClientside { get; set; }
-
-        [JsonProperty("online_only")]
-        public bool bOnlineOnly { get; set; }
-
-        [JsonProperty("host_only")]
-        public bool bHostOnly { get; set; }
-
-        [JsonProperty("allow_on_frontend")]
-        public bool bAllowOnFrontend { get; set; }
-
-        [JsonProperty("is_hidden")]
-        public bool? IsHidden { get; set; } = false;
-    }
-
-    public record MapDto : BaseAssetDto {
-        [JsonProperty("game_mode")]
-        public string? GameMode { get; set; }
-        [JsonProperty("map_name")]
-        public string? MapName { get; set; }
-        [JsonProperty("map_description")]
-        public string? MapDescription { get; set; }
-        [JsonProperty("attacking_faction")]
-        public string? AttackingFaction { get; set; }
-        [JsonProperty("defending_faction")]
-        public string? DefendingFaction { get; set; }
-        [JsonProperty("game_mode_type")]
-        public string? GamemodeType { get; set; }
-        [JsonProperty("tbl_default_gamemode")]
-        public string? TBLDefaultGameMode { get; set; }
-    }
+    public record MapDto(
+        string Path,
+        string Hash,
+        string? ClassPath,
+        string? ObjectClass,
+        bool? IsOrphaned,
+        [property: JsonProperty("game_mode")] string? GameMode,
+        [property: JsonProperty("map_name")] string? MapName,
+        [property: JsonProperty("map_description")] string? MapDescription,
+        [property: JsonProperty("attacking_faction")] string? AttackingFaction,
+        [property: JsonProperty("defending_faction")] string? DefendingFaction,
+        [property: JsonProperty("game_mode_type")] string? GamemodeType,
+        [property: JsonProperty("tbl_default_gamemode")] string? TBLDefaultGameMode
+    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass, IsOrphaned);
 
     // Base fields are sufficient
-    public record ReplacementDto : BaseAssetDto;
+    public record ReplacementDto(
+        string Path,
+        string Hash,
+        string ClassPath,
+        string? ObjectClass,
+        bool? IsOrphaned
+    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass, IsOrphaned);
 
-    public record ArbitraryDto : BaseAssetDto {
-        // Legacy / fallback metadata
-        [JsonProperty("mod_name")]
-        public string? ModName { get; set; }
-    }
+    public record ArbitraryDto(
+        string Path,
+        string Hash,
+        string ClassPath,
+        string? ObjectClass,
+        bool? IsOrphaned,
+        [property: JsonProperty("mod_name")] string? ModName
+    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass, IsOrphaned);
 }

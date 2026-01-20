@@ -25,7 +25,7 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
             //    }
             //};
 
-            var options = new ScanOptions();
+            var options = GameScanOptions.Chivalry2;
             var json = JsonConvert.SerializeObject(options, SerializerSettings);
             File.WriteAllText(path, json);
         }

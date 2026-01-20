@@ -1,7 +1,7 @@
 {
   "PakDirectory": ".",
   "OutputDirectory": "./out",
-  "ScanMode": "ModsOnly",
+  "ScanMode": "Mods",
   "OfficialDirectories": [
     "Abilities","AI","Animation","Audio","Blueprint","Characters","Cinematics",
     "Collections","Config","Custom_Lens_Flare_VFX","Customization","Debug",

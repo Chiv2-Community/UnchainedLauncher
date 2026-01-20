@@ -17,11 +17,16 @@ internal class Program {
         //var pakdir_other = "U:\\Unchained\\Cleanup\\Unchained-Mods-internal";
 
         //var provider = new DefaultFileProvider(pakdir, SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_UE4_25));
-        var provider = new FilteredFileProvider(pakdir, SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_UE4_25));
+        var provider = new FilteredFileProvider(
+            pakdir,
+            SearchOption.TopDirectoryOnly, 
+            null, 
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
+            new VersionContainer(EGame.GAME_UE4_25),
+            null
+        );
 
-        provider.PakFilter = (file) => !file.Name.EndsWith("pakchunk0-WindowsNoEditor.pak", StringComparison.OrdinalIgnoreCase);
         provider.Initialize(); // will scan the archive directory for supported file extensions
-        provider.SubmitKey(new FGuid(), new FAesKey("0x0000000000000000000000000000000000000000000000000000000000000000")); // decrypt basic info (1 guid - 1 key)                                          //provider.LoadLocalization(ELanguage.English); // explicit enough
         provider.LoadVirtualPaths();
         ZlibHelper.DownloadDll(); // TODO: better way?
         ZlibHelper.Initialize("zlib-ng2.so");

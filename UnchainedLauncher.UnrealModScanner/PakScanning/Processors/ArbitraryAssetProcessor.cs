@@ -13,7 +13,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
 
         public ArbitraryAssetProcessor(IEnumerable<string> standardDirs) {
             // FIXME: Use game name from config
-            _standardDirs = standardDirs.Select(d => $"TBL/Content/{d}".ToLower()).ToHashSet();
+            _standardDirs = standardDirs.Select(d => d.ToLower()).ToHashSet();
         }
 
         public void Process(ScanContext ctx, PakScanResult result) {

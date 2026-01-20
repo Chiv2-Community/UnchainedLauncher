@@ -7,7 +7,7 @@ var app = new CommandApp();
  {
   "PakDirectory": "/mnt/u/Games/Chivalry2_c/TBL/Content/Paks",
   "OutputDirectory": "./out",
-  "ScanMode": "ModsOnly",
+  "ScanMode": "Mods",
   "OfficialDirectories": [
     "Abilities",
     "AI",
@@ -62,7 +62,7 @@ return await app.RunAsync(args);
 // var modScanner = ScannerFactory.CreateModScanner(officialDirs);
 // // var pakDir = "U:\\Games\\Chivalry2_c\\TBL\\Content\\Paks";
 // var pakDir = "/mnt/u/Games/Chivalry2_c/TBL/Content/Paks";
-// var context = await Task.Run(() => modScanner.RunScanAsync(pakDir, ScanMode.ModsOnly, progressReporter));
+// var context = await Task.Run(() => modScanner.RunScanAsync(pakDir, ScanMode.Mods, progressReporter));
 // var ScanManifest = MetadataProcessor.ProcessModScan(context);
 //
 // Console.WriteLine($"Processed {ScanManifest.Paks.Count} Paks");

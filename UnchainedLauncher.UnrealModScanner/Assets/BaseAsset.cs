@@ -1,7 +1,7 @@
 ﻿using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Objects.UObject;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using Serilog;
 using System.Diagnostics;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
@@ -12,22 +12,26 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
         /// Full Unreal asset path including extension
         /// e.g. TBL/Content/Characters/Knight/Knight.uasset
         /// </summary>
-        [JsonProperty("asset_path", Order = -2)]
+        [JsonPropertyName("asset_path")]
+        [JsonPropertyOrder(-2)]
         public string AssetPath { get; set; } = string.Empty;
 
-        [JsonProperty("class_path", Order = -2)]
+        [JsonPropertyName("class_path")]
+        [JsonPropertyOrder(-2)]
         public string ClassPath { get; set; } = null;
 
         /// <summary>
         /// Class Name of this asset (PathName)
         /// </summary>
-        [JsonProperty("class_name", Order = -3)]
+        [JsonPropertyName("class_name")]
+        [JsonPropertyOrder(-3)]
         public string ClassName { get; set; } = string.Empty;
 
         /// <summary>
         /// Hash of the pak entry (or file hash if available)
         /// </summary>
-        [JsonProperty("asset_hash", Order = 100)]
+        [JsonPropertyName("asset_hash")]
+        [JsonPropertyOrder(100)]
         public string AssetHash { get; set; } = string.Empty;
 
         public static UObject? FindMainExport(IPackage package) {

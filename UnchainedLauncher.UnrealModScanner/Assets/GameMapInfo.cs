@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
 
 namespace UnchainedLauncher.UnrealModScanner.Assets {
@@ -19,10 +19,10 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
         /// <summary>
         /// GameMode Class Name (Short) for this map. Usually None for sublevels
         /// </summary>
-        [JsonProperty("game_mode")]
+        [JsonPropertyName("game_mode")]
         public string? GameMode { get; private set; }
 
-        [JsonProperty("settings")]
+        [JsonPropertyName("settings")]
         public Dictionary<string, Dictionary<string, object?>>? Settings { get; set; }
     }
 }

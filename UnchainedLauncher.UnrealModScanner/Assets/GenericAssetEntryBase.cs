@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
 
 namespace UnchainedLauncher.UnrealModScanner.Assets {
@@ -7,7 +7,7 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
     /// </summary>
     public abstract class GenericAssetEntryBase<TDerived> : BaseAsset
         where TDerived : GenericAssetEntryBase<TDerived>, new() {
-        [JsonProperty("properties")]
+        [JsonPropertyName("properties")]
         public Dictionary<string, object?> Properties { get; protected set; } = new();
 
         // Required for 'new()' constraint

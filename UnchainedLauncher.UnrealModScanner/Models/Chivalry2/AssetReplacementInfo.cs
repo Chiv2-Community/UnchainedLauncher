@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 using UnchainedLauncher.UnrealModScanner.Assets;
 
 namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
@@ -8,7 +8,7 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
             /// <summary>
             /// File extension (.uasset, .umap, etc)
             /// </summary>
-            [JsonProperty("extension")]
+            [JsonPropertyName("extension")]
             public string Extension { get; init; } = string.Empty;
         }
     }

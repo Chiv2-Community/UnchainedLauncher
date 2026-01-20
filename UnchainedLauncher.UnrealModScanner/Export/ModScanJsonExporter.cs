@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Collections.ObjectModel;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -7,19 +8,15 @@ using UnrealModScanner.Models;
 namespace UnchainedLauncher.UnrealModScanner.Export;
 
 public static class ModScanJsonExporter {
-    //private static readonly JsonSerializerOptions Options = new() {
-    //    WriteIndented = true,
-    //    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    //};
-    private static readonly JsonSerializerSettings Settings = new() {
-        Formatting = Formatting.Indented,
-        NullValueHandling = NullValueHandling.Ignore,
+    private static readonly JsonSerializerOptions Options = new() {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
     public static void ExportToFile(
         PakDirManifest scanResults,
         string outputPath) {
-        var json = JsonConvert.SerializeObject(scanResults, Settings);
+        var json = JsonSerializer.Serialize(scanResults, Options);
         File.WriteAllText(outputPath, json);
     }
 
@@ -29,7 +26,7 @@ public static class ModScanJsonExporter {
             Results = scanResults
         };
 
-        return JsonConvert.SerializeObject(doc, Settings);
+        return JsonSerializer.Serialize(doc, Options);
     }
 
     public static void ExportToFile(
@@ -45,7 +42,7 @@ public static class ModScanJsonExporter {
             ScanResults = scanResults
         };
 
-        return JsonConvert.SerializeObject(doc, Settings);
+        return JsonSerializer.Serialize(doc, Options);
     }
 
     public static void ExportToFile(

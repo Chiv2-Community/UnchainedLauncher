@@ -1,5 +1,5 @@
 ﻿using CUE4Parse.UE4.AssetRegistry.Objects;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace UnchainedLauncher.UnrealModScanner.Assets {
     /// <summary>
@@ -9,12 +9,12 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
         /// <summary>
         /// Asset's Package name. Also in the AssetData
         /// </summary>
-        [JsonProperty("package_name")]
+        [JsonPropertyName("package_name")]
         public string FullPackageName { get; set; }
         /// <summary>
         /// FAssetData from AssetRegistry.bin
         /// </summary>
-        [JsonProperty("asset_data")]
+        [JsonPropertyName("asset_data")]
         public FAssetData AssetData { get; set; }
     }
 }

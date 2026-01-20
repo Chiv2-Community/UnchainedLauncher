@@ -1,8 +1,8 @@
 ﻿using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.UObject;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Serilog;
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -76,13 +76,13 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                         _map.ToString();
                     }
                     properties.Add(kvp.Name.Text, rawValue switch {
-                        UObject nestedObj => JToken.Parse(nestedObj.ToSafeJson(0, 3)?.ToString() ?? null),
-                        UScriptMap smap => JToken.Parse(JsonConvert.SerializeObject(rawValue)).Children<JObject>()
+                        UObject nestedObj => JsonNode.Parse(nestedObj.ToSafeJson(0, 3)?.ToString() ?? null),
+                        UScriptMap smap => JsonNode.Parse(JsonSerializer.Serialize(rawValue))?.AsArray()
                             .ToDictionary(
-                                obj => obj["Key"]?.ToString() ?? "UnknownKey",
-                                obj => obj["Value"]
+                                obj => obj?["Key"]?.ToString() ?? "UnknownKey",
+                                obj => obj?["Value"]
                             ),
-                        _ => JToken.Parse(JsonConvert.SerializeObject(rawValue))
+                        _ => JsonNode.Parse(JsonSerializer.Serialize(rawValue))
                     });
                 }
                 catch (Exception e) {

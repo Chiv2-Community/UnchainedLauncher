@@ -1,5 +1,5 @@
 ﻿
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using UnchainedLauncher.UnrealModScanner.Assets;
 
 namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
@@ -9,7 +9,7 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
     [Obsolete("Use GenericMarkerEntry in the future")]
     public sealed class ModMarkerInfo : BaseAsset {
 
-        [JsonProperty("blueprints")]
+        [JsonPropertyName("blueprints")]
         public List<BlueprintModInfo> Blueprints { get; } = new();
 
         // TODO

@@ -3,7 +3,7 @@ using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.VirtualFileSystem;
-using Newtonsoft.Json;
+using System.Text.Json;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using UnchainedLauncher.UnrealModScanner.Assets;
@@ -103,7 +103,7 @@ public class SecondPassOrchestrator {
                         filteredProperties[propConfig.Name] = propConfig.Mode switch {
                             EExtractionMode.Json => rawValue switch {
                                 UObject nestedObj => nestedObj.ToSafeJson(0, propConfig.MaxDepth),
-                                _ => JsonConvert.SerializeObject(rawValue)
+                                _ => JsonSerializer.Serialize(rawValue)
                             },
                             EExtractionMode.String => rawValue?.ToString() ?? "null",
                             EExtractionMode.Raw => rawValue,

@@ -1,4 +1,4 @@
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
 
@@ -13,13 +13,13 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
         /// <summary>
         /// Class Name of Marker children container (TMap)
         /// </summary>
-        [JsonProperty("children_class_path")]
+        [JsonPropertyName("children_class_path")]
         public string ChildrenClassPath { get; private set; } = string.Empty;
 
         /// <summary>
         /// Contains Markers discovered by ReferenceDiscoveryProcessor
         /// </summary>
-        [JsonProperty("children")]
+        [JsonPropertyName("children")]
         public ConcurrentBag<GenericAssetEntry> Children { get; private set; } = new();
 
         public void AddGenericEntry(GenericAssetEntry entry) => Children.Add(entry);

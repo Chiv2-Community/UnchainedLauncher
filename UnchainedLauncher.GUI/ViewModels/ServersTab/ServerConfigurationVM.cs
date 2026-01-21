@@ -156,7 +156,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public int PingPort { get; set; }
         public string LocalIp { get; set; }
 
-        private PakDirManifest? _cachedScanResult = null;
+        private PakDirManifest? _cachedScanManifest = null;
 
         public static string SavedDirSuffix(string name) {
             var validChars = "_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -285,7 +285,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             
             HandleLatestScanUpdate(modScanTab.LastScanResult);
             modScanTab.PropertyChanged += (_, args) => {
-                if (args.PropertyName == nameof(modScanTab.LastScanResult))
+                if (args.PropertyName == nameof(modScanTab.ResultsVisual))
                     HandleLatestScanUpdate(modScanTab.LastScanResult);
             };
 
@@ -298,22 +298,36 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             EnabledServerModList.Remove(blueprint);
 
         public void AddAvailableMod(AssetCollections modPakManifest) {
+            
             var newMaps =
                 modPakManifest
                     .RelevantMaps()
                     .Filter(x => !AvailableMaps.Contains(x));
+            
+            Logger.Debug("Adding Available Maps: ");
+            newMaps.ForEach(map => Logger.Debug($"\t{map.MapName}"));
+            newMaps.ForEach(AvailableMaps.Add);
             
             var newModBlueprints = 
                 modPakManifest
                     .RelevantBlueprints()
                     .Filter(x => !AvailableServerModBlueprints.Contains(x));
 
-            newMaps.ForEach(AvailableMaps.Add);
+            Logger.Debug("Adding Available Blueprints: ");
+            newModBlueprints.ForEach(bp => Logger.Debug($"\t{bp.ModName}"));
             newModBlueprints.ForEach(AvailableServerModBlueprints.Add);
         }
 
         public void RemoveAvailableMod(AssetCollections manifest) {
-            manifest.RelevantMaps().ForEach(AvailableMaps.Remove);
+
+            var maps = manifest.RelevantMaps();
+            Logger.Debug("Removing Available Maps: ");
+            maps.ForEach(m => Logger.Debug($"\t{m.MapName}"));
+            maps.ForEach(AvailableMaps.Remove);
+
+            var blueprints = manifest.RelevantBlueprints();
+            Logger.Debug("Removing Available Blueprints: ");
+            blueprints.ForEach(bp => Logger.Debug($"\t{bp.ModName}"));
             manifest.RelevantBlueprints().ForEach(AvailableServerModBlueprints.Remove);
         }
 
@@ -390,7 +404,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         private void HandleLatestScanUpdate(ModScanResult? scanResult) {
-            _cachedScanResult?.Paks
+            Logger.Debug("Processing latest scan...");
+            
+            _cachedScanManifest?.Paks
                 .Select(x => x.Inventory)
                 .ForEach(RemoveAvailableMod);
 
@@ -400,7 +416,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             manifest
                 .Paks
                 .Select(x => x.Inventory)
-                .ForEach(RemoveAvailableMod);
+                .ForEach(AddAvailableMod);
+
+            _cachedScanManifest = manifest;
         }
         
         public override string ToString() {

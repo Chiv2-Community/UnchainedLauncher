@@ -105,7 +105,7 @@ public record ServerLaunchOptions(
         Password.IfSome(password => args.Add(new UEParameter("ServerPassword", password.Trim())));
 
         if (ServerMods.Any())
-            args.Add(new Parameter("--server-mods", string.Join(",", ServerMods)));
+            args.Add(new Parameter("--server-mods", string.Join(",", ServerMods.Distinct())));
 
         LocalIp.IfSome(ip => args.Add(new Parameter("--local-ip", ip)));
 

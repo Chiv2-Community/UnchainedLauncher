@@ -49,7 +49,7 @@ namespace UnchainedLauncher.UnrealModScanner.JsonModels {
         string? ClassPath,
         string? ObjectClass,
         bool? IsOrphaned,
-        [property: JsonPropertyName("mod_name")][property: JsonProperty("mod_name")] string ModName,
+        [property: JsonPropertyName("mod_name")][property: JsonProperty("mod_name")] string? ModName,
         [property: JsonPropertyName("version")][property: JsonProperty("version")] string Version,
         [property: JsonPropertyName("mod_description")][property: JsonProperty("mod_description")] string ModDescription,
         [property: JsonPropertyName("mod_repo_url")][property: JsonProperty("mod_repo_url")] string ModRepoURL,

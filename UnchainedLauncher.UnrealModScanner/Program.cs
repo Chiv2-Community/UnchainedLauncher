@@ -84,9 +84,9 @@ internal class Program {
                             var cdo_hash = uClass.GetHashCode();
 
                             if (cdo != null) {
-                                var ModName = cdo.GetOrDefault<String>("ModName");
-                                var ModVersion = cdo.GetOrDefault<String>("ModVersion");
-                                var Author = cdo.GetOrDefault<String>("Author");
+                                var ModName = cdo.GetOrDefault<string>("ModName");
+                                var ModVersion = cdo.GetOrDefault<string>("ModVersion");
+                                var Author = cdo.GetOrDefault<string>("Author");
                                 var bClientside = cdo.GetOrDefault<bool>("bClientside");
                                 var PathName = resolvedKey?.GetPathName();
 

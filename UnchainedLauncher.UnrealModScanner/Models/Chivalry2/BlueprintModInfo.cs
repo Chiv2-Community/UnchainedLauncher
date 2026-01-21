@@ -13,18 +13,18 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
         /// Display name of the mod
         /// </summary>
         [JsonProperty("mod_name")]
-        public required string ModName { get; init; }
+        public required string? ModName { get; init; }
         /// <summary>
         /// Semantic version of the actor
         /// </summary>
         [JsonProperty("mod_version")]
-        public required string Version { get; init; }
+        public required string? Version { get; init; }
         /// <summary>
         /// Author or comma-separated list of authors
         /// Used as Organization in metadata
         /// </summary>
         [JsonProperty("mod_author")]
-        public required string Author { get; init; }
+        public required string? Author { get; init; }
         /// <summary>
         /// If true, mod can be loaded on the client during online play
         /// </summary>

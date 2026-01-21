@@ -140,7 +140,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                 ClassPath: bp.ClassPath,
                 ObjectClass: bp.ClassName,
                 IsOrphaned: null,
-                ModName: GetProp<string>(bp.Properties, "ModName") ?? "",
+                ModName: GetProp<string>(bp.Properties, "ModName"),
                 Version: GetProp<string>(bp.Properties, "ModVersion") ?? "1.0.0",
                 ModDescription: GetProp<string>(bp.Properties, "ModDescription") ?? "",
                 ModRepoURL: GetProp<string>(bp.Properties, "ModRepoURL") ?? "",

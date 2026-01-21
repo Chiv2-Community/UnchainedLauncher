@@ -57,32 +57,42 @@ public class AvailableModsAndMapsService {
         var newMaps =
             modPakManifest
                 .RelevantMaps()
-                .Filter(x => !AvailableMaps.Contains(x));
+                .Filter(x => !AvailableMaps.Contains(x))
+                .ToArray();
 
-        Logger.Debug("Adding Available Maps: ");
-        newMaps.ForEach(map => Logger.Debug($"\t{map.MapName}"));
-        newMaps.ForEach(AvailableMaps.Add);
+        if (newMaps.Any()) {
+            Logger.Debug("Adding Available Maps: ");
+            newMaps.ForEach(map => Logger.Debug($"\t{map.MapName ?? map.ClassPath ?? map.Path}"));
+            newMaps.ForEach(AvailableMaps.Add);
+        }
 
         var newModBlueprints =
             modPakManifest
                 .RelevantBlueprints()
-                .Filter(x => !AvailableServerModBlueprints.Contains(x));
+                .Filter(x => !AvailableServerModBlueprints.Contains(x))
+                .ToArray();
 
-        Logger.Debug("Adding Available Blueprints: ");
-        newModBlueprints.ForEach(bp => Logger.Debug($"\t{bp.ModName}"));
-        newModBlueprints.ForEach(AvailableServerModBlueprints.Add);
+        if (newModBlueprints.Any()) {
+            Logger.Debug("Adding Available Blueprints: ");
+            newModBlueprints.ForEach(bp => Logger.Debug($"\t{bp.ModName ?? bp.ClassPath ?? bp.Path}"));
+            newModBlueprints.ForEach(AvailableServerModBlueprints.Add);
+        }
     }
 
     public void RemoveAvailableMod(AssetCollections manifest) {
         var maps = manifest.RelevantMaps();
-        Logger.Debug("Removing Available Maps: ");
-        maps.ForEach(m => Logger.Debug($"\t{m.MapName}"));
-        maps.ForEach(AvailableMaps.Remove);
+        if (maps.Any()) {
+            Logger.Debug("Removing Available Maps: ");
+            maps.ForEach(m => Logger.Debug($"\t{m.MapName}"));
+            maps.ForEach(AvailableMaps.Remove);
+        }
 
         var blueprints = manifest.RelevantBlueprints();
-        Logger.Debug("Removing Available Blueprints: ");
-        blueprints.ForEach(bp => Logger.Debug($"\t{bp.ModName}"));
-        manifest.RelevantBlueprints().ForEach(AvailableServerModBlueprints.Remove);
+        if (blueprints.Any()) {
+            Logger.Debug("Removing Available Blueprints: ");
+            blueprints.ForEach(bp => Logger.Debug($"\t{bp.ModName}"));
+            manifest.RelevantBlueprints().ForEach(AvailableServerModBlueprints.Remove);
+        }
     }
 
     private static IEnumerable<MapDto> GetDefaultMaps() {
@@ -111,16 +121,20 @@ public class AvailableModsAndMapsService {
         Logger.Debug("Processing latest scan...");
 
         _cachedScanManifest?.Paks
-            .Select(x => x.Inventory)
-            .ForEach(RemoveAvailableMod);
+            .ForEach(x => {
+                Logger.Debug($"Removing pak from previous scan ({x.PakName})");
+                RemoveAvailableMod(x.Inventory);
+            });
 
         if (scanResult == null) return;
         var manifest = ModManifestConverter.ProcessModScan(scanResult);
 
         manifest
             .Paks
-            .Select(x => x.Inventory)
-            .ForEach(AddAvailableMod);
+            .ForEach(x => {
+                Logger.Debug($"Adding pak from new scan ({x.PakName})");
+                AddAvailableMod(x.Inventory);
+            });
 
         _cachedScanManifest = manifest;
     }

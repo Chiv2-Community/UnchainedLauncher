@@ -46,7 +46,7 @@ public class UnchainedChivalry2LauncherTests {
             PlayerBotCount: null,
             WarmupTime: null,
             LocalIp: Option<string>.None,
-            ServerMods: Array.Empty<string>()
+            ServerMods: []
         );
 
         return new LaunchOptions(

@@ -16,7 +16,7 @@ namespace UnchainedLauncher.GUI.Views.Mods.DesignInstances {
             "It has finally been done",
             "https://example.com",
             "https://avatars.githubusercontent.com/u/108312122?s=96&v=4",
-            new List<string>() {"https://avatars.githubusercontent.com/u/108312122?s=96&v=4"},
+            new List<string>() { "https://avatars.githubusercontent.com/u/108312122?s=96&v=4" },
             new List<string> { "Finally", "Gooner" },
             new List<Dependency> { new("https://Gooner/BaseMod", "v1.0.0") }
         );

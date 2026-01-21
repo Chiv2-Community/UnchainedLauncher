@@ -1,10 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using log4net;
 using PropertyChanged;
-using Serilog.Core;
 using StructuredINI.Codecs;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using UnchainedLauncher.Core.Extensions;
@@ -16,7 +14,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
     [AddINotifyPropertyChangedInterface]
     public partial class TBLGameModeSectionVM {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(TBLGameModeSectionVM));
-        
+
         public string ServerName { get; set; } = "";
         public string ServerIdentifier { get; set; } = "";
 
@@ -116,9 +114,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             MapList.Clear();
             foreach (var mapPath in model.MapList) {
                 var map = availableMaps.FirstOrDefault(x => x.TravelToMapString() == mapPath);
-                if(map != null) 
+                if (map != null)
                     MapList.Add(map);
-                else 
+                else
                     Logger.Warn($"Failed to add map '{mapPath}' to map list, because it wasn't in the available maps list.");
             }
 

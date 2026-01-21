@@ -2,23 +2,19 @@
 using LanguageExt;
 using LanguageExt.Pipes;
 using log4net;
-using Newtonsoft.Json;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
-using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Server;
@@ -27,8 +23,6 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
-using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
-using UnchainedLauncher.UnrealModScanner.Services;
 
 // using Unchained.ServerBrowser.Client; // avoid Option<> name collision with LanguageExt
 
@@ -210,9 +204,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             // Resolve selected releases from the template's EnabledServerModList
             var enabledCoordinates = ModManager.EnabledModReleaseCoordinates.ToArray();
             var enabledServerBlueprintDtos = formData.EnabledServerModList!.ToArray();
-            
+
             SelectedConfiguration.SaveINI();
-            
+
 
             var maybeProcess = await LaunchServerWithOptions(formData, headless, enabledServerBlueprintDtos);
             maybeProcess.IfSome(process => {

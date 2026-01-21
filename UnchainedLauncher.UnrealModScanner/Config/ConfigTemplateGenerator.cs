@@ -1,11 +1,10 @@
-﻿using Newtonsoft.Json;
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using UnchainedLauncher.UnrealModScanner.Config.Games;
 using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace UnchainedLauncher.UnrealModScanner.Config {
-    
+
     public static class ConfigTemplateGenerator {
         public static readonly JsonSerializerOptions SerializerSettings = new JsonSerializerOptions {
             WriteIndented = true,
@@ -13,7 +12,7 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
             Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
         };
 
-        
+
         public static void GenerateDefault(string path) {
             //var options = new ScanOptions {
             //    CdoProcessors = new List<CdoProcessorConfig> {
@@ -40,7 +39,7 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
             var json = JsonSerializer.Serialize(options, SerializerSettings);
             File.WriteAllText(path, json);
         }
-        
+
         public static void GenerateDefaultConfig(string outputPath) {
             var defaultConfig = GameScanOptions.Chivalry2;
             var json = JsonSerializer.Serialize(defaultConfig, SerializerSettings);

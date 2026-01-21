@@ -41,7 +41,7 @@ namespace UnchainedLauncher.Core.JsonModels.ModMetadata {
     ) {
         public string Organization => RepoUrl.Split('/')[^2];
         public string RepoName => RepoUrl.Split('/')[^1];
-        
+
     }
 
     public record ModInfo(

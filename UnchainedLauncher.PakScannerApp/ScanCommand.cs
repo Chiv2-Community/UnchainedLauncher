@@ -1,5 +1,3 @@
-using CUE4Parse.FileProvider.Objects;
-using CUE4Parse.UE4.Versions;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using System.Text.Json;
@@ -13,7 +11,7 @@ using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.Services;
 
 public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
-    
+
     protected override async Task<int> ExecuteAsync(
         CommandContext context,
         ScanCommandSettings commandSettings,
@@ -24,7 +22,7 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
         if (string.IsNullOrWhiteSpace(commandSettings.PakDirectory))
             throw new InvalidOperationException(
                 "PakDirectory is required (use --pak or --config)");
-        
+
         var options = LoadSettings(commandSettings);
 
         Directory.CreateDirectory(outputDir);
@@ -32,7 +30,7 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
         AnsiConsole.MarkupLine("[green]Starting scan...[/]");
 
         var progress = new Progress<double>(p => AnsiConsole.MarkupLine($"[grey]Progress:[/] {p:F2}%"));
-        
+
         var scanner = ScannerFactory.CreateModScanner(options);
 
 
@@ -42,7 +40,7 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
                 commandSettings.ScanMode ?? ScanMode.All,
                 commandSettings.PakDirectory
             );
-            
+
         var scanContext = await scanner.RunScanAsync(
             scanFileProvider,
             options,
@@ -72,7 +70,7 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
 
         if (settings.OfficialDirs?.Length > 0)
             options = options with { VanillaAssetPaths = settings.OfficialDirs.ToList() };
-        
+
         return options;
     }
 

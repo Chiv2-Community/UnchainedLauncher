@@ -1,15 +1,9 @@
 ﻿using CUE4Parse.Compression;
-using CUE4Parse.Encryption.Aes;
-using CUE4Parse.FileProvider;
-using CUE4Parse.FileProvider.Objects;
 using CUE4Parse.UE4.AssetRegistry;
 using CUE4Parse.UE4.Assets;
-using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Readers;
-using CUE4Parse.UE4.Versions;
 using log4net;
-using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;

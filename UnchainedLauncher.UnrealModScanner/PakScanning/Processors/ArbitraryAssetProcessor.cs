@@ -11,13 +11,13 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
     public class ArbitraryAssetProcessor(IEnumerable<string> vanillaPakNames, IEnumerable<string> vanillaAssetDirs) : IAssetProcessor {
         private HashSet<string> VanillaPakNames { get; } = new HashSet<string>(vanillaPakNames, StringComparer.InvariantCultureIgnoreCase);
         private HashSet<string> VanillaAssetDirs { get; } = new HashSet<string>(vanillaAssetDirs, StringComparer.InvariantCultureIgnoreCase);
-        
+
         public void Process(ScanContext ctx, PakScanResult result) {
             if (ctx.FilePath.EndsWith(".umap")) return;
-            
+
             bool isInVanillaPak = VanillaPakNames.Contains(ctx.PakEntry.PakFileReader.Name);
             if (isInVanillaPak) return;
-            
+
             bool isInVanillaPath = VanillaAssetDirs.Any(dir => ctx.FilePath.StartsWith(dir, StringComparison.InvariantCultureIgnoreCase));
             if (isInVanillaPath) return;
 

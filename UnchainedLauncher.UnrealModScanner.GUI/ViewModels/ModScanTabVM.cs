@@ -1,11 +1,9 @@
 ﻿
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.Config.Games;
 using UnchainedLauncher.UnrealModScanner.Export;
-using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.Services;
@@ -19,7 +17,7 @@ public partial class ModScanTabVM : ObservableObject {
     [ObservableProperty]
     private PakScanResultVM _resultsVisual = new();
     public ModScanResult? LastScanResult { get; private set; }
-    
+
     public ScanOptions? LoadedConfig { get; set; }
 
     [ObservableProperty]
@@ -44,10 +42,10 @@ public partial class ModScanTabVM : ObservableObject {
 
         await Task.Yield();
         // 3. Execution
-        
-        
+
+
         var swMod = Stopwatch.StartNew();
-        
+
         // Get map DTOs
         /*
         var options = GameScanOptions.Chivalry2 with {
@@ -114,7 +112,7 @@ public partial class ModScanTabVM : ObservableObject {
 
         var options = LoadedConfig ?? GameScanOptions.Chivalry2;
         var provider = FilteredFileProvider.CreateFromOptions(options, ScanMode.Mods, pakDir);
-        
+
         var modScanner = ScannerFactory.CreateModScanner(options);
         LastScanResult = await Task.Run(() => modScanner.RunScanAsync(provider, options, progressReporter));
 
@@ -195,7 +193,7 @@ public partial class ModScanTabVM : ObservableObject {
 
     public void ExportJson(string path, bool createManifest) {
         if (LastScanResult == null) return;
-        
+
         if (createManifest) {
             var scanManifest = ModManifestConverter.ProcessModScan(LastScanResult);
             ModScanJsonExporter.ExportToFile(scanManifest, path);

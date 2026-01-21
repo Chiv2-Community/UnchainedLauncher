@@ -1,7 +1,7 @@
 ﻿using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.Core.Extensions;
-    
+
 public static class UnrealModScannerDtoExtensions {
     extension(MapDto map) {
         public string TravelToMapString() {
@@ -11,8 +11,7 @@ public static class UnrealModScannerDtoExtensions {
         }
     }
 
-    extension(AssetCollections manifest)
-    {
+    extension(AssetCollections manifest) {
         public IEnumerable<BlueprintDto> RelevantBlueprints() =>
             manifest.Blueprints.Where(x => (!x.IsHidden ?? false) && !x.bClientside);
 

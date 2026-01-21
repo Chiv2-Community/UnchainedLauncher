@@ -1,10 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
 using log4net;
-using Newtonsoft.Json;
 using PropertyChanged;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -12,23 +10,16 @@ using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Reflection;
 using System.Text;
-using System.Text.Json;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.INIModels;
-using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
-using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
-using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
-using UnchainedLauncher.UnrealModScanner.Services;
-using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
@@ -36,7 +27,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         ObservableCollection<ServerConfigurationVM>> {
 
         public ServerConfigurationCodec(
-            IModManager modManager, 
+            IModManager modManager,
             ModScanTabVM modScanTab,
             AvailableModsAndMapsService availableModsAndMaps) : base(
             ToJsonType,
@@ -44,8 +35,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         ) { }
 
         public static ObservableCollection<ServerConfigurationVM> ToClassType(
-            ObservableCollection<ServerConfiguration> configurations, 
-            IModManager modManager, 
+            ObservableCollection<ServerConfiguration> configurations,
+            IModManager modManager,
             ModScanTabVM modScanTab,
             AvailableModsAndMapsService availableModsAndMaps) =>
             new ObservableCollection<ServerConfigurationVM>(configurations.Select(conf =>
@@ -101,7 +92,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         int? PlayerBotCount = null,
         int? WarmupTime = null,
         ObservableCollection<BlueprintDto>? EnabledServerModList = null) {
-        
+
         public string SavedDirSuffix => ServerConfigurationVM.SavedDirSuffix(Name);
 
         public override string ToString() {
@@ -331,7 +322,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             return selectedMap;
         }
-        
+
         public override string ToString() {
             var enabledMods = string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"));
             return

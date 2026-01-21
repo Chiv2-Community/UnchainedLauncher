@@ -1,8 +1,6 @@
 ﻿using CUE4Parse.Compression;
-using CUE4Parse.Encryption.Aes;
 using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Assets.Objects.Properties;
-using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Versions;
@@ -19,8 +17,8 @@ internal class Program {
         //var provider = new DefaultFileProvider(pakdir, SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_UE4_25));
         var provider = new FilteredFileProvider(
             pakdir,
-            SearchOption.TopDirectoryOnly, 
-            null, 
+            SearchOption.TopDirectoryOnly,
+            null,
             "0x0000000000000000000000000000000000000000000000000000000000000000",
             new VersionContainer(EGame.GAME_UE4_25),
             null

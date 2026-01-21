@@ -1,7 +1,6 @@
 ﻿using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Orchestrators;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Processors;
-using UnchainedLauncher.UnrealModScanner.PakScanning.Processors.Obsolete;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning;
 
@@ -13,8 +12,8 @@ public static class ScannerFactory {
     public static ModScanOrchestrator CreateModScanner(ScanOptions options) {
         var processors = new List<IAssetProcessor> {
             // new MarkerProcessor(),
-            new MapProcessor(), 
-            new ReplacementProcessor(options.VanillaPakNames, options.VanillaAssetPaths), 
+            new MapProcessor(),
+            new ReplacementProcessor(options.VanillaPakNames, options.VanillaAssetPaths),
             new ArbitraryAssetProcessor(options.VanillaPakNames, options.VanillaAssetPaths)
         };
 

@@ -1,9 +1,7 @@
 ﻿using CUE4Parse.Encryption.Aes;
 using CUE4Parse.FileProvider;
 using CUE4Parse.FileProvider.Objects;
-using CUE4Parse.FileProvider.Vfs;
 using CUE4Parse.UE4.Objects.Core.Misc;
-using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Versions;
 using CUE4Parse.Utils;
 using UnchainedLauncher.UnrealModScanner.Config;
@@ -45,9 +43,9 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
 
 
             return new FilteredFileProvider(
-                pakDir, 
-                SearchOption.TopDirectoryOnly, 
-                options.ScanFilter.With(pakFilter).CreatePakContentFilter(), 
+                pakDir,
+                SearchOption.TopDirectoryOnly,
+                options.ScanFilter.With(pakFilter).CreatePakContentFilter(),
                 options.AesKey
             );
         }

@@ -96,7 +96,7 @@ namespace UnchainedLauncher.GUI {
                 Debug.WriteLine($"Error starting application: {ex.Message}");
                 if (ex.StackTrace != null)
                     Debug.WriteLine(ex.StackTrace!);
-                
+
                 _log.Fatal("Unhandled exception", ex);
                 File.WriteAllText("crash.log", ex.ToString());
                 var currentDirectory = Directory.GetCurrentDirectory();
@@ -202,7 +202,7 @@ namespace UnchainedLauncher.GUI {
             );
 
             var chivProcessMonitor = new ChivalryProcessWatcher();
-            
+
             var homeViewModel = new HomeVM(
                 settingsViewModel,
                 modManager,
@@ -228,7 +228,7 @@ namespace UnchainedLauncher.GUI {
                 homeViewModel.LaunchUnchained().Wait();
                 return null;
             }
-            
+
             var modScanTab = new ModScanTabVM();
             var availableModsAndMaps = new AvailableModsAndMapsService(modManager, modScanTab);
 
@@ -246,7 +246,7 @@ namespace UnchainedLauncher.GUI {
                 chivProcessMonitor,
                 availableModsAndMaps
             );
-            
+
             var mainWindowViewModel = new MainWindowVM(
                 homeViewModel,
                 modListViewModel,
@@ -301,13 +301,13 @@ namespace UnchainedLauncher.GUI {
         }
 
         private ServersTabVM InitializeServersTab(
-            string jsonPath, 
-            SettingsVM settings, 
-            IModManager modManager, 
-            ModScanTabVM modScanTab, 
-            IUserDialogueSpawner dialogueSpawner, 
-            IChivalry2Launcher launcher, 
-            ObservableCollection<ServerConfigurationVM> serverConfigurations, 
+            string jsonPath,
+            SettingsVM settings,
+            IModManager modManager,
+            ModScanTabVM modScanTab,
+            IUserDialogueSpawner dialogueSpawner,
+            IChivalry2Launcher launcher,
+            ObservableCollection<ServerConfigurationVM> serverConfigurations,
             IChivalryProcessWatcher processWatcher,
             AvailableModsAndMapsService availableModsAndMaps) {
             Func<ServersTabVM> initializeDefault = () => new ServersTabVM(

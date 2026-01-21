@@ -75,7 +75,7 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.Views {
                 try {
                     var jsonContent = File.ReadAllText(dlg.FileName);
                     var config = System.Text.Json.JsonSerializer.Deserialize<ScanOptions>(jsonContent, ConfigTemplateGenerator.SerializerSettings);
-                    
+
                     if (config != null) {
                         ModScannerVM.LoadedConfig = config;
                         MessageBox.Show($"Config loaded successfully from {dlg.FileName}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);

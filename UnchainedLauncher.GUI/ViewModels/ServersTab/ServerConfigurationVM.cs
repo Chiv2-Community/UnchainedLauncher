@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
 using log4net;
+using Newtonsoft.Json;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,7 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.INIModels;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
@@ -22,6 +24,7 @@ using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
+using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
@@ -77,7 +80,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         int RconPort = 9001,
         int A2SPort = 7071,
         int PingPort = 3075,
-        string NextMapName = "FFA_Courtyard",
+        string NextMapPath = "FFA_Courtyard",
         bool ShowInServerBrowser = true,
         int? FFAScoreLimit = null,
         int? FFATimeLimit = null,
@@ -94,13 +97,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 ? "null"
                 : string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"));
             return
-                $"ServerConfiguration({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {NextMapName}, {ShowInServerBrowser}, [{modListStr}])";
+                $"ServerConfiguration({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {NextMapPath}, {ShowInServerBrowser}, [{modListStr}])";
         }
     }
 
     [AddINotifyPropertyChangedInterface]
     public partial class ServerConfigurationVM : INotifyPropertyChanged {
-        private readonly ILog Logger = LogManager.GetLogger(nameof(ServerConfigurationVM));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(ServerConfigurationVM));
 
         public IpNetDriverSectionVM IpNetDriver { get; } = new();
         public GameSessionSectionVM GameSession { get; } = new();
@@ -302,23 +305,25 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private string DetermineLocalIp() => GetAllLocalIPv4().FirstOrDefault("127.0.0.1");
 
         private static IEnumerable<MapDto> GetDefaultMaps() {
-            List<MapDto> maps = new List<MapDto>();
-            using (var defaultMapsListStream = Assembly.GetExecutingAssembly()
-                       .GetManifestResourceStream("UnchainedLauncher.GUI.Resources.DefaultMaps.txt")) {
+            try {
+                using var defaultMapsListStream = Assembly.GetExecutingAssembly()
+                    .GetManifestResourceStream("UnchainedLauncher.GUI.Resources.DefaultMaps.json");
                 if (defaultMapsListStream != null) {
                     using var reader = new StreamReader(defaultMapsListStream);
 
                     var defaultMapsString = reader.ReadToEnd();
-                    defaultMapsString
-                        .Split("\n")
-                        .Select(x => x.Trim())
-                        .ToList()
-                        .Select(mapName => new MapDto(Path: "", Hash: "", ClassPath: null, ObjectClass: null, IsOrphaned: null, GameMode: null, MapName: mapName, MapDescription: null, AttackingFaction: null, DefendingFaction: null, GamemodeType: null, TBLDefaultGameMode: null))
-                        .ForEach(maps.Add);
+                    var defaultMaps = JsonConvert.DeserializeObject<List<MapDto>>(defaultMapsString);
+                    if (defaultMaps != null)
+                        return defaultMaps;
+                    else
+                        Logger.Warn("Failed to deserialize default maps. Vanilla Maps list will be empty.");
                 }
             }
+            catch (Exception e) {
+                Logger.Warn("Failed to deserialize default maps. Vanilla Maps list will be empty.", e);
+            }
 
-            return maps;
+            return [];
         }
 
         public static string[] GetAllLocalIPv4() =>
@@ -339,7 +344,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             RconPort,
             A2SPort,
             PingPort,
-            DetermineNextMapName(),
+            DetermineNextMap().Path,
             AdvancedConfigurationSection.ShowInServerBrowser,
             FFA.FFAScoreLimit,
             FFA.FFATimeLimit,
@@ -350,16 +355,18 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             EnabledServerModList
         );
 
-        private string DetermineNextMapName() {
+        private MapDto? DetermineNextMap() {
             // Prefer the selected rotation entry. If rotation is empty, fall back to a safe default.
-            if (GameMode.MapList.Count == 0) return "FFA_Courtyard";
+            if (GameMode.MapList.Count == 0) return AvailableMaps.FirstOrDefault();
 
             var idx = GameMode.MapListIndex;
             if (idx < 0 || idx >= GameMode.MapList.Count) {
                 idx = 0;
             }
 
-            return GameMode.MapList[idx];
+            var selectedMapPath = GameMode.MapList[idx];
+            
+            return AvailableMaps.ToList().FirstOrDefault(x => x.Path == selectedMapPath);
         }
 
         public override string ToString() {
@@ -367,7 +374,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 ? string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"))
                 : "null";
             return
-                $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {DetermineNextMapName()}, {AdvancedConfigurationSection.ShowInServerBrowser}, [{enabledMods}])";
+                $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {DetermineNextMap()}, {AdvancedConfigurationSection.ShowInServerBrowser}, [{enabledMods}])";
         }
 
 

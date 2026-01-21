@@ -20,7 +20,8 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
             new TBLGameModeSectionVM(),
             showInServerBrowser: true,
             playerBotCount: 0,
-            warmupTime: 0
+            warmupTime: 0,
+            "--test"
         ) {
         }
     }

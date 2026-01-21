@@ -309,7 +309,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return new LaunchOptions(
                 ModManager.EnabledModReleaseCoordinates,
                 Settings.ServerBrowserBackend,
-                Settings.CLIArgs,
+                (Settings.CLIArgs + " " + formData.AdditionalCLIArgs).Trim(),
                 Settings.EnablePluginAutomaticUpdates,
                 Some(formData.SavedDirSuffix),
                 Some(serverLaunchOptions)

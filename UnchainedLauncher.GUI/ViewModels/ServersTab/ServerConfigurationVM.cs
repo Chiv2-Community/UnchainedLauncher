@@ -61,6 +61,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                         conf.TDMTimeLimit,
                         conf.PlayerBotCount,
                         conf.WarmupTime,
+                        conf.AdditionalCLIArgs,
                         conf.EnabledServerModList
                     )
             ));
@@ -91,6 +92,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         int? TDMTimeLimit = null,
         int? PlayerBotCount = null,
         int? WarmupTime = null,
+        string AdditionalCLIArgs = ""
         ObservableCollection<BlueprintDto>? EnabledServerModList = null) {
 
         public string SavedDirSuffix => ServerConfigurationVM.SavedDirSuffix(Name);
@@ -223,6 +225,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             int? tdmTimeLimit = null,
             int? playerBotCount = null,
             int? warmupTime = null,
+            string additionalCliArgs = "",
             ObservableCollection<BlueprintDto>? enabledServerModList = null
         ) {
             _modScanTab = modScanTab;
@@ -257,7 +260,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 GameMode,
                 showInServerBrowser,
                 playerBotCount,
-                warmupTime
+                warmupTime,
+                additionalCliArgs
             );
 
             BalanceSection = new BalanceSectionVM(GameMode);
@@ -306,6 +310,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             TDM.TDMTimeLimit,
             AdvancedConfigurationSection.PlayerBotCount,
             AdvancedConfigurationSection.WarmupTime,
+            AdvancedConfigurationSection.AdditionalCLIArgs,
             EnabledServerModList
         );
 

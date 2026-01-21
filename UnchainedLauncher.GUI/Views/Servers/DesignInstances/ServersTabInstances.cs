@@ -14,6 +14,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
         public ServersTabDesignVM() : base(
             SettingsViewModelInstances.DEFAULT,
             ModListViewModelInstances.DEFAULTMODMANAGER,
+            
             new MessageBoxSpawner(),
             null,
             new ObservableCollection<ServerConfigurationVM> { ServerConfigurationViewModelInstances.DEFAULT },

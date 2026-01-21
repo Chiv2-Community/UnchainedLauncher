@@ -1,4 +1,5 @@
 ﻿using UnchainedLauncher.GUI.ViewModels.ServersTab;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
     public static class ServerConfigurationViewModelInstances {
@@ -8,6 +9,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
     public class ServerConfigurationDesignVM : ServerConfigurationVM {
         public ServerConfigurationDesignVM() : base(
             Mods.DesignInstances.ModListViewModelInstances.DEFAULTMODMANAGER,
+            new ModScanTabVM(),
             playerBotCount: 10,
             warmupTime: 10
         ) {

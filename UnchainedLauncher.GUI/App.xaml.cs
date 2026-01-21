@@ -230,9 +230,10 @@ namespace UnchainedLauncher.GUI {
             }
             
             var modScanTab = new ModScanTabVM();
+            var availableModsAndMaps = new AvailableModsAndMapsVM(modManager, modScanTab);
 
             var serverConfigurationVMs =
-                InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager, modScanTab);
+                InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager, modScanTab, availableModsAndMaps);
 
             var serversTabViewModel = InitializeServersTab(
                 FilePaths.ServersTabConfigurationPath,
@@ -242,7 +243,9 @@ namespace UnchainedLauncher.GUI {
                 userDialogueSpawner,
                 unchainedLauncher,
                 serverConfigurationVMs,
-                chivProcessMonitor);
+                chivProcessMonitor,
+                availableModsAndMaps
+            );
             
             var mainWindowViewModel = new MainWindowVM(
                 homeViewModel,
@@ -284,11 +287,11 @@ namespace UnchainedLauncher.GUI {
         }
 
         private ObservableCollection<ServerConfigurationVM> InitializeServerConfigurations(string jsonPath,
-            IModManager modManager, ModScanTabVM modScanTab) {
+            IModManager modManager, ModScanTabVM modScanTab, AvailableModsAndMapsVM availableModsAndMapsVM) {
             Func<ObservableCollection<ServerConfigurationVM>> initializeDefault =
                 () => new ObservableCollection<ServerConfigurationVM>();
 
-            var codec = new ServerConfigurationCodec(modManager, modScanTab);
+            var codec = new ServerConfigurationCodec(modManager, modScanTab, availableModsAndMapsVM);
             var serverConfigurations = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
 
             RegisterSaveToFileOnExit(serverConfigurations, codec, jsonPath);
@@ -297,7 +300,16 @@ namespace UnchainedLauncher.GUI {
             return serverConfigurations;
         }
 
-        private ServersTabVM InitializeServersTab(string jsonPath, SettingsVM settings, IModManager modManager, ModScanTabVM modScanTab, IUserDialogueSpawner dialogueSpawner, IChivalry2Launcher launcher, ObservableCollection<ServerConfigurationVM> serverConfigurations, IChivalryProcessWatcher processWatcher) {
+        private ServersTabVM InitializeServersTab(
+            string jsonPath, 
+            SettingsVM settings, 
+            IModManager modManager, 
+            ModScanTabVM modScanTab, 
+            IUserDialogueSpawner dialogueSpawner, 
+            IChivalry2Launcher launcher, 
+            ObservableCollection<ServerConfigurationVM> serverConfigurations, 
+            IChivalryProcessWatcher processWatcher,
+            AvailableModsAndMapsVM availableModsAndMaps) {
             Func<ServersTabVM> initializeDefault = () => new ServersTabVM(
                 settings,
                 modManager,
@@ -305,10 +317,11 @@ namespace UnchainedLauncher.GUI {
                 dialogueSpawner,
                 launcher,
                 serverConfigurations,
-                processWatcher
+                processWatcher,
+                availableModsAndMaps
             );
 
-            var codec = new ServerTabCodec(settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigurations, processWatcher);
+            var codec = new ServerTabCodec(settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigurations, processWatcher, availableModsAndMaps);
             var serversTab = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
             RegisterSaveToFileOnExit(serversTab, codec, jsonPath);
             return serversTab;

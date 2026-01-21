@@ -19,7 +19,11 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
             new MessageBoxSpawner(),
             null,
             new ObservableCollection<ServerConfigurationVM> { ServerConfigurationViewModelInstances.DEFAULT },
-            new ChivalryProcessWatcher()
+            new ChivalryProcessWatcher(),
+            new AvailableModsAndMapsVM(
+                ModListViewModelInstances.DEFAULTMODMANAGER,
+                new ModScanTabVM()
+            )
         ) {
         }
     }

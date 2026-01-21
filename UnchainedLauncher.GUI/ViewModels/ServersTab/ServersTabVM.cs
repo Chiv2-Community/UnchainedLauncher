@@ -2,13 +2,16 @@
 using LanguageExt;
 using LanguageExt.Pipes;
 using log4net;
+using Newtonsoft.Json;
 using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
@@ -23,6 +26,8 @@ using UnchainedLauncher.Core.Services.Server.A2S;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
+using UnchainedLauncher.UnrealModScanner.Services;
 
 // using Unchained.ServerBrowser.Client; // avoid Option<> name collision with LanguageExt
 
@@ -38,9 +43,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             IUserDialogueSpawner dialogueSpawner,
             IChivalry2Launcher launcher,
             ObservableCollection<ServerConfigurationVM> serverConfigs,
-            IChivalryProcessWatcher processWatcher) : base(
+            IChivalryProcessWatcher processWatcher,
+            AvailableModsAndMapsVM availableModsAndMaps) : base(
             ToJsonType,
-            conf => ToClassType(conf, settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigs, processWatcher)
+            conf => ToClassType(conf, settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigs, processWatcher, availableModsAndMaps)
         ) { }
 
         public static ServersTabVM ToClassType(
@@ -51,9 +57,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             IUserDialogueSpawner dialogueSpawner,
             IChivalry2Launcher launcher,
             ObservableCollection<ServerConfigurationVM> serverConfigs,
-            IChivalryProcessWatcher processWatcher
+            IChivalryProcessWatcher processWatcher,
+            AvailableModsAndMapsVM availableModsAndMaps
         ) {
-            var vm = new ServersTabVM(settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigs, processWatcher);
+            var vm = new ServersTabVM(settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigs, processWatcher, availableModsAndMaps);
             serversTabMetadata.ConfigNameToProcessIDMap.ForEach(pair => {
                 var (confName, pid) = pair;
                 var config = serverConfigs.FirstOrDefault(conf => conf.Name == confName);
@@ -116,6 +123,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public Visibility ConfigurationEditorVisibility { get; private set; }
         public Visibility LiveServerVisibility { get; private set; }
 
+        private AvailableModsAndMapsVM _availableModsAndMaps;
         private ModScanTabVM _modScanTab;
 
         public ServersTabVM(SettingsVM settings,
@@ -124,8 +132,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                             IUserDialogueSpawner dialogueSpawner,
                             IChivalry2Launcher launcher,
                             ObservableCollection<ServerConfigurationVM> serverConfigs,
-                            IChivalryProcessWatcher processWatcher) {
+                            IChivalryProcessWatcher processWatcher,
+                            AvailableModsAndMapsVM availableModsAndMaps) {
             ServerConfigs = serverConfigs;
+            _availableModsAndMaps = availableModsAndMaps;
             _modScanTab = modScanTab;
 
             ServerConfigs.CollectionChanged += (_, _) => {
@@ -161,7 +171,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         [RelayCommand]
         public void CreateNewConfig() {
-            var newConfig = new ServerConfigurationVM(ModManager, _modScanTab);
+            var newConfig = new ServerConfigurationVM(ModManager, _modScanTab, _availableModsAndMaps);
 
             var occupiedPorts = new Set<int>().AddRange(
                 ServerConfigs.SelectMany(conf => new[] { conf.A2SPort, conf.GamePort, conf.PingPort, conf.RconPort })

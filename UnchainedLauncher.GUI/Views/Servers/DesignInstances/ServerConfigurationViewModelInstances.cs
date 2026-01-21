@@ -10,6 +10,10 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
         public ServerConfigurationDesignVM() : base(
             Mods.DesignInstances.ModListViewModelInstances.DEFAULTMODMANAGER,
             new ModScanTabVM(),
+            new AvailableModsAndMapsVM(
+                Mods.DesignInstances.ModListViewModelInstances.DEFAULTMODMANAGER,
+                new ModScanTabVM()
+            ),
             playerBotCount: 10,
             warmupTime: 10
         ) {

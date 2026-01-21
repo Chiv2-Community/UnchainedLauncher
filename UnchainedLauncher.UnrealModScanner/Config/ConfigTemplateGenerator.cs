@@ -1,8 +1,19 @@
 ﻿using Newtonsoft.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using UnchainedLauncher.UnrealModScanner.Config.Games;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace UnchainedLauncher.UnrealModScanner.Config {
+    
     public static class ConfigTemplateGenerator {
+        public static readonly JsonSerializerOptions SerializerSettings = new JsonSerializerOptions {
+            WriteIndented = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+        };
+
+        
         public static void GenerateDefault(string path) {
             //var options = new ScanOptions {
             //    CdoProcessors = new List<CdoProcessorConfig> {
@@ -26,19 +37,13 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
             //};
 
             var options = GameScanOptions.Chivalry2;
-            var json = JsonConvert.SerializeObject(options, SerializerSettings);
+            var json = JsonSerializer.Serialize(options, SerializerSettings);
             File.WriteAllText(path, json);
         }
-
-        private static JsonSerializerSettings SerializerSettings = new JsonSerializerSettings {
-            Formatting = Formatting.Indented,
-            NullValueHandling = NullValueHandling.Include,
-            Converters = { new Newtonsoft.Json.Converters.StringEnumConverter() }
-        };
-
+        
         public static void GenerateDefaultConfig(string outputPath) {
             var defaultConfig = GameScanOptions.Chivalry2;
-            var json = JsonConvert.SerializeObject(defaultConfig, SerializerSettings);
+            var json = JsonSerializer.Serialize(defaultConfig, SerializerSettings);
             File.WriteAllText(outputPath, json);
         }
     }

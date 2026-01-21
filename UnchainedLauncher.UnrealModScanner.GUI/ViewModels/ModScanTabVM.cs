@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.Config.Games;
 using UnchainedLauncher.UnrealModScanner.Export;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
@@ -18,6 +19,8 @@ public partial class ModScanTabVM : ObservableObject {
     [ObservableProperty]
     private PakScanResultVM _resultsVisual = new();
     public ModScanResult? LastScanResult { get; private set; }
+    
+    public ScanOptions? LoadedConfig { get; set; }
 
     [ObservableProperty]
     private double _scanProgress;
@@ -42,7 +45,7 @@ public partial class ModScanTabVM : ObservableObject {
         await Task.Yield();
         // 3. Execution
         var swMod = Stopwatch.StartNew();
-        var options = GameScanOptions.Chivalry2;
+        var options = LoadedConfig ?? GameScanOptions.Chivalry2;
         var modScanner = ScannerFactory.CreateModScanner(options);
         
         var provider = FilteredFileProvider.CreateFromOptions(options, ScanMode.Mods, pakDir);

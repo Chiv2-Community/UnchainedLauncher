@@ -37,7 +37,7 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
     [JsonDerivedType(typeof(PassScanFilter), "Pass")]
     [JsonDerivedType(typeof(CombinedScanFilter), "Combined")]
     
-    public abstract class IScanFilter(string filterName) {
+    public abstract record IScanFilter(string filterName) {
 
         /// <summary>
         /// The FilterName can be useful for debugging, but is otherwise useless
@@ -47,31 +47,23 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
         public abstract PakContentFilter CreatePakContentFilter();
 
         public static IScanFilter CombineAll(params IScanFilter?[] others) {
-            var filterNoops =
+            var minimizedFilters =
                 others
                     .Where(x => x != null)
                     .Cast<IScanFilter>()
                     .Where(x => x is not PassScanFilter)
+                    .SelectMany(x => x is CombinedScanFilter csf ? csf.FilterMembers : [x])
                     .ToArray();
 
-            if (filterNoops.Length == 0) return new PassScanFilter();
-            return new CombinedScanFilter(filterNoops.ToArray());
+            if (minimizedFilters.Length == 0) return new PassScanFilter();
+            return new CombinedScanFilter(minimizedFilters.ToArray());
         }
 
-        public IScanFilter With(IScanFilter? other) {
-            return other is null or PassScanFilter ? this : new CombinedScanFilter(this, other);
-        }
+        public IScanFilter With(IScanFilter? other) => CombineAll(this, other);
 
     }
     
-    public class CombinedScanFilter(params IScanFilter?[] filterMembers) : IScanFilter(string.Join(" with ", filterMembers.Select(x => x.FilterName))) {
-        [JsonPropertyName("FilterMembers")]
-        public IScanFilter[] FilterMembers { get; init; } =
-            filterMembers
-                .Where(x => x != null)
-                .SelectMany(x => x is CombinedScanFilter y ? y.FilterMembers : [x!])
-                .ToArray();
-
+    public record CombinedScanFilter(params IScanFilter[] FilterMembers) : IScanFilter(string.Join(" with ", FilterMembers.Select(x => x.FilterName))) {
         public override PakContentFilter CreatePakContentFilter() {
             var createdContentFilters =
                 FilterMembers.Select(x => x.CreatePakContentFilter());
@@ -80,19 +72,17 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
         }
     }
     
-    public class Whitelist(IEnumerable<string> whitelist) : IScanFilter("Whitelist") {
-        public IEnumerable<string> Items { get; init; } = whitelist;
+    public record Whitelist(List<string> Items) : IScanFilter("Whitelist") {
         public override PakContentFilter CreatePakContentFilter() => 
             kv => Items.Any(x => kv.Key.Contains(x));
     }
     
-    public class Blacklist(IEnumerable<string> blacklist) : IScanFilter("Exclude Paths") {
-        public IEnumerable<string> Items { get; init; } = blacklist;
+    public record Blacklist(List<string> Items) : IScanFilter("Exclude Paths") {
         public override PakContentFilter CreatePakContentFilter() => 
             kv => !Items.Any(path => kv.Key.Contains(path));
     }
     
-    public class AssetsOnlyScanFilter() : IScanFilter("Assets Only") {
+    public record AssetsOnlyScanFilter() : IScanFilter("Assets Only") {
         public override PakContentFilter CreatePakContentFilter() => 
             kv => {
                 var path = kv.Key;
@@ -101,24 +91,22 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
             };
     }
     
-    public class MapsOnlyScanFilter() : IScanFilter("Maps Only") {
+    public record MapsOnlyScanFilter() : IScanFilter("Maps Only") {
         public override PakContentFilter CreatePakContentFilter() => 
             kv => kv.Key.EndsWith(".umap");
     }
     
-    public class IgnorePakScanFilter(params string[] pakNamesToIgnore) : IScanFilter("Ignore Paks") {
-        public string[] PakNames { get; init; } = pakNamesToIgnore;
+    public record IgnorePakScanFilter(params string[] PakNames) : IScanFilter("Ignore Paks") {
         public override PakContentFilter CreatePakContentFilter() => 
             kv => kv.Value is not FPakEntry fPakEntry || !PakNames.Contains(fPakEntry.PakFileReader.Name);
     }
     
-    public class SpecificPakScanFilter(params string[] pakNamesToInclude) : IScanFilter("Include specific paks") {
-        public string[] PakNames { get; init; } = pakNamesToInclude;
+    public record SpecificPakScanFilter(params string[] PakNames) : IScanFilter("Include specific paks") {
         public override PakContentFilter CreatePakContentFilter() => 
             kv => kv.Value is not FPakEntry fPakEntry || PakNames.Contains(fPakEntry.PakFileReader.Name);
     }
     
-    public class PassScanFilter() : IScanFilter("Pass") {
+    public record PassScanFilter() : IScanFilter("Pass") {
         public override PakContentFilter CreatePakContentFilter() => 
             _ => true;
     }

@@ -92,7 +92,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         int? TDMTimeLimit = null,
         int? PlayerBotCount = null,
         int? WarmupTime = null,
-        string AdditionalCLIArgs = ""
+        string AdditionalCLIArgs = "",
         ObservableCollection<BlueprintDto>? EnabledServerModList = null) {
 
         public string SavedDirSuffix => ServerConfigurationVM.SavedDirSuffix(Name);

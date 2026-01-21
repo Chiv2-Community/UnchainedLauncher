@@ -160,5 +160,13 @@
                 </Grid>
             </StackPanel>
         </controls:CollapsibleCard>
+
+        <controls:CollapsibleCard Header="Additional CLI Arguments" IsExpanded="True">
+            <StackPanel>
+                <TextBox Text="{Binding AdditionalCLIArgs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                         HorizontalAlignment="Stretch"
+                         ToolTip="Additional command-line arguments to pass to the server. Example: -log" />
+            </StackPanel>
+        </controls:CollapsibleCard>
     </StackPanel>
 </UserControl>

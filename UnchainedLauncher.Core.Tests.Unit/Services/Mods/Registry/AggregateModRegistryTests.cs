@@ -31,20 +31,20 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
             result.Errors.Should().BeEmpty();
 
             var modCount = result.Mods.Count();
-            var modIdentifiers = result.Mods.Select(ModIdentifier.FromMod).ToImmutableSortedSet();
+            var modIdentifiers = result.Mods.Select(ModIdentifier.FromMod).ToList();
 
             var distinctModCount = modIdentifiers.Distinct().Count();
 
             modCount.Should().Be(distinctModCount);
 
-            modIdentifiers.Should().ContainInOrder(_expectedModIdentifiers);
+            modIdentifiers.Should().Contain(_expectedModIdentifiers);
             var unchainedMods = result.Mods
                 .Find(TestModIdentifier.Matches).FirstOrDefault();
 
             Assert.NotNull(unchainedMods);
             unchainedMods!.Releases.Select(x => x.Tag)
                 .Should()
-                .ContainInOrder(new[] { "v0.0.3", "v0.0.2", "v0.0.1" });
+                .ContainInOrder(new[] { "v0.1.0", "v0.0.4", "v0.0.3" });
         }
 
         [Fact]

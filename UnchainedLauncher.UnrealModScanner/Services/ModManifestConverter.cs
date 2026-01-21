@@ -51,7 +51,6 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                         Hash: marker.AssetHash,
                         ClassPath: marker.ClassPath,
                         ObjectClass: marker.ClassName,
-                        IsOrphaned: null,
                         AssociatedBlueprints: marker.Children.Select(c => c.AssetPath).ToList()
                     );
 
@@ -90,7 +89,6 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                     Hash: map.AssetHash,
                     ClassPath: map.ClassPath,
                     ObjectClass: map.ClassName,
-                    IsOrphaned: null,
                     GameMode: map.GameMode,
                     MapName: GetSetting(map.Settings, "MapName"),
                     MapDescription: GetSetting(map.Settings, "Description"),
@@ -107,8 +105,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                     Path: repl.AssetPath,
                     Hash: repl.AssetHash,
                     ClassPath: repl.ClassPath,
-                    ObjectClass: repl.ClassName,
-                    IsOrphaned: null
+                    ObjectClass: repl.ClassName
                 ));
             }
 
@@ -119,7 +116,6 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                     Hash: arb.AssetHash,
                     ClassPath: arb.ClassPath,
                     ObjectClass: arb.ClassName,
-                    IsOrphaned: null,
                     ModName: null
                 ));
             }
@@ -139,7 +135,6 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                 Hash: bp.AssetHash,
                 ClassPath: bp.ClassPath,
                 ObjectClass: bp.ClassName,
-                IsOrphaned: null,
                 ModName: GetProp<string>(bp.Properties, "ModName"),
                 Version: GetProp<string>(bp.Properties, "ModVersion") ?? "1.0.0",
                 ModDescription: GetProp<string>(bp.Properties, "ModDescription") ?? "",

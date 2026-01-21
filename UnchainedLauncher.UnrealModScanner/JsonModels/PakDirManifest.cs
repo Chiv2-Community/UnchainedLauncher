@@ -30,8 +30,7 @@ namespace UnchainedLauncher.UnrealModScanner.JsonModels {
         [property: JsonPropertyName("path")][property: JsonProperty("path")] string Path,
         [property: JsonPropertyName("hash")][property: JsonProperty("hash")] string Hash,
         [property: JsonPropertyName("class_path")][property: JsonProperty("class_path")] string? ClassPath,
-        [property: JsonPropertyName("object_class")][property: JsonProperty("object_class")] string? ObjectClass,
-        [property: JsonPropertyName("is_orphaned")][property: JsonProperty("is_orphaned")] bool? IsOrphaned = null
+        [property: JsonPropertyName("object_class")][property: JsonProperty("object_class")] string? ObjectClass
     );
 
     public record ModMarkerDto(
@@ -39,16 +38,14 @@ namespace UnchainedLauncher.UnrealModScanner.JsonModels {
         string Hash,
         string? ClassPath,
         string? ObjectClass,
-        bool? IsOrphaned,
         [property: JsonPropertyName("associated_blueprints")][property: JsonProperty("associated_blueprints")] List<string> AssociatedBlueprints
-    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass, IsOrphaned);
+    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass);
 
     public record BlueprintDto(
         string Path,
         string Hash,
         string? ClassPath,
         string? ObjectClass,
-        bool? IsOrphaned,
         [property: JsonPropertyName("mod_name")][property: JsonProperty("mod_name")] string? ModName,
         [property: JsonPropertyName("version")][property: JsonProperty("version")] string Version,
         [property: JsonPropertyName("mod_description")][property: JsonProperty("mod_description")] string ModDescription,
@@ -62,14 +59,13 @@ namespace UnchainedLauncher.UnrealModScanner.JsonModels {
         [property: JsonPropertyName("host_only")][property: JsonProperty("host_only")] bool bHostOnly,
         [property: JsonPropertyName("allow_on_frontend")][property: JsonProperty("allow_on_frontend")] bool bAllowOnFrontend,
         [property: JsonPropertyName("is_hidden")][property: JsonProperty("is_hidden")] bool? IsHidden
-    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass, IsOrphaned);
+    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass);
 
     public record MapDto(
         string Path,
         string Hash,
         string? ClassPath,
         string? ObjectClass,
-        bool? IsOrphaned,
         [property: JsonPropertyName("game_mode")][property: JsonProperty("game_mode")] string? GameMode,
         [property: JsonPropertyName("map_name")][property: JsonProperty("map_name")] string? MapName,
         [property: JsonPropertyName("map_description")][property: JsonProperty("map_description")] string? MapDescription,
@@ -77,23 +73,21 @@ namespace UnchainedLauncher.UnrealModScanner.JsonModels {
         [property: JsonPropertyName("defending_faction")][property: JsonProperty("defending_faction")] string? DefendingFaction,
         [property: JsonPropertyName("game_mode_type")][property: JsonProperty("game_mode_type")] string? GamemodeType,
         [property: JsonPropertyName("tbl_default_gamemode")][property: JsonProperty("tbl_default_gamemode")] string? TBLDefaultGameMode
-    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass, IsOrphaned);
+    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass);
 
     // Base fields are sufficient
     public record ReplacementDto(
         string Path,
         string Hash,
         string? ClassPath,
-        string? ObjectClass,
-        bool? IsOrphaned
-    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass, IsOrphaned);
+        string? ObjectClass
+    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass);
 
     public record ArbitraryDto(
         string Path,
         string Hash,
         string? ClassPath,
         string? ObjectClass,
-        bool? IsOrphaned,
         [property: JsonPropertyName("mod_name")][property: JsonProperty("mod_name")] string? ModName
-    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass, IsOrphaned);
+    ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass);
 }

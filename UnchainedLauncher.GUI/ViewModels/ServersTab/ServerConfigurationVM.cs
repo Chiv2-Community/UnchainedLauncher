@@ -25,6 +25,8 @@ using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
+using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
+using UnchainedLauncher.UnrealModScanner.Services;
 using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
@@ -154,6 +156,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public int PingPort { get; set; }
         public string LocalIp { get; set; }
 
+        private PakDirManifest? _cachedScanResult = null;
+
         public static string SavedDirSuffix(string name) {
             var validChars = "_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
             var sb = new StringBuilder();
@@ -278,6 +282,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             TDM = new TdmConfigurationSectionVM(tdmTimeLimit, tdmTicketCount);
             FFA = new FfaConfigurationSectionVM(ffaTimeLimit, ffaScoreLimit);
+            
+            HandleLatestScanUpdate(modScanTab.LastScanResult);
+            modScanTab.PropertyChanged += (_, args) => {
+                if (args.PropertyName == nameof(modScanTab.LastScanResult))
+                    HandleLatestScanUpdate(modScanTab.LastScanResult);
+            };
+
         }
 
         public void EnableServerBlueprintMod(BlueprintDto blueprint) =>
@@ -378,6 +389,20 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return selectedMap;
         }
 
+        private void HandleLatestScanUpdate(ModScanResult? scanResult) {
+            _cachedScanResult?.Paks
+                .Select(x => x.Inventory)
+                .ForEach(RemoveAvailableMod);
+
+            if (scanResult == null) return;
+            var manifest = ModManifestConverter.ProcessModScan(scanResult);
+            
+            manifest
+                .Paks
+                .Select(x => x.Inventory)
+                .ForEach(RemoveAvailableMod);
+        }
+        
         public override string ToString() {
             var enabledMods = string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"));
             return

@@ -21,6 +21,7 @@ using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 // using Unchained.ServerBrowser.Client; // avoid Option<> name collision with LanguageExt
@@ -33,24 +34,26 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public ServerTabCodec(SettingsVM settings,
             IModManager modManager,
+            ModScanTabVM modScanTab,
             IUserDialogueSpawner dialogueSpawner,
             IChivalry2Launcher launcher,
             ObservableCollection<ServerConfigurationVM> serverConfigs,
             IChivalryProcessWatcher processWatcher) : base(
             ToJsonType,
-            conf => ToClassType(conf, settings, modManager, dialogueSpawner, launcher, serverConfigs, processWatcher)
+            conf => ToClassType(conf, settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigs, processWatcher)
         ) { }
 
         public static ServersTabVM ToClassType(
             ServersTabMetadata serversTabMetadata,
             SettingsVM settings,
             IModManager modManager,
+            ModScanTabVM modScanTab,
             IUserDialogueSpawner dialogueSpawner,
             IChivalry2Launcher launcher,
             ObservableCollection<ServerConfigurationVM> serverConfigs,
             IChivalryProcessWatcher processWatcher
         ) {
-            var vm = new ServersTabVM(settings, modManager, dialogueSpawner, launcher, serverConfigs, processWatcher);
+            var vm = new ServersTabVM(settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigs, processWatcher);
             serversTabMetadata.ConfigNameToProcessIDMap.ForEach(pair => {
                 var (confName, pid) = pair;
                 var config = serverConfigs.FirstOrDefault(conf => conf.Name == confName);
@@ -113,13 +116,17 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public Visibility ConfigurationEditorVisibility { get; private set; }
         public Visibility LiveServerVisibility { get; private set; }
 
+        private ModScanTabVM _modScanTab;
+
         public ServersTabVM(SettingsVM settings,
                             IModManager modManager,
+                            ModScanTabVM modScanTab,
                             IUserDialogueSpawner dialogueSpawner,
                             IChivalry2Launcher launcher,
                             ObservableCollection<ServerConfigurationVM> serverConfigs,
                             IChivalryProcessWatcher processWatcher) {
             ServerConfigs = serverConfigs;
+            _modScanTab = modScanTab;
 
             ServerConfigs.CollectionChanged += (_, _) => {
                 UpdateVisibility();
@@ -154,7 +161,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         [RelayCommand]
         public void CreateNewConfig() {
-            var newConfig = new ServerConfigurationVM(ModManager);
+            var newConfig = new ServerConfigurationVM(ModManager, _modScanTab);
 
             var occupiedPorts = new Set<int>().AddRange(
                 ServerConfigs.SelectMany(conf => new[] { conf.A2SPort, conf.GamePort, conf.PingPort, conf.RconPort })

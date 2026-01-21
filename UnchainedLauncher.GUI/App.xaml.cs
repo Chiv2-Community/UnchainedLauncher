@@ -24,6 +24,7 @@ using UnchainedLauncher.GUI.ViewModels.Registry;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using Application = System.Windows.Application;
 
 namespace UnchainedLauncher.GUI {
@@ -201,7 +202,7 @@ namespace UnchainedLauncher.GUI {
             );
 
             var chivProcessMonitor = new ChivalryProcessWatcher();
-
+            
             var homeViewModel = new HomeVM(
                 settingsViewModel,
                 modManager,
@@ -227,6 +228,8 @@ namespace UnchainedLauncher.GUI {
                 homeViewModel.LaunchUnchained().Wait();
                 return null;
             }
+            
+            var modScanTab = new ModScanTabVM();
 
             var serverConfigurationVMs =
                 InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager);
@@ -239,12 +242,13 @@ namespace UnchainedLauncher.GUI {
                 unchainedLauncher,
                 serverConfigurationVMs,
                 chivProcessMonitor);
-
+            
             var mainWindowViewModel = new MainWindowVM(
                 homeViewModel,
                 modListViewModel,
                 settingsViewModel,
-                serversTabViewModel
+                serversTabViewModel,
+                modScanTab
             );
 
             return new MainWindow(mainWindowViewModel);

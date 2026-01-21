@@ -28,7 +28,6 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
     ///     .With(new AssetsOnlyScanFilter())
     ///     .With(new IgnorePakScanFilter("pak1.pak", "pak2.pak"))
     /// </summary>
-    [JsonPolymorphic(TypeDiscriminatorPropertyName = "Type")]
     [JsonDerivedType(typeof(Whitelist), "Whitelist")]
     [JsonDerivedType(typeof(Blacklist), "Blacklist")]
     [JsonDerivedType(typeof(AssetsOnlyScanFilter), "AssetsOnly")]
@@ -38,57 +37,62 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
     [JsonDerivedType(typeof(PassScanFilter), "Pass")]
     [JsonDerivedType(typeof(CombinedScanFilter), "Combined")]
     
-    public abstract class IScanFilter {
-        
+    public abstract class IScanFilter(string filterName) {
+
         /// <summary>
         /// The FilterName can be useful for debugging, but is otherwise useless
         /// It could probably be removed?
         /// </summary>
-        public abstract string FilterName { get; }
+        [JsonIgnore] public readonly string FilterName = filterName;
         public abstract PakContentFilter CreatePakContentFilter();
 
-        public static IScanFilter CombineAll(params IScanFilter[] others) {
-            return new CombinedScanFilter(others);
+        public static IScanFilter CombineAll(params IScanFilter?[] others) {
+            var filterNoops =
+                others
+                    .Where(x => x != null)
+                    .Cast<IScanFilter>()
+                    .Where(x => x is not PassScanFilter)
+                    .ToArray();
+
+            if (filterNoops.Length == 0) return new PassScanFilter();
+            return new CombinedScanFilter(filterNoops.ToArray());
         }
 
         public IScanFilter With(IScanFilter? other) {
-            return new CombinedScanFilter(this, other);
+            return other is null or PassScanFilter ? this : new CombinedScanFilter(this, other);
         }
 
-        private class CombinedScanFilter(params IScanFilter?[] filterMembers) : IScanFilter {
-            private readonly IScanFilter[] _filterMembers =
-                filterMembers
-                    .Where(x => x != null)
-                    .SelectMany(x => x is CombinedScanFilter y ? y._filterMembers : [x!])
-                    .ToArray();
-            
-            public override string FilterName => string.Join(" with ", _filterMembers.Select(x => x.FilterName));
+    }
+    
+    public class CombinedScanFilter(params IScanFilter?[] filterMembers) : IScanFilter(string.Join(" with ", filterMembers.Select(x => x.FilterName))) {
+        [JsonPropertyName("FilterMembers")]
+        public IScanFilter[] FilterMembers { get; init; } =
+            filterMembers
+                .Where(x => x != null)
+                .SelectMany(x => x is CombinedScanFilter y ? y.FilterMembers : [x!])
+                .ToArray();
 
-            public override PakContentFilter CreatePakContentFilter() {
-                var createdContentFilters =
-                    _filterMembers.Select(x => x.CreatePakContentFilter());
+        public override PakContentFilter CreatePakContentFilter() {
+            var createdContentFilters =
+                FilterMembers.Select(x => x.CreatePakContentFilter());
                 
-                return kv => createdContentFilters.All(x => x(kv));
-            }
+            return kv => createdContentFilters.All(x => x(kv));
         }
     }
     
-    public class Whitelist(IEnumerable<string> whitelist) : IScanFilter {
+    public class Whitelist(IEnumerable<string> whitelist) : IScanFilter("Whitelist") {
         public IEnumerable<string> Items { get; init; } = whitelist;
-        public override string FilterName => "Whitelist";
         public override PakContentFilter CreatePakContentFilter() => 
             kv => Items.Any(x => kv.Key.Contains(x));
     }
     
-    public class Blacklist(IEnumerable<string> blacklist) : IScanFilter {
+    public class Blacklist(IEnumerable<string> blacklist) : IScanFilter("Exclude Paths") {
         public IEnumerable<string> Items { get; init; } = blacklist;
-        public override string FilterName => "Exclude Paths";
         public override PakContentFilter CreatePakContentFilter() => 
             kv => !Items.Any(path => kv.Key.Contains(path));
     }
     
-    public class AssetsOnlyScanFilter : IScanFilter {
-        public override string FilterName => "Assets Only";
+    public class AssetsOnlyScanFilter() : IScanFilter("Assets Only") {
         public override PakContentFilter CreatePakContentFilter() => 
             kv => {
                 var path = kv.Key;
@@ -97,28 +101,24 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
             };
     }
     
-    public class MapsOnlyScanFilter : IScanFilter {
-        public override string FilterName => "Maps Only";
+    public class MapsOnlyScanFilter() : IScanFilter("Maps Only") {
         public override PakContentFilter CreatePakContentFilter() => 
             kv => kv.Key.EndsWith(".umap");
     }
     
-    public class IgnorePakScanFilter(params string[] pakNamesToIgnore) : IScanFilter {
+    public class IgnorePakScanFilter(params string[] pakNamesToIgnore) : IScanFilter("Ignore Paks") {
         public string[] PakNames { get; init; } = pakNamesToIgnore;
-        public override string FilterName => "Ignore Paks";
         public override PakContentFilter CreatePakContentFilter() => 
             kv => kv.Value is not FPakEntry fPakEntry || !PakNames.Contains(fPakEntry.PakFileReader.Name);
     }
     
-    public class SpecificPakScanFilter(params string[] pakNamesToInclude) : IScanFilter {
+    public class SpecificPakScanFilter(params string[] pakNamesToInclude) : IScanFilter("Include specific paks") {
         public string[] PakNames { get; init; } = pakNamesToInclude;
-        public override string FilterName => "Specific Paks";
         public override PakContentFilter CreatePakContentFilter() => 
             kv => kv.Value is not FPakEntry fPakEntry || PakNames.Contains(fPakEntry.PakFileReader.Name);
     }
     
-    public class PassScanFilter : IScanFilter {
-        public override string FilterName => "Pass All";
+    public class PassScanFilter() : IScanFilter("Pass") {
         public override PakContentFilter CreatePakContentFilter() => 
             _ => true;
     }

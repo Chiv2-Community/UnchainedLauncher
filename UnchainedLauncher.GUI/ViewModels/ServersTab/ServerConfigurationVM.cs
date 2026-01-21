@@ -313,7 +313,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                         .Split("\n")
                         .Select(x => x.Trim())
                         .ToList()
-                        .Select(mapName => new MapDto {MapName = mapName})
+                        .Select(mapName => new MapDto(Path: "", Hash: "", ClassPath: null, ObjectClass: null, IsOrphaned: null, GameMode: null, MapName: mapName, MapDescription: null, AttackingFaction: null, DefendingFaction: null, GamemodeType: null, TBLDefaultGameMode: null))
                         .ForEach(maps.Add);
                 }
             }

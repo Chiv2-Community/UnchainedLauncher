@@ -54,17 +54,18 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                     new List<string> { "Example Author" },
                     new List<Dependency>()
                 ),
-                new PakManifest {
-                    PakName="Foo.pak",
-                    PakPath = "Foo.pak",
-                    Inventory = new AssetCollections {
-                        Arbitrary = new List<ArbitraryDto>(),
-                        Blueprints = new List<BlueprintDto>(),
-                        Maps = new List<MapDto>(),
-                        Markers = new List<ModMarkerDto>(),
-                        Replacements = new List<ReplacementDto>()
-                    }
-                },
+                new PakManifest(
+                    PakName: "Foo.pak",
+                    PakPath: "Foo.pak",
+                    PakHash: null,
+                    Inventory: new AssetCollections(
+                        Markers: new List<ModMarkerDto>(),
+                        Blueprints: new List<BlueprintDto>(),
+                        Maps: new List<MapDto>(),
+                        Replacements: new List<ReplacementDto>(),
+                        Arbitrary: new List<ArbitraryDto>()
+                    )
+                ),
                 "# Example Release Notes\n\n* Your release notes here"
             );
 

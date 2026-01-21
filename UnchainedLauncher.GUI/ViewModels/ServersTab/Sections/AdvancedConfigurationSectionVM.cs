@@ -26,7 +26,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
         public int? PlayerBotCount { get; set; }
         public int? WarmupTime { get; set; }
         public bool ShowInServerBrowser { get; set; }
-        
+
         public string AdditionalCLIArgs { get; set; }
     }
 }

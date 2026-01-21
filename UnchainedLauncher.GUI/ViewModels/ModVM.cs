@@ -10,6 +10,8 @@ using System.Diagnostics;
 using System.Linq;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.GUI.Services;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -51,6 +53,33 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 return description + "\n\n" + depMessage;
             }
         }
+
+        public string IconUrl =>
+            EnabledRelease?.Info.NonEmptyIconUrl
+            ?? Mod.LatestReleaseInfo.NonEmptyIconUrl
+            ?? "pack://application:,,,/UnchainedLauncher;component/assets/chiv2-unchained-logo.png";
+
+        public AssetCollections? Manifest => EnabledRelease?.Manifest ?? Mod.LatestRelease.FirstOrDefault()?.Manifest;
+
+        public bool HasMarkers => Manifest?.Markers?.Any() ?? false;
+        public bool HasBlueprints => Manifest?.Blueprints?.Any() ?? false;
+        public bool HasMaps => Manifest?.Maps?.Any() ?? false;
+        public bool HasReplacements => Manifest?.Replacements?.Any() ?? false;
+        public bool HasArbitrary => Manifest?.Arbitrary?.Any() ?? false;
+    
+        public bool HasContents => HasMarkers || HasBlueprints || HasMaps || HasReplacements || HasArbitrary;
+    
+        public bool HasDependencies =>
+            (EnabledRelease ?? Mod.LatestRelease)
+                .ToList()
+                .Bind(r => ModManager.GetAllDependenciesForRelease(r))
+                .Any();
+
+        public List<Release> Dependencies =>
+            (EnabledRelease ?? Mod.LatestRelease)
+                .ToList()
+                .Bind(r => ModManager.GetAllDependenciesForRelease(r))
+                .ToList();
 
         public string ButtonText =>
             Optional(EnabledRelease).Match(

@@ -5,10 +5,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:controls="clr-namespace:UnchainedLauncher.GUI.Views.Controls"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Mods.DesignInstances"
-             xmlns:sys="clr-namespace:System;assembly=mscorlib"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance designInstances:ModDesignVM}"
-             d:DesignHeight="160" d:DesignWidth="800"
+             d:DesignHeight="300" d:DesignWidth="800"
              Focusable="True">
 
     <UserControl.Resources>
@@ -39,20 +38,6 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-
-        <!-- Description collapses when not focused, expands on focus -->
-        <Style x:Key="ExpandableDescription" TargetType="FrameworkElement">
-            <Setter Property="MaxHeight" Value="100" />
-            <Style.Triggers>
-                <DataTrigger Value="True">
-                    <DataTrigger.Binding>
-                        <Binding RelativeSource="{RelativeSource AncestorType=UserControl}"
-                                 Path="IsKeyboardFocusWithin" />
-                    </DataTrigger.Binding>
-                    <Setter Property="MaxHeight" Value="{x:Static sys:Double.PositiveInfinity}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
     </UserControl.Resources>
 
     <Border Style="{StaticResource ModCard}">
@@ -61,18 +46,29 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Header: Name, Enable/Disable, Version selector -->
+            <!-- Header: Icon, Name, Enable/Disable, Version selector -->
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="220" />
                 </Grid.ColumnDefinitions>
-                <Button Grid.Column="0" 
-                        Content="{Binding Mod.LatestManifest.Name}" 
+                
+                <!-- Mod Icon -->
+                <Image Grid.Column="0"
+                       Source="{Binding IconUrl}"
+                       Width="48"
+                       Height="48"
+                       Margin="0,0,12,0"
+                       VerticalAlignment="Center"
+                       Stretch="Uniform" />
+                
+                <!-- Mod Name Button -->
+                <Button Grid.Column="1" 
+                        Content="{Binding Mod.LatestReleaseInfo.Name}" 
                         Command="{Binding ViewOnGithubCommand}"
                         FontWeight="SemiBold"
                         FontSize="14"
@@ -81,7 +77,9 @@
                         Width="Auto" HorizontalAlignment="Left" 
                         BorderThickness="1" 
                         BorderBrush="{DynamicResource Brush.Border}" />
-                <Button Grid.Column="1"
+                
+                <!-- Enable/Disable Button -->
+                <Button Grid.Column="2"
                         Content="{Binding ButtonText}"
                         Command="{Binding EnableOrDisableCommand}"
                         Margin="0,0,8,0">
@@ -98,34 +96,158 @@
                         </Style>
                     </Button.Style>
                 </Button>
-                <ComboBox Grid.Column="2"
+                
+                <!-- Version Dropdown -->
+                <ComboBox Grid.Column="3"
                           ItemsSource="{Binding Mod.Releases}"
                           SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
                           DisplayMemberPath="Tag"
                           ToolTip="Select version"
-                          VerticalAlignment="Center" />
+                          VerticalAlignment="Stretch" />
             </Grid>
 
-            <!-- Tags / Enabled info -->
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
-                <TextBlock Text="Type: " Foreground="{StaticResource Brush.Muted}" />
-                <TextBlock Text="{Binding Mod.LatestManifest.ModType}" Margin="4,0,12,0" />
-                <TextBlock Text="Tags: " Foreground="{StaticResource Brush.Muted}" />
-                <TextBlock Text="{Binding TagsString}" />
-            </StackPanel>
+            <!-- Description: Regular text box -->
+            <TextBox Grid.Row="1"
+                     Text="{Binding Description, Mode=OneWay}"
+                     Margin="0,12,0,0"
+                     MinHeight="100"
+                     MaxHeight="300"
+                     TextWrapping="Wrap"
+                     IsReadOnly="True"
+                     VerticalScrollBarVisibility="Auto" />
 
-            <!-- Description: visible by default, clipped when long; expands on focus -->
-            <Border Grid.Row="2"
-                    Margin="0,8,0,0"
-                    BorderBrush="{StaticResource Brush.Border}"
-                    BorderThickness="1"
-                    Padding="8"
-                    CornerRadius="4"
-                    Style="{StaticResource ExpandableDescription}">
-                <!-- Important: avoid inner ScrollViewer/TextBox so the parent list can always scroll on mouse wheel -->
-                <TextBlock Text="{Binding Description, Mode=OneWay}"
-                           TextWrapping="Wrap" />
-            </Border>
+            <!-- Details Card -->
+            <controls:CollapsibleCard Grid.Row="2"
+                                      Header="Contents"
+                                      IsExpanded="False"
+                                      Margin="0,12,0,0"
+                                      Visibility="{Binding HasContents, Converter={StaticResource BoolToVisibilityConverter}}">
+                <controls:CollapsibleCard.Body>
+                    <StackPanel>
+                        <!-- Markers Card -->
+                        <controls:CollapsibleCard Header="Markers" IsExpanded="False" Margin="0,0,0,8" Visibility="{Binding HasMarkers, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <controls:CollapsibleCard.Body>
+                                <ItemsControl ItemsSource="{Binding Manifest.Markers}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Path}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Hash, StringFormat='Hash: {0}'}" Foreground="{StaticResource Brush.Muted}" FontSize="11" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </controls:CollapsibleCard.Body>
+                        </controls:CollapsibleCard>
+
+                        <!-- Blueprints Card -->
+                        <controls:CollapsibleCard Header="Blueprints" IsExpanded="False" Margin="0,0,0,8" Visibility="{Binding HasBlueprints, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <controls:CollapsibleCard.Body>
+                                <ItemsControl ItemsSource="{Binding Manifest.Blueprints}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Path}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding ModName, StringFormat='Mod: {0}'}" Foreground="{StaticResource Brush.Muted}" FontSize="11" />
+                                                    <TextBlock Text="{Binding Version, StringFormat='Version: {0}'}" Foreground="{StaticResource Brush.Muted}" FontSize="11" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </controls:CollapsibleCard.Body>
+                        </controls:CollapsibleCard>
+
+                        <!-- Maps Card -->
+                        <controls:CollapsibleCard Header="Maps" IsExpanded="False" Margin="0,0,0,8" Visibility="{Binding HasMaps, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <controls:CollapsibleCard.Body>
+                                <ItemsControl ItemsSource="{Binding Manifest.Maps}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Path}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding MapName, StringFormat='Name: {0}'}" Foreground="{StaticResource Brush.Muted}" FontSize="11" />
+                                                    <TextBlock Text="{Binding GameMode, StringFormat='Game Mode: {0}'}" Foreground="{StaticResource Brush.Muted}" FontSize="11" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </controls:CollapsibleCard.Body>
+                        </controls:CollapsibleCard>
+
+                        <!-- Replacements Card -->
+                        <controls:CollapsibleCard Header="Replacements" IsExpanded="False" Margin="0,0,0,8" Visibility="{Binding HasReplacements, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <controls:CollapsibleCard.Body>
+                                <ItemsControl ItemsSource="{Binding Manifest.Replacements}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource Card}" Margin="0,0,4,4" Padding="8">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Path}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </controls:CollapsibleCard.Body>
+                        </controls:CollapsibleCard>
+
+                        <!-- Arbitrary Assets Card -->
+                        <controls:CollapsibleCard Header="Arbitrary Assets" IsExpanded="False" Visibility="{Binding HasArbitrary, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <controls:CollapsibleCard.Body>
+                                <ItemsControl ItemsSource="{Binding Manifest.Arbitrary}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Style="{StaticResource Card}" Margin="0,0,4,4" Padding="8">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Path}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </controls:CollapsibleCard.Body>
+                        </controls:CollapsibleCard>
+                    </StackPanel>
+                </controls:CollapsibleCard.Body>
+            </controls:CollapsibleCard>
+
+            <!-- Dependencies Card -->
+            <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                <controls:CollapsibleCard Header="Dependencies"
+                                          IsExpanded="False"
+                                          Visibility="{Binding HasDependencies, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <controls:CollapsibleCard.Body>
+                        <ItemsControl ItemsSource="{Binding Dependencies}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Info.Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding Version, StringFormat='Version: {0}'}" Foreground="{StaticResource Brush.Muted}" FontSize="11" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </controls:CollapsibleCard.Body>
+                </controls:CollapsibleCard>
+            </StackPanel>
         </Grid>
     </Border>
 </UserControl>

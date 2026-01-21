@@ -50,7 +50,7 @@
   <ItemGroup>
     <Content Include="assets\chiv2-unchained-logo.ico" />
     <Resource Include="assets\chiv2-unchained-logo.png" />
-    <EmbeddedResource Include="Resources\DefaultMaps.txt" />
+    <EmbeddedResource Include="Resources\DefaultMaps.json" />
     <EmbeddedResource Include="Resources\log4net.config">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>

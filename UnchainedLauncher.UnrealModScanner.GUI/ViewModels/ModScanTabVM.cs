@@ -44,12 +44,78 @@ public partial class ModScanTabVM : ObservableObject {
 
         await Task.Yield();
         // 3. Execution
-        var swMod = Stopwatch.StartNew();
-        var options = LoadedConfig ?? GameScanOptions.Chivalry2;
-        var modScanner = ScannerFactory.CreateModScanner(options);
         
+        
+        var swMod = Stopwatch.StartNew();
+        
+        // Get map DTOs
+        /*
+        var options = GameScanOptions.Chivalry2 with {
+            ScanFilter = new MapsOnlyScanFilter().With(new Whitelist([
+                "/TO_Bridgetown.umap",
+                "/TO_Bulwark.umap",
+                "/To_Lionspire.umap",
+                "/TO_RudhelmSiege.umap",
+                "/TO_Citadel.umap",
+                "/TO_Coxwell.umap",
+                "/To_DarkForest.umap",
+                "/TO_Galencourt.umap",
+                "/TO_Montcrux.umap",
+                "/TO_Library.umap",
+                "/TO_Falmire.umap",
+                "/TO_Raid.umap",
+                "/TO_Stronghold.umap",
+                "/FFA_Bazaar.umap",
+                "/FFA_Courtyard.umap",
+                "/FFA_Desert.umap",
+                "/FFA_FightingPit.umap",
+                "/FFA_FrozenWreck.umap",
+                "/FFA_Galencourt.umap",
+                "/FFA_Hippodrome.umap",
+                "/FFA_Falmire.umap",
+                "/FFA_TournamentGrounds.umap",
+                "/FFA_Duelyard.umap",
+                "/FFA_Wardenglade.umap",
+                "/Brawl_GreatHall.umap",
+                "/Brawl_RudhelmHall.umap",
+                "/Brawl_Cathedral.umap",
+                "/BRAWL_Midsommar.umap",
+                "/BRAWL_Raid.umap",
+                "/Arena_Courtyard.umap",
+                "/Arena_FightingPit.umap",
+                "/Arena_TournamentGrounds.umap",
+                "/Arena_TournamentGrounds_Joust.umap",
+                "/LTS_Courtyard.umap",
+                "/LTS_FightingPit.umap",
+                "/LTS_Galencourt.umap",
+                "/LTS_Falmire.umap",
+                "/LTS_TournamentGrounds.umap",
+                "/LTS_Wardenglade.umap",
+                "/TDM_Courtyard.umap",
+                "/TDM_Coxwell.umap",
+                "/TDM_DarkForest.umap",
+                "/TDM_Desert.umap",
+                "/TDM_FightingPit.umap",
+                "/TDM_FrozenWreck.umap",
+                "/TDM_Galencourt.umap",
+                "/TDM_Hippodrome.umap",
+                "/TDM_Falmire.umap",
+                "/TDM_TournamentGrounds.umap",
+                "/TDM_Wardenglade.umap",
+                "/TDM_Wardenglade_horse.umap",
+                "/BOW_Galencourt.umap",
+                "/BOW_Falmire.umap",
+                "/BOW_Wardenglade.umap",
+                "/PR_LTS_Raid.umap"
+            ]))
+        };
+        // dont forget to set scan mode to GameInternal.
+        */
+
+        var options = LoadedConfig ?? GameScanOptions.Chivalry2;
         var provider = FilteredFileProvider.CreateFromOptions(options, ScanMode.Mods, pakDir);
         
+        var modScanner = ScannerFactory.CreateModScanner(options);
         LastScanResult = await Task.Run(() => modScanner.RunScanAsync(provider, options, progressReporter));
 
         swMod.Stop();

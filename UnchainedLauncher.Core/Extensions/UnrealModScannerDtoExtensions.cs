@@ -14,7 +14,7 @@ public static class UnrealModScannerDtoExtensions {
     extension(AssetCollections manifest)
     {
         public IEnumerable<BlueprintDto> RelevantBlueprints() =>
-            manifest.Blueprints.Where(x => !x.IsHidden ?? false);
+            manifest.Blueprints.Where(x => (!x.IsHidden ?? false) && !x.bClientside);
 
         public IEnumerable<MapDto> RelevantMaps() =>
             manifest.Maps.Where(x => !string.IsNullOrEmpty(x.GamemodeType?.Trim()));

@@ -24,6 +24,7 @@ using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -44,7 +45,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             IChivalry2Launcher launcher,
             ObservableCollection<ServerConfigurationVM> serverConfigs,
             IChivalryProcessWatcher processWatcher,
-            AvailableModsAndMapsVM availableModsAndMaps) : base(
+            AvailableModsAndMapsService availableModsAndMaps) : base(
             ToJsonType,
             conf => ToClassType(conf, settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigs, processWatcher, availableModsAndMaps)
         ) { }
@@ -58,7 +59,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             IChivalry2Launcher launcher,
             ObservableCollection<ServerConfigurationVM> serverConfigs,
             IChivalryProcessWatcher processWatcher,
-            AvailableModsAndMapsVM availableModsAndMaps
+            AvailableModsAndMapsService availableModsAndMaps
         ) {
             var vm = new ServersTabVM(settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigs, processWatcher, availableModsAndMaps);
             serversTabMetadata.ConfigNameToProcessIDMap.ForEach(pair => {
@@ -123,7 +124,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public Visibility ConfigurationEditorVisibility { get; private set; }
         public Visibility LiveServerVisibility { get; private set; }
 
-        private AvailableModsAndMapsVM _availableModsAndMaps;
+        private AvailableModsAndMapsService _availableModsAndMaps;
         private ModScanTabVM _modScanTab;
 
         public ServersTabVM(SettingsVM settings,
@@ -133,7 +134,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                             IChivalry2Launcher launcher,
                             ObservableCollection<ServerConfigurationVM> serverConfigs,
                             IChivalryProcessWatcher processWatcher,
-                            AvailableModsAndMapsVM availableModsAndMaps) {
+                            AvailableModsAndMapsService availableModsAndMaps) {
             ServerConfigs = serverConfigs;
             _availableModsAndMaps = availableModsAndMaps;
             _modScanTab = modScanTab;

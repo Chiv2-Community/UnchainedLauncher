@@ -1,4 +1,5 @@
-﻿using UnchainedLauncher.GUI.ViewModels.ServersTab;
+﻿using UnchainedLauncher.GUI.Services;
+using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
@@ -10,7 +11,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
         public ServerConfigurationDesignVM() : base(
             Mods.DesignInstances.ModListViewModelInstances.DEFAULTMODMANAGER,
             new ModScanTabVM(),
-            new AvailableModsAndMapsVM(
+            new AvailableModsAndMapsService(
                 Mods.DesignInstances.ModListViewModelInstances.DEFAULTMODMANAGER,
                 new ModScanTabVM()
             ),

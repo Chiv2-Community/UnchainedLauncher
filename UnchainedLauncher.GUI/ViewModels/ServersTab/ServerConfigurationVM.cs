@@ -21,6 +21,7 @@ using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
@@ -37,7 +38,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public ServerConfigurationCodec(
             IModManager modManager, 
             ModScanTabVM modScanTab,
-            AvailableModsAndMapsVM availableModsAndMaps) : base(
+            AvailableModsAndMapsService availableModsAndMaps) : base(
             ToJsonType,
             conf => ToClassType(conf, modManager, modScanTab, availableModsAndMaps)
         ) { }
@@ -46,7 +47,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             ObservableCollection<ServerConfiguration> configurations, 
             IModManager modManager, 
             ModScanTabVM modScanTab,
-            AvailableModsAndMapsVM availableModsAndMaps) =>
+            AvailableModsAndMapsService availableModsAndMaps) =>
             new ObservableCollection<ServerConfigurationVM>(configurations.Select(conf =>
                 conf.Name == null // Should be impossible, but sometimes older dev builds have null names
                     ? new ServerConfigurationVM(modManager, modScanTab, availableModsAndMaps)
@@ -210,12 +211,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public ObservableCollection<BlueprintDto> AvailableServerModBlueprints => _availableModsAndMaps.AvailableServerModBlueprints;
 
         private ModScanTabVM _modScanTab;
-        private AvailableModsAndMapsVM _availableModsAndMaps;
+        private readonly AvailableModsAndMapsService _availableModsAndMaps;
 
         public ServerConfigurationVM(
             IModManager modManager,
             ModScanTabVM modScanTab,
-            AvailableModsAndMapsVM availableModsAndMaps,
+            AvailableModsAndMapsService availableModsAndMaps,
             string name = "My Server",
             string description = "My Server Description",
             string password = "",

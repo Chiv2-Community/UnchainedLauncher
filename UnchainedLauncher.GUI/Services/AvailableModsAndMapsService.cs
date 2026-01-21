@@ -16,18 +16,18 @@ using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.Services;
 
-namespace UnchainedLauncher.GUI.ViewModels.ServersTab;
+namespace UnchainedLauncher.GUI.Services;
 
 [AddINotifyPropertyChangedInterface]
-public class AvailableModsAndMapsVM {
-    private static readonly ILog Logger = LogManager.GetLogger(nameof(AvailableModsAndMapsVM));
+public class AvailableModsAndMapsService {
+    private static readonly ILog Logger = LogManager.GetLogger(nameof(AvailableModsAndMapsService));
 
     public ObservableCollection<MapDto> AvailableMaps { get; }
     public ObservableCollection<BlueprintDto> AvailableServerModBlueprints { get; }
 
     private PakDirManifest? _cachedScanManifest = null;
 
-    public AvailableModsAndMapsVM(IModManager modManager, ModScanTabVM modScanTab) {
+    public AvailableModsAndMapsService(IModManager modManager, ModScanTabVM modScanTab) {
         AvailableMaps = new ObservableCollection<MapDto>(GetDefaultMaps());
         AvailableServerModBlueprints = new ObservableCollection<BlueprintDto>();
 

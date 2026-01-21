@@ -230,7 +230,7 @@ namespace UnchainedLauncher.GUI {
             }
             
             var modScanTab = new ModScanTabVM();
-            var availableModsAndMaps = new AvailableModsAndMapsVM(modManager, modScanTab);
+            var availableModsAndMaps = new AvailableModsAndMapsService(modManager, modScanTab);
 
             var serverConfigurationVMs =
                 InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager, modScanTab, availableModsAndMaps);
@@ -287,7 +287,7 @@ namespace UnchainedLauncher.GUI {
         }
 
         private ObservableCollection<ServerConfigurationVM> InitializeServerConfigurations(string jsonPath,
-            IModManager modManager, ModScanTabVM modScanTab, AvailableModsAndMapsVM availableModsAndMapsVM) {
+            IModManager modManager, ModScanTabVM modScanTab, AvailableModsAndMapsService availableModsAndMapsVM) {
             Func<ObservableCollection<ServerConfigurationVM>> initializeDefault =
                 () => new ObservableCollection<ServerConfigurationVM>();
 
@@ -309,7 +309,7 @@ namespace UnchainedLauncher.GUI {
             IChivalry2Launcher launcher, 
             ObservableCollection<ServerConfigurationVM> serverConfigurations, 
             IChivalryProcessWatcher processWatcher,
-            AvailableModsAndMapsVM availableModsAndMaps) {
+            AvailableModsAndMapsService availableModsAndMaps) {
             Func<ServersTabVM> initializeDefault = () => new ServersTabVM(
                 settings,
                 modManager,

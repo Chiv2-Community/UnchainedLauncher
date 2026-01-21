@@ -71,8 +71,8 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
             ),
             "Example Server",
             new ObservableCollection<MapDto>() {
-                new MapDto(Path: "", Hash: "", ClassPath: null, ObjectClass: null, IsOrphaned: null, GameMode: null, MapName: "FFA_Wardenglade", MapDescription: null, AttackingFaction: null, DefendingFaction: null, GamemodeType: null, TBLDefaultGameMode: null),
-                new MapDto(Path: "", Hash: "", ClassPath: null, ObjectClass: null, IsOrphaned: null, GameMode: null, MapName: "TDM_Wardenglade", MapDescription: null, AttackingFaction: null, DefendingFaction: null, GamemodeType: null, TBLDefaultGameMode: null)
+                new MapDto(Path: "", Hash: "", ClassPath: null, ObjectClass: null, GameMode: null, MapName: "FFA_Wardenglade", MapDescription: null, AttackingFaction: null, DefendingFaction: null, GamemodeType: null, TBLDefaultGameMode: null),
+                new MapDto(Path: "", Hash: "", ClassPath: null, ObjectClass: null, GameMode: null, MapName: "TDM_Wardenglade", MapDescription: null, AttackingFaction: null, DefendingFaction: null, GamemodeType: null, TBLDefaultGameMode: null)
             }
         ) {
             RestartCount = 2;

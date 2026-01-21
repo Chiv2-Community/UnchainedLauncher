@@ -166,7 +166,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             GameSession.LoadFrom(ini.Game.GameSession);
 
             GameMode.DefaultMaxPlayers = GameSession.MaxPlayers;
-            GameMode.LoadFrom(ini.Game.TBLGameMode);
+            GameMode.LoadFrom(ini.Game.TBLGameMode, AvailableMaps);
 
             LTS.LoadFrom(ini.Game.LTSGameMode);
             Arena.LoadFrom(ini.Game.ArenaGameMode);
@@ -226,21 +226,22 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             EnabledServerModList = enabledServerModList ?? new ObservableCollection<ReleaseCoordinates>();
 
             AvailableMaps = new ObservableCollection<MapDto>(GetDefaultMaps());
+            AvailableMods = new ObservableCollection<Release>();
+
+            modManager.GetEnabledAndDependencyReleases()
+                .ForEach(x => AddAvailableMod(x, null));
+            
+            modManager.ModDisabled += RemoveAvailableMod;
+            modManager.ModEnabled += AddAvailableMod;
 
             // We set the Name after loading INI, because there may be some existing config that we want to load first
             // And setting the name overwrites it.
             LoadINI(name);
             Name = name;
 
-            AvailableMods = new ObservableCollection<Release>();
-
-            modManager.GetEnabledAndDependencyReleases()
-                .ForEach(x => AddAvailableMod(x, null));
 
             LocalIp = localIp == null ? DetermineLocalIp() : localIp.Trim();
 
-            modManager.ModDisabled += RemoveAvailableMod;
-            modManager.ModEnabled += AddAvailableMod;
 
             BaseConfigurationSection = new BaseConfigurationSectionVM(
                 GameMode,
@@ -344,7 +345,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             RconPort,
             A2SPort,
             PingPort,
-            DetermineNextMap().Path,
+            DetermineNextMap()!.TravelToMapString(),
             AdvancedConfigurationSection.ShowInServerBrowser,
             FFA.FFAScoreLimit,
             FFA.FFATimeLimit,
@@ -364,15 +365,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 idx = 0;
             }
 
-            var selectedMapPath = GameMode.MapList[idx];
-            
-            return AvailableMaps.ToList().FirstOrDefault(x => x.Path == selectedMapPath);
+            var selectedMap = GameMode.MapList[idx];
+
+            return selectedMap;
         }
 
         public override string ToString() {
-            var enabledMods = EnabledServerModList != null
-                ? string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"))
-                : "null";
+            var enabledMods = string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"));
             return
                 $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {DetermineNextMap()}, {AdvancedConfigurationSection.ShowInServerBrowser}, [{enabledMods}])";
         }

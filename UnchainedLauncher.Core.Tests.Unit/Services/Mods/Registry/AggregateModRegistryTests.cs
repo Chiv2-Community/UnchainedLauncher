@@ -1,6 +1,5 @@
 using FluentAssertions;
 using LanguageExt;
-using System.Collections.Immutable;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {

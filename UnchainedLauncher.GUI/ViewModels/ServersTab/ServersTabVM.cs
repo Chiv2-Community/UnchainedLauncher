@@ -21,6 +21,7 @@ using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 // using Unchained.ServerBrowser.Client; // avoid Option<> name collision with LanguageExt
 
@@ -190,18 +191,20 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             // Resolve selected releases from the template's EnabledServerModList
             var enabledCoordinates = ModManager.EnabledModReleaseCoordinates.ToArray();
-
+            var enabledServerBlueprintDtos = formData.EnabledServerModList!.ToArray();
+            
             SelectedConfiguration.SaveINI();
+            
 
-            var maybeProcess = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
+            var maybeProcess = await LaunchServerWithOptions(formData, headless, enabledServerBlueprintDtos);
             maybeProcess.IfSome(process => {
-                var server = CreateServer(process, formData, headless, enabledCoordinates);
+                var server = CreateServer(process, formData, headless, enabledServerBlueprintDtos);
                 var serverVm = new ServerVM(server, formData.Name, SelectedConfiguration.AvailableMaps);
                 serverVm.StartUpdateLoop();
                 var runningTuple = (SelectedConfiguration, serverVm);
                 UiDispatcher.Invoke(() => RunningServers.Add(runningTuple));
 
-                _ = AttachServerExitWatcher(process, formData, enabledCoordinates, headless, runningTuple);
+                _ = AttachServerExitWatcher(process, formData, enabledServerBlueprintDtos, headless, runningTuple);
             });
         }
 
@@ -213,15 +216,17 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 return;
             }
 
+            var serverModArray = conf.EnabledServerModList.ToArray();
+
             var formData = conf.ToServerConfiguration();
-            var server = CreateServer(proc, formData, false, conf.EnabledServerModList.ToArray());
+            var server = CreateServer(proc, formData, false, serverModArray);
             var serverVm = new ServerVM(server, conf.Name, conf.AvailableMaps);
             serverVm.StartUpdateLoop();
             RunningServers.Add((conf, serverVm));
-            _ = AttachServerExitWatcher(proc, formData, conf.EnabledServerModList.ToArray(), false, (conf, serverVm));
+            _ = AttachServerExitWatcher(proc, formData, serverModArray, false, (conf, serverVm));
         }
 
-        public void AttachServerExitWatcher(Process process, ServerConfigurationVM config, ObservableCollection<ReleaseCoordinates>? enabledCoordinates, bool headless, (ServerConfigurationVM, ServerVM) runningTuple) {
+        public void AttachServerExitWatcher(Process process, ServerConfigurationVM config, ObservableCollection<BlueprintDto>? enabledServerModBlueprintDtos, bool headless, (ServerConfigurationVM, ServerVM) runningTuple) {
             process.EnableRaisingEvents = true;
             process.Exited += (sender, args) => {
                 RunningServers.Remove(runningTuple);
@@ -264,7 +269,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             LiveServerVisibility = !isSelectedRunning ? Visibility.Hidden : Visibility.Visible;
         }
 
-        private ServerLaunchOptions BuildServerLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<ReleaseCoordinates> enabledCoordinates) {
+        private ServerLaunchOptions BuildServerLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<BlueprintDto> enabledServerModBlueprints) {
             return new ServerLaunchOptions(
                 headless,
                 formData.Name,
@@ -283,14 +288,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 formData.PlayerBotCount,
                 formData.WarmupTime,
                 formData.LocalIp,
-                Enumerable.Empty<string>()
+                enabledServerModBlueprints.Select(bp => bp.ClassPath!)
             );
         }
 
-        private LaunchOptions BuildLaunchOptions(ServerConfiguration formData, bool headless, ReleaseCoordinates[] enabledCoordinates) {
-            var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, enabledCoordinates);
+        private LaunchOptions BuildLaunchOptions(ServerConfiguration formData, bool headless, BlueprintDto[] enabledServerBlueprintDtos) {
+            var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, enabledServerBlueprintDtos);
             return new LaunchOptions(
-                enabledCoordinates,
+                ModManager.EnabledModReleaseCoordinates,
                 Settings.ServerBrowserBackend,
                 Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
@@ -302,7 +307,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private Chivalry2Server CreateServer(Process process,
                                              ServerConfiguration formData,
                                              bool headless,
-                                             ReleaseCoordinates[] enabledCoordinates) {
+                                             BlueprintDto[] enabledCoordinates) {
             var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, enabledCoordinates);
             var a2s = new A2S(new IPEndPoint(IPAddress.Loopback, formData.A2SPort));
             var rcon = new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort));
@@ -312,7 +317,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private async Task AttachServerExitWatcher(
             Process process,
             ServerConfiguration formData,
-            ReleaseCoordinates[] enabledCoordinates,
+            BlueprintDto[] enabledServerBlueprintDtos,
             bool headless,
             (ServerConfigurationVM configuration, ServerVM live) runningTuple) {
             var attached = await ProcessWatcher.OnExit(process, async (exitCode, acceptable) => {
@@ -335,11 +340,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 await Task.Delay(2000);
 
 
-                var relaunched = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
+                var relaunched = await LaunchServerWithOptions(formData, headless, enabledServerBlueprintDtos);
                 relaunched.IfSome(newProc => {
-                    var newServer = CreateServer(newProc, formData, headless, enabledCoordinates);
+                    var newServer = CreateServer(newProc, formData, headless, enabledServerBlueprintDtos);
                     UiDispatcher.Invoke(() => runningTuple.live.ReplaceServer(newServer, countAsRestart: true));
-                    _ = AttachServerExitWatcher(newProc, formData, enabledCoordinates, headless, runningTuple);
+                    _ = AttachServerExitWatcher(newProc, formData, enabledServerBlueprintDtos, headless, runningTuple);
                 });
             });
 
@@ -348,8 +353,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             }
         }
 
-        private async Task<Option<Process>> LaunchServerWithOptions(ServerConfiguration formData, bool headless, ReleaseCoordinates[] enabledCoordinates) {
-            var options = BuildLaunchOptions(formData, headless, enabledCoordinates);
+        private async Task<Option<Process>> LaunchServerWithOptions(ServerConfiguration formData, bool headless, BlueprintDto[] enabledServerBlueprintDto) {
+            var options = BuildLaunchOptions(formData, headless, enabledServerBlueprintDto);
             return await UiInvokeAsync(async () => {
                 Settings.HasLaunched = true;
                 var launchResult = await Launcher.Launch(options);

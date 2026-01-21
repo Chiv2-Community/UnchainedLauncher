@@ -22,7 +22,7 @@ namespace UnchainedLauncher.Core.JsonModels.ModMetadata {
         [property: JsonPropertyName("pak_file_name")] string PakFileName,
         [property: JsonPropertyName("release_date")] DateTime ReleaseDate,
         [property: JsonPropertyName("info")] ModInfo Info,
-        [property: JsonPropertyName("manifest")] PakManifest Manifest,
+        [property: JsonPropertyName("manifest")] AssetCollections Manifest,
         [property: JsonPropertyName("release_notes_markdown")] string? ReleaseNotesMarkdown
     ) {
         public string ReleaseUrl => $"{Info.RepoUrl}/releases/{Tag}";

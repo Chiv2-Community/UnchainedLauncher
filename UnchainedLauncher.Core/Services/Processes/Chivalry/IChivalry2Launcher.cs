@@ -80,7 +80,7 @@ public record ServerLaunchOptions(
     int? PlayerBotCount,
     int? WarmupTime,
     Option<string> LocalIp,
-    IEnumerable<String> NextMapModActors
+    IEnumerable<String> ServerMods
 ) {
     public IReadOnlyList<CLIArg> ToCLIArgs() {
         var args = new List<CLIArg>() {
@@ -104,8 +104,8 @@ public record ServerLaunchOptions(
 
         Password.IfSome(password => args.Add(new UEParameter("ServerPassword", password.Trim())));
 
-        if (NextMapModActors.Any())
-            args.Add(new Parameter("--next-map-mod-actors", string.Join(",", NextMapModActors)));
+        if (ServerMods.Any())
+            args.Add(new Parameter("--server-mods", string.Join(",", ServerMods)));
 
         LocalIp.IfSome(ip => args.Add(new Parameter("--local-ip", ip)));
 

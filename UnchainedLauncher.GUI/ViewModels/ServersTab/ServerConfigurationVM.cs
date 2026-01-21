@@ -88,8 +88,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         int? TDMTimeLimit = null,
         int? PlayerBotCount = null,
         int? WarmupTime = null,
-        ObservableCollection<ReleaseCoordinates>? EnabledServerModList = null) {
-
+        ObservableCollection<BlueprintDto>? EnabledServerModList = null) {
+        
         public string SavedDirSuffix => ServerConfigurationVM.SavedDirSuffix(Name);
 
         public override string ToString() {
@@ -195,8 +195,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public ObservableCollection<MapDto> AvailableMaps { get; }
 
-        public ObservableCollection<ReleaseCoordinates> EnabledServerModList { get; }
-        public ObservableCollection<Release> AvailableMods { get; }
+        public ObservableCollection<BlueprintDto> EnabledServerModList { get; }
+        public ObservableCollection<BlueprintDto> AvailableServerModBlueprints { get; }
 
         public ServerConfigurationVM(IModManager modManager,
             string name = "My Server",
@@ -214,7 +214,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             int? tdmTimeLimit = null,
             int? playerBotCount = null,
             int? warmupTime = null,
-            ObservableCollection<ReleaseCoordinates>? enabledServerModList = null
+            ObservableCollection<BlueprintDto>? enabledServerModList = null
         ) {
             Description = description;
             Password = password;
@@ -223,16 +223,25 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             PingPort = pingPort;
             GamePort = gamePort;
 
-            EnabledServerModList = enabledServerModList ?? new ObservableCollection<ReleaseCoordinates>();
+            EnabledServerModList = enabledServerModList ?? new ObservableCollection<BlueprintDto>();
 
             AvailableMaps = new ObservableCollection<MapDto>(GetDefaultMaps());
-            AvailableMods = new ObservableCollection<Release>();
+            AvailableServerModBlueprints = new ObservableCollection<BlueprintDto>();
 
             modManager.GetEnabledAndDependencyReleases()
-                .ForEach(x => AddAvailableMod(x, null));
+                .ForEach(x => AddAvailableMod(x.Manifest));
             
-            modManager.ModDisabled += RemoveAvailableMod;
-            modManager.ModEnabled += AddAvailableMod;
+            modManager.ModDisabled += release => RemoveAvailableMod(release.Manifest);
+            modManager.ModEnabled += (release, previouslyEnabledVersion) => {
+                if (previouslyEnabledVersion != null) {
+                    var coordinates = ReleaseCoordinates.FromRelease(release) with { Version = previouslyEnabledVersion };
+                    modManager
+                        .GetRelease(coordinates)
+                        .IfSome(previousRelease => RemoveAvailableMod(previousRelease.Manifest));
+                }
+
+                AddAvailableMod(release.Manifest);
+            };
 
             // We set the Name after loading INI, because there may be some existing config that we want to load first
             // And setting the name overwrites it.
@@ -264,38 +273,30 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             FFA = new FfaConfigurationSectionVM(ffaTimeLimit, ffaScoreLimit);
         }
 
-        public void EnableServerMod(Release release) =>
-            EnabledServerModList.Add(ReleaseCoordinates.FromRelease(release));
+        public void EnableServerBlueprintMod(BlueprintDto blueprint) =>
+            EnabledServerModList.Add(blueprint);
 
-        public void DisableServerMod(Release release) =>
-            EnabledServerModList.Remove(ReleaseCoordinates.FromRelease(release));
+        public void DisableServerBlueprintMod(BlueprintDto blueprint) =>
+            EnabledServerModList.Remove(blueprint);
 
-        public void AddAvailableMod(Release release, string? previousVersion) {
-            // This will be enabled by default
-            if (ModIdentifier.FromRelease(release) == CommonMods.UnchainedMods) return;
+        public void AddAvailableMod(AssetCollections modPakManifest) {
+            var newMaps =
+                modPakManifest
+                    .RelevantMaps()
+                    .Filter(x => !AvailableMaps.Contains(x));
+            
+            var newModBlueprints = 
+                modPakManifest
+                    .RelevantBlueprints()
+                    .Filter(x => !AvailableServerModBlueprints.Contains(x));
 
-            var existingMod = AvailableMods.Find(x => x.Info.RepoUrl == release.Info.RepoUrl);
-            var existingMaps =
-                existingMod.Bind(x => Prelude.Optional(x.Manifest.Inventory.Maps)).FirstOrDefault() 
-                    ?? new List<MapDto>();
-
-
-            var newMaps = release.Manifest.Inventory.Maps.Filter(x => !existingMaps.Contains(x));
-            var removedMaps = existingMaps.Filter(x => !release.Manifest.Inventory.Maps.Contains(x));
-
-            removedMaps.ForEach(AvailableMaps.Remove);
             newMaps.ForEach(AvailableMaps.Add);
-
-            existingMod.IfSome(x => AvailableMods.Remove(x));
-            AvailableMods.Add(release);
-
+            newModBlueprints.ForEach(AvailableServerModBlueprints.Add);
         }
 
-        public void RemoveAvailableMod(Release release) {
-            AvailableMods.Remove(release);
-
-            var removedMaps = release.Manifest.Inventory.Maps;
-            removedMaps.ForEach(AvailableMaps.Remove);
+        public void RemoveAvailableMod(AssetCollections manifest) {
+            manifest.RelevantMaps().ForEach(AvailableMaps.Remove);
+            manifest.RelevantBlueprints().ForEach(AvailableServerModBlueprints.Remove);
         }
 
         [RelayCommand]

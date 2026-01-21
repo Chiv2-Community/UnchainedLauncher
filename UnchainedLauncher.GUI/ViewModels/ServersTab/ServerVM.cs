@@ -108,7 +108,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 LocalIpText = "-";
             }
 
-            var actors = opts.NextMapModActors?.Where(a => !string.IsNullOrWhiteSpace(a)).ToArray() ?? Array.Empty<string>();
+            var actors = opts.ServerMods?.Where(a => !string.IsNullOrWhiteSpace(a)).ToArray() ?? Array.Empty<string>();
             ModActorsText = actors.Length == 0 ? "-" : string.Join(", ", actors);
 
             if (string.IsNullOrWhiteSpace(SelectedMapToChange)) {

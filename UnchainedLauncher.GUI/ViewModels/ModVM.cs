@@ -10,7 +10,6 @@ using System.Diagnostics;
 using System.Linq;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
-using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels {
@@ -66,9 +65,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public bool HasMaps => Manifest?.Maps?.Any() ?? false;
         public bool HasReplacements => Manifest?.Replacements?.Any() ?? false;
         public bool HasArbitrary => Manifest?.Arbitrary?.Any() ?? false;
-    
+
         public bool HasContents => HasMarkers || HasBlueprints || HasMaps || HasReplacements || HasArbitrary;
-    
+
         public bool HasDependencies =>
             (EnabledRelease ?? Mod.LatestRelease)
                 .ToList()

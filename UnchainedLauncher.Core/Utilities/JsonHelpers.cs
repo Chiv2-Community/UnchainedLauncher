@@ -46,7 +46,7 @@ namespace UnchainedLauncher.Core.Utilities {
 
         private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions {
             Converters = { new UnionConverterFactory() },
-            
+
             WriteIndented = true,
             IncludeFields = true,
         };

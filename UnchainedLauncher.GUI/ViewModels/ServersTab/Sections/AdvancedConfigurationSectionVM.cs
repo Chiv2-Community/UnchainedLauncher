@@ -9,13 +9,15 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
             TBLGameModeSectionVM gameMode,
             bool showInServerBrowser,
             int? playerBotCount,
-            int? warmupTime
+            int? warmupTime,
+            string additionalCLIArgs
         ) {
             IpNetDriver = ipNetDriver;
             GameMode = gameMode;
             ShowInServerBrowser = showInServerBrowser;
             PlayerBotCount = playerBotCount;
             WarmupTime = warmupTime;
+            AdditionalCLIArgs = additionalCLIArgs;
         }
 
         public IpNetDriverSectionVM IpNetDriver { get; }
@@ -24,5 +26,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
         public int? PlayerBotCount { get; set; }
         public int? WarmupTime { get; set; }
         public bool ShowInServerBrowser { get; set; }
+        
+        public string AdditionalCLIArgs { get; set; }
     }
 }

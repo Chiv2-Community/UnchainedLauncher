@@ -46,19 +46,8 @@ namespace StructuredINI {
                                 throw new InvalidOperationException($"Failed to encode value of type {elementType.Name}", ex);
                             }
 
-                            if (i == 0) {
-                                sb.AppendLine($"{keyName}={encoded}");
-                                emittedValues.Add(item);
-                            }
-                            else {
-                                if (emittedValues.Contains(item)) {
-                                    sb.AppendLine($".{keyName}={encoded}");
-                                }
-                                else {
-                                    sb.AppendLine($"+{keyName}={encoded}");
-                                    emittedValues.Add(item);
-                                }
-                            }
+                            sb.AppendLine($"{keyName}={encoded}");
+                            emittedValues.Add(item);
                         }
                     }
                 }
@@ -247,7 +236,6 @@ namespace StructuredINI {
 
             switch (prefix) {
                 case '\0': // Set: Clear then Append
-                    list.Clear();
                     list.Add(val);
                     break;
                 case '+': // AddUnique

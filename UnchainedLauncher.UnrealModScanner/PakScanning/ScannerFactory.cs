@@ -14,8 +14,8 @@ public static class ScannerFactory {
         var processors = new List<IAssetProcessor> {
             // new MarkerProcessor(),
             new MapProcessor(), 
-            new ReplacementProcessor(options.VanillaAssetPaths), 
-            new ArbitraryAssetProcessor(options.VanillaAssetPaths)
+            new ReplacementProcessor(options.VanillaPakNames, options.VanillaAssetPaths), 
+            new ArbitraryAssetProcessor(options.VanillaPakNames, options.VanillaAssetPaths)
         };
 
         processors.AddRange(

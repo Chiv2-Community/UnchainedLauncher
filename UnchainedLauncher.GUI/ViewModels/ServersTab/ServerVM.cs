@@ -103,7 +103,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             QueryPort = opts.QueryPort;
             RconPort = opts.RconPort;
 
-            LocalIpText = opts.LocalIp.IfNone("")?.Trim();
+            LocalIpText = opts.LocalIp.IfNone("127.0.0.1").Trim();
             if (string.IsNullOrWhiteSpace(LocalIpText)) {
                 LocalIpText = "-";
             }

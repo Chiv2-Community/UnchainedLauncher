@@ -17,6 +17,6 @@ public static class UnrealModScannerDtoExtensions {
             manifest.Blueprints.Where(x => !x.IsHidden ?? false);
 
         public IEnumerable<MapDto> RelevantMaps() =>
-            manifest?.Maps.Where(x => !string.IsNullOrEmpty(x.GamemodeType?.Trim()));
+            manifest.Maps.Where(x => !string.IsNullOrEmpty(x.GamemodeType?.Trim()));
     }
 }

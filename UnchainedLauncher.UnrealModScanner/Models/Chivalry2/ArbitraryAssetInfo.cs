@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+﻿using Newtonsoft.Json;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
 
@@ -11,7 +11,7 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
         /// <summary>
         /// Fallback for old Chivalry 2 mod actors (no Mod marker provided)
         /// </summary>
-        [JsonPropertyName("mod_name")]
+        [JsonProperty("mod_name")]
         public string ModName { get; set; } = string.Empty;
 
 

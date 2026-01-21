@@ -7,8 +7,8 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
     using CUE4Parse.UE4.Assets.Exports;
     using CUE4Parse.UE4.Assets.Objects;
     using global::UnrealModScanner.Models;
-    using System.Text.Json;
-    using System.Text.Json.Nodes;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
     using UnchainedLauncher.UnrealModScanner.Config;
     using UnchainedLauncher.UnrealModScanner.Utility;
 
@@ -79,17 +79,17 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
 
                 filteredProperties[propConfig.Name] = propConfig.Mode switch {
                     EExtractionMode.Json => rawValue switch {
-                        UObject nestedObj => JsonNode.Parse(nestedObj.ToSafeJson(0, propConfig.MaxDepth)?.ToString() ?? ""),
+                        UObject nestedObj => JToken.Parse(nestedObj.ToSafeJson(0, propConfig.MaxDepth)?.ToString() ?? ""),
 
-                        UScriptMap map => JsonNode.Parse(JsonSerializer.Serialize(rawValue))?.AsArray().ToDictionary(
-                                                    obj => obj?["Key"]?.ToString() ?? "UnknownKey",
-                                                    obj => obj?["Value"]
+                        UScriptMap map => JToken.Parse(JsonConvert.SerializeObject(rawValue)).Children<JObject>().ToDictionary(
+                                                    obj => obj["Key"]?.ToString() ?? "UnknownKey",
+                                                    obj => obj["Value"]
                                                 ),
-                        _ => JsonNode.Parse(JsonSerializer.Serialize(rawValue))
+                        _ => JToken.Parse(JsonConvert.SerializeObject(rawValue))
                     },
                     EExtractionMode.String => rawValue?.ToString() ?? "null",
                     EExtractionMode.Raw => rawValue,
-                    EExtractionMode.StringJson => JsonSerializer.Deserialize<object>(rawValue.ToString()),
+                    EExtractionMode.StringJson => JsonConvert.DeserializeObject(rawValue.ToString()), // Whats the right way to do this?
                     _ => throw new ArgumentOutOfRangeException()
                 };
             }

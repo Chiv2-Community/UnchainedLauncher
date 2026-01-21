@@ -1,7 +1,7 @@
 ﻿
 
 
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -13,6 +13,7 @@ using UnchainedLauncher.UnrealModScanner.ViewModels.Nodes;
 
 namespace UnrealModScanner.Models;
 
+//[JsonObject(MemberSerialization.OptOut)]
 /// <summary>
 /// Class containing the results of ModScanOrchestrator. 
 /// Used in UI visualization and JSON export
@@ -28,51 +29,51 @@ public sealed class PakScanResult {
     /// <summary>
     /// Pak Path relative to scan directory
     /// </summary>
-    [JsonPropertyName("pak_path")]
+    [JsonProperty("pak_path")]
     public string PakPath { get; set; } = string.Empty;
     /// <summary>
     /// SHA-512 hash (by default) of current pak
     /// </summary>
-    [JsonPropertyName("pak_hash")]
+    [JsonProperty("pak_hash")]
     public string? PakHash { get; set; } = string.Empty;
     /// <summary>
     /// Assets returned by GenericCDOProcessor and ReferenceDiscoveryProcessor<br/>
     /// structure: Dict(ClassPath: List(<see cref="GenericAssetEntry"/>))
     /// </summary>
-    [JsonPropertyName("generic_assets")]
+    [JsonProperty("generic_assets")]
     public ConcurrentDictionary<string, ConcurrentBag<GenericAssetEntry>> GenericEntries { get; } = new();
     /// <summary>
     /// Markers discovered using <see cref="UnchainedLauncher.UnrealModScanner.PakScanning.Processors.ReferenceDiscoveryProcessor"/><br/>
     /// structure: Dict(ClassName: Dict(AssetPath, <see cref="GenericMarkerEntry"/>))
     /// </summary>
-    [JsonPropertyName("generic_markers")]
+    [JsonProperty("generic_markers")]
     public ConcurrentDictionary<string, ConcurrentDictionary<string, GenericMarkerEntry>> GenericMarkers { get; } = new();
     /// <summary>
     /// Assets discovered by ReplacementProcessor
     /// </summary>
-    [JsonPropertyName("asset_replacements")]
+    [JsonProperty("asset_replacements")]
     public ConcurrentBag<GenericAssetEntry> _AssetReplacements { get; } = new();
     /// <summary>
     /// Levels extracted with MapProcessor
     /// </summary>
-    [JsonPropertyName("maps")]
+    [JsonProperty("maps")]
     public ConcurrentBag<GameMapInfo> _Maps { get; } = new();
 
     private ConcurrentBag<GenericAssetEntry> _arbitraryAssets = new();
     /// <summary>
     /// Uncategorized assets in pak (Not in official directories)
     /// </summary>
-    [JsonPropertyName("arbitrary_assets")]
+    [JsonProperty("arbitrary_assets")]
     public ConcurrentBag<GenericAssetEntry> ArbitraryAssets {
         get => _arbitraryAssets;
         set => _arbitraryAssets = value ?? new ConcurrentBag<GenericAssetEntry>();
     }
-    [JsonPropertyName("failed_packages")]
+    [JsonProperty("failed_packages")]
     public ConcurrentBag<FailedPackage> FailedPackages { get; } = new();
     /// <summary>
     /// Scan result from AssetRegistry scan
     /// </summary>
-    [JsonPropertyName("internal_assets")]
+    [JsonProperty("internal_assets")]
     public ConcurrentBag<GameInternalAssetInfo> InternalAssets { get; } = new();
 
     public void AddGenericEntry(GenericAssetEntry entryBase, string base_name) {
@@ -144,7 +145,7 @@ public sealed class PakScanResult {
 
     // Chivalry 2 specific
 
-    [JsonPropertyName("markers")]
+    [JsonProperty("markers")]
     public ConcurrentBag<ModMarkerInfo> _Markers { get; } = new();
 
     // UI 

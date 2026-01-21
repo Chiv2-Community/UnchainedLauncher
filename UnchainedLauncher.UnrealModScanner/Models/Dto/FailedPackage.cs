@@ -1,9 +1,8 @@
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace UnchainedLauncher.UnrealModScanner.Models.Dto {
     public class FailedPackage {
-        [JsonPropertyName("package_path")]
-        [JsonPropertyOrder(-2)]
+        [JsonProperty("package_path", Order = -2)]
         public string PackagePath { get; set; } = string.Empty;
     }
 }

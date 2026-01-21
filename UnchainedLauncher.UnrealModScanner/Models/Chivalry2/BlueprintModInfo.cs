@@ -1,6 +1,6 @@
 ﻿
 
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 using UnchainedLauncher.UnrealModScanner.Assets;
 
 namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
@@ -12,23 +12,23 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
         /// <summary>
         /// Display name of the mod
         /// </summary>
-        [JsonPropertyName("mod_name")]
+        [JsonProperty("mod_name")]
         public required string ModName { get; init; }
         /// <summary>
         /// Semantic version of the actor
         /// </summary>
-        [JsonPropertyName("mod_version")]
+        [JsonProperty("mod_version")]
         public required string Version { get; init; }
         /// <summary>
         /// Author or comma-separated list of authors
         /// Used as Organization in metadata
         /// </summary>
-        [JsonPropertyName("mod_author")]
+        [JsonProperty("mod_author")]
         public required string Author { get; init; }
         /// <summary>
         /// If true, mod can be loaded on the client during online play
         /// </summary>
-        [JsonPropertyName("is_clientside")]
+        [JsonProperty("is_clientside")]
         public required bool IsClientSide { get; init; }
     }
 }

@@ -232,7 +232,7 @@ namespace UnchainedLauncher.GUI {
             var modScanTab = new ModScanTabVM();
 
             var serverConfigurationVMs =
-                InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager);
+                InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager, modScanTab);
 
             var serversTabViewModel = InitializeServersTab(
                 FilePaths.ServersTabConfigurationPath,
@@ -283,11 +283,11 @@ namespace UnchainedLauncher.GUI {
         }
 
         private ObservableCollection<ServerConfigurationVM> InitializeServerConfigurations(string jsonPath,
-            IModManager modManager) {
+            IModManager modManager, ModScanTabVM modScanTab) {
             Func<ObservableCollection<ServerConfigurationVM>> initializeDefault =
                 () => new ObservableCollection<ServerConfigurationVM>();
 
-            var codec = new ServerConfigurationCodec(modManager);
+            var codec = new ServerConfigurationCodec(modManager, modScanTab);
             var serverConfigurations = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
 
             RegisterSaveToFileOnExit(serverConfigurations, codec, jsonPath);

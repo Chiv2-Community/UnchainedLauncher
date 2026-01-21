@@ -23,6 +23,7 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using JsonSerializer = Newtonsoft.Json.JsonSerializer;
 
@@ -31,18 +32,19 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     public class ServerConfigurationCodec : DerivedJsonCodec<ObservableCollection<ServerConfiguration>,
         ObservableCollection<ServerConfigurationVM>> {
 
-        public ServerConfigurationCodec(IModManager modManager) : base(
+        public ServerConfigurationCodec(IModManager modManager, ModScanTabVM modScanTab) : base(
             ToJsonType,
-            conf => ToClassType(conf, modManager)
+            conf => ToClassType(conf, modManager, modScanTab)
         ) { }
 
         public static ObservableCollection<ServerConfigurationVM> ToClassType(
-            ObservableCollection<ServerConfiguration> configurations, IModManager modManager) =>
+            ObservableCollection<ServerConfiguration> configurations, IModManager modManager, ModScanTabVM modScanTab) =>
             new ObservableCollection<ServerConfigurationVM>(configurations.Select(conf =>
                 conf.Name == null // Should be impossible, but sometimes older dev builds have null names
-                    ? new ServerConfigurationVM(modManager)
+                    ? new ServerConfigurationVM(modManager, modScanTab)
                     : new ServerConfigurationVM(
                         modManager,
+                        modScanTab,
                         conf.Name,
                         conf.Description,
                         conf.Password,
@@ -198,7 +200,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public ObservableCollection<BlueprintDto> EnabledServerModList { get; }
         public ObservableCollection<BlueprintDto> AvailableServerModBlueprints { get; }
 
-        public ServerConfigurationVM(IModManager modManager,
+        private ModScanTabVM _modScanTab;
+
+        public ServerConfigurationVM(
+            IModManager modManager,
+            ModScanTabVM modScanTab,
             string name = "My Server",
             string description = "My Server Description",
             string password = "",
@@ -216,6 +222,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             int? warmupTime = null,
             ObservableCollection<BlueprintDto>? enabledServerModList = null
         ) {
+            _modScanTab = modScanTab;
             Description = description;
             Password = password;
             RconPort = rconPort;

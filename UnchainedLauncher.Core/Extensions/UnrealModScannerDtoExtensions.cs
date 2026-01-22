@@ -9,7 +9,7 @@ public static class UnrealModScannerDtoExtensions {
             var lastDot = map.Path.LastIndexOf('.');
             return map.Path[(lastSlash + 1)..lastDot];
         }
-        
+
         public bool IsRelevant() {
             return !string.IsNullOrEmpty(map.GamemodeType?.Trim());
         }
@@ -21,7 +21,7 @@ public static class UnrealModScannerDtoExtensions {
             var isClientSideOnly = blueprintDto.bClientside ?? false;
             var isShownOnFrontend = blueprintDto.bAllowOnFrontend ?? false;
             var hasShowInGUI = blueprintDto.bShowInGUI != null;
-            
+
             return !shouldBeHidden && !isClientSideOnly && !isShownOnFrontend && hasShowInGUI;
         }
     }

@@ -1,0 +1,534 @@
+﻿[
+  {
+    "game_mode": "LTSGameMode",
+    "map_name": "Last Peasant Standing at Aberfell Village",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::PeasantRoyale",
+    "path": "TBL/Content/Maps/Raid/PR_LTS_Raid.umap",
+    "hash": "346b6831d689c47504dc2c71ac458c6d4ac496847ce887eb5ea38d43c96dd357ee5038ad2d39fe7499f8220cc7f9307abc50aee1e45520194aca076debbcd1cd",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_FFA_C",
+    "map_name": "The Desecration of Galencourt",
+    "game_mode_type": "EGameModeType::FreeForAll",
+    "path": "TBL/Content/Maps/Galencourt/FFA_Galencourt.umap",
+    "hash": "6578468bd7d3ec641048df16c5b1bed482981e4201365d583fad8c64b94d24c630bab821177f3192a9b976dd9d9617a81dee845d4d53cd8d4d721e577bc8c955",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_FFA_C",
+    "map_name": "The Bazaar of Baudwyn",
+    "attacking_faction": "EFaction::FFA",
+    "defending_faction": "EFaction::FFA",
+    "game_mode_type": "EGameModeType::FreeForAll",
+    "path": "TBL/Content/Maps/Bulwark/FFA_Bazaar.umap",
+    "hash": "84dd416c0339625a1d1559a6d197e33c1fb0293f53281bca9cf53248aa3350aee422349b4e9aa460e7eeda0b0d297fe145f6a78ddb90c3a57ea65dfd7b1d1fc8",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_FFA_C",
+    "map_name": "Desert",
+    "attacking_faction": "EFaction::FFA",
+    "game_mode_type": "EGameModeType::FreeForAll",
+    "path": "TBL/Content/Maps/Desert/FFA_Desert.umap",
+    "hash": "8fd8e3fdf843ec952c215500efa187d5f54146a9997d689c66e36ec5b125670febba6528fd4596f3d13cd1f2d1fa20d4ec0e06b10a87783afb94f23ef337e3f3",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "Volley at Wardenglade",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::Volley",
+    "path": "TBL/Content/Maps/Wardenglade/BOW_Wardenglade.umap",
+    "hash": "69fd8091462600bfbb40c3140255682686f871742a9e01c16b14a9445d440ac6919faa4388e062911aac9f33429198253a39a3d6406207bcdcc980481056980f",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "Volley at Galencourt",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::Volley",
+    "path": "TBL/Content/Maps/Galencourt/BOW_Galencourt.umap",
+    "hash": "6288f474dfd4610cf098911f27509597e511eb2775c7d51d1b674acafe12d2338bb7f80e3b26b52a9e9be7d489ab196465d2cce8d8aee4b6df4bfc9dd6620eac",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_FFA_C",
+    "map_name": "Escape from Falmire",
+    "attacking_faction": "EFaction::FFA",
+    "game_mode_type": "EGameModeType::FreeForAll",
+    "path": "TBL/Content/Maps/PrisonBreak/FFA_Falmire.umap",
+    "hash": "2fef22e5619e90456760f5c77221af324f0d5248d0e91d211c6180d0a9b252f2e21a222177d311d27514c592cd87e6f0823124e83c8602c62fceca98b0c9d9b3",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_Jousting_C",
+    "map_name": "Tournament Grounds",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::Jousting",
+    "path": "TBL/Content/Maps/Tournament/Arena_TournamentGrounds_Joust.umap",
+    "hash": "d535536a191e7adc982190df4461862519ca632bcd0c84a56bf7c9eb5f21a007260ee02d0e4824f70ebd6cdb58f6c52960b6f52ba3b659afa729314beaae72ea",
+    "object_class": "LevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "The Grand Hippodrome of Askandir",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Tenosia",
+    "game_mode_type": "EGameModeType::TeamDeathMatch",
+    "path": "TBL/Content/Maps/Hippodrome/TDM_Hippodrome.umap",
+    "hash": "927ed96fe47d95d79b37d662dfef64bb0d4ece0d9d68d991419971ee95e88bb4e0d7c9958f68a9791b35fe60da4258fa31e4c517e118d03ed310314cc0b63e9d",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "LTSGameMode",
+    "map_name": "Elimination at Galencourt",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::LastTeamStanding",
+    "path": "TBL/Content/Maps/Galencourt/LTS_Galencourt.umap",
+    "hash": "ec0890915551a004aed52ef2c48c7ab570a42596fe04a6d04d5ffc831dab8155a2b04c1aee88d577fea0d99ed3cc0717c931c53e3db137695c4467d60f199f09",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_Brawl_FFA_C",
+    "map_name": "Cathedral",
+    "game_mode_type": "EGameModeType::Brawl",
+    "path": "TBL/Content/Maps/Galencourt/Brawl_Cathedral.umap",
+    "hash": "4b198b7dddfc6e8ba2977fb7a3f7db8f18d3d6b9377d1fd65abbd9dbb4453c83eb701d2fe9ef265a64a53edceb255766742f02bbf3562f619de29f26de16d20f",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "The Slaughter of Coxwell",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/Coxwell/TO_Coxwell.umap",
+    "hash": "a8905046ed5a6303b31ef7feea4f8cbec89940383394a87f067c5d53929f4b2ffe9ded46e6674a6fd1a0219a355174ec484200039d344deed2f7910bc268f5b5",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_FFA_C",
+    "map_name": "The Fighting Pit",
+    "attacking_faction": "EFaction::FFA",
+    "game_mode_type": "EGameModeType::FreeForAll",
+    "path": "TBL/Content/Maps/FightingPit/FFA_FightingPit.umap",
+    "hash": "59528d120c48aa69bf5c0ff48ac06dd85c4e1907787a091917aa419f92f02b032eece9ad5187cc50ba31667c5627b8abf29dd966a0e7649b7bf1784ed7dfc944",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "The Raid on Aberfell",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/Raid/TO_Raid.umap",
+    "hash": "01452f457c531efe081bc535cd3fcb369d8503080abf8f04e7d19154b3e0c104e250f3472389edb51e961e6ca9cfc09da6a7258d15ea7ff12eaf96130447aed3",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "The Battle of Darkforest",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/Darkforest/To_DarkForest.umap",
+    "hash": "3a0ce5b3a5675f55d044a7a56172be25f80eb61180194fb6449551fe46058b590d2730d30d4cc0462726973d243a4b265379f50b582980c2dbf8466e480a2fbb",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "Darkforest Battlefield (Placeholder)",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamDeathMatch",
+    "path": "TBL/Content/Maps/Darkforest/TDM_DarkForest.umap",
+    "hash": "21dac46cecf4ae280b3b1493f414cd6ea0a9e9bbf62c4f502e9e98eac475f445f952c91689574068fed99fe1cfbc3c71090cb6590f707ddba2865db3dd3b952b",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "The Fall of Lionspire",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/CasaLoma/To_Lionspire.umap",
+    "hash": "c64b03460561a7a2367dd325ebc919727df8afb354d8b631dbaa103145d45f245d4e900f1af88759a7808715cecd1e8df8cac70c3c57e3e1a7f78ec5da453156",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "The Breach of Baudwyn",
+    "attacking_faction": "EFaction::Tenosia",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/Bulwark/TO_Bulwark.umap",
+    "hash": "9babff7ef622974bbf5ba281eec6a71f6cd5adcf855644b1623c93da4f36b1a7961e60e90dd331f940f223ba127facabeb9d06ad989cb1890d1393992f2a81e7",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "Escape from Falmire",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::TeamDeathMatch",
+    "path": "TBL/Content/Maps/PrisonBreak/TDM_Falmire.umap",
+    "hash": "ba51c0e84e514b82aefd1f5447219a2294037e630e31aaffcf2898bf57c6e5649227323d81ba92f46f4c924b09d6f6a3eb0e5fbda0548020a3cfd88c225eb45b",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "LTSGameMode",
+    "map_name": "Elimination at Tournament Grounds",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::LastTeamStanding",
+    "path": "TBL/Content/Maps/Tournament/LTS_TournamentGrounds.umap",
+    "hash": "d7ae35e1a79780401046e0c46ebe9ffb9fc263eb63d86d93689d56eccf5c4eb767d2df55a1cb7da70752a17cf70148b8b5858ea7a5e7b20dafbf33ec7e80347b",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_FFA_C",
+    "map_name": "Duelyard",
+    "attacking_faction": "EFaction::FFA",
+    "defending_faction": "EFaction::FFA",
+    "game_mode_type": "EGameModeType::FreeForAll",
+    "path": "TBL/Content/Maps/Tutorial/FFA_Duelyard.umap",
+    "hash": "54ef77378737f3efd0136c4a1bdb21fa570e2b13bd7d75c54e1fc8463f3d566a1941a64c351f55dea9a2fd3e10094f7fe454131ece92016a84b59d26e2b28cd6",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_Brawl_FFA_C",
+    "map_name": "Great Hall",
+    "attacking_faction": "EFaction::FFA",
+    "game_mode_type": "EGameModeType::Brawl",
+    "path": "TBL/Content/Maps/CasaLoma/Brawl_GreatHall.umap",
+    "hash": "16e2031da3cd8900d88d2892ef849d3b197b9c9667fff2f6a82e3f61f683ad32182a063f73d03ca26d0e252ff65d1c0a204d7fd7876bf1df56368e809f70d04f",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "The Battle of Wardenglade",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::TeamDeathMatch",
+    "path": "TBL/Content/Maps/Wardenglade/TDM_Wardenglade.umap",
+    "hash": "f0f349373324a831ad1230a815927a1d375901c8219d2b45be4355fab3eb765144d41f65dd6ffb1197d0058fd72fb2db4d08cfcaa9aed3cdcadfd9481c00045d",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "LTSGameMode",
+    "map_name": "Elimination at Courtyard",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::LastTeamStanding",
+    "path": "TBL/Content/Maps/Courtyard/LTS_Courtyard.umap",
+    "hash": "e7a0c9198a539fb57182a5adeb9f8901fb5fda75f40fa1fa5077f53f903dc48fec7d6f2136794874841b95b9e1546114498a7de9853011c419933fc41a785d6a",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "LTSGameMode",
+    "map_name": "Elimination at Falmire",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::LastTeamStanding",
+    "path": "TBL/Content/Maps/PrisonBreak/LTS_Falmire.umap",
+    "hash": "e108fd9738148d530a02b4e250df260d50feedc48a3975ea1173459d626a368d158108fc24e5d0e462e818a7670358650a2120cb5256dc34559b1c3df87dad17",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "The Assault on Thayic Stronghold",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/Stronghold/TO_Stronghold.umap",
+    "hash": "6ee9e33ff57b0c190a7512acab6c594eb8013650233d11587b5a85c6a73c593b2f8c875557cd881e9ddaf63e2650225509dc20c06e5f4f1945248f19068763e2",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_FFA_C",
+    "map_name": "Tournament Grounds",
+    "attacking_faction": "EFaction::FFA",
+    "game_mode_type": "EGameModeType::FreeForAll",
+    "path": "TBL/Content/Maps/Tournament/FFA_TournamentGrounds.umap",
+    "hash": "29d79e1fea7410c99bcba1167e462aaef4a65d014f7adc96746b41e16223dad230cf6626d428ddcf5921917593a723608c7e48118223744dfae3164816a0ac42",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_Brawl_FFA_C",
+    "map_name": "Midsommar",
+    "game_mode_type": "EGameModeType::Brawl",
+    "path": "TBL/Content/Maps/Raid/BRAWL_Raid.umap",
+    "hash": "1e7521961cf8ce999cda548aa347da3d68cc3619b10f45a2d24a27ca287f95fb62c33a43954ea532201ddcb3f38d0dea256b8d69373636d4bb192a99d4fe2068",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_Brawl_FFA_C",
+    "map_name": "Midsommar",
+    "game_mode_type": "EGameModeType::Brawl",
+    "path": "TBL/Content/Maps/Raid/BRAWL_Midsommar.umap",
+    "hash": "c59b2a07c7d1fee47b1a0a99cbcca7fef7a4bf66542e5c7d6cc1319613a6e939dc707ab958c0c345a712997cb6b54776e197941a5da6978a888126d959158555",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "The Razing of Askandir",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Tenosia",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/Library/TO_Library.umap",
+    "hash": "58758199feee52b652d4adfdc9b6d8cb7f5f0abf4724a40c908245c22116e4acd5b08c11079dcc82c575b3d0cbb8b272425f6ee7c5015f066e20dc8a37f5bfd9",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "The Betrayal of Courtyard",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamDeathMatch",
+    "path": "TBL/Content/Maps/Courtyard/TDM_Courtyard.umap",
+    "hash": "545a703006a22752e9ad9deae42876f905a1bf65aa8da09bbd55a2356d7ed3169d49566ad042112707fb52c5544ae9fb48d434e8284e4cf25b20a36964d3952b",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "Escape from Falmire",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/PrisonBreak/TO_Falmire.umap",
+    "hash": "15e3fd7876f785f383447c978ae0f251e3691cab7ebeb139e8fdbc767d7a97a1fe0b15b315c4f3d728de44bed3239788a5b8b68bd0af31e53bf9ab9e3c09cddc",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_FFA_C",
+    "map_name": "The Betrayal of Courtyard",
+    "attacking_faction": "EFaction::All",
+    "game_mode_type": "EGameModeType::FreeForAll",
+    "path": "TBL/Content/Maps/Courtyard/FFA_Courtyard.umap",
+    "hash": "ed02fb31cfbb6fe5aeaa774871396a613ed3a99f1b40437be1a86509288e29a35f4be96f319479a72cfa0de6b15bf3e8365951cc27f5beb4c674426a82af09bd",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "The Desecration of Galencourt",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamDeathMatch",
+    "path": "TBL/Content/Maps/Galencourt/TDM_Galencourt.umap",
+    "hash": "34cb34c76dc45134d3d4c40b4a727357b67791d2da430cbf84a8a10250c800b9b87a416d110c9ba42c4d426f8804b388fd01cc7d4a96d363371489da0b334878",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "LTSGameMode",
+    "map_name": "Elimination at Wardenglade",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::LastTeamStanding",
+    "path": "TBL/Content/Maps/Wardenglade/LTS_Wardenglade.umap",
+    "hash": "56fee45542b530c75d5cc63b853223707c0fd2c1f8144857bf36da4c89879daff31bc331005ac9e3bfc18e34ab7f2d28bf004588bf8016ea93321116c4dab87e",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "The Charge of Wardenglade",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamDeathMatch",
+    "path": "TBL/Content/Maps/Wardenglade/TDM_Wardenglade_horse.umap",
+    "hash": "b7e387356e4b770cc28381d53dbb84161a5d1f28ddec23cb4c96f069afd1d7403fb30d6b411e2de7e498ce10dca4e191fea57e83b804ae01167d5036100d98c4",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "ArenaGameMode",
+    "map_name": "The Fighting Pit",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::Arena",
+    "path": "TBL/Content/Maps/FightingPit/Arena_FightingPit.umap",
+    "hash": "384e4cf67b1f9c6396b15991430e284a83dec08d9ab1792bf57f6c9527887d4b50921c019ddbef64d3f347d2c4cc2619c586b74e9e83fe73251d2a639edce00d",
+    "object_class": "LevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_FFA_C",
+    "map_name": "Frozen Wreck",
+    "attacking_faction": "EFaction::FFA",
+    "game_mode_type": "EGameModeType::FreeForAll",
+    "path": "TBL/Content/Maps/FrozenLake/FFA_FrozenWreck.umap",
+    "hash": "251f4b36e3c518564a22c057e66c2f8bb2bfc82b342ece310a39eab182688ea88710277357ff4e04540c7708d302617aa27b17c9b617dd903fa8c8db30c72d4d",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "Volley at Falmire",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::Volley",
+    "path": "TBL/Content/Maps/PrisonBreak/BOW_Falmire.umap",
+    "hash": "f21cbb5e0c0bddf8ddcb80880ecee8c75cbad9ca0afa60734e7c6d85dc49f534c2399f8c4c5c413505fc0a111a60750503b09d7beed9f9c5dda33482b28a208f",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "The Desecration of Galencourt",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/Galencourt/TO_Galencourt.umap",
+    "hash": "94e8597fa1d1ff540966cb3991c93e46d04dcbfef6942e86b9b761305fcf6edf113204df94b41976856ac74126262c613e3f0c48e3526abdb8fed7d5149abf5d",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "The Reclamation of Montcrux",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Tenosia",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/Karak/TO_Montcrux.umap",
+    "hash": "b04287b93598668bcdec22d76ded29e2fd2eb1ccbefed11ff08de923b46a2dfdeb17a80a3fef094b81c1acbacc1d07fe7c5501b6bfef962e26825a39f1202a8c",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "LTSGameMode",
+    "map_name": "Elimination at The Fighting Pit",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::LastTeamStanding",
+    "path": "TBL/Content/Maps/FightingPit/LTS_FightingPit.umap",
+    "hash": "67d54dcdc9a26f8fb0f1c7d6622de8d38398b93d4a37af0119bb88bc241574661c703501b9fe89f2f0f2a6159093d5f0a8f420d00bd2f338328fe378e6f3faac",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "The Sacking of Bridgetown",
+    "attacking_faction": "EFaction::Tenosia",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/Bridgetown/TO_Bridgetown.umap",
+    "hash": "1d585b20ab153f3c94643432520bd468cdde1847f61954950fa8953fceab6d827ab00dd6a6fa6251d3a723ad0bc05544365a6da974dd7c4ece640f8182bcefc3",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "Coxwell Village (Placeholder)",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamDeathMatch",
+    "path": "TBL/Content/Maps/Coxwell/TDM_Coxwell.umap",
+    "hash": "e70889ee92f6aac3487ca6ea3f256d8aa131d282d97920f6ac825c713089626f77dfe7b186b9f040f4c3c7293aaf6e47372600dc99c9994645bd93db0b0cad14",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "Frozen Wreck",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamDeathMatch",
+    "path": "TBL/Content/Maps/FrozenLake/TDM_FrozenWreck.umap",
+    "hash": "9354d55a997ed52e1e6a6da084208254f1be05aebdf24edac1b2ad03e9b4aab603dc3e54c8b78f76ca0942a15ca9fdf0aa37b3942325e7730df29497c0cb9a9d",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_FFA_C",
+    "map_name": "The Battle of Wardenglade",
+    "attacking_faction": "EFaction::FFA",
+    "game_mode_type": "EGameModeType::FreeForAll",
+    "path": "TBL/Content/Maps/Wardenglade/FFA_Wardenglade.umap",
+    "hash": "05c08f18b5c2987c5898760cb007928ec1d63639bc71cf7ad0726dd01117efa25e4db9f171b84b1bf7324e61f7e4823aaa60fe357b7094cd28d97ae8dc67a836",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "Desert",
+    "attacking_faction": "EFaction::Tenosia",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::TeamDeathMatch",
+    "path": "TBL/Content/Maps/Desert/TDM_Desert.umap",
+    "hash": "a5e9cc814d80817eb715338c4343721a54ace39aafb929651dd40767caaea17dab0098c84ed6a5dea2be6d8d9419ef7099e16f6833f133024d8474891b84cd4a",
+    "object_class": "LevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_FFA_C",
+    "map_name": "The Grand Hippodrome of Askandir",
+    "attacking_faction": "EFaction::All",
+    "game_mode_type": "EGameModeType::FreeForAll",
+    "path": "TBL/Content/Maps/Hippodrome/FFA_Hippodrome.umap",
+    "hash": "ed1a6b9d2487c101a33548af1873714b44ff26c0b86e99cc74d57067254663d89b01946e358c8acde01575136671213f5a9ca8ab9d0bcdb5c02c1318c17e2869",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "The Fighting Pit",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::TeamDeathMatch",
+    "path": "TBL/Content/Maps/FightingPit/TDM_FightingPit.umap",
+    "hash": "c03169c35fa031bfdd9d7806f3a83451e97973a071ab725dd49001d7a716820dc038cffb9b3bfef2e307f142b9094155ede92708645aafab52d3bab64ce77d6f",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "ArenaGameMode",
+    "map_name": "Tournament Grounds",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::Arena",
+    "path": "TBL/Content/Maps/Tournament/Arena_TournamentGrounds.umap",
+    "hash": "032cec7ead291ddceeedff37a29a833ddccc9c25d9ebd6370a2311683cf7be93db28e534f74bce6c1d8ad131104fe9239f80e2f73fc096ed0332b91b798f5cfd",
+    "object_class": "LevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_Brawl_FFA_C",
+    "map_name": "Rudhelm Feast ",
+    "attacking_faction": "EFaction::FFA",
+    "game_mode_type": "EGameModeType::Brawl",
+    "path": "TBL/Content/Maps/CastleSiege/Brawl_RudhelmHall.umap",
+    "hash": "f1e96658c8edfffbd214b1f3fa9b7c842f0d71d8f67edf7fedab5a5f47f6150d9224928e4a9765b3c45b61c32df993dbaaf4ce00a9a66e705bbc3e6aed2a0122",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "The Siege of Rudhelm",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/CastleSiege/TO_RudhelmSiege.umap",
+    "hash": "b75e318e7b3ca0a6ef26334d94df8a87b681b5cdf377e1d1b3081851995b76e709bde163a1d59cfc00ce254d3520b9f95e5123d658ad22afab20742c5a47f4dc",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "StagedGameMode_C",
+    "map_name": "Regicide at Trayan Citadel",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::TeamObjective",
+    "path": "TBL/Content/Maps/Citadel/TO_Citadel.umap",
+    "hash": "4d76ee9dafa3a231a4548267c6dc495c435b83aa6fd82c6d8b4a88524d974bed9fdb38a1b82d70d4a2ecc4e02aa734b7403a3caed66f3e598276088a8014ba4e",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "Mode_TDM_C",
+    "map_name": "Tournament Grounds",
+    "attacking_faction": "EFaction::Agatha",
+    "defending_faction": "EFaction::Mason",
+    "game_mode_type": "EGameModeType::TeamDeathMatch",
+    "path": "TBL/Content/Maps/Tournament/TDM_TournamentGrounds.umap",
+    "hash": "d8cb23dee85cddbd63552b33197769cfc8c90efab297ffb161ab4e88c1d39d2c7de57eba379791751057af333373a364ecfc49e40d8e16ac79a7688f688657ab",
+    "object_class": "TBLLevelScriptActor"
+  },
+  {
+    "game_mode": "ArenaGameMode",
+    "map_name": "The Betrayal of Courtyard",
+    "attacking_faction": "EFaction::Mason",
+    "defending_faction": "EFaction::Agatha",
+    "game_mode_type": "EGameModeType::Arena",
+    "path": "TBL/Content/Maps/Courtyard/Arena_Courtyard.umap",
+    "hash": "fb2c8d357444542270f05a24c8d04938a17cadfbfd21070a60205ddd4979165a57ea5d342a5c7af1027f1aebd646e3461d218566d028cd28a088e434fc6065f0",
+    "object_class": "TBLLevelScriptActor"
+  }
+]

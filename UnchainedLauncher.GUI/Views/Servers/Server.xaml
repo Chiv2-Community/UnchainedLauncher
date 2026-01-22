@@ -261,7 +261,7 @@
                     <!-- Preserve '_' in map names (avoid AccessText underscore handling for raw string items) -->
                     <ComboBox.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding}" />
+                            <TextBlock Text="{Binding MapName}" />
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>

@@ -38,15 +38,15 @@ namespace UnchainedLauncher.Core.Utilities {
         );
     }
 
-    public class DerivedJsonCodec<TJson, T> : DerivedCodec<TJson, T> {
-        public DerivedJsonCodec(Func<T, TJson> contramap, Func<TJson, T> map) : base(TypedJsonCodec.Derive<TJson>(), contramap, map) { }
-    }
+    public class DerivedJsonCodec<TJson, T>(Func<T, TJson> contramap, Func<TJson, T> map)
+        : DerivedCodec<TJson, T>(TypedJsonCodec.Derive<TJson>(), contramap, map);
 
     public static class JsonHelpers {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(JsonHelpers));
 
         private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions {
             Converters = { new UnionConverterFactory() },
+
             WriteIndented = true,
             IncludeFields = true,
         };

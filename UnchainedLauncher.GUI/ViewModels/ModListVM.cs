@@ -10,7 +10,7 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Utilities;
@@ -23,7 +23,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private readonly ILog _logger = LogManager.GetLogger(nameof(ModListVM));
         public readonly IModManager _modManager;
         private ObservableCollection<ModVM> UnfilteredModView { get; }
-        private ObservableCollection<ModFilter> ModFilters { get; }
 
         // UI state: filtering and sorting
         public string? SearchTerm { get; set; }
@@ -45,13 +44,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
             this.UnfilteredModView = new ObservableCollection<ModVM>();
             this.DisplayMods = new ObservableCollection<ModVM>();
 
-            this.ModFilters = new ObservableCollection<ModFilter>();
-
             PopulateModsFromModManager();
 
             // Watch the unfiltered mod view and mod filters for changes, and update our view accordingly
             this.UnfilteredModView.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
-            this.ModFilters.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
         }
 
         // Property change hooks (PropertyChanged.Fody will call these)
@@ -117,7 +113,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                     if (failedUpdates.Any()) {
                         var failureNames =
-                            string.Join(", ", failedUpdates.Select(vm => vm.Mod.LatestManifest.Name));
+                            string.Join(", ", failedUpdates.Select(vm => vm.Mod.LatestReleaseInfo.Name));
                         MessageBox.Show($"Failed to enable mods: {failureNames}\n\nCheck the logs for more details.");
                     }
 
@@ -137,8 +133,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
             IEnumerable<ModVM> query = this.UnfilteredModView;
 
             // Apply tag-based filters if any exist
-            query = query.Where(modView => this.ModFilters.All(modFilter => modFilter.ShouldInclude(modView)));
-
             // Enabled only toggle
             if (ShowEnabledOnly)
                 query = query.Where(m => m.IsEnabled);
@@ -148,8 +142,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             if (!string.IsNullOrWhiteSpace(term)) {
                 var t = term.ToLowerInvariant();
                 query = query.Where(m =>
-                    m.Mod.LatestManifest.Name.ToLowerInvariant().Contains(t)
-                    || m.TagsString.ToLowerInvariant().Contains(t)
+                    m.Mod.LatestReleaseInfo.Name.ToLowerInvariant().Contains(t)
                 );
             }
 
@@ -157,13 +150,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
             query = SelectedSortMode switch {
                 ModSortMode.EnabledFirst => query
                     .OrderByDescending(m => m.IsEnabled)
-                    .ThenBy(m => m.Mod.LatestManifest.Name, StringComparer.OrdinalIgnoreCase),
+                    .ThenBy(m => m.Mod.LatestReleaseInfo.Name, StringComparer.OrdinalIgnoreCase),
                 ModSortMode.LatestReleaseDateFirst =>
                     query.OrderByDescending(m => m.Mod.LatestRelease.Map(r => r.ReleaseDate).IfNone(DateTime.MinValue)),
                 ModSortMode.NewestModsFirst =>
                     query.OrderByDescending(m => m.Mod.Releases.LastOrDefault()?.ReleaseDate),
                 _ =>
-                    query.OrderBy(m => m.Mod.LatestManifest.Name, StringComparer.OrdinalIgnoreCase),
+                    query.OrderBy(m => m.Mod.LatestReleaseInfo.Name, StringComparer.OrdinalIgnoreCase),
             };
 
             this.DisplayMods.Clear();
@@ -181,7 +174,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                 case NotifyCollectionChangedAction.Remove:
                     foreach (Mod mod in e.OldItems!) {
-                        var removeElem = this.UnfilteredModView.FirstOrDefault(x => x.Mod.LatestManifest.RepoUrl == mod.LatestManifest.RepoUrl);
+                        var removeElem = this.UnfilteredModView.FirstOrDefault(x => x.Mod.LatestReleaseInfo.RepoUrl == mod.LatestReleaseInfo.RepoUrl);
                         if (removeElem != null)
                             this.UnfilteredModView.Remove(removeElem);
                     }
@@ -215,19 +208,4 @@ namespace UnchainedLauncher.GUI.ViewModels {
         LatestReleaseDateFirst,
         NewestModsFirst
     }
-
-    public record ModFilter(ModTag Tag, FilterType Type) {
-        public bool ShouldInclude(ModVM mod) {
-            return Type switch {
-                FilterType.Include => mod.Mod.LatestManifest.Tags.Contains(Tag),
-                FilterType.Exclude => !mod.Mod.LatestManifest.Tags.Contains(Tag),
-                _ => throw new Exception("Unhandled FilterType: " + Type)
-            };
-        }
-    }
-
-    public enum FilterType {
-        Include,
-        Exclude
-    };
 }

@@ -17,8 +17,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
             result.Errors.Should().BeEmpty();
 
             var firstMod = result.Mods.First();
-            firstMod.LatestManifest.Name.Should().Be("Unchained-Mods");
-            firstMod.LatestManifest.Authors.Should().Contain("Nihi");
+            firstMod.LatestReleaseInfo.Name.Should().Be("Unchained-Mods");
+            firstMod.LatestReleaseInfo.Authors.Should().Contain("Nihi");
             firstMod.Releases.Should().HaveCount(2); // v0.0.1 and v0.0.2
         }
 
@@ -49,9 +49,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
             result.IsRight.Should().BeTrue();
             var content = result.RightToSeq().FirstOrDefault();
             content.Should().NotBeNull();
-            content.LatestManifest.Organization.Should().Contain("Chiv2-Community");
-            content.LatestManifest.Name.Should().Contain("Unchained-Mods");
-            content.LatestManifest.Authors.Should().Contain("Nihi");
+            content.LatestReleaseInfo.Organization.Should().Contain("Chiv2-Community");
+            content.LatestReleaseInfo.Name.Should().Contain("Unchained-Mods");
+            content.LatestReleaseInfo.Authors.Should().Contain("Nihi");
             content.Releases.Should().HaveCount(2);
         }
 

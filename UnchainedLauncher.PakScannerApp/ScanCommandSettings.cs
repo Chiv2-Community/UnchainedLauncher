@@ -15,7 +15,7 @@ namespace UnchainedLauncher.PakScannerApp {
         public string? OutputDirectory { get; init; }
 
         [CommandOption("--mode <MODE>")]
-        [Description("Scan mode (ModsOnly, All)")]
+        [Description("Scan mode (Mods, GameInternal, All)")]
         public ScanMode? ScanMode { get; init; }
 
         [CommandOption("--config <FILE>")]

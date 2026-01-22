@@ -1,6 +1,7 @@
 ﻿using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.Views.Mods.DesignInstances;
 using UnchainedLauncher.GUI.Views.Servers.DesignInstances;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.DesignInstances {
     public static class MainWindowViewModelInstances {
@@ -12,7 +13,8 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             LauncherViewModelInstances.DEFAULT,
             ModListViewModelInstances.DEFAULT,
             SettingsViewModelInstances.DEFAULT,
-            ServersTabInstances.DEFAULT
+            ServersTabInstances.DEFAULT,
+            new ModScanTabVM()
         ) {
         }
     }

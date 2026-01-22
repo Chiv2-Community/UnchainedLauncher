@@ -82,14 +82,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                 // Build items off-UI-thread, then marshal collection updates to UI thread
                 var items = latestFive.Select(r => {
-                    var markdown = "## Mod Description\n\n" + r.Manifest.Description;
+                    var markdown = "## Mod Description\n\n" + r.Info.Description;
 
                     markdown += r.ReleaseNotesMarkdown != null
                         ? $"\n\n---\n\n## {r.Tag} Release Notes\n\n{r.ReleaseNotesMarkdown}"
                         : "\n\n---\n\nNo release notes provided.";
 
                     return new WhatsNewItem {
-                        Title = $"{r.Manifest.Name} {r.Tag}",
+                        Title = $"{r.Info.Name} {r.Tag}",
                         Date = r.ReleaseDate,
                         Markdown = markdown,
                         AppendHtml = $"<br /><hr /><a style='float:right;' href='{r.ReleaseUrl}'>View on GitHub</a>",

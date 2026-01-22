@@ -2,7 +2,7 @@
 using LanguageExt.Common;
 using LanguageExt.SomeHelp;
 using log4net;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
@@ -13,7 +13,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public override string Name => $"Github mod registry at {Organization}/{RepoName}";
         public string Organization { get; set; }
         public string RepoName { get; set; }
-        public string PackageDBBaseUrl => $"https://raw.githubusercontent.com/{Organization}/{RepoName}/refs/heads/db/package_db";
+        public string PackageDBBaseUrl => $"https://raw.githubusercontent.com/{Organization}/{RepoName}/refs/heads/update-registry-format/package_db";
         public string PackageDBPackageListUrl => $"{PackageDBBaseUrl}/mod_list_index.txt";
 
         public GithubModRegistry(string organization, string repoName) {
@@ -64,6 +64,6 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         }
 
         private string GetGithubPakDownloadUrl(Release release) =>
-            $"https://github.com/{release.Manifest.Organization}/{release.Manifest.RepoName}/releases/download/{release.Tag}/{release.PakFileName}";
+            $"https://github.com/{release.Info.Organization}/{release.Info.RepoName}/releases/download/{release.Tag}/{release.PakFileName}";
     }
 }

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.Registry;
@@ -29,19 +29,17 @@ namespace UnchainedLauncher.GUI.Views.Registry.DesignInstances {
                 "some hash",
                 "pakName.pak",
                 DateTime.Now,
-                new ModManifest(
+                new ModInfo(
                     "some-repo-url.com",
                     "Example mod",
                     "Example Description",
                     null,
-                    null,
-                    ModType.Shared,
+                    "https://example.com/icon.png",
+                    new List<string> { "https://example.com/icon.png" },
                     new List<string> { "DrLong", "JayKobe6k" },
-                    new List<Dependency>(),
-                    new List<ModTag> { ModTag.Doodad, ModTag.Mutator },
-                    new List<string> { "ffa_exampleMap", "tdm_exampleMap" },
-                    new OptionFlags(true)
+                    new List<Dependency>()
                 ),
+                null,
                 "# Example Release Notes\n\n* Your release notes here"
             ),
             null

@@ -15,7 +15,7 @@
     <controls:CollapsibleCard
         Header="Server Mod Actors"
         IsExpanded="True">
-        <ListBox ItemsSource="{Binding AvailableMods}" BorderThickness="0">
+        <ListBox ItemsSource="{Binding AvailableServerModBlueprints}" BorderThickness="0">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal" Margin="0,4">
@@ -33,9 +33,9 @@
                             </CheckBox.IsChecked>
                         </CheckBox>
                         <TextBlock Margin="8,0,0,0" VerticalAlignment="Center">
-                            <Run Text="{Binding Manifest.Name}" />
+                            <Run Text="{Binding ModName}" />
                             <Run Text="  (" />
-                            <Run Text="{Binding Tag}" />
+                            <Run Text="{Binding Version}" />
                             <Run Text=")" />
                         </TextBlock>
                     </StackPanel>

@@ -2,6 +2,7 @@
 
 using Microsoft.Win32;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using UnchainedLauncher.UnrealModScanner.Config;
@@ -69,9 +70,23 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.Views {
         private async void Load_UnrealMods_Config_Click(object sender, RoutedEventArgs e) {
             if (ModScannerVM == null) return;
 
-            var dlg = new OpenFolderDialog { Title = "Select Pak Directory" };
+            var dlg = new OpenFileDialog() { Title = "Load Config File", Filter = "JSON Files (*.json)|*.json" };
             if (dlg.ShowDialog() == true) {
-                await ModScannerVM.ScanAsync(dlg.FolderName);
+                try {
+                    var jsonContent = File.ReadAllText(dlg.FileName);
+                    var config = System.Text.Json.JsonSerializer.Deserialize<ScanOptions>(jsonContent, ConfigTemplateGenerator.SerializerSettings);
+
+                    if (config != null) {
+                        ModScannerVM.LoadedConfig = config;
+                        MessageBox.Show($"Config loaded successfully from {dlg.FileName}", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else {
+                        MessageBox.Show("Failed to deserialize config file.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                catch (Exception ex) {
+                    MessageBox.Show($"Error loading config: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 

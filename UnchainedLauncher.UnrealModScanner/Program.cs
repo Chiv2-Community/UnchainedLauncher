@@ -1,8 +1,6 @@
 ﻿using CUE4Parse.Compression;
-using CUE4Parse.Encryption.Aes;
 using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Assets.Objects.Properties;
-using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Versions;
@@ -17,11 +15,16 @@ internal class Program {
         //var pakdir_other = "U:\\Unchained\\Cleanup\\Unchained-Mods-internal";
 
         //var provider = new DefaultFileProvider(pakdir, SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_UE4_25));
-        var provider = new FilteredFileProvider(pakdir, SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_UE4_25));
+        var provider = new FilteredFileProvider(
+            pakdir,
+            SearchOption.TopDirectoryOnly,
+            null,
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
+            new VersionContainer(EGame.GAME_UE4_25),
+            null
+        );
 
-        provider.PakFilter = (file) => !file.Name.EndsWith("pakchunk0-WindowsNoEditor.pak", StringComparison.OrdinalIgnoreCase);
         provider.Initialize(); // will scan the archive directory for supported file extensions
-        provider.SubmitKey(new FGuid(), new FAesKey("0x0000000000000000000000000000000000000000000000000000000000000000")); // decrypt basic info (1 guid - 1 key)                                          //provider.LoadLocalization(ELanguage.English); // explicit enough
         provider.LoadVirtualPaths();
         ZlibHelper.DownloadDll(); // TODO: better way?
         ZlibHelper.Initialize("zlib-ng2.so");
@@ -79,9 +82,9 @@ internal class Program {
                             var cdo_hash = uClass.GetHashCode();
 
                             if (cdo != null) {
-                                var ModName = cdo.GetOrDefault<String>("ModName");
-                                var ModVersion = cdo.GetOrDefault<String>("ModVersion");
-                                var Author = cdo.GetOrDefault<String>("Author");
+                                var ModName = cdo.GetOrDefault<string>("ModName");
+                                var ModVersion = cdo.GetOrDefault<string>("ModVersion");
+                                var Author = cdo.GetOrDefault<string>("Author");
                                 var bClientside = cdo.GetOrDefault<bool>("bClientside");
                                 var PathName = resolvedKey?.GetPathName();
 

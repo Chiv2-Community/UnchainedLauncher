@@ -1,7 +1,7 @@
 ﻿using LanguageExt;
 using LanguageExt.Common;
 using log4net;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
@@ -30,24 +30,13 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         /// </summary>
         /// <param name="modPath"></param>
         /// <returns></returns>
-        public EitherAsync<RegistryMetadataException, JsonModels.Metadata.V3.Mod> GetMod(ModIdentifier modPath) {
+        public EitherAsync<RegistryMetadataException, JsonModels.ModMetadata.Mod> GetMod(ModIdentifier modPath) {
             return GetModMetadataString(modPath).Bind(json =>
-                // Try to deserialize as V3 first
-                JsonHelpers.Deserialize<JsonModels.Metadata.V3.Mod>(json).RecoverWith(e => {
-                    // If that fails, try to deserialize as V2
-                    Logger.Warn("Falling back to V2 deserialization: " + e?.Message ?? "unknown failure");
-                    return JsonHelpers.Deserialize<JsonModels.Metadata.V2.Mod>(json)
-                        .Select(JsonModels.Metadata.V3.Mod.FromV2);
-                }).RecoverWith(e => {
-                    // If that fails, try to deserialize as V1
-                    Logger.Warn("Falling back to V1 deserialization" + e?.Message ?? "unknown failure");
-                    return JsonHelpers.Deserialize<JsonModels.Metadata.V1.Mod>(json)
-                        .Select(JsonModels.Metadata.V2.Mod.FromV1)
-                        .Select(JsonModels.Metadata.V3.Mod.FromV2);
-                })
-                .ToEither()
-                .ToAsync()
-                .MapLeft(err => RegistryMetadataException.Parse($"Failed to parse mod manifest at {modPath}", Expected.New(err)))
+                JsonHelpers
+                    .Deserialize<Mod>(json)
+                    .ToEither()
+                    .ToAsync()
+                    .MapLeft(err => RegistryMetadataException.Parse($"Failed to parse mod manifest at {modPath}", Expected.New(err)))
             );
         }
 

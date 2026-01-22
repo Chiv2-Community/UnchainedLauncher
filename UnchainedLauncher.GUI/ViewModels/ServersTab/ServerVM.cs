@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
 using UnchainedLauncher.Core.Services.Server;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     public enum UptimeState {
@@ -24,14 +25,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
     // 3. neatly display response information in-window
 
     [AddINotifyPropertyChangedInterface]
-    public partial class ServerVM(Chivalry2Server server, string serverName, ObservableCollection<string> availableMaps) {
+    public partial class ServerVM(Chivalry2Server server, string serverName, ObservableCollection<MapDto> availableMaps) {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ServerVM));
 
         public Chivalry2Server Server { get; private set; } = server;
 
         public string ServerName { get; set; } = serverName;
 
-        public ObservableCollection<string> AvailableMaps { get; } = availableMaps;
+        public ObservableCollection<MapDto> AvailableMaps { get; } = availableMaps;
         public string SelectedMapToChange { get; set; } = "";
 
         public bool CanChangeMap =>
@@ -102,12 +103,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             QueryPort = opts.QueryPort;
             RconPort = opts.RconPort;
 
-            LocalIpText = opts.LocalIp.IfNone("")?.Trim();
+            LocalIpText = opts.LocalIp.IfNone("127.0.0.1").Trim();
             if (string.IsNullOrWhiteSpace(LocalIpText)) {
                 LocalIpText = "-";
             }
 
-            var actors = opts.NextMapModActors?.Where(a => !string.IsNullOrWhiteSpace(a)).ToArray() ?? Array.Empty<string>();
+            var actors = opts.ServerMods?.Where(a => !string.IsNullOrWhiteSpace(a)).ToArray() ?? [];
             ModActorsText = actors.Length == 0 ? "-" : string.Join(", ", actors);
 
             if (string.IsNullOrWhiteSpace(SelectedMapToChange)) {

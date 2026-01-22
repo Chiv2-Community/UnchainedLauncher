@@ -1,15 +1,9 @@
 ﻿using CUE4Parse.Compression;
-using CUE4Parse.Encryption.Aes;
-using CUE4Parse.FileProvider;
-using CUE4Parse.FileProvider.Objects;
 using CUE4Parse.UE4.AssetRegistry;
 using CUE4Parse.UE4.Assets;
-using CUE4Parse.UE4.Objects.Core.Misc;
 using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Readers;
-using CUE4Parse.UE4.Versions;
 using log4net;
-using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -19,27 +13,11 @@ using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Orchestrators;
 
-public class ModScanOrchestrator {
-    private readonly List<IAssetProcessor> _modProcessors = new();
-    private IAssetProcessor _internalProcessor;
-    private const string MainPakName = "pakchunk0-WindowsNoEditor.pak";
+public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
     private static readonly ILog Logger = LogManager.GetLogger(typeof(ModScanOrchestrator));
-    public void AddModProcessor(IAssetProcessor p) => _modProcessors.Add(p);
-    public void SetInternalProcessor(IAssetProcessor p) => _internalProcessor = p;
 
-    private IFileProvider CreateProvider(string pakDir, ScanMode mode) {
-        var provider = new FilteredFileProvider(pakDir, SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_UE4_25));
-
-        provider.PakFilter = p => {
-            // Filter moved to file selection
-            // bool isMain = p.Name.Contains(MainPakName, StringComparison.OrdinalIgnoreCase);
-            // // If ModsOnly: Skip main pak. If GameInternal: ONLY include main pak.
-            // return mode == ScanMode.ModsOnly ? !isMain : isMain;
-            return true;
-        };
-
+    private void InitializeProvider(FilteredFileProvider provider) {
         provider.Initialize();
-        provider.SubmitKey(new FGuid(), new FAesKey("0x0000000000000000000000000000000000000000000000000000000000000000")); // Your key here
 
         var zlib_path = OperatingSystem.IsLinux() ? "libz-ng.so" : "zlib-ng2.dll";
         var zlib_url = $"https://github.com/NotOfficer/Zlib-ng.NET/releases/download/1.0.0/{zlib_path}";
@@ -49,42 +27,24 @@ public class ModScanOrchestrator {
         }
         ZlibHelper.Initialize(Path.Combine(Directory.GetCurrentDirectory(), zlib_path));
         provider.LoadVirtualPaths();
-        return provider;
     }
 
-    public async Task<ModScanResult> RunScanAsync(string directory, ScanMode mode, ScanOptions options, IProgress<double> progress = null) {
-        var discoveryProcessor = _modProcessors.OfType<ReferenceDiscoveryProcessor>().FirstOrDefault();
+    public async Task<ModScanResult> RunScanAsync(FilteredFileProvider provider, ScanOptions options, IProgress<double> progress = null) {
+        var discoveryProcessor = modProcessors.OfType<ReferenceDiscoveryProcessor>().FirstOrDefault();
         int processed = 0;
 
         return await Task.Run(async () => {
-            var provider = CreateProvider(directory, mode);
+            InitializeProvider(provider);
             //var scanResult = new ModScanResult();
             var mainResult = new ModScanResult(); // Das Top-Level Objekt
             //var scanResult = new PakScanResult();
 
             // 1. Apply Path Filtering
-            var files = provider.Files.Where(f => {
-                bool isAsset = f.Key.EndsWith(".uasset") || f.Key.EndsWith(".umap");
-                if (!isAsset) return false;
+            var files = provider.FilteredFiles.ToList();
 
-                // good idea to check here?
-                if (f.Value is FPakEntry fPakEntry) {
-                    if (fPakEntry.PakFileReader.Name == "pakchunk0-WindowsNoEditor.pak")
-                        return false;
-                }
-                return true;
-                // if (options.PathFilters.Count == 0) return true;
-
-                // bool matchesFilter = options.PathFilters.Any(filter => f.Key.Contains(filter, StringComparison.OrdinalIgnoreCase));
-                // return options.IsWhitelist ? matchesFilter : !matchesFilter;
-            }).ToList();
-
-            // 2. Load-Balanced Partitioning
-            // Setting loadBalance to 'true' enables a dynamic worker-stealing-like behavior
-            var partitioner = Partitioner.Create(files, loadBalance: true);
 
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = -1 };
-            await Parallel.ForEachAsync<KeyValuePair<string, GameFile>>(
+            await Parallel.ForEachAsync(
                 files,
                 parallelOptions,
                 async (file, ct) => { // 'ct' ist das CancellationToken
@@ -94,7 +54,7 @@ public class ModScanOrchestrator {
                     IPackage? pkg = null;
                     bool packageLoaded;
                     try {
-                        pkg = provider.LoadPackage(file.Key);
+                        pkg = await provider.LoadPackageAsync(file.Key);
                         // Log.Error($"Failed to load package: {e.Message}");
                         // throw;
                         if (pkg == null) return;
@@ -112,23 +72,17 @@ public class ModScanOrchestrator {
                             PakHash = HashUtility.CalculatePakHash(pakEntry.PakFileReader.Path)
                         });
 
-                        if (mode == ScanMode.GameInternal) {
-                            _internalProcessor?.Process(context, currentPakResult);
-                        }
-                        else {
-                            foreach (var processor in _modProcessors) {
-                                try {
-                                    processor.Process(context, currentPakResult);
-
-                                }
-                                catch (Exception ex) {
-                                    System.Diagnostics.Debug.WriteLine($"Processor Error: {ex.Message}");
-                                }
+                        foreach (var processor in modProcessors) {
+                            try {
+                                processor.Process(context, currentPakResult);
+                            }
+                            catch (Exception ex) {
+                                Logger.Error($"Processor Error: {ex.Message}", ex);
                             }
                         }
                     }
                     catch (Exception ex) {
-                        System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}");
+                        Logger.Error($"Error: {ex.Message}", ex);
                     }
                     finally {
                         var count = Interlocked.Increment(ref processed);
@@ -184,7 +138,7 @@ public class ModScanOrchestrator {
     //                //string rawContent = System.Text.Encoding.ASCII.GetString(data, 0, Math.Min(data.Length, 5000));
     //                //bool isInteresting = rawContent.Contains("Marker") || rawContent.Contains("Settings");
 
-    //                //if (!isInteresting && mode == ScanMode.ModsOnly) return; // Skip the heavy LoadPackage
+    //                //if (!isInteresting && mode == ScanMode.Mods) return; // Skip the heavy LoadPackage
 
     //                // Normal scan
     //                var pkg = provider.LoadPackage(file.Key);
@@ -234,10 +188,10 @@ public class ModScanOrchestrator {
     //        return scanResult;
     //    });
     //}
-    public async Task<List<GameInternalAssetInfo>> QuickSearchMainPak(string pakDir) {
+    public async Task<List<GameInternalAssetInfo>> QuickSearchMainPak(FilteredFileProvider provider) {
         return await Task.Run(() => {
             // Mode needs to be GameInternal to target the main pak logic
-            var provider = CreateProvider(pakDir, ScanMode.GameInternal);
+            InitializeProvider(provider);
             var results = new List<GameInternalAssetInfo>();
 
             // Look for the registry - TBL usually keeps it in the root or /Content/

@@ -4,6 +4,7 @@ using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views.DesignInstances;
 using UnchainedLauncher.GUI.Views.Mods.DesignInstances;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
     public static class ServersTabInstances {
@@ -14,10 +15,15 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
         public ServersTabDesignVM() : base(
             SettingsViewModelInstances.DEFAULT,
             ModListViewModelInstances.DEFAULTMODMANAGER,
+            new ModScanTabVM(),
             new MessageBoxSpawner(),
             null,
             new ObservableCollection<ServerConfigurationVM> { ServerConfigurationViewModelInstances.DEFAULT },
-            new ChivalryProcessWatcher()
+            new ChivalryProcessWatcher(),
+            new AvailableModsAndMapsService(
+                ModListViewModelInstances.DEFAULTMODMANAGER,
+                new ModScanTabVM()
+            )
         ) {
         }
     }

@@ -1,7 +1,6 @@
 ﻿using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Orchestrators;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Processors;
-using UnchainedLauncher.UnrealModScanner.PakScanning.Processors.Obsolete;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning;
 
@@ -10,34 +9,23 @@ public static class ScannerFactory {
     /// Configures an orchestrator for standard mod discovery.
     /// Excludes the main game pak and uses all 4 mod-logic processors.
     /// </summary>
-    public static ModScanOrchestrator CreateModScanner(IEnumerable<string> standardDirs, ScanOptions options) {
-        var orchestrator = new ModScanOrchestrator();
-        var dirs = standardDirs.ToList();
+    public static ModScanOrchestrator CreateModScanner(ScanOptions options) {
+        var processors = new List<IAssetProcessor> {
+            // new MarkerProcessor(),
+            new MapProcessor(),
+            new ReplacementProcessor(options.VanillaPakNames, options.VanillaAssetPaths),
+            new ArbitraryAssetProcessor(options.VanillaPakNames, options.VanillaAssetPaths)
+        };
 
-        // Register the 4 mod-specific processors
-        // orchestrator.AddModProcessor(new MarkerProcessor());
-        orchestrator.AddModProcessor(new MapProcessor());
-        orchestrator.AddModProcessor(new ReplacementProcessor(dirs));
-        orchestrator.AddModProcessor(new ArbitraryAssetProcessor(dirs));
+        processors.AddRange(
+            options.CdoProcessors
+                .Select(processor => new GenericCdoProcessor(processor.TargetClassName, processor.Properties))
+        );
+        processors.AddRange(
+            options.MarkerProcessors
+                .Select(processor => new ReferenceDiscoveryProcessor(processor.MarkerClassName, processor.MapPropertyName))
+        );
 
-        foreach (var processor in options.CdoProcessors) {
-            orchestrator.AddModProcessor(new GenericCdoProcessor(processor.TargetClassName, processor.Properties));
-        }
-        foreach (var processor in options.MarkerProcessors) {
-            orchestrator.AddModProcessor(new ReferenceDiscoveryProcessor(processor.MarkerClassName, processor.MapPropertyName));
-        }
-        return orchestrator;
-    }
-
-    /// <summary>
-    /// Configures an orchestrator for a one-time deep dive into the main game pak.
-    /// </summary>
-    public static ModScanOrchestrator CreateInternalScanner() {
-        var orchestrator = new ModScanOrchestrator();
-
-        // Register only the lightweight inventory processor
-        orchestrator.SetInternalProcessor(new GameInternalProcessor());
-
-        return orchestrator;
+        return new ModScanOrchestrator(processors);
     }
 }

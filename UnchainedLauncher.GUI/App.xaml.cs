@@ -210,7 +210,7 @@ namespace UnchainedLauncher.GUI {
                 unchainedLauncher,
                 userDialogueSpawner,
                 chivProcessMonitor);
-            var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
+            var modListViewModel = new ModListVM(modManager, userDialogueSpawner, new PakDir(FilePaths.PakDir));
 
             if (!modManager.Mods.Any())
                 modListViewModel.RefreshModListCommand.ExecuteAsync(null);

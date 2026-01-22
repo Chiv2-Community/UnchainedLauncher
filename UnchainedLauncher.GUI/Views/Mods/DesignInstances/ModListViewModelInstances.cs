@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 
@@ -13,12 +14,15 @@ namespace UnchainedLauncher.GUI.Views.Mods.DesignInstances {
             new LocalModRegistry("design-view"),
             new List<ReleaseCoordinates> { ReleaseCoordinates.FromRelease(ModViewModelInstances.DesignViewRelease) }
         );
+
+        public static IPakDir DEFAULTPAKDIR => new PakDir("design-view-pak");
     }
 
     public class ModListDesignVM : ModListVM {
         public ModListDesignVM() : base(
             ModListViewModelInstances.DEFAULTMODMANAGER,
-            new MessageBoxSpawner()
+            new MessageBoxSpawner(),
+            ModListViewModelInstances.DEFAULTPAKDIR
         ) {
             SelectedMod = ModViewModelInstances.DEFAULT;
             DisplayMods.Add(ModViewModelInstances.DEFAULT);

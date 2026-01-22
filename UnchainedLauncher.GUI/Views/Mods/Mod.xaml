@@ -5,22 +5,25 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:controls="clr-namespace:UnchainedLauncher.GUI.Views.Controls"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Mods.DesignInstances"
+             xmlns:converters="clr-namespace:UnchainedLauncher.GUI.Converters"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance designInstances:ModDesignVM}"
              d:DesignHeight="300" d:DesignWidth="800"
              Focusable="True">
 
     <UserControl.Resources>
+        <converters:PercentageWidthConverter x:Key="PercentageWidthConverter" />
         <!-- Success tinted background using theme color -->
         <SolidColorBrush x:Key="Brush.SuccessTint"
-                         Color="{StaticResource Color.Success}"
+                         Color="{DynamicResource Color.Success}"
                          Opacity="0.05" />
 
         <!-- Card style that reacts to IsEnabled and focus -->
         <Style x:Key="ModCard" TargetType="Border" BasedOn="{StaticResource Card}">
             <Style.Triggers>
+                <!-- Enabled (downloaded and active) - blue tint -->
                 <DataTrigger Binding="{Binding IsEnabled}" Value="True">
-                    <Setter Property="BorderBrush" Value="{StaticResource Brush.Success}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success}" />
                     <Setter Property="BorderThickness" Value="2" />
                     <Setter Property="Background" Value="{StaticResource Brush.SuccessTint}" />
                 </DataTrigger>
@@ -38,16 +41,20 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </UserControl.Resources>
 
-    <Border Style="{StaticResource ModCard}">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+    <Grid>
+        <!-- Main card with content -->
+        <Border Style="{StaticResource ModCard}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
             <!-- Header: Icon, Name, Enable/Disable, Version selector -->
             <Grid Grid.Row="0">
@@ -101,7 +108,7 @@
                 <!-- Version Dropdown -->
                 <ComboBox Grid.Column="3"
                           ItemsSource="{Binding Mod.Releases}"
-                          SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
+                          SelectedItem="{Binding SelectedVersion, Mode=TwoWay}"
                           DisplayMemberPath="Tag"
                           ToolTip="Select version"
                           VerticalAlignment="Stretch" />
@@ -249,6 +256,31 @@
                     </controls:CollapsibleCard.Body>
                 </controls:CollapsibleCard>
             </StackPanel>
-        </Grid>
-    </Border>
+            </Grid>
+        </Border>
+
+        <!-- Progress bar overlay - on top of everything -->
+        <Border x:Name="ProgressBarBorder"
+                CornerRadius="6"
+                Margin="0,8,0,0"
+                Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVisibilityConverter}}"
+                ClipToBounds="True"
+                IsHitTestVisible="False">
+            <Canvas HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
+                <Rectangle Fill="{DynamicResource Brush.Success}"
+                           Opacity="0.5"
+                           RadiusX="6"
+                           RadiusY="6"
+                           Height="{Binding ElementName=ProgressBarBorder, Path=ActualHeight}">
+                    <Rectangle.Width>
+                        <MultiBinding Converter="{StaticResource PercentageWidthConverter}">
+                            <Binding Path="DownloadProgress" />
+                            <Binding ElementName="ProgressBarBorder" Path="ActualWidth" />
+                        </MultiBinding>
+                    </Rectangle.Width>
+                </Rectangle>
+            </Canvas>
+        </Border>
+    </Grid>
 </UserControl>

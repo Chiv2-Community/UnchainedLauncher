@@ -13,6 +13,7 @@ using System.Windows;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels {
@@ -22,6 +23,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
     public partial class ModListVM {
         private readonly ILog _logger = LogManager.GetLogger(nameof(ModListVM));
         public readonly IModManager _modManager;
+        private readonly IPakDir _pakDir;
         private ObservableCollection<ModVM> UnfilteredModView { get; }
 
         // UI state: filtering and sorting
@@ -35,8 +37,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private IUserDialogueSpawner UserDialogueSpawner { get; }
 
-        public ModListVM(IModManager modManager, IUserDialogueSpawner userDialogueSpawner) {
+        public ModListVM(IModManager modManager, IUserDialogueSpawner userDialogueSpawner, IPakDir pakDir) {
             this._modManager = modManager;
+            this._pakDir = pakDir;
 
             UserDialogueSpawner = userDialogueSpawner;
 
@@ -168,7 +171,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             switch (e.Action) {
                 case NotifyCollectionChangedAction.Add:
                     foreach (Mod mod in e.NewItems!) {
-                        this.UnfilteredModView.Add(new ModVM(mod, _modManager.GetCurrentlyEnabledReleaseForMod(mod), _modManager));
+                        this.UnfilteredModView.Add(new ModVM(mod, _modManager.GetCurrentlyEnabledReleaseForMod(mod), _modManager, _pakDir));
                     }
                     break;
 
@@ -193,7 +196,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     new ModVM(
                         mod,
                         _modManager.GetCurrentlyEnabledReleaseForMod(mod),
-                        _modManager
+                        _modManager,
+                        _pakDir
                     )
                 )
             );

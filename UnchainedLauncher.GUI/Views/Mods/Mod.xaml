@@ -46,6 +46,7 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <!-- Header: Icon, Name, Enable/Disable, Version selector -->
@@ -228,7 +229,7 @@
             </controls:CollapsibleCard>
 
             <!-- Dependencies Card -->
-            <StackPanel Grid.Row="2" Margin="0,12,0,0">
+            <StackPanel Grid.Row="3" Margin="0,12,0,0">
                 <controls:CollapsibleCard Header="Dependencies"
                                           IsExpanded="False"
                                           Visibility="{Binding HasDependencies, Converter={StaticResource BoolToVisibilityConverter}}">

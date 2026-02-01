@@ -27,12 +27,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
         public Task<Option<Unit>> PrepareLaunch(Unit input) {
             _logger.Info("Ensuring sigs are set up for all pak files.");
-            var result = PakDir.SignUnmanaged()
-                .Bind(_ =>
-                    PakDir.GetManagedPaks()
-                        .Map(PakDir.Sign)
-                        .BindLefts()
-                )
+            var result = PakDir
+                .SignAll()
                 .Bind(_ => PakDir.DeleteOrphanedSigs())
                 .Match(
                     _ => Some(input),

@@ -19,6 +19,8 @@ namespace UnchainedLauncher.Core.Utilities {
     }
 
     public class AccumulatedMemoryProgress : MemoryProgress {
+        private readonly SynchronizationContext? _synchronizationContext;
+        
         // average the progress of sub-percentages
         private double CalcAggregatePercentage() =>
             !Progresses.Any()
@@ -29,7 +31,8 @@ namespace UnchainedLauncher.Core.Utilities {
 
         public ObservableCollection<MemoryProgress> Progresses { get; private set; }
 
-        public AccumulatedMemoryProgress(IEnumerable<MemoryProgress>? memoryProgress = null, string? taskName = null) : base(taskName) {
+        public AccumulatedMemoryProgress(IEnumerable<MemoryProgress>? memoryProgress = null, string? taskName = null, SynchronizationContext? synchronizationContext = null) : base(taskName) {
+            _synchronizationContext = synchronizationContext ?? SynchronizationContext.Current ?? UISynchronizationContext.Context;
             Progresses = new ObservableCollection<MemoryProgress>(memoryProgress ?? new List<MemoryProgress>());
             Progresses.ToList().ForEach(BindTo);
             ProgressPercentage = CalcAggregatePercentage();
@@ -37,8 +40,17 @@ namespace UnchainedLauncher.Core.Utilities {
 
         public void AlsoTrack(MemoryProgress memoryProgress) {
             BindTo(memoryProgress);
-            Progresses.Add(memoryProgress);
-            ProgressPercentage = CalcAggregatePercentage();
+            
+            if (_synchronizationContext == null) {
+                throw new InvalidOperationException(
+                    "AccumulatedMemoryProgress must be created on a thread with a SynchronizationContext (typically the UI thread). " +
+                    "Current SynchronizationContext is null, which means ObservableCollection modifications cannot be safely marshaled to the UI thread.");
+            }
+            
+            _synchronizationContext.Post(_ => {
+                Progresses.Add(memoryProgress);
+                ProgressPercentage = CalcAggregatePercentage();
+            }, null);
         }
 
         private void OnProgressPropertyChanged(object? sender, PropertyChangedEventArgs e) {

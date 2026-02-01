@@ -38,6 +38,9 @@ namespace UnchainedLauncher.GUI {
         protected override void OnStartup(StartupEventArgs e) {
             try {
                 base.OnStartup(e);
+                
+                // Capture the UI thread's SynchronizationContext for use throughout the application
+                UISynchronizationContext.Initialize();
 
                 var assembly = Assembly.GetExecutingAssembly();
                 if (File.Exists("log4net.config")) {
@@ -132,15 +135,13 @@ namespace UnchainedLauncher.GUI {
             var userDialogueSpawner = new MessageBoxSpawner();
             var registryWindowService = new RegistryWindowService();
 
-            var pakDir = new PakDir(FilePaths.PakDir);
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+            var pakDir = InitializePakDir(FilePaths.PakDirMetadata, modManager);
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
             var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService,
                 installationFinder, installer, launcherReleaseLocator, pakDir, userDialogueSpawner, Shutdown);
-
-
 
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(
@@ -304,6 +305,14 @@ namespace UnchainedLauncher.GUI {
             var serversTab = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
             RegisterSaveToFileOnExit(serversTab, codec, jsonPath);
             return serversTab;
+        }
+
+        public PakDir InitializePakDir(string jsonPath, IModManager modManager) {
+            Func<PakDir> initializeDefault = () => new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>(), modManager);
+            var codec = new PakDirCodec(modManager);
+            var pakDir = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
+            RegisterSaveToFileOnExit(pakDir, codec, jsonPath);
+            return pakDir;
         }
 
         private T InitializeFromFileWithCodec<T>(ICodec<T> codec, string filePath, Func<T> initializeDefault) {

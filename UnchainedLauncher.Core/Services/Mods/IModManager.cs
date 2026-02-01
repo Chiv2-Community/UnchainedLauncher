@@ -1,4 +1,4 @@
-﻿using LanguageExt;
+using LanguageExt;
 using System.Collections.Immutable;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -165,14 +165,17 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         /// <summary>
         /// Traverses all dependencies of the release associated with the provided coordinates
-        /// Returns a list of the found dependencies
+        /// Returns a list of the found dependencies.
+        /// Always includes UnchainedMods if not already present in the dependency tree
+        /// (unless the mod itself is UnchainedMods).
         /// TODO: Return a tree structure so you can tell which dependencies are associated with what. Maybe.
         /// </summary>
         /// <param name="modManager"></param>
         /// <param name="coordinates"></param>
         /// <returns></returns>
         public static IEnumerable<Release> GetAllDependenciesForRelease(this IModManager modManager, ReleaseCoordinates coordinates) {
-            return modManager.AggregateUniqueDependencies(coordinates, ImmutableHashSet<Release>.Empty);
+            var allDependencies = modManager.AggregateUniqueDependencies(coordinates, ImmutableHashSet<Release>.Empty);
+            return modManager.EnsureUnchainedModsIncluded(allDependencies, coordinates);
         }
 
         public static IEnumerable<Release> GetAllDependenciesForRelease(this IModManager modManager, Release release) =>
@@ -182,16 +185,20 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// Traverses all dependencies of the release associated with the provided release coordinates.
         /// Ignores any dependencies contained in the 'existingDependencies' collection as well as their children,
         /// and does not include them in the result.
+        /// Always includes UnchainedMods if not already present in the dependency tree
+        /// (unless the mod itself is UnchainedMods).
         /// </summary>
         /// <param name="modManager"></param>
         /// <param name="coordinates"></param>
         /// <param name="existingDependencies"></param>
         /// <returns></returns>
         public static IEnumerable<Release> GetNewDependenciesForRelease(this IModManager modManager, ReleaseCoordinates coordinates, IEnumerable<Release> existingDependencies) {
-            return modManager.AggregateUniqueDependencies(
+            var allUnique = modManager.AggregateUniqueDependencies(
                 coordinates,
                 existingDependencies.ToImmutableHashSet()
             );
+
+            return modManager.EnsureUnchainedModsIncluded(allUnique, coordinates);
         }
 
         public static IEnumerable<ReleaseCoordinates> GetEnabledAndDependencies(this IModManager modManager) {
@@ -236,10 +243,35 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         public static IEnumerable<Release> GetNewDependenciesForRelease(this IModManager modManager, Release release, IEnumerable<Release> existingDependencies) =>
-            modManager.AggregateUniqueDependencies(
-                ReleaseCoordinates.FromRelease(release),
-                existingDependencies.ToImmutableHashSet()
+            modManager.GetNewDependenciesForRelease(ReleaseCoordinates.FromRelease(release), existingDependencies);
+
+        /// <summary>
+        /// Ensures that UnchainedMods is included in the given dependencies collection.
+        /// If UnchainedMods is not present, appends the latest version.
+        /// Does not add UnchainedMods if the queried mod itself is UnchainedMods.
+        /// </summary>
+        private static IEnumerable<Release> EnsureUnchainedModsIncluded(this IModManager modManager, IEnumerable<Release> dependencies, ModIdentifier queriedMod) {
+            var dependenciesList = dependencies.ToList();
+            
+            // Don't add UnchainedMods as a dependency of itself
+            if (CommonMods.UnchainedMods.Matches(queriedMod)) {
+                return dependenciesList;
+            }
+            
+            if (dependenciesList.Select(ReleaseCoordinates.FromRelease).Exists(CommonMods.UnchainedMods.Matches)) {
+                return dependenciesList;
+            }
+
+            var unchainedModsRelease =
+                modManager.Mods
+                    .Find(x => ModIdentifier.FromMod(x) == CommonMods.UnchainedMods)
+                    .Bind(x => x.LatestRelease);
+
+            return unchainedModsRelease.Match(
+                unchainedMods => dependenciesList.Append(unchainedMods),
+                () => dependenciesList
             );
+        }
 
         private static ImmutableHashSet<Release> AggregateUniqueDependencies(this IModManager modManager, ReleaseCoordinates coordinates, ImmutableHashSet<Release> seenDependencies) {
             var newDependencies =

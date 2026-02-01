@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.PakDir;

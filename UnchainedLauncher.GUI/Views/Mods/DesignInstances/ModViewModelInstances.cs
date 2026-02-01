@@ -1,6 +1,7 @@
 using LanguageExt;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;

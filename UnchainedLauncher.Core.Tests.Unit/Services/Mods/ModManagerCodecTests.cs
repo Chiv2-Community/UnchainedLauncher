@@ -5,6 +5,7 @@ using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry;
 using UnchainedLauncher.Core.Tests.Unit.Utilities;
 using Xunit.Abstractions;
+using CorePakDir = UnchainedLauncher.Core.Services.PakDir;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
     public class ModManagerCodecTests : CodecTestBase<ModManager> {
@@ -13,8 +14,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
         public ModManagerCodecTests(ITestOutputHelper testOutputHelper) : base(new ModManagerCodec(Registry), testOutputHelper) { }
 
-        private static PakDir.PakDir CreateTestPakDir() =>
-            new PakDir.PakDir(TestPakDirPath, Enumerable.Empty<ManagedPak>());
+        private static CorePakDir.PakDir CreateTestPakDir() =>
+            new CorePakDir.PakDir(TestPakDirPath, Enumerable.Empty<ManagedPak>());
 
         [Fact]
         public void StandardModManager_SerializeAndDeserialize_PreservesData() {

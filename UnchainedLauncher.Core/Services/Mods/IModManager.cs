@@ -1,7 +1,11 @@
 using LanguageExt;
+using LanguageExt.Common;
+using log4net;
 using System.Collections.Immutable;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Services.PakDir;
+using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods {
@@ -29,6 +33,11 @@ namespace UnchainedLauncher.Core.Services.Mods {
         event ModDisabledHandler ModDisabled;
 
         IModRegistry ModRegistry { get; }
+
+        /// <summary>
+        /// The pak directory manager for installing and managing mod pak files.
+        /// </summary>
+        IPakDir PakDir { get; }
 
         /// <summary>
         /// A List of all currently enabled mods
@@ -244,6 +253,98 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public static IEnumerable<Release> GetNewDependenciesForRelease(this IModManager modManager, Release release, IEnumerable<Release> existingDependencies) =>
             modManager.GetNewDependenciesForRelease(ReleaseCoordinates.FromRelease(release), existingDependencies);
+
+        /// <summary>
+        /// Sorts a collection of releases topologically so that dependencies come before dependents.
+        /// </summary>
+        /// <param name="modManager">The mod manager to use for dependency resolution</param>
+        /// <param name="releases">The releases to sort</param>
+        /// <returns>The releases sorted by dependency order (dependencies first)</returns>
+        public static IEnumerable<Release> SortByDependencies(this IModManager modManager, IEnumerable<Release> releases) {
+            var releasesList = releases.ToList();
+
+            // Build dependency graph: for each release, get all its dependencies
+            var dependencyMap = new Dictionary<ReleaseCoordinates, System.Collections.Generic.HashSet<ReleaseCoordinates>>();
+            foreach (var release in releasesList) {
+                var coords = ReleaseCoordinates.FromRelease(release);
+                var deps = modManager.GetAllDependenciesForRelease(coords)
+                    .Map(ReleaseCoordinates.FromRelease)
+                    .ToHashSet();
+                dependencyMap[coords] = deps;
+            }
+
+            // Topological sort: dependencies must come before dependents
+            var sorted = new List<Release>();
+            var visited = new System.Collections.Generic.HashSet<ReleaseCoordinates>();
+            var visiting = new System.Collections.Generic.HashSet<ReleaseCoordinates>();
+            var logger = LogManager.GetLogger(nameof(ModManagerExtensions));
+
+            bool TopologicalSort(Release release) {
+                var coords = ReleaseCoordinates.FromRelease(release);
+                if (visited.Contains(coords)) return true;
+                if (!visiting.Add(coords)) {
+                    logger.Warn($"Circular dependency detected involving {coords}");
+                    return false;
+                }
+
+                // Visit dependencies first
+                if (dependencyMap.TryGetValue(coords, out var deps)) {
+                    var failedToSort =
+                        deps.Select(dep => releasesList.Find(r => ReleaseCoordinates.FromRelease(r).Matches(dep)))
+                            .OfType<Release>()
+                            .Any(depRelease => !TopologicalSort(depRelease));
+
+                    if (failedToSort) return false;
+                }
+
+                visiting.Remove(coords);
+                visited.Add(coords);
+                sorted.Add(release);
+                return true;
+            }
+
+            foreach (var release in releasesList.Where(release => !visited.Contains(ReleaseCoordinates.FromRelease(release)))) {
+                TopologicalSort(release);
+            }
+
+            return sorted;
+        }
+
+        /// <summary>
+        /// Installs all enabled mods and their dependencies to the pak directory.
+        /// Performs topological sorting to ensure dependencies are installed in correct order.
+        /// </summary>
+        /// <param name="modManager">The mod manager containing enabled mods and pak directory</param>
+        /// <param name="progress">Optional progress tracker for reporting installation progress</param>
+        /// <returns>An async enumerable of installation results</returns>
+        public static async IAsyncEnumerable<Either<Error, ManagedPak>> InstallMods(
+            this IModManager modManager,
+            Option<AccumulatedMemoryProgress> progress) {
+
+            // Get all enabled mods with their dependencies
+            var releasesToInstall = modManager.GetEnabledAndDependencyReleases().ToList();
+
+            // Sort by dependencies
+            var sortedReleases = modManager.SortByDependencies(releasesToInstall).ToList();
+
+            // Create install requests with download writers
+            var installRequests = sortedReleases
+                .Select(release => {
+                    var coords = ReleaseCoordinates.FromRelease(release);
+                    return new ModInstallRequest(
+                        coords,
+                        outputPath => modManager.ModRegistry
+                            .DownloadPak(coords, outputPath)
+                            .MapLeft(e => Error.New(e))
+                    );
+                })
+                .ToList();
+
+            // Install via PakDir
+            await foreach (var result in modManager.PakDir.InstallModSet(installRequests, progress)) {
+                yield return result;
+            }
+        }
 
         /// <summary>
         /// Ensures that UnchainedMods is included in the given dependencies collection.

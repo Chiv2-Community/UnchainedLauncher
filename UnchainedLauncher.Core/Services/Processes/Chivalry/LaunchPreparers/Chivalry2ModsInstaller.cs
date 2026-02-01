@@ -14,11 +14,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     public class Chivalry2ModsInstaller : IChivalry2LaunchPreparer<LaunchOptions> {
         private readonly ILog _logger = LogManager.GetLogger(typeof(Chivalry2ModsInstaller));
         private readonly IUserDialogueSpawner _userDialogueSpawner;
-        private readonly IPakDir _pakDir;
         private IModManager _modManager { get; }
-        public Chivalry2ModsInstaller(IModManager modManager, IPakDir pakDir, IUserDialogueSpawner dialogueSpawner) {
+
+        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner) {
             _modManager = modManager;
-            _pakDir = pakDir;
             _userDialogueSpawner = dialogueSpawner;
         }
 
@@ -31,7 +30,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         private OptionAsync<string> GetLocalHash(ReleaseCoordinates coords) {
-            return _pakDir.GetManagedPakFilePath(coords)
+            return _modManager.PakDir.GetManagedPakFilePath(coords)
                 .Match(
                     path => GetHashResult(FileHelpers.Sha512Async(path)),
                     () => OptionAsync<string>.None);
@@ -53,7 +52,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 $"Would you like to re-download the pak? (recommended)", "Refresh pak file?");
 
             if (redownloadResponse == UserDialogueChoice.Yes) {
-                _pakDir.Uninstall(coords)
+                _modManager.PakDir.Uninstall(coords)
                     .IfLeft(e =>
                         _logger.Error($"Failed to uninstall release '{coords}' with invalid hash", e));
             }
@@ -75,52 +74,21 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
-            IEnumerable<ReleaseCoordinates> releases = options.EnabledReleases;
-            var releasesList = new List<ReleaseCoordinates>(releases);
-            _logger.LogListInfo("Installing the following releases:", releasesList);
-            // get release metadatas
-            var (errs, metas) =
-                releasesList
-                    .Select(x => _modManager.GetRelease(x).ToEither(x))
-                    .Partition()
-                    .BiMap(x => x.ToList(), x => x.ToList());
+            // Get all releases that will be installed (enabled mods + dependencies)
+            var releasesToInstall = _modManager.GetEnabledAndDependencyReleases().ToList();
+            _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
 
-            if (errs.Any()) {
-                _logger.Error($"Failed to get release metadatas for: {string.Join(", ", errs)}");
-                var humanReadableFailedVersions = string.Join(", ", errs.Select(x => $"{x.ModuleName} {x.Version}"));
-                var selection = _userDialogueSpawner.DisplayYesNoMessage($"Failed to get release metadatas for: {humanReadableFailedVersions}. Would you like to proceed anyway? The listed mods will not be downloaded.", "Failed to get release metadatas");
+            // Validate hashes before installation
+            await ValidateHashes(releasesToInstall);
 
-                if (selection == UserDialogueChoice.No) return None;
-            }
-
-            var enumerable = metas.ToList();
-            await ValidateHashes(enumerable);
-
-            // TODO: do something more clever than just deleting. This weirdness ultimately comes
-            // from the fact that launches share a pak dir, and can affect each other.
-            // This stuff is only really relevant to servers, and there's probably not much
-            // we can do without adding some seriously in-depth hooks in the plugin
-            // that allows doing some kind of per-process pak dir isolation
+            // Install mods via ModManager
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");
             var closeProgressWindow = _userDialogueSpawner.DisplayProgress(progresses);
-            var installOnlyResults =
-                await _pakDir.InstallModSet(
-                    enumerable.Map(m => {
-                        var coords = ReleaseCoordinates.FromRelease(m);
 
-                        return new ModInstallRequest(
-                            coords,
-                            (outputPath) =>
-                                _modManager.ModRegistry
-                                    .DownloadPak(coords, outputPath)
-                                    .MapLeft(e => Error.New(e))
-                        );
-                    }
-                    ), progresses
-                ).ToListAsync();
+            var installResults = await _modManager.InstallMods(progresses).ToListAsync();
 
             var (errors, successes) =
-                installOnlyResults.Partition()
+                installResults.Partition()
                     .MapFirst(x => x.ToList())
                     .MapSecond(x => x.ToList());
 

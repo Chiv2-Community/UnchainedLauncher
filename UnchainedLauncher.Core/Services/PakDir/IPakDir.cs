@@ -40,10 +40,10 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         Either<Error, Unit> Uninstall(ModIdentifier coords);
 
         /// <summary>
-        /// Installs a set of mods, handling dependency ordering, file naming conflicts, and progress reporting.
-        /// Mods are sorted topologically by dependencies and named to ensure correct load order.
+        /// Installs a set of mods, handling file naming conflicts and progress reporting.
+        /// The input order is trusted and determines load priority - callers must sort by dependencies first.
         /// </summary>
-        /// <param name="installs">The collection of mod install requests to process</param>
+        /// <param name="installs">The collection of mod install requests to process, pre-sorted by dependency order</param>
         /// <param name="progress">Optional progress tracker for reporting installation progress</param>
         /// <returns>An async enumerable of results, one per install request</returns>
         IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSet(IEnumerable<ModInstallRequest> installs, Option<AccumulatedMemoryProgress> progress);

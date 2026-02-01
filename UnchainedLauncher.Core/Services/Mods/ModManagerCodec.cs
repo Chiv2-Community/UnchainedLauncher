@@ -1,6 +1,7 @@
-﻿using DiscriminatedUnions;
+using DiscriminatedUnions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods {
@@ -12,6 +13,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             metadata switch {
                 StandardModManagerMetadata m => new ModManager(
                     registry,
+                    CreatePakDir(m.PakDir),
                     m.EnabledModReleases,
                     m.CachedMods
                 ),
@@ -20,11 +22,20 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     $"Attempt to initialize unknown IModManager implementation: {metadata}")
             };
 
+        private static PakDir.PakDir CreatePakDir(PakDirMetadata? metadata) =>
+            metadata != null
+                ? new PakDir.PakDir(metadata.DirPath, metadata.ManagedPaks)
+                : new PakDir.PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>());
+
         public static ModManagerMetadata ToJsonType(IModManager manager) =>
             manager switch {
                 ModManager m => new StandardModManagerMetadata(
                     m.EnabledModReleaseCoordinates,
-                    m.Mods
+                    m.Mods,
+                    m.PakDir switch {
+                        PakDir.PakDir pd => new PakDirMetadata(pd.DirPath, pd.ManagedPaks),
+                        _ => null
+                    }
                 ),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(manager), manager,
@@ -38,7 +49,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
     public record StandardModManagerMetadata(
         IEnumerable<ReleaseCoordinates> EnabledModReleases,
-        IEnumerable<Mod>? CachedMods
+        IEnumerable<Mod>? CachedMods,
+        PakDirMetadata? PakDir
     ) : ModManagerMetadata(ModManagerMetadataKind.StandardModManager);
 
     internal static class ModManagerMetadataKind {

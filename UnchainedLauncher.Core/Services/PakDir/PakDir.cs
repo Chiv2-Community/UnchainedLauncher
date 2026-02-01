@@ -4,16 +4,15 @@ using log4net;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.Extensions;
-using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.PakDir {
     using static LanguageExt.Prelude;
 
-    public class PakDirCodec(IModManager modManager) : DerivedJsonCodec<PakDirMetadata, PakDir>(
+    public class PakDirCodec() : DerivedJsonCodec<PakDirMetadata, PakDir>(
         pakDir => new PakDirMetadata(pakDir.DirPath, pakDir.ManagedPaks),
-        metadata => new PakDir(metadata.DirPath, metadata.ManagedPaks, modManager)
+        metadata => new PakDir(metadata.DirPath, metadata.ManagedPaks)
     );
 
     public record PakDirMetadata(string DirPath, IEnumerable<ManagedPak> ManagedPaks);
@@ -30,12 +29,9 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         public IEnumerable<ManagedPak> ManagedPaks => _managedPaks;
         private List<ManagedPak> _managedPaks { get; }
 
-        private IModManager _modManager { get; }
-
-        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks, IModManager modManager) {
+        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks) {
             DirPath = dirPath;
             _managedPaks = managedPaks.ToList();
-            _modManager = modManager;
             SynchronizeWithDir();
         }
 
@@ -119,59 +115,17 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 IEnumerable<ModInstallRequest> installs,
                 Option<AccumulatedMemoryProgress> progress) {
 
+            // Input is trusted to be pre-sorted by dependency order
             var installsList = installs.ToList();
 
-            // Build dependency graph: for each mod, get all its dependencies
-            var dependencyMap = new Dictionary<ReleaseCoordinates, System.Collections.Generic.HashSet<ReleaseCoordinates>>();
-
-            installsList.ForEach(install => {
-                var deps = _modManager.GetAllDependenciesForRelease(install.Coordinates)
-                    .Map(ReleaseCoordinates.FromRelease)
-                    .ToHashSet();
-
-                dependencyMap[install.Coordinates] = deps;
-            });
-
-            // Topological sort: dependencies must come before dependents
-            var sorted = new List<ModInstallRequest>();
-            var visited = new System.Collections.Generic.HashSet<ReleaseCoordinates>();
-            var visiting = new System.Collections.Generic.HashSet<ReleaseCoordinates>();
-
-            bool TopologicalSort(ModInstallRequest install) {
-                if (visited.Contains(install.Coordinates)) return true;
-                if (!visiting.Add(install.Coordinates)) {
-                    Logger.Warn($"Circular dependency detected involving {install.Coordinates}");
-                    return false;
-                }
-
-                // Visit dependencies first
-                if (dependencyMap.TryGetValue(install.Coordinates, out var deps)) {
-                    var failedToSort =
-                        deps.Select(dep => installsList.Find(i => i.Coordinates.Matches(dep)))
-                            .OfType<ModInstallRequest>()
-                            .Any(depInstall => !TopologicalSort(depInstall));
-
-                    if (failedToSort) return false;
-                }
-
-                visiting.Remove(install.Coordinates);
-                visited.Add(install.Coordinates);
-                sorted.Add(install);
-                return true;
-            }
-
-            installsList
-                .Where(install => !visited.Contains(install.Coordinates))
-                .ForEach(TopologicalSort);
-
             // Collect all pak file names, adding org prefix for duplicate module names
-            var moduleNameCounts = sorted
+            var moduleNameCounts = installsList
                 .GroupBy(i => i.Coordinates.ModuleName)
                 .Where(g => g.Count() > 1)
                 .Select(g => g.Key)
                 .ToHashSet();
 
-            var pakFileNames = sorted
+            var pakFileNames = installsList
                 .Select(install => {
                     var moduleName = install.Coordinates.ModuleName;
                     var needsOrgPrefix = moduleNameCounts.Contains(moduleName);
@@ -187,11 +141,11 @@ namespace UnchainedLauncher.Core.Services.PakDir {
 
             // Build map of existing managed paks by coordinates (for mods in install set)
             var existingByCoords = _managedPaks
-                .Filter(p => sorted.Exists(s => s.Coordinates == p.Coordinates))
+                .Filter(p => installsList.Exists(s => s.Coordinates == p.Coordinates))
                 .ToDictionary(p => p.Coordinates, p => p);
 
             // Categorize each install: Skip (already correct), Move (relocate), or Download (new)
-            var categorized = sorted
+            var categorized = installsList
                 .Zip(sortedPakNames, (install, finalPakName) => (Install: install, FinalPakName: finalPakName))
                 .Select((item, index) => {
                     var existing = existingByCoords.TryGetValue(item.Install.Coordinates, out var e) ? Some(e) : None;

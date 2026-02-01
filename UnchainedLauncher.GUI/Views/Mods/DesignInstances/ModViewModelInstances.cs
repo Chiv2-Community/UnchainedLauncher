@@ -1,9 +1,11 @@
-﻿using LanguageExt;
+using LanguageExt;
 using System;
 using System.Collections.Generic;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Services.PakDir;
+using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.ViewModels;
 
 namespace UnchainedLauncher.GUI.Views.Mods.DesignInstances {
@@ -39,7 +41,10 @@ namespace UnchainedLauncher.GUI.Views.Mods.DesignInstances {
         public ModDesignVM() : base(
             ModViewModelInstances.DesignViewMod,
             Some(ModViewModelInstances.DesignViewRelease),
-            new ModManager(new LocalModRegistry("foo"), new List<ReleaseCoordinates>())
+            new ModManager(
+                new LocalModRegistry("foo"),
+                new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>()),
+                new List<ReleaseCoordinates>())
         ) {
         }
     }

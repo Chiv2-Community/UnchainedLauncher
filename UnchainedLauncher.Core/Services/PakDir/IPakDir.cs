@@ -17,5 +17,12 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         Either<IEnumerable<Error>, Unit> UnSignAll();
         Either<IEnumerable<Error>, Unit> DeleteOrphanedSigs();
         Either<IEnumerable<Error>, Unit> Reset();
+
+        /// <summary>
+        /// Gets the full file path for a managed pak file by its release coordinates.
+        /// </summary>
+        /// <param name="coords">The release coordinates to look up</param>
+        /// <returns>Some(path) if the pak is managed, None otherwise</returns>
+        Option<string> GetManagedPakFilePath(ReleaseCoordinates coords);
     }
 }

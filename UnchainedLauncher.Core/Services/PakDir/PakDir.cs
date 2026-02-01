@@ -342,6 +342,11 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .ToOption();
         }
 
+        public Option<string> GetManagedPakFilePath(ReleaseCoordinates coords) {
+            return GetManagedPakFile(coords)
+                .Map(pak => pakNameToPakPath(pak.PakFileName));
+        }
+
         private string pakNameToPakPath(string fileName) {
             return Path.Join(DirPath, fileName);
         }

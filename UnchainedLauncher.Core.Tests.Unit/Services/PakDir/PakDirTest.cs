@@ -34,7 +34,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         public static List<object[]> DummyModsParam = DummyMods.Select(x => new object[] { x }).ToList();
 
         private static void VerifyHasInstalledPak(Core.Services.PakDir.PakDir pd, string dir, ReleaseCoordinates coords) {
-            var pakLocation = pd.GetInstalledPakFile(coords);
+            var pakLocation = pd.GetManagedPakFile(coords);
             Assert.True(pakLocation.IsSome);
             Assert.Contains(pakLocation.ValueUnsafe(), Directory.EnumerateFiles(dir));
         }
@@ -118,7 +118,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var m1 = new ReleaseCoordinates("Unchained-Mods", "mysterious-file1", "1.0.0");
             InstallDummy(pd, m1);
             pd.Sign(m1).IfLeft(e => throw e);
-            Assert.NotEqual(mysteriousFiles[0], pd.GetInstalledPakFile(m1));
+            Assert.NotEqual(mysteriousFiles[0], pd.GetManagedPakFile(m1));
 
             // should add sig files for them
             pd.SignUnmanaged().IfLeft(throwErrors);
@@ -142,8 +142,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             // none of the above should affect managed files
             Assert.True(pd.IsSigned(m1));
-            Assert.True(File.Exists(pd.GetInstalledPakFile(m1).ValueUnsafe()));
-            Assert.True(File.Exists(Path.ChangeExtension(pd.GetInstalledPakFile(m1).ValueUnsafe(), ".sig")));
+            Assert.True(File.Exists(pd.GetManagedPakFile(m1).ValueUnsafe()));
+            Assert.True(File.Exists(Path.ChangeExtension(pd.GetManagedPakFile(m1).ValueUnsafe(), ".sig")));
         }
 
         [Fact]
@@ -162,7 +162,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             pd.SignMods(new List<ReleaseCoordinates> { m1, m3 }).IfLeft(throwErrors);
 
-            var m2InstallPath = pd.GetInstalledPakFile(m2).ValueUnsafe();
+            var m2InstallPath = pd.GetManagedPakFile(m2).ValueUnsafe();
 
             Assert.True(pd.IsSigned(m1));
             Assert.False(pd.IsSigned(m2));
@@ -185,7 +185,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             InstallDummy(pd, m2);
             InstallDummy(pd, m3);
 
-            var m2InstallPath = pd.GetInstalledPakFile(m2).ValueUnsafe();
+            var m2InstallPath = pd.GetManagedPakFile(m2).ValueUnsafe();
 
             pd.InstallModSet(new List<(ReleaseCoordinates, IPakDir.MakeFileWriter, string)> {
                 (m1, StaticMkWriter, m1.ModuleName+".pak"),
@@ -213,7 +213,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             Assert.Contains(m1, pd.GetInstalledReleases());
             Assert.Contains(m2, pd.GetInstalledReleases());
-            Assert.NotEqual(pd.GetInstalledPakFile(m1), pd.GetInstalledPakFile(m2));
+            Assert.NotEqual(pd.GetManagedPakFile(m1), pd.GetManagedPakFile(m2));
         }
 
         [Theory]
@@ -225,7 +225,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var pd = new Core.Services.PakDir.PakDir(subPath);
             InstallDummy(pd, coords);
             pd.Sign(coords).IfLeft(e => throw e);
-            var signedName = pd.GetInstalledPakFile(coords)
+            var signedName = pd.GetManagedPakFile(coords)
                 .Map(p => Path.ChangeExtension(p, ".sig"));
             Assert.True(signedName.IsSome);
             Assert.True(File.Exists(signedName.ValueUnsafe()));

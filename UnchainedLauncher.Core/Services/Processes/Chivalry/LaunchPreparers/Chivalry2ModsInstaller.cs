@@ -31,7 +31,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         private OptionAsync<string> GetLocalHash(ReleaseCoordinates coords) {
-            return _pakDir.GetInstalledPakFile(coords)
+            return _pakDir.GetManagedPakFile(coords)
                 .Match(
                     path => GetHashResult(FileHelpers.Sha512Async(path)),
                     () => OptionAsync<string>.None);
@@ -103,46 +103,43 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             // we can do without adding some seriously in-depth hooks in the plugin
             // that allows doing some kind of per-process pak dir isolation
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");
-            var installOnlyResult = _pakDir.InstallModSet(
-                enumerable.Map<Release, (ReleaseCoordinates, IPakDir.MakeFileWriter, string)>(m => {
-                    var coords = ReleaseCoordinates.FromRelease(m);
-
-                    return (
-                        coords,
-                        (outputPath) => _modManager.ModRegistry.DownloadPak(coords, outputPath)
-                            .MapLeft(e => Error.New(e)),
-                        m.PakFileName
-                    );
-                }
-                ), progresses
-            ).Match(
-                _ => Some(options),
-                errors => {
-                    errors.ToList().ForEach(e => _logger.Error($"Failed to install releases: {e.Message}"));
-
-                    _userDialogueSpawner.DisplayMessage(
-                        $"There were errors while installing releases:\n " +
-                        $"{errors.Aggregate((a, b) => $"{a}\n\n{b}")}"
-                        );
-                    return None;
-                });
-
             var closeProgressWindow = _userDialogueSpawner.DisplayProgress(progresses);
+            var installOnlyResults =
+                await _pakDir.InstallModSet(
+                    enumerable.Map(m => {
+                            var coords = ReleaseCoordinates.FromRelease(m);
 
-            var finalResult = await installOnlyResult;
+                            return new ModInstallRequest(
+                                coords,
+                                (outputPath) =>
+                                    _modManager.ModRegistry
+                                        .DownloadPak(coords, outputPath)
+                                        .MapLeft(e => Error.New(e))
+                            );
+                        }
+                    ), progresses
+                ).ToListAsync();
+
+            var (errors, successes) =
+                installOnlyResults.Partition()
+                    .MapFirst(x => x.ToList())
+                    .MapSecond(x => x.ToList());
+
+            successes.ForEach(succ => _logger.Debug($"Successfully installed {succ.Coordinates.ModuleName} version {succ.Coordinates.Version}"));
+
+            if(errors.Count != 0) {
+                errors.ToList().ForEach(e => _logger.Error($"Failed to install releases: {e.Message}"));
+                var shouldContinue = _userDialogueSpawner.DisplayYesNoMessage(
+                    $"There were errors while installing releases:\n " +
+                    $"{errors.Aggregate((a, b) => $"{a}\n\n{b}")}\n" +
+                    "Would you like to continue anyway?", "Errors encountered"
+                    );
+                if(shouldContinue == UserDialogueChoice.No) return None;
+            }
 
             closeProgressWindow();
 
-            _pakDir.EnforceOrdering(options.EnabledReleases)
-                .IfLeft(
-                    lefts => lefts
-                        .ToList()
-                        .ForEach(e =>
-                                _logger.Error($"Failed to enforce pak file ordering:", e)
-                            )
-                    );
-
-            return finalResult;
+            return Some(options);
         }
     }
 }

@@ -13,10 +13,10 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         delegate EitherAsync<Error, FileWriter> MakeFileWriter(string filePath);
         Either<Error, Unit> Uninstall(ModIdentifier coords);
         IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSet(IEnumerable<ModInstallRequest> installs, Option<AccumulatedMemoryProgress> progress);
-        Option<ManagedPak> GetInstalledPakFile(ModIdentifier coords);
+        Option<ManagedPak> GetManagedPakFile(ModIdentifier coords);
         IEnumerable<ManagedPak> GetManagedPaks();
-        Either<IEnumerable<Error>, Unit> SignUnmanaged();
-        Either<IEnumerable<Error>, Unit> UnSignUnmanaged();
+        Either<IEnumerable<Error>, Unit> SignAll();
+        Either<IEnumerable<Error>, Unit> UnSignAll();
         Either<IEnumerable<Error>, Unit> Reset();
     }
 }

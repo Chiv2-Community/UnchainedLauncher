@@ -1,7 +1,6 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry;
 using UnchainedLauncher.Core.Tests.Unit.Utilities;
 using Xunit.Abstractions;
@@ -14,8 +13,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
         public ModManagerCodecTests(ITestOutputHelper testOutputHelper) : base(new ModManagerCodec(Registry), testOutputHelper) { }
 
-        private static CorePakDir.PakDir CreateTestPakDir() =>
-            new CorePakDir.PakDir(TestPakDirPath, Enumerable.Empty<ManagedPak>());
+        private static Core.Services.Mods.PakDir CreateTestPakDir() =>
+            new Core.Services.Mods.PakDir(TestPakDirPath, Enumerable.Empty<ManagedPak>());
 
         [Fact]
         public void StandardModManager_SerializeAndDeserialize_PreservesData() {

@@ -1,10 +1,10 @@
-using DiscriminatedUnions;
+﻿using DiscriminatedUnions;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods {
+    
     public class ModManagerCodec : DerivedJsonCodec<ModManagerMetadata, ModManager> {
         public ModManagerCodec(IModRegistry registry) : base(ToJsonType, modManager => ToClassType(modManager, registry)) { }
 
@@ -22,10 +22,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     $"Attempt to initialize unknown IModManager implementation: {metadata}")
             };
 
-        private static PakDir.PakDir CreatePakDir(PakDirMetadata? metadata) =>
+        private static PakDir CreatePakDir(PakDirMetadata? metadata) =>
             metadata != null
-                ? new PakDir.PakDir(metadata.DirPath, metadata.ManagedPaks)
-                : new PakDir.PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>());
+                ? new PakDir(metadata.DirPath, metadata.ManagedPaks)
+                : new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>());
 
         public static ModManagerMetadata ToJsonType(IModManager manager) =>
             manager switch {
@@ -33,7 +33,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     m.EnabledModReleaseCoordinates,
                     m.Mods,
                     m.PakDir switch {
-                        PakDir.PakDir pd => new PakDirMetadata(pd.DirPath, pd.ManagedPaks),
+                        PakDir pd => new PakDirMetadata(pd.DirPath, pd.ManagedPaks),
                         _ => null
                     }
                 ),
@@ -53,6 +53,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
         PakDirMetadata? PakDir
     ) : ModManagerMetadata(ModManagerMetadataKind.StandardModManager);
 
+    public record PakDirMetadata(string DirPath, IEnumerable<ManagedPak> ManagedPaks);
+    
     internal static class ModManagerMetadataKind {
         public const string StandardModManager = "StandardModManager";
     }

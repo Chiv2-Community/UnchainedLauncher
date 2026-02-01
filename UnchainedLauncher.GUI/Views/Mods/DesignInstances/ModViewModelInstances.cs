@@ -1,11 +1,10 @@
-using LanguageExt;
+﻿using LanguageExt;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.ViewModels;
 

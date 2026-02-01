@@ -7,17 +7,9 @@ using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Services.PakDir {
+namespace UnchainedLauncher.Core.Services.Mods {
     using static LanguageExt.Prelude;
-
-    public class PakDirCodec() : DerivedJsonCodec<PakDirMetadata, PakDir>(
-        pakDir => new PakDirMetadata(pakDir.DirPath, pakDir.ManagedPaks),
-        metadata => new PakDir(metadata.DirPath, metadata.ManagedPaks)
-    );
-
-    public record PakDirMetadata(string DirPath, IEnumerable<ManagedPak> ManagedPaks);
-
-
+    
     public class PakDir : IPakDir {
         public readonly string DirPath;
 
@@ -27,7 +19,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(PakDir));
 
         public IEnumerable<ManagedPak> ManagedPaks => _managedPaks;
-        private List<ManagedPak> _managedPaks { get; }
+        private readonly List<ManagedPak> _managedPaks;
 
         public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks) {
             DirPath = dirPath;
@@ -44,17 +36,12 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Filter(f => !f.EndsWith(BasePakFileName));
         }
 
-        private IEnumerable<string> GetModdedSigFiles() {
-            var sigFiles = GetSigFiles();
-            return sigFiles.Filter(f => !f.EndsWith(BaseSigFileName));
-        }
-
         /// <summary>
         /// Helper for deleting files using try
         /// </summary>
         /// <param name="path">file name to delete</param>
         /// <returns></returns>
-        private Either<Error, Unit> _deleteFile(string path) {
+        private static Either<Error, Unit> _deleteFile(string path) {
             return PrimitiveExtensions
                 .TryVoid(() => File.Delete(path))
                 .Invoke()
@@ -70,7 +57,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         /// <param name="path"></param>
         /// <param name="destPath"></param>
         /// <returns></returns>
-        private Either<Error, Unit> _copyFile(string path, string destPath) {
+        private static Either<Error, Unit> _copyFile(string path, string destPath) {
             return PrimitiveExtensions
                 .TryVoid(() => File.Copy(path, destPath))
                 .Invoke()
@@ -84,8 +71,8 @@ namespace UnchainedLauncher.Core.Services.PakDir {
             GetManagedPakFile(coords)
                 .Match(
                     Some: pak => Right<Error, ManagedPak>(pak)
-                        .BindTap(x => _unsignFile(pakNameToPakPath(x.PakFileName)))
-                        .Bind(x => _deleteFile(pakNameToPakPath(x.PakFileName))),
+                        .BindTap(x => _unsignFile(PakNameToPakPath(x.PakFileName)))
+                        .Bind(x => _deleteFile(PakNameToPakPath(x.PakFileName))),
                     None: () => {
                         Logger.Debug($"No pak file found for {coords}. Ignoring Uninstall request");
                         return Right<Error, Unit>(Unit.Default);
@@ -97,13 +84,13 @@ namespace UnchainedLauncher.Core.Services.PakDir {
             var actualName = Path.GetFileNameWithoutExtension(suggestedFileName);
             var extension = Path.GetExtension(suggestedFileName);
             var fullActualName = actualName + extension;
-            while (_managedPaks.Exists(x => pakNameToPakPath(x.PakFileName) == fullActualName) || unManagedPaks.Contains(pakNameToPakPath(fullActualName))) {
+            while (_managedPaks.Exists(x => PakNameToPakPath(x.PakFileName) == fullActualName) || unManagedPaks.Contains(PakNameToPakPath(fullActualName))) {
                 actualName = Successors.TextualSuccessor(actualName);
                 fullActualName = actualName + extension;
             }
 
             Logger.Info($"Downloading pak to {fullActualName}");
-            return mkFileWriter(pakNameToPakPath(fullActualName))
+            return mkFileWriter(PakNameToPakPath(fullActualName))
                 .Bind(fileWriter =>
                     // TODO: allow passing of a cancellation token here
                     fileWriter.WriteAsync(progress, CancellationToken.None)
@@ -190,12 +177,12 @@ namespace UnchainedLauncher.Core.Services.PakDir {
             }
 
             Logger.Debug($"Skipping {skip.Install.Coordinates.ModuleName} - already at {skip.Existing.PakFileName}");
-            return Right<Error, ManagedPak>(desired);
+            return Right(desired);
         }
 
         private Either<Error, ManagedPak> ProcessMove(InstallAction.Move move) {
-            var sourcePath = pakNameToPakPath(move.Existing.PakFileName);
-            var targetPath = pakNameToPakPath(move.TargetPakName);
+            var sourcePath = PakNameToPakPath(move.Existing.PakFileName);
+            var targetPath = PakNameToPakPath(move.TargetPakName);
 
             return _moveManagedPak(sourcePath, targetPath)
                 .Map(_ => {
@@ -208,17 +195,17 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         }
 
         private async Task<Either<Error, ManagedPak>> ProcessDownload(InstallAction.Download download, Option<AccumulatedMemoryProgress> progress) {
-            var taskProgress = progress.Map(p => {
+            var taskProgress = progress.Map(IProgress<double> (p) => {
                 var mp = new MemoryProgress($"Installing {download.Install.Coordinates.ModuleName}");
                 p.AlsoTrack(mp);
-                return (IProgress<double>)mp;
+                return mp;
             });
 
             return (await _writePak(download.Install.Writer, taskProgress, download.FinalPakName))
                 .Map(pakFileName => {
                     var managedPak = new ManagedPak(download.Install.Coordinates, pakFileName, download.Index);
                     _managedPaks.Add(managedPak);
-                    _signFile(pakNameToPakPath(managedPak.PakFileName))
+                    _signFile(PakNameToPakPath(managedPak.PakFileName))
                         .IfLeft(e => Logger.Error($"Failed to sign {managedPak.PakFileName}", e));
                     return managedPak;
                 });
@@ -227,7 +214,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
         /// <summary>
         /// Moves a managed pak (and its .sig if present) from source to destination.
         /// </summary>
-        private Either<Error, Unit> _moveManagedPak(string sourcePakPath, string destPakPath) {
+        private static Either<Error, Unit> _moveManagedPak(string sourcePakPath, string destPakPath) {
             var sourceSigPath = Path.ChangeExtension(sourcePakPath, ".sig");
             var destSigPath = Path.ChangeExtension(destPakPath, ".sig");
 
@@ -237,7 +224,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                     : Right(Unit.Default));
         }
 
-        private Either<Error, Unit> _moveFile(string source, string dest) {
+        private static Either<Error, Unit> _moveFile(string source, string dest) {
             return PrimitiveExtensions
                 .TryVoid(() => File.Move(source, dest))
                 .Invoke()
@@ -264,20 +251,18 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Bind(defaultPath => _copyFile(defaultPath, signedName));
         }
 
-        private Either<Error, Unit> _unsignFile(string path) {
+        private static Either<Error, Unit> _unsignFile(string path) {
             var signedName = Path.ChangeExtension(path, ".sig");
             return _deleteFile(signedName);
         }
 
         /// <summary>
-        /// Delete any ReleaseMap entries that don't
-        /// actually have a corresponding file on disk anymore.
-        /// NOTE: this should only actually do anything because the *user*
-        /// messed something up
+        /// Delete any ReleaseMap entries that don't have a corresponding file on disk anymore.
+        /// NOTE: this should only do anything when the *user* messed something up
         /// </summary>
         private void SynchronizeWithDir() {
             var missing = _managedPaks
-                .Filter(p => !File.Exists(pakNameToPakPath(p.PakFileName)))
+                .Filter(p => !File.Exists(PakNameToPakPath(p.PakFileName)))
                 .ToHashSet();
 
             if (missing.Count == 0) return;
@@ -298,10 +283,10 @@ namespace UnchainedLauncher.Core.Services.PakDir {
 
         public Option<string> GetManagedPakFilePath(ReleaseCoordinates coords) {
             return GetManagedPakFile(coords)
-                .Map(pak => pakNameToPakPath(pak.PakFileName));
+                .Map(pak => PakNameToPakPath(pak.PakFileName));
         }
 
-        private string pakNameToPakPath(string fileName) {
+        private string PakNameToPakPath(string fileName) {
             return Path.Join(DirPath, fileName);
         }
 
@@ -310,23 +295,16 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Filter(p => !_managedPaks.Exists(pak => pak.PakFileName.EndsWith(Path.GetFileName(p))));
         }
 
-        private IEnumerable<string> GetUnmanagedSigs() {
-            return GetModdedSigFiles()
-                .Filter(p => !_managedPaks.Exists(pak =>
-                    pak.PakFileName.EndsWith(Path.GetFileName(Path.ChangeExtension(p, ".pak")))
-                ));
-        }
-
         public Either<IEnumerable<Error>, Unit> SignAll() {
             return _managedPaks
-                .Map(p => pakNameToPakPath(p.PakFileName))
+                .Map(p => PakNameToPakPath(p.PakFileName))
                 .Map(_signFile)
                 .BindLefts();
         }
 
         public Either<IEnumerable<Error>, Unit> UnSignAll() {
             return _managedPaks
-                .Map(p => pakNameToPakPath(p.PakFileName))
+                .Map(p => PakNameToPakPath(p.PakFileName))
                 .Map(_unsignFile)
                 .BindLefts();
         }

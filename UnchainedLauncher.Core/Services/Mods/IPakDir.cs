@@ -3,7 +3,7 @@ using LanguageExt.Common;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.Core.Services.PakDir {
+namespace UnchainedLauncher.Core.Services.Mods {
     /// <summary>
     /// Represents a request to install a mod, containing the release coordinates and a writer factory.
     /// </summary>

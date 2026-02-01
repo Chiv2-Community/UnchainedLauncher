@@ -41,7 +41,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
         private static void InstallDummy(Core.Services.PakDir.PakDir pd, ReleaseCoordinates coords) {
             var result = pd
-                .Install(coords, StaticMkWriter, coords.ModuleName + ".pak", Option<IProgress<double>>.None);
+                .InstallModSet(coords, StaticMkWriter, coords.ModuleName + ".pak", Option<IProgress<double>>.None);
             Task.Run(async () => await result).Result.IfLeft(e => throw e);
         }
 
@@ -92,7 +92,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             var m1 = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
             InstallDummy(pd, m1);
-            pd.CleanUpDir().IfLeft(throwErrors);
+            pd.Reset().IfLeft(throwErrors);
             Assert.Empty(
                 Directory.EnumerateFiles(thisTestPath)
                     .Map(Path.GetFileName)
@@ -160,7 +160,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             InstallDummy(pd, m2);
             InstallDummy(pd, m3);
 
-            pd.SignOnly(new List<ReleaseCoordinates> { m1, m3 }).IfLeft(throwErrors);
+            pd.SignMods(new List<ReleaseCoordinates> { m1, m3 }).IfLeft(throwErrors);
 
             var m2InstallPath = pd.GetInstalledPakFile(m2).ValueUnsafe();
 
@@ -187,7 +187,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             var m2InstallPath = pd.GetInstalledPakFile(m2).ValueUnsafe();
 
-            pd.InstallOnly(new List<(ReleaseCoordinates, IPakDir.MakeFileWriter, string)> {
+            pd.InstallModSet(new List<(ReleaseCoordinates, IPakDir.MakeFileWriter, string)> {
                 (m1, StaticMkWriter, m1.ModuleName+".pak"),
                 (m3, StaticMkWriter, m1.ModuleName+".pak")
             }, Option<AccumulatedMemoryProgress>.None).IfLeft(throwErrors);

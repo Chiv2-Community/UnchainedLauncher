@@ -29,7 +29,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             _logger.Info("Ensuring sigs are removed for all modded paks.");
             var result = PakDir.UnSignUnmanaged()
                 .Bind(_ =>
-                    PakDir.GetInstalledReleases()
+                    PakDir.GetManagedPaks()
                         .Map(PakDir.Unsign)
                         .BindLefts()
                 )

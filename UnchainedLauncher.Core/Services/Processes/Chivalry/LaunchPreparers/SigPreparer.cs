@@ -29,7 +29,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             _logger.Info("Ensuring sigs are set up for all pak files.");
             var result = PakDir.SignUnmanaged()
                 .Bind(_ =>
-                    PakDir.GetInstalledReleases()
+                    PakDir.GetManagedPaks()
                         .Map(PakDir.Sign)
                         .BindLefts()
                 )

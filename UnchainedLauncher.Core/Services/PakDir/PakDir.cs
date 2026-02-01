@@ -12,78 +12,15 @@ namespace UnchainedLauncher.Core.Services.PakDir {
 
     public class PakDir : IPakDir {
         private readonly string _dirPath;
-        private readonly string _metadataFileName;
 
         private const string BasePakFileName = "pakchunk0-WindowsNoEditor.pak";
         private const string BaseSigFileName = "pakchunk0-WindowsNoEditor.sig";
 
         private static readonly ILog Logger = LogManager.GetLogger(nameof(PakDir));
 
-        // TODO: invert this map, because most uses of it are filtering on the Value, not the key.
-        private readonly object _releaseMapLock = new object();
-        private Map<string, ReleaseCoordinates> _releaseMap;
-
-        /// <summary>
-        /// Mapping from file name to ReleaseCoordinates. File name is ALWAYS lacking the path/to/pakdir/ prefix
-        /// </summary>
-        /// 
-        private Map<string, ReleaseCoordinates> ReleaseMap {
-            get => _releaseMap;
-            set {
-                _releaseMap = value;
-                SaveMetaData() //TODO: make this save less often, maybe only on process close
-                    .IfLeft(e => Logger.Error("PakDir autosave", e));
-            }
-        }
-        public PakDir(string dirPath, string metadataFileName = "metadata.json") {
+        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks) {
             _dirPath = dirPath;
-            _metadataFileName = metadataFileName;
-            ReleaseMap = TryLoadMetadata();
             SynchronizeWithDir();
-        }
-
-        private Map<string, ReleaseCoordinates> TryLoadMetadata() {
-            var fullMetadataPath = Path.Join(_dirPath, _metadataFileName);
-            return Try(() => File.ReadAllText(fullMetadataPath))
-                .Invoke()
-                .Match<Either<Error, string>>(
-                    s => Right(s),
-                    e => Error.New($"Failed to read metadata file '{fullMetadataPath}'", (Exception)e)
-                )
-                .Bind(s =>
-                    JsonHelpers.Deserialize<IEnumerable<(string, ReleaseCoordinates)>>(s)
-                        .ToEither()
-                        .MapLeft(e => Error.New($"Failed to deserialize metadata file '{fullMetadataPath}'", e))
-                        .Map(pairs => new Map<string, ReleaseCoordinates>(pairs))
-                    )
-                .Match(
-                    s => s,
-                    e => {
-                        if (e.ToException() is FileNotFoundException) {
-                            Logger.Info("Metadata file not found. Using empty one instead.");
-                            return new Map<string, ReleaseCoordinates>();
-                        }
-                        Logger.Error("Error while deserializing PakDir metadata. Starting from scratch instead.", e);
-                        return new Map<string, ReleaseCoordinates>();
-                    }
-                    );
-        }
-
-        private readonly object _saveLock = new object();
-        public Either<Error, Unit> SaveMetaData() {
-            lock (_saveLock) {
-                var jsonMetaData = JsonHelpers.Serialize(ReleaseMap);
-                var fullMetadataPath = Path.Join(_dirPath, _metadataFileName);
-                return PrimitiveExtensions.TryVoid(() => {
-                    Directory.CreateDirectory(_dirPath);
-                    File.WriteAllText(fullMetadataPath, jsonMetaData);
-                })
-                    .Invoke()
-                    .Match<Either<Error, Unit>>(
-                        s => Right(s),
-                        e => Error.New("Failed to save metadata file. Starting from scratch instead.", (Exception)e)
-                    );
-            }
         }
 
         public IEnumerable<string> GetPakFiles() {
@@ -190,7 +127,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 );
         }
 
-        public EitherAsync<Error, Unit> Install(ReleaseCoordinates coords, IPakDir.MakeFileWriter mkFileWriter, string suggestedFileName, Option<IProgress<double>> progress) {
+        public EitherAsync<Error, Unit> SetUpMod(ReleaseCoordinates coords, IPakDir.MakeFileWriter mkFileWriter, string suggestedFileName, Option<IProgress<double>> progress) {
             SynchronizeWithDir();
             return ReleaseMap
                 .Filter(c => c.Matches(coords))
@@ -223,7 +160,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
 
         }
 
-        public EitherAsync<IEnumerable<Error>, Unit> InstallOnly(
+        public EitherAsync<IEnumerable<Error>, Unit> InstallModSet(
                 IEnumerable<(
                     ReleaseCoordinates version,
                     IPakDir.MakeFileWriter,
@@ -247,7 +184,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                         }
                         var versionProgress = new MemoryProgress($"{t.Item1}");
                         progress.IfSome(p => p.AlsoTrack(versionProgress));
-                        return Install(t.Item1, t.Item2, t.Item3, Some((IProgress<double>)versionProgress));
+                        return SetUpMod(t.Item1, t.Item2, t.Item3, Some((IProgress<double>)versionProgress));
                     }
                         )
                         .BindLefts()
@@ -288,7 +225,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .Match(_unsignFile, Right(Unit.Default));
         }
 
-        public Either<IEnumerable<Error>, Unit> SignOnly(IEnumerable<ReleaseCoordinates> coords) {
+        public Either<IEnumerable<Error>, Unit> SignMods(IEnumerable<ReleaseCoordinates> coords) {
             return ReleaseMap
                 .Filter(c => coords.All(ci => ci.CompareTo(c) != 0))
                 .Map(p => _unsignFile(p.Key))
@@ -395,18 +332,11 @@ namespace UnchainedLauncher.Core.Services.PakDir {
                 .BindLefts();
         }
 
-        public Either<IEnumerable<Error>, Unit> CleanUpDir() {
+        public Either<IEnumerable<Error>, Unit> Reset() {
             return Directory.EnumerateFiles(_dirPath)
                 .Filter(p => !(p.EndsWith(BasePakFileName) || p.EndsWith(BaseSigFileName)))
                 .Map(_deleteFile)
-                .BindLefts()
-                .Map(_ => {
-                    // bypass auto-save behavior so that the .json file is not re-created
-                    lock (_releaseMapLock) {
-                        _releaseMap = ReleaseMap.Clear();
-                    }
-                    return Unit.Default;
-                });
+                .BindLefts();
         }
 
         public Either<IEnumerable<Error>, Unit> DeleteOrphanedSigs() {

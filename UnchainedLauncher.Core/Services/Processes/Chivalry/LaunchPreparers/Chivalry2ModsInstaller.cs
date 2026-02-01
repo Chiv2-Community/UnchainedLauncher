@@ -103,7 +103,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             // we can do without adding some seriously in-depth hooks in the plugin
             // that allows doing some kind of per-process pak dir isolation
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");
-            var installOnlyResult = _pakDir.InstallOnly(
+            var installOnlyResult = _pakDir.InstallModSet(
                 enumerable.Map<Release, (ReleaseCoordinates, IPakDir.MakeFileWriter, string)>(m => {
                     var coords = ReleaseCoordinates.FromRelease(m);
 

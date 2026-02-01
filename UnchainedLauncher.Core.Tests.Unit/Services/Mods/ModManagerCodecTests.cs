@@ -1,15 +1,21 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry;
 using UnchainedLauncher.Core.Tests.Unit.Utilities;
 using Xunit.Abstractions;
+using CorePakDir = UnchainedLauncher.Core.Services.PakDir;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
     public class ModManagerCodecTests : CodecTestBase<ModManager> {
         private static readonly IModRegistry Registry = LocalModRegistryFactory.DefaultModRegistry;
+        private const string TestPakDirPath = "TestPakDir";
 
         public ModManagerCodecTests(ITestOutputHelper testOutputHelper) : base(new ModManagerCodec(Registry), testOutputHelper) { }
+
+        private static CorePakDir.PakDir CreateTestPakDir() =>
+            new CorePakDir.PakDir(TestPakDirPath, Enumerable.Empty<ManagedPak>());
 
         [Fact]
         public void StandardModManager_SerializeAndDeserialize_PreservesData() {
@@ -19,7 +25,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
                 new ReleaseCoordinates("AnotherOrg", "AnotherRepo", "2.0.0")
             };
 
-            var originalManager = new ModManager(Registry, enabledMods);
+            var originalManager = new ModManager(Registry, CreateTestPakDir(), enabledMods);
 
             VerifyCodecRoundtrip(originalManager, manager => {
                 manager.EnabledModReleaseCoordinates.Should().BeEquivalentTo(enabledMods);
@@ -30,7 +36,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         [Fact]
         public void ModManager_SerializeAndDeserialize_PreservesEmptyEnabledMods() {
             var enabledMods = Array.Empty<ReleaseCoordinates>();
-            var originalManager = new ModManager(Registry, enabledMods);
+            var originalManager = new ModManager(Registry, CreateTestPakDir(), enabledMods);
 
             VerifyCodecRoundtrip(originalManager, manager => {
                 manager.EnabledModReleaseCoordinates.Should().BeEmpty();

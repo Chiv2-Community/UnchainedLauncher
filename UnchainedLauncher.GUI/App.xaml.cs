@@ -1,4 +1,4 @@
-﻿using LanguageExt;
+using LanguageExt;
 using log4net;
 using System;
 using System.Collections.ObjectModel;
@@ -38,6 +38,9 @@ namespace UnchainedLauncher.GUI {
         protected override void OnStartup(StartupEventArgs e) {
             try {
                 base.OnStartup(e);
+
+                // Capture the UI thread's SynchronizationContext for use throughout the application
+                UISynchronizationContext.Initialize();
 
                 var assembly = Assembly.GetExecutingAssembly();
                 if (File.Exists("log4net.config")) {
@@ -132,15 +135,12 @@ namespace UnchainedLauncher.GUI {
             var userDialogueSpawner = new MessageBoxSpawner();
             var registryWindowService = new RegistryWindowService();
 
-            var pakDir = new PakDir(FilePaths.PakDir);
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
             var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService,
-                installationFinder, installer, launcherReleaseLocator, pakDir, userDialogueSpawner, Shutdown);
-
-
+                installationFinder, installer, launcherReleaseLocator, modManager.PakDir, userDialogueSpawner, Shutdown);
 
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(
@@ -159,8 +159,8 @@ namespace UnchainedLauncher.GUI {
                 new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 #endif
 
-            var noSigLaunchPreparer = NoSigPreparer.Create(pakDir, userDialogueSpawner);
-            var sigLaunchPreparer = SigPreparer.Create(pakDir, userDialogueSpawner);
+            var noSigLaunchPreparer = NoSigPreparer.Create(modManager.PakDir, userDialogueSpawner);
+            var sigLaunchPreparer = SigPreparer.Create(modManager.PakDir, userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new UnchainedPluginUpdateChecker(
                 pluginReleaseLocator,
@@ -168,7 +168,7 @@ namespace UnchainedLauncher.GUI {
                 userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
-                modManager, pakDir, userDialogueSpawner
+                modManager, userDialogueSpawner
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
@@ -266,6 +266,7 @@ namespace UnchainedLauncher.GUI {
             Func<ModManager> initializeDefaultModManager = () =>
                 new ModManager(
                     registry,
+                    new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>()),
                     Enumerable.Empty<ReleaseCoordinates>()
                 );
 

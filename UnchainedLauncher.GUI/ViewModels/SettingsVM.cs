@@ -222,7 +222,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
             FileHelpers.DeleteDirectory(FilePaths.PluginDir);
 
-            PakDir.CleanUpDir();
+            PakDir.Reset();
         }
 
         [RelayCommand]

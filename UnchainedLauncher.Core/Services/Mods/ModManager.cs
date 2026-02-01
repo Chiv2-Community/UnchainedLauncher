@@ -3,6 +3,7 @@ using LanguageExt.UnsafeValueAccess;
 using log4net;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods {
@@ -46,11 +47,15 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public IModRegistry ModRegistry { get; }
 
+        public IPakDir PakDir { get; }
+
         public ModManager(
             IModRegistry modRegistry,
+            IPakDir pakDir,
             IEnumerable<ReleaseCoordinates> enabledMods,
             IEnumerable<Mod>? mods = null) {
             ModRegistry = modRegistry;
+            PakDir = pakDir;
             _enabledModReleases = enabledMods.ToList();
             _mods = mods?.ToList() ?? new List<Mod>();
         }

@@ -4,7 +4,6 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry;
 using UnchainedLauncher.Core.Tests.Unit.Utilities;
 using Xunit.Abstractions;
-using CorePakDir = UnchainedLauncher.Core.Services.PakDir;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
     public class ModManagerCodecTests : CodecTestBase<ModManager> {

@@ -9,7 +9,7 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods {
     using static LanguageExt.Prelude;
-    
+
     public class PakDir : IPakDir {
         public readonly string DirPath;
 

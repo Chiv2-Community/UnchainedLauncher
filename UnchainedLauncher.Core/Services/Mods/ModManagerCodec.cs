@@ -4,7 +4,7 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods {
-    
+
     public class ModManagerCodec : DerivedJsonCodec<ModManagerMetadata, ModManager> {
         public ModManagerCodec(IModRegistry registry) : base(ToJsonType, modManager => ToClassType(modManager, registry)) { }
 
@@ -54,7 +54,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
     ) : ModManagerMetadata(ModManagerMetadataKind.StandardModManager);
 
     public record PakDirMetadata(string DirPath, IEnumerable<ManagedPak> ManagedPaks);
-    
+
     internal static class ModManagerMetadataKind {
         public const string StandardModManager = "StandardModManager";
     }

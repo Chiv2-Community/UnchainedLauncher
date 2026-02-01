@@ -154,22 +154,65 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     .ToList()
             );
 
-            // Process removes first (frees up space and pak names)
-            installActions.OfType<InstallAction.Remove>().ForEach(ProcessRemove);
+            var removeActions = installActions.OfType<InstallAction.Remove>().ToList();
+            var skipActions = installActions.OfType<InstallAction.Skip>().ToList();
+            var moveActions = installActions.OfType<InstallAction.Move>().ToList();
+            var downloadActions = installActions.OfType<InstallAction.Download>().ToList();
 
-            // Process skips (no I/O, already in correct position)
-            foreach (var result in installActions.OfType<InstallAction.Skip>().Select(ProcessSkip)) {
-                yield return result;
+            var reorderCount = skipActions.Count + moveActions.Count;
+
+            // Set up all progress tracking upfront so users see the full scope of work
+            var removeProgress = removeActions.Any()
+                ? progress.Map(aggregateProgress => {
+                    var prog = new MemoryProgress($"Removing {removeActions.Count} paks");
+                    aggregateProgress.AlsoTrack(prog);
+                    return prog;
+                })
+                : Option<MemoryProgress>.None;
+
+            var reorderProgress = reorderCount > 0
+                ? progress.Map(aggregateProgress => {
+                    var prog = new MemoryProgress($"Reordering {reorderCount} paks");
+                    aggregateProgress.AlsoTrack(prog);
+                    return prog;
+                })
+                : Option<MemoryProgress>.None;
+
+            var downloadProgressMap = downloadActions
+                .Select(d => {
+                    var prog = progress.Map(aggregateProgress => {
+                        var mp = new MemoryProgress($"Installing {d.Install.Coordinates.ModuleName}");
+                        aggregateProgress.AlsoTrack(mp);
+                        return mp;
+                    });
+                    return (Download: d, Progress: prog);
+                })
+                .ToDictionary(x => x.Download, x => x.Progress);
+
+            // Process removes
+            for (var i = 0; i < removeActions.Count; i++) {
+                ProcessRemove(removeActions[i]);
+                removeProgress.IfSome(p => p.Report(100d * (i + 1) / removeActions.Count));
             }
 
-            // Process moves before downloads - names are unique (org prefix added for duplicates)
-            foreach (var result in installActions.OfType<InstallAction.Move>().Select(ProcessMove)) {
+            // Process skips and moves together as "reordering"
+            var reorderIndex = 0;
+            foreach (var result in skipActions.Select(ProcessSkip)) {
                 yield return result;
+                reorderIndex++;
+                reorderProgress.IfSome(p => p.Report(100d * reorderIndex / reorderCount));
+            }
+
+            foreach (var result in moveActions.Select(ProcessMove)) {
+                yield return result;
+                reorderIndex++;
+                reorderProgress.IfSome(p => p.Report(100d * reorderIndex / reorderCount));
             }
 
             // Process downloads for mods not yet present
-            foreach (var download in installActions.OfType<InstallAction.Download>()) {
-                yield return await ProcessDownload(download, progress);
+            foreach (var download in downloadActions) {
+                var taskProgress = downloadProgressMap[download];
+                yield return await ProcessDownload(download, taskProgress);
             }
         }
 
@@ -207,14 +250,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 });
         }
 
-        private async Task<Either<Error, ManagedPak>> ProcessDownload(InstallAction.Download download, Option<AccumulatedMemoryProgress> progress) {
-            var taskProgress = progress.Map(IProgress<double> (p) => {
-                var mp = new MemoryProgress($"Installing {download.Install.Coordinates.ModuleName}");
-                p.AlsoTrack(mp);
-                return mp;
-            });
-
-            return (await _writePak(download.Install.Writer, taskProgress, download.FinalPakName))
+        private async Task<Either<Error, ManagedPak>> ProcessDownload(InstallAction.Download download, Option<MemoryProgress> taskProgress) {
+            return (await _writePak(download.Install.Writer, taskProgress.Map(p => (IProgress<double>)p), download.FinalPakName))
                 .Map(pakFileName => {
                     var managedPak = new ManagedPak(download.Install.Coordinates, pakFileName, download.Index);
                     _managedPaks.Add(managedPak);

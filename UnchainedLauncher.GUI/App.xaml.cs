@@ -1,6 +1,7 @@
 using LanguageExt;
 using log4net;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -33,7 +34,7 @@ namespace UnchainedLauncher.GUI {
     /// </summary>
     public partial class App : Application {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
-
+        
         protected override void OnStartup(StartupEventArgs e) {
             try {
                 base.OnStartup(e);
@@ -56,16 +57,7 @@ namespace UnchainedLauncher.GUI {
                         log4net.Config.XmlConfigurator.Configure(configStream);
                     }
                 }
-
-                AppDomain.CurrentDomain.UnhandledException +=
-                    (sender, args) => {
-                        var ex = (Exception)args.ExceptionObject;
-                        _log.Fatal("Unhandled exception", ex);
-                        File.WriteAllText("crash.log", ex.ToString());
-                        var currentDirectory = Directory.GetCurrentDirectory();
-                        MessageBox.Show($"An unhandled exception occurred. Please report this to a developer with {currentDirectory}\\crash.log ", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    };
-
+                
                 // Init common dependencies
                 var githubClient = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("UnchainedLauncher"));
                 var unchainedLauncherReleaseLocator =
@@ -320,7 +312,7 @@ namespace UnchainedLauncher.GUI {
         }
 
         private void RegisterSaveToFileOnExit<T>(T t, ICodec<T> codec, string filePath) {
-            Exit += (_, _) => {
+            RegisterExitHandlers([() => {
                 try {
                     _log.Info($"Saving {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec})...");
                     codec.SerializeFile(filePath, t);
@@ -330,7 +322,60 @@ namespace UnchainedLauncher.GUI {
                         $"Failed to save configuration for {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec}).",
                         ex);
                 }
+            }]);
+        }
+        
+        /// <summary>
+        /// Registers exit handlers for multiple shutdown scenarios to ensure reliable saving.
+        /// This should be called once during startup after all components are initialized.
+        /// </summary>
+        private void RegisterExitHandlers(List<Action> exitActions) {
+            // Standard application exit
+            Exit += (_, _) => ExecuteExitActions("Application.Exit", exitActions);
+            
+            // Windows session ending (shutdown, logoff, restart)
+            SessionEnding += (_, args) => {
+                _log.Info($"Session ending: {args.ReasonSessionEnding}");
+                ExecuteExitActions("SessionEnding", exitActions);
             };
+            
+            // Process exit at the AppDomain level (covers more scenarios than Application.Exit)
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => ExecuteExitActions("ProcessExit", exitActions);
+            
+            AppDomain.CurrentDomain.UnhandledException +=
+                (sender, args) => {
+                    var ex = (Exception)args.ExceptionObject;
+                    _log.Fatal("Unhandled exception", ex);
+                        
+                    // Attempt to save configuration before crashing
+                    ExecuteExitActions("UnhandledException", exitActions);
+                        
+                    File.WriteAllText("crash.log", ex.ToString());
+                    var currentDirectory = Directory.GetCurrentDirectory();
+                    MessageBox.Show($"An unhandled exception occurred. Please report this to a developer with {currentDirectory}\\crash.log ", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                };
+
+        }
+
+        /// <summary>
+        /// Executes all registered exit actions exactly once, regardless of how many
+        /// exit events fire. This ensures data is saved but prevents duplicate saves.
+        /// </summary>
+        /// <param name="source">The event source triggering the exit actions (for logging).</param>
+        /// <param name="exitActions"></param>
+        private void ExecuteExitActions(string source, List<Action> exitActions) {
+            _log.Info($"Executing {exitActions.Count} exit actions (triggered by {source})...");
+            
+            foreach (var action in exitActions) {
+                try {
+                    action();
+                }
+                catch (Exception ex) {
+                    _log.Error($"Exit action failed during {source}", ex);
+                }
+            }
+            
+            _log.Info("All exit actions completed.");
         }
     }
 }

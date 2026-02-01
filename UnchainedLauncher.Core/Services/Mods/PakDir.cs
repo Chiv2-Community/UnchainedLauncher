@@ -262,7 +262,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         private void ProcessRemove(InstallAction.Remove remove) {
-            Logger.Info($"Removing pak: {remove.Existing.PakFileName} ({remove.Existing.Coordinates})");
+            Logger.Info($"Removing pak: {remove.Existing.PakFileName} ({remove.Existing.Coordinates.ModuleName} version {remove.Existing.Coordinates.Version})");
             var uninstallResult = Uninstall(remove.Existing.Coordinates);
             uninstallResult.IfRight(_ => _managedPaks.RemoveAll(p => p.Coordinates.Matches(remove.Existing.Coordinates)));
             uninstallResult.IfLeft(e => Logger.Error($"Failed to remove pak {remove.Existing.PakFileName}: {e}"));

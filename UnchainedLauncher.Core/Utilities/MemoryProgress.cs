@@ -43,7 +43,7 @@ namespace UnchainedLauncher.Core.Utilities {
                 Progresses.Add(memoryProgress);
                 ProgressPercentage = CalcAggregatePercentage();
             }, null);
-            
+
             BindTo(memoryProgress);
         }
 

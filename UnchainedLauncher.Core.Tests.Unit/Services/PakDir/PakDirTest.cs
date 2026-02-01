@@ -1,18 +1,16 @@
 using JetBrains.Annotations;
 using LanguageExt;
 using LanguageExt.Common;
-using LanguageExt.UnsafeValueAccess;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Utilities;
-using Xunit.Sdk;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
     [TestSubject(typeof(Core.Services.PakDir.PakDir))]
     public class PakDirTest {
-        
+
         private class StubModManager : IModManager {
             public IEnumerable<Mod> Mods => Enumerable.Empty<Mod>();
             public IModRegistry ModRegistry => throw new NotImplementedException();
@@ -26,7 +24,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             public bool EnableModRelease(ReleaseCoordinates coords) => true;
             public bool DisableModRelease(ReleaseCoordinates coords) => true;
         }
-        
+
         private static IModManager CreateMockModManager() {
             return new StubModManager();
         }
@@ -333,7 +331,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             // Create managed paks list with entries that don't actually exist on disk
             var existingPakName = "qa__-__ExistingMod.pak";
             var missingPakName = "qb__-__MissingMod.pak";
-            
+
             // Create only the existing pak file
             File.WriteAllText(Path.Join(thisTestPath, existingPakName), "existing mod contents");
 
@@ -357,7 +355,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             var pak1Name = "qa__-__Mod1.pak";
             var pak2Name = "qb__-__Mod2.pak";
-            
+
             // Create both pak files
             File.WriteAllText(Path.Join(thisTestPath, pak1Name), "mod1 contents");
             File.WriteAllText(Path.Join(thisTestPath, pak2Name), "mod2 contents");
@@ -395,7 +393,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             PrepareTestDirWithSig(thisTestPath);
 
             var pd = new Core.Services.PakDir.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), CreateMockModManager());
-            
+
             // Same module name, different organizations
             var mod1 = new ReleaseCoordinates("Unchained-Mods", "SharedName", "1.0.0");
             var mod2 = new ReleaseCoordinates("Chained-Mods", "SharedName", "1.0.0");
@@ -413,7 +411,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             // Both mods should be installed with org prefixes to differentiate
             Assert.Equal(2, pd.ManagedPaks.Count());
             var pakNames = pd.ManagedPaks.Select(p => p.PakFileName).ToList();
-            
+
             // Verify both pak names contain the org prefix
             Assert.Contains(pakNames, n => n.Contains("Unchained-Mods_SharedName"));
             Assert.Contains(pakNames, n => n.Contains("Chained-Mods_SharedName"));
@@ -426,11 +424,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             var pakName = "qa__-__TestMod.pak";
             var sigName = "qa__-__TestMod.sig";
-            
+
             // Create pak and its sig file
             File.WriteAllText(Path.Join(thisTestPath, pakName), "mod contents");
             File.WriteAllText(Path.Join(thisTestPath, sigName), "sig contents");
-            
+
             // Also create an orphaned sig
             var orphanedSigName = "orphaned.sig";
             File.WriteAllText(Path.Join(thisTestPath, orphanedSigName), "orphaned sig");
@@ -451,7 +449,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         public void DeleteOrphanedSigs_PreservesBaseSig() {
             var thisTestPath = Path.Join(BaseTestDir, nameof(DeleteOrphanedSigs_PreservesBaseSig));
             PrepareTestDirWithSig(thisTestPath);
-            
+
             // Create base pak file (sig is only preserved if corresponding pak exists)
             File.WriteAllText(Path.Join(thisTestPath, "pakchunk0-WindowsNoEditor.pak"), "base pak");
 
@@ -489,7 +487,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             // The installed pak should have a different name due to collision avoidance
             Assert.Single(pd.ManagedPaks);
             var installedPakName = pd.ManagedPaks.First().PakFileName;
-            
+
             // Should not be exactly the same as the conflicting file
             Assert.NotEqual("qa__-__TestMod.pak", installedPakName);
             // But should still contain the module name
@@ -505,15 +503,15 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var coords = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
 
             await InstallDummy(pd, coords);
-            
+
             var pak = pd.ManagedPaks.First();
             var sigPath = Path.ChangeExtension(Path.Join(thisTestPath, pak.PakFileName), ".sig");
-            
+
             // Sig file should already exist from install
             Assert.True(File.Exists(sigPath));
             var originalContent = File.ReadAllText(sigPath);
             var originalWriteTime = File.GetLastWriteTimeUtc(sigPath);
-            
+
             // Small delay to ensure write time would differ if file was modified
             await Task.Delay(100);
 
@@ -555,11 +553,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             PrepareTestDirWithSig(thisTestPath);
 
             var pd = new Core.Services.PakDir.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), CreateMockModManager());
-            
+
             // Install multiple mods
             await InstallDummy(pd, new ReleaseCoordinates("Org1", "Mod1", "1.0.0"));
             await InstallDummy(pd, new ReleaseCoordinates("Org2", "Mod2", "1.0.0"));
-            
+
             Assert.Equal(2, pd.ManagedPaks.Count());
 
             // Reset
@@ -635,11 +633,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             Assert.Single(pd.ManagedPaks);
             var installedPak = pd.ManagedPaks.First();
-            
+
             // Pak file should exist on disk
             var pakPath = Path.Join(thisTestPath, installedPak.PakFileName);
             Assert.True(File.Exists(pakPath));
-            
+
             // File name should contain module name and have .pak extension
             Assert.Contains(coords.ModuleName, installedPak.PakFileName);
             Assert.EndsWith(".pak", installedPak.PakFileName);
@@ -678,7 +676,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             var movedPakA = pd.ManagedPaks.First(p => p.Coordinates.ModuleName == "ModA");
             var newSigPathA = Path.ChangeExtension(Path.Join(thisTestPath, movedPakA.PakFileName), ".sig");
-            
+
             // Old sig should not exist, new sig should exist
             Assert.False(File.Exists(originalSigPathA));
             Assert.True(File.Exists(newSigPathA));

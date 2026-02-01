@@ -2,7 +2,6 @@ using LanguageExt;
 using LanguageExt.Common;
 using log4net;
 using UnchainedLauncher.Core.Extensions;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.PakDir;
@@ -108,16 +107,16 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             var installOnlyResults =
                 await _pakDir.InstallModSet(
                     enumerable.Map(m => {
-                            var coords = ReleaseCoordinates.FromRelease(m);
+                        var coords = ReleaseCoordinates.FromRelease(m);
 
-                            return new ModInstallRequest(
-                                coords,
-                                (outputPath) =>
-                                    _modManager.ModRegistry
-                                        .DownloadPak(coords, outputPath)
-                                        .MapLeft(e => Error.New(e))
-                            );
-                        }
+                        return new ModInstallRequest(
+                            coords,
+                            (outputPath) =>
+                                _modManager.ModRegistry
+                                    .DownloadPak(coords, outputPath)
+                                    .MapLeft(e => Error.New(e))
+                        );
+                    }
                     ), progresses
                 ).ToListAsync();
 
@@ -128,14 +127,14 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
             successes.ForEach(succ => _logger.Debug($"Successfully installed {succ.Coordinates.ModuleName} version {succ.Coordinates.Version}"));
 
-            if(errors.Count != 0) {
+            if (errors.Count != 0) {
                 errors.ToList().ForEach(e => _logger.Error($"Failed to install releases: {e.Message}"));
                 var shouldContinue = _userDialogueSpawner.DisplayYesNoMessage(
                     $"There were errors while installing releases:\n " +
                     $"{errors.Aggregate((a, b) => $"{a}\n\n{b}")}\n" +
                     "Would you like to continue anyway?", "Errors encountered"
                     );
-                if(shouldContinue == UserDialogueChoice.No) return None;
+                if (shouldContinue == UserDialogueChoice.No) return None;
             }
 
             closeProgressWindow();

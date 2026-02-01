@@ -38,7 +38,7 @@ namespace UnchainedLauncher.GUI {
         protected override void OnStartup(StartupEventArgs e) {
             try {
                 base.OnStartup(e);
-                
+
                 // Capture the UI thread's SynchronizationContext for use throughout the application
                 UISynchronizationContext.Initialize();
 

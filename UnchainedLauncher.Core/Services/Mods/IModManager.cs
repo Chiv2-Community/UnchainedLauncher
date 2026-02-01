@@ -252,12 +252,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// </summary>
         private static IEnumerable<Release> EnsureUnchainedModsIncluded(this IModManager modManager, IEnumerable<Release> dependencies, ModIdentifier queriedMod) {
             var dependenciesList = dependencies.ToList();
-            
+
             // Don't add UnchainedMods as a dependency of itself
             if (CommonMods.UnchainedMods.Matches(queriedMod)) {
                 return dependenciesList;
             }
-            
+
             if (dependenciesList.Select(ReleaseCoordinates.FromRelease).Exists(CommonMods.UnchainedMods.Matches)) {
                 return dependenciesList;
             }

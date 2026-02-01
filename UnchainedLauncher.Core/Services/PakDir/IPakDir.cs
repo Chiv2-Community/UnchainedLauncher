@@ -8,7 +8,7 @@ namespace UnchainedLauncher.Core.Services.PakDir {
     public record ManagedPak(ReleaseCoordinates Coordinates, string PakFileName, int Priority) {
         public override string ToString() => $"{Coordinates} @ {PakFileName} (priority {Priority})";
     }
-    
+
     public interface IPakDir {
         delegate EitherAsync<Error, FileWriter> MakeFileWriter(string filePath);
         Either<Error, Unit> Uninstall(ModIdentifier coords);

@@ -17,7 +17,7 @@ namespace UnchainedLauncher.GUI.Views {
                     );
                 }
             }
-            
+
             DataContext = Progress = progress;
             InitializeComponent();
         }

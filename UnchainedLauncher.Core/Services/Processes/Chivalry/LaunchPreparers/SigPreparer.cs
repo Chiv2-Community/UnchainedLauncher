@@ -1,6 +1,5 @@
 ﻿using LanguageExt;
 using log4net;
-using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.PakDir;
 using static LanguageExt.Prelude;
 

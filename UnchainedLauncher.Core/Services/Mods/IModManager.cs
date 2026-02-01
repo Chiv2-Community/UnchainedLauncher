@@ -320,11 +320,20 @@ namespace UnchainedLauncher.Core.Services.Mods {
             this IModManager modManager,
             Option<AccumulatedMemoryProgress> progress) {
 
+            var dependencyProgress = new MemoryProgress("Resolving dependencies");
+            var sortProgress = new MemoryProgress("Sorting by dependencies");
+            progress.IfSome(p => {
+                p.AlsoTrack(dependencyProgress);
+                p.AlsoTrack(sortProgress);
+            });
+
             // Get all enabled mods with their dependencies
             var releasesToInstall = modManager.GetEnabledAndDependencyReleases().ToList();
+            dependencyProgress.Report(100);
 
             // Sort by dependencies
             var sortedReleases = modManager.SortByDependencies(releasesToInstall).ToList();
+            sortProgress.Report(100);
 
             // Create install requests with download writers
             var installRequests = sortedReleases

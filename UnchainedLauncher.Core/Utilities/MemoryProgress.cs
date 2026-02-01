@@ -39,18 +39,12 @@ namespace UnchainedLauncher.Core.Utilities {
         }
 
         public void AlsoTrack(MemoryProgress memoryProgress) {
-            BindTo(memoryProgress);
-
-            if (_synchronizationContext == null) {
-                throw new InvalidOperationException(
-                    "AccumulatedMemoryProgress must be created on a thread with a SynchronizationContext (typically the UI thread). " +
-                    "Current SynchronizationContext is null, which means ObservableCollection modifications cannot be safely marshaled to the UI thread.");
-            }
-
             _synchronizationContext.Post(_ => {
                 Progresses.Add(memoryProgress);
                 ProgressPercentage = CalcAggregatePercentage();
             }, null);
+            
+            BindTo(memoryProgress);
         }
 
         private void OnProgressPropertyChanged(object? sender, PropertyChangedEventArgs e) {

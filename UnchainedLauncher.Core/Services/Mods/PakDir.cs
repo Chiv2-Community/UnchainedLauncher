@@ -104,6 +104,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
             // Input is trusted to be pre-sorted by dependency order
             var installsList = installs.ToList();
+            var installCoordinatesSet = installsList.Select(i => i.Coordinates).ToHashSet();
 
             // Collect all pak file names, adding org prefix for duplicate module names
             var moduleNameCounts = installsList
@@ -132,7 +133,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .ToDictionary(p => p.Coordinates, p => p);
 
             // Categorize each install: Skip (already correct), Move (relocate), or Download (new)
-            var categorized = installsList
+            var installActions = installsList
                 .Zip(sortedPakNames, (install, finalPakName) => (Install: install, FinalPakName: finalPakName))
                 .Select((item, index) => {
                     var existing = existingByCoords.TryGetValue(item.Install.Coordinates, out var e) ? Some(e) : None;
@@ -145,18 +146,29 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 })
                 .ToList();
 
+            // Categorize managed paks not in install set as Remove actions
+            installActions.AddRange(
+                _managedPaks
+                    .Filter(p => !installCoordinatesSet.Any(c => c.Matches(p.Coordinates)))
+                    .Select(p => new InstallAction.Remove(p))
+                    .ToList()
+            );
+
+            // Process removes first (frees up space and pak names)
+            installActions.OfType<InstallAction.Remove>().ForEach(ProcessRemove);
+
             // Process skips (no I/O, already in correct position)
-            foreach (var result in categorized.OfType<InstallAction.Skip>().Select(ProcessSkip)) {
+            foreach (var result in installActions.OfType<InstallAction.Skip>().Select(ProcessSkip)) {
                 yield return result;
             }
 
             // Process moves before downloads - names are unique (org prefix added for duplicates)
-            foreach (var result in categorized.OfType<InstallAction.Move>().Select(ProcessMove)) {
+            foreach (var result in installActions.OfType<InstallAction.Move>().Select(ProcessMove)) {
                 yield return result;
             }
 
             // Process downloads for mods not yet present
-            foreach (var download in categorized.OfType<InstallAction.Download>()) {
+            foreach (var download in installActions.OfType<InstallAction.Download>()) {
                 yield return await ProcessDownload(download, progress);
             }
         }
@@ -165,6 +177,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             public record Skip(ModInstallRequest Install, int Index, ManagedPak Existing) : InstallAction;
             public record Move(ModInstallRequest Install, int Index, ManagedPak Existing, string TargetPakName) : InstallAction;
             public record Download(ModInstallRequest Install, int Index, string FinalPakName) : InstallAction;
+            public record Remove(ManagedPak Existing) : InstallAction;
         }
 
         private Either<Error, ManagedPak> ProcessSkip(InstallAction.Skip skip) {
@@ -209,6 +222,13 @@ namespace UnchainedLauncher.Core.Services.Mods {
                         .IfLeft(e => Logger.Error($"Failed to sign {managedPak.PakFileName}", e));
                     return managedPak;
                 });
+        }
+
+        private void ProcessRemove(InstallAction.Remove remove) {
+            Logger.Info($"Removing pak: {remove.Existing.PakFileName} ({remove.Existing.Coordinates})");
+            var uninstallResult = Uninstall(remove.Existing.Coordinates);
+            uninstallResult.IfRight(_ => _managedPaks.RemoveAll(p => p.Coordinates.Matches(remove.Existing.Coordinates)));
+            uninstallResult.IfLeft(e => Logger.Error($"Failed to remove pak {remove.Existing.PakFileName}: {e}"));
         }
 
         /// <summary>

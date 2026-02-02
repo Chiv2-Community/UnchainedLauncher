@@ -353,15 +353,13 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         public Either<IEnumerable<Error>, Unit> SignAll() {
-            return _managedPaks
-                .Map(p => PakNameToPakPath(p.PakFileName))
+            return GetModPakFiles()
                 .Map(_signFile)
                 .BindLefts();
         }
 
         public Either<IEnumerable<Error>, Unit> UnSignAll() {
-            return _managedPaks
-                .Map(p => PakNameToPakPath(p.PakFileName))
+            return GetModPakFiles()
                 .Map(_unsignFile)
                 .BindLefts();
         }

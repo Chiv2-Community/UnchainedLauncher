@@ -631,6 +631,59 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
+        public void UnSignAll_UnsignsUnmanagedPaks() {
+            var thisTestPath = Path.Join(BaseTestDir, nameof(UnSignAll_UnsignsUnmanagedPaks));
+            PrepareTestDirWithSig(thisTestPath);
+
+            // Create an unmanaged pak file with a sig file
+            var unmanagedPakName = "unmanaged_mod.pak";
+            var unmanagedPakPath = Path.Join(thisTestPath, unmanagedPakName);
+            var unmanagedSigPath = Path.ChangeExtension(unmanagedPakPath, ".sig");
+            File.WriteAllText(unmanagedPakPath, "unmanaged pak contents");
+            File.WriteAllText(unmanagedSigPath, "unmanaged sig contents");
+
+            // Verify sig file exists for the unmanaged pak
+            Assert.True(File.Exists(unmanagedSigPath));
+
+            // Create PakDir with no managed paks
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
+
+            // Unsign all should unsign the unmanaged pak
+            var result = pd.UnSignAll();
+            result.IfLeft(throwErrors);
+
+            // Verify sig file is now deleted for the unmanaged pak
+            Assert.False(File.Exists(unmanagedSigPath));
+            // But the pak file itself should still exist
+            Assert.True(File.Exists(unmanagedPakPath));
+        }
+
+        [Fact]
+        public void SignAll_SignsUnmanagedPaks() {
+            var thisTestPath = Path.Join(BaseTestDir, nameof(SignAll_SignsUnmanagedPaks));
+            PrepareTestDirWithSig(thisTestPath);
+
+            // Create an unmanaged pak file (not tracked in ManagedPaks)
+            var unmanagedPakName = "unmanaged_mod.pak";
+            var unmanagedPakPath = Path.Join(thisTestPath, unmanagedPakName);
+            var unmanagedSigPath = Path.ChangeExtension(unmanagedPakPath, ".sig");
+            File.WriteAllText(unmanagedPakPath, "unmanaged pak contents");
+
+            // Verify no sig file exists for the unmanaged pak
+            Assert.False(File.Exists(unmanagedSigPath));
+
+            // Create PakDir with no managed paks
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
+
+            // Sign all should sign the unmanaged pak
+            var result = pd.SignAll();
+            result.IfLeft(throwErrors);
+
+            // Verify sig file now exists for the unmanaged pak
+            Assert.True(File.Exists(unmanagedSigPath));
+        }
+
+        [Fact]
         public async Task InstallModSet_MoveAlsoMovesSigFile() {
             var thisTestPath = Path.Join(BaseTestDir, nameof(InstallModSet_MoveAlsoMovesSigFile));
             PrepareTestDirWithSig(thisTestPath);

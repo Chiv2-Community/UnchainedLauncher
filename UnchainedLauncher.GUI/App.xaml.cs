@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services;
@@ -38,6 +39,16 @@ namespace UnchainedLauncher.GUI {
         protected override void OnStartup(StartupEventArgs e) {
             try {
                 base.OnStartup(e);
+                
+                AppDomain.CurrentDomain.UnhandledException +=
+                    (sender, args) => {
+                        var ex = (Exception)args.ExceptionObject;
+                        _log.Fatal("Unhandled exception", ex);
+                        
+                        File.WriteAllText("crash.log", ex.ToString());
+                        var currentDirectory = Directory.GetCurrentDirectory();
+                        MessageBox.Show($"An unhandled exception occurred. Please report this to a developer with {currentDirectory}\\crash.log ", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    };
 
                 // Capture the UI thread's SynchronizationContext for use throughout the application
                 UISynchronizationContext.Initialize();
@@ -312,7 +323,7 @@ namespace UnchainedLauncher.GUI {
         }
 
         private void RegisterSaveToFileOnExit<T>(T t, ICodec<T> codec, string filePath) {
-            RegisterExitHandlers([() => {
+            RegisterExitHandler(() => {
                 try {
                     _log.Info($"Saving {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec})...");
                     codec.SerializeFile(filePath, t);
@@ -322,39 +333,19 @@ namespace UnchainedLauncher.GUI {
                         $"Failed to save configuration for {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec}).",
                         ex);
                 }
-            }]);
+            });
         }
         
         /// <summary>
         /// Registers exit handlers for multiple shutdown scenarios to ensure reliable saving.
         /// This should be called once during startup after all components are initialized.
         /// </summary>
-        private void RegisterExitHandlers(List<Action> exitActions) {
-            // Standard application exit
-            Exit += (_, _) => ExecuteExitActions("Application.Exit", exitActions);
-            
-            // Windows session ending (shutdown, logoff, restart)
-            SessionEnding += (_, args) => {
-                _log.Info($"Session ending: {args.ReasonSessionEnding}");
-                ExecuteExitActions("SessionEnding", exitActions);
-            };
-            
-            // Process exit at the AppDomain level (covers more scenarios than Application.Exit)
-            AppDomain.CurrentDomain.ProcessExit += (_, _) => ExecuteExitActions("ProcessExit", exitActions);
-            
-            AppDomain.CurrentDomain.UnhandledException +=
-                (sender, args) => {
-                    var ex = (Exception)args.ExceptionObject;
-                    _log.Fatal("Unhandled exception", ex);
-                        
-                    // Attempt to save configuration before crashing
-                    ExecuteExitActions("UnhandledException", exitActions);
-                        
-                    File.WriteAllText("crash.log", ex.ToString());
-                    var currentDirectory = Directory.GetCurrentDirectory();
-                    MessageBox.Show($"An unhandled exception occurred. Please report this to a developer with {currentDirectory}\\crash.log ", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                };
-
+        private void RegisterExitHandler(Action exitAction) {
+            Exit += (_, _) => ExecuteExitAction("Application.Exit", exitAction);
+            SessionEnding += (_, args) => ExecuteExitAction("SessionEnding", exitAction);
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => ExecuteExitAction("ProcessExit", exitAction);
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) => ExecuteExitAction("UnhandledException", exitAction);
+            Console.CancelKeyPress += (_, args) => ExecuteExitAction("Console.CancelKeyPress", exitAction);
         }
 
         /// <summary>
@@ -362,20 +353,14 @@ namespace UnchainedLauncher.GUI {
         /// exit events fire. This ensures data is saved but prevents duplicate saves.
         /// </summary>
         /// <param name="source">The event source triggering the exit actions (for logging).</param>
-        /// <param name="exitActions"></param>
-        private void ExecuteExitActions(string source, List<Action> exitActions) {
-            _log.Info($"Executing {exitActions.Count} exit actions (triggered by {source})...");
-            
-            foreach (var action in exitActions) {
-                try {
-                    action();
-                }
-                catch (Exception ex) {
-                    _log.Error($"Exit action failed during {source}", ex);
-                }
+        /// <param name="exitAction"></param>
+        private void ExecuteExitAction(string source, Action exitAction) {
+            try {
+                exitAction();
             }
-            
-            _log.Info("All exit actions completed.");
+            catch (Exception ex) {
+                _log.Error($"Exit action failed during {source}", ex);
+            }
         }
     }
 }

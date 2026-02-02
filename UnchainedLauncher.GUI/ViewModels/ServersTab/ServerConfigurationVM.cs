@@ -331,7 +331,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             AdvancedConfigurationSection.PlayerBotCount,
             AdvancedConfigurationSection.WarmupTime,
             AdvancedConfigurationSection.AdditionalCLIArgs,
-            EnabledServerModList,
+            new ObservableCollection<BlueprintDto>(EnabledServerModList.Filter(x => x.ModName != null)),
             AdvancedConfigurationSection.DiscordBotToken,
             AdvancedConfigurationSection.DiscordChannelId,
             AdvancedConfigurationSection.DiscordAdminChannelId,

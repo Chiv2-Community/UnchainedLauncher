@@ -37,7 +37,6 @@ namespace UnchainedLauncher.GUI.Behaviors {
                 listBox.PreviewMouseLeftButtonUp += OnPreviewMouseLeftButtonUp;
                 listBox.Drop += OnDrop;
                 listBox.DragOver += OnDragOver;
-                listBox.DragLeave += OnDragLeave;
                 listBox.AllowDrop = true;
             }
             else {
@@ -46,57 +45,42 @@ namespace UnchainedLauncher.GUI.Behaviors {
                 listBox.PreviewMouseLeftButtonUp -= OnPreviewMouseLeftButtonUp;
                 listBox.Drop -= OnDrop;
                 listBox.DragOver -= OnDragOver;
-                listBox.DragLeave -= OnDragLeave;
             }
         }
 
         private static void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e) {
             if (sender is not ListBox listBox) return;
+            if (IsClickOnButton(e.OriginalSource)) return;
 
             _dragStartPoint = e.GetPosition(listBox);
-
-            // Check if we clicked on a button (don't start drag from buttons)
-            if (e.OriginalSource is DependencyObject source && FindAncestor<Button>(source) != null) {
-                return;
-            }
-
             _isDragging = false;
         }
 
         private static void OnPreviewMouseMove(object sender, MouseEventArgs e) {
             if (sender is not ListBox listBox) return;
-            if (e.LeftButton != MouseButtonState.Pressed) return;
-            if (_isDragging) return;
-
-            // Check if we clicked on a button
-            if (e.OriginalSource is DependencyObject source && FindAncestor<Button>(source) != null) {
-                return;
-            }
+            if (e.LeftButton != MouseButtonState.Pressed || _isDragging) return;
+            if (IsClickOnButton(e.OriginalSource)) return;
 
             var currentPosition = e.GetPosition(listBox);
             var diff = _dragStartPoint - currentPosition;
 
-            // Check if the mouse has moved enough to start a drag
-            if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
-                Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance) {
+            if (Math.Abs(diff.X) <= SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(diff.Y) <= SystemParameters.MinimumVerticalDragDistance) return;
 
-                var listBoxItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
-                if (listBoxItem == null) return;
+            var listBoxItem = FindAncestor<ListBoxItem>((DependencyObject)e.OriginalSource);
+            if (listBoxItem == null) return;
 
-                var item = listBox.ItemContainerGenerator.ItemFromContainer(listBoxItem);
-                if (item == null) return;
+            var item = listBox.ItemContainerGenerator.ItemFromContainer(listBoxItem);
+            if (item == null) return;
 
-                _isDragging = true;
+            _isDragging = true;
+            CreateDragAdorner(listBox, listBoxItem);
 
-                // Create adorner for visual feedback
-                CreateDragAdorner(listBox, listBoxItem);
+            var data = new DataObject(DragDataFormat, new DragData(listBox, item));
+            DragDrop.DoDragDrop(listBox, data, DragDropEffects.Move);
 
-                var data = new DataObject(DragDataFormat, new DragData(listBox, item));
-                DragDrop.DoDragDrop(listBox, data, DragDropEffects.Move);
-
-                RemoveDragAdorner();
-                _isDragging = false;
-            }
+            RemoveDragAdorner();
+            _isDragging = false;
         }
 
         private static void OnPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e) {
@@ -122,10 +106,6 @@ namespace UnchainedLauncher.GUI.Behaviors {
             }
 
             e.Handled = true;
-        }
-
-        private static void OnDragLeave(object sender, DragEventArgs e) {
-            // Keep adorner visible during drag
         }
 
         private static void OnDrop(object sender, DragEventArgs e) {
@@ -172,59 +152,17 @@ namespace UnchainedLauncher.GUI.Behaviors {
         }
 
         private static int GetInsertionIndex(ListBox listBox, Point dropPosition) {
-            // Get the items panel (could be WrapPanel, StackPanel, etc.)
-            var itemsPanel = FindVisualChild<Panel>(listBox);
-            if (itemsPanel == null) return -1;
-
             var items = listBox.Items;
             if (items.Count == 0) return 0;
 
-            // Find the item closest to the drop position
-            var bestIndex = items.Count;
-            var bestDistance = double.MaxValue;
-
-            for (var i = 0; i < items.Count; i++) {
-                var container = listBox.ItemContainerGenerator.ContainerFromIndex(i) as FrameworkElement;
-                if (container == null) continue;
-
-                var itemPosition = container.TransformToAncestor(listBox).Transform(new Point(0, 0));
-                var itemCenter = new Point(
-                    itemPosition.X + container.ActualWidth / 2,
-                    itemPosition.Y + container.ActualHeight / 2);
-
-                // For horizontal layouts (WrapPanel), prioritize X position
-                // Check if drop is to the left of this item's center
-                var isBeforeItem = dropPosition.X < itemCenter.X ||
-                                   (Math.Abs(dropPosition.X - itemCenter.X) < container.ActualWidth / 2 &&
-                                    dropPosition.Y < itemCenter.Y);
-
-                // Simple distance-based approach
-                var distanceX = Math.Abs(dropPosition.X - itemCenter.X);
-                var distanceY = Math.Abs(dropPosition.Y - itemCenter.Y);
-
-                // Weight Y more heavily to handle row changes
-                var distance = distanceX + distanceY * 2;
-
-                // Check if this position is before the current item
-                if (dropPosition.Y < itemPosition.Y ||
-                    (dropPosition.Y < itemPosition.Y + container.ActualHeight &&
-                     dropPosition.X < itemPosition.X + container.ActualWidth / 2)) {
-                    if (i < bestIndex) {
-                        bestIndex = i;
-                    }
-                }
-            }
-
-            // Fallback: find nearest item and decide before/after
             var nearestIndex = -1;
             var nearestDist = double.MaxValue;
 
             for (var i = 0; i < items.Count; i++) {
-                var container = listBox.ItemContainerGenerator.ContainerFromIndex(i) as FrameworkElement;
-                if (container == null) continue;
+                if (listBox.ItemContainerGenerator.ContainerFromIndex(i) is not FrameworkElement container) continue;
 
-                var itemBounds = GetBoundsRelativeToAncestor(container, listBox);
-                var center = new Point(itemBounds.X + itemBounds.Width / 2, itemBounds.Y + itemBounds.Height / 2);
+                var bounds = GetBoundsRelativeToAncestor(container, listBox);
+                var center = new Point(bounds.X + bounds.Width / 2, bounds.Y + bounds.Height / 2);
 
                 var dist = Math.Sqrt(Math.Pow(dropPosition.X - center.X, 2) + Math.Pow(dropPosition.Y - center.Y, 2));
                 if (dist < nearestDist) {
@@ -233,22 +171,19 @@ namespace UnchainedLauncher.GUI.Behaviors {
                 }
             }
 
-            if (nearestIndex >= 0) {
-                var container = listBox.ItemContainerGenerator.ContainerFromIndex(nearestIndex) as FrameworkElement;
-                if (container != null) {
-                    var itemBounds = GetBoundsRelativeToAncestor(container, listBox);
-                    var center = new Point(itemBounds.X + itemBounds.Width / 2, itemBounds.Y + itemBounds.Height / 2);
+            if (nearestIndex < 0) return items.Count;
 
-                    // If drop is after the center, insert after this item
-                    if (dropPosition.X > center.X ||
-                        (Math.Abs(dropPosition.X - center.X) < itemBounds.Width / 4 && dropPosition.Y > center.Y)) {
-                        return nearestIndex + 1;
-                    }
-                    return nearestIndex;
-                }
-            }
+            var nearestContainer = listBox.ItemContainerGenerator.ContainerFromIndex(nearestIndex) as FrameworkElement;
+            if (nearestContainer == null) return items.Count;
 
-            return bestIndex;
+            var nearestBounds = GetBoundsRelativeToAncestor(nearestContainer, listBox);
+            var nearestCenter = new Point(nearestBounds.X + nearestBounds.Width / 2, nearestBounds.Y + nearestBounds.Height / 2);
+
+            // If drop is after the center, insert after this item
+            return dropPosition.X > nearestCenter.X ||
+                   (Math.Abs(dropPosition.X - nearestCenter.X) < nearestBounds.Width / 4 && dropPosition.Y > nearestCenter.Y)
+                ? nearestIndex + 1
+                : nearestIndex;
         }
 
         private static Rect GetBoundsRelativeToAncestor(FrameworkElement element, Visual ancestor) {
@@ -272,21 +207,13 @@ namespace UnchainedLauncher.GUI.Behaviors {
             }
         }
 
+        private static bool IsClickOnButton(object source) =>
+            source is DependencyObject dependencyObject && FindAncestor<Button>(dependencyObject) != null;
+
         private static T? FindAncestor<T>(DependencyObject? current) where T : DependencyObject {
             while (current != null) {
                 if (current is T t) return t;
                 current = VisualTreeHelper.GetParent(current);
-            }
-            return null;
-        }
-
-        private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject {
-            for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++) {
-                var child = VisualTreeHelper.GetChild(parent, i);
-                if (child is T t) return t;
-
-                var result = FindVisualChild<T>(child);
-                if (result != null) return result;
             }
             return null;
         }

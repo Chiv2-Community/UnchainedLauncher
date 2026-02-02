@@ -20,7 +20,7 @@ namespace UnchainedLauncher.Core.Utilities {
         /// </returns>
         public static DownloadTask DownloadFileAsync(string url, string outputPath) {
             var dirName = Path.GetDirectoryName(outputPath);
-            if (dirName != null && dirName != "" && !Directory.Exists(dirName)) {
+            if (!string.IsNullOrEmpty(dirName) && !Directory.Exists(dirName)) {
                 Logger.Info($"Creating directory {outputPath}...");
                 Directory.CreateDirectory(dirName);
             }
@@ -33,7 +33,7 @@ namespace UnchainedLauncher.Core.Utilities {
                 );
             }
 
-            Logger.Info($"Downloading file {outputPath} from {url}");
+            Logger.Debug($"Downloading file {outputPath} from {url}");
             return new DownloadTask(
                 HttpClient.GetByteArrayAsync(url).ContinueWith(t => File.WriteAllBytes(outputPath, t.Result)),
                 new DownloadTarget(url, outputPath)
@@ -59,7 +59,7 @@ namespace UnchainedLauncher.Core.Utilities {
         }
 
         public static DownloadTask<Stream> GetByteContentsAsync(string url) {
-            Logger.Info($"Downloading file {url}");
+            Logger.Debug($"Downloading file {url}");
             return new DownloadTask<Stream>(
                 HttpClient.GetStreamAsync(url),
                 new DownloadTarget(url, null)
@@ -67,7 +67,7 @@ namespace UnchainedLauncher.Core.Utilities {
         }
 
         public static DownloadTask<string> GetStringContentsAsync(string url) {
-            Logger.Info($"Fetching string contents from {url}");
+            Logger.Debug($"Fetching string contents from {url}");
             return new DownloadTask<string>(
                 HttpClient.GetStringAsync(url),
                 new DownloadTarget(url, null)

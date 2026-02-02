@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Installer;
-using UnchainedLauncher.Core.Services.PakDir;
+using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.JsonModels;
@@ -222,7 +222,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
             FileHelpers.DeleteDirectory(FilePaths.PluginDir);
 
-            PakDir.CleanUpDir();
+            PakDir.Reset();
         }
 
         [RelayCommand]

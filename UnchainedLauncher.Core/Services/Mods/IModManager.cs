@@ -1,7 +1,10 @@
-﻿using LanguageExt;
+using LanguageExt;
+using LanguageExt.Common;
+using log4net;
 using System.Collections.Immutable;
 using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Mods {
@@ -29,6 +32,11 @@ namespace UnchainedLauncher.Core.Services.Mods {
         event ModDisabledHandler ModDisabled;
 
         IModRegistry ModRegistry { get; }
+
+        /// <summary>
+        /// The pak directory manager for installing and managing mod pak files.
+        /// </summary>
+        IPakDir PakDir { get; }
 
         /// <summary>
         /// A List of all currently enabled mods
@@ -165,14 +173,17 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         /// <summary>
         /// Traverses all dependencies of the release associated with the provided coordinates
-        /// Returns a list of the found dependencies
+        /// Returns a list of the found dependencies.
+        /// Always includes UnchainedMods if not already present in the dependency tree
+        /// (unless the mod itself is UnchainedMods).
         /// TODO: Return a tree structure so you can tell which dependencies are associated with what. Maybe.
         /// </summary>
         /// <param name="modManager"></param>
         /// <param name="coordinates"></param>
         /// <returns></returns>
         public static IEnumerable<Release> GetAllDependenciesForRelease(this IModManager modManager, ReleaseCoordinates coordinates) {
-            return modManager.AggregateUniqueDependencies(coordinates, ImmutableHashSet<Release>.Empty);
+            var allDependencies = modManager.AggregateUniqueDependencies(coordinates, ImmutableHashSet<Release>.Empty);
+            return modManager.EnsureUnchainedModsIncluded(allDependencies, coordinates);
         }
 
         public static IEnumerable<Release> GetAllDependenciesForRelease(this IModManager modManager, Release release) =>
@@ -182,16 +193,20 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// Traverses all dependencies of the release associated with the provided release coordinates.
         /// Ignores any dependencies contained in the 'existingDependencies' collection as well as their children,
         /// and does not include them in the result.
+        /// Always includes UnchainedMods if not already present in the dependency tree
+        /// (unless the mod itself is UnchainedMods).
         /// </summary>
         /// <param name="modManager"></param>
         /// <param name="coordinates"></param>
         /// <param name="existingDependencies"></param>
         /// <returns></returns>
         public static IEnumerable<Release> GetNewDependenciesForRelease(this IModManager modManager, ReleaseCoordinates coordinates, IEnumerable<Release> existingDependencies) {
-            return modManager.AggregateUniqueDependencies(
+            var allUnique = modManager.AggregateUniqueDependencies(
                 coordinates,
                 existingDependencies.ToImmutableHashSet()
             );
+
+            return modManager.EnsureUnchainedModsIncluded(allUnique, coordinates);
         }
 
         public static IEnumerable<ReleaseCoordinates> GetEnabledAndDependencies(this IModManager modManager) {
@@ -236,10 +251,136 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         public static IEnumerable<Release> GetNewDependenciesForRelease(this IModManager modManager, Release release, IEnumerable<Release> existingDependencies) =>
-            modManager.AggregateUniqueDependencies(
-                ReleaseCoordinates.FromRelease(release),
-                existingDependencies.ToImmutableHashSet()
+            modManager.GetNewDependenciesForRelease(ReleaseCoordinates.FromRelease(release), existingDependencies);
+
+        /// <summary>
+        /// Sorts a collection of releases topologically so that dependencies come before dependents.
+        /// </summary>
+        /// <param name="modManager">The mod manager to use for dependency resolution</param>
+        /// <param name="releases">The releases to sort</param>
+        /// <returns>The releases sorted by dependency order (dependencies first)</returns>
+        public static IEnumerable<Release> SortByDependencies(this IModManager modManager, IEnumerable<Release> releases) {
+            var releasesList = releases.ToList();
+
+            // Build dependency graph: for each release, get all its dependencies
+            var dependencyMap = new Dictionary<ReleaseCoordinates, System.Collections.Generic.HashSet<ReleaseCoordinates>>();
+            foreach (var release in releasesList) {
+                var coords = ReleaseCoordinates.FromRelease(release);
+                var deps = modManager.GetAllDependenciesForRelease(coords)
+                    .Map(ReleaseCoordinates.FromRelease)
+                    .ToHashSet();
+                dependencyMap[coords] = deps;
+            }
+
+            // Topological sort: dependencies must come before dependents
+            var sorted = new List<Release>();
+            var visited = new System.Collections.Generic.HashSet<ReleaseCoordinates>();
+            var visiting = new System.Collections.Generic.HashSet<ReleaseCoordinates>();
+            var logger = LogManager.GetLogger(nameof(ModManagerExtensions));
+
+            bool TopologicalSort(Release release) {
+                var coords = ReleaseCoordinates.FromRelease(release);
+                if (visited.Contains(coords)) return true;
+                if (!visiting.Add(coords)) {
+                    logger.Warn($"Circular dependency detected involving {coords}");
+                    return false;
+                }
+
+                // Visit dependencies first
+                if (dependencyMap.TryGetValue(coords, out var deps)) {
+                    var failedToSort =
+                        deps.Select(dep => releasesList.Find(r => ReleaseCoordinates.FromRelease(r).Matches(dep)))
+                            .OfType<Release>()
+                            .Any(depRelease => !TopologicalSort(depRelease));
+
+                    if (failedToSort) return false;
+                }
+
+                visiting.Remove(coords);
+                visited.Add(coords);
+                sorted.Add(release);
+                return true;
+            }
+
+            foreach (var release in releasesList.Where(release => !visited.Contains(ReleaseCoordinates.FromRelease(release)))) {
+                TopologicalSort(release);
+            }
+
+            return sorted;
+        }
+
+        /// <summary>
+        /// Installs all enabled mods and their dependencies to the pak directory.
+        /// Performs topological sorting to ensure dependencies are installed in correct order.
+        /// </summary>
+        /// <param name="modManager">The mod manager containing enabled mods and pak directory</param>
+        /// <param name="progress">Optional progress tracker for reporting installation progress</param>
+        /// <returns>An async enumerable of installation results</returns>
+        public static async IAsyncEnumerable<Either<Error, ManagedPak>> InstallMods(
+            this IModManager modManager,
+            Option<AccumulatedMemoryProgress> progress) {
+
+            var dependencyProgress = new MemoryProgress("Resolving dependencies");
+            var sortProgress = new MemoryProgress("Sorting by dependencies");
+            progress.IfSome(p => {
+                p.AlsoTrack(dependencyProgress);
+                p.AlsoTrack(sortProgress);
+            });
+
+            // Get all enabled mods with their dependencies
+            var releasesToInstall = modManager.GetEnabledAndDependencyReleases().ToList();
+            dependencyProgress.Report(100);
+
+            // Sort by dependencies
+            var sortedReleases = modManager.SortByDependencies(releasesToInstall).ToList();
+            sortProgress.Report(100);
+
+            // Create install requests with download writers
+            var installRequests = sortedReleases
+                .Select(release => {
+                    var coords = ReleaseCoordinates.FromRelease(release);
+                    return new ModInstallRequest(
+                        coords,
+                        outputPath => modManager.ModRegistry
+                            .DownloadPak(coords, outputPath)
+                            .MapLeft(e => Error.New(e))
+                    );
+                })
+                .ToList();
+
+            // Install via PakDir
+            await foreach (var result in modManager.PakDir.InstallModSet(installRequests, progress)) {
+                yield return result;
+            }
+        }
+
+        /// <summary>
+        /// Ensures that UnchainedMods is included in the given dependencies collection.
+        /// If UnchainedMods is not present, appends the latest version.
+        /// Does not add UnchainedMods if the queried mod itself is UnchainedMods.
+        /// </summary>
+        private static IEnumerable<Release> EnsureUnchainedModsIncluded(this IModManager modManager, IEnumerable<Release> dependencies, ModIdentifier queriedMod) {
+            var dependenciesList = dependencies.ToList();
+
+            // Don't add UnchainedMods as a dependency of itself
+            if (CommonMods.UnchainedMods.Matches(queriedMod)) {
+                return dependenciesList;
+            }
+
+            if (dependenciesList.Select(ReleaseCoordinates.FromRelease).Exists(CommonMods.UnchainedMods.Matches)) {
+                return dependenciesList;
+            }
+
+            var unchainedModsRelease =
+                modManager.Mods
+                    .Find(x => ModIdentifier.FromMod(x) == CommonMods.UnchainedMods)
+                    .Bind(x => x.LatestRelease);
+
+            return unchainedModsRelease.Match(
+                unchainedMods => dependenciesList.Append(unchainedMods),
+                () => dependenciesList
             );
+        }
 
         private static ImmutableHashSet<Release> AggregateUniqueDependencies(this IModManager modManager, ReleaseCoordinates coordinates, ImmutableHashSet<Release> seenDependencies) {
             var newDependencies =

@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
 using UnchainedLauncher.UnrealModScanner.JsonModels;

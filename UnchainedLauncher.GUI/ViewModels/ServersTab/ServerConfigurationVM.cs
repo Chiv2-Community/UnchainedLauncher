@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
 using log4net;
 using PropertyChanged;
@@ -62,7 +62,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                         conf.PlayerBotCount,
                         conf.WarmupTime,
                         conf.AdditionalCLIArgs,
-                        conf.EnabledServerModList
+                        conf.EnabledServerModList,
+                        conf.DiscordBotToken,
+                        conf.DiscordChannelId,
+                        conf.DiscordAdminChannelId,
+                        conf.DiscordGeneralChannelId,
+                        conf.DiscordAdminRoleId
                     )
             ));
 
@@ -93,7 +98,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         int? PlayerBotCount = null,
         int? WarmupTime = null,
         string AdditionalCLIArgs = "",
-        ObservableCollection<BlueprintDto>? EnabledServerModList = null) {
+        ObservableCollection<BlueprintDto>? EnabledServerModList = null,
+        string? DiscordBotToken = null,
+        string? DiscordChannelId = null,
+        string? DiscordAdminChannelId = null,
+        string? DiscordGeneralChannelId = null,
+        string? DiscordAdminRoleId = null) {
 
         public string SavedDirSuffix => ServerConfigurationVM.SavedDirSuffix(Name);
 
@@ -226,7 +236,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             int? playerBotCount = null,
             int? warmupTime = null,
             string additionalCliArgs = "",
-            ObservableCollection<BlueprintDto>? enabledServerModList = null
+            ObservableCollection<BlueprintDto>? enabledServerModList = null,
+            string? discordBotToken = null,
+            string? discordChannelId = null,
+            string? discordAdminChannelId = null,
+            string? discordGeneralChannelId = null,
+            string? discordAdminRoleId = null
         ) {
             _modScanTab = modScanTab;
             _availableModsAndMaps = availableModsAndMaps;
@@ -261,7 +276,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 showInServerBrowser,
                 playerBotCount,
                 warmupTime,
-                additionalCliArgs
+                additionalCliArgs,
+                discordBotToken,
+                discordChannelId,
+                discordAdminChannelId,
+                discordGeneralChannelId,
+                discordAdminRoleId
             );
 
             BalanceSection = new BalanceSectionVM(GameMode);
@@ -311,7 +331,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             AdvancedConfigurationSection.PlayerBotCount,
             AdvancedConfigurationSection.WarmupTime,
             AdvancedConfigurationSection.AdditionalCLIArgs,
-            EnabledServerModList
+            EnabledServerModList,
+            AdvancedConfigurationSection.DiscordBotToken,
+            AdvancedConfigurationSection.DiscordChannelId,
+            AdvancedConfigurationSection.DiscordAdminChannelId,
+            AdvancedConfigurationSection.DiscordGeneralChannelId,
+            AdvancedConfigurationSection.DiscordAdminRoleId
         );
 
         private MapDto? DetermineNextMap() {

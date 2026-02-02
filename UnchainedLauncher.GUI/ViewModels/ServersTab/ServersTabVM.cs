@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
 using LanguageExt.Pipes;
 using log4net;
@@ -282,6 +282,23 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         private ServerLaunchOptions BuildServerLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<BlueprintDto> enabledServerModBlueprints) {
+            // Build DiscordIntegrationLaunchOptions only if both required fields are present
+            var discordBotToken = formData.DiscordBotToken?.Trim();
+            var discordChannelId = formData.DiscordChannelId?.Trim();
+
+            var discordIntegration = (
+                !string.IsNullOrEmpty(discordBotToken) && 
+                !string.IsNullOrEmpty(discordChannelId)
+            )
+                ? Some(new DiscordIntegrationLaunchOptions(
+                    discordBotToken,
+                    discordChannelId,
+                    Optional(formData.DiscordAdminChannelId?.Trim()).Filter(s => s.Length > 0),
+                    Optional(formData.DiscordGeneralChannelId?.Trim()).Filter(s => s.Length > 0),
+                    Optional(formData.DiscordAdminRoleId?.Trim()).Filter(s => s.Length > 0)
+                ))
+                : None;
+
             return new ServerLaunchOptions(
                 headless,
                 formData.Name,
@@ -300,7 +317,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 formData.PlayerBotCount,
                 formData.WarmupTime,
                 formData.LocalIp,
-                enabledServerModBlueprints.Select(bp => bp.ClassPath!)
+                enabledServerModBlueprints.Select(bp => bp.ClassPath!),
+                discordIntegration
             );
         }
 

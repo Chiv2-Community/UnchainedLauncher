@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="UnchainedLauncher.GUI.Views.Servers.Sections.AdvancedConfigurationSectionView"
+<UserControl x:Class="UnchainedLauncher.GUI.Views.Servers.Sections.AdvancedConfigurationSectionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -158,6 +158,85 @@
                     <TextBox Text="{Binding GameMode.IdleKickTimerDisconnect}" Grid.Row="4" Grid.Column="4" HorizontalAlignment="Stretch"
                              ToolTip="Seconds before an idle player is disconnected (0 to disable). Example: 0.000000" />
                 </Grid>
+            </StackPanel>
+        </controls:CollapsibleCard>
+
+        <controls:CollapsibleCard Header="Discord Integration" IsExpanded="True">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="Bot Token *" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
+                               ToolTip="Discord bot token. Required for Discord integration." />
+                    <TextBox Text="{Binding DiscordBotToken, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                             Grid.Row="0" Grid.Column="1" HorizontalAlignment="Stretch"
+                             ToolTip="Discord bot token. Required for Discord integration.">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasDiscordConfigWarning}" Value="True">
+                                        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Warning}" />
+                                        <Setter Property="BorderThickness" Value="2" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <TextBlock Text="Channel ID *" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
+                               ToolTip="Discord channel ID for server messages. Required for Discord integration." />
+                    <TextBox Text="{Binding DiscordChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                             Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch"
+                             ToolTip="Discord channel ID for server messages. Required for Discord integration.">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasDiscordConfigWarning}" Value="True">
+                                        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Warning}" />
+                                        <Setter Property="BorderThickness" Value="2" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <TextBlock Text="Admin Channel ID" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}"
+                               ToolTip="Discord channel ID for admin messages. Optional." />
+                    <TextBox Text="{Binding DiscordAdminChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                             Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
+                             ToolTip="Discord channel ID for admin messages. Optional." />
+
+                    <TextBlock Text="General Channel ID" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
+                               ToolTip="Discord channel ID for general messages. Optional." />
+                    <TextBox Text="{Binding DiscordGeneralChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                             Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
+                             ToolTip="Discord channel ID for general messages. Optional." />
+
+                    <TextBlock Text="Admin Role ID" Grid.Row="4" Grid.Column="0" Style="{StaticResource FormLabel}"
+                               ToolTip="Discord role ID for admin permissions. Optional." />
+                    <TextBox Text="{Binding DiscordAdminRoleId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                             Grid.Row="4" Grid.Column="1" HorizontalAlignment="Stretch"
+                             ToolTip="Discord role ID for admin permissions. Optional." />
+                </Grid>
+
+                <TextBlock Text="{Binding DiscordConfigWarningMessage}" 
+                           Foreground="{DynamicResource Brush.Warning}"
+                           Margin="0,8,0,0"
+                           TextWrapping="Wrap"
+                           Visibility="{Binding HasDiscordConfigWarning, Converter={StaticResource BoolToVisibilityConverter}}" />
             </StackPanel>
         </controls:CollapsibleCard>
 

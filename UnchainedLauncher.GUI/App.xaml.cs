@@ -1,13 +1,11 @@
 using LanguageExt;
 using log4net;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services;
@@ -35,16 +33,16 @@ namespace UnchainedLauncher.GUI {
     /// </summary>
     public partial class App : Application {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
-        
+
         protected override void OnStartup(StartupEventArgs e) {
             try {
                 base.OnStartup(e);
-                
+
                 AppDomain.CurrentDomain.UnhandledException +=
                     (sender, args) => {
                         var ex = (Exception)args.ExceptionObject;
                         _log.Fatal("Unhandled exception", ex);
-                        
+
                         File.WriteAllText("crash.log", ex.ToString());
                         var currentDirectory = Directory.GetCurrentDirectory();
                         MessageBox.Show($"An unhandled exception occurred. Please report this to a developer with {currentDirectory}\\crash.log ", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -68,7 +66,7 @@ namespace UnchainedLauncher.GUI {
                         log4net.Config.XmlConfigurator.Configure(configStream);
                     }
                 }
-                
+
                 // Init common dependencies
                 var githubClient = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("UnchainedLauncher"));
                 var unchainedLauncherReleaseLocator =
@@ -335,7 +333,7 @@ namespace UnchainedLauncher.GUI {
                 }
             });
         }
-        
+
         /// <summary>
         /// Registers exit handlers for multiple shutdown scenarios to ensure reliable saving.
         /// This should be called once during startup after all components are initialized.

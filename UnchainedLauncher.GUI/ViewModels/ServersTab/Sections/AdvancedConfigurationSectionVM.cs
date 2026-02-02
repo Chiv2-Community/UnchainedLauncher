@@ -51,20 +51,27 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
         public string DiscordAdminRoleId { get; set; }
 
         /// <summary>
-        /// Returns true if the Discord configuration is incomplete (one required field is set but not the other).
-        /// Both bot token and channel id must be defined together, or neither.
+        /// Returns true if the Discord configuration is incomplete.
+        /// Both bot token and channel id must be defined together if any Discord field has a value.
         /// </summary>
         public bool HasDiscordConfigWarning {
             get {
                 var hasBotToken = !string.IsNullOrEmpty(DiscordBotToken?.Trim());
                 var hasChannelId = !string.IsNullOrEmpty(DiscordChannelId?.Trim());
-                return hasBotToken != hasChannelId;
+                var hasAdminChannelId = !string.IsNullOrEmpty(DiscordAdminChannelId?.Trim());
+                var hasGeneralChannelId = !string.IsNullOrEmpty(DiscordGeneralChannelId?.Trim());
+                var hasAdminRoleId = !string.IsNullOrEmpty(DiscordAdminRoleId?.Trim());
+
+                var hasAnyDiscordField = hasBotToken || hasChannelId || hasAdminChannelId || hasGeneralChannelId || hasAdminRoleId;
+                var hasRequiredFields = hasBotToken && hasChannelId;
+
+                return hasAnyDiscordField && !hasRequiredFields;
             }
         }
 
         public string DiscordConfigWarningMessage =>
             HasDiscordConfigWarning
-                ? "Both Discord Bot Token and Channel ID must be provided for Discord integration to work."
+                ? "Both Discord Bot Token and Command Channel ID must be provided for Discord integration to work."
                 : "";
 
         /// <summary>

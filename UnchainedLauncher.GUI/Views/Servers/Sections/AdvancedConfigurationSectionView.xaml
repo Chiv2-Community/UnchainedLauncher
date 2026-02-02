@@ -196,11 +196,11 @@
                         </TextBox.Style>
                     </TextBox>
 
-                    <TextBlock Text="Channel ID *" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
-                               ToolTip="Discord channel ID for server messages. Required for Discord integration." />
+                    <TextBlock Text="Command Channel ID *" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
+                               ToolTip="Discord channel ID for server commands. Required for Discord integration." />
                     <TextBox Text="{Binding DiscordChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                              Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch"
-                             ToolTip="Discord channel ID for server messages. Required for Discord integration.">
+                             ToolTip="Discord channel ID for server commands. Required for Discord integration.">
                         <TextBox.Style>
                             <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                                 <Style.Triggers>

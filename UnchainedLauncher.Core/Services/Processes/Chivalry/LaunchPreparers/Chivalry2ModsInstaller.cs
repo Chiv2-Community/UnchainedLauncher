@@ -1,11 +1,9 @@
 using LanguageExt;
-using LanguageExt.Common;
 using log4net;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
@@ -14,11 +12,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     public class Chivalry2ModsInstaller : IChivalry2LaunchPreparer<LaunchOptions> {
         private readonly ILog _logger = LogManager.GetLogger(typeof(Chivalry2ModsInstaller));
         private readonly IUserDialogueSpawner _userDialogueSpawner;
-        private readonly IPakDir _pakDir;
         private IModManager _modManager { get; }
-        public Chivalry2ModsInstaller(IModManager modManager, IPakDir pakDir, IUserDialogueSpawner dialogueSpawner) {
+
+        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner) {
             _modManager = modManager;
-            _pakDir = pakDir;
             _userDialogueSpawner = dialogueSpawner;
         }
 
@@ -31,14 +28,13 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         private OptionAsync<string> GetLocalHash(ReleaseCoordinates coords) {
-            return _pakDir.GetInstalledPakFile(coords)
+            return _modManager.PakDir.GetManagedPakFilePath(coords)
                 .Match(
                     path => GetHashResult(FileHelpers.Sha512Async(path)),
                     () => OptionAsync<string>.None);
-
         }
 
-        private Unit ifHashInvalid((Release, string, string) validationResult) {
+        private Unit IfHashInvalid((Release, string, string) validationResult) {
             var coords = ReleaseCoordinates.FromRelease(validationResult.Item1);
             _logger.Warn($"Hash mismatch: actual hash '{validationResult.Item2}' does not " +
                          $"match release hash '{validationResult.Item3}' for '{coords}'.");
@@ -54,7 +50,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 $"Would you like to re-download the pak? (recommended)", "Refresh pak file?");
 
             if (redownloadResponse == UserDialogueChoice.Yes) {
-                _pakDir.Uninstall(coords)
+                _modManager.PakDir.Uninstall(coords)
                     .IfLeft(e =>
                         _logger.Error($"Failed to uninstall release '{coords}' with invalid hash", e));
             }
@@ -69,80 +65,46 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                         .Map(h => (m, h, m.ReleaseHash))
                         // select only those whose hashes do not match
                         .Filter(o => !o.Item2.Equals(o.Item3))
-                        .IfSome(ifHashInvalid)
+                        .IfSome(IfHashInvalid)
                 );
 
             await Task.WhenAll(hashValidationTasks);
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
-            IEnumerable<ReleaseCoordinates> releases = options.EnabledReleases;
-            var releasesList = new List<ReleaseCoordinates>(releases);
-            _logger.LogListInfo("Installing the following releases:", releasesList);
-            // get release metadatas
-            var (errs, metas) =
-                releasesList
-                    .Select(x => _modManager.GetRelease(x).ToEither(x))
-                    .Partition()
-                    .BiMap(x => x.ToList(), x => x.ToList());
+            // Get all releases that will be installed (enabled mods + dependencies)
+            var releasesToInstall = _modManager.GetEnabledAndDependencyReleases().ToList();
+            _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
 
-            if (errs.Any()) {
-                _logger.Error($"Failed to get release metadatas for: {string.Join(", ", errs)}");
-                var humanReadableFailedVersions = string.Join(", ", errs.Select(x => $"{x.ModuleName} {x.Version}"));
-                var selection = _userDialogueSpawner.DisplayYesNoMessage($"Failed to get release metadatas for: {humanReadableFailedVersions}. Would you like to proceed anyway? The listed mods will not be downloaded.", "Failed to get release metadatas");
+            // Validate hashes before installation
+            await ValidateHashes(releasesToInstall);
 
-                if (selection == UserDialogueChoice.No) return None;
-            }
-
-            var enumerable = metas.ToList();
-            await ValidateHashes(enumerable);
-
-            // TODO: do something more clever than just deleting. This weirdness ultimately comes
-            // from the fact that launches share a pak dir, and can affect each other.
-            // This stuff is only really relevant to servers, and there's probably not much
-            // we can do without adding some seriously in-depth hooks in the plugin
-            // that allows doing some kind of per-process pak dir isolation
+            // Install mods via ModManager
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");
-            var installOnlyResult = _pakDir.InstallOnly(
-                enumerable.Map<Release, (ReleaseCoordinates, IPakDir.MakeFileWriter, string)>(m => {
-                    var coords = ReleaseCoordinates.FromRelease(m);
-
-                    return (
-                        coords,
-                        (outputPath) => _modManager.ModRegistry.DownloadPak(coords, outputPath)
-                            .MapLeft(e => Error.New(e)),
-                        m.PakFileName
-                    );
-                }
-                ), progresses
-            ).Match(
-                _ => Some(options),
-                errors => {
-                    errors.ToList().ForEach(e => _logger.Error($"Failed to install releases: {e.Message}"));
-
-                    _userDialogueSpawner.DisplayMessage(
-                        $"There were errors while installing releases:\n " +
-                        $"{errors.Aggregate((a, b) => $"{a}\n\n{b}")}"
-                        );
-                    return None;
-                });
-
             var closeProgressWindow = _userDialogueSpawner.DisplayProgress(progresses);
 
-            var finalResult = await installOnlyResult;
+            var installResults = await _modManager.InstallMods(progresses).ToListAsync();
+
+            var (errors, successes) =
+                installResults.Partition()
+                    .MapFirst(x => x.ToList())
+                    .MapSecond(x => x.ToList());
+
+            successes.ForEach(succ => _logger.Debug($"Successfully installed {succ.Coordinates.ModuleName} version {succ.Coordinates.Version}"));
+
+            if (errors.Count != 0) {
+                errors.ToList().ForEach(e => _logger.Error($"Failed to install releases: {e.Message}"));
+                var shouldContinue = _userDialogueSpawner.DisplayYesNoMessage(
+                    $"There were errors while installing releases:\n " +
+                    $"{errors.Aggregate((a, b) => $"{a}\n\n{b}")}\n" +
+                    "Would you like to continue anyway?", "Errors encountered"
+                    );
+                if (shouldContinue == UserDialogueChoice.No) return None;
+            }
 
             closeProgressWindow();
 
-            _pakDir.EnforceOrdering(options.EnabledReleases)
-                .IfLeft(
-                    lefts => lefts
-                        .ToList()
-                        .ForEach(e =>
-                                _logger.Error($"Failed to enforce pak file ordering:", e)
-                            )
-                    );
-
-            return finalResult;
+            return Some(options);
         }
     }
 }

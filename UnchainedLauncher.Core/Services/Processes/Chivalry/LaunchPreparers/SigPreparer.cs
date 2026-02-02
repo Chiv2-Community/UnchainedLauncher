@@ -1,7 +1,6 @@
 ﻿using LanguageExt;
 using log4net;
-using UnchainedLauncher.Core.Extensions;
-using UnchainedLauncher.Core.Services.PakDir;
+using UnchainedLauncher.Core.Services.Mods;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
@@ -27,12 +26,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
         public Task<Option<Unit>> PrepareLaunch(Unit input) {
             _logger.Info("Ensuring sigs are set up for all pak files.");
-            var result = PakDir.SignUnmanaged()
-                .Bind(_ =>
-                    PakDir.GetInstalledReleases()
-                        .Map(PakDir.Sign)
-                        .BindLefts()
-                )
+            var result = PakDir
+                .SignAll()
                 .Bind(_ => PakDir.DeleteOrphanedSigs())
                 .Match(
                     _ => Some(input),

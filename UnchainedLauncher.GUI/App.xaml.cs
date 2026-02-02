@@ -1,4 +1,4 @@
-﻿using LanguageExt;
+using LanguageExt;
 using log4net;
 using System;
 using System.Collections.ObjectModel;
@@ -12,7 +12,6 @@ using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.PakDir;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
@@ -40,6 +39,19 @@ namespace UnchainedLauncher.GUI {
             try {
                 base.OnStartup(e);
 
+                AppDomain.CurrentDomain.UnhandledException +=
+                    (sender, args) => {
+                        var ex = (Exception)args.ExceptionObject;
+                        _log.Fatal("Unhandled exception", ex);
+
+                        File.WriteAllText("crash.log", ex.ToString());
+                        var currentDirectory = Directory.GetCurrentDirectory();
+                        MessageBox.Show($"An unhandled exception occurred. Please report this to a developer with {currentDirectory}\\crash.log ", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    };
+
+                // Capture the UI thread's SynchronizationContext for use throughout the application
+                UISynchronizationContext.Initialize();
+
                 var assembly = Assembly.GetExecutingAssembly();
                 if (File.Exists("log4net.config")) {
                     log4net.Config.XmlConfigurator.Configure(new FileInfo("log4net.config"));
@@ -55,15 +67,6 @@ namespace UnchainedLauncher.GUI {
                         log4net.Config.XmlConfigurator.Configure(configStream);
                     }
                 }
-
-                AppDomain.CurrentDomain.UnhandledException +=
-                    (sender, args) => {
-                        var ex = (Exception)args.ExceptionObject;
-                        _log.Fatal("Unhandled exception", ex);
-                        File.WriteAllText("crash.log", ex.ToString());
-                        var currentDirectory = Directory.GetCurrentDirectory();
-                        MessageBox.Show($"An unhandled exception occurred. Please report this to a developer with {currentDirectory}\\crash.log ", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    };
 
                 // Init common dependencies
                 var githubClient = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("UnchainedLauncher"));
@@ -135,15 +138,12 @@ namespace UnchainedLauncher.GUI {
             var userDialogueSpawner = new MessageBoxSpawner();
             var registryWindowService = new RegistryWindowService();
 
-            var pakDir = new PakDir(FilePaths.PakDir);
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
             var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService,
-                installationFinder, installer, launcherReleaseLocator, pakDir, userDialogueSpawner, Shutdown);
-
-
+                installationFinder, installer, launcherReleaseLocator, modManager.PakDir, userDialogueSpawner, Shutdown);
 
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(
@@ -162,8 +162,8 @@ namespace UnchainedLauncher.GUI {
                 new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 #endif
 
-            var noSigLaunchPreparer = NoSigPreparer.Create(pakDir, userDialogueSpawner);
-            var sigLaunchPreparer = SigPreparer.Create(pakDir, userDialogueSpawner);
+            var noSigLaunchPreparer = NoSigPreparer.Create(modManager.PakDir, userDialogueSpawner);
+            var sigLaunchPreparer = SigPreparer.Create(modManager.PakDir, userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new UnchainedPluginUpdateChecker(
                 pluginReleaseLocator,
@@ -171,7 +171,7 @@ namespace UnchainedLauncher.GUI {
                 userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
-                modManager, pakDir, userDialogueSpawner
+                modManager, userDialogueSpawner
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
@@ -276,6 +276,7 @@ namespace UnchainedLauncher.GUI {
             Func<ModManager> initializeDefaultModManager = () =>
                 new ModManager(
                     registry,
+                    new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>()),
                     Enumerable.Empty<ReleaseCoordinates>()
                 );
 
@@ -341,7 +342,7 @@ namespace UnchainedLauncher.GUI {
         }
 
         private void RegisterSaveToFileOnExit<T>(T t, ICodec<T> codec, string filePath) {
-            Exit += (_, _) => {
+            RegisterExitHandler(() => {
                 try {
                     _log.Info($"Saving {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec})...");
                     codec.SerializeFile(filePath, t);
@@ -351,7 +352,34 @@ namespace UnchainedLauncher.GUI {
                         $"Failed to save configuration for {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec}).",
                         ex);
                 }
-            };
+            });
+        }
+
+        /// <summary>
+        /// Registers exit handlers for multiple shutdown scenarios to ensure reliable saving.
+        /// This should be called once during startup after all components are initialized.
+        /// </summary>
+        private void RegisterExitHandler(Action exitAction) {
+            Exit += (_, _) => ExecuteExitAction("Application.Exit", exitAction);
+            SessionEnding += (_, args) => ExecuteExitAction("SessionEnding", exitAction);
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => ExecuteExitAction("ProcessExit", exitAction);
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) => ExecuteExitAction("UnhandledException", exitAction);
+            Console.CancelKeyPress += (_, args) => ExecuteExitAction("Console.CancelKeyPress", exitAction);
+        }
+
+        /// <summary>
+        /// Executes all registered exit actions exactly once, regardless of how many
+        /// exit events fire. This ensures data is saved but prevents duplicate saves.
+        /// </summary>
+        /// <param name="source">The event source triggering the exit actions (for logging).</param>
+        /// <param name="exitAction"></param>
+        private void ExecuteExitAction(string source, Action exitAction) {
+            try {
+                exitAction();
+            }
+            catch (Exception ex) {
+                _log.Error($"Exit action failed during {source}", ex);
+            }
         }
     }
 }

@@ -43,7 +43,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
             Assert.NotNull(unchainedMods);
             unchainedMods!.Releases.Select(x => x.Tag)
                 .Should()
-                .ContainInOrder(new[] { "v0.1.0", "v0.0.4", "v0.0.3" });
+                .ContainInOrder(new[] { "v0.0.2", "v0.0.1" });
         }
 
         [Fact]
@@ -58,7 +58,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
             mod.LatestReleaseInfo.Organization.Should().Be("Chiv2-Community");
             mod.LatestReleaseInfo.Name.Should().Be("Unchained-Mods");
             mod.LatestReleaseInfo.Authors.Should().Contain("Nihi");
-            mod.Releases.Should().HaveCount(3);
+            // Both registries have v0.0.1 and v0.0.2, so after deduplication we get 2 releases
+            mod.Releases.Should().HaveCount(2);
         }
 
         [Fact]

@@ -534,9 +534,16 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
 
-            // Install multiple mods
-            await InstallDummy(pd, new ReleaseCoordinates("Org1", "Mod1", "1.0.0"));
-            await InstallDummy(pd, new ReleaseCoordinates("Org2", "Mod2", "1.0.0"));
+            // Install multiple mods in one call (InstallModSet treats each call as the complete desired state)
+            var mod1 = new ReleaseCoordinates("Org1", "Mod1", "1.0.0");
+            var mod2 = new ReleaseCoordinates("Org2", "Mod2", "1.0.0");
+            var results = await pd.InstallModSet([
+                    new ModInstallRequest(mod1, StaticMkWriter),
+                    new ModInstallRequest(mod2, StaticMkWriter)
+                ],
+                Option<AccumulatedMemoryProgress>.None
+            ).ToListAsync();
+            results.ForEach(r => r.IfLeft(e => throw e));
 
             Assert.Equal(2, pd.ManagedPaks.Count());
 

@@ -1,9 +1,8 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
 using log4net;
 using PropertyChanged;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -11,34 +10,42 @@ using System.IO;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Reflection;
 using System.Text;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.INIModels;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.Core.Services.Mods;
-using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
     public class ServerConfigurationCodec : DerivedJsonCodec<ObservableCollection<ServerConfiguration>,
         ObservableCollection<ServerConfigurationVM>> {
 
-        public ServerConfigurationCodec(IModManager modManager) : base(
+        public ServerConfigurationCodec(
+            IModManager modManager,
+            ModScanTabVM modScanTab,
+            AvailableModsAndMapsService availableModsAndMaps) : base(
             ToJsonType,
-            conf => ToClassType(conf, modManager)
+            conf => ToClassType(conf, modManager, modScanTab, availableModsAndMaps)
         ) { }
 
         public static ObservableCollection<ServerConfigurationVM> ToClassType(
-            ObservableCollection<ServerConfiguration> configurations, IModManager modManager) =>
+            ObservableCollection<ServerConfiguration> configurations,
+            IModManager modManager,
+            ModScanTabVM modScanTab,
+            AvailableModsAndMapsService availableModsAndMaps) =>
             new ObservableCollection<ServerConfigurationVM>(configurations.Select(conf =>
                 conf.Name == null // Should be impossible, but sometimes older dev builds have null names
-                    ? new ServerConfigurationVM(modManager)
+                    ? new ServerConfigurationVM(modManager, modScanTab, availableModsAndMaps)
                     : new ServerConfigurationVM(
                         modManager,
+                        modScanTab,
+                        availableModsAndMaps,
                         conf.Name,
                         conf.Description,
                         conf.Password,
@@ -55,7 +62,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                         conf.PlayerBotCount,
                         conf.WarmupTime,
                         conf.AdditionalCLIArgs,
-                        conf.EnabledServerModList
+                        conf.EnabledServerModList,
+                        conf.DiscordBotToken,
+                        conf.DiscordChannelId,
+                        conf.DiscordAdminChannelId,
+                        conf.DiscordGeneralChannelId,
+                        conf.DiscordAdminRoleId
                     )
             ));
 
@@ -77,7 +89,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         int RconPort = 9001,
         int A2SPort = 7071,
         int PingPort = 3075,
-        string NextMapName = "FFA_Courtyard",
+        string NextMapPath = "FFA_Courtyard",
         bool ShowInServerBrowser = true,
         int? FFAScoreLimit = null,
         int? FFATimeLimit = null,
@@ -86,7 +98,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         int? PlayerBotCount = null,
         int? WarmupTime = null,
         string AdditionalCLIArgs = "",
-        ObservableCollection<ReleaseCoordinates>? EnabledServerModList = null) {
+        ObservableCollection<BlueprintDto>? EnabledServerModList = null,
+        string? DiscordBotToken = null,
+        string? DiscordChannelId = null,
+        string? DiscordAdminChannelId = null,
+        string? DiscordGeneralChannelId = null,
+        string? DiscordAdminRoleId = null) {
 
         public string SavedDirSuffix => ServerConfigurationVM.SavedDirSuffix(Name);
 
@@ -95,13 +112,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 ? "null"
                 : string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"));
             return
-                $"ServerConfiguration({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {NextMapName}, {ShowInServerBrowser}, [{modListStr}])";
+                $"ServerConfiguration({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {NextMapPath}, {ShowInServerBrowser}, [{modListStr}])";
         }
     }
 
     [AddINotifyPropertyChangedInterface]
     public partial class ServerConfigurationVM : INotifyPropertyChanged {
-        private readonly ILog Logger = LogManager.GetLogger(nameof(ServerConfigurationVM));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(ServerConfigurationVM));
 
         public IpNetDriverSectionVM IpNetDriver { get; } = new();
         public GameSessionSectionVM GameSession { get; } = new();
@@ -164,7 +181,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             GameSession.LoadFrom(ini.Game.GameSession);
 
             GameMode.DefaultMaxPlayers = GameSession.MaxPlayers;
-            GameMode.LoadFrom(ini.Game.TBLGameMode);
+            GameMode.LoadFrom(ini.Game.TBLGameMode, AvailableMaps);
 
             LTS.LoadFrom(ini.Game.LTSGameMode);
             Arena.LoadFrom(ini.Game.ArenaGameMode);
@@ -191,12 +208,18 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return new Chivalry2INI(engineIni, gameIni, userSettingsIni);
         }
 
-        public ObservableCollection<string> AvailableMaps { get; }
+        public ObservableCollection<MapDto> AvailableMaps => _availableModsAndMaps.AvailableMaps;
 
-        public ObservableCollection<ReleaseCoordinates> EnabledServerModList { get; }
-        public ObservableCollection<Release> AvailableMods { get; }
+        public ObservableCollection<BlueprintDto> EnabledServerModList { get; }
+        public ObservableCollection<BlueprintDto> AvailableServerModBlueprints => _availableModsAndMaps.AvailableServerModBlueprints;
 
-        public ServerConfigurationVM(IModManager modManager,
+        private ModScanTabVM _modScanTab;
+        private readonly AvailableModsAndMapsService _availableModsAndMaps;
+
+        public ServerConfigurationVM(
+            IModManager modManager,
+            ModScanTabVM modScanTab,
+            AvailableModsAndMapsService availableModsAndMaps,
             string name = "My Server",
             string description = "My Server Description",
             string password = "",
@@ -213,8 +236,15 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             int? playerBotCount = null,
             int? warmupTime = null,
             string additionalCliArgs = "",
-            ObservableCollection<ReleaseCoordinates>? enabledServerModList = null
+            ObservableCollection<BlueprintDto>? enabledServerModList = null,
+            string? discordBotToken = null,
+            string? discordChannelId = null,
+            string? discordAdminChannelId = null,
+            string? discordGeneralChannelId = null,
+            string? discordAdminRoleId = null
         ) {
+            _modScanTab = modScanTab;
+            _availableModsAndMaps = availableModsAndMaps;
             Description = description;
             Password = password;
             RconPort = rconPort;
@@ -222,25 +252,16 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             PingPort = pingPort;
             GamePort = gamePort;
 
-            EnabledServerModList = enabledServerModList ?? new ObservableCollection<ReleaseCoordinates>();
-
-            AvailableMaps = new ObservableCollection<string>(GetDefaultMaps());
+            EnabledServerModList = enabledServerModList ?? new ObservableCollection<BlueprintDto>();
 
             // We set the Name after loading INI, because there may be some existing config that we want to load first
             // And setting the name overwrites it.
             LoadINI(name);
             Name = name;
 
-            AvailableMods = new ObservableCollection<Release>();
-
-            modManager.GetEnabledAndDependencyReleases()
-                .Where(r => r.Manifest.ModType is ModType.Server or ModType.Shared)
-                .ForEach(x => AddAvailableMod(x, null));
 
             LocalIp = localIp == null ? DetermineLocalIp() : localIp.Trim();
 
-            modManager.ModDisabled += RemoveAvailableMod;
-            modManager.ModEnabled += AddAvailableMod;
 
             BaseConfigurationSection = new BaseConfigurationSectionVM(
                 GameMode,
@@ -255,47 +276,26 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 showInServerBrowser,
                 playerBotCount,
                 warmupTime,
-                additionalCliArgs
+                additionalCliArgs,
+                discordBotToken,
+                discordChannelId,
+                discordAdminChannelId,
+                discordGeneralChannelId,
+                discordAdminRoleId
             );
 
             BalanceSection = new BalanceSectionVM(GameMode);
 
             TDM = new TdmConfigurationSectionVM(tdmTimeLimit, tdmTicketCount);
             FFA = new FfaConfigurationSectionVM(ffaTimeLimit, ffaScoreLimit);
-        }
-
-        public void EnableServerMod(Release release) =>
-            EnabledServerModList.Add(ReleaseCoordinates.FromRelease(release));
-
-        public void DisableServerMod(Release release) =>
-            EnabledServerModList.Remove(ReleaseCoordinates.FromRelease(release));
-
-        public void AddAvailableMod(Release release, string? previousVersion) {
-            // This will be enabled by default
-            if (ModIdentifier.FromRelease(release) == CommonMods.UnchainedMods) return;
-
-            var existingMod = AvailableMods.Find(x => x.Manifest.RepoUrl == release.Manifest.RepoUrl);
-            var existingMaps = existingMod.Bind(x => Prelude.Optional(x.Manifest.Maps)).FirstOrDefault() ??
-                               new List<string>();
-
-
-            var newMaps = release.Manifest.Maps?.Filter(x => !existingMaps.Contains(x)) ?? Enumerable.Empty<string>();
-            var removedMaps = existingMaps.Filter(x => !release.Manifest.Maps?.Contains(x) ?? false);
-
-            removedMaps.ForEach(AvailableMaps.Remove);
-            newMaps.ForEach(AvailableMaps.Add);
-
-            existingMod.IfSome(x => AvailableMods.Remove(x));
-            AvailableMods.Add(release);
 
         }
 
-        public void RemoveAvailableMod(Release release) {
-            AvailableMods.Remove(release);
+        public void EnableServerBlueprintMod(BlueprintDto blueprint) =>
+            EnabledServerModList.Add(blueprint);
 
-            var removedMaps = release.Manifest.Maps ?? Enumerable.Empty<string>();
-            removedMaps.ForEach(AvailableMaps.Remove);
-        }
+        public void DisableServerBlueprintMod(BlueprintDto blueprint) =>
+            EnabledServerModList.Remove(blueprint);
 
         [RelayCommand]
         public void AutoFillIp() {
@@ -303,25 +303,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         private string DetermineLocalIp() => GetAllLocalIPv4().FirstOrDefault("127.0.0.1");
-
-        private static IEnumerable<string> GetDefaultMaps() {
-            List<string> maps = new List<string>();
-            using (var defaultMapsListStream = Assembly.GetExecutingAssembly()
-                       .GetManifestResourceStream("UnchainedLauncher.GUI.Resources.DefaultMaps.txt")) {
-                if (defaultMapsListStream != null) {
-                    using var reader = new StreamReader(defaultMapsListStream);
-
-                    var defaultMapsString = reader.ReadToEnd();
-                    defaultMapsString
-                        .Split("\n")
-                        .Select(x => x.Trim())
-                        .ToList()
-                        .ForEach(maps.Add);
-                }
-            }
-
-            return maps;
-        }
 
         public static string[] GetAllLocalIPv4() =>
             NetworkInterface
@@ -341,7 +322,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             RconPort,
             A2SPort,
             PingPort,
-            DetermineNextMapName(),
+            DetermineNextMap()!.TravelToMapString(),
             AdvancedConfigurationSection.ShowInServerBrowser,
             FFA.FFAScoreLimit,
             FFA.FFATimeLimit,
@@ -350,27 +331,32 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             AdvancedConfigurationSection.PlayerBotCount,
             AdvancedConfigurationSection.WarmupTime,
             AdvancedConfigurationSection.AdditionalCLIArgs,
-            EnabledServerModList
+            new ObservableCollection<BlueprintDto>(EnabledServerModList.Filter(x => x.ModName != null)),
+            AdvancedConfigurationSection.DiscordBotToken,
+            AdvancedConfigurationSection.DiscordChannelId,
+            AdvancedConfigurationSection.DiscordAdminChannelId,
+            AdvancedConfigurationSection.DiscordGeneralChannelId,
+            AdvancedConfigurationSection.DiscordAdminRoleId
         );
 
-        private string DetermineNextMapName() {
+        private MapDto? DetermineNextMap() {
             // Prefer the selected rotation entry. If rotation is empty, fall back to a safe default.
-            if (GameMode.MapList.Count == 0) return "FFA_Courtyard";
+            if (GameMode.MapList.Count == 0) return AvailableMaps.FirstOrDefault();
 
             var idx = GameMode.MapListIndex;
             if (idx < 0 || idx >= GameMode.MapList.Count) {
                 idx = 0;
             }
 
-            return GameMode.MapList[idx];
+            var selectedMap = GameMode.MapList[idx];
+
+            return selectedMap;
         }
 
         public override string ToString() {
-            var enabledMods = EnabledServerModList != null
-                ? string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"))
-                : "null";
+            var enabledMods = string.Join(", ", EnabledServerModList.Select(mod => mod?.ToString() ?? "null"));
             return
-                $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {DetermineNextMapName()}, {AdvancedConfigurationSection.ShowInServerBrowser}, [{enabledMods}])";
+                $"ServerConfigurationVM({Name}, {Description}, {Password}, {LocalIp}, {GamePort}, {RconPort}, {A2SPort}, {PingPort}, {DetermineNextMap()}, {AdvancedConfigurationSection.ShowInServerBrowser}, [{enabledMods}])";
         }
 
 

@@ -2,10 +2,9 @@
 using LanguageExt.Common;
 using LanguageExt.UnsafeValueAccess;
 using System.Collections.Immutable;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
-using Release = UnchainedLauncher.Core.JsonModels.Metadata.V3.Release;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class LocalModRegistry : JsonRegistry {
@@ -63,7 +62,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                             Directory.Delete(releasePath, true);
                             await WriteMod(mod with {
                                 // we know this unwrap is safe because if there were no releases, we would have deleted
-                                LatestManifest = mod.LatestRelease.ValueUnsafe().Manifest
+                                LatestReleaseInfo = mod.LatestRelease.ValueUnsafe().Info
                             });
                         }
 
@@ -80,17 +79,17 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public async Task AddRelease(Release newVersion, string pakPath) {
             ReleaseCoordinates coordinates = ReleaseCoordinates.FromRelease(newVersion);
             string modDirectory = Path.Combine(RegistryPath, coordinates.Org, coordinates.ModuleName);
-            string manifestPath = Path.Combine(modDirectory, $"{coordinates.ModuleName}.json");
-            var mod = await InternalGetModMetadata(manifestPath)
+            string modJsonPath = Path.Combine(modDirectory, $"{coordinates.ModuleName}.json");
+            var mod = await InternalGetModMetadata(modJsonPath)
                 .Match(
                     existing => new Mod(
-                                newVersion.Manifest,
+                                newVersion.Info,
                                 existing.Releases
                                     .Filter(x => !ReleaseCoordinates.FromRelease(x).Matches(newVersion))
                                     .Append(newVersion).ToList()
                             ),
                     _ => new Mod(
-                        newVersion.Manifest,
+                        newVersion.Info,
                         new List<Release> { newVersion }
                         )
                     );
@@ -104,8 +103,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
             return Task.Run(() => {
                 string releaseDirectory = Path.Combine(
                     RegistryPath,
-                    release.Manifest.Organization,
-                    release.Manifest.Name,
+                    release.Info.Organization,
+                    release.Info.Name,
                     release.Tag
                 );
 
@@ -178,7 +177,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
         private EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(Release release) {
             // Paks will be found in PakReleasesDir/org/repoName/releaseTag/fileName
-            var path = Path.Combine(RegistryPath, release.Manifest.Organization, release.Manifest.RepoName, release.Tag, release.PakFileName);
+            var path = Path.Combine(RegistryPath, release.Info.Organization, release.Info.RepoName, release.Tag, release.PakFileName);
 
             if (!File.Exists(path))
                 return

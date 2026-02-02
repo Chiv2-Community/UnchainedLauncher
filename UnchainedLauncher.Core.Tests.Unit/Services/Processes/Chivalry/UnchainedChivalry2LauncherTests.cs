@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using LanguageExt;
 using LanguageExt.Common;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -46,7 +46,8 @@ public class UnchainedChivalry2LauncherTests {
             PlayerBotCount: null,
             WarmupTime: null,
             LocalIp: Option<string>.None,
-            NextMapModActors: Array.Empty<string>()
+            ServerMods: [],
+            DiscordIntegration: Option<DiscordIntegrationLaunchOptions>.None
         );
 
         return new LaunchOptions(

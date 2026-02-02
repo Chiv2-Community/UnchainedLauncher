@@ -2,7 +2,7 @@ using LanguageExt;
 using LanguageExt.Common;
 using log4net;
 using System.Collections.Immutable;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
@@ -386,7 +386,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var newDependencies =
                 modManager.GetLatestRelease(coordinates)
                     .ToList()
-                    .Bind(release => release.Manifest.Dependencies)
+                    .Bind(release => release.Info.Dependencies)
                     .Map(ModIdentifier.FromDependency)
                     .Bind(id => modManager.GetLatestRelease(id).ToList()) // Get the latest release for each dependency (we're ignoring dependency version range requirements currently)
                     .Filter(dep => !seenDependencies.Contains(dep)) // Filter out any dependency we've already seen

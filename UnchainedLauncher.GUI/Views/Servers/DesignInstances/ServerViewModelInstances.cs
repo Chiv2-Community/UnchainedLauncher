@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
@@ -7,6 +7,7 @@ using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 using static LanguageExt.Prelude;
 using Environment = UnchainedLauncher.Core.Services.Server.A2S.Environment;
 
@@ -50,7 +51,8 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                     PlayerBotCount: 10,
                     WarmupTime: 10,
                     LocalIp: Some("127.0.0.1"),
-                    NextMapModActors: new[] { "ExampleActorModA", "ExampleActorModB" }
+                    ServerMods: ["a/b/c", "a/b/c"],
+                    DiscordIntegration: None
                 ),
                 new MockA2S(new A2SInfo(
                     0,
@@ -69,7 +71,10 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                 )), new MockRcon()
             ),
             "Example Server",
-            new ObservableCollection<string>() { "FFA_Wardenglade", "TDM_Wardenglade" }
+            new ObservableCollection<MapDto>() {
+                new MapDto(Path: "", Hash: "", ClassPath: null, ObjectClass: null, GameMode: null, MapName: "FFA_Wardenglade", MapDescription: null, AttackingFaction: null, DefendingFaction: null, GamemodeType: null, TBLDefaultGameMode: null),
+                new MapDto(Path: "", Hash: "", ClassPath: null, ObjectClass: null, GameMode: null, MapName: "TDM_Wardenglade", MapDescription: null, AttackingFaction: null, DefendingFaction: null, GamemodeType: null, TBLDefaultGameMode: null)
+            }
         ) {
             RestartCount = 2;
             LastStartTime = DateTimeOffset.Now.AddMinutes(-17);

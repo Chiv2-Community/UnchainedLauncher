@@ -2,8 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Windows.Data;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
-using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.Converters {
     [ValueConversion(typeof(object[]), typeof(bool))]
@@ -11,14 +10,13 @@ namespace UnchainedLauncher.GUI.Converters {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture) {
             if (values.Length < 2) return false;
 
-            var release = values[0] as Release;
-            var list = values[1] as ObservableCollection<ReleaseCoordinates>;
+            var blueprint = values[0] as BlueprintDto;
+            var list = values[1] as ObservableCollection<BlueprintDto>;
 
-            if (release == null || list == null) return false;
+            if (blueprint == null || list == null) return false;
 
-            var coords = ReleaseCoordinates.FromRelease(release);
             // ObservableCollection.Contains will use value equality of the record type
-            return list.Contains(coords);
+            return list.Contains(blueprint);
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) {

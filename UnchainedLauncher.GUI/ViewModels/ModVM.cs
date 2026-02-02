@@ -8,8 +8,9 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     using static LanguageExt.Prelude;
@@ -22,7 +23,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public VersionNameSort VersionNameSortKey => new VersionNameSort(
             Optional(EnabledRelease).Map(x => x.Version).FirstOrDefault(),
-            Mod.LatestManifest.Name
+            Mod.LatestReleaseInfo.Name
         );
 
         public Release? EnabledRelease { get; set; }
@@ -31,8 +32,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string Description {
             get {
                 var description = Optional(EnabledRelease).Match(
-                    None: Mod.LatestManifest.Description,
-                    Some: x => x.Manifest.Description
+                    None: Mod.LatestReleaseInfo.Description,
+                    Some: x => x.Info.Description
                 );
 
                 var depenencies =
@@ -45,12 +46,39 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         ? ""
                         : depenencies.Fold(
                             "You must also enable the dependencies below:\n",
-                            (aggMessage, dep) => aggMessage + $"- {dep.Manifest.Name} {dep.Version}\n"
+                            (aggMessage, dep) => aggMessage + $"- {dep.Info.Name} {dep.Version}\n"
                         );
 
                 return description + "\n\n" + depMessage;
             }
         }
+
+        public string IconUrl =>
+            EnabledRelease?.Info.NonEmptyIconUrl
+            ?? Mod.LatestReleaseInfo.NonEmptyIconUrl
+            ?? "pack://application:,,,/UnchainedLauncher;component/assets/chiv2-unchained-logo.png";
+
+        public AssetCollections? Manifest => EnabledRelease?.Manifest ?? Mod.LatestRelease.FirstOrDefault()?.Manifest;
+
+        public bool HasMarkers => Manifest?.Markers?.Any() ?? false;
+        public bool HasBlueprints => Manifest?.Blueprints?.Any() ?? false;
+        public bool HasMaps => Manifest?.Maps?.Any() ?? false;
+        public bool HasReplacements => Manifest?.Replacements?.Any() ?? false;
+        public bool HasArbitrary => Manifest?.Arbitrary?.Any() ?? false;
+
+        public bool HasContents => HasMarkers || HasBlueprints || HasMaps || HasReplacements || HasArbitrary;
+
+        public bool HasDependencies =>
+            (EnabledRelease ?? Mod.LatestRelease)
+                .ToList()
+                .Bind(r => ModManager.GetAllDependenciesForRelease(r))
+                .Any();
+
+        public List<Release> Dependencies =>
+            (EnabledRelease ?? Mod.LatestRelease)
+                .ToList()
+                .Bind(r => ModManager.GetAllDependenciesForRelease(r))
+                .ToList();
 
         public string ButtonText =>
             Optional(EnabledRelease).Match(
@@ -58,8 +86,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 Some: _ => "Disable"
             );
 
-
-        public string TagsString => string.Join(", ", Mod.LatestManifest.Tags);
 
         public bool IsEnabled => EnabledRelease != null;
 
@@ -71,7 +97,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public List<string> AvailableVersions => Mod.Releases.Select(x => x.Tag).ToList();
 
-        public string GithubReleaseUrl => (EnabledRelease?.ReleaseUrl) ?? Mod.LatestManifest.RepoUrl;
+        public string GithubReleaseUrl => (EnabledRelease?.ReleaseUrl) ?? Mod.LatestReleaseInfo.RepoUrl;
 
         public ModVM(Mod mod, Option<Release> enabledRelease, IModManager modManager) {
             EnabledRelease = enabledRelease.ValueUnsafe();
@@ -86,7 +112,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 }
             }, nameof(EnabledRelease));
 
-            Logger.Debug($"Initialized ModViewModel for {mod.LatestManifest.Name}. Currently enabled release: {EnabledVersion}");
+            Logger.Debug($"Initialized ModViewModel for {mod.LatestReleaseInfo.Name}. Currently enabled release: {EnabledVersion}");
         }
 
         public Option<UpdateCandidate> CheckForUpdate() {

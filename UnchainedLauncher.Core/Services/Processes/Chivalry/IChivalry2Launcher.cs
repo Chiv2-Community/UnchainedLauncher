@@ -1,4 +1,4 @@
-﻿using LanguageExt;
+using LanguageExt;
 using LanguageExt.Common;
 using System.Diagnostics;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -62,6 +62,27 @@ public record LaunchOptions(
     }
 };
 
+public record DiscordIntegrationLaunchOptions(
+    string BotToken,
+    string ChannelId,
+    Option<string> AdminChannelId,
+    Option<string> GeneralChannelId,
+    Option<string> AdminRoleId
+) {
+    public IReadOnlyList<CLIArg> ToCLIArgs() {
+        var args = new List<CLIArg> {
+            new Parameter("--discord-bot-token", BotToken),
+            new Parameter("--discord-channel-id", ChannelId)
+        };
+
+        AdminChannelId.IfSome(id => args.Add(new Parameter("--discord-admin-channel-id", id)));
+        GeneralChannelId.IfSome(id => args.Add(new Parameter("--discord-general-channel-id", id)));
+        AdminRoleId.IfSome(id => args.Add(new Parameter("--discord-admin-role-id", id)));
+
+        return args;
+    }
+}
+
 public record ServerLaunchOptions(
     bool Headless,
     string Name,
@@ -80,7 +101,8 @@ public record ServerLaunchOptions(
     int? PlayerBotCount,
     int? WarmupTime,
     Option<string> LocalIp,
-    IEnumerable<String> NextMapModActors
+    IEnumerable<String> ServerMods,
+    Option<DiscordIntegrationLaunchOptions> DiscordIntegration
 ) {
     public IReadOnlyList<CLIArg> ToCLIArgs() {
         var args = new List<CLIArg>() {
@@ -104,8 +126,8 @@ public record ServerLaunchOptions(
 
         Password.IfSome(password => args.Add(new UEParameter("ServerPassword", password.Trim())));
 
-        if (NextMapModActors.Any())
-            args.Add(new Parameter("--next-map-mod-actors", string.Join(",", NextMapModActors)));
+        if (ServerMods.Any())
+            args.Add(new Parameter("--server-mods", string.Join(",", ServerMods.Distinct())));
 
         LocalIp.IfSome(ip => args.Add(new Parameter("--local-ip", ip)));
 
@@ -115,6 +137,9 @@ public record ServerLaunchOptions(
         TDMTicketCount.IfSome(count => args.Add(new UEMapUrlParameter("TDMTicketCount", count.ToString())));
         PlayerBotCount.IfSome(count => args.Add(new UEMapUrlParameter("NumPlayerBots", count.ToString())));
         WarmupTime.IfSome(time => args.Add(new UEMapUrlParameter("WarmupTime", time.ToString())));
+
+        DiscordIntegration.IfSome(discord => args.AddRange(discord.ToCLIArgs()));
+
         return args;
     }
 };

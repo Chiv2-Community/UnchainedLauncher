@@ -17,7 +17,7 @@ public static class ModScanJsonExporter {
     };
 
     public static void ExportToFile(
-        ModManifest scanResults,
+        PakDirManifest scanResults,
         string outputPath) {
         var json = JsonConvert.SerializeObject(scanResults, Settings);
         File.WriteAllText(outputPath, json);

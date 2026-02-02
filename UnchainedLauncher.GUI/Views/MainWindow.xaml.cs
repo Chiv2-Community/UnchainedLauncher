@@ -1,4 +1,4 @@
-﻿using PropertyChanged;
+using PropertyChanged;
 using System;
 using System.ComponentModel;
 using System.Windows;
@@ -19,6 +19,37 @@ namespace UnchainedLauncher.GUI.Views {
             vm.HomeVM.PropertyChanged += HomeVmOnPropertyChanged;
 
             Closed += MainWindow_Closed;
+            ContentRendered += MainWindow_ContentRendered;
+        }
+
+        /// <summary>
+        /// Brings the window to the foreground after content is rendered.
+        /// This is necessary because when launched from external applications (like EGS),
+        /// the window may appear behind other windows due to Windows' foreground restrictions.
+        /// </summary>
+        private void MainWindow_ContentRendered(object? sender, EventArgs e) {
+            // Unsubscribe immediately - we only need this to run once on startup
+            ContentRendered -= MainWindow_ContentRendered;
+
+            BringToForeground();
+        }
+
+        /// <summary>
+        /// Forcefully brings the window to the foreground.
+        /// Uses the Topmost toggle trick to bypass Windows' foreground window restrictions.
+        /// </summary>
+        private void BringToForeground() {
+            // First try standard activation
+            Activate();
+
+            // If the window still isn't in the foreground, use the Topmost trick
+            // This works around Windows' restrictions on SetForegroundWindow
+            if (!IsActive) {
+                Topmost = true;
+                Topmost = false;
+            }
+
+            Focus();
         }
 
         public MainWindowVM ViewModel { get; }
@@ -33,6 +64,7 @@ namespace UnchainedLauncher.GUI.Views {
             var desired = ViewModel.HomeVM.MainWindowVisibility;
             if (desired == Visibility.Visible) {
                 if (!IsVisible) Show();
+                BringToForeground();
             }
             else {
                 if (IsVisible) Hide();

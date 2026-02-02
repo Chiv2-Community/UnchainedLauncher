@@ -287,7 +287,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var discordChannelId = formData.DiscordChannelId?.Trim();
 
             var discordIntegration = (
-                !string.IsNullOrEmpty(discordBotToken) && 
+                !string.IsNullOrEmpty(discordBotToken) &&
                 !string.IsNullOrEmpty(discordChannelId)
             )
                 ? Some(new DiscordIntegrationLaunchOptions(

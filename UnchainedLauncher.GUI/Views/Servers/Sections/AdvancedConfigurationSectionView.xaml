@@ -196,11 +196,11 @@
                         </TextBox.Style>
                     </TextBox>
 
-                    <TextBlock Text="Command Channel ID *" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
-                               ToolTip="Discord channel ID for server commands. Required for Discord integration." />
+                    <TextBlock Text="Bridge Channel ID *" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
+                               ToolTip="Discord channel ID for chat bridge and other bot commands. Required for Discord integration." />
                     <TextBox Text="{Binding DiscordChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                              Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch"
-                             ToolTip="Discord channel ID for server commands. Required for Discord integration.">
+                             ToolTip="Discord channel ID for chat bridge and other bot commands. Required for Discord integration.">
                         <TextBox.Style>
                             <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                                 <Style.Triggers>
@@ -214,16 +214,16 @@
                     </TextBox>
 
                     <TextBlock Text="Admin Channel ID" Grid.Row="2" Grid.Column="0" Style="{StaticResource FormLabel}"
-                               ToolTip="Discord channel ID for admin messages. Optional." />
+                               ToolTip="Discord channel ID for admin commands. Optional." />
                     <TextBox Text="{Binding DiscordAdminChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                              Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
-                             ToolTip="Discord channel ID for admin messages. Optional." />
+                             ToolTip="Discord channel ID for admin commands. Optional." />
 
                     <TextBlock Text="General Channel ID" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
-                               ToolTip="Discord channel ID for general messages. Optional." />
+                               ToolTip="Discord channel ID for #General. Call to arms messages here. Optional." />
                     <TextBox Text="{Binding DiscordGeneralChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                              Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
-                             ToolTip="Discord channel ID for general messages. Optional." />
+                             ToolTip="Discord channel ID for #General. Call to arms messages here. Optional." />
 
                     <TextBlock Text="Admin Role ID" Grid.Row="4" Grid.Column="0" Style="{StaticResource FormLabel}"
                                ToolTip="Discord role ID for admin permissions. Optional." />

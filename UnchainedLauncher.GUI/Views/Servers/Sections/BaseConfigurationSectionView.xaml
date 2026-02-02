@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="UnchainedLauncher.GUI.Views.Servers.Sections.BaseConfigurationSectionView"
+<UserControl x:Class="UnchainedLauncher.GUI.Views.Servers.Sections.BaseConfigurationSectionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -91,7 +91,8 @@
                      Margin="0,6,0,0"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      behaviors:MouseWheelScrollForwardingBehavior.IsEnabled="True"
-                     ToolTip="Map rotation from left to right, top to bottom. Selected item is the starting map.">
+                     behaviors:ListBoxDragDropReorderBehavior.IsEnabled="True"
+                     ToolTip="Map rotation from left to right, top to bottom. Selected item is the starting map. Drag to reorder.">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
                         <Setter Property="HorizontalContentAlignment" Value="Left" />

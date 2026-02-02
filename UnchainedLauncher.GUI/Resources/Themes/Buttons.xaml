@@ -1,4 +1,4 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Style x:Key="Button.Base" TargetType="Button">
@@ -37,6 +37,14 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+        <Style.Triggers>
+            <Trigger Property="ToolTip" Value="{x:Null}">
+                <Setter Property="ToolTipService.IsEnabled" Value="False" />
+            </Trigger>
+            <Trigger Property="ToolTip" Value="">
+                <Setter Property="ToolTipService.IsEnabled" Value="False" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- Apply base button style implicitly to all Buttons -->

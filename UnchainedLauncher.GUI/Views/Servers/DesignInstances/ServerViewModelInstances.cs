@@ -52,7 +52,8 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                     WarmupTime: 10,
                     LocalIp: Some("127.0.0.1"),
                     ServerMods: ["a/b/c", "a/b/c"],
-                    DiscordIntegration: None
+                    DiscordIntegration: None,
+                    DesyncPatch: false
                 ),
                 new MockA2S(new A2SInfo(
                     0,

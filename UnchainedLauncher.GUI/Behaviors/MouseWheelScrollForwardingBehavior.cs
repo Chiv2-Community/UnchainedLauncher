@@ -28,18 +28,22 @@ namespace UnchainedLauncher.GUI.Behaviors {
         }
 
         private static void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e) {
-            if (sender is not DependencyObject d) return;
+            if (sender is not UIElement element) return;
+
+            // Only forward scroll events when the mouse is directly over this element.
+            // This prevents double scrolling when the mouse is elsewhere on the page.
+            if (!element.IsMouseOver) return;
 
             // Forward the wheel to the nearest ancestor ScrollViewer.
             // This fixes cases where the event gets handled inside complex controls (e.g., TabControl content)
             // and the outer ScrollViewer never receives it.
-            var scrollViewer = FindAncestorScrollViewer(d);
+            var scrollViewer = FindAncestorScrollViewer(element);
             if (scrollViewer == null) return;
 
             if (scrollViewer.ScrollableHeight <= 0d) return;
 
             // Don't interfere with scroll viewers that are themselves handling the wheel.
-            if (ReferenceEquals(scrollViewer, d) || IsDescendantOfScrollViewerContentPresenter(d, scrollViewer)) {
+            if (ReferenceEquals(scrollViewer, element) || IsDescendantOfScrollViewerContentPresenter(element, scrollViewer)) {
                 // Still allow forwarding if the event is already marked handled.
             }
 

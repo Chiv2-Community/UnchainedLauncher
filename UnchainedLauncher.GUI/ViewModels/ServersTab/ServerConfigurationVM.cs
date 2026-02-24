@@ -103,7 +103,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         string? DiscordChannelId = null,
         string? DiscordAdminChannelId = null,
         string? DiscordGeneralChannelId = null,
-        string? DiscordAdminRoleId = null) {
+        string? DiscordAdminRoleId = null,
+        bool DesyncPatch = false) {
 
         public string SavedDirSuffix => ServerConfigurationVM.SavedDirSuffix(Name);
 
@@ -166,6 +167,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public int A2SPort { get; set; }
         public int PingPort { get; set; }
         public string LocalIp { get; set; }
+        public bool DesyncPatch { get; set; }
 
         public static string SavedDirSuffix(string name) {
             var validChars = "_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -241,7 +243,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             string? discordChannelId = null,
             string? discordAdminChannelId = null,
             string? discordGeneralChannelId = null,
-            string? discordAdminRoleId = null
+            string? discordAdminRoleId = null,
+            bool desyncPatch = false
         ) {
             _modScanTab = modScanTab;
             _availableModsAndMaps = availableModsAndMaps;
@@ -251,6 +254,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             A2SPort = a2SPort;
             PingPort = pingPort;
             GamePort = gamePort;
+            DesyncPatch = desyncPatch;
 
             EnabledServerModList = enabledServerModList ?? new ObservableCollection<BlueprintDto>();
 
@@ -336,7 +340,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             AdvancedConfigurationSection.DiscordChannelId,
             AdvancedConfigurationSection.DiscordAdminChannelId,
             AdvancedConfigurationSection.DiscordGeneralChannelId,
-            AdvancedConfigurationSection.DiscordAdminRoleId
+            AdvancedConfigurationSection.DiscordAdminRoleId,
+            DesyncPatch
         );
 
         private MapDto? DetermineNextMap() {

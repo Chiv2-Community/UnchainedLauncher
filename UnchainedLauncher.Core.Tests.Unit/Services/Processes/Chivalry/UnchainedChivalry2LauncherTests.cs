@@ -47,7 +47,8 @@ public class UnchainedChivalry2LauncherTests {
             WarmupTime: null,
             LocalIp: Option<string>.None,
             ServerMods: [],
-            DiscordIntegration: Option<DiscordIntegrationLaunchOptions>.None
+            DiscordIntegration: Option<DiscordIntegrationLaunchOptions>.None,
+            DesyncPatch: false
         );
 
         return new LaunchOptions(

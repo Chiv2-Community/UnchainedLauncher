@@ -25,6 +25,7 @@
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -53,7 +54,13 @@
                      ToolTip="Maximum number of players allowed on the server. Example: 256" />
         </StackPanel>
 
-        <Grid Grid.Row="1" Grid.ColumnSpan="3">
+        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,12,8">
+            <CheckBox IsChecked="{Binding DataContext.DesyncPatch, RelativeSource={RelativeSource AncestorType=UserControl, AncestorLevel=2}}"
+                      Content="Desync Patch"
+                      ToolTip="Completely eliminates desync, but may cause issues on TO maps, or instability with bots." />
+        </StackPanel>
+
+        <Grid Grid.Row="2" Grid.ColumnSpan="3">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />

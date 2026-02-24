@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Servers"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Servers.DesignInstances"
+             xmlns:behaviors="clr-namespace:UnchainedLauncher.GUI.Behaviors"
              d:DataContext="{d:DesignInstance designInstances:ServersTabDesignVM}"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
@@ -118,7 +119,7 @@
             <ScrollViewer Grid.Row="0"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
-                          CanContentScroll="True">
+                          behaviors:MouseWheelScrollForwardingBehavior.IsEnabled="True">
                 <local:ServerConfigurationForm DataContext="{Binding SelectedConfiguration}" />
             </ScrollViewer>
             <Grid Grid.Row="2">

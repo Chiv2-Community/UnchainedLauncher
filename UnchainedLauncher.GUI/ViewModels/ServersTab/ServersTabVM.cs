@@ -318,7 +318,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 formData.WarmupTime,
                 formData.LocalIp,
                 enabledServerModBlueprints.Select(bp => bp.ClassPath!),
-                discordIntegration
+                discordIntegration,
+                formData.DesyncPatch
             );
         }
 

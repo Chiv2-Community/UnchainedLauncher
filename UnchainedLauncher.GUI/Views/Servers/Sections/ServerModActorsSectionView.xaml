@@ -6,6 +6,7 @@
              xmlns:conv="clr-namespace:UnchainedLauncher.GUI.Converters"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Servers.DesignInstances"
              xmlns:controls="clr-namespace:UnchainedLauncher.GUI.Views.Controls"
+             xmlns:behaviors="clr-namespace:UnchainedLauncher.GUI.Behaviors"
              d:DataContext="{d:DesignInstance designInstances:ServerConfigurationDesignVM}"
              Background="{DynamicResource Brush.Background}"
              mc:Ignorable="d">
@@ -15,7 +16,9 @@
     <controls:CollapsibleCard
         Header="Server Mod Actors"
         IsExpanded="True">
-        <ListBox ItemsSource="{Binding AvailableServerModBlueprints}" BorderThickness="0">
+        <ListBox ItemsSource="{Binding AvailableServerModBlueprints}" 
+                 BorderThickness="0"
+                 behaviors:MouseWheelScrollForwardingBehavior.IsEnabled="True">
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal" Margin="0,4">

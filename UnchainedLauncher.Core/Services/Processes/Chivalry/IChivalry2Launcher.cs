@@ -102,7 +102,8 @@ public record ServerLaunchOptions(
     int? WarmupTime,
     Option<string> LocalIp,
     IEnumerable<String> ServerMods,
-    Option<DiscordIntegrationLaunchOptions> DiscordIntegration
+    Option<DiscordIntegrationLaunchOptions> DiscordIntegration,
+    bool DesyncPatch
 ) {
     public IReadOnlyList<CLIArg> ToCLIArgs() {
         var args = new List<CLIArg>() {
@@ -139,6 +140,9 @@ public record ServerLaunchOptions(
         WarmupTime.IfSome(time => args.Add(new UEMapUrlParameter("WarmupTime", time.ToString())));
 
         DiscordIntegration.IfSome(discord => args.AddRange(discord.ToCLIArgs()));
+
+        if (DesyncPatch)
+            args.Add(new Flag("--desync-patch"));
 
         return args;
     }

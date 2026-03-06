@@ -56,6 +56,7 @@ public class UnchainedChivalry2LauncherTests {
             ServerBrowserBackend: Option<string>.None,
             LaunchArgs: rawLaunchArgs,
             CheckForDependencyUpdates: false,
+            AllowUnstablePluginReleases: false,
             SavedDirSuffix: Option<string>.None,
             ServerLaunchOptions: Prelude.Some(serverLaunchOptions)
         );

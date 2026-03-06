@@ -45,6 +45,7 @@ public record LaunchOptions(
     Option<string> ServerBrowserBackend,
     string LaunchArgs,
     bool CheckForDependencyUpdates, //TODO: remove this property
+    bool AllowUnstablePluginReleases,
     Option<string> SavedDirSuffix,
     Option<ServerLaunchOptions> ServerLaunchOptions
 ) {

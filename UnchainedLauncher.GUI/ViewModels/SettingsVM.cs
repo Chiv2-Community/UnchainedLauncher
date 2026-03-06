@@ -10,6 +10,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Installer;
@@ -32,6 +33,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string AdditionalModActors { get; set; }
         public string ServerBrowserBackend { get; set; }
         public bool UseLightTheme { get; set; }
+        public bool AllowUnstablePluginReleases { get; set; }
 
         public bool HasLaunched { get; set; }
 
@@ -69,7 +71,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private RegistryWindowService RegistryWindowService { get; }
         private RegistryWindowVM RegistryWindowVM { get; }
 
-        public SettingsVM(RegistryWindowVM registryWindowVM, RegistryWindowService registryWindowService, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakDir, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, bool enableModScanner, string additionalModActors, string serverBrowserBackend, bool useLightTheme, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
+        public SettingsVM(RegistryWindowVM registryWindowVM, RegistryWindowService registryWindowService, IUnchainedLauncherInstaller installer, IReleaseLocator unchainedReleaseLocator, IPakDir pakDir, IUserDialogueSpawner dialogueSpawner, InstallationType installationType, bool enablePluginAutomaticUpdates, bool enableModScanner, string additionalModActors, string serverBrowserBackend, bool useLightTheme, bool allowUnstablePluginReleases, FileBackedSettings<LauncherSettings> launcherSettings, string cliArgs, Action<int> exitProgram) {
             RegistryWindowVM = registryWindowVM;
             RegistryWindowService = registryWindowService;
             Installer = installer;
@@ -83,6 +85,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             LauncherSettings = launcherSettings;
             ServerBrowserBackend = serverBrowserBackend;
             UseLightTheme = useLightTheme;
+            AllowUnstablePluginReleases = allowUnstablePluginReleases;
             ExitProgram = exitProgram;
 
             _cliArgs = cliArgs;
@@ -119,6 +122,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 loadedSettings?.AdditionalModActors ?? "",
                 loadedSettings?.ServerBrowserBackend ?? "https://servers.polehammer.net",
                 loadedSettings?.UseLightTheme ?? false,
+                loadedSettings?.AllowUnstablePluginReleases ?? false,
                 fileBackedSettings,
                 cliArgs,
                 exitProgram
@@ -127,7 +131,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public void SaveSettings() {
             LauncherSettings.SaveSettings(
-                new LauncherSettings(InstallationType, EnablePluginAutomaticUpdates, IsUnrealScannerEnabled, AdditionalModActors, ServerBrowserBackend, UseLightTheme)
+                new LauncherSettings(InstallationType, EnablePluginAutomaticUpdates, IsUnrealScannerEnabled, AdditionalModActors, ServerBrowserBackend, UseLightTheme, AllowUnstablePluginReleases)
             );
         }
 
@@ -302,14 +306,20 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     new DependencyUpdate("Launcher", CurrentVersion, release.Version.ToString(), release.PageUrl, "")
                 );
 
-            if (dialogResult == UserDialogueChoice.No) {
-                Logger.Info("User chose not to update.");
-                return;
-            }
-
-            if (dialogResult == UserDialogueChoice.Yes) {
-                Logger.Info("User chose to update.");
-                await Installer.Install(new DirectoryInfo(Environment.CurrentDirectory), release, true, (_) => { });
+            switch (dialogResult)
+            {
+                case UserDialogueChoice.No:
+                    Logger.Info("User chose not to update.");
+                    return;
+                case UserDialogueChoice.Yes:
+                    Logger.Info("User chose to update.");
+                    await Installer.Install(new DirectoryInfo(Environment.CurrentDirectory), release, true, (message) => Task.Run(() => Logger.Info(message)));
+                    break;
+                case UserDialogueChoice.Cancel:
+                case null:
+                default:
+                    MessageBox.Show("This should not be possible. Please report.");
+                    throw new Exception("This should be impossible. Please report.");
             }
         }
 

@@ -330,6 +330,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 Settings.ServerBrowserBackend,
                 (Settings.CLIArgs + " " + formData.AdditionalCLIArgs).Trim(),
                 Settings.EnablePluginAutomaticUpdates,
+                Settings.AllowUnstablePluginReleases,
                 Some(formData.SavedDirSuffix),
                 Some(serverLaunchOptions)
             );

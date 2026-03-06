@@ -112,7 +112,7 @@ namespace UnchainedLauncher.GUI {
         private Window? InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder,
             IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
             var installationSelectionVM = new InstallationSelectionPageViewModel(installationFinder);
-            var versionSelectionVM = new VersionSelectionPageViewModel(launcherReleaseLocator);
+            var versionSelectionVM = new VersionSelectionPageViewModel(launcherReleaseLocator, new FileInfoVersionExtractor());
             var installationLogVM = new InstallerLogPageViewModel(
                 installer,
                 () =>

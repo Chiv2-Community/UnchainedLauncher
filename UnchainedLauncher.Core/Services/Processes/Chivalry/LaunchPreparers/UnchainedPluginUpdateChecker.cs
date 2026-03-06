@@ -1,5 +1,6 @@
 using LanguageExt;
 using log4net;
+using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
@@ -50,8 +51,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             if (!options.CheckForDependencyUpdates) {
                 return options;
             }
-
-            var latestPlugin = await PluginReleaseLocator.GetLatestRelease();
+            
+            var latestPlugin = await PluginReleaseLocator.GetLatestRelease(options.AllowUnstablePluginReleases);
             if (latestPlugin == null) {
                 _logger.Warn("Could not find latest plugin");
                 return None;
@@ -59,7 +60,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
             var currentVersion = FileVersionExtractor.GetVersion(_pluginPath);
 
-            if (currentVersion?.ComparePrecedenceTo(latestPlugin.Version) >= 0)
+            if (currentVersion.IsAtLeast(latestPlugin.Version))
                 return options;
 
             var update = new DependencyUpdate(

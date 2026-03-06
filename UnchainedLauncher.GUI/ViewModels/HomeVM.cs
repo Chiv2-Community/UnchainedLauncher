@@ -121,6 +121,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         "",
                         Settings.CLIArgs,
                         false,
+                        false,
                         None,
                         None
                     )
@@ -156,6 +157,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 Settings.ServerBrowserBackend,
                 Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
+                Settings.AllowUnstablePluginReleases,
                 None,
                 None
             );

@@ -53,7 +53,8 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                     LocalIp: Some("127.0.0.1"),
                     ServerMods: ["a/b/c", "a/b/c"],
                     DiscordIntegration: None,
-                    DesyncPatch: false
+                    DesyncPatch: false,
+                    UseBackendBanlist: true
                 ),
                 new MockA2S(new A2SInfo(
                     0,

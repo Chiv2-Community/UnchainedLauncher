@@ -48,7 +48,8 @@ public class UnchainedChivalry2LauncherTests {
             LocalIp: Option<string>.None,
             ServerMods: [],
             DiscordIntegration: Option<DiscordIntegrationLaunchOptions>.None,
-            DesyncPatch: false
+            DesyncPatch: false,
+            UseBackendBanlist: true
         );
 
         return new LaunchOptions(

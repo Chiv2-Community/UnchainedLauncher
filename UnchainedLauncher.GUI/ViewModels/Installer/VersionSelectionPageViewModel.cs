@@ -10,15 +10,15 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Extensions;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.GUI.Services;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
     public partial class VersionSelectionPageViewModel : IInstallerPageViewModel, INotifyPropertyChanged {
         private static readonly ILog _logger = LogManager.GetLogger(typeof(VersionSelectionPageViewModel));
-        
+
         private readonly IReleaseLocator _releaseLocator;
         private readonly IVersionExtractor _versionExtractor;
         public string TitleText => "🚀 Choose Your Unchained Version";
@@ -83,7 +83,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
             SelectedVersion = AvailableVersions.FirstOrDefault(x => x.IsLatestStable);
         }
-        
+
         private SemVersion? GetCurrentVersion() {
             var currentPath = Environment.ProcessPath;
             return currentPath != null && System.IO.File.Exists(currentPath) ? _versionExtractor.GetVersion(currentPath) : null;

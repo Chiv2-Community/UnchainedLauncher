@@ -306,8 +306,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     new DependencyUpdate("Launcher", CurrentVersion, release.Version.ToString(), release.PageUrl, "")
                 );
 
-            switch (dialogResult)
-            {
+            switch (dialogResult) {
                 case UserDialogueChoice.No:
                     Logger.Info("User chose not to update.");
                     return;

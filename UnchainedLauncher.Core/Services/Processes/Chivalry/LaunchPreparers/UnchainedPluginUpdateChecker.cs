@@ -51,7 +51,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             if (!options.CheckForDependencyUpdates) {
                 return options;
             }
-            
+
             var latestPlugin = await PluginReleaseLocator.GetLatestRelease(options.AllowUnstablePluginReleases);
             if (latestPlugin == null) {
                 _logger.Warn("Could not find latest plugin");

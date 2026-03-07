@@ -1,6 +1,5 @@
 ﻿using Semver;
 using UnchainedLauncher.Core.Extensions;
-using Xunit;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Extensions {
     public class SemVersionExtensionsTests {

@@ -22,7 +22,7 @@ namespace UnchainedLauncher.Core.Services {
             }
             catch (Exception e) {
                 _logger.Error($"Unable to parse version for '{filePath}': {e.Message}. Attempting to clean it up.");
-                
+
                 var splitVersionString = versionString.Split('.');
                 versionString = String.Join('.', splitVersionString.Take(3));
                 _logger.Debug($"Cleaned file version for '{filePath}': {versionString}");

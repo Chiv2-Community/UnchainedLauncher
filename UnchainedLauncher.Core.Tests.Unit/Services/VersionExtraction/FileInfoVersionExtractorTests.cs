@@ -1,7 +1,4 @@
 ﻿using UnchainedLauncher.Core.Services;
-using Semver;
-using Xunit;
-using System.IO;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.VersionExtraction {
     public class FileInfoVersionExtractorTests {
@@ -21,7 +18,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.VersionExtraction {
             Assert.True(File.Exists(filePath), $"Test file not found at {Path.GetFullPath(filePath)}");
 
             var version = extractor.GetVersion(filePath);
-            
+
             Assert.NotNull(version);
             Assert.Equal(expectedVersion, version!.ToString());
         }

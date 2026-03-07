@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.Services;
@@ -59,7 +58,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
                 await AppendLog("-----------------------------------------------------");
                 await AppendLog("");
             }
-            
+
             await AppendLog("✅ Installation complete!");
             await AppendLog("🎉 You can now launch Chivalry 2 as you normally would and the unchained launcher will handle everything from there. Enjoy!");
 
@@ -73,7 +72,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         private async Task AppendLog(string appendString) {
             Log += appendString + "\n";
-            
+
             // People think nothing happened when things are too fast. Slow them down just so they believe.
             await Task.Delay(100 + Random.Shared.Next(0, 500));
         }

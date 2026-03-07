@@ -108,7 +108,8 @@ namespace UnchainedLauncher.Core.Utilities {
                 if (logResult != null) {
                     await logResult!.Invoke(message);
                 }
-            };
+            }
+            ;
 
             var results =
                 await download.Assets.ToList().Select(async asset => {

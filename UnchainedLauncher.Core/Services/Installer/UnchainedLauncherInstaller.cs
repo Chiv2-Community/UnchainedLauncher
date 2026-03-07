@@ -1,7 +1,5 @@
 ﻿using log4net;
 using System.Diagnostics;
-using System.Reflection;
-using System.Runtime.InteropServices.JavaScript;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Utilities;
@@ -51,7 +49,7 @@ namespace UnchainedLauncher.Core.Services.Installer {
 
                 Logger.Info(s);
             }
-            
+
             try {
                 var url =
                     (from releaseAssets in release.Assets
@@ -71,13 +69,15 @@ namespace UnchainedLauncher.Core.Services.Installer {
                     try {
                         File.Copy(currentPath, downloadFilePath, true);
                         await log("✅️ Successfully copied launcher executable.");
-                    } catch (Exception ex) {
+                    }
+                    catch (Exception ex) {
                         await log("❌ Failed to copy executable");
                         await log(ex.ToString());
 
                         return false;
                     }
-                } else {
+                }
+                else {
                     await log($"📥 Downloading release 'v{release.Version}'\n    from {url}\n    to {downloadFilePath}");
 
                     // We only want to download the Launcher executable, even if the release contains multiple assets
@@ -89,7 +89,7 @@ namespace UnchainedLauncher.Core.Services.Installer {
                         return false;
                     }
                 }
-                
+
 
                 var launcherPath = Path.Combine(targetDir.FullName, FilePaths.LauncherPath);
                 await MoveExistingLauncher(targetDir, log);

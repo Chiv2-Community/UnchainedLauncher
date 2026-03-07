@@ -1,9 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using LanguageExt;
 using log4net;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.GUI.Views.Installer;
@@ -29,12 +27,12 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
                     // CurrentPage is a computed property based on _currentPageIndex.
                     // We need to unsubscribe from the old page's PropertyChanged event,
                     // update the index, and then subscribe to the new page's event.
-                    
+
                     // Unsubscribe from the OLD page
                     CurrentPage.PropertyChanged -= CurrentPagePropertyChanged;
-                    
+
                     _currentPageIndex = value;
-                    
+
                     // Subscribe to the NEW page
                     CurrentPage.PropertyChanged += CurrentPagePropertyChanged;
                 }

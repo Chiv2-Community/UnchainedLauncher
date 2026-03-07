@@ -19,7 +19,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
             string? discordChannelId = null,
             string? discordAdminChannelId = null,
             string? discordGeneralChannelId = null,
-            string? discordAdminRoleId = null
+            string? discordAdminRoleId = null,
+            bool useBackendBanlist = true
         ) {
             IpNetDriver = ipNetDriver;
             GameMode = gameMode;
@@ -27,6 +28,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
             PlayerBotCount = playerBotCount;
             WarmupTime = warmupTime;
             AdditionalCLIArgs = additionalCLIArgs;
+            UseBackendBanlist = useBackendBanlist;
             DiscordBotToken = discordBotToken ?? "";
             DiscordChannelId = discordChannelId ?? "";
             DiscordAdminChannelId = discordAdminChannelId ?? "";
@@ -40,6 +42,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
         public int? PlayerBotCount { get; set; }
         public int? WarmupTime { get; set; }
         public bool ShowInServerBrowser { get; set; }
+        public bool UseBackendBanlist { get; set; }
 
         public string AdditionalCLIArgs { get; set; }
 

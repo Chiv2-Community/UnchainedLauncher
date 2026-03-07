@@ -319,7 +319,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 formData.LocalIp,
                 enabledServerModBlueprints.Select(bp => bp.ClassPath!),
                 discordIntegration,
-                formData.DesyncPatch
+                formData.DesyncPatch,
+                formData.UseBackendBanlist
             );
         }
 
@@ -330,6 +331,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 Settings.ServerBrowserBackend,
                 (Settings.CLIArgs + " " + formData.AdditionalCLIArgs).Trim(),
                 Settings.EnablePluginAutomaticUpdates,
+                Settings.AllowUnstablePluginReleases,
                 Some(formData.SavedDirSuffix),
                 Some(serverLaunchOptions)
             );

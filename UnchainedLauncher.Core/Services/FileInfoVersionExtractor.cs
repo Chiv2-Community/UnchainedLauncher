@@ -16,16 +16,24 @@ namespace UnchainedLauncher.Core.Services {
 
             var versionString = fileInfo.ProductVersion ?? fileInfo.FileVersion ?? "";
             _logger.Debug($"Raw file version for '{filePath}': {versionString}");
-            var splitVersionString = versionString.Split('.');
-            versionString = String.Join('.', splitVersionString.Take(3));
-            _logger.Debug($"Cleaned file version for '{filePath}': {versionString}");
 
             try {
                 return SemVersion.Parse(versionString, SemVersionStyles.Any);
             }
             catch (Exception e) {
-                _logger.Error($"Unable to parse version for '{filePath}': {e.Message}");
-                return null;
+                _logger.Error($"Unable to parse version for '{filePath}': {e.Message}. Attempting to clean it up.");
+                
+                var splitVersionString = versionString.Split('.');
+                versionString = String.Join('.', splitVersionString.Take(3));
+                _logger.Debug($"Cleaned file version for '{filePath}': {versionString}");
+
+                try {
+                    return SemVersion.Parse(versionString, SemVersionStyles.Any);
+                }
+                catch (Exception ex) {
+                    _logger.Error($"Still unable to parse version for '{filePath}': {ex.Message}");
+                    return null;
+                }
             }
         }
     }

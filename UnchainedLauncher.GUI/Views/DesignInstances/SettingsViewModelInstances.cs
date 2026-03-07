@@ -24,6 +24,7 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
             "--design-time-only-default-constructor",
             "https://servers.polehammer.net",
             false,
+            false,
             new FileBackedSettings<LauncherSettings>(""),
             "",
             _ => { }

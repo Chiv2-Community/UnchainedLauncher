@@ -21,7 +21,8 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
             showInServerBrowser: true,
             playerBotCount: 0,
             warmupTime: 0,
-            "--test"
+            additionalCLIArgs: "--test",
+            useBackendBanlist: true
         ) {
         }
     }

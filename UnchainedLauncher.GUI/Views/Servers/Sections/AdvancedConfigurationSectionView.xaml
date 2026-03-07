@@ -17,6 +17,10 @@
                 <CheckBox IsChecked="{Binding ShowInServerBrowser}"
                           Content="Show in Server Browser"
                           VerticalAlignment="Center" />
+                <CheckBox IsChecked="{Binding UseBackendBanlist}"
+                          Content="Use Backend Banlist"
+                          VerticalAlignment="Center"
+                          Margin="0,4,0,0" />
             </StackPanel>
         </controls:CollapsibleCard>
 

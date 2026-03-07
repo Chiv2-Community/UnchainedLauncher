@@ -104,7 +104,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         string? DiscordAdminChannelId = null,
         string? DiscordGeneralChannelId = null,
         string? DiscordAdminRoleId = null,
-        bool DesyncPatch = false) {
+        bool DesyncPatch = false,
+        bool UseBackendBanlist = true) {
 
         public string SavedDirSuffix => ServerConfigurationVM.SavedDirSuffix(Name);
 
@@ -168,6 +169,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public int PingPort { get; set; }
         public string LocalIp { get; set; }
         public bool DesyncPatch { get; set; }
+        public bool UseBackendBanlist { get; set; }
 
         public static string SavedDirSuffix(string name) {
             var validChars = "_0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -244,7 +246,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             string? discordAdminChannelId = null,
             string? discordGeneralChannelId = null,
             string? discordAdminRoleId = null,
-            bool desyncPatch = false
+            bool desyncPatch = false,
+            bool useBackendBanlist = true
         ) {
             _modScanTab = modScanTab;
             _availableModsAndMaps = availableModsAndMaps;
@@ -255,6 +258,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             PingPort = pingPort;
             GamePort = gamePort;
             DesyncPatch = desyncPatch;
+            UseBackendBanlist = useBackendBanlist;
 
             EnabledServerModList = enabledServerModList ?? new ObservableCollection<BlueprintDto>();
 
@@ -285,7 +289,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 discordChannelId,
                 discordAdminChannelId,
                 discordGeneralChannelId,
-                discordAdminRoleId
+                discordAdminRoleId,
+                useBackendBanlist
             );
 
             BalanceSection = new BalanceSectionVM(GameMode);
@@ -341,7 +346,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             AdvancedConfigurationSection.DiscordAdminChannelId,
             AdvancedConfigurationSection.DiscordGeneralChannelId,
             AdvancedConfigurationSection.DiscordAdminRoleId,
-            DesyncPatch
+            DesyncPatch,
+            AdvancedConfigurationSection.UseBackendBanlist
         );
 
         private MapDto? DetermineNextMap() {

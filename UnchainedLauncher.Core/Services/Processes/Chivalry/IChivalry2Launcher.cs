@@ -45,6 +45,7 @@ public record LaunchOptions(
     Option<string> ServerBrowserBackend,
     string LaunchArgs,
     bool CheckForDependencyUpdates, //TODO: remove this property
+    bool AllowUnstablePluginReleases,
     Option<string> SavedDirSuffix,
     Option<ServerLaunchOptions> ServerLaunchOptions
 ) {
@@ -103,7 +104,8 @@ public record ServerLaunchOptions(
     Option<string> LocalIp,
     IEnumerable<String> ServerMods,
     Option<DiscordIntegrationLaunchOptions> DiscordIntegration,
-    bool DesyncPatch
+    bool DesyncPatch,
+    bool UseBackendBanlist
 ) {
     public IReadOnlyList<CLIArg> ToCLIArgs() {
         var args = new List<CLIArg>() {
@@ -124,6 +126,9 @@ public record ServerLaunchOptions(
 
         if (RegisterWithBackend)
             args.Add(new Flag("--register"));
+
+        if (UseBackendBanlist)
+            args.Add(new Flag("--use-backend-banlist"));
 
         Password.IfSome(password => args.Add(new UEParameter("ServerPassword", password.Trim())));
 

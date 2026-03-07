@@ -114,18 +114,17 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             // For a vanilla launch we need to pass the args through to the vanilla launcher.
             // Skip the first arg which is the path to the exe.
-            var launchResult =
-                await VanillaLauncher.Launch(
-                    new LaunchOptions(
-                        new List<ReleaseCoordinates>(),
-                        "",
-                        Settings.CLIArgs,
-                        false,
-                        false,
-                        None,
-                        None
-                    )
-                );
+            var options = new LaunchOptions(
+                new List<ReleaseCoordinates>(),
+                "",
+                Settings.CLIArgs,
+                false,
+                false,
+                None,
+                None
+            );
+
+            var launchResult = await VanillaLauncher.Launch(options);
 
 
             return launchResult.Match(
@@ -142,7 +141,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     }
 
                     MainWindowVisibility = Visibility.Hidden;
-                    _ = CreateChivalryProcessWatcher(process);
+                    _ = CreateChivalryProcessWatcher(process, options);
                     return Some(process);
                 }
             );
@@ -150,8 +149,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         [RelayCommand]
         public async Task<Option<Process>> LaunchUnchained() {
-            Logger.Info("Launching Unchained");
-
             var options = new LaunchOptions(
                 ModManager.GetEnabledAndDependencies(),
                 Settings.ServerBrowserBackend,
@@ -161,6 +158,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 None,
                 None
             );
+
+            return await LaunchUnchained(options);
+        }
+
+        private async Task<Option<Process>> LaunchUnchained(LaunchOptions options) {
+            Logger.Info("Launching Unchained");
 
             Settings.HasLaunched = true;
 
@@ -183,14 +186,23 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     }
 
                     MainWindowVisibility = Visibility.Hidden;
-                    _ = CreateChivalryProcessWatcher(process);
+                    _ = CreateChivalryProcessWatcher(process, options);
                     return Some(process);
                 }
             );
         }
 
-        private async Task CreateChivalryProcessWatcher(Process process) {
-            var attached = await ProcessWatcher.OnExit(process, (exitCode, acceptable) => {
+        private bool _isRetrying;
+        private async Task CreateChivalryProcessWatcher(Process process, LaunchOptions options) {
+            var attached = await ProcessWatcher.OnExit(process, async (exitCode, acceptable) => {
+                if (exitCode == -67 && !_isRetrying) {
+                    _isRetrying = true;
+                    Logger.Warn("Chivalry 2 exited with -67. Attempting a single re-launch.");
+                    await LaunchUnchained(options);
+                    _isRetrying = false;
+                    return;
+                }
+
                 if (!acceptable) {
                     UserDialogueSpawner.DisplayMessage(
                         $"Chivalry 2 exited unexpectedly with code {exitCode}. Check the logs for details.");

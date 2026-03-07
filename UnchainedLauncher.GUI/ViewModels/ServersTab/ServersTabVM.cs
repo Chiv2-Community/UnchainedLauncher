@@ -365,7 +365,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 // Keep the existing ServerVM around so UI can show downtime + restart timeline.
                 await UiInvokeAsync(() => { runningTuple.live.IsUp = false; });
 
-                Logger.Error($"Server exited unexpectedly with code {exitCode}. Attempting automatic restart...");
+                if (exitCode == -67) {
+                    Logger.Warn($"Server exited with -67 (patching failure). Attempting a single re-launch.");
+                }
+                else {
+                    Logger.Error($"Server exited unexpectedly with code {exitCode}. Attempting automatic restart...");
+                }
 
                 if (!Settings.CanLaunch) return; // EGS can't restart automatically.
 

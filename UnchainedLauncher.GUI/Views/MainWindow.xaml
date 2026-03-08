@@ -185,5 +185,14 @@
             </TabItem.Header>
             <local:Settings DataContext="{Binding SettingsViewModel}" />
         </TabItem>
+        <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="❓" Margin="0,0,6,0" />
+                    <TextBlock Text="Help" />
+                </StackPanel>
+            </TabItem.Header>
+            <local:Help DataContext="{Binding HelpVM}" />
+        </TabItem>
     </TabControl>
 </local:UnchainedWindow>

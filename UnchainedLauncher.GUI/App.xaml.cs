@@ -230,6 +230,7 @@ namespace UnchainedLauncher.GUI {
             }
 
             var modScanTab = new ModScanTabVM();
+            var helpVM = new HelpVM(settingsViewModel);
             var availableModsAndMaps = new AvailableModsAndMapsService(modManager, modScanTab);
 
             var serverConfigurationVMs =
@@ -252,7 +253,8 @@ namespace UnchainedLauncher.GUI {
                 modListViewModel,
                 settingsViewModel,
                 serversTabViewModel,
-                modScanTab
+                modScanTab,
+                helpVM
             );
 
             return new MainWindow(mainWindowViewModel);

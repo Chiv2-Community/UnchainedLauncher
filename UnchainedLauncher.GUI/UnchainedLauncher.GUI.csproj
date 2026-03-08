@@ -21,7 +21,7 @@
     <Authors>Jacoby6000, AERoese (BK, DrLong), Nihilianth</Authors>
     <PackageProjectUrl>https://github.com/Chiv2-Community/UnchainedLauncher</PackageProjectUrl>
     <ApplicationIcon>assets\chiv2-unchained-logo.ico</ApplicationIcon>
-    <Version>1.0.0-RC1</Version>
+    <Version>1.0.0-RC2</Version>
     <AssemblyName>UnchainedLauncher</AssemblyName>
     <RootNamespace>UnchainedLauncher.GUI</RootNamespace>
 

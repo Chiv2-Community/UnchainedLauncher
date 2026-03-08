@@ -142,8 +142,8 @@ namespace UnchainedLauncher.GUI {
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
-            var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService,
-                installationFinder, installer, launcherReleaseLocator, modManager.PakDir, userDialogueSpawner, Shutdown);
+
+            var settingsViewModel = InitializeSettingsViewModel(installationFinder, installer, launcherReleaseLocator, registryWindowViewModel, registryWindowService, modManager, userDialogueSpawner);
 
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(
@@ -256,6 +256,56 @@ namespace UnchainedLauncher.GUI {
             );
 
             return new MainWindow(mainWindowViewModel);
+        }
+
+        private SettingsVM InitializeSettingsViewModel(IChivalry2InstallationFinder installationFinder,
+            IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator,
+            RegistryWindowVM registryWindowViewModel, RegistryWindowService registryWindowService, ModManager modManager,
+            MessageBoxSpawner userDialogueSpawner)
+        {
+            var cliArgs = string.Join(" ",
+                Environment.GetCommandLineArgs()
+                    .Skip(1)
+                    .ToList()
+                    .Select(ArgumentEscaper.Escape)
+            );
+
+            var settingsCodec = new SettingsCodec(
+                registryWindowViewModel,
+                registryWindowService,
+                installationFinder,
+                installer,
+                launcherReleaseLocator,
+                modManager.PakDir,
+                userDialogueSpawner,
+                cliArgs,
+                Shutdown
+            );
+
+            var settingsViewModel = InitializeFromFileWithCodec(
+                settingsCodec,
+                FilePaths.LauncherSettingsFilePath,
+                () => new SettingsVM(
+                    registryWindowViewModel,
+                    registryWindowService,
+                    installer,
+                    launcherReleaseLocator,
+                    modManager.PakDir,
+                    userDialogueSpawner,
+                    SettingsVM.DetectInstallationType(installationFinder),
+                    true,
+                    false,
+                    "",
+                    "https://servers.polehammer.net",
+                    false,
+                    SettingsVM.Version.IsPrerelease,
+                    cliArgs,
+                    Shutdown
+                )
+            );
+
+            RegisterSaveToFileOnExit(settingsViewModel, settingsCodec, FilePaths.LauncherSettingsFilePath);
+            return settingsViewModel;
         }
 
         private AggregateModRegistry InitializeModRegistry(string jsonPath) {

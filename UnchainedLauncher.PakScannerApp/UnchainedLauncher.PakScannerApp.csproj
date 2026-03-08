@@ -6,7 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AssemblyName>UnchainedScanner</AssemblyName>
-        <Version>1.0.0-RC1</Version>
+        <Version>1.0.0-RC2</Version>
     </PropertyGroup>
 
     <ItemGroup>

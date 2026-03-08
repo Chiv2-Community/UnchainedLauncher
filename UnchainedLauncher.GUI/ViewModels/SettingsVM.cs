@@ -122,7 +122,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 loadedSettings?.AdditionalModActors ?? "",
                 loadedSettings?.ServerBrowserBackend ?? "https://servers.polehammer.net",
                 loadedSettings?.UseLightTheme ?? false,
-                loadedSettings?.AllowUnstablePluginReleases ?? false,
+                loadedSettings?.LastLaunchVersion?.WithoutMetadata() == Version.WithoutMetadata()
+                    ? (loadedSettings?.AllowUnstablePluginReleases ?? Version.IsPrerelease)
+                    : Version.IsPrerelease,
                 fileBackedSettings,
                 cliArgs,
                 exitProgram
@@ -131,7 +133,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public void SaveSettings() {
             LauncherSettings.SaveSettings(
-                new LauncherSettings(InstallationType, EnablePluginAutomaticUpdates, IsUnrealScannerEnabled, AdditionalModActors, ServerBrowserBackend, UseLightTheme, AllowUnstablePluginReleases)
+                new LauncherSettings(InstallationType, EnablePluginAutomaticUpdates, IsUnrealScannerEnabled, AdditionalModActors, ServerBrowserBackend, UseLightTheme, AllowUnstablePluginReleases, Version)
             );
         }
 

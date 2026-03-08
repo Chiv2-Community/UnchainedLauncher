@@ -15,17 +15,19 @@
                                    Margin="0,0,0,10" TextWrapping="Wrap" Opacity="0.7"/>
                         <StackPanel Orientation="Horizontal">
                             <Button Content="Check for Updates" 
-                                    Command="{Binding SettingsViewModel.CheckForUpdateCommand}" 
+                                    Command="{Binding CheckForUpdateCommand}" 
                                     Style="{DynamicResource Button.Primary}" 
                                     Padding="20,8" Margin="0,0,10,0" />
                             <Button Content="Clean Up Installation" 
-                                    Command="{Binding SettingsViewModel.CleanUpInstallationCommand}" 
+                                    Command="{Binding CleanUpInstallationCommand}" 
                                     Style="{DynamicResource Button.Secondary}" 
                                     Padding="20,8" Margin="0,0,10,0" />
+                            <!-- Uninstall is broken, so hiding it for now. 
                             <Button Content="Uninstall" 
-                                    Command="{Binding SettingsViewModel.UninstallLauncherCommand}" 
+                                    Command="{Binding UninstallLauncherCommand}" 
                                     Style="{DynamicResource Button.Danger}" 
-                                    Padding="20,8" />
+                                    Padding="20,8" />  
+                            -->
                         </StackPanel>
                     </StackPanel>
                 </controls:CollapsibleCard.Body>

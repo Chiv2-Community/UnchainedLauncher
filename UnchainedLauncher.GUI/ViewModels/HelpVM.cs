@@ -115,7 +115,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private void CleanUpInstallation_actions() {
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
             FileHelpers.DeleteDirectory(FilePaths.PluginDir);
-
             PakDir.Reset();
         }
 

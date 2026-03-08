@@ -9,7 +9,8 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
             new TBLGameModeSectionVM(),
             new TBLGameUserSettingsSectionVM(),
             new GameSessionSectionVM(),
-            new ObservableCollection<MapDto>()
+            new ObservableCollection<MapDto>(),
+            false
         ) {
         }
     }

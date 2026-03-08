@@ -25,7 +25,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public partial class SettingsVM : IDisposable {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(SettingsVM));
-        private static readonly Version Version = Assembly.GetExecutingAssembly().GetName().Version!;
+        private static readonly Semver.SemVersion Version = Semver.SemVersion.Parse(Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion);
 
         public InstallationType InstallationType { get; set; }
         public bool EnablePluginAutomaticUpdates { get; set; }
@@ -51,7 +51,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
         public bool CLIArgsModified { get; set; }
         public string CurrentVersion {
-            get => "v" + Version.ToString(3);
+            get => "v" + Version.WithoutMetadata().ToString();
         }
 
         public bool IsLauncherReusable() => InstallationType == InstallationType.Steam;
@@ -286,7 +286,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 return;
             }
 
-            if (latestRelease.Version.ComparePrecedenceTo(new Semver.SemVersion(Version.Major, Version.Minor, Version.Build)) > 0) {
+            if (latestRelease.Version.ComparePrecedenceTo(Version) > 0) {
                 Logger.Info($"Latest version: {latestRelease.Version}, Current version: {CurrentVersion}");
                 await ChangeVersion(latestRelease);
             }

@@ -263,8 +263,7 @@ namespace UnchainedLauncher.GUI {
         private SettingsVM InitializeSettingsViewModel(IChivalry2InstallationFinder installationFinder,
             IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator,
             RegistryWindowVM registryWindowViewModel, RegistryWindowService registryWindowService, ModManager modManager,
-            MessageBoxSpawner userDialogueSpawner)
-        {
+            MessageBoxSpawner userDialogueSpawner) {
             var cliArgs = string.Join(" ",
                 Environment.GetCommandLineArgs()
                     .Skip(1)

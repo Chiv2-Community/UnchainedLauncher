@@ -1,6 +1,4 @@
 ﻿using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.Services.Installer;
-using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.Views.Registry.DesignInstances;

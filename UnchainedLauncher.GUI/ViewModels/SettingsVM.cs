@@ -1,17 +1,13 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using LanguageExt;
 using log4net;
 using PropertyChanged;
 using Semver;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Installer;
-using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.JsonModels;
 using UnchainedLauncher.GUI.Services;
@@ -31,8 +27,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 installationFinder,
                 cliArgs
             )) {
-        private static LauncherSettings ToJsonType(SettingsVM vm)
-        {
+        private static LauncherSettings ToJsonType(SettingsVM vm) {
             return new LauncherSettings(
                 vm.InstallationType,
                 vm.EnablePluginAutomaticUpdates,

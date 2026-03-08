@@ -280,7 +280,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public async Task CheckForUpdate() {
             Logger.Info("Checking for updates...");
 
-            var latestRelease = await UnchainedReleaseLocator.GetLatestRelease();
+            var latestRelease = await UnchainedReleaseLocator.GetLatestRelease(Version.IsPrerelease); 
             if (latestRelease == null) {
                 UserDialogueSpawner.DisplayMessage("Failed to check for updates. Check the logs for more details.");
                 return;

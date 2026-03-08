@@ -95,10 +95,17 @@
                                         Height="56"
                                         VerticalAlignment="Top"
                                         Margin="0,-32,12,6">
-                                    <TextBlock Text="Unchained"
-                                               Style="{DynamicResource Heading.H1}"
-                                               VerticalAlignment="Center"
-                                               FontWeight="SemiBold" />
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="Unchained"
+                                                   Style="{DynamicResource Heading.H1}"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock Text="{Binding SettingsViewModel.CurrentVersion}"
+                                                   Foreground="{DynamicResource Brush.TextPrimary}"
+                                                   Margin="8,12,0,0"
+                                                   VerticalAlignment="Center"
+                                                   FontSize="12"
+                                                   Opacity="0.5" />
+                                    </StackPanel>
                                 </Border>
                                 <TabPanel Grid.Column="2" x:Name="HeaderPanel"
                                           IsItemsHost="True"
@@ -177,6 +184,15 @@
                 </StackPanel>
             </TabItem.Header>
             <local:Settings DataContext="{Binding SettingsViewModel}" />
+        </TabItem>
+        <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="❓" Margin="0,0,6,0" />
+                    <TextBlock Text="Help" />
+                </StackPanel>
+            </TabItem.Header>
+            <local:Help DataContext="{Binding HelpVM}" />
         </TabItem>
     </TabControl>
 </local:UnchainedWindow>

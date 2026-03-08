@@ -43,11 +43,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
 
-        private bool alreadyChecked = false;
-
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
-            if (alreadyChecked) return Some(options);
-
             if (!options.CheckForDependencyUpdates) {
                 return options;
             }
@@ -82,7 +78,6 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
 
             if (choice != UserDialogueChoice.Yes) {
-                alreadyChecked = true;
                 return options;
             }
 
@@ -92,10 +87,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                     _logger.Warn($"Failed to update plugin: {err}");
                     return None;
                 },
-                () => {
-                    alreadyChecked = true;
-                    return Some(options);
-                });
+                () => Some(options));
         }
     }
 }

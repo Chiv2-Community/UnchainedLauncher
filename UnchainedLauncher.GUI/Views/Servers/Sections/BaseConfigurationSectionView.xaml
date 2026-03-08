@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Servers.DesignInstances"
              xmlns:behaviors="clr-namespace:UnchainedLauncher.GUI.Behaviors"
+             xmlns:converters="clr-namespace:UnchainedLauncher.GUI.Converters"
              d:DataContext="{d:DesignInstance designInstances:BaseConfigurationSectionDesignVM}"
              Background="{DynamicResource Brush.Background}"
              mc:Ignorable="d">
@@ -14,6 +15,8 @@
         <SolidColorBrush x:Key="Brush.SuccessTint"
                          Color="{StaticResource Color.Success}"
                          Opacity="0.05" />
+
+        <converters:MapToTravelStringConverter x:Key="MapToTravelStringConverter" />
 
     </UserControl.Resources>
 
@@ -55,7 +58,7 @@
         </StackPanel>
 
         <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,12,8">
-            <CheckBox IsChecked="{Binding DataContext.DesyncPatch, RelativeSource={RelativeSource AncestorType=UserControl, AncestorLevel=2}}"
+            <CheckBox IsChecked="{Binding DesyncPatch}"
                       Content="Desync Patch"
                       ToolTip="Completely eliminates desync, but may cause issues on TO maps, or instability with bots." />
         </StackPanel>
@@ -82,7 +85,7 @@
                 <!-- WPF may treat '_' as an access key when rendering raw strings; use TextBlock to preserve underscores -->
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Text="{Binding MapName}" />
+                        <TextBlock Text="{Binding Converter={StaticResource MapToTravelStringConverter}}" />
                     </DataTemplate>
                 </ComboBox.ItemTemplate>
             </ComboBox>
@@ -145,7 +148,7 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Text="{Binding MapName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,6,0" />
+                                <TextBlock Text="{Binding Converter={StaticResource MapToTravelStringConverter}}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,6,0" />
 
                                 <Button Grid.Column="1"
                                         Width="28"

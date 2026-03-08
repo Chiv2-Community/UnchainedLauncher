@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Semver;
+using System.Text.Json.Serialization;
 using UnchainedLauncher.Core.JsonModels;
 
 namespace UnchainedLauncher.GUI.JsonModels {
@@ -9,6 +10,7 @@ namespace UnchainedLauncher.GUI.JsonModels {
         [property: JsonPropertyName("additional_mod_actors")] string? AdditionalModActors,
         [property: JsonPropertyName("server_browser_backend")] string? ServerBrowserBackend,
         [property: JsonPropertyName("use_light_theme")] bool? UseLightTheme,
-        [property: JsonPropertyName("allow_unstable_plugin_releases")] bool? AllowUnstablePluginReleases
+        [property: JsonPropertyName("allow_unstable_plugin_releases")] bool? AllowUnstablePluginReleases,
+        [property: JsonPropertyName("last_launch_version")] SemVersion? LastLaunchVersion
     );
 }

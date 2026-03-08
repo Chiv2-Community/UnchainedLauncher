@@ -9,11 +9,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.Sections {
         TBLGameModeSectionVM gameMode,
         TBLGameUserSettingsSectionVM userSettings,
         GameSessionSectionVM gameSession,
-        ObservableCollection<MapDto> availableMaps) {
+        ObservableCollection<MapDto> availableMaps,
+        bool desyncPatch) {
 
         public TBLGameModeSectionVM GameMode { get; } = gameMode;
         public TBLGameUserSettingsSectionVM UserSettings { get; } = userSettings;
         public GameSessionSectionVM GameSession { get; } = gameSession;
+        public bool DesyncPatch { get; set; } = desyncPatch;
 
         public ObservableCollection<MapDto> AvailableMaps { get; } = availableMaps;
     }

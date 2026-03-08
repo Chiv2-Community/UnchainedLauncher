@@ -9,107 +9,76 @@
              d:DataContext="{d:DesignInstance instances:SettingsDesignVM}"
              d:DesignHeight="450" d:DesignWidth="800">
 
-    <Grid Margin="10" Grid.IsSharedSizeScope="True">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />    <!-- Main Content: Scrollable -->
-            <RowDefinition Height="Auto" /> <!-- Footer: Actions -->
-        </Grid.RowDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Orientation="Vertical" Margin="0,0,10,0">
+            <!-- Section 1: General Settings -->
+            <controls:CollapsibleCard Header="General Settings" Margin="0,0,0,10" IsExpanded="True">
+                <controls:CollapsibleCard.Body>
+                    <StackPanel Orientation="Vertical">
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
 
-        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Orientation="Vertical" Margin="0,0,10,0">
-                <!-- Section 1: General Settings -->
-                <controls:CollapsibleCard Header="General Settings" Margin="0,0,0,10" IsExpanded="True">
-                    <controls:CollapsibleCard.Body>
-                        <StackPanel Orientation="Vertical">
-                            <Grid Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-
-                                <TextBlock Text="Installation Type:" VerticalAlignment="Center" Margin="0,5,10,5" />
-                                <ComboBox Grid.Column="1" VerticalAlignment="Center" Margin="0,5"
-                                          SelectedItem="{Binding InstallationType, Mode=TwoWay}"
-                                          ItemsSource="{Binding AllInstallationTypes}" />
-                            </Grid>
-
-                            <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates}" 
-                                      Content="Enable Automatic Plugin Updates and Downloads" 
-                                      Margin="0,5" />
-                            <CheckBox IsChecked="{Binding AllowUnstablePluginReleases}" 
-                                      Content="Enable Unstable Plugin Releases" 
-                                      IsEnabled="{Binding EnablePluginAutomaticUpdates}"
-                                      Margin="0,5" />
-                        </StackPanel>
-                    </controls:CollapsibleCard.Body>
-                </controls:CollapsibleCard>
-
-                <!-- Section 2: Advanced Settings -->
-                <controls:CollapsibleCard Header="Advanced Settings" Margin="0,0,0,10" IsExpanded="True">
-                    <controls:CollapsibleCard.Body>
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="*" />
-                            </Grid.RowDefinitions>
-
-                            <CheckBox Grid.Row="0" IsChecked="{Binding IsUnrealScannerEnabled}" 
-                                      Content="Enable Unreal Mod Scanner Tab" 
-                                      Margin="0,5" VerticalAlignment="Center" />
-
-                            <Separator Grid.Row="1" Margin="0,10" Background="{DynamicResource Brush.Border}" />
-
-                            <Grid Grid.Row="2" Margin="0,0,0,10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="Server Browser Backend:" VerticalAlignment="Center" Margin="0,5,10,5" FontWeight="SemiBold" />
-                                <TextBox Grid.Column="1" VerticalAlignment="Center" Margin="0,5" IsEnabled="False"
-                                         Text="{Binding ServerBrowserBackend, Mode=TwoWay}" />
-                            </Grid>
-
-                            <TextBlock Grid.Row="3" Text="Additional Mod Actors:" VerticalAlignment="Center" Margin="0,5,10,5" FontWeight="SemiBold" />
-                            <TextBox Grid.Row="4" VerticalAlignment="Center" Margin="0,0,0,10"
-                                     Text="{Binding AdditionalModActors, Mode=TwoWay}" />
-
-                            <TextBlock Grid.Row="5" Text="CLI Arguments:" VerticalAlignment="Center" Margin="0,5,10,5" FontWeight="SemiBold" />
-                            <TextBox Grid.Row="6" Text="{Binding CLIArgs}" TextWrapping="Wrap" AcceptsReturn="True" 
-                                     MinHeight="100" VerticalAlignment="Stretch" VerticalContentAlignment="Top"
-                                     IsManipulationEnabled="True" Padding="5" Margin="0,0,0,5" />
+                            <TextBlock Text="Installation Type:" VerticalAlignment="Center" Margin="0,5,10,5" />
+                            <ComboBox Grid.Column="1" VerticalAlignment="Center" Margin="0,5"
+                                      SelectedItem="{Binding InstallationType, Mode=TwoWay}"
+                                      ItemsSource="{Binding AllInstallationTypes}" />
                         </Grid>
-                    </controls:CollapsibleCard.Body>
-                </controls:CollapsibleCard>
-            </StackPanel>
-        </ScrollViewer>
 
-        <!-- Section 3: Footer -->
-        <Grid Grid.Row="1" Margin="0,10,0,0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+                        <CheckBox IsChecked="{Binding EnablePluginAutomaticUpdates}" 
+                                  Content="Enable Automatic Plugin Updates and Downloads" 
+                                  Margin="0,5" />
+                        <CheckBox IsChecked="{Binding AllowUnstablePluginReleases}" 
+                                  Content="Enable Unstable Plugin Releases" 
+                                  IsEnabled="{Binding EnablePluginAutomaticUpdates}"
+                                  Margin="0,5" />
+                    </StackPanel>
+                </controls:CollapsibleCard.Body>
+            </controls:CollapsibleCard>
 
-            <Button Grid.Column="0" Content="Clean Up Installation" Margin="0,0,5,0"
-                    Command="{Binding CleanUpInstallationCommand}" Style="{DynamicResource Button.Secondary}" />
-            <Button Grid.Column="1" Content="Uninstall" Margin="5,0,0,0"
-                    Command="{Binding UninstallLauncherCommand}" Style="{DynamicResource Button.Danger}" />
+            <!-- Section 2: Advanced Settings -->
+            <controls:CollapsibleCard Header="Advanced Settings" Margin="0,0,0,10" IsExpanded="True">
+                <controls:CollapsibleCard.Body>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
 
-            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
-                <TextBlock Text="Version: " Foreground="{DynamicResource Brush.TextSecondary}" />
-                <TextBlock Text="{Binding CurrentVersion}" FontWeight="SemiBold" />
-            </StackPanel>
+                        <CheckBox Grid.Row="0" IsChecked="{Binding IsUnrealScannerEnabled}" 
+                                  Content="Enable Unreal Mod Scanner Tab" 
+                                  Margin="0,5" VerticalAlignment="Center" />
 
-            <Button Grid.Column="4" Content="Check for Updates" Padding="20,8"
-                    Command="{Binding CheckForUpdateCommand}" Style="{DynamicResource Button.Primary}" />
-        </Grid>
-    </Grid>
+                        <Separator Grid.Row="1" Margin="0,10" Background="{DynamicResource Brush.Border}" />
+
+                        <Grid Grid.Row="2" Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="LabelColumn" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Server Browser Backend:" VerticalAlignment="Center" Margin="0,5,10,5" FontWeight="SemiBold" />
+                            <TextBox Grid.Column="1" VerticalAlignment="Center" Margin="0,5" IsEnabled="False"
+                                     Text="{Binding ServerBrowserBackend, Mode=TwoWay}" />
+                        </Grid>
+
+                        <TextBlock Grid.Row="3" Text="Additional Mod Actors:" VerticalAlignment="Center" Margin="0,5,10,5" FontWeight="SemiBold" />
+                        <TextBox Grid.Row="4" VerticalAlignment="Center" Margin="0,0,0,10"
+                                 Text="{Binding AdditionalModActors, Mode=TwoWay}" />
+
+                        <TextBlock Grid.Row="5" Text="CLI Arguments:" VerticalAlignment="Center" Margin="0,5,10,5" FontWeight="SemiBold" />
+                        <TextBox Grid.Row="6" Text="{Binding CLIArgs}" TextWrapping="Wrap" AcceptsReturn="True" 
+                                 MinHeight="100" VerticalAlignment="Stretch" VerticalContentAlignment="Top"
+                                 IsManipulationEnabled="True" Padding="5" Margin="0,0,0,5" />
+                    </Grid>
+                </controls:CollapsibleCard.Body>
+            </controls:CollapsibleCard>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

@@ -67,7 +67,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                         conf.DiscordChannelId,
                         conf.DiscordAdminChannelId,
                         conf.DiscordGeneralChannelId,
-                        conf.DiscordAdminRoleId
+                        conf.DiscordAdminRoleId,
+                        conf.DesyncPatch,
+                        conf.UseBackendBanlist
                     )
             ));
 
@@ -168,7 +170,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public int A2SPort { get; set; }
         public int PingPort { get; set; }
         public string LocalIp { get; set; }
-        public bool DesyncPatch { get; set; }
         public bool UseBackendBanlist { get; set; }
 
         public static string SavedDirSuffix(string name) {
@@ -257,7 +258,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             A2SPort = a2SPort;
             PingPort = pingPort;
             GamePort = gamePort;
-            DesyncPatch = desyncPatch;
             UseBackendBanlist = useBackendBanlist;
 
             EnabledServerModList = enabledServerModList ?? new ObservableCollection<BlueprintDto>();
@@ -275,7 +275,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 GameMode,
                 UserSettings,
                 GameSession,
-                AvailableMaps
+                AvailableMaps,
+                desyncPatch
             );
 
             AdvancedConfigurationSection = new AdvancedConfigurationSectionVM(
@@ -346,7 +347,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             AdvancedConfigurationSection.DiscordAdminChannelId,
             AdvancedConfigurationSection.DiscordGeneralChannelId,
             AdvancedConfigurationSection.DiscordAdminRoleId,
-            DesyncPatch,
+            BaseConfigurationSection.DesyncPatch,
             AdvancedConfigurationSection.UseBackendBanlist
         );
 

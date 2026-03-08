@@ -8,15 +8,10 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
         public static MainWindowVM DEFAULT => new MainWindowDesignVM();
     }
 
-    public class MainWindowDesignVM : MainWindowVM {
-        public MainWindowDesignVM() : base(
-            LauncherViewModelInstances.DEFAULT,
-            ModListViewModelInstances.DEFAULT,
-            SettingsViewModelInstances.DEFAULT,
-            ServersTabInstances.DEFAULT,
-            new ModScanTabVM(),
-            new HelpVM(SettingsViewModelInstances.DEFAULT)
-        ) {
-        }
-    }
+    public class MainWindowDesignVM() : MainWindowVM(LauncherViewModelInstances.DEFAULT,
+        ModListViewModelInstances.DEFAULT,
+        SettingsViewModelInstances.DEFAULT,
+        ServersTabInstances.DEFAULT,
+        new ModScanTabVM(),
+        new HelpVM(SettingsViewModelInstances.DEFAULT, null, null, null, null, n => { }));
 }

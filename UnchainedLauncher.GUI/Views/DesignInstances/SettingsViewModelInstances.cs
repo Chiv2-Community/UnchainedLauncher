@@ -10,24 +10,14 @@ namespace UnchainedLauncher.GUI.Views.DesignInstances {
         public static SettingsVM DEFAULT => new SettingsDesignVM();
     }
 
-    public class SettingsDesignVM : SettingsVM {
-        public SettingsDesignVM() : base(
-            RegistryWindowViewModelInstances.DEFAULT,
-            new RegistryWindowService(),
-            new MockInstaller(),
-            null,
-            null,
-            new MessageBoxSpawner(),
-            InstallationType.Steam,
-            true,
-            true,
-            "--design-time-only-default-constructor",
-            "https://servers.polehammer.net",
-            false,
-            false,
-            "",
-            _ => { }
-        ) {
-        }
-    }
+    public class SettingsDesignVM() : SettingsVM(RegistryWindowViewModelInstances.DEFAULT,
+        new RegistryWindowService(),
+        InstallationType.Steam,
+        true,
+        true,
+        "--design-time-only-default-constructor",
+        "https://servers.polehammer.net",
+        false,
+        false,
+        "");
 }

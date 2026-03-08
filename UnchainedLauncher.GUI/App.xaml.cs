@@ -230,7 +230,7 @@ namespace UnchainedLauncher.GUI {
             }
 
             var modScanTab = new ModScanTabVM();
-            var helpVM = new HelpVM(settingsViewModel);
+            var helpVM = new HelpVM(settingsViewModel, installer, launcherReleaseLocator, modManager.PakDir, userDialogueSpawner, Shutdown);
             var availableModsAndMaps = new AvailableModsAndMapsService(modManager, modScanTab);
 
             var serverConfigurationVMs =
@@ -276,12 +276,7 @@ namespace UnchainedLauncher.GUI {
                 registryWindowViewModel,
                 registryWindowService,
                 installationFinder,
-                installer,
-                launcherReleaseLocator,
-                modManager.PakDir,
-                userDialogueSpawner,
-                cliArgs,
-                Shutdown
+                cliArgs
             );
 
             var settingsViewModel = InitializeFromFileWithCodec(
@@ -290,10 +285,6 @@ namespace UnchainedLauncher.GUI {
                 () => new SettingsVM(
                     registryWindowViewModel,
                     registryWindowService,
-                    installer,
-                    launcherReleaseLocator,
-                    modManager.PakDir,
-                    userDialogueSpawner,
                     SettingsVM.DetectInstallationType(installationFinder),
                     true,
                     false,
@@ -301,8 +292,7 @@ namespace UnchainedLauncher.GUI {
                     "https://servers.polehammer.net",
                     false,
                     SettingsVM.Version.IsPrerelease,
-                    cliArgs,
-                    Shutdown
+                    cliArgs
                 )
             );
 

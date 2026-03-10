@@ -22,6 +22,10 @@
                                     Command="{Binding CleanUpInstallationCommand}" 
                                     Style="{DynamicResource Button.Secondary}" 
                                     Padding="20,8" Margin="0,0,10,0" />
+                            <Button Content="Open Config Directory" 
+                                    Command="{Binding OpenConfigDirectoryCommand}" 
+                                    Style="{DynamicResource Button.Secondary}" 
+                                    Padding="20,8" Margin="0,0,10,0" />
                             <!-- Uninstall is broken, so hiding it for now. 
                             <Button Content="Uninstall" 
                                     Command="{Binding UninstallLauncherCommand}" 

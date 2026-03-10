@@ -34,6 +34,19 @@ namespace UnchainedLauncher.GUI.ViewModels {
             Process.Start(new ProcessStartInfo("https://unchained.wiki") { UseShellExecute = true });
         }
 
+        [RelayCommand]
+        private void OpenConfigDirectory() {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var configDir = Path.Combine(localAppData, "Chivalry 2");
+
+            if (Directory.Exists(configDir)) {
+                Process.Start(new ProcessStartInfo("explorer.exe", configDir));
+            }
+            else {
+                UserDialogueSpawner.DisplayMessage($"Could not find the Chivalry 2 configuration directory at {configDir}");
+            }
+        }
+
 
         [RelayCommand]
         private void UninstallLauncher() {

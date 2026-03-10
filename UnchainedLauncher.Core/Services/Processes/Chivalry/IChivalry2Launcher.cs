@@ -116,6 +116,7 @@ public record ServerLaunchOptions(
             new UEParameter("GameServerQueryPort", QueryPort.ToString()),
             new Parameter("-rcon", RconPort.ToString()),
             new Parameter("--server-browser-description", Description),
+            new Parameter("--motd", Description)
         };
 
         if (Headless) {

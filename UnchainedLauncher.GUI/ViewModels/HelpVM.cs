@@ -47,6 +47,30 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
         }
 
+        [RelayCommand]
+        private void OpenPakDirectory() {
+            var pakDir = PakDir.DirPath;
+
+            if (Directory.Exists(pakDir)) {
+                Process.Start(new ProcessStartInfo("explorer.exe", pakDir));
+            }
+            else {
+                UserDialogueSpawner.DisplayMessage($"Could not find the Chivalry 2 Pak directory at {pakDir}");
+            }
+        }
+
+        [RelayCommand]
+        private void OpenLauncherDirectory() {
+            var launcherDir = Environment.CurrentDirectory;
+
+            if (Directory.Exists(launcherDir)) {
+                Process.Start(new ProcessStartInfo("explorer.exe", launcherDir));
+            }
+            else {
+                UserDialogueSpawner.DisplayMessage($"Could not find the Launcher directory at {launcherDir}");
+            }
+        }
+
 
         [RelayCommand]
         private void UninstallLauncher() {

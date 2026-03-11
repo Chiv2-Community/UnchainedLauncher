@@ -11,7 +11,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
     using static LanguageExt.Prelude;
 
     public class PakDir : IPakDir {
-        public readonly string DirPath;
+        public string DirPath { get; }
 
         private const string BasePakFileName = "pakchunk0-WindowsNoEditor.pak";
         private const string BaseSigFileName = "pakchunk0-WindowsNoEditor.sig";

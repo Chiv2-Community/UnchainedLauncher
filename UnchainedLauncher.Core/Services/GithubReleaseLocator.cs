@@ -3,6 +3,7 @@ using log4net;
 using Octokit;
 using Semver;
 using System.Collections.Immutable;
+using UnchainedLauncher.Core.Extensions;
 
 namespace UnchainedLauncher.Core.Services {
     using static LanguageExt.Prelude;
@@ -66,8 +67,10 @@ namespace UnchainedLauncher.Core.Services {
                         false,
                         version.IsPrerelease || release.Prerelease);
 
-                var latestStableRelease = results.Filter(r => !r.IsPrerelease).MaxBy(x => x.Version)?.AsLatestStable();
-                var latestPrerelease = results.MaxBy(x => x.Version);
+                Logger.LogListInfo("Releases", results.ToList());
+                
+                var latestStableRelease = results.Filter(r => !r.IsPrerelease).MaxBy(x => x.Version, SemVersionExtensions.PrecedenceIgnoreCaseComparer)?.AsLatestStable();
+                var latestPrerelease = results.MaxBy(x => x.Version, SemVersionExtensions.PrecedenceIgnoreCaseComparer);
 
                 Logger.Info($"Found {results.Count()} releases, latest stable release is {latestStableRelease?.Version}, latest (incl. pre) is {latestPrerelease?.Version}");
 

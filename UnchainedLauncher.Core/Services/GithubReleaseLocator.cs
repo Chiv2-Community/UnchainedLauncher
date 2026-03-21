@@ -68,7 +68,7 @@ namespace UnchainedLauncher.Core.Services {
                         version.IsPrerelease || release.Prerelease);
 
                 Logger.LogListInfo("Releases", results.ToList());
-                
+
                 var latestStableRelease = results.Filter(r => !r.IsPrerelease).MaxBy(x => x.Version, SemVersionExtensions.PrecedenceIgnoreCaseComparer)?.AsLatestStable();
                 var latestPrerelease = results.MaxBy(x => x.Version, SemVersionExtensions.PrecedenceIgnoreCaseComparer);
 

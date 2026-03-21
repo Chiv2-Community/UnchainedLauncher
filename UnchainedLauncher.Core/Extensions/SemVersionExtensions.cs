@@ -3,8 +3,7 @@
 namespace UnchainedLauncher.Core.Extensions {
     public static class SemVersionExtensions {
         /// <param name="current">The current version, which may contain metadata.</param>
-        extension(SemVersion? current)
-        {
+        extension(SemVersion? current) {
             /// <summary>
             /// Compares the current version to a release version as seen in "SelectLatestVersion" in the installer.
             /// This method is intended to identify if the current version "matches" a release version,

@@ -103,7 +103,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public ObservableCollection<(ServerConfigurationVM configuration, ServerVM live)> RunningServers { get; } = new();
         private IChivalryProcessWatcher ProcessWatcher { get; }
 
-        public bool CanLaunch { get; private set; }
+        [DependsOn(nameof(SelectedConfiguration), "SelectedConfiguration.IsDesyncPatchEnabled", "Settings.CanLaunch")]
+        public bool CanLaunchNonHeadless => Settings.CanLaunch && !(SelectedConfiguration?.IsDesyncPatchEnabled ?? false);
+
+        [DependsOn(nameof(SelectedConfiguration), "SelectedConfiguration.IsDesyncPatchEnabled")]
+        public string LaunchServerToolTip => (SelectedConfiguration?.IsDesyncPatchEnabled ?? false)
+            ? "Launch Server is disabled because Desync Patch is enabled. Only headless launches work with Desync Patch."
+            : "For debugging purposes only. Does not work with the desync patch";
 
         public ServerConfigurationVM? SelectedConfiguration {
             get;
@@ -273,6 +279,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return argsToFind.Any(arg => !procCmdLine.Contains(arg)) ? null : proc;
         }
 
+
         public void UpdateVisibility() {
             SelectedServer = RunningServers.FirstOrDefault(e => e.configuration == SelectedConfiguration).live;
             var isSelectedRunning = SelectedServer != null;
@@ -284,18 +291,28 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private ServerLaunchOptions BuildServerLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<BlueprintDto> enabledServerModBlueprints) {
             // Build DiscordIntegrationLaunchOptions only if both required fields are present
             var discordBotToken = formData.DiscordBotToken?.Trim();
-            var discordChannelId = formData.DiscordChannelId?.Trim();
+            var adminChannelId = formData.DiscordAdminChannelId?.Trim();
+            var generalChannelId = formData.DiscordGeneralChannelId?.Trim();
+            var dashboardChannelId = formData.DiscordDashboardChannelId?.Trim();
+            var eventLogChannelId = formData.DiscordEventLogChannelId?.Trim();
+
+            var hasAtLeastOneChannelId = !string.IsNullOrEmpty(adminChannelId) || 
+                                         !string.IsNullOrEmpty(generalChannelId) || 
+                                         !string.IsNullOrEmpty(dashboardChannelId) || 
+                                         !string.IsNullOrEmpty(eventLogChannelId);
 
             var discordIntegration = (
                 !string.IsNullOrEmpty(discordBotToken) &&
-                !string.IsNullOrEmpty(discordChannelId)
+                hasAtLeastOneChannelId
             )
                 ? Some(new DiscordIntegrationLaunchOptions(
                     discordBotToken,
-                    discordChannelId,
-                    Optional(formData.DiscordAdminChannelId?.Trim()).Filter(s => s.Length > 0),
-                    Optional(formData.DiscordGeneralChannelId?.Trim()).Filter(s => s.Length > 0),
-                    Optional(formData.DiscordAdminRoleId?.Trim()).Filter(s => s.Length > 0)
+                    Optional(adminChannelId).Filter(s => s.Length > 0),
+                    Optional(generalChannelId).Filter(s => s.Length > 0),
+                    Optional(dashboardChannelId).Filter(s => s.Length > 0),
+                    Optional(eventLogChannelId).Filter(s => s.Length > 0),
+                    Optional(formData.DiscordAdminRoleId?.Trim()).Filter(s => s.Length > 0),
+                    formData.DiscordMentionAdmins
                 ))
                 : None;
 
@@ -320,7 +337,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 enabledServerModBlueprints.Select(bp => bp.ClassPath!),
                 discordIntegration,
                 formData.DesyncPatch,
-                formData.UseBackendBanlist
+                formData.UseBackendBanlist,
+                formData.CensorMode
             );
         }
 

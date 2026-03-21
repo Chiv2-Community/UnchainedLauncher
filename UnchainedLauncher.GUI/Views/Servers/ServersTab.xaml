@@ -131,8 +131,8 @@
                 <Button Grid.Column="0" 
                         Command="{Binding LaunchServerCommand}" 
                         Style="{DynamicResource Button.Danger}"
-                        IsEnabled="{Binding Settings.CanLaunch}"
-                        ToolTip="For debugging purposes only. Does not work with the desync patch"
+                        IsEnabled="{Binding CanLaunchNonHeadless}"
+                        ToolTip="{Binding LaunchServerToolTip}"
                         >Launch server</Button>
                 <Button Grid.Column="2" Command="{Binding LaunchHeadlessCommand}"
                         Style="{DynamicResource Button.Primary}">

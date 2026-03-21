@@ -63,22 +63,36 @@ public record LaunchOptions(
     }
 };
 
+public enum CensorArg {
+    None,
+    Standard,
+    Sex,
+    Zealous
+}
+
 public record DiscordIntegrationLaunchOptions(
     string BotToken,
-    string ChannelId,
     Option<string> AdminChannelId,
     Option<string> GeneralChannelId,
-    Option<string> AdminRoleId
+    Option<string> DashboardChannelId,
+    Option<string> EventLogChannelId,
+    Option<string> AdminRoleId,
+    bool MentionAdmins
 ) {
     public IReadOnlyList<CLIArg> ToCLIArgs() {
         var args = new List<CLIArg> {
-            new Parameter("--discord-bot-token", BotToken),
-            new Parameter("--discord-channel-id", ChannelId)
+            new Parameter("--discord-bot-token", BotToken)
         };
 
         AdminChannelId.IfSome(id => args.Add(new Parameter("--discord-admin-channel-id", id)));
         GeneralChannelId.IfSome(id => args.Add(new Parameter("--discord-general-channel-id", id)));
+        DashboardChannelId.IfSome(id => args.Add(new Parameter("--discord-dashboard-channel-id", id)));
+        EventLogChannelId.IfSome(id => args.Add(new Parameter("--discord-event-log-channel-id", id)));
         AdminRoleId.IfSome(id => args.Add(new Parameter("--discord-admin-role-id", id)));
+
+        if (!MentionAdmins) {
+            args.Add(new Parameter("--discord-mention-admins", "false"));
+        }
 
         return args;
     }
@@ -105,7 +119,8 @@ public record ServerLaunchOptions(
     IEnumerable<String> ServerMods,
     Option<DiscordIntegrationLaunchOptions> DiscordIntegration,
     bool DesyncPatch,
-    bool UseBackendBanlist
+    bool UseBackendBanlist,
+    CensorArg CensorMode
 ) {
     public IReadOnlyList<CLIArg> ToCLIArgs() {
         var args = new List<CLIArg>() {
@@ -116,7 +131,8 @@ public record ServerLaunchOptions(
             new UEParameter("GameServerQueryPort", QueryPort.ToString()),
             new Parameter("-rcon", RconPort.ToString()),
             new Parameter("--server-browser-description", Description),
-            new Parameter("--motd", Description)
+            new Parameter("--motd", Description),
+            new Parameter("--censor-mode", CensorMode.ToString().ToLower())
         };
 
         if (Headless) {

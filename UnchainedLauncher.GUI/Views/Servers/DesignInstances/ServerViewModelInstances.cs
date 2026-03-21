@@ -54,7 +54,8 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
                     ServerMods: ["a/b/c", "a/b/c"],
                     DiscordIntegration: None,
                     DesyncPatch: false,
-                    UseBackendBanlist: true
+                    UseBackendBanlist: true,
+                    CensorMode: CensorArg.Standard
                 ),
                 new MockA2S(new A2SInfo(
                     0,

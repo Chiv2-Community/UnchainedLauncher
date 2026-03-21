@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
@@ -10,7 +11,8 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
             new TBLGameUserSettingsSectionVM(),
             new GameSessionSectionVM(),
             new ObservableCollection<MapDto>(),
-            false
+            false,
+            CensorArg.Standard
         ) {
         }
     }
@@ -23,6 +25,7 @@ namespace UnchainedLauncher.GUI.Views.Servers.DesignInstances {
             playerBotCount: 0,
             warmupTime: 0,
             additionalCLIArgs: "--test",
+            discordMentionAdmins: true,
             useBackendBanlist: true
         ) {
         }

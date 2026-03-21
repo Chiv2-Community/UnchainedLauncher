@@ -75,11 +75,11 @@
                  Text="{Binding GameSession.MaxPlayers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                  ToolTip="Maximum number of players allowed on the server. Example: 256" />
 
-        <TextBlock Grid.Row="2" Grid.Column="2" Text="Chat Censor Mode" 
-                   Style="{StaticResource FormLabel}"
+        <!-- <TextBlock Grid.Row="2" Grid.Column="2" Text="Chat Censor Mode" 
+                   Stgitqqyle="{StaticResource FormLabel}"
                    ToolTip="Determines the level of censoring on the server." />
         <ComboBox Grid.Row="2" Grid.Column="3" ItemsSource="{Binding AllCensorModes}" HorizontalAlignment="Stretch"
-                  SelectedItem="{Binding CensorMode, Mode=TwoWay}" />
+                  SelectedItem="{Binding CensorMode, Mode=TwoWay}" /> -->
 
         <Grid Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="7">
             <Grid.RowDefinitions>

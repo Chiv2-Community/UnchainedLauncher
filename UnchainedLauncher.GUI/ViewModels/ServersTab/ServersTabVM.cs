@@ -296,9 +296,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var dashboardChannelId = formData.DiscordDashboardChannelId?.Trim();
             var eventLogChannelId = formData.DiscordEventLogChannelId?.Trim();
 
-            var hasAtLeastOneChannelId = !string.IsNullOrEmpty(adminChannelId) || 
-                                         !string.IsNullOrEmpty(generalChannelId) || 
-                                         !string.IsNullOrEmpty(dashboardChannelId) || 
+            var hasAtLeastOneChannelId = !string.IsNullOrEmpty(adminChannelId) ||
+                                         !string.IsNullOrEmpty(generalChannelId) ||
+                                         !string.IsNullOrEmpty(dashboardChannelId) ||
                                          !string.IsNullOrEmpty(eventLogChannelId);
 
             var discordIntegration = (

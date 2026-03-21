@@ -189,12 +189,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return sb.ToString();
         }
 
-        
+
         public void LoadINI(string? name, bool desyncPatch) {
             var ini = Chivalry2INI.LoadINIProfile(SavedDirSuffix(name ?? Name));
 
             IpNetDriver.LoadFrom(ini.Engine.IpNetDriver);
-            
+
             // This method is called during initialization, before the base configuration section is initialized.
             // Therefore, we cannot use the "IsDesyncPatchEnabled" property and must use the param passed in here.
             GameSession.LoadFrom(ini.Game.GameSession, desyncPatch);
@@ -212,9 +212,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         private Chivalry2INI ToChivalry2INI() {
             var engineIni = new EngineINI(IpNetDriver.ToModel());
-            
+
             var gameSessionModel = GameSession.ToModel(IsDesyncPatchEnabled);
-            
+
             var gameIni = new GameINI(
                 gameSessionModel,
                 GameMode.ToModel(),

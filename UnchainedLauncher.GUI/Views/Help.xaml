@@ -33,6 +33,29 @@
                 </controls:CollapsibleCard.Body>
             </controls:CollapsibleCard>
 
+            <controls:CollapsibleCard Header="Directories" Margin="0,0,0,10" IsExpanded="True">
+                <controls:CollapsibleCard.Body>
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock Text="Quickly access the various folders used by the launcher and game files." 
+                                   Margin="0,0,0,10" TextWrapping="Wrap" Opacity="0.7"/>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Open Config Directory" 
+                                    Command="{Binding OpenConfigDirectoryCommand}" 
+                                    Style="{DynamicResource Button.Secondary}" 
+                                    Padding="20,8" Margin="0,0,10,0" />
+                            <Button Content="Open Pak Directory" 
+                                    Command="{Binding OpenPakDirectoryCommand}" 
+                                    Style="{DynamicResource Button.Secondary}" 
+                                    Padding="20,8" Margin="0,0,10,0" />
+                            <Button Content="Open Launcher Directory" 
+                                    Command="{Binding OpenLauncherDirectoryCommand}" 
+                                    Style="{DynamicResource Button.Secondary}" 
+                                    Padding="20,8" Margin="0,0,10,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </controls:CollapsibleCard.Body>
+            </controls:CollapsibleCard>
+
             <controls:CollapsibleCard Header="Community &amp; Documentation" Margin="0,0,0,10" IsExpanded="True">
                 <controls:CollapsibleCard.Body>
                     <StackPanel Orientation="Vertical">

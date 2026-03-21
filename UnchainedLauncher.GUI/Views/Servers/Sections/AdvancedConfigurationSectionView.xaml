@@ -181,6 +181,8 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="8" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
 
                     <TextBlock Text="Bot Token *" Grid.Row="0" Grid.Column="0" Style="{StaticResource FormLabel}"
@@ -200,11 +202,11 @@
                         </TextBox.Style>
                     </TextBox>
 
-                    <TextBlock Text="Bridge Channel ID *" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
-                               ToolTip="Discord channel ID for chat bridge and other bot commands. Required for Discord integration." />
-                    <TextBox Text="{Binding DiscordChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                    <TextBlock Text="General Channel ID *" Grid.Row="0" Grid.Column="3" Style="{StaticResource FormLabel}"
+                               ToolTip="Discord channel ID for #General. Required for Discord integration." />
+                    <TextBox Text="{Binding DiscordGeneralChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                              Grid.Row="0" Grid.Column="4" HorizontalAlignment="Stretch"
-                             ToolTip="Discord channel ID for chat bridge and other bot commands. Required for Discord integration.">
+                             ToolTip="Discord channel ID for #General. Required for Discord integration.">
                         <TextBox.Style>
                             <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                                 <Style.Triggers>
@@ -223,17 +225,27 @@
                              Grid.Row="2" Grid.Column="1" HorizontalAlignment="Stretch"
                              ToolTip="Discord channel ID for admin commands. Optional." />
 
-                    <TextBlock Text="General Channel ID" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
-                               ToolTip="Discord channel ID for #General. Call to arms messages here. Optional." />
-                    <TextBox Text="{Binding DiscordGeneralChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                    <TextBlock Text="Dashboard Channel ID" Grid.Row="2" Grid.Column="3" Style="{StaticResource FormLabel}"
+                               ToolTip="Discord channel ID for Dashboard. Optional." />
+                    <TextBox Text="{Binding DiscordDashboardChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
                              Grid.Row="2" Grid.Column="4" HorizontalAlignment="Stretch"
-                             ToolTip="Discord channel ID for #General. Call to arms messages here. Optional." />
+                             ToolTip="Discord channel ID for Dashboard. Optional." />
 
-                    <TextBlock Text="Admin Role ID" Grid.Row="4" Grid.Column="0" Style="{StaticResource FormLabel}"
+                    <TextBlock Text="Event Log Channel ID" Grid.Row="4" Grid.Column="0" Style="{StaticResource FormLabel}"
+                               ToolTip="Discord channel ID for Event Log. Optional." />
+                    <TextBox Text="{Binding DiscordEventLogChannelId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                             Grid.Row="4" Grid.Column="1" HorizontalAlignment="Stretch"
+                             ToolTip="Discord channel ID for Event Log. Optional." />
+
+                    <TextBlock Text="Admin Role ID" Grid.Row="4" Grid.Column="3" Style="{StaticResource FormLabel}"
                                ToolTip="Discord role ID for admin permissions. Optional." />
                     <TextBox Text="{Binding DiscordAdminRoleId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                             Grid.Row="4" Grid.Column="1" HorizontalAlignment="Stretch"
+                             Grid.Row="4" Grid.Column="4" HorizontalAlignment="Stretch"
                              ToolTip="Discord role ID for admin permissions. Optional." />
+
+                    <CheckBox IsChecked="{Binding DiscordMentionAdmins}" Content="Mention Admins" 
+                              Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" VerticalAlignment="Center"
+                              ToolTip="Whether the bot should mention admins for important events." />
                 </Grid>
 
                 <TextBlock Text="{Binding DiscordConfigWarningMessage}" 

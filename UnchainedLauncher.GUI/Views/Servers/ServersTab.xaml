@@ -124,14 +124,15 @@
             </ScrollViewer>
             <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="1*" />
                     <ColumnDefinition Width="10" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="5*" />
                 </Grid.ColumnDefinitions>
                 <Button Grid.Column="0" 
                         Command="{Binding LaunchServerCommand}" 
-                        Style="{DynamicResource Button.Secondary}"
-                        IsEnabled="{Binding Settings.CanLaunch}"
+                        Style="{DynamicResource Button.Danger}"
+                        IsEnabled="{Binding CanLaunchNonHeadless}"
+                        ToolTip="{Binding LaunchServerToolTip}"
                         >Launch server</Button>
                 <Button Grid.Column="2" Command="{Binding LaunchHeadlessCommand}"
                         Style="{DynamicResource Button.Primary}">

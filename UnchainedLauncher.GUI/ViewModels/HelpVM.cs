@@ -34,6 +34,43 @@ namespace UnchainedLauncher.GUI.ViewModels {
             Process.Start(new ProcessStartInfo("https://unchained.wiki") { UseShellExecute = true });
         }
 
+        [RelayCommand]
+        private void OpenConfigDirectory() {
+            var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var configDir = Path.Combine(localAppData, "Chivalry 2");
+
+            if (Directory.Exists(configDir)) {
+                Process.Start(new ProcessStartInfo("explorer.exe", configDir));
+            }
+            else {
+                UserDialogueSpawner.DisplayMessage($"Could not find the Chivalry 2 configuration directory at {configDir}");
+            }
+        }
+
+        [RelayCommand]
+        private void OpenPakDirectory() {
+            var pakDir = PakDir.DirPath;
+
+            if (Directory.Exists(pakDir)) {
+                Process.Start(new ProcessStartInfo("explorer.exe", pakDir));
+            }
+            else {
+                UserDialogueSpawner.DisplayMessage($"Could not find the Chivalry 2 Pak directory at {pakDir}");
+            }
+        }
+
+        [RelayCommand]
+        private void OpenLauncherDirectory() {
+            var launcherDir = Environment.CurrentDirectory;
+
+            if (Directory.Exists(launcherDir)) {
+                Process.Start(new ProcessStartInfo("explorer.exe", launcherDir));
+            }
+            else {
+                UserDialogueSpawner.DisplayMessage($"Could not find the Launcher directory at {launcherDir}");
+            }
+        }
+
 
         [RelayCommand]
         private void UninstallLauncher() {

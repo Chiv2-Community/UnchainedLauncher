@@ -14,6 +14,7 @@ using System.Text;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.INIModels;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections;
@@ -21,6 +22,7 @@ using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 
+// TODO: This whole class and its composing members are a mess. Clean it up.
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
     public class ServerConfigurationCodec : DerivedJsonCodec<ObservableCollection<ServerConfiguration>,
@@ -64,12 +66,15 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                         conf.AdditionalCLIArgs,
                         conf.EnabledServerModList,
                         conf.DiscordBotToken,
-                        conf.DiscordChannelId,
                         conf.DiscordAdminChannelId,
                         conf.DiscordGeneralChannelId,
+                        conf.DiscordDashboardChannelId,
+                        conf.DiscordEventLogChannelId,
                         conf.DiscordAdminRoleId,
+                        conf.DiscordMentionAdmins,
                         conf.DesyncPatch,
-                        conf.UseBackendBanlist
+                        conf.UseBackendBanlist,
+                        conf.CensorMode
                     )
             ));
 
@@ -102,12 +107,15 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         string AdditionalCLIArgs = "",
         ObservableCollection<BlueprintDto>? EnabledServerModList = null,
         string? DiscordBotToken = null,
-        string? DiscordChannelId = null,
         string? DiscordAdminChannelId = null,
         string? DiscordGeneralChannelId = null,
+        string? DiscordDashboardChannelId = null,
+        string? DiscordEventLogChannelId = null,
         string? DiscordAdminRoleId = null,
+        bool DiscordMentionAdmins = true,
         bool DesyncPatch = false,
-        bool UseBackendBanlist = true) {
+        bool UseBackendBanlist = true,
+        CensorArg CensorMode = CensorArg.Standard) {
 
         public string SavedDirSuffix => ServerConfigurationVM.SavedDirSuffix(Name);
 
@@ -137,6 +145,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public BaseConfigurationSectionVM BaseConfigurationSection { get; }
         public AdvancedConfigurationSectionVM AdvancedConfigurationSection { get; }
         public BalanceSectionVM BalanceSection { get; }
+
+        public bool IsDesyncPatchEnabled => BaseConfigurationSection.DesyncPatch;
 
         public string Name {
             get;
@@ -179,13 +189,15 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return sb.ToString();
         }
 
-        public void LoadINI(string? name) {
+        
+        public void LoadINI(string? name, bool desyncPatch) {
             var ini = Chivalry2INI.LoadINIProfile(SavedDirSuffix(name ?? Name));
 
             IpNetDriver.LoadFrom(ini.Engine.IpNetDriver);
-            GameSession.LoadFrom(ini.Game.GameSession);
-
-            GameMode.DefaultMaxPlayers = GameSession.MaxPlayers;
+            
+            // This method is called during initialization, before the base configuration section is initialized.
+            // Therefore, we cannot use the "IsDesyncPatchEnabled" property and must use the param passed in here.
+            GameSession.LoadFrom(ini.Game.GameSession, desyncPatch);
             GameMode.LoadFrom(ini.Game.TBLGameMode, AvailableMaps);
 
             LTS.LoadFrom(ini.Game.LTSGameMode);
@@ -200,8 +212,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         private Chivalry2INI ToChivalry2INI() {
             var engineIni = new EngineINI(IpNetDriver.ToModel());
+            
+            var gameSessionModel = GameSession.ToModel(IsDesyncPatchEnabled);
+            
             var gameIni = new GameINI(
-                GameSession.ToModel(),
+                gameSessionModel,
                 GameMode.ToModel(),
                 LTS.ToModel(),
                 Arena.ToModel(),
@@ -243,12 +258,15 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             string additionalCliArgs = "",
             ObservableCollection<BlueprintDto>? enabledServerModList = null,
             string? discordBotToken = null,
-            string? discordChannelId = null,
             string? discordAdminChannelId = null,
             string? discordGeneralChannelId = null,
+            string? discordDashboardChannelId = null,
+            string? discordEventLogChannelId = null,
             string? discordAdminRoleId = null,
+            bool discordMentionAdmins = true,
             bool desyncPatch = false,
-            bool useBackendBanlist = true
+            bool useBackendBanlist = true,
+            CensorArg censorMode = CensorArg.Standard
         ) {
             _modScanTab = modScanTab;
             _availableModsAndMaps = availableModsAndMaps;
@@ -264,7 +282,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             // We set the Name after loading INI, because there may be some existing config that we want to load first
             // And setting the name overwrites it.
-            LoadINI(name);
+            LoadINI(name, desyncPatch);
             Name = name;
 
 
@@ -276,7 +294,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 UserSettings,
                 GameSession,
                 AvailableMaps,
-                desyncPatch
+                desyncPatch,
+                censorMode
             );
 
             AdvancedConfigurationSection = new AdvancedConfigurationSectionVM(
@@ -287,10 +306,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 warmupTime,
                 additionalCliArgs,
                 discordBotToken,
-                discordChannelId,
                 discordAdminChannelId,
                 discordGeneralChannelId,
+                discordDashboardChannelId,
+                discordEventLogChannelId,
                 discordAdminRoleId,
+                discordMentionAdmins,
                 useBackendBanlist
             );
 
@@ -343,12 +364,15 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             AdvancedConfigurationSection.AdditionalCLIArgs,
             new ObservableCollection<BlueprintDto>(EnabledServerModList.Filter(x => x.ModName != null)),
             AdvancedConfigurationSection.DiscordBotToken,
-            AdvancedConfigurationSection.DiscordChannelId,
             AdvancedConfigurationSection.DiscordAdminChannelId,
             AdvancedConfigurationSection.DiscordGeneralChannelId,
+            AdvancedConfigurationSection.DiscordDashboardChannelId,
+            AdvancedConfigurationSection.DiscordEventLogChannelId,
             AdvancedConfigurationSection.DiscordAdminRoleId,
+            AdvancedConfigurationSection.DiscordMentionAdmins,
             BaseConfigurationSection.DesyncPatch,
-            AdvancedConfigurationSection.UseBackendBanlist
+            AdvancedConfigurationSection.UseBackendBanlist,
+            BaseConfigurationSection.CensorMode
         );
 
         private MapDto? DetermineNextMap() {
@@ -390,7 +414,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         [RelayCommand]
         private void ReloadIni() {
-            LoadINI(Name);
+            LoadINI(Name, IsDesyncPatchEnabled);
         }
     }
 }

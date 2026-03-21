@@ -28,20 +28,22 @@ namespace UnchainedLauncher.GUI.Behaviors {
         }
 
         private static void OnPreviewMouseWheel(object sender, MouseWheelEventArgs e) {
-            if (sender is not DependencyObject d) return;
+            if (sender is not UIElement element) return;
+
+            // Only forward scroll events when the mouse is directly over this element.
+            // This prevents double scrolling when the mouse is elsewhere on the page.
+            if (!element.IsMouseOver) return;
+
+            // Don't forward if we're over a nested scrollable control (e.g., ComboBox, nested ScrollViewer).
+            // But if 'element' itself is a scrollable control (like a ListBox), we still want to forward 
+            // from its contents to the parent ScrollViewer.
+            if (IsOverNestedScrollableControl(e.OriginalSource as DependencyObject, element)) return;
 
             // Forward the wheel to the nearest ancestor ScrollViewer.
-            // This fixes cases where the event gets handled inside complex controls (e.g., TabControl content)
-            // and the outer ScrollViewer never receives it.
-            var scrollViewer = FindAncestorScrollViewer(d);
+            var scrollViewer = FindAncestorScrollViewer(element);
             if (scrollViewer == null) return;
 
             if (scrollViewer.ScrollableHeight <= 0d) return;
-
-            // Don't interfere with scroll viewers that are themselves handling the wheel.
-            if (ReferenceEquals(scrollViewer, d) || IsDescendantOfScrollViewerContentPresenter(d, scrollViewer)) {
-                // Still allow forwarding if the event is already marked handled.
-            }
 
             e.Handled = true;
 
@@ -52,8 +54,19 @@ namespace UnchainedLauncher.GUI.Behaviors {
             scrollViewer.ScrollToVerticalOffset(newOffset);
         }
 
+        private static bool IsOverNestedScrollableControl(DependencyObject? d, UIElement behaviorElement) {
+            while (d != null && !ReferenceEquals(d, behaviorElement)) {
+                if (d is ScrollViewer or ComboBox or ListBox or ListView or DataGrid or TextBox { AcceptsReturn: true })
+                    return true;
+
+                d = VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d);
+            }
+            return false;
+        }
+
         private static ScrollViewer? FindAncestorScrollViewer(DependencyObject d) {
-            DependencyObject? current = d;
+            // Start searching from the parent, otherwise we'll just find ourselves if 'd' is a ScrollViewer.
+            DependencyObject? current = VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d);
             while (current != null) {
                 if (current is ScrollViewer sv) return sv;
 
@@ -64,25 +77,6 @@ namespace UnchainedLauncher.GUI.Behaviors {
             }
 
             return null;
-        }
-
-        private static bool IsDescendantOfScrollViewerContentPresenter(DependencyObject d, ScrollViewer sv) {
-            // If the event comes from within the ScrollViewer's own content presenter,
-            // the ScrollViewer should normally be able to react to it. We keep this helper
-            // to avoid over-assumptions about templates.
-            var presenter = sv.Template?.FindName("PART_ScrollContentPresenter", sv) as DependencyObject;
-            if (presenter == null) return false;
-
-            DependencyObject? current = d;
-            while (current != null) {
-                if (ReferenceEquals(current, presenter)) return true;
-                current = current switch {
-                    Visual or Visual3D => VisualTreeHelper.GetParent(current),
-                    _ => LogicalTreeHelper.GetParent(current)
-                };
-            }
-
-            return false;
         }
     }
 }

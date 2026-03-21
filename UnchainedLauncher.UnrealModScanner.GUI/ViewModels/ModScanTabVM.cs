@@ -1,9 +1,9 @@
 ﻿
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Diagnostics;
+using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.Config.Games;
 using UnchainedLauncher.UnrealModScanner.Export;
-using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.Services;
@@ -16,11 +16,9 @@ public partial class ModScanTabVM : ObservableObject {
     // public PakScanResultVM ResultsVisual { get; set; } = new();
     [ObservableProperty]
     private PakScanResultVM _resultsVisual = new();
-    public ModScanResult LastScanResult { get; private set; }
+    public ModScanResult? LastScanResult { get; private set; }
 
-    // The technical DTO for JSON export
-    [ObservableProperty]
-    private ModManifest _scanManifest = new();
+    public ScanOptions? LoadedConfig { get; set; }
 
     [ObservableProperty]
     private double _scanProgress;
@@ -42,24 +40,81 @@ public partial class ModScanTabVM : ObservableObject {
             //Debug.WriteLine($"Scan Progress: {percent:F2}%");
         });
 
-        // 2. Configuration for Scanner
-        var officialDirs = new[] {
-            "Abilities","AI","Animation","Audio","Blueprint","Characters","Cinematics",
-            "Collections","Config","Custom_Lens_Flare_VFX","Customization","Debug",
-            "Developers","Environments","FX","Game","GameModes","Gameplay","Interactables",
-            "Inventory","Localization","MapGen","Maps","MapsTest","Materials","Meshes",
-            "Trailer_Cinematic","UI","Weapons","Engine","Mannequin"
-        };
-
         await Task.Yield();
         // 3. Execution
+
+
         var swMod = Stopwatch.StartNew();
-        var options_new = GameScanOptions.Chivalry2;
-        var modScanner = ScannerFactory.CreateModScanner(officialDirs, options_new);
 
+        // Get map DTOs
+        /*
+        var options = GameScanOptions.Chivalry2 with {
+            ScanFilter = new MapsOnlyScanFilter().With(new Whitelist([
+                "/TO_Bridgetown.umap",
+                "/TO_Bulwark.umap",
+                "/To_Lionspire.umap",
+                "/TO_RudhelmSiege.umap",
+                "/TO_Citadel.umap",
+                "/TO_Coxwell.umap",
+                "/To_DarkForest.umap",
+                "/TO_Galencourt.umap",
+                "/TO_Montcrux.umap",
+                "/TO_Library.umap",
+                "/TO_Falmire.umap",
+                "/TO_Raid.umap",
+                "/TO_Stronghold.umap",
+                "/FFA_Bazaar.umap",
+                "/FFA_Courtyard.umap",
+                "/FFA_Desert.umap",
+                "/FFA_FightingPit.umap",
+                "/FFA_FrozenWreck.umap",
+                "/FFA_Galencourt.umap",
+                "/FFA_Hippodrome.umap",
+                "/FFA_Falmire.umap",
+                "/FFA_TournamentGrounds.umap",
+                "/FFA_Duelyard.umap",
+                "/FFA_Wardenglade.umap",
+                "/Brawl_GreatHall.umap",
+                "/Brawl_RudhelmHall.umap",
+                "/Brawl_Cathedral.umap",
+                "/BRAWL_Midsommar.umap",
+                "/BRAWL_Raid.umap",
+                "/Arena_Courtyard.umap",
+                "/Arena_FightingPit.umap",
+                "/Arena_TournamentGrounds.umap",
+                "/Arena_TournamentGrounds_Joust.umap",
+                "/LTS_Courtyard.umap",
+                "/LTS_FightingPit.umap",
+                "/LTS_Galencourt.umap",
+                "/LTS_Falmire.umap",
+                "/LTS_TournamentGrounds.umap",
+                "/LTS_Wardenglade.umap",
+                "/TDM_Courtyard.umap",
+                "/TDM_Coxwell.umap",
+                "/TDM_DarkForest.umap",
+                "/TDM_Desert.umap",
+                "/TDM_FightingPit.umap",
+                "/TDM_FrozenWreck.umap",
+                "/TDM_Galencourt.umap",
+                "/TDM_Hippodrome.umap",
+                "/TDM_Falmire.umap",
+                "/TDM_TournamentGrounds.umap",
+                "/TDM_Wardenglade.umap",
+                "/TDM_Wardenglade_horse.umap",
+                "/BOW_Galencourt.umap",
+                "/BOW_Falmire.umap",
+                "/BOW_Wardenglade.umap",
+                "/PR_LTS_Raid.umap"
+            ]))
+        };
+        // dont forget to set scan mode to GameInternal.
+        */
 
-        // Run scanner on a background thread
-        LastScanResult = await Task.Run(() => modScanner.RunScanAsync(pakDir, ScanMode.ModsOnly, options_new, progressReporter));
+        var options = LoadedConfig ?? GameScanOptions.Chivalry2;
+        var provider = FilteredFileProvider.CreateFromOptions(options, ScanMode.Mods, pakDir);
+
+        var modScanner = ScannerFactory.CreateModScanner(options);
+        LastScanResult = await Task.Run(() => modScanner.RunScanAsync(provider, options, progressReporter));
 
         swMod.Stop();
         Debug.WriteLine($"Mod Scan completed in: {swMod.ElapsedMilliseconds}ms");
@@ -136,12 +191,15 @@ public partial class ModScanTabVM : ObservableObject {
         IsScanning = false;
     }
 
-    public void ExportJson(string path, bool manifest) {
+    public void ExportJson(string path, bool createManifest) {
         if (LastScanResult == null) return;
-        ModScanJsonExporter.ExportToFile(LastScanResult, path);
-        if (manifest) {
-            ScanManifest = ModManifestConverter.ProcessModScan(LastScanResult);
-            ModScanJsonExporter.ExportToFile(ScanManifest, path);
+
+        if (createManifest) {
+            var scanManifest = ModManifestConverter.ProcessModScan(LastScanResult);
+            ModScanJsonExporter.ExportToFile(scanManifest, path);
+        }
+        else {
+            ModScanJsonExporter.ExportToFile(LastScanResult, path);
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using LanguageExt;
+using LanguageExt;
 using LanguageExt.Common;
 using System.Diagnostics;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -45,6 +45,7 @@ public record LaunchOptions(
     Option<string> ServerBrowserBackend,
     string LaunchArgs,
     bool CheckForDependencyUpdates, //TODO: remove this property
+    bool AllowUnstablePluginReleases,
     Option<string> SavedDirSuffix,
     Option<ServerLaunchOptions> ServerLaunchOptions
 ) {
@@ -61,6 +62,41 @@ public record LaunchOptions(
         return args;
     }
 };
+
+public enum CensorArg {
+    None,
+    Standard,
+    Sex,
+    Zealous
+}
+
+public record DiscordIntegrationLaunchOptions(
+    string BotToken,
+    Option<string> AdminChannelId,
+    Option<string> GeneralChannelId,
+    Option<string> DashboardChannelId,
+    Option<string> EventLogChannelId,
+    Option<string> AdminRoleId,
+    bool MentionAdmins
+) {
+    public IReadOnlyList<CLIArg> ToCLIArgs() {
+        var args = new List<CLIArg> {
+            new Parameter("--discord-bot-token", BotToken)
+        };
+
+        AdminChannelId.IfSome(id => args.Add(new Parameter("--discord-admin-channel-id", id)));
+        GeneralChannelId.IfSome(id => args.Add(new Parameter("--discord-general-channel-id", id)));
+        DashboardChannelId.IfSome(id => args.Add(new Parameter("--discord-dashboard-channel-id", id)));
+        EventLogChannelId.IfSome(id => args.Add(new Parameter("--discord-event-log-channel-id", id)));
+        AdminRoleId.IfSome(id => args.Add(new Parameter("--discord-admin-role-id", id)));
+
+        if (!MentionAdmins) {
+            args.Add(new Parameter("--discord-mention-admins", "false"));
+        }
+
+        return args;
+    }
+}
 
 public record ServerLaunchOptions(
     bool Headless,
@@ -80,7 +116,11 @@ public record ServerLaunchOptions(
     int? PlayerBotCount,
     int? WarmupTime,
     Option<string> LocalIp,
-    IEnumerable<String> NextMapModActors
+    IEnumerable<String> ServerMods,
+    Option<DiscordIntegrationLaunchOptions> DiscordIntegration,
+    bool DesyncPatch,
+    bool UseBackendBanlist,
+    CensorArg CensorMode
 ) {
     public IReadOnlyList<CLIArg> ToCLIArgs() {
         var args = new List<CLIArg>() {
@@ -91,6 +131,8 @@ public record ServerLaunchOptions(
             new UEParameter("GameServerQueryPort", QueryPort.ToString()),
             new Parameter("-rcon", RconPort.ToString()),
             new Parameter("--server-browser-description", Description),
+            new Parameter("--motd", Description),
+            new Parameter("--censor-mode", CensorMode.ToString().ToLower())
         };
 
         if (Headless) {
@@ -102,10 +144,13 @@ public record ServerLaunchOptions(
         if (RegisterWithBackend)
             args.Add(new Flag("--register"));
 
+        if (UseBackendBanlist)
+            args.Add(new Flag("--use-backend-banlist"));
+
         Password.IfSome(password => args.Add(new UEParameter("ServerPassword", password.Trim())));
 
-        if (NextMapModActors.Any())
-            args.Add(new Parameter("--next-map-mod-actors", string.Join(",", NextMapModActors)));
+        if (ServerMods.Any())
+            args.Add(new Parameter("--server-mods", string.Join(",", ServerMods.Distinct())));
 
         LocalIp.IfSome(ip => args.Add(new Parameter("--local-ip", ip)));
 
@@ -115,6 +160,12 @@ public record ServerLaunchOptions(
         TDMTicketCount.IfSome(count => args.Add(new UEMapUrlParameter("TDMTicketCount", count.ToString())));
         PlayerBotCount.IfSome(count => args.Add(new UEMapUrlParameter("NumPlayerBots", count.ToString())));
         WarmupTime.IfSome(time => args.Add(new UEMapUrlParameter("WarmupTime", time.ToString())));
+
+        DiscordIntegration.IfSome(discord => args.AddRange(discord.ToCLIArgs()));
+
+        if (DesyncPatch)
+            args.Add(new Flag("--desync-patch"));
+
         return args;
     }
 };

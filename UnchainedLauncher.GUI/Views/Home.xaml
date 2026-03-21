@@ -19,12 +19,16 @@
 
         <!-- What's New content (list + preview) -->
         <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="1*" />
                 <ColumnDefinition Width="2*" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.ColumnSpan="2" Text="What's new" Style="{DynamicResource Heading.H3}" FontWeight="SemiBold" Margin="0 0 0 8" />
-            <ListBox Grid.Column="0" 
+            <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="What's new" Style="{DynamicResource Heading.H3}" FontWeight="SemiBold" Margin="0 0 0 8" />
+            <ListBox Grid.Row="1" Grid.Column="0" 
                      x:Name="WhatsNewList"
                      ItemsSource="{Binding WhatsNew}"
                      SelectionChanged="WhatsNewList_SelectionChanged">
@@ -39,7 +43,7 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
-            <Border Grid.Column="1" Margin="12,0,0,0" BorderBrush="{DynamicResource Brush.Border}"
+            <Border Grid.Row="1" Grid.Column="1" Margin="12,0,0,0" BorderBrush="{DynamicResource Brush.Border}"
                     BorderThickness="1" CornerRadius="6">
                 <controls:HtmlWebView x:Name="WhatsNewHtml"
                                       HorizontalAlignment="Stretch"

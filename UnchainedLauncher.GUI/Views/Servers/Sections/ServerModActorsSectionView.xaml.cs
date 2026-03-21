@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.Views.Servers.Sections {
     public partial class ServerModActorsSectionView : UserControl {
@@ -11,15 +11,15 @@ namespace UnchainedLauncher.GUI.Views.Servers.Sections {
 
         private void CheckBox_OnChecked(object sender, RoutedEventArgs e) {
             if (DataContext is not ServerConfigurationVM vm) return;
-            if (sender is CheckBox cb && cb.DataContext is Release release) {
-                vm.EnableServerMod(release);
+            if (sender is CheckBox cb && cb.DataContext is BlueprintDto blueprint) {
+                vm.EnableServerBlueprintMod(blueprint);
             }
         }
 
         private void CheckBox_OnUnchecked(object sender, RoutedEventArgs e) {
             if (DataContext is not ServerConfigurationVM vm) return;
-            if (sender is CheckBox cb && cb.DataContext is Release release) {
-                vm.DisableServerMod(release);
+            if (sender is CheckBox cb && cb.DataContext is BlueprintDto blueprint) {
+                vm.DisableServerBlueprintMod(blueprint);
             }
         }
     }

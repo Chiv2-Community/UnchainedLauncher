@@ -1,5 +1,6 @@
 using LanguageExt;
 using log4net;
+using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
@@ -42,16 +43,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
 
-        private bool alreadyChecked = false;
-
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
-            if (alreadyChecked) return Some(options);
-
             if (!options.CheckForDependencyUpdates) {
                 return options;
             }
 
-            var latestPlugin = await PluginReleaseLocator.GetLatestRelease();
+            var latestPlugin = await PluginReleaseLocator.GetLatestRelease(options.AllowUnstablePluginReleases);
             if (latestPlugin == null) {
                 _logger.Warn("Could not find latest plugin");
                 return None;
@@ -59,7 +56,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
             var currentVersion = FileVersionExtractor.GetVersion(_pluginPath);
 
-            if (currentVersion?.ComparePrecedenceTo(latestPlugin.Version) >= 0)
+            if (currentVersion.IsAtLeast(latestPlugin.Version))
                 return options;
 
             var update = new DependencyUpdate(
@@ -81,7 +78,6 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
 
             if (choice != UserDialogueChoice.Yes) {
-                alreadyChecked = true;
                 return options;
             }
 
@@ -91,10 +87,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                     _logger.Warn($"Failed to update plugin: {err}");
                     return None;
                 },
-                () => {
-                    alreadyChecked = true;
-                    return Some(options);
-                });
+                () => Some(options));
         }
     }
 }

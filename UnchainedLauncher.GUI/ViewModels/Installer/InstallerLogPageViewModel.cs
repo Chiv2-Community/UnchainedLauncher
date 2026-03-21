@@ -29,8 +29,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             () => new List<DirectoryInfo>(),
             () => new ReleaseTarget("", "", new SemVersion(0, 0), Array.Empty<ReleaseAsset>(), DateTimeOffset.Now, true, false)
         ) {
-            AppendLog("Mocking installation log...");
-            AppendLog("Doing things...");
+            AppendLog("Mocking installation log...").Start();
+            AppendLog("Doing things...").Start();
         }
 
         public InstallerLogPageViewModel(IUnchainedLauncherInstaller installer, Func<IEnumerable<DirectoryInfo>> getTargets, Func<ReleaseTarget> getSelectedRelease) {
@@ -47,22 +47,22 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             var targets = _getInstallationTargets();
             var release = _getSelectedRelease();
 
-            AppendLog("Selected version: v" + release.Version);
-            AppendLog("Installation targets:\n    " + string.Join("\n    ", from t in targets select t.FullName));
-            AppendLog("");
+            await AppendLog("🚀 Selected version: v" + release.Version);
+            await AppendLog("📍 Installation targets:\n    " + string.Join("\n    ", from t in targets select t.FullName));
+            await AppendLog("");
 
             foreach (var target in targets!) {
-                AppendLog("-----------------------------------------------------");
-                AppendLog($"Installing v{release.Version} to {target}");
+                await AppendLog("-----------------------------------------------------");
+                await AppendLog($"🛠️ Installing v{release.Version} to {target}");
                 await _installer.Install(target, release, false, AppendLog);
-                AppendLog("-----------------------------------------------------");
-                AppendLog("");
+                await AppendLog("-----------------------------------------------------");
+                await AppendLog("");
             }
 
-            AppendLog("Installation complete!");
-            AppendLog("You can now launch Chivalry 2 as you normally would and the unchained launcher will handle everything from there.");
+            await AppendLog("✅ Installation complete!");
+            await AppendLog("🎉 You can now launch Chivalry 2 as you normally would and the unchained launcher will handle everything from there. Enjoy!");
 
-            MessageBox.Show("Chivalry 2 Unchained Launcher has been installed successfully!");
+            MessageBox.Show("Chivalry 2 Unchained Launcher has been installed successfully! 🚀\n\nLaunch Chivalry 2 like normal to start Unchained.");
             CanContinue = true;
         }
 
@@ -70,8 +70,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             return Task.CompletedTask;
         }
 
-        public void AppendLog(string appendString) {
+        private async Task AppendLog(string appendString) {
             Log += appendString + "\n";
+
+            // People think nothing happened when things are too fast. Slow them down just so they believe.
+            await Task.Delay(100 + Random.Shared.Next(0, 500));
         }
     }
 }

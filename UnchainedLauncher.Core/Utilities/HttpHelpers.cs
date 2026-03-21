@@ -101,12 +101,15 @@ namespace UnchainedLauncher.Core.Utilities {
         /// <returns>A bool returning false if any download targets have a download failure</returns>
         public static async Task<bool> DownloadReleaseTarget(ReleaseTarget download,
             Func<ReleaseAsset, string?> assetMapping,
-            Action<string>? logResult = null
+            Func<string, Task>? logResult = null
         ) {
-            Action<string> log = message => {
+            async Task log(string message) {
                 Logger.Info(message);
-                logResult?.Invoke(message);
-            };
+                if (logResult != null) {
+                    await logResult!.Invoke(message);
+                }
+            }
+            ;
 
             var results =
                 await download.Assets.ToList().Select(async asset => {
@@ -119,12 +122,12 @@ namespace UnchainedLauncher.Core.Utilities {
 
                     try {
                         await HttpHelpers.DownloadFileAsync(asset.DownloadUrl, downloadTarget!).Task;
-                        log($"Downloaded {asset.Name} to {downloadTarget!}");
+                        await log($"✅ Downloaded {asset.Name} to {downloadTarget!}");
                         return true;
                     }
                     catch (Exception e) {
-                        log($"Failed to download launcher\n    from {asset.DownloadUrl}\n    to {downloadTarget!}");
-                        log(e.ToString());
+                        await log($"❌ Failed to download launcher\n    from {asset.DownloadUrl}\n    to {downloadTarget!}");
+                        await log(e.ToString());
                         return false;
                     }
                 }).SequenceParallel();
@@ -150,13 +153,7 @@ namespace UnchainedLauncher.Core.Utilities {
         }
 
         public DownloadTask<T> RecoverWith(Func<Exception?, DownloadTask<T>> recover) {
-            Task.ContinueWith(t => {
-                if (t.Exception != null) {
-                    return recover(t.Exception);
-                }
-
-                return this;
-            });
+            Task.ContinueWith(t => t.Exception != null ? recover(t.Exception) : this);
             return this;
         }
     }

@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
 using LanguageExt.Pipes;
 using log4net;
@@ -15,12 +15,14 @@ using System.Windows.Threading;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
-using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.Core.Services.Server.A2S;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.Services;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 // using Unchained.ServerBrowser.Client; // avoid Option<> name collision with LanguageExt
 
@@ -32,24 +34,28 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public ServerTabCodec(SettingsVM settings,
             IModManager modManager,
+            ModScanTabVM modScanTab,
             IUserDialogueSpawner dialogueSpawner,
             IChivalry2Launcher launcher,
             ObservableCollection<ServerConfigurationVM> serverConfigs,
-            IChivalryProcessWatcher processWatcher) : base(
+            IChivalryProcessWatcher processWatcher,
+            AvailableModsAndMapsService availableModsAndMaps) : base(
             ToJsonType,
-            conf => ToClassType(conf, settings, modManager, dialogueSpawner, launcher, serverConfigs, processWatcher)
+            conf => ToClassType(conf, settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigs, processWatcher, availableModsAndMaps)
         ) { }
 
         public static ServersTabVM ToClassType(
             ServersTabMetadata serversTabMetadata,
             SettingsVM settings,
             IModManager modManager,
+            ModScanTabVM modScanTab,
             IUserDialogueSpawner dialogueSpawner,
             IChivalry2Launcher launcher,
             ObservableCollection<ServerConfigurationVM> serverConfigs,
-            IChivalryProcessWatcher processWatcher
+            IChivalryProcessWatcher processWatcher,
+            AvailableModsAndMapsService availableModsAndMaps
         ) {
-            var vm = new ServersTabVM(settings, modManager, dialogueSpawner, launcher, serverConfigs, processWatcher);
+            var vm = new ServersTabVM(settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigs, processWatcher, availableModsAndMaps);
             serversTabMetadata.ConfigNameToProcessIDMap.ForEach(pair => {
                 var (confName, pid) = pair;
                 var config = serverConfigs.FirstOrDefault(conf => conf.Name == confName);
@@ -97,7 +103,13 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public ObservableCollection<(ServerConfigurationVM configuration, ServerVM live)> RunningServers { get; } = new();
         private IChivalryProcessWatcher ProcessWatcher { get; }
 
-        public bool CanLaunch { get; private set; }
+        [DependsOn(nameof(SelectedConfiguration), "SelectedConfiguration.IsDesyncPatchEnabled", "Settings.CanLaunch")]
+        public bool CanLaunchNonHeadless => Settings.CanLaunch && !(SelectedConfiguration?.IsDesyncPatchEnabled ?? false);
+
+        [DependsOn(nameof(SelectedConfiguration), "SelectedConfiguration.IsDesyncPatchEnabled")]
+        public string LaunchServerToolTip => (SelectedConfiguration?.IsDesyncPatchEnabled ?? false)
+            ? "Launch Server is disabled because Desync Patch is enabled. Only headless launches work with Desync Patch."
+            : "For debugging purposes only. Does not work with the desync patch";
 
         public ServerConfigurationVM? SelectedConfiguration {
             get;
@@ -112,13 +124,20 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public Visibility ConfigurationEditorVisibility { get; private set; }
         public Visibility LiveServerVisibility { get; private set; }
 
+        private AvailableModsAndMapsService _availableModsAndMaps;
+        private ModScanTabVM _modScanTab;
+
         public ServersTabVM(SettingsVM settings,
                             IModManager modManager,
+                            ModScanTabVM modScanTab,
                             IUserDialogueSpawner dialogueSpawner,
                             IChivalry2Launcher launcher,
                             ObservableCollection<ServerConfigurationVM> serverConfigs,
-                            IChivalryProcessWatcher processWatcher) {
+                            IChivalryProcessWatcher processWatcher,
+                            AvailableModsAndMapsService availableModsAndMaps) {
             ServerConfigs = serverConfigs;
+            _availableModsAndMaps = availableModsAndMaps;
+            _modScanTab = modScanTab;
 
             ServerConfigs.CollectionChanged += (_, _) => {
                 UpdateVisibility();
@@ -153,7 +172,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         [RelayCommand]
         public void CreateNewConfig() {
-            var newConfig = new ServerConfigurationVM(ModManager);
+            var newConfig = new ServerConfigurationVM(ModManager, _modScanTab, _availableModsAndMaps);
 
             var occupiedPorts = new Set<int>().AddRange(
                 ServerConfigs.SelectMany(conf => new[] { conf.A2SPort, conf.GamePort, conf.PingPort, conf.RconPort })
@@ -190,18 +209,20 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             // Resolve selected releases from the template's EnabledServerModList
             var enabledCoordinates = ModManager.EnabledModReleaseCoordinates.ToArray();
+            var enabledServerBlueprintDtos = formData.EnabledServerModList!.ToArray();
 
             SelectedConfiguration.SaveINI();
 
-            var maybeProcess = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
+
+            var maybeProcess = await LaunchServerWithOptions(formData, headless, enabledServerBlueprintDtos);
             maybeProcess.IfSome(process => {
-                var server = CreateServer(process, formData, headless, enabledCoordinates);
+                var server = CreateServer(process, formData, headless, enabledServerBlueprintDtos);
                 var serverVm = new ServerVM(server, formData.Name, SelectedConfiguration.AvailableMaps);
                 serverVm.StartUpdateLoop();
                 var runningTuple = (SelectedConfiguration, serverVm);
                 UiDispatcher.Invoke(() => RunningServers.Add(runningTuple));
 
-                _ = AttachServerExitWatcher(process, formData, enabledCoordinates, headless, runningTuple);
+                _ = AttachServerExitWatcher(process, formData, enabledServerBlueprintDtos, headless, runningTuple);
             });
         }
 
@@ -213,15 +234,17 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 return;
             }
 
+            var serverModArray = conf.EnabledServerModList.ToArray();
+
             var formData = conf.ToServerConfiguration();
-            var server = CreateServer(proc, formData, false, conf.EnabledServerModList.ToArray());
+            var server = CreateServer(proc, formData, false, serverModArray);
             var serverVm = new ServerVM(server, conf.Name, conf.AvailableMaps);
             serverVm.StartUpdateLoop();
             RunningServers.Add((conf, serverVm));
-            _ = AttachServerExitWatcher(proc, formData, conf.EnabledServerModList.ToArray(), false, (conf, serverVm));
+            _ = AttachServerExitWatcher(proc, formData, serverModArray, false, (conf, serverVm));
         }
 
-        public void AttachServerExitWatcher(Process process, ServerConfigurationVM config, ObservableCollection<ReleaseCoordinates>? enabledCoordinates, bool headless, (ServerConfigurationVM, ServerVM) runningTuple) {
+        public void AttachServerExitWatcher(Process process, ServerConfigurationVM config, ObservableCollection<BlueprintDto>? enabledServerModBlueprintDtos, bool headless, (ServerConfigurationVM, ServerVM) runningTuple) {
             process.EnableRaisingEvents = true;
             process.Exited += (sender, args) => {
                 RunningServers.Remove(runningTuple);
@@ -256,6 +279,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             return argsToFind.Any(arg => !procCmdLine.Contains(arg)) ? null : proc;
         }
 
+
         public void UpdateVisibility() {
             SelectedServer = RunningServers.FirstOrDefault(e => e.configuration == SelectedConfiguration).live;
             var isSelectedRunning = SelectedServer != null;
@@ -264,14 +288,41 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             LiveServerVisibility = !isSelectedRunning ? Visibility.Hidden : Visibility.Visible;
         }
 
-        private ServerLaunchOptions BuildServerLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<ReleaseCoordinates> enabledCoordinates) {
+        private ServerLaunchOptions BuildServerLaunchOptions(ServerConfiguration formData, bool headless, IEnumerable<BlueprintDto> enabledServerModBlueprints) {
+            // Build DiscordIntegrationLaunchOptions only if both required fields are present
+            var discordBotToken = formData.DiscordBotToken?.Trim();
+            var adminChannelId = formData.DiscordAdminChannelId?.Trim();
+            var generalChannelId = formData.DiscordGeneralChannelId?.Trim();
+            var dashboardChannelId = formData.DiscordDashboardChannelId?.Trim();
+            var eventLogChannelId = formData.DiscordEventLogChannelId?.Trim();
+
+            var hasAtLeastOneChannelId = !string.IsNullOrEmpty(adminChannelId) ||
+                                         !string.IsNullOrEmpty(generalChannelId) ||
+                                         !string.IsNullOrEmpty(dashboardChannelId) ||
+                                         !string.IsNullOrEmpty(eventLogChannelId);
+
+            var discordIntegration = (
+                !string.IsNullOrEmpty(discordBotToken) &&
+                hasAtLeastOneChannelId
+            )
+                ? Some(new DiscordIntegrationLaunchOptions(
+                    discordBotToken,
+                    Optional(adminChannelId).Filter(s => s.Length > 0),
+                    Optional(generalChannelId).Filter(s => s.Length > 0),
+                    Optional(dashboardChannelId).Filter(s => s.Length > 0),
+                    Optional(eventLogChannelId).Filter(s => s.Length > 0),
+                    Optional(formData.DiscordAdminRoleId?.Trim()).Filter(s => s.Length > 0),
+                    formData.DiscordMentionAdmins
+                ))
+                : None;
+
             return new ServerLaunchOptions(
                 headless,
                 formData.Name,
                 formData.Description,
                 formData.ShowInServerBrowser,
                 Optional(formData.Password.Trim()).Filter(pw => pw.Length != 0),
-                formData.NextMapName,
+                formData.NextMapPath,
                 formData.GamePort,
                 formData.PingPort,
                 formData.A2SPort,
@@ -283,17 +334,22 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 formData.PlayerBotCount,
                 formData.WarmupTime,
                 formData.LocalIp,
-                Enumerable.Empty<string>()
+                enabledServerModBlueprints.Select(bp => bp.ClassPath!),
+                discordIntegration,
+                formData.DesyncPatch,
+                formData.UseBackendBanlist,
+                formData.CensorMode
             );
         }
 
-        private LaunchOptions BuildLaunchOptions(ServerConfiguration formData, bool headless, ReleaseCoordinates[] enabledCoordinates) {
-            var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, enabledCoordinates);
+        private LaunchOptions BuildLaunchOptions(ServerConfiguration formData, bool headless, BlueprintDto[] enabledServerBlueprintDtos) {
+            var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, enabledServerBlueprintDtos);
             return new LaunchOptions(
-                enabledCoordinates,
+                ModManager.EnabledModReleaseCoordinates,
                 Settings.ServerBrowserBackend,
                 (Settings.CLIArgs + " " + formData.AdditionalCLIArgs).Trim(),
                 Settings.EnablePluginAutomaticUpdates,
+                Settings.AllowUnstablePluginReleases,
                 Some(formData.SavedDirSuffix),
                 Some(serverLaunchOptions)
             );
@@ -302,7 +358,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private Chivalry2Server CreateServer(Process process,
                                              ServerConfiguration formData,
                                              bool headless,
-                                             ReleaseCoordinates[] enabledCoordinates) {
+                                             BlueprintDto[] enabledCoordinates) {
             var serverLaunchOptions = BuildServerLaunchOptions(formData, headless, enabledCoordinates);
             var a2s = new A2S(new IPEndPoint(IPAddress.Loopback, formData.A2SPort));
             var rcon = new RCON(new IPEndPoint(IPAddress.Loopback, formData.RconPort));
@@ -312,7 +368,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private async Task AttachServerExitWatcher(
             Process process,
             ServerConfiguration formData,
-            ReleaseCoordinates[] enabledCoordinates,
+            BlueprintDto[] enabledServerBlueprintDtos,
             bool headless,
             (ServerConfigurationVM configuration, ServerVM live) runningTuple) {
             var attached = await ProcessWatcher.OnExit(process, async (exitCode, acceptable) => {
@@ -327,7 +383,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 // Keep the existing ServerVM around so UI can show downtime + restart timeline.
                 await UiInvokeAsync(() => { runningTuple.live.IsUp = false; });
 
-                Logger.Error($"Server exited unexpectedly with code {exitCode}. Attempting automatic restart...");
+                if (exitCode == -67) {
+                    Logger.Warn($"Server exited with -67 (patching failure). Attempting a single re-launch.");
+                }
+                else {
+                    Logger.Error($"Server exited unexpectedly with code {exitCode}. Attempting automatic restart...");
+                }
 
                 if (!Settings.CanLaunch) return; // EGS can't restart automatically.
 
@@ -335,11 +396,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 await Task.Delay(2000);
 
 
-                var relaunched = await LaunchServerWithOptions(formData, headless, enabledCoordinates);
+                var relaunched = await LaunchServerWithOptions(formData, headless, enabledServerBlueprintDtos);
                 relaunched.IfSome(newProc => {
-                    var newServer = CreateServer(newProc, formData, headless, enabledCoordinates);
+                    var newServer = CreateServer(newProc, formData, headless, enabledServerBlueprintDtos);
                     UiDispatcher.Invoke(() => runningTuple.live.ReplaceServer(newServer, countAsRestart: true));
-                    _ = AttachServerExitWatcher(newProc, formData, enabledCoordinates, headless, runningTuple);
+                    _ = AttachServerExitWatcher(newProc, formData, enabledServerBlueprintDtos, headless, runningTuple);
                 });
             });
 
@@ -348,8 +409,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             }
         }
 
-        private async Task<Option<Process>> LaunchServerWithOptions(ServerConfiguration formData, bool headless, ReleaseCoordinates[] enabledCoordinates) {
-            var options = BuildLaunchOptions(formData, headless, enabledCoordinates);
+        private async Task<Option<Process>> LaunchServerWithOptions(ServerConfiguration formData, bool headless, BlueprintDto[] enabledServerBlueprintDto) {
+            var options = BuildLaunchOptions(formData, headless, enabledServerBlueprintDto);
             return await UiInvokeAsync(async () => {
                 Settings.HasLaunched = true;
                 var launchResult = await Launcher.Launch(options);

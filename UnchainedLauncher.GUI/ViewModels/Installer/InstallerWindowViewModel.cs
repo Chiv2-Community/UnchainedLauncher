@@ -1,9 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using LanguageExt;
 using log4net;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.GUI.Views.Installer;
@@ -13,7 +11,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
     public partial class InstallerWindowViewModel : INotifyPropertyChanged {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(VersionSelectionPageViewModel));
 
-        private static readonly ObservableCollection<IInstallerPageViewModel> DefaultPages = new ObservableCollection<IInstallerPageViewModel>() {
+        private static ObservableCollection<IInstallerPageViewModel> DefaultPages => new ObservableCollection<IInstallerPageViewModel>() {
             new InstallationSelectionPageViewModel(),
             new VersionSelectionPageViewModel(),
             new InstallerLogPageViewModel()
@@ -21,7 +19,25 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         public ObservableCollection<IInstallerPageViewModel> InstallerPages { get; set; }
         public IInstallerPageViewModel CurrentPage => InstallerPages[CurrentPageIndex];
-        public int CurrentPageIndex { get; set; }
+        private int _currentPageIndex;
+        public int CurrentPageIndex {
+            get => _currentPageIndex;
+            set {
+                if (_currentPageIndex != value) {
+                    // CurrentPage is a computed property based on _currentPageIndex.
+                    // We need to unsubscribe from the old page's PropertyChanged event,
+                    // update the index, and then subscribe to the new page's event.
+
+                    // Unsubscribe from the OLD page
+                    CurrentPage.PropertyChanged -= CurrentPagePropertyChanged;
+
+                    _currentPageIndex = value;
+
+                    // Subscribe to the NEW page
+                    CurrentPage.PropertyChanged += CurrentPagePropertyChanged;
+                }
+            }
+        }
         public string CurrentPageTitle => CurrentPage.TitleText;
         public string CurrentPageDescription => CurrentPage.DescriptionText ?? "";
 
@@ -47,16 +63,16 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             InstallerPages = installerPages;
             InstallTargets = installTargets;
 
-            CurrentPageIndex = 0;
             Finished = false;
             CanContinue = false;
             CanGoBack = false;
 
             WindowVisibility = Visibility.Visible;
 
-            CurrentPage.Load();
+            _currentPageIndex = 0;
+            CurrentPage.PropertyChanged += CurrentPagePropertyChanged;
 
-            InstallerPages.ToList().ForEach(page => page.PropertyChanged += CurrentPagePropertyChanged);
+            _ = CurrentPage.Load();
 
             Logger.Info("InstallerWindowViewModel initialized");
             Logger.Info("Current Page: " + CurrentPage.TitleText);
@@ -94,7 +110,6 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         [RelayCommand]
         private async Task BackButton() {
             CurrentPageIndex--;
-            await CurrentPage.Load();
             UpdateCurrentPage();
         }
 

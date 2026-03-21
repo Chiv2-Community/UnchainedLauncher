@@ -10,17 +10,23 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public ModScanTabVM ModScanTabVM { get; }
         public SettingsVM SettingsViewModel { get; }
         public ServersTabVM ServersTab { get; }
+        public HelpVM HelpVM { get; }
 
         public MainWindowVM(HomeVM launcherVM,
                             ModListVM modListViewModel,
                             SettingsVM settingsViewModel,
-                            ServersTabVM serversTab) {
+                            ServersTabVM serversTab,
+                            ModScanTabVM modScanTabVM,
+                            HelpVM helpVM) {
             HomeVM = launcherVM;
             ModListViewModel = modListViewModel;
             SettingsViewModel = settingsViewModel;
             ServersTab = serversTab;
-            ModScanTabVM = new ModScanTabVM();
+            ModScanTabVM = modScanTabVM;
+            HelpVM = helpVM;
         }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         public void Dispose() {
             SettingsViewModel.Dispose();

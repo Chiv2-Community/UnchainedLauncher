@@ -1,7 +1,8 @@
 using LanguageExt;
 using LanguageExt.UnsafeValueAccess;
 using log4net;
-using UnchainedLauncher.Core.JsonModels.Metadata.V3;
+using UnchainedLauncher.Core.Extensions;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
@@ -28,12 +29,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public const string UnchainedPluginPath = $"{FilePaths.PluginDir}\\UnchainedPlugin.dll";
         public const string UnchainedPluginURL = $"{GithubBaseURL}/Chiv2-Community/UnchainedPlugin/releases/latest/download/UnchainedPlugin.dll";
 
-        public const string PackageDBBaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/db/package_db";
+        public const string PackageDBBaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/update-registry-format/package_db";
         public const string PackageDBPackageListUrl = $"{PackageDBBaseUrl}/mod_list_index.txt";
     }
 
     public class ModManager : IModManager {
-        private static readonly ILog logger = LogManager.GetLogger(nameof(ModManager));
+        private static readonly ILog Logger = LogManager.GetLogger(nameof(ModManager));
 
         public event ModEnabledHandler? ModEnabled;
         public event ModDisabledHandler? ModDisabled;
@@ -122,16 +123,17 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
 
         public async Task<GetAllModsResult> UpdateModsList() {
-            logger.Info("Updating mods list...");
+            Logger.Info("Updating mods list...");
             var result = await ModRegistry.GetAllMods();
-            logger.Info($"Got a total of {result.Mods.Count()} mods from {ModRegistry.Name}");
+            var logLines = $"Got a total of {result.Mods.Count()} mods from {ModRegistry.Name}".Split("\n");
+            logLines.ForEach(Logger.Info);
 
             if (result.HasErrors) {
                 var errorCount = result.Errors.Count();
-                logger.Error($"Encountered {errorCount} errors while fetching mod list from registry");
+                Logger.Error($"Encountered {errorCount} errors while fetching mod list from registry");
                 result.Errors
                     .ToList()
-                    .ForEach(err => logger.Error(err));
+                    .ForEach(err => Logger.Error(err));
 
                 // Exit early if we only encountered errors.
                 if (!result.Mods.Any())

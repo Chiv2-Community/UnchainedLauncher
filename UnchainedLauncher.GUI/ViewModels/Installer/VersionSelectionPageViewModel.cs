@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using LanguageExt;
+using log4net;
 using Semver;
 using System;
 using System.Collections.Generic;
@@ -9,15 +10,19 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.GUI.Services;
 
 namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
     public partial class VersionSelectionPageViewModel : IInstallerPageViewModel, INotifyPropertyChanged {
+        private static readonly ILog _logger = LogManager.GetLogger(typeof(VersionSelectionPageViewModel));
+
         private readonly IReleaseLocator _releaseLocator;
-        public string TitleText => "Select UnchainedLauncher version you wish to install";
-        public string DescriptionText => "The latest stable version is recommended. After choosing your version and selecting \"Install\" the Unchained Launcher Installer will begin the installation process.";
+        private readonly IVersionExtractor _versionExtractor;
+        public string TitleText => "🚀 Choose Your Unchained Version";
+        public string DescriptionText => "The latest stable version is highly recommended for the best experience. Choose a version and click \"Install\" to begin.";
 
         public string ContinueButtonText => "Install";
         public bool CanContinue => SelectedVersion != null;
@@ -35,14 +40,15 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         public bool IsSelected { get { return SelectedVersion != null; } }
 
-        public VersionSelectionPageViewModel() : this(null) {
+        public VersionSelectionPageViewModel() : this(null, new FileInfoVersionExtractor()) {
             AvailableVersions.Add(new ReleaseTarget("test", "#foo\n\nBar.", new SemVersion(1, 2), new List<ReleaseAsset>(), DateTimeOffset.Now, true, false));
             SelectLatestVersion();
         }
 
 
-        public VersionSelectionPageViewModel(IReleaseLocator releaseLocator) {
+        public VersionSelectionPageViewModel(IReleaseLocator releaseLocator, IVersionExtractor versionExtractor) {
             _releaseLocator = releaseLocator;
+            _versionExtractor = versionExtractor;
             AvailableVersions = new ObservableCollection<ReleaseTarget>();
 
             AvailableVersions.CollectionChanged += (_, _) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(VisibleVersions)));
@@ -65,7 +71,22 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         }
 
         private void SelectLatestVersion() {
-            SelectedVersion = AvailableVersions.Filter(x => x.IsLatestStable).FirstOrDefault();
+            var currentVersion = GetCurrentVersion();
+            if (currentVersion is { IsPrerelease: true }) {
+                ShowDevReleases = true;
+                var currentRelease = AvailableVersions.FirstOrDefault(v => currentVersion.MatchesRelease(v.Version));
+                if (currentRelease != null) {
+                    SelectedVersion = currentRelease;
+                    return;
+                }
+            }
+
+            SelectedVersion = AvailableVersions.FirstOrDefault(x => x.IsLatestStable);
+        }
+
+        private SemVersion? GetCurrentVersion() {
+            var currentPath = Environment.ProcessPath;
+            return currentPath != null && System.IO.File.Exists(currentPath) ? _versionExtractor.GetVersion(currentPath) : null;
         }
 
         private bool ShouldShowVersion(ReleaseTarget release) {

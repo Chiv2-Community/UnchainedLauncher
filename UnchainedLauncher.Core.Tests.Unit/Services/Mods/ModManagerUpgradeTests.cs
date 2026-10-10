@@ -87,5 +87,17 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             var registry = new GithubModRegistry("Chiv2-Community", "C2ModRegistry");
             Assert.Equal("https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/refs/heads/main/package_db", registry.PackageDBBaseUrl);
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void RequiredUnchainedReleaseIsIncludedOnlyOnce(bool enabled) {
+            var info = new ModInfo("https://github.com/Chiv2-Community/Unchained-Mods", "Unchained-Mods", "", null, null, [], [], []);
+            var release = new Release("v0.0.2", "hash", "Unchained-Mods.pak", DateTime.UtcNow, info, new AssetCollections([], [], [], [], []), null);
+            var manager = new Mock<IModManager>();
+            manager.SetupGet(m => m.Mods).Returns([new Mod(info, [release])]);
+            manager.SetupGet(m => m.EnabledModReleaseCoordinates).Returns(enabled ? [ReleaseCoordinates.FromRelease(release)] : []);
+            Assert.Equal([release], manager.Object.GetEnabledAndDependencyReleases());
+        }
     }
 }

@@ -245,7 +245,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     .Bind(x => x.LatestRelease);
 
             return unchainedModsRelease.Match(
-                unchainedMods => enabledModsWithAllDependencies.Append(unchainedMods),
+                unchainedMods => enabledModsWithAllDependencies.Add(unchainedMods),
                 () => enabledModsWithAllDependencies
             );
         }

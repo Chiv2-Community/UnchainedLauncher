@@ -25,8 +25,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Processes {
             _thread = new Thread(() => {
                 var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
                 _ready.SetResult(app.Dispatcher);
-                Dispatcher.Run();
-            });
+                app.Run();
+            }) { IsBackground = true };
             _thread.SetApartmentState(ApartmentState.STA);
             _thread.Start();
         }
@@ -37,7 +37,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Processes {
 
         public void Dispose() {
             _ready.Task.GetAwaiter().GetResult().Invoke(() => Application.Current.Shutdown());
-            _thread.Join();
+            Assert.True(_thread.Join(TimeSpan.FromSeconds(10)), "Home test application did not shut down.");
         }
     }
 

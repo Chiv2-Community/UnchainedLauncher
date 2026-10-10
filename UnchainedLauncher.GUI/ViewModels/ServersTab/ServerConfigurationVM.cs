@@ -201,6 +201,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             // This method is called during initialization, before the base configuration section is initialized.
             // Therefore, we cannot use the "IsDesyncPatchEnabled" property and must use the param passed in here.
             GameSession.LoadFrom(ini.Game.GameSession, desyncPatch);
+            GameMode.DefaultMaxPlayers = GameSession.MaxPlayers;
             GameMode.LoadFrom(ini.Game.TBLGameMode, AvailableMaps);
 
             LTS.LoadFrom(ini.Game.LTSGameMode);

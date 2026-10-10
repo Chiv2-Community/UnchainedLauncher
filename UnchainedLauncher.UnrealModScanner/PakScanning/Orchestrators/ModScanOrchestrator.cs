@@ -19,6 +19,9 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
     private void InitializeProvider(FilteredFileProvider provider) {
         provider.Initialize();
 
+        // Empty/filtered-out directories need neither decompression nor a native DLL download.
+        if (!provider.FilteredFiles.Any()) return;
+
         var zlib_path = OperatingSystem.IsLinux() ? "libz-ng.so" : "zlib-ng2.dll";
         var zlib_url = $"https://github.com/NotOfficer/Zlib-ng.NET/releases/download/1.0.0/{zlib_path}";
         if (!File.Exists(zlib_path)) {

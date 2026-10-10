@@ -1,0 +1,61 @@
+{
+  "Kind": "StandardModManager",
+  "EnabledModReleases": [ { "Org": "Chiv2-Community", "ModuleName": "Unchained-Mods", "Version": "v0.0.2" } ],
+  "PakDir": {
+    "DirPath": "paks",
+    "ManagedPaks": [ {
+      "Coordinates": { "Org": "Chiv2-Community", "ModuleName": "Unchained-Mods", "Version": "v0.0.2" },
+      "PakFileName": "Unchained-Mods.pak", "Priority": 42
+    } ]
+  },
+  "CachedMods": [ {
+    "latest_manifest": {
+      "repo_url": "https://github.com/Chiv2-Community/Unchained-Mods",
+      "name": "Unchained-Mods", "description": "Mod Loading Framework and default mods",
+      "home_page": null, "image_url": null, "mod_type": "Shared", "authors": [ "Nihi" ],
+      "dependencies": [], "tags": [ "Doodad" ], "maps": [], "options": { "actor_mod": false },
+      "Organization": "Chiv2-Community", "RepoName": "Unchained-Mods"
+    },
+    "releases": [ {
+      "tag": "v0.0.2",
+      "hash": "35f229e3f052fd5b3c96503c6c5a0c59becb8d17a65b06b267543b5bb6bcbb14efdaff1d681e931800cb979670e4fd43bb0985de449819bf81c32c1b73371389",
+      "pak_file_name": "Unchained-Mods.pak", "release_date": "2023-11-12T19:20:22",
+      "manifest": {
+        "repo_url": "https://github.com/Chiv2-Community/Unchained-Mods",
+        "name": "Unchained-Mods", "description": "Mod Loading Framework and default mods",
+        "home_page": null, "image_url": null, "mod_type": "Shared", "authors": [ "Nihi" ],
+        "dependencies": [], "tags": [ "Doodad" ], "maps": [], "options": { "actor_mod": false },
+        "Organization": "Chiv2-Community", "RepoName": "Unchained-Mods"
+      },
+      "release_notes_markdown": null,
+      "ReleaseUrl": "https://github.com/Chiv2-Community/Unchained-Mods/releases/v0.0.2", "Version": "0.0.2"
+    }, {
+      "tag": "v0.0.1",
+      "hash": "f952c8b01cb2de03afbc1eca276a60ca8d83e36582ccc6ce4c8352f398abdaef186f2e7bb0ce0751d932a96f217282bbf06ce4843edf7867d2ccdc1ad4211a7c",
+      "pak_file_name": "Unchained-Mods.pak", "release_date": "2023-10-12T19:20:22",
+      "manifest": {
+        "repo_url": "https://github.com/Chiv2-Community/Unchained-Mods",
+        "name": "Unchained-Mods", "description": "Mod Loading Framework and default mods",
+        "home_page": null, "image_url": null, "mod_type": "Shared", "authors": [ "Nihi" ],
+        "dependencies": [], "tags": [ "Doodad" ], "maps": [], "options": { "actor_mod": false },
+        "Organization": "Chiv2-Community", "RepoName": "Unchained-Mods"
+      },
+      "release_notes_markdown": null,
+      "ReleaseUrl": "https://github.com/Chiv2-Community/Unchained-Mods/releases/v0.0.1", "Version": "0.0.1"
+    } ],
+    "LatestRelease": [ {
+      "tag": "v0.0.2",
+      "hash": "35f229e3f052fd5b3c96503c6c5a0c59becb8d17a65b06b267543b5bb6bcbb14efdaff1d681e931800cb979670e4fd43bb0985de449819bf81c32c1b73371389",
+      "pak_file_name": "Unchained-Mods.pak", "release_date": "2023-11-12T19:20:22",
+      "manifest": {
+        "repo_url": "https://github.com/Chiv2-Community/Unchained-Mods",
+        "name": "Unchained-Mods", "description": "Mod Loading Framework and default mods",
+        "home_page": null, "image_url": null, "mod_type": "Shared", "authors": [ "Nihi" ],
+        "dependencies": [], "tags": [ "Doodad" ], "maps": [], "options": { "actor_mod": false },
+        "Organization": "Chiv2-Community", "RepoName": "Unchained-Mods"
+      },
+      "release_notes_markdown": null,
+      "ReleaseUrl": "https://github.com/Chiv2-Community/Unchained-Mods/releases/v0.0.2", "Version": "0.0.2"
+    } ]
+  } ]
+}

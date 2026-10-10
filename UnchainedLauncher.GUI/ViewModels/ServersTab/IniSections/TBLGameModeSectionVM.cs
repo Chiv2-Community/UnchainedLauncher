@@ -1,9 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using log4net;
 using PropertyChanged;
 using StructuredINI.Codecs;
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.INIModels.Game;
@@ -13,8 +13,6 @@ using UnchainedLauncher.UnrealModScanner.JsonModels;
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
     [AddINotifyPropertyChangedInterface]
     public partial class TBLGameModeSectionVM {
-        private static readonly ILog Logger = LogManager.GetLogger(nameof(TBLGameModeSectionVM));
-
         public string ServerName { get; set; } = "";
         public string ServerIdentifier { get; set; } = "";
 
@@ -29,7 +27,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
         public int IdleKickTimerSpectate { get; set; }
         public int IdleKickTimerDisconnect { get; set; }
 
-        public ObservableCollection<MapDto> MapList { get; } = new();
+        public ObservableCollection<MapRotationEntry> MapList { get; } = new();
+        private ObservableCollection<MapDto>? _availableMaps;
         public MapDto? MapToAdd { get; set; }
         public int MapListIndex { get; set; }
 
@@ -71,13 +70,15 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
         private void AddMap() {
             if (MapToAdd == null) return;
             var map = MapToAdd;
-            MapList.Add(map);
+            var entry = new MapRotationEntry(map.TravelToMapString());
+            entry.RefreshMetadata(_availableMaps ?? new ObservableCollection<MapDto> { map });
+            MapList.Add(entry);
             EnsureMapListIndexValid();
             MapToAdd = null;
         }
 
         [RelayCommand]
-        private void RemoveMap(MapDto? map) {
+        private void RemoveMap(MapRotationEntry? map) {
             if (map == null) return;
 
             var idx = MapList.IndexOf(map);
@@ -111,13 +112,16 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             IdleKickTimerSpectate = model.IdleKickTimerSpectate;
             IdleKickTimerDisconnect = model.IdleKickTimerDisconnect;
 
+            if (_availableMaps != null)
+                CollectionChangedEventManager.RemoveHandler(_availableMaps, RefreshMapMetadata);
+            _availableMaps = availableMaps;
+            CollectionChangedEventManager.AddHandler(_availableMaps, RefreshMapMetadata);
+
             MapList.Clear();
             foreach (var mapPath in model.MapList) {
-                var map = availableMaps.FirstOrDefault(x => x.TravelToMapString() == mapPath);
-                if (map != null)
-                    MapList.Add(map);
-                else
-                    Logger.Warn($"Failed to add map '{mapPath}' to map list, because it wasn't in the available maps list.");
+                var entry = new MapRotationEntry(mapPath);
+                entry.RefreshMetadata(availableMaps);
+                MapList.Add(entry);
             }
 
             MapListIndex = model.MapListIndex;
@@ -151,6 +155,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             UseStrictTeamBalanceEnforcement = model.bUseStrictTeamBalanceEnforcement;
         }
 
+        private void RefreshMapMetadata(object? sender, NotifyCollectionChangedEventArgs args) {
+            foreach (var entry in MapList)
+                entry.RefreshMetadata(_availableMaps!);
+        }
+
         public TBLGameMode ToModel() => new(
             ServerName,
             ServerIdentifier,
@@ -163,7 +172,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             MaxTimeBeforeStartingMatch,
             IdleKickTimerSpectate,
             IdleKickTimerDisconnect,
-            MapList.Select(map => map.TravelToMapString()).ToArray(),
+            MapList.Select(map => map.TravelString).ToArray(),
             MapListIndex,
             HorseCompatibleServer,
             ClassLimits.Select(l => l.ToModel()).ToArray(),

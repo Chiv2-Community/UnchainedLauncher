@@ -353,7 +353,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             RconPort,
             A2SPort,
             PingPort,
-            DetermineNextMap()!.TravelToMapString(),
+            DetermineNextMap(),
             AdvancedConfigurationSection.ShowInServerBrowser,
             FFA.FFAScoreLimit,
             FFA.FFATimeLimit,
@@ -375,9 +375,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             BaseConfigurationSection.CensorMode
         );
 
-        private MapDto? DetermineNextMap() {
+        private string DetermineNextMap() {
             // Prefer the selected rotation entry. If rotation is empty, fall back to a safe default.
-            if (GameMode.MapList.Count == 0) return AvailableMaps.FirstOrDefault();
+            if (GameMode.MapList.Count == 0) return AvailableMaps.FirstOrDefault()?.TravelToMapString() ?? "FFA_Courtyard";
 
             var idx = GameMode.MapListIndex;
             if (idx < 0 || idx >= GameMode.MapList.Count) {
@@ -386,7 +386,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
             var selectedMap = GameMode.MapList[idx];
 
-            return selectedMap;
+            return selectedMap.TravelString;
         }
 
         public override string ToString() {

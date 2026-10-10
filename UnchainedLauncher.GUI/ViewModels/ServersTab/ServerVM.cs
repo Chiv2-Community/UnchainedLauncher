@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
+using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Server;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 
@@ -33,11 +34,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public string ServerName { get; set; } = serverName;
 
         public ObservableCollection<MapDto> AvailableMaps { get; } = availableMaps;
-        public string SelectedMapToChange { get; set; } = "";
+        public MapDto? SelectedMapToChange { get; set; }
 
         public bool CanChangeMap =>
-            !string.IsNullOrWhiteSpace(SelectedMapToChange)
-            && !string.Equals(SelectedMapToChange, CurrentMap ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            SelectedMapToChange != null
+            && !string.Equals(SelectedMapToChange.TravelToMapString(), CurrentMap ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+
+        private void OnSelectedMapToChangeChanged() => ChangeMapCommand.NotifyCanExecuteChanged();
+        private void OnCurrentMapChanged() => ChangeMapCommand.NotifyCanExecuteChanged();
 
         // Launch options (static per launch, but refreshed on restart)
         public int GamePort { get; set; }
@@ -111,14 +115,15 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var actors = opts.ServerMods?.Where(a => !string.IsNullOrWhiteSpace(a)).ToArray() ?? [];
             ModActorsText = actors.Length == 0 ? "-" : string.Join(", ", actors);
 
-            if (string.IsNullOrWhiteSpace(SelectedMapToChange)) {
-                SelectedMapToChange = opts.Map;
+            if (SelectedMapToChange == null) {
+                SelectedMapToChange = AvailableMaps.FirstOrDefault(map =>
+                    string.Equals(map.TravelToMapString(), opts.Map, StringComparison.OrdinalIgnoreCase));
             }
         }
 
         [RelayCommand(CanExecute = nameof(CanChangeMap))]
         private async Task ChangeMapAsync() {
-            var map = SelectedMapToChange?.Trim();
+            var map = SelectedMapToChange?.TravelToMapString();
             if (string.IsNullOrWhiteSpace(map)) return;
 
             try {

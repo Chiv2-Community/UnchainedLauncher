@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services;
@@ -35,7 +36,7 @@ namespace UnchainedLauncher.GUI {
     public partial class App : Application {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
 
-        protected override void OnStartup(StartupEventArgs e) {
+        protected override async void OnStartup(StartupEventArgs e) {
             try {
                 base.OnStartup(e);
 
@@ -90,7 +91,7 @@ namespace UnchainedLauncher.GUI {
                 var window =
                     needsInstallation && !forceSkipInstallation
                         ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
-                        : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator,
+                        : await InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator,
                             pluginReleaseLocator);
 
                 window?.Show();
@@ -132,7 +133,7 @@ namespace UnchainedLauncher.GUI {
             return new InstallerWindow(installerWindowVM);
         }
 
-        private Window? InitializeMainWindow(IChivalry2InstallationFinder installationFinder,
+        private async Task<Window?> InitializeMainWindow(IChivalry2InstallationFinder installationFinder,
             IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator,
             IReleaseLocator pluginReleaseLocator) {
             var userDialogueSpawner = new MessageBoxSpawner();
@@ -212,8 +213,8 @@ namespace UnchainedLauncher.GUI {
                 chivProcessMonitor);
             var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
-            if (!modManager.Mods.Any())
-                modListViewModel.RefreshModListCommand.ExecuteAsync(null);
+            if (modManager.NeedsMetadataRefresh || !modManager.Mods.Any())
+                await modListViewModel.RefreshModListCommand.ExecuteAsync(null);
 
             // Rebuild the arguments used to launch the application
             var envArgs = Environment.GetCommandLineArgs().Skip(1).ToList();

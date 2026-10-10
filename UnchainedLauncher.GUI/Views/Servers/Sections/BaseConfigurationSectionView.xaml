@@ -166,7 +166,7 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Text="{Binding Converter={StaticResource MapToTravelStringConverter}}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,6,0" />
+                                <TextBlock Text="{Binding TravelString}" ToolTip="{Binding Map.MapName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,6,0" />
 
                                 <Button Grid.Column="1"
                                         Width="28"

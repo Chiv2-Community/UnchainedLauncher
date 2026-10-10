@@ -3,7 +3,6 @@ using Spectre.Console.Cli;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using UnchainedLauncher.PakScannerApp;
-using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.Config.Games;
 using UnchainedLauncher.UnrealModScanner.Export;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
@@ -16,14 +15,9 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
         CommandContext context,
         ScanCommandSettings commandSettings,
         CancellationToken cancellationToken) {
-        var outputDir = commandSettings.OutputDirectory ?? Directory.GetCurrentDirectory();
-
-        // Some command settings overwrite scan options, others are top level options, like PakDirectory.
-        if (string.IsNullOrWhiteSpace(commandSettings.PakDirectory))
-            throw new InvalidOperationException(
-                "PakDirectory is required (use --pak or --config)");
-
-        var options = LoadSettings(commandSettings);
+        var settings = LoadSettings(commandSettings);
+        var outputDir = settings.OutputDirectory!;
+        var options = settings.Options!;
 
         Directory.CreateDirectory(outputDir);
 
@@ -34,11 +28,11 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
         var scanner = ScannerFactory.CreateModScanner(options);
 
 
-        var scanFileProvider =
+        using var scanFileProvider =
             FilteredFileProvider.CreateFromOptions(
                 options,
-                commandSettings.ScanMode ?? ScanMode.All,
-                commandSettings.PakDirectory
+                settings.ScanMode!.Value,
+                settings.PakDirectory!
             );
 
         var scanContext = await scanner.RunScanAsync(
@@ -58,23 +52,28 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
         return 0;
     }
 
-    private static ScanOptions LoadSettings(ScanCommandSettings settings) {
-        // TODO: Read preset in from the command line. For non-presets, allow users to specify all the options.
-        //       Arguments provided in addition to a preset will override the preset values.
-        //
-        //       For now use the Chivalry2 options as the defaults and selectively override options
-        var options =
-            settings.ConfigFile != null
-                ? LoadFromJson(settings.ConfigFile)
-                : GameScanOptions.Chivalry2;
+    public static ScanConfiguration LoadSettings(ScanCommandSettings settings) {
+        var config = settings.ConfigFile != null
+            ? LoadFromJson(settings.ConfigFile)
+            : new ScanConfiguration();
+        var options = config.Options ?? GameScanOptions.Chivalry2;
+        var officialDirs = settings.OfficialDirs ?? config.OfficialDirectories;
+        if (officialDirs != null)
+            options = options with { VanillaAssetPaths = officialDirs.ToList() };
 
-        if (settings.OfficialDirs?.Length > 0)
-            options = options with { VanillaAssetPaths = settings.OfficialDirs.ToList() };
-
-        return options;
+        var resolved = config with {
+            PakDirectory = settings.PakDirectory ?? config.PakDirectory,
+            OutputDirectory = settings.OutputDirectory ?? config.OutputDirectory ?? Directory.GetCurrentDirectory(),
+            ScanMode = settings.ScanMode ?? config.ScanMode ?? ScanMode.All,
+            OfficialDirectories = officialDirs,
+            Options = options
+        };
+        if (string.IsNullOrWhiteSpace(resolved.PakDirectory))
+            throw new InvalidOperationException("PakDirectory is required (use --pak or --config)");
+        return resolved;
     }
 
-    private static ScanOptions? LoadFromJson(string path) {
+    private static ScanConfiguration LoadFromJson(string path) {
         if (!File.Exists(path))
             throw new FileNotFoundException($"Config file not found: {path}");
 
@@ -84,9 +83,9 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
             // or JsonNamingPolicy.Default if your enum is PascalCase
         };
 
-        return JsonSerializer.Deserialize<ScanOptions>(
+        return JsonSerializer.Deserialize<ScanConfiguration>(
             File.ReadAllText(path),
             options
-        );
+        ) ?? throw new InvalidOperationException($"Config file is empty: {path}");
     }
 }

@@ -29,7 +29,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public const string UnchainedPluginPath = $"{FilePaths.PluginDir}\\UnchainedPlugin.dll";
         public const string UnchainedPluginURL = $"{GithubBaseURL}/Chiv2-Community/UnchainedPlugin/releases/latest/download/UnchainedPlugin.dll";
 
-        public const string PackageDBBaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/update-registry-format/package_db";
+        public const string PackageDBBaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/main/package_db";
         public const string PackageDBPackageListUrl = $"{PackageDBBaseUrl}/mod_list_index.txt";
     }
 
@@ -44,6 +44,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public IEnumerable<Mod> Mods => _mods;
         private readonly List<Mod> _mods;
+
+        public bool NeedsMetadataRefresh { get; internal set; }
 
         public IModRegistry ModRegistry { get; }
 
@@ -142,6 +144,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
             _mods.Clear();
             _mods.AddRange(result.Mods);
+            NeedsMetadataRefresh = result.HasErrors;
 
             return result;
         }

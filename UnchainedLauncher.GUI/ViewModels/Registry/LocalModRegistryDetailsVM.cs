@@ -48,7 +48,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                     "Example Description",
                     null,
                     null,
-                    null,
+                    new List<string>(),
                     new List<string> { "Example Author" },
                     new List<Dependency>()
                 ),
@@ -198,6 +198,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             }
         }
         public DateTime ReleaseDate { get; set; }
+        public AssetCollections Manifest { get; }
 
         // Manifest stuff
         public string RepoUrl {
@@ -234,6 +235,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             ReleaseDate = release.ReleaseDate;
 
             // Manifest stuff
+            Manifest = release.Manifest;
             Organization = release.Info.Organization;
             Name = release.Info.Name;
             Description = release.Info.Description;
@@ -267,7 +269,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
                 PakFileName,
                 ReleaseDate,
                 m,
-                null,
+                Manifest,
                 ReleaseNotesMarkdown);
 
             return (r, PakFilePath);

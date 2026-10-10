@@ -34,6 +34,8 @@
                                   Content="Enable Unstable Plugin Releases" 
                                   IsEnabled="{Binding EnablePluginAutomaticUpdates}"
                                   Margin="0,5" />
+                        <Button Content="Manage Mod Registries" Command="{Binding OpenRegistryWindowCommand}"
+                                HorizontalAlignment="Left" Margin="0,5" Padding="10,5" />
                     </StackPanel>
                 </controls:CollapsibleCard.Body>
             </controls:CollapsibleCard>

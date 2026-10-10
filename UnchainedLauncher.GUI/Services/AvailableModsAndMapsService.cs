@@ -1,5 +1,4 @@
-﻿using LanguageExt;
-using log4net;
+﻿using log4net;
 using Newtonsoft.Json;
 using PropertyChanged;
 using System;
@@ -10,7 +9,6 @@ using System.Linq;
 using System.Reflection;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods;
-using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -26,25 +24,17 @@ public class AvailableModsAndMapsService {
     public ObservableCollection<BlueprintDto> AvailableServerModBlueprints { get; }
 
     private PakDirManifest? _cachedScanManifest = null;
+    private readonly IModManager _modManager;
+    private readonly List<MapDto> _defaultMaps;
 
     public AvailableModsAndMapsService(IModManager modManager, ModScanTabVM modScanTab) {
-        AvailableMaps = new ObservableCollection<MapDto>(GetDefaultMaps());
+        _modManager = modManager;
+        _defaultMaps = GetDefaultMaps().ToList();
+        AvailableMaps = new ObservableCollection<MapDto>();
         AvailableServerModBlueprints = new ObservableCollection<BlueprintDto>();
 
-        modManager.GetEnabledAndDependencyReleases()
-            .ForEach(x => AddAvailableMod(x.Manifest));
-
-        modManager.ModDisabled += release => RemoveAvailableMod(release.Manifest);
-        modManager.ModEnabled += (release, previouslyEnabledVersion) => {
-            if (previouslyEnabledVersion != null) {
-                var coordinates = ReleaseCoordinates.FromRelease(release) with { Version = previouslyEnabledVersion };
-                modManager
-                    .GetRelease(coordinates)
-                    .IfSome(previousRelease => RemoveAvailableMod(previousRelease.Manifest));
-            }
-
-            AddAvailableMod(release.Manifest);
-        };
+        modManager.ModDisabled += _ => ReconcileCatalog();
+        modManager.ModEnabled += (_, _) => ReconcileCatalog();
 
         HandleLatestScanUpdate(modScanTab.LastScanResult);
         modScanTab.PropertyChanged += (_, args) => {
@@ -53,46 +43,20 @@ public class AvailableModsAndMapsService {
         };
     }
 
-    public void AddAvailableMod(AssetCollections modPakManifest) {
-        var newMaps =
-            modPakManifest
-                .RelevantMaps()
-                .Filter(x => !AvailableMaps.Contains(x))
-                .ToArray();
-
-        if (newMaps.Any()) {
-            Logger.Debug("Adding Available Maps: ");
-            newMaps.ForEach(map => Logger.Debug($"\t{map.MapName ?? map.ClassPath ?? map.Path}"));
-            newMaps.ForEach(AvailableMaps.Add);
-        }
-
-        var newModBlueprints =
-            modPakManifest
-                .RelevantBlueprints()
-                .Filter(x => !AvailableServerModBlueprints.Contains(x))
-                .ToArray();
-
-        if (newModBlueprints.Any()) {
-            Logger.Debug("Adding Available Blueprints: ");
-            newModBlueprints.ForEach(bp => Logger.Debug($"\t{bp.ModName ?? bp.ClassPath ?? bp.Path}"));
-            newModBlueprints.ForEach(AvailableServerModBlueprints.Add);
-        }
+    private void ReconcileCatalog() {
+        var manifests = _modManager.GetEnabledAndDependencyReleases().Select(release => release.Manifest)
+            .Concat(_cachedScanManifest?.Paks.Select(pak => pak.Inventory) ?? []).ToList();
+        Reconcile(AvailableMaps, _defaultMaps.Concat(manifests.SelectMany(manifest => manifest.RelevantMaps())));
+        Reconcile(AvailableServerModBlueprints, manifests.SelectMany(manifest => manifest.RelevantBlueprints()));
     }
 
-    public void RemoveAvailableMod(AssetCollections manifest) {
-        var maps = manifest.RelevantMaps();
-        if (maps.Any()) {
-            Logger.Debug("Removing Available Maps: ");
-            maps.ForEach(m => Logger.Debug($"\t{m.MapName}"));
-            maps.ForEach(AvailableMaps.Remove);
-        }
-
-        var blueprints = manifest.RelevantBlueprints();
-        if (blueprints.Any()) {
-            Logger.Debug("Removing Available Blueprints: ");
-            blueprints.ForEach(bp => Logger.Debug($"\t{bp.ModName}"));
-            manifest.RelevantBlueprints().ForEach(AvailableServerModBlueprints.Remove);
-        }
+    private static void Reconcile<T>(ObservableCollection<T> catalog, IEnumerable<T> assets) {
+        var desired = assets.Distinct().ToList();
+        // Keep surviving entries in place so selection and rotation bindings are not reset.
+        foreach (var stale in catalog.Where(asset => !desired.Contains(asset)).ToList())
+            catalog.Remove(stale);
+        foreach (var asset in desired.Where(asset => !catalog.Contains(asset)))
+            catalog.Add(asset);
     }
 
     private static IEnumerable<MapDto> GetDefaultMaps() {
@@ -120,22 +84,7 @@ public class AvailableModsAndMapsService {
     private void HandleLatestScanUpdate(ModScanResult? scanResult) {
         Logger.Debug("Processing latest scan...");
 
-        _cachedScanManifest?.Paks
-            .ForEach(x => {
-                Logger.Debug($"Removing pak from previous scan ({x.PakName})");
-                RemoveAvailableMod(x.Inventory);
-            });
-
-        if (scanResult == null) return;
-        var manifest = ModManifestConverter.ProcessModScan(scanResult);
-
-        manifest
-            .Paks
-            .ForEach(x => {
-                Logger.Debug($"Adding pak from new scan ({x.PakName})");
-                AddAvailableMod(x.Inventory);
-            });
-
-        _cachedScanManifest = manifest;
+        _cachedScanManifest = scanResult == null ? null : ModManifestConverter.ProcessModScan(scanResult);
+        ReconcileCatalog();
     }
 }

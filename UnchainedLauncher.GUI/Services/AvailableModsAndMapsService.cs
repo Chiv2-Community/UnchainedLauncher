@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
@@ -35,6 +36,7 @@ public class AvailableModsAndMapsService {
 
         modManager.ModDisabled += _ => ReconcileCatalog();
         modManager.ModEnabled += (_, _) => ReconcileCatalog();
+        WeakEventManager<IModManager, EventArgs>.AddHandler(modManager, nameof(IModManager.MetadataRefreshed), OnMetadataRefreshed);
 
         HandleLatestScanUpdate(modScanTab.LastScanResult);
         modScanTab.PropertyChanged += (_, args) => {
@@ -42,6 +44,9 @@ public class AvailableModsAndMapsService {
                 HandleLatestScanUpdate(modScanTab.LastScanResult);
         };
     }
+
+    // UpdateModsList resumes on its caller's UI context, just like enable/disable and scan updates.
+    private void OnMetadataRefreshed(object? sender, EventArgs args) => ReconcileCatalog();
 
     private void ReconcileCatalog() {
         var manifests = _modManager.GetEnabledAndDependencyReleases().Select(release => release.Manifest)

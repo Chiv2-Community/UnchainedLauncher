@@ -141,7 +141,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     }
 
                     MainWindowVisibility = Visibility.Hidden;
-                    _ = CreateChivalryProcessWatcher(process, options);
+                    _ = CreateChivalryProcessWatcher(process, options, allowRetry: false);
                     return Some(process);
                 }
             );
@@ -162,7 +162,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             return await LaunchUnchained(options);
         }
 
-        private async Task<Option<Process>> LaunchUnchained(LaunchOptions options) {
+        private async Task<Option<Process>> LaunchUnchained(LaunchOptions options, bool hasRetried = false) {
             Logger.Info("Launching Unchained");
 
             Settings.HasLaunched = true;
@@ -186,24 +186,26 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     }
 
                     MainWindowVisibility = Visibility.Hidden;
-                    _ = CreateChivalryProcessWatcher(process, options);
+                    _ = CreateChivalryProcessWatcher(process, options, allowRetry: !hasRetried);
                     return Some(process);
                 }
             );
         }
 
-        private bool _isRetrying;
-        private async Task CreateChivalryProcessWatcher(Process process, LaunchOptions options) {
+        private async Task CreateChivalryProcessWatcher(Process process, LaunchOptions options, bool allowRetry) {
             var attached = await ProcessWatcher.OnExit(process, async (exitCode, acceptable) => {
-                if (exitCode == -67 && !_isRetrying) {
-                    _isRetrying = true;
+                if (exitCode == -67 && allowRetry) {
                     Logger.Warn("Chivalry 2 exited with -67. Attempting a single re-launch.");
-                    await LaunchUnchained(options);
-                    _isRetrying = false;
-                    return;
+                    try {
+                        if ((await LaunchUnchained(options, hasRetried: true)).IsSome)
+                            return;
+                    }
+                    catch (Exception e) {
+                        Logger.Error("Failed to re-launch Chivalry 2 Unchained", e);
+                        UserDialogueSpawner.DisplayMessage("Failed to re-launch Chivalry 2 Unchained. Check the logs for details.");
+                    }
                 }
-
-                if (!acceptable) {
+                else if (!acceptable) {
                     UserDialogueSpawner.DisplayMessage(
                         $"Chivalry 2 exited unexpectedly with code {exitCode}. Check the logs for details.");
                 }

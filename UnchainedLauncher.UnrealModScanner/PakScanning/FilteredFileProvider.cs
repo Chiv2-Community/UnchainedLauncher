@@ -46,7 +46,8 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
                 pakDir,
                 SearchOption.TopDirectoryOnly,
                 options.ScanFilter.With(pakFilter).CreatePakContentFilter(),
-                options.AesKey
+                options.AesKey,
+                new VersionContainer(options.GameVersion)
             );
         }
 

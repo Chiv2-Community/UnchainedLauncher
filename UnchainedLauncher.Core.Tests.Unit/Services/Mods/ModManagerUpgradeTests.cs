@@ -4,6 +4,7 @@ using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
@@ -11,13 +12,28 @@ using UnchainedLauncher.UnrealModScanner.JsonModels;
 using ManagedPakDir = UnchainedLauncher.Core.Services.Mods.PakDir;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
-    public class ModManagerUpgradeTests {
+    public class ModManagerUpgradeTests : IDisposable {
+        private readonly string _pakDir = Path.Combine(Path.GetTempPath(), "upgrade-paks-" + Guid.NewGuid());
+
+        public ModManagerUpgradeTests() {
+            Directory.CreateDirectory(_pakDir);
+            File.WriteAllBytes(Path.Combine(_pakDir, "Unchained-Mods.pak"), []);
+        }
+
+        private JsonNode ReadUpgradeFixture() {
+            var json = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "ModManagerV3.json")))!;
+            json["PakDir"]!["DirPath"] = _pakDir;
+            return json;
+        }
+
+        public void Dispose() => Directory.Delete(_pakDir, recursive: true);
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public async Task V3CacheUpgradePreservesInstalledStateAndStartsConsumers(bool hasCustomMap) {
             // V3 serializer output from base 8b24e925; enabled/pak state added for upgrade coverage.
-            var json = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "ModManagerV3.json")))!;
+            var json = ReadUpgradeFixture();
             if (hasCustomMap)
                 json["CachedMods"]![0]!["releases"]![0]!["manifest"]!["maps"]!.AsArray().Add("MyCustomMap");
             var coordinates = new ReleaseCoordinates("Chiv2-Community", "Unchained-Mods", "v0.0.2");
@@ -54,9 +70,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
         [Fact]
         public void MixedCacheRetainsV4MetadataButStillRequestsRefresh() {
-            var json = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "ModManagerV3.json")))!;
-            var valid = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "ModRegistries",
-                "DefaultModRegistry", "Chiv2-Community", "Unchained-Mods", "Unchained-Mods.json")));
+            var json = ReadUpgradeFixture();
+            var info = new ModInfo("https://github.com/Chiv2-Community/Unchained-Mods", "Unchained-Mods", "", null, null, [], [], []);
+            var release = new Release("v0.0.2", "hash", "Unchained-Mods.pak", DateTime.UtcNow, info, new AssetCollections([], [], [], [], []), null);
+            var valid = JsonNode.Parse(JsonHelpers.Serialize(new Mod(info, [release])));
             json["CachedMods"]!.AsArray().Add(valid);
             var decoded = new ModManagerCodec(Mock.Of<IModRegistry>()).Deserialize(json.ToJsonString());
             Assert.True(decoded.Success, decoded.Exception?.ToString());

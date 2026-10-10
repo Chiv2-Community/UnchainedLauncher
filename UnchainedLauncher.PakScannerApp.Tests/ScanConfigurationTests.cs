@@ -1,6 +1,8 @@
+using CUE4Parse.UE4.Versions;
 using Spectre.Console.Cli;
 using System.Text.Json;
 using UnchainedLauncher.UnrealModScanner.Config.Games;
+using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using Xunit;
 
@@ -72,6 +74,27 @@ namespace UnchainedLauncher.PakScannerApp.Tests {
             Assert.Equal(["CustomPreset"], resolved.Options!.VanillaAssetPaths);
             Assert.Equal(options.GameVersion, resolved.Options.GameVersion);
             Assert.Equal(ScanMode.GameInternal, resolved.ScanMode);
+        }
+
+        [Theory]
+        [InlineData(EGame.GAME_UE4_25)]
+        [InlineData(EGame.GAME_UE5_0)]
+        public void ConfiguredVersionReachesProductionProvider(EGame game) {
+            var config = Path.Combine(_root, "config.json");
+            File.WriteAllText(config, JsonSerializer.Serialize(new ScanConfiguration {
+                PakDirectory = _root,
+                ScanMode = ScanMode.All,
+                Options = GameScanOptions.Chivalry2 with { GameVersion = game }
+            }));
+            var resolved = ScanCommand.LoadSettings(new ScanCommandSettings { ConfigFile = config });
+            using var provider = FilteredFileProvider.CreateFromOptions(resolved.Options!, resolved.ScanMode!.Value, resolved.PakDirectory!);
+            Assert.Equal(game, provider.Versions.Game);
+        }
+
+        [Fact]
+        public void ChivalryPresetReachesProductionProvider() {
+            using var provider = FilteredFileProvider.CreateFromOptions(GameScanOptions.Chivalry2, ScanMode.Mods, _root);
+            Assert.Equal(EGame.GAME_UE4_25, provider.Versions.Game);
         }
 
         [Fact]

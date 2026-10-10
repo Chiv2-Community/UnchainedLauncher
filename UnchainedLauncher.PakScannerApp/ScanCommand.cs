@@ -59,7 +59,11 @@ public sealed class ScanCommand : AsyncCommand<ScanCommandSettings> {
         var options = config.Options ?? GameScanOptions.Chivalry2;
         var officialDirs = settings.OfficialDirs ?? config.OfficialDirectories;
         if (officialDirs != null)
-            options = options with { VanillaAssetPaths = officialDirs.ToList() };
+            // Legacy directory names are relative to Chivalry's content root; full asset prefixes stay unchanged.
+            options = options with {
+                VanillaAssetPaths = officialDirs.Select(dir =>
+                    dir.Contains('/') || dir.Contains('\\') ? dir : $"TBL/Content/{dir}").ToList()
+            };
 
         var resolved = config with {
             PakDirectory = settings.PakDirectory ?? config.PakDirectory,

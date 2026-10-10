@@ -25,7 +25,7 @@ namespace UnchainedLauncher.PakScannerApp.Tests {
             Assert.Equal(input, resolved.PakDirectory);
             Assert.Equal(output, resolved.OutputDirectory);
             Assert.Equal(expected, resolved.ScanMode);
-            Assert.Equal(["CustomOfficial"], resolved.Options!.VanillaAssetPaths);
+            Assert.Equal(["TBL/Content/CustomOfficial"], resolved.Options!.VanillaAssetPaths);
 
             Assert.Equal(0, await RunCli("scan", "--config", config));
             using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(output, "manifest.json")));
@@ -46,7 +46,7 @@ namespace UnchainedLauncher.PakScannerApp.Tests {
                 OfficialDirs = ["OverrideOfficial"]
             });
             Assert.Equal(ScanMode.Mods, resolved.ScanMode);
-            Assert.Equal(["OverrideOfficial"], resolved.Options!.VanillaAssetPaths);
+            Assert.Equal(["TBL/Content/OverrideOfficial"], resolved.Options!.VanillaAssetPaths);
             Assert.Equal(0, await RunCli("scan", "--config", config, "--pak", input, "--out", output,
                 "--mode", "Mods", "--official-dir", "OverrideOfficial"));
             Assert.True(File.Exists(Path.Combine(output, "manifest.json")));

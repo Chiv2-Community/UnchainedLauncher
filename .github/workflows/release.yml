@@ -23,7 +23,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
         
@@ -33,9 +33,12 @@ jobs:
       run: dotnet build -c ${{ matrix.configuration }}
     - name: Run Unit Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Core.Tests.Unit  --logger:"console;verbosity=detailed"
+
+    - name: Run Scanner Configuration Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.PakScannerApp.Tests --logger:"console;verbosity=detailed"
       
     - name: Package ${{ matrix.configuration }} binaries
-      run: dotnet publish -c ${{ matrix.configuration}} -o out/
+      run: dotnet publish UnchainedLauncher.GUI -c ${{ matrix.configuration}} -o out/
 
     - name: Upload ${{ matrix.configuration }} Artifacts
       uses: actions/upload-artifact@v4
@@ -51,7 +54,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Setup dotnet
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -108,15 +111,16 @@ jobs:
       id: create_release
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ github.ref }}
-        release_name: "Release ${{ github.ref }}: ${{ env.tag_annotation }}"
+        tag_name: ${{ github.ref_name }}
+        name: ${{ github.ref_name }}
         draft: false
         prerelease: true
         preserve_order: true
+        fail_on_unmatched_files: true
         files: |
           UnchainedLauncher.exe
           UnchainedLauncher_dbg.exe
           PakScanner_x64.zip
           PakScanner_Win64.zip
         body: |
-          ${{ github.ref }}
+          ${{ github.ref_name }}

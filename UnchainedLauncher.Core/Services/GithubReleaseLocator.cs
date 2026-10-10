@@ -3,6 +3,7 @@ using log4net;
 using Octokit;
 using Semver;
 using System.Collections.Immutable;
+using UnchainedLauncher.Core.Extensions;
 
 namespace UnchainedLauncher.Core.Services {
     using static LanguageExt.Prelude;
@@ -19,7 +20,8 @@ namespace UnchainedLauncher.Core.Services {
         private readonly string _repoName;
 
         private IEnumerable<ReleaseTarget>? ReleaseCache { get; set; }
-        private ReleaseTarget? LatestRelease { get; set; }
+        private ReleaseTarget? LatestStableRelease { get; set; }
+        private ReleaseTarget? LatestPrerelease { get; set; }
 
         public GithubReleaseLocator(GitHubClient githubClient, string repoOwner, string repoName) {
             _gitHubClient = githubClient;
@@ -27,14 +29,17 @@ namespace UnchainedLauncher.Core.Services {
             _repoOwner = repoOwner;
         }
 
-        public async Task<ReleaseTarget?> GetLatestRelease() {
-            if (LatestRelease != null) {
-                return LatestRelease;
+        public async Task<ReleaseTarget?> GetLatestRelease(bool includePrerelease = false) {
+            if (includePrerelease) {
+                if (LatestPrerelease != null) return LatestPrerelease;
+            }
+            else {
+                if (LatestStableRelease != null) return LatestStableRelease;
             }
 
             await ProcessGithubReleases();
 
-            return LatestRelease;
+            return includePrerelease ? LatestPrerelease : LatestStableRelease;
         }
 
         public async Task<IEnumerable<ReleaseTarget>> GetAllReleases() {
@@ -62,15 +67,19 @@ namespace UnchainedLauncher.Core.Services {
                         false,
                         version.IsPrerelease || release.Prerelease);
 
-                var latestRelease = results.Filter(r => !r.IsPrerelease).MaxBy(x => x.Version)?.AsLatestStable();
+                Logger.LogListInfo("Releases", results.ToList());
 
-                Logger.Info($"Found {results.Count()} releases, latest stable release is {latestRelease?.Version}");
+                var latestStableRelease = results.Filter(r => !r.IsPrerelease).MaxBy(x => x.Version, SemVersionExtensions.PrecedenceIgnoreCaseComparer)?.AsLatestStable();
+                var latestPrerelease = results.MaxBy(x => x.Version, SemVersionExtensions.PrecedenceIgnoreCaseComparer);
 
-                if (latestRelease != null)
-                    results = results?.ToList().Select(x => x.Version == latestRelease.Version ? x.AsLatestStable() : x);
+                Logger.Info($"Found {results.Count()} releases, latest stable release is {latestStableRelease?.Version}, latest (incl. pre) is {latestPrerelease?.Version}");
+
+                if (latestStableRelease != null)
+                    results = results?.ToList().Select(x => x.Version == latestStableRelease.Version ? x.AsLatestStable() : x);
 
                 ReleaseCache = results;
-                LatestRelease = latestRelease;
+                LatestStableRelease = latestStableRelease;
+                LatestPrerelease = latestPrerelease;
 
                 return Optional(ReleaseCache).ToList().Flatten();
             }

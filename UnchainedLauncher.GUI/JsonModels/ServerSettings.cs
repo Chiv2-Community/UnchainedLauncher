@@ -1,4 +1,6 @@
 ﻿using System.Text.Json.Serialization;
+using UnchainedLauncher.Core.Services.Processes.Chivalry;
+
 namespace UnchainedLauncher.GUI.JsonModels {
     public record ServerSettings(
         [property: JsonPropertyName("server_name")] string? ServerName,
@@ -9,6 +11,7 @@ namespace UnchainedLauncher.GUI.JsonModels {
         [property: JsonPropertyName("rcon_port")] int? RconPort,
         [property: JsonPropertyName("a2s_port")] int? A2SPort,
         [property: JsonPropertyName("ping_port")] int? PingPort,
-        [property: JsonPropertyName("show_in_server_browser")] bool? ShowInServerBrowser
+        [property: JsonPropertyName("show_in_server_browser")] bool? ShowInServerBrowser,
+        [property: JsonPropertyName("censor_mode")] CensorArg? CensorMode
     );
 }

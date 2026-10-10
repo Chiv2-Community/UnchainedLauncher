@@ -89,7 +89,6 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                     },
                     EExtractionMode.String => rawValue?.ToString() ?? "null",
                     EExtractionMode.Raw => rawValue,
-                    EExtractionMode.StringJson => JsonConvert.DeserializeObject(rawValue.ToString()), // Whats the right way to do this?
                     _ => throw new ArgumentOutOfRangeException()
                 };
             }

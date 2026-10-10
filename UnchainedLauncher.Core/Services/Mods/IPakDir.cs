@@ -81,5 +81,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <param name="coords">The release coordinates to look up</param>
         /// <returns>Some(path) if the pak is managed, None otherwise</returns>
         Option<string> GetManagedPakFilePath(ReleaseCoordinates coords);
+
+        /// <summary>
+        /// Gets the directory path where pak files are stored.
+        /// </summary>
+        string DirPath { get; }
     }
 }

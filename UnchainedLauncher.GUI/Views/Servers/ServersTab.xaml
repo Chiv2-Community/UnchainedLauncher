@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views.Servers"
              xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Servers.DesignInstances"
+             xmlns:behaviors="clr-namespace:UnchainedLauncher.GUI.Behaviors"
              d:DataContext="{d:DesignInstance designInstances:ServersTabDesignVM}"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
@@ -118,19 +119,20 @@
             <ScrollViewer Grid.Row="0"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled"
-                          CanContentScroll="True">
+                          behaviors:MouseWheelScrollForwardingBehavior.IsEnabled="True">
                 <local:ServerConfigurationForm DataContext="{Binding SelectedConfiguration}" />
             </ScrollViewer>
             <Grid Grid.Row="2">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="1*" />
                     <ColumnDefinition Width="10" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="5*" />
                 </Grid.ColumnDefinitions>
                 <Button Grid.Column="0" 
                         Command="{Binding LaunchServerCommand}" 
-                        Style="{DynamicResource Button.Secondary}"
-                        IsEnabled="{Binding Settings.CanLaunch}"
+                        Style="{DynamicResource Button.Danger}"
+                        IsEnabled="{Binding CanLaunchNonHeadless}"
+                        ToolTip="{Binding LaunchServerToolTip}"
                         >Launch server</Button>
                 <Button Grid.Column="2" Command="{Binding LaunchHeadlessCommand}"
                         Style="{DynamicResource Button.Primary}">

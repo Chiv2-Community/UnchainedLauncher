@@ -22,8 +22,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public bool CanContinue { get; set; }
         public string GoBackButtonText => "Back";
         public bool CanGoBack => true;
-        public string TitleText => "Select Chivalry 2 Installations where you want to install the Unchained Launcher";
-        public string DescriptionText => "For each selected installation, the Unchained Launcher will install to Chivalry2Launcher.exe and move the original launcher to Chivalry2Launcher-ORIGINAL.exe";
+        public string TitleText => "📍 Select Installation Locations";
+        public string DescriptionText => "Choose where to install Unchained. We'll safely move your original Chivalry2Launcher.exe to Chivalry2Launcher-ORIGINAL.exe as a backup.";
 
         public IChivalry2InstallationFinder InstallationFinder { get; }
         public ObservableCollection<InstallationTargetViewModel> Installations { get; }
@@ -68,18 +68,20 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
                 Title = "Select Chivalry2Launcher.exe from your Chivalry 2 Installation Directory"
             };
 
-            if (dialog.ShowDialog() == true) {
-                var dirInfo = Directory.GetParent(dialog.FileName);
-                if (dirInfo != null && InstallationFinder.IsValidInstallation(dirInfo)) {
-                    AddInstallation(new InstallationTargetViewModel(
-                        dirInfo,
-                        InstallationType.Steam,
-                        true
-                    ));
-                }
-                else {
-                    MessageBox.Show("Selected folder is not a valid Chivalry 2 installation");
-                }
+            if (dialog.ShowDialog() != true) {
+                return;
+            }
+
+            var dirInfo = Directory.GetParent(dialog.FileName);
+            if (dirInfo != null && InstallationFinder.IsValidInstallation(dirInfo)) {
+                AddInstallation(new InstallationTargetViewModel(
+                    dirInfo,
+                    InstallationType.Steam,
+                    true
+                ));
+            }
+            else {
+                MessageBox.Show("Selected folder is not a valid Chivalry 2 installation");
             }
         }
 

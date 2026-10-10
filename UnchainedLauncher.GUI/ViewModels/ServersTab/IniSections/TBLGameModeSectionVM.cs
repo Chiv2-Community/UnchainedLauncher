@@ -3,9 +3,12 @@ using PropertyChanged;
 using StructuredINI.Codecs;
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
+using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.INIModels.Game;
 using UnchainedLauncher.GUI.ViewModels.ServersTab.Sections;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
     [AddINotifyPropertyChangedInterface]
@@ -24,8 +27,9 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
         public int IdleKickTimerSpectate { get; set; }
         public int IdleKickTimerDisconnect { get; set; }
 
-        public ObservableCollection<string> MapList { get; } = new();
-        public string? MapToAdd { get; set; }
+        public ObservableCollection<MapRotationEntry> MapList { get; } = new();
+        private ObservableCollection<MapDto>? _availableMaps;
+        public MapDto? MapToAdd { get; set; }
         public int MapListIndex { get; set; }
 
         public bool HorseCompatibleServer { get; set; }
@@ -64,16 +68,19 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
 
         [RelayCommand]
         private void AddMap() {
-            if (string.IsNullOrWhiteSpace(MapToAdd)) return;
-            var map = MapToAdd.Trim();
-            MapList.Add(map);
+            if (MapToAdd == null) return;
+            var map = MapToAdd;
+            var entry = new MapRotationEntry(map.TravelToMapString());
+            entry.RefreshMetadata(_availableMaps ?? new ObservableCollection<MapDto> { map });
+            MapList.Add(entry);
             EnsureMapListIndexValid();
             MapToAdd = null;
         }
 
         [RelayCommand]
-        private void RemoveMap(string? map) {
-            if (string.IsNullOrWhiteSpace(map)) return;
+        private void RemoveMap(MapRotationEntry? map) {
+            if (map == null) return;
+
             var idx = MapList.IndexOf(map);
             if (idx < 0) return;
 
@@ -92,7 +99,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             EnsureMapListIndexValid();
         }
 
-        public void LoadFrom(TBLGameMode model) {
+        public void LoadFrom(TBLGameMode model, ObservableCollection<MapDto> availableMaps) {
             ServerName = model.ServerName;
             ServerIdentifier = model.ServerIdentifier;
             BotBackfillEnabled = model.BotBackfillEnabled;
@@ -105,9 +112,16 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             IdleKickTimerSpectate = model.IdleKickTimerSpectate;
             IdleKickTimerDisconnect = model.IdleKickTimerDisconnect;
 
+            if (_availableMaps != null)
+                CollectionChangedEventManager.RemoveHandler(_availableMaps, RefreshMapMetadata);
+            _availableMaps = availableMaps;
+            CollectionChangedEventManager.AddHandler(_availableMaps, RefreshMapMetadata);
+
             MapList.Clear();
-            foreach (var map in model.MapList) {
-                MapList.Add(map);
+            foreach (var mapPath in model.MapList) {
+                var entry = new MapRotationEntry(mapPath);
+                entry.RefreshMetadata(availableMaps);
+                MapList.Add(entry);
             }
 
             MapListIndex = model.MapListIndex;
@@ -141,6 +155,11 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             UseStrictTeamBalanceEnforcement = model.bUseStrictTeamBalanceEnforcement;
         }
 
+        private void RefreshMapMetadata(object? sender, NotifyCollectionChangedEventArgs args) {
+            foreach (var entry in MapList)
+                entry.RefreshMetadata(_availableMaps!);
+        }
+
         public TBLGameMode ToModel() => new(
             ServerName,
             ServerIdentifier,
@@ -153,7 +172,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
             MaxTimeBeforeStartingMatch,
             IdleKickTimerSpectate,
             IdleKickTimerDisconnect,
-            MapList.ToArray(),
+            MapList.Select(map => map.TravelString).ToArray(),
             MapListIndex,
             HorseCompatibleServer,
             ClassLimits.Select(l => l.ToModel()).ToArray(),

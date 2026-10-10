@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services;
@@ -23,6 +24,7 @@ using UnchainedLauncher.GUI.ViewModels.Registry;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.GUI.Views;
 using UnchainedLauncher.GUI.Views.Installer;
+using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using Application = System.Windows.Application;
 
 namespace UnchainedLauncher.GUI {
@@ -34,7 +36,7 @@ namespace UnchainedLauncher.GUI {
     public partial class App : Application {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
 
-        protected override void OnStartup(StartupEventArgs e) {
+        protected override async void OnStartup(StartupEventArgs e) {
             try {
                 base.OnStartup(e);
 
@@ -89,7 +91,7 @@ namespace UnchainedLauncher.GUI {
                 var window =
                     needsInstallation && !forceSkipInstallation
                         ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
-                        : InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator,
+                        : await InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator,
                             pluginReleaseLocator);
 
                 window?.Show();
@@ -99,8 +101,10 @@ namespace UnchainedLauncher.GUI {
                 if (ex.StackTrace != null)
                     Debug.WriteLine(ex.StackTrace!);
 
-                MessageBox.Show($"Failed to start application. Please report this to a developer: {ex.Message}", "Error", MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                _log.Fatal("Unhandled exception", ex);
+                File.WriteAllText("crash.log", ex.ToString());
+                var currentDirectory = Directory.GetCurrentDirectory();
+                MessageBox.Show($"An unhandled exception occurred. Please report this to a developer with {currentDirectory}\\crash.log ", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -109,7 +113,7 @@ namespace UnchainedLauncher.GUI {
         private Window? InitializeInstallerWindow(Chivalry2InstallationFinder installationFinder,
             IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
             var installationSelectionVM = new InstallationSelectionPageViewModel(installationFinder);
-            var versionSelectionVM = new VersionSelectionPageViewModel(launcherReleaseLocator);
+            var versionSelectionVM = new VersionSelectionPageViewModel(launcherReleaseLocator, new FileInfoVersionExtractor());
             var installationLogVM = new InstallerLogPageViewModel(
                 installer,
                 () =>
@@ -129,7 +133,7 @@ namespace UnchainedLauncher.GUI {
             return new InstallerWindow(installerWindowVM);
         }
 
-        private Window? InitializeMainWindow(IChivalry2InstallationFinder installationFinder,
+        private async Task<Window?> InitializeMainWindow(IChivalry2InstallationFinder installationFinder,
             IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator,
             IReleaseLocator pluginReleaseLocator) {
             var userDialogueSpawner = new MessageBoxSpawner();
@@ -139,8 +143,8 @@ namespace UnchainedLauncher.GUI {
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
-            var settingsViewModel = SettingsVM.LoadSettings(registryWindowViewModel, registryWindowService,
-                installationFinder, installer, launcherReleaseLocator, modManager.PakDir, userDialogueSpawner, Shutdown);
+
+            var settingsViewModel = InitializeSettingsViewModel(installationFinder, installer, launcherReleaseLocator, registryWindowViewModel, registryWindowService, modManager, userDialogueSpawner);
 
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(
@@ -209,8 +213,8 @@ namespace UnchainedLauncher.GUI {
                 chivProcessMonitor);
             var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
 
-            if (!modManager.Mods.Any())
-                modListViewModel.RefreshModListCommand.ExecuteAsync(null);
+            if (modManager.NeedsMetadataRefresh || !modManager.Mods.Any())
+                await modListViewModel.RefreshModListCommand.ExecuteAsync(null);
 
             // Rebuild the arguments used to launch the application
             var envArgs = Environment.GetCommandLineArgs().Skip(1).ToList();
@@ -226,26 +230,74 @@ namespace UnchainedLauncher.GUI {
                 return null;
             }
 
+            var modScanTab = new ModScanTabVM();
+            var helpVM = new HelpVM(settingsViewModel, installer, launcherReleaseLocator, modManager.PakDir, userDialogueSpawner, Shutdown);
+            var availableModsAndMaps = new AvailableModsAndMapsService(modManager, modScanTab);
+
             var serverConfigurationVMs =
-                InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager);
+                InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager, modScanTab, availableModsAndMaps);
 
             var serversTabViewModel = InitializeServersTab(
                 FilePaths.ServersTabConfigurationPath,
                 settingsViewModel,
                 modManager,
+                modScanTab,
                 userDialogueSpawner,
                 unchainedLauncher,
                 serverConfigurationVMs,
-                chivProcessMonitor);
+                chivProcessMonitor,
+                availableModsAndMaps
+            );
 
             var mainWindowViewModel = new MainWindowVM(
                 homeViewModel,
                 modListViewModel,
                 settingsViewModel,
-                serversTabViewModel
+                serversTabViewModel,
+                modScanTab,
+                helpVM
             );
 
             return new MainWindow(mainWindowViewModel);
+        }
+
+        private SettingsVM InitializeSettingsViewModel(IChivalry2InstallationFinder installationFinder,
+            IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator,
+            RegistryWindowVM registryWindowViewModel, RegistryWindowService registryWindowService, ModManager modManager,
+            MessageBoxSpawner userDialogueSpawner) {
+            var cliArgs = string.Join(" ",
+                Environment.GetCommandLineArgs()
+                    .Skip(1)
+                    .ToList()
+                    .Select(ArgumentEscaper.Escape)
+            );
+
+            var settingsCodec = new SettingsCodec(
+                registryWindowViewModel,
+                registryWindowService,
+                installationFinder,
+                cliArgs
+            );
+
+            var settingsViewModel = InitializeFromFileWithCodec(
+                settingsCodec,
+                FilePaths.LauncherSettingsFilePath,
+                () => new SettingsVM(
+                    registryWindowViewModel,
+                    registryWindowService,
+                    SettingsVM.DetectInstallationType(installationFinder),
+                    true,
+                    false,
+                    "",
+                    "https://servers.polehammer.net",
+                    false,
+                    SettingsVM.Version.IsPrerelease,
+                    cliArgs
+                )
+            );
+
+            RegisterSaveToFileOnExit(settingsViewModel, settingsCodec, FilePaths.LauncherSettingsFilePath);
+            return settingsViewModel;
         }
 
         private AggregateModRegistry InitializeModRegistry(string jsonPath) {
@@ -278,11 +330,11 @@ namespace UnchainedLauncher.GUI {
         }
 
         private ObservableCollection<ServerConfigurationVM> InitializeServerConfigurations(string jsonPath,
-            IModManager modManager) {
+            IModManager modManager, ModScanTabVM modScanTab, AvailableModsAndMapsService availableModsAndMapsVM) {
             Func<ObservableCollection<ServerConfigurationVM>> initializeDefault =
                 () => new ObservableCollection<ServerConfigurationVM>();
 
-            var codec = new ServerConfigurationCodec(modManager);
+            var codec = new ServerConfigurationCodec(modManager, modScanTab, availableModsAndMapsVM);
             var serverConfigurations = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
 
             RegisterSaveToFileOnExit(serverConfigurations, codec, jsonPath);
@@ -291,17 +343,28 @@ namespace UnchainedLauncher.GUI {
             return serverConfigurations;
         }
 
-        private ServersTabVM InitializeServersTab(string jsonPath, SettingsVM settings, IModManager modManager, IUserDialogueSpawner dialogueSpawner, IChivalry2Launcher launcher, ObservableCollection<ServerConfigurationVM> serverConfigurations, IChivalryProcessWatcher processWatcher) {
+        private ServersTabVM InitializeServersTab(
+            string jsonPath,
+            SettingsVM settings,
+            IModManager modManager,
+            ModScanTabVM modScanTab,
+            IUserDialogueSpawner dialogueSpawner,
+            IChivalry2Launcher launcher,
+            ObservableCollection<ServerConfigurationVM> serverConfigurations,
+            IChivalryProcessWatcher processWatcher,
+            AvailableModsAndMapsService availableModsAndMaps) {
             Func<ServersTabVM> initializeDefault = () => new ServersTabVM(
                 settings,
                 modManager,
+                modScanTab,
                 dialogueSpawner,
                 launcher,
                 serverConfigurations,
-                processWatcher
+                processWatcher,
+                availableModsAndMaps
             );
 
-            var codec = new ServerTabCodec(settings, modManager, dialogueSpawner, launcher, serverConfigurations, processWatcher);
+            var codec = new ServerTabCodec(settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigurations, processWatcher, availableModsAndMaps);
             var serversTab = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
             RegisterSaveToFileOnExit(serversTab, codec, jsonPath);
             return serversTab;

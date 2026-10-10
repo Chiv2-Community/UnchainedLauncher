@@ -1,7 +1,9 @@
 ﻿using DiscriminatedUnions;
 using LanguageExt;
 using log4net;
+using Semver;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace UnchainedLauncher.Core.Utilities {
 
@@ -38,17 +40,32 @@ namespace UnchainedLauncher.Core.Utilities {
         );
     }
 
-    public class DerivedJsonCodec<TJson, T> : DerivedCodec<TJson, T> {
-        public DerivedJsonCodec(Func<T, TJson> contramap, Func<TJson, T> map) : base(TypedJsonCodec.Derive<TJson>(), contramap, map) { }
+    public class DerivedJsonCodec<TJson, T>(Func<T, TJson> contramap, Func<TJson, T> map)
+        : DerivedCodec<TJson, T>(TypedJsonCodec.Derive<TJson>(), contramap, map);
+
+    public class SemVersionJsonConverter : JsonConverter<SemVersion> {
+        public override SemVersion? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
+            var versionString = reader.GetString();
+            return versionString != null ? SemVersion.Parse(versionString, SemVersionStyles.Any) : null;
+        }
+
+        public override void Write(Utf8JsonWriter writer, SemVersion value, JsonSerializerOptions options) {
+            writer.WriteStringValue(value.ToString());
+        }
     }
 
     public static class JsonHelpers {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(JsonHelpers));
 
         private static readonly JsonSerializerOptions SerializerOptions = new JsonSerializerOptions {
-            Converters = { new UnionConverterFactory() },
+            Converters = {
+                new UnionConverterFactory(),
+                new SemVersionJsonConverter()
+            },
+
             WriteIndented = true,
             IncludeFields = true,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
 
         /// <summary>

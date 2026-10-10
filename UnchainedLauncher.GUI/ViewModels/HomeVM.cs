@@ -82,14 +82,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                 // Build items off-UI-thread, then marshal collection updates to UI thread
                 var items = latestFive.Select(r => {
-                    var markdown = "## Mod Description\n\n" + r.Manifest.Description;
+                    var markdown = "## Mod Description\n\n" + r.Info.Description;
 
                     markdown += r.ReleaseNotesMarkdown != null
                         ? $"\n\n---\n\n## {r.Tag} Release Notes\n\n{r.ReleaseNotesMarkdown}"
                         : "\n\n---\n\nNo release notes provided.";
 
                     return new WhatsNewItem {
-                        Title = $"{r.Manifest.Name} {r.Tag}",
+                        Title = $"{r.Info.Name} {r.Tag}",
                         Date = r.ReleaseDate,
                         Markdown = markdown,
                         AppendHtml = $"<br /><hr /><a style='float:right;' href='{r.ReleaseUrl}'>View on GitHub</a>",
@@ -114,17 +114,17 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             // For a vanilla launch we need to pass the args through to the vanilla launcher.
             // Skip the first arg which is the path to the exe.
-            var launchResult =
-                await VanillaLauncher.Launch(
-                    new LaunchOptions(
-                        new List<ReleaseCoordinates>(),
-                        "",
-                        Settings.CLIArgs,
-                        false,
-                        None,
-                        None
-                    )
-                );
+            var options = new LaunchOptions(
+                new List<ReleaseCoordinates>(),
+                "",
+                Settings.CLIArgs,
+                false,
+                false,
+                None,
+                None
+            );
+
+            var launchResult = await VanillaLauncher.Launch(options);
 
 
             return launchResult.Match(
@@ -141,7 +141,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     }
 
                     MainWindowVisibility = Visibility.Hidden;
-                    _ = CreateChivalryProcessWatcher(process);
+                    _ = CreateChivalryProcessWatcher(process, options, allowRetry: false);
                     return Some(process);
                 }
             );
@@ -149,16 +149,21 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         [RelayCommand]
         public async Task<Option<Process>> LaunchUnchained() {
-            Logger.Info("Launching Unchained");
-
             var options = new LaunchOptions(
                 ModManager.GetEnabledAndDependencies(),
                 Settings.ServerBrowserBackend,
                 Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,
+                Settings.AllowUnstablePluginReleases,
                 None,
                 None
             );
+
+            return await LaunchUnchained(options);
+        }
+
+        private async Task<Option<Process>> LaunchUnchained(LaunchOptions options, bool hasRetried = false) {
+            Logger.Info("Launching Unchained");
 
             Settings.HasLaunched = true;
 
@@ -181,15 +186,26 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     }
 
                     MainWindowVisibility = Visibility.Hidden;
-                    _ = CreateChivalryProcessWatcher(process);
+                    _ = CreateChivalryProcessWatcher(process, options, allowRetry: !hasRetried);
                     return Some(process);
                 }
             );
         }
 
-        private async Task CreateChivalryProcessWatcher(Process process) {
-            var attached = await ProcessWatcher.OnExit(process, (exitCode, acceptable) => {
-                if (!acceptable) {
+        private async Task CreateChivalryProcessWatcher(Process process, LaunchOptions options, bool allowRetry) {
+            var attached = await ProcessWatcher.OnExit(process, async (exitCode, acceptable) => {
+                if (exitCode == -67 && allowRetry) {
+                    Logger.Warn("Chivalry 2 exited with -67. Attempting a single re-launch.");
+                    try {
+                        if ((await LaunchUnchained(options, hasRetried: true)).IsSome)
+                            return;
+                    }
+                    catch (Exception e) {
+                        Logger.Error("Failed to re-launch Chivalry 2 Unchained", e);
+                        UserDialogueSpawner.DisplayMessage("Failed to re-launch Chivalry 2 Unchained. Check the logs for details.");
+                    }
+                }
+                else if (!acceptable) {
                     UserDialogueSpawner.DisplayMessage(
                         $"Chivalry 2 exited unexpectedly with code {exitCode}. Check the logs for details.");
                 }

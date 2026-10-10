@@ -62,8 +62,7 @@
         <!-- <TreeView ItemsSource="{Binding ResultsVisual.Children}"> -->
         <TreeView ItemsSource="{Binding ModScannerVM.ResultsVisual.Children, RelativeSource={RelativeSource AncestorType=UserControl}}">
             <TreeView.Resources>
-                <Style TargetType="TreeViewItem">
-                    <Setter Property="Foreground" Value="Black"/>
+                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
                     <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                 </Style>
 
@@ -184,13 +183,13 @@
                 </DataTemplate>
 
                 <HierarchicalDataTemplate DataType="{x:Type nodes:PakGroupNode}" ItemsSource="{Binding Children}">
-                    <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14" Foreground="Black"/>
+                    <TextBlock Text="{Binding Title}" FontWeight="Bold" FontSize="14"/>
                 </HierarchicalDataTemplate>
 
                 <HierarchicalDataTemplate DataType="{x:Type nodes:PakResultWrapperNode}" ItemsSource="{Binding Children}">
                     <StackPanel Orientation="Horizontal">
                         <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                        <TextBlock FontWeight="Bold" FontSize="14" Foreground="Black">
+                        <TextBlock FontWeight="Bold" FontSize="14">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock">
                                     <Setter Property="Text" Value="{Binding PakPathExpanded}" />

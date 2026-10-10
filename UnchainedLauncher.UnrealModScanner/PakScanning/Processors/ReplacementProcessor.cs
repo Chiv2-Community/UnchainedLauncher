@@ -4,13 +4,17 @@ using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
-    public class ReplacementProcessor(IEnumerable<string> standardDirs) : IAssetProcessor {
-        // FIXME: Use game name from config
-        private readonly HashSet<string> _dirs = standardDirs.Select(d => $"TBL/Content/{d}").ToHashSet();
+    public class ReplacementProcessor(IEnumerable<string> vanillaPakNames, IEnumerable<string> vanillaAssetDirs) : IAssetProcessor {
+        private HashSet<string> VanillaPakNames { get; } = new HashSet<string>(vanillaPakNames, StringComparer.InvariantCultureIgnoreCase);
+        private HashSet<string> VanillaAssetDirs { get; } = new HashSet<string>(vanillaAssetDirs, StringComparer.InvariantCultureIgnoreCase);
 
         public void Process(ScanContext ctx, PakScanResult result) {
-            var replacement = (!_dirs.Any(dir => ctx.FilePath.StartsWith(dir)));
-            if (!_dirs.Any(dir => ctx.FilePath.StartsWith(dir))) return;
+            bool isInVanillaPak = VanillaPakNames.Contains(ctx.PakEntry.PakFileReader.Name);
+            if (isInVanillaPak) return;
+
+            bool isInVanillaPath = vanillaAssetDirs.Any(dir => ctx.FilePath.StartsWith(dir, StringComparison.InvariantCultureIgnoreCase));
+            if (!isInVanillaPath) return;
+
 
             var entry = GenericAssetEntry.FromSource(
                 new ScanContextAssetSource(ctx),

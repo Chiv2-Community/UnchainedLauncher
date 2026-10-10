@@ -103,7 +103,7 @@ namespace UnchainedLauncher.Core.Services.Server.A2S {
                     throw new InvalidDataException("Invalid environment type");
                 }
                 var info = new A2SInfo(protocolVersion, name, map, folder, game, gameId, players, maxPlayers, bots, serverType, environment, isPublic, vac);
-                Logger.Info($"A2S query successful: {name} - {players}/{maxPlayers} players on {map}");
+                Logger.Debug($"A2S query successful: {name} - {players}/{maxPlayers} players on {map}");
                 return info;
             }
             catch (Exception ex) when (ex is not TimeoutException) {

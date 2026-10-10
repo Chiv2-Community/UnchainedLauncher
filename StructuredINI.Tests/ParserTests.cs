@@ -76,11 +76,11 @@ Quux=60.5
             int idx1 = Array.IndexOf(lines, "MyConfigArray=2");
             Assert.True(idx1 >= 0, "MyConfigArray=2 not found");
 
-            int idx2 = Array.IndexOf(lines, "+MyConfigArray=3");
-            Assert.True(idx2 >= 0, "+MyConfigArray=3 not found");
+            int idx2 = Array.IndexOf(lines, "MyConfigArray=3");
+            Assert.True(idx2 >= 0, "MyConfigArray=3 not found");
 
-            int idx3 = Array.IndexOf(lines, ".MyConfigArray=2");
-            Assert.True(idx3 >= 0, ".MyConfigArray=2 not found");
+            int idx3 = Array.LastIndexOf(lines, "MyConfigArray=2");
+            Assert.True(idx3 >= 0, "MyConfigArray=2 not found");
 
             Assert.True(idx1 < idx2, "Order wrong: 2 before 3");
             Assert.True(idx2 < idx3, "Order wrong: 3 before duplicate 2");

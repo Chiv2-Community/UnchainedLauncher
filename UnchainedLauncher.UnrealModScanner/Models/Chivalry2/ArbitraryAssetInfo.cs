@@ -12,7 +12,7 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
         /// Fallback for old Chivalry 2 mod actors (no Mod marker provided)
         /// </summary>
         [JsonProperty("mod_name")]
-        public string ModName { get; set; } = string.Empty;
+        public string? ModName { get; set; }
 
 
         public static ArbitraryAssetInfo FromSource(
@@ -20,7 +20,7 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
             string? modName) {
             var asset = new ArbitraryAssetInfo();
             asset.Initialize(source);
-            asset.ModName = modName;
+            asset.ModName = string.IsNullOrEmpty(modName) ? null : modName;
             return asset;
         }
     }

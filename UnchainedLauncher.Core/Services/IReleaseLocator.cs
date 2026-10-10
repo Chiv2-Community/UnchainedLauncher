@@ -8,10 +8,11 @@ namespace UnchainedLauncher.Core.Services {
     /// </summary>
     public interface IReleaseLocator {
         /// <summary>
-        /// Returns the latest stable release of the application associated with this IReleaseLocator instance.
+        /// Returns the latest release of the application associated with this IReleaseLocator instance.
         /// </summary>
+        /// <param name="includePrerelease">Whether to include prereleases in the search.</param>
         /// <returns></returns>
-        public Task<ReleaseTarget?> GetLatestRelease();
+        public Task<ReleaseTarget?> GetLatestRelease(bool includePrerelease = false);
 
         /// <summary>
         /// Returns all releases including pre-releases of the application associated with this IReleaseLocator instance.

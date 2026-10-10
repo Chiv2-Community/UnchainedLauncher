@@ -45,6 +45,12 @@
     <Content Include="TestData/**/*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="../UnchainedLauncher.GUI/Views/Servers/Server.xaml" Link="TestData/Server.xaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="../UnchainedLauncher.GUI/Views/Settings.xaml" Link="TestData/Settings.xaml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

@@ -6,10 +6,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab.IniSections {
     public class GameSessionSectionVM {
         public int MaxPlayers { get; set; }
 
-        public void LoadFrom(GameSession model) {
-            MaxPlayers = model.MaxPlayers;
+        public void LoadFrom(GameSession model, bool desyncPatchEnabled) {
+            var extraPlayers = desyncPatchEnabled ? 1 : 0;
+            MaxPlayers = model.MaxPlayers - extraPlayers;
         }
 
-        public GameSession ToModel() => new(MaxPlayers);
+        public GameSession ToModel(bool desyncPatchEnabled) {
+            var extraPlayers = desyncPatchEnabled ? 1 : 0;
+            return new GameSession(MaxPlayers + extraPlayers);
+        }
     }
 }

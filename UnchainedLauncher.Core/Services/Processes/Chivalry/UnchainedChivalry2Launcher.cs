@@ -32,6 +32,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
         public async Task<Either<LaunchFailed, Process>> Launch(LaunchOptions options) {
             var launchResult = await TryLaunch(options);
+
             return launchResult.MapLeft(failure => failure.AsLaunchFailed(options.LaunchArgs));
         }
 

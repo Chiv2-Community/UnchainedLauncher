@@ -1,52 +1,56 @@
 ﻿
 
 namespace UnchainedLauncher.UnrealModScanner.Config {
-    public class PropertyConfig {
-        public string Name { get; set; } = "ModName";
-        public EExtractionMode Mode { get; set; } = EExtractionMode.String;
-        /// <summary>
-        /// Limits recursion depth when using EExtractionMode.Json. 
-        /// 0 = Root only, 1 = One level deep, etc.
-        /// </summary>
-        public int MaxDepth { get; set; } = 3;
+    /// <summary>
+    /// Limits recursion depth when using EExtractionMode.Json. 
+    /// 0 = Root only, 1 = One level deep, etc.
+    /// </summary>
+    public record PropertyConfig(
+        string Name,
+        EExtractionMode Mode,
+        int MaxDepth = 3
+    );
+
+    public record CdoProcessorConfig(
+        string TargetClassName = "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase",
+        List<PropertyConfig>? Properties = null
+    ) {
+        public List<PropertyConfig> Properties { get; init; } = Properties ?? new List<PropertyConfig> {
+            new("ModName", EExtractionMode.String),
+            new("ModVersion", EExtractionMode.String),
+            new("ModDescription", EExtractionMode.String),
+            new("ModRepoURL", EExtractionMode.String),
+            new("Author", EExtractionMode.String),
+            new("bEnableByDefault", EExtractionMode.Raw),
+            new("bSilentLoad", EExtractionMode.Raw),
+            new("bShowInGUI ", EExtractionMode.Raw),
+            new("bClientside", EExtractionMode.Raw),
+            new("bOnlineOnly", EExtractionMode.Raw),
+            new("bHostOnly", EExtractionMode.Raw),
+            new("bAllowOnFrontend", EExtractionMode.Raw),
+        };
     }
 
-    public class CdoProcessorConfig {
-        public string TargetClassName { get; set; } = "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase";
-        public List<PropertyConfig> Properties { get; set; } = new List<PropertyConfig> {
-                            new() { Name = "ModName", Mode = EExtractionMode.String },
-                            new() { Name = "ModVersion", Mode = EExtractionMode.String },
-                            new() { Name = "ModDescription", Mode = EExtractionMode.String },
-                            new() { Name = "ModRepoURL", Mode = EExtractionMode.String },
-                            new() { Name = "Author", Mode = EExtractionMode.String },
-                            new() { Name = "bEnableByDefault", Mode = EExtractionMode.Raw },
-                            new() { Name = "bSilentLoad", Mode = EExtractionMode.Raw },
-                            new() { Name = "bShowInGUI ", Mode = EExtractionMode.Raw },
-                            new() { Name = "bClientside", Mode = EExtractionMode.Raw },
-                            new() { Name = "bOnlineOnly", Mode = EExtractionMode.Raw },
-                            new() { Name = "bHostOnly", Mode = EExtractionMode.Raw },
-                            new() { Name = "bAllowOnFrontend", Mode = EExtractionMode.Raw },
-                        };
-    }
-
-    public class MarkerDiscoveryConfig {
-        public string MarkerClassName { get; set; } = "DA_ModMarker_C";
+    public record MarkerDiscoveryConfig(
+        string MarkerClassName = "DA_ModMarker_C",
+        string MapPropertyName = "ModActors",
+        List<PropertyConfig>? ReferencedBlueprintProperties = null
+    ) {
         // Name of TMap Property which holds references to mod assets
-        public string MapPropertyName { get; set; } = "ModActors";
         // Which properties to grab from the CDO of the referenced blueprints
-        public List<PropertyConfig> ReferencedBlueprintProperties { get; set; } = new List<PropertyConfig> {
-                            new() { Name = "ModName", Mode = EExtractionMode.String },
-                            new() { Name = "ModVersion", Mode = EExtractionMode.String },
-                            new() { Name = "ModDescription", Mode = EExtractionMode.String },
-                            new() { Name = "ModRepoURL", Mode = EExtractionMode.String },
-                            new() { Name = "Author", Mode = EExtractionMode.String },
-                            new() { Name = "bEnableByDefault", Mode = EExtractionMode.Raw },
-                            new() { Name = "bSilentLoad", Mode = EExtractionMode.Raw },
-                            new() { Name = "bShowInGUI ", Mode = EExtractionMode.Raw },
-                            new() { Name = "bClientside", Mode = EExtractionMode.Raw },
-                            new() { Name = "bOnlineOnly", Mode = EExtractionMode.Raw },
-                            new() { Name = "bHostOnly", Mode = EExtractionMode.Raw },
-                            new() { Name = "bAllowOnFrontend", Mode = EExtractionMode.Raw },
-                        };
+        public List<PropertyConfig> ReferencedBlueprintProperties { get; init; } = ReferencedBlueprintProperties ?? new List<PropertyConfig> {
+            new("ModName", EExtractionMode.String),
+            new("ModVersion", EExtractionMode.String),
+            new("ModDescription", EExtractionMode.String),
+            new("ModRepoURL", EExtractionMode.String),
+            new("Author", EExtractionMode.String),
+            new("bEnableByDefault", EExtractionMode.Raw),
+            new("bSilentLoad", EExtractionMode.Raw),
+            new("bShowInGUI ", EExtractionMode.Raw),
+            new("bClientside", EExtractionMode.Raw),
+            new("bOnlineOnly", EExtractionMode.Raw),
+            new("bHostOnly", EExtractionMode.Raw),
+            new("bAllowOnFrontend", EExtractionMode.Raw),
+        };
     }
 }

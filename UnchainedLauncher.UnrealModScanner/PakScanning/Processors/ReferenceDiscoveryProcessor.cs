@@ -51,7 +51,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
         }
 
         public void Process(ScanContext ctx, PakScanResult result) {
-            var gameMode = "";
+            string? gameMode = null;
             var settingsDictionary = new Dictionary<string, Dictionary<string, object?>>();
 
             var (mainExport, index) = BaseAsset.GetMainExport(ctx.Package).Value;

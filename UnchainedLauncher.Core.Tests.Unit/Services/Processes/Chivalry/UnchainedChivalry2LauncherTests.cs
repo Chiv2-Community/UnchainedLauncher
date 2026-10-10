@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using LanguageExt;
 using LanguageExt.Common;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -46,7 +46,11 @@ public class UnchainedChivalry2LauncherTests {
             PlayerBotCount: null,
             WarmupTime: null,
             LocalIp: Option<string>.None,
-            NextMapModActors: Array.Empty<string>()
+            ServerMods: [],
+            DiscordIntegration: Option<DiscordIntegrationLaunchOptions>.None,
+            DesyncPatch: false,
+            UseBackendBanlist: true,
+            CensorMode: CensorArg.Standard
         );
 
         return new LaunchOptions(
@@ -54,6 +58,7 @@ public class UnchainedChivalry2LauncherTests {
             ServerBrowserBackend: Option<string>.None,
             LaunchArgs: rawLaunchArgs,
             CheckForDependencyUpdates: false,
+            AllowUnstablePluginReleases: false,
             SavedDirSuffix: Option<string>.None,
             ServerLaunchOptions: Prelude.Some(serverLaunchOptions)
         );
@@ -108,5 +113,48 @@ public class UnchainedChivalry2LauncherTests {
 
         capturingLauncher.Args.Should().NotBeNull();
         capturingLauncher.Args!.Should().Contain("--foo TBL?FFAScoreLimit=25 -someOtherArg");
+    }
+
+    [Fact]
+    public async Task ToCLIArgs_WhenDiscordIsConfigured_ShouldIncludeAllDiscordArgs() {
+        var discord = new DiscordIntegrationLaunchOptions(
+            BotToken: "token123",
+            AdminChannelId: Prelude.Some("admin_id"),
+            GeneralChannelId: Prelude.Some("general_id"),
+            DashboardChannelId: Prelude.Some("dashboard_id"),
+            EventLogChannelId: Prelude.Some("event_log_id"),
+            AdminRoleId: Prelude.Some("role_id"),
+            MentionAdmins: false
+        );
+
+        var args = discord.ToCLIArgs().Select(a => a.Rendered).ToList();
+
+        args.Should().Contain("--discord-bot-token token123");
+        args.Should().Contain("--discord-admin-channel-id admin_id");
+        args.Should().Contain("--discord-general-channel-id general_id");
+        args.Should().Contain("--discord-dashboard-channel-id dashboard_id");
+        args.Should().Contain("--discord-event-log-channel-id event_log_id");
+        args.Should().Contain("--discord-admin-role-id role_id");
+        args.Should().Contain("--discord-mention-admins false");
+        args.Should().NotContain("--discord-channel-id");
+    }
+
+    [Fact]
+    public async Task ToCLIArgs_WhenDiscordIsConfiguredWithDefaults_ShouldNotIncludeMentionAdminsTrue() {
+        var discord = new DiscordIntegrationLaunchOptions(
+            BotToken: "token123",
+            AdminChannelId: Prelude.None,
+            GeneralChannelId: Prelude.Some("general_id"),
+            DashboardChannelId: Prelude.None,
+            EventLogChannelId: Prelude.None,
+            AdminRoleId: Prelude.None,
+            MentionAdmins: true
+        );
+
+        var args = discord.ToCLIArgs().Select(a => a.Rendered).ToList();
+
+        args.Should().Contain("--discord-bot-token token123");
+        args.Should().Contain("--discord-general-channel-id general_id");
+        args.Should().NotContain("--discord-mention-admins");
     }
 }

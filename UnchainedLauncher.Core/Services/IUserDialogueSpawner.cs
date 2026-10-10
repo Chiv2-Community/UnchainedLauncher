@@ -37,7 +37,7 @@ namespace UnchainedLauncher.Core.Services {
 
     public record DependencyUpdate(string Name, string? CurrentVersion, string LatestVersion, string ReleaseUrl, string Reason) {
         public static DependencyUpdate FromUpdateCandidate(UpdateCandidate modUpdate) {
-            return new DependencyUpdate(modUpdate.CurrentlyEnabled.Manifest.Name, modUpdate.CurrentlyEnabled.Tag, modUpdate.AvailableUpdate.Tag, modUpdate.AvailableUpdate.ReleaseUrl, "");
+            return new DependencyUpdate(modUpdate.CurrentlyEnabled.Info.Name, modUpdate.CurrentlyEnabled.Tag, modUpdate.AvailableUpdate.Tag, modUpdate.AvailableUpdate.ReleaseUrl, "");
         }
     };
 }

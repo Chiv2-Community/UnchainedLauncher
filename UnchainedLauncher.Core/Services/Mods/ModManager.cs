@@ -38,6 +38,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public event ModEnabledHandler? ModEnabled;
         public event ModDisabledHandler? ModDisabled;
+        public event EventHandler? MetadataRefreshed;
 
         public IEnumerable<ReleaseCoordinates> EnabledModReleaseCoordinates => _enabledModReleases;
         private readonly List<ReleaseCoordinates> _enabledModReleases;
@@ -145,6 +146,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             _mods.Clear();
             _mods.AddRange(result.Mods);
             NeedsMetadataRefresh = result.HasErrors;
+            MetadataRefreshed?.Invoke(this, EventArgs.Empty);
 
             return result;
         }

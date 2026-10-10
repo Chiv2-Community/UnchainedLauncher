@@ -21,6 +21,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
     public delegate void ModDisabledHandler(Release disabledRelease);
 
     public interface IModManager {
+        /// <summary>Raised after a metadata refresh replaces the cached mod list.</summary>
+        event EventHandler MetadataRefreshed;
+
         /// <summary>
         /// Triggered any time the EnabledModReleases collection has an item added
         /// </summary>

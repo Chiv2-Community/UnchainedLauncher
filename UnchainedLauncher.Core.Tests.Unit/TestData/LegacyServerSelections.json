@@ -1,0 +1,12 @@
+[
+  {
+    "Name": "LegacyServerSelectionMigration",
+    "Description": "Legacy server",
+    "LocalIp": "127.0.0.1",
+    "NextMapName": "FFA_Courtyard",
+    "EnabledServerModList": [
+      { "Org": "Chiv2-Community", "ModuleName": "ExampleMod", "Version": "v1.0.0" },
+      { "Org": "Chiv2-Community", "ModuleName": "UnavailableMod", "Version": "v3.0.0" }
+    ]
+  }
+]

@@ -11,6 +11,8 @@ using System.Linq;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json.Serialization;
+using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.INIModels;
 using UnchainedLauncher.Core.Services.Mods;
@@ -105,6 +107,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         int? PlayerBotCount = null,
         int? WarmupTime = null,
         string AdditionalCLIArgs = "",
+        [property: JsonConverter(typeof(ServerBlueprintSelectionsConverter))]
         ObservableCollection<BlueprintDto>? EnabledServerModList = null,
         string? DiscordBotToken = null,
         string? DiscordAdminChannelId = null,
@@ -230,7 +233,21 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public ObservableCollection<MapDto> AvailableMaps => _availableModsAndMaps.AvailableMaps;
 
-        public ObservableCollection<BlueprintDto> EnabledServerModList { get; }
+        private readonly ObservableCollection<BlueprintDto> _enabledServerModList;
+        private readonly IModManager _modManager;
+        public ObservableCollection<BlueprintDto> EnabledServerModList {
+            get {
+                ResolveLegacyServerSelections();
+                return _enabledServerModList;
+            }
+        }
+
+        private void ResolveLegacyServerSelections() {
+            if (_enabledServerModList is ServerBlueprintSelections selections)
+                selections.ResolveLegacySelections(_modManager);
+        }
+
+        private void OnModMetadataRefreshed(object? sender, EventArgs args) => ResolveLegacyServerSelections();
         public ObservableCollection<BlueprintDto> AvailableServerModBlueprints => _availableModsAndMaps.AvailableServerModBlueprints;
 
         private ModScanTabVM _modScanTab;
@@ -278,7 +295,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             GamePort = gamePort;
             UseBackendBanlist = useBackendBanlist;
 
-            EnabledServerModList = enabledServerModList ?? new ObservableCollection<BlueprintDto>();
+            _modManager = modManager;
+            _enabledServerModList = enabledServerModList ?? new ObservableCollection<BlueprintDto>();
+            ResolveLegacyServerSelections();
+            WeakEventManager<IModManager, EventArgs>.AddHandler(modManager, nameof(IModManager.MetadataRefreshed), OnModMetadataRefreshed);
 
             // We set the Name after loading INI, because there may be some existing config that we want to load first
             // And setting the name overwrites it.
@@ -362,7 +382,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             AdvancedConfigurationSection.PlayerBotCount,
             AdvancedConfigurationSection.WarmupTime,
             AdvancedConfigurationSection.AdditionalCLIArgs,
-            new ObservableCollection<BlueprintDto>(EnabledServerModList.Filter(x => x.ModName != null)),
+            EnabledServerModList,
             AdvancedConfigurationSection.DiscordBotToken,
             AdvancedConfigurationSection.DiscordAdminChannelId,
             AdvancedConfigurationSection.DiscordGeneralChannelId,

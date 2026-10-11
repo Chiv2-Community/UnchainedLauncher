@@ -26,7 +26,7 @@ server:
   ping-port: 3075
   query-port: 7071
   rcon-port: 9001
-  headless: true
+  headless: true # Rendering requires headless: false AND desync-patch: false.
   register: false
   # local-ip: 192.168.1.10 # Optional override; local IPv4 is auto-detected.
   mod-actors: [] # Blueprint class paths, e.g. /Game/Mods/Example/BP_Example.BP_Example_C

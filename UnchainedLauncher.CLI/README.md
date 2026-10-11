@@ -26,7 +26,8 @@ dotnet run --project UnchainedLauncher.CLI -c Release -- server `
 
 The path is the installation root containing `TBL`, not the Win64 directory.
 The server is headless by default (`-nullrhi -unattended -nosound`); use
-`--headless false` to render it. The plugin is installed
+`--headless false --no-desync-patch` to render it (the desync patch only supports
+headless servers). The plugin is installed
 or updated from the latest stable UnchainedPlugin release by default. Use
 `--no-plugin-update` to keep your installed `UnchainedPlugin.dll`; it must already
 exist. `--allow-unstable-plugin` permits prerelease plugin updates.
@@ -119,6 +120,9 @@ all four ports, `headless`, `register`, `mod-actors`, `desync-patch`,
 `use-backend-banlist`, and `censor-mode` (`none`, `standard`, `sex`, `zealous`).
 Desync patch and backend banlist **default to true in server mode**; set their
 YAML values to false, or pass `--no-desync-patch` / `--no-backend-banlist`, to disable.
+Rendered servers require `headless: false` **and** `desync-patch: false` in YAML,
+or `--headless false --no-desync-patch` on the command line. Incompatible settings
+are rejected before launch preparation; neither default is silently changed.
 Local IPv4 is automatically detected from active non-loopback/non-tunnel interfaces,
 preferring one with a default gateway; it falls back to another usable IPv4 or loopback.
 Set `local-ip` only to override this choice (for example, with a VPN or multiple adapters).
@@ -238,7 +242,7 @@ Run `server --help` for the full option list. Additional settings include:
 | `--register` | Opt in to server-browser registration; off by default |
 | `--server-browser-backend` | `https://servers.polehammer.net` |
 | `--no-tui` | Periodic plain-text status instead of the dashboard |
-| `--headless true/false` | `true`; server rendering can be enabled |
+| `--headless true/false` | `true`; rendering requires `--no-desync-patch` |
 | `--no-desync-patch`, `--no-backend-banlist` | Disable the default-enabled server features |
 | `--censor-mode` | `none`; also `standard`, `sex`, `zealous` |
 | `--discord-bot-token` | Requires at least one Discord channel |

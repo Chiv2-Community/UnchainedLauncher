@@ -101,7 +101,7 @@ internal static class CommandLineOptions {
                 Add("--ping-port", "Ping port.", settings.PingPort, value => settings.PingPort = value);
                 Add("--query-port", "A2S query port.", settings.QueryPort, value => settings.QueryPort = value);
                 Add("--rcon-port", "RCON port.", settings.RconPort, value => settings.RconPort = value);
-                Add("--headless", "Run without rendering (true/false).", settings.Headless, value => settings.Headless = value);
+                Add("--headless", "Run without rendering (true/false). Rendering requires --no-desync-patch.", settings.Headless, value => settings.Headless = value);
                 Add("--censor-mode", "none, standard, sex, or zealous.", settings.CensorMode, value => settings.CensorMode = value);
                 Flag("--register", "List in the server browser.", value => settings.Register = value);
                 Flag("--no-tui", "Periodic plain-text status instead of dashboard.", value => serverConfig.NoTui = value);

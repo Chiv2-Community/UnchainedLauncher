@@ -24,6 +24,7 @@ public class ServerOptionsTests {
         Assert.Equal("TBL -server", options.ToLaunchOptions().LaunchArgs);
         Assert.Equal("UnchainedCLI", options.ToLaunchOptions().SavedDirSuffix.IfNone(""));
         Assert.Contains(server.ToCLIArgs(), arg => arg.Rendered == "-nullrhi");
+        Assert.Contains(server.ToCLIArgs(), arg => arg.Rendered == "--desync-patch");
     }
 
     [Theory]
@@ -130,18 +131,38 @@ public class ServerOptionsTests {
 
     [Fact]
     public void ExtendedServerArgumentsAreMappedToCore() {
-        var options = CliLaunchOptions.Parse(Args("--headless=false",
+        var options = CliLaunchOptions.Parse(Args("--headless=false", "--no-desync-patch",
             "--censor-mode=standard", "--discord-bot-token=token",
             "--discord-general-channel-id=123", "--discord-mention-admins=false"));
         var server = Assert.IsType<ServerOptions>(options).ToServerLaunchOptions();
         Assert.False(server.Headless);
-        Assert.True(server.DesyncPatch);
+        Assert.False(server.DesyncPatch);
         Assert.True(server.UseBackendBanlist);
         Assert.Equal(Core.Services.Processes.Chivalry.CensorArg.Standard, server.CensorMode);
         Assert.Null(server.FFATimeLimit);
         Assert.Null(server.PlayerBotCount);
         Assert.True(server.DiscordIntegration.IsSome);
         Assert.Contains("--discord-mention-admins false", server.ToCLIArgs().Select(arg => arg.Rendered));
+        Assert.DoesNotContain("-nullrhi", server.ToCLIArgs().Select(arg => arg.Rendered));
+        Assert.DoesNotContain("--desync-patch", server.ToCLIArgs().Select(arg => arg.Rendered));
+    }
+
+    [Theory]
+    [InlineData("--headless=false")]
+    [InlineData("--headless", "false")]
+    public void RenderingRequiresExplicitlyDisablingDesyncPatch(params string[] arguments) {
+        var error = Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(Args(arguments)));
+        Assert.Contains("headless", error.Message);
+        Assert.Contains("--no-desync-patch", error.Message);
+        Assert.Contains("server.desync-patch: false", error.Message);
+        var options = CliLaunchOptions.Parse(Args(arguments.Concat(["--no-desync-patch"]).ToArray()));
+        var server = Assert.IsType<ServerOptions>(options).ToServerLaunchOptions();
+        Assert.False(server.Headless);
+        Assert.False(server.DesyncPatch);
+        Assert.True(server.UseBackendBanlist);
+        Assert.DoesNotContain("-nullrhi", server.ToCLIArgs().Select(arg => arg.Rendered));
+        Assert.DoesNotContain("--desync-patch", server.ToCLIArgs().Select(arg => arg.Rendered));
+        Assert.True(options.ToLaunchOptions().ServerLaunchOptions.IsSome);
     }
 
     [Fact]
@@ -149,6 +170,16 @@ public class ServerOptionsTests {
         var options = CliLaunchOptions.Parse(Args("--no-desync-patch", "--no-backend-banlist"));
         Assert.False(Assert.IsType<ServerOptions>(options).ToServerLaunchOptions().DesyncPatch);
         Assert.False(Assert.IsType<ServerOptions>(options).ToServerLaunchOptions().UseBackendBanlist);
+    }
+
+    [Fact]
+    public void ClientLaunchDoesNotApplyServerDesyncCompatibilityPolicy() {
+        var options = Assert.IsType<ClientOptions>(CliLaunchOptions.Parse([
+            "client", "--chivalry2-path", ".", "--platform", "Steam"
+        ]));
+        var launch = options.ToLaunchOptions();
+        Assert.True(launch.ServerLaunchOptions.IsNone);
+        Assert.Equal("TBL", launch.LaunchArgs);
     }
 
     [Theory]

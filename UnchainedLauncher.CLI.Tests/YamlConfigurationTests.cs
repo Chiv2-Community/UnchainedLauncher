@@ -251,14 +251,42 @@ public class YamlConfigurationTests : IDisposable {
     [Fact]
     public void ServerSafetyFlagsDefaultOnAndCanBeDisabledInYaml() {
         var defaults = Assert.IsType<ServerOptions>(Load("server: {}")).ToServerLaunchOptions();
+        Assert.True(defaults.Headless);
         Assert.True(defaults.DesyncPatch);
         Assert.True(defaults.UseBackendBanlist);
         Assert.True(defaults.LocalIp.IsSome);
+        Assert.Contains("-nullrhi", defaults.ToCLIArgs().Select(arg => arg.Rendered));
+        Assert.Contains("--desync-patch", defaults.ToCLIArgs().Select(arg => arg.Rendered));
         var disabled = Assert.IsType<ServerOptions>(Load("server: {desync-patch: false, use-backend-banlist: false}")).ToServerLaunchOptions();
         Assert.False(disabled.DesyncPatch);
         Assert.False(disabled.UseBackendBanlist);
         Assert.DoesNotContain("--desync-patch", disabled.ToCLIArgs().Select(arg => arg.Rendered));
         Assert.DoesNotContain("--use-backend-banlist", disabled.ToCLIArgs().Select(arg => arg.Rendered));
+    }
+
+    [Theory]
+    [InlineData("server: {headless: false}")]
+    [InlineData("server: {headless: false, desync-patch: true}")]
+    public void RenderingRequiresExplicitlyDisablingDesyncPatchInYaml(string yaml) {
+        var error = Assert.Throws<ArgumentException>(() => Load(yaml));
+        Assert.Contains("headless", error.Message);
+        Assert.Contains("--no-desync-patch", error.Message);
+        Assert.Contains("server.desync-patch: false", error.Message);
+        var client = Assert.IsType<ClientOptions>(Load(yaml, client: true)).ToLaunchOptions();
+        Assert.True(client.ServerLaunchOptions.IsNone);
+        Assert.Equal("TBL", client.LaunchArgs);
+    }
+
+    [Fact]
+    public void RenderingWithExplicitlyDisabledDesyncPatchInYamlIsAllowed() {
+        var options = Assert.IsType<ServerOptions>(Load("server: {headless: false, desync-patch: false}"));
+        var server = options.ToServerLaunchOptions();
+        Assert.False(server.Headless);
+        Assert.False(server.DesyncPatch);
+        Assert.True(server.UseBackendBanlist);
+        Assert.DoesNotContain("-nullrhi", server.ToCLIArgs().Select(arg => arg.Rendered));
+        Assert.DoesNotContain("--desync-patch", server.ToCLIArgs().Select(arg => arg.Rendered));
+        Assert.True(options.ToLaunchOptions().ServerLaunchOptions.IsSome);
     }
 
     [Theory]
@@ -314,7 +342,7 @@ public class YamlConfigurationTests : IDisposable {
             server-browser-backend: https://example.test
             game-args: ['-log']
             server:
-              headless: false
+              headless: true
               name: YAML Server
               description: Example MOTD
               password: private password
@@ -340,7 +368,7 @@ public class YamlConfigurationTests : IDisposable {
                 mention-admins: false
             """);
         var server = Assert.IsType<ServerOptions>(options).ToServerLaunchOptions();
-        Assert.False(server.Headless);
+        Assert.True(server.Headless);
         Assert.Equal("YAML Server", server.Name);
         Assert.Equal("Example MOTD", server.Description);
         Assert.Equal("private password", server.Password.IfNone(""));
@@ -369,7 +397,7 @@ public class YamlConfigurationTests : IDisposable {
         Assert.Contains("--discord-dashboard-channel-id 345678901234567890", rendered);
         Assert.Contains("--discord-event-log-channel-id 456789012345678901", rendered);
         Assert.Contains("--discord-admin-role-id 567890123456789012", rendered);
-        Assert.DoesNotContain("-nullrhi", rendered);
+        Assert.Contains("-nullrhi", rendered);
         Assert.Contains("-log", options.ToLaunchOptions().LaunchArgs);
         Assert.Contains("\"-custom=value with spaces\"", options.ToLaunchOptions().LaunchArgs);
         Assert.DoesNotContain("-client-only", options.ToLaunchOptions().LaunchArgs);

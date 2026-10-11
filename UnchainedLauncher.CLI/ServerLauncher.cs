@@ -1,6 +1,6 @@
+using Octokit;
 using System.Diagnostics;
 using System.Net;
-using Octokit;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;

@@ -5,36 +5,40 @@ using UnchainedLauncher.Core.JsonModels;
 namespace UnchainedLauncher.CLI;
 
 internal static class CommandLineOptions {
-    public static CliLaunchOptions Parse(string[] args) {
+    public static CliLaunchOptions Parse(string[] args) => Parse(args, static (root, tokens, configuration) => root.Parse(tokens, configuration));
+
+    // The delegate is the single library-parse boundary, also exercised by tests.
+    internal static CliLaunchOptions Parse(string[] args, Func<RootCommand, string[], ParserConfiguration, ParseResult> parse) {
         var separator = Array.IndexOf(args, "--");
         var launcherArgs = separator < 0 ? args : args[..separator];
         var gameArgs = separator < 0 ? [] : args[(separator + 1)..];
-        // Probe only the configuration selector. All other options are deliberately
-        // ignored when YAML is authoritative, even if their values are invalid.
-        var selector = new RootCommand();
-        var config = new Option<string?>("--config-path") { Arity = ArgumentArity.ExactlyOne };
-        config.Validators.Add(result => {
-            if (result.Tokens.Count != 1 || string.IsNullOrWhiteSpace(result.Tokens[0].Value))
-                result.AddError("Specify exactly one non-empty --config-path.");
-        });
-        foreach (var name in new[] { "server", "client" }) {
-            var command = new Command(name) { TreatUnmatchedTokensAsErrors = false };
-            command.Options.Add(config);
-            selector.Subcommands.Add(command);
-        }
-        var probe = selector.Parse(launcherArgs);
-        if (probe.GetResult(config) is { } configResult) {
-            ThrowErrors(probe);
-            return YamlConfiguration.Load(probe.GetValue(config)!, probe.CommandResult.Command.Name == "client");
-        }
-
         var root = new RootCommand("Unchained client/server launcher. Windows is required for launching and DLL injection.");
+        var config = new Option<string?>("--config-path") {
+            Description = "YAML replaces other options; the subcommand selects its schema.",
+            Arity = ArgumentArity.ExactlyOne,
+            Recursive = true
+        };
+        root.Options.Add(config);
         var server = new Definition(client: false);
         var client = new Definition(client: true);
         root.Subcommands.Add(server.Command);
         root.Subcommands.Add(client.Command);
-        var parsed = root.Parse(launcherArgs);
+        // Never interpret @values as file reads, including ignored YAML overrides.
+        // Response-file expansion is deliberately disabled for all launcher input.
+        var parsed = parse(root, launcherArgs, new ParserConfiguration { ResponseFileTokenReplacer = null });
         var definition = parsed.CommandResult.Command == server.Command ? server : client;
+        if (parsed.GetResult(config) is { } configResult) {
+            if (parsed.CommandResult.Command == root) throw new ArgumentException("Expected the 'server' or 'client' subcommand.");
+            // Help actions skip library validators. Check the parsed selector itself
+            // so --help cannot bypass its singleton/non-empty contract either.
+            if (configResult.IdentifierTokenCount != 1 || configResult.Tokens.Count != 1 || string.IsNullOrWhiteSpace(configResult.Tokens[0].Value))
+                throw new ArgumentException("Specify exactly one non-empty --config-path.");
+            // All non-selector conversion, required-option and unknown-token errors
+            // are irrelevant when YAML is authoritative; do not bind those values.
+            var errors = parsed.Errors.Where(error => error.SymbolResult == configResult);
+            ThrowErrors(errors.Select(error => error.Message));
+            return YamlConfiguration.Load(parsed.GetValue(config)!, definition.Command == client.Command);
+        }
         if (args.Length == 0 || parsed.GetResult("--help") is not null) {
             using var output = new StringWriter();
             var help = new HelpAction();
@@ -48,7 +52,12 @@ internal static class CommandLineOptions {
     }
 
     private static void ThrowErrors(ParseResult result) {
-        if (result.Errors.Count != 0) throw new ArgumentException(string.Join(Environment.NewLine, result.Errors.Select(error => error.Message)));
+        ThrowErrors(result.Errors.Select(error => error.Message));
+    }
+
+    private static void ThrowErrors(IEnumerable<string> errors) {
+        var messages = errors.ToArray();
+        if (messages.Length != 0) throw new ArgumentException(string.Join(Environment.NewLine, messages));
     }
 
     private sealed class Definition {
@@ -60,7 +69,6 @@ internal static class CommandLineOptions {
         public Definition(bool client) {
             Command = new Command(client ? "client" : "server", client ? "Launch an Unchained client." : "Launch and monitor an Unchained server.");
             _configuration = client ? new ClientConfiguration() : new ServerConfiguration { Server = new ServerSettings() };
-            Add<string?>("--config-path", "YAML replaces other options; the subcommand selects its schema.", null, _ => { });
             Add<string?>("--chivalry2-path", "Game installation directory.", null, value => _configuration.Chiv2Path = value, required: true);
             var platform = new Option<InstallationType?>("--platform") {
                 Description = "Steam or EGS (EpicGamesStore); EGS auth must be forwarded after --.",

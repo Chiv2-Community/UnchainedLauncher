@@ -38,6 +38,89 @@ public class YamlConfigurationTests : IDisposable {
     }
 
     [Fact]
+    public void AuthoritativeYamlIgnoresResponseFileTokensAndAllOtherOptionErrors() {
+        var path = Write("server: {name: From YAML}\n");
+        var response = Path.Combine(_directory, "ignored.rsp");
+        File.WriteAllText(response, "--config-path=must-not-be-loaded --name=must-not-be-bound");
+        foreach (var command in new[] { "server", "client" }) {
+            foreach (var token in new[] { "@" + response, "@" + Path.Combine(_directory, "missing.rsp") }) {
+                string[] ignored = ["--name", token, "--name=duplicate", "--platform=Invalid", "--game-port=invalid", "--headless=invalid",
+                    "--no-plugin-update", "--no-plugin-update", "--unknown", "unexpected", "--mod=invalid", token];
+                foreach (var args in new string[][] {
+                    [command, "--config-path", path, .. ignored, "--", "@game-response"],
+                    [command, .. ignored, "--config-path=" + path],
+                    [command, .. ignored, "--config-path=" + path, "--help"]
+                }) {
+                    var options = CliLaunchOptions.Parse(args);
+                    Assert.False(options.Help);
+                    Assert.True(options.Shared.UpdatePlugin);
+                    Assert.Empty(options.GameArguments);
+                    if (command == "server") Assert.Equal("From YAML", Assert.IsType<ServerOptions>(options).Settings.Name);
+                    else Assert.IsType<ClientOptions>(options);
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void OrdinaryOptionValuesDoNotExpandExistingOrMissingResponseFiles() {
+        var response = Path.Combine(_directory, "ordinary.rsp");
+        File.WriteAllText(response, "--name expanded --platform Invalid");
+        foreach (var token in new[] { "@" + response, "@" + Path.Combine(_directory, "missing.rsp") }) {
+            var options = CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam", "--name", token]);
+            Assert.Equal(token, Assert.IsType<ServerOptions>(options).Settings.Name);
+            Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam", token]));
+        }
+    }
+
+    [Theory]
+    [InlineData("server", false)]
+    [InlineData("server", true)]
+    [InlineData("client", false)]
+    [InlineData("client", true)]
+    public void OneLibraryParseControlsBothOrdinaryAndYamlLaunches(string command, bool yaml) {
+        string[] args = yaml
+            ? [command, "--config-path", Write(""), "--platform=Invalid", "--unknown"]
+            : [command, "--chivalry2-path", ".", "--platform", "Steam"];
+        var calls = 0;
+        var options = CommandLineOptions.Parse([.. args, "--", "@game-file", "--config-path", "not-config"], (root, tokens, configuration) => {
+            calls++;
+            Assert.Null(configuration.ResponseFileTokenReplacer);
+            Assert.Equal(args, tokens);
+            Assert.Equal(new[] { "server", "client" }, root.Subcommands.Select(subcommand => subcommand.Name));
+            Assert.Single(root.Options.Where(option => option.Name == "--config-path"));
+            foreach (var subcommand in root.Subcommands) {
+                Assert.Single(subcommand.Options.Where(option => option.Name == "--platform"));
+                Assert.Single(subcommand.Options.Where(option => option.Name == "--chivalry2-path"));
+            }
+            return root.Parse(tokens, configuration);
+        });
+        Assert.Equal(1, calls);
+        Assert.Equal(command == "server", options is ServerOptions);
+        Assert.Equal(yaml ? [] : new[] { "@game-file", "--config-path", "not-config" }, options.GameArguments);
+    }
+
+    [Fact]
+    public void AuthoritativeYamlStillRejectsMissingEmptyAndDuplicateSelectors() {
+        var path = Write("");
+        foreach (var command in new[] { "server", "client" }) {
+            foreach (var selectors in new[] {
+                new[] { "--config-path" },
+                new[] { "--config-path=" },
+                new[] { "--config-path", " " },
+                new[] { "--config-path", path, "--config-path", path },
+                new[] { "--config-path=" + path, "--config-path=" + path },
+                new[] { "--config-path", path, "--config-path" }
+            }) {
+                Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse([command, "--platform=Invalid", .. selectors]));
+                Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse([command, "--platform=Invalid", .. selectors, "--help"]));
+            }
+        }
+        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["--config-path", path]));
+        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["--config-path", path, "--help"]));
+    }
+
+    [Fact]
     public void ConfigPathAfterGameSeparatorIsForwardedNotLoaded() {
         var options = CliLaunchOptions.Parse(["server", "--chivalry2-path", _directory, "--platform", "Steam", "--", "--config-path", "game-file"]);
         Assert.Equal(new[] { "--config-path", "game-file" }, options.GameArguments);

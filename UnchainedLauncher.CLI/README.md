@@ -68,6 +68,13 @@ token after the game-argument separator `--` is just a game argument, not a
 configuration selector. Relative installation and local/config registry paths
 in YAML are resolved relative to the YAML file, not the caller's working directory.
 
+Launcher response-file expansion (`@file`) is deliberately disabled: `@`-prefixed
+option values are literal strings, and bare `@file` launcher arguments are rejected
+like other unexpected positional arguments. This prevents file reads from ignored
+CLI values when YAML is authoritative and keeps one library parse per invocation.
+Put reusable launcher settings in YAML instead. Arguments after `--`, including
+`@file`, are forwarded unchanged to the game (or ignored when YAML is selected).
+
 `chiv2-path` and `platform` (`Steam` or `EGS`) are required. See the complete
 [server example](examples/server.yaml) and [client example](examples/client.yaml).
 

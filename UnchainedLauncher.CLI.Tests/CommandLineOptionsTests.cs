@@ -45,6 +45,20 @@ public class CommandLineOptionsTests {
     }
 
     [Fact]
+    public void HelpAndInvalidCliAlsoUseOneLibraryParse() {
+        foreach (var args in new string[][] { [], ["client", "--help"], ["server", "--platform=Invalid"] }) {
+            var calls = 0;
+            CliLaunchOptions Parse() => CommandLineOptions.Parse(args, (root, tokens, configuration) => {
+                calls++;
+                return root.Parse(tokens, configuration);
+            });
+            if (args.Contains("--platform=Invalid")) Assert.Throws<ArgumentException>(Parse);
+            else Assert.True(Parse().Help);
+            Assert.Equal(1, calls);
+        }
+    }
+
+    [Fact]
     public void GameArgumentsMustFollowSeparatorAndArePreservedExactly() {
         string[] prefix = ["server", "--chivalry2-path", ".", "--platform", "Steam"];
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse([.. prefix, "unexpected"]));

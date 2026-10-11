@@ -72,6 +72,17 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
+            var inventory = ManagedPakInventory.Reconcile(_modManager);
+            try {
+                return await PrepareMods(options);
+            }
+            finally {
+                // Persist physical ownership even when preparation fails partway through.
+                inventory?.Save();
+            }
+        }
+
+        private async Task<Option<LaunchOptions>> PrepareMods(LaunchOptions options) {
             // Get all releases that will be installed (enabled mods + dependencies)
             var releasesToInstall = _modManager.GetEnabledAndDependencyReleases().ToList();
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());

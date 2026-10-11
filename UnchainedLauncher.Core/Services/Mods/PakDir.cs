@@ -27,6 +27,20 @@ namespace UnchainedLauncher.Core.Services.Mods {
             SynchronizeWithDir();
         }
 
+        internal void ReconcileManagedPaks(IEnumerable<ManagedPak> managedPaks) {
+            var owned = managedPaks.ToList();
+            // Inventory authorizes deletion only inside this directory, never base/user paks.
+            if (owned.Any(p => string.IsNullOrWhiteSpace(p.PakFileName)
+                || Path.GetFileName(p.PakFileName) != p.PakFileName
+                || p.PakFileName.Contains('\\') || p.PakFileName.Contains('/')
+                || !p.PakFileName.EndsWith(".pak", StringComparison.OrdinalIgnoreCase)
+                || p.PakFileName.Equals(BasePakFileName, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidDataException("Invalid managed pak filename in inventory.");
+            _managedPaks.Clear();
+            _managedPaks.AddRange(owned.DistinctBy(p => p.PakFileName, StringComparer.OrdinalIgnoreCase));
+            SynchronizeWithDir();
+        }
+
         private IEnumerable<string> GetSigFiles() {
             return Directory.EnumerateFiles(DirPath, "*.sig");
         }
@@ -130,7 +144,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
             // Build map of existing managed paks by coordinates (for mods in install set)
             var existingByCoords = _managedPaks
                 .Filter(p => installsList.Exists(s => s.Coordinates == p.Coordinates))
-                .ToDictionary(p => p.Coordinates, p => p);
+                .GroupBy(p => p.Coordinates)
+                .ToDictionary(g => g.Key, g => g.First());
 
             // Categorize each install: Skip (already correct), Move (relocate), or Download (new)
             var installActions = installsList
@@ -149,7 +164,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
             // Categorize managed paks not in install set as Remove actions
             installActions.AddRange(
                 _managedPaks
-                    .Filter(p => !installCoordinatesSet.Any(c => c.Matches(p.Coordinates)))
+                    .Filter(p => !installCoordinatesSet.Any(c => c.Matches(p.Coordinates))
+                        || (existingByCoords.TryGetValue(p.Coordinates, out var kept) && kept != p))
                     .Select(p => new InstallAction.Remove(p))
                     .ToList()
             );
@@ -191,7 +207,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
             // Process removes
             for (var i = 0; i < removeActions.Count; i++) {
-                ProcessRemove(removeActions[i]);
+                var removed = ProcessRemove(removeActions[i]);
+                if (removed.IsLeft) {
+                    // Do not reorder and lose ownership of an undeleted duplicate.
+                    yield return removed.Map(_ => removeActions[i].Existing);
+                    yield break;
+                }
                 removeProgress.IfSome(p => p.Report(100d * (i + 1) / removeActions.Count));
             }
 
@@ -261,11 +282,13 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 });
         }
 
-        private void ProcessRemove(InstallAction.Remove remove) {
+        private Either<Error, Unit> ProcessRemove(InstallAction.Remove remove) {
             Logger.Info($"Removing pak: {remove.Existing.PakFileName} ({remove.Existing.Coordinates.ModuleName} version {remove.Existing.Coordinates.Version})");
-            var uninstallResult = Uninstall(remove.Existing.Coordinates);
-            uninstallResult.IfRight(_ => _managedPaks.RemoveAll(p => p.Coordinates.Matches(remove.Existing.Coordinates)));
+            var path = PakNameToPakPath(remove.Existing.PakFileName);
+            var uninstallResult = _unsignFile(path).Bind(_ => _deleteFile(path));
+            uninstallResult.IfRight(_ => _managedPaks.RemoveAll(p => p.PakFileName == remove.Existing.PakFileName));
             uninstallResult.IfLeft(e => Logger.Error($"Failed to remove pak {remove.Existing.PakFileName}: {e}"));
+            return uninstallResult;
         }
 
         /// <summary>

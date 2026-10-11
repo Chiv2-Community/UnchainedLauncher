@@ -30,15 +30,10 @@ public static class ServerLauncher {
         return await InInstallationDirectoryAsync(request, async () => {
             var cachePath = Path.Combine(options.Chivalry2Path, FilePaths.ModCachePath, "cli_mod_manager.json");
             var codec = new ModManagerCodec(registry);
-            ModManager? cached = null;
-            var existingCache = File.Exists(cachePath) ? cachePath : FilePaths.ModManagerConfigPath;
-            if (File.Exists(existingCache)) {
-                var decoded = codec.Deserialize(File.ReadAllText(existingCache));
-                if (!decoded.Success) throw new InvalidDataException($"Cannot read mod cache: {existingCache}", decoded.Exception);
-                cached = decoded.Result;
-            }
+            // Core reconciles physical ownership across hosts immediately before installing.
+            // CLI selection comes only from this request, never from a cached GUI selection.
             var manager = new ModManager(registry,
-                new PakDir(pakPath, (cached?.PakDir as PakDir)?.ManagedPaks ?? []), options.Mods.Distinct());
+                new PakDir(pakPath, []), options.Mods.Distinct());
             Console.Error.WriteLine("Loading mod registries...");
             var fetched = await manager.UpdateModsList();
             cancellationToken.ThrowIfCancellationRequested();

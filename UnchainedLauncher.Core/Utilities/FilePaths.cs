@@ -16,6 +16,7 @@
         public const string ModManagerConfigPath = $"{ModCachePath}\\mod_manager_config.json";
         public const string DllManagerConfigPath = $"{ModCachePath}\\dll_manager_config.json";
         public const string PakDirMetadata = $"{ModCachePath}\\pak_dir_metadata.json";
+        public const string ManagedPakInventoryFileName = ".unchained_managed_paks.json";
 
         public static string Chiv2ConfigPath(string? savedDirSuffix) {
             var unexpandedPath = $@"%LOCALAPPDATA%\Chivalry 2\Saved_{savedDirSuffix}\Config\WindowsNoEditor";

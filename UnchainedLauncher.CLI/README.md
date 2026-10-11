@@ -206,9 +206,14 @@ paths from release metadata:
 --server-mod /Game/Mods/Example/BP_Example.BP_Example_C
 ```
 
-The CLI stores managed-pak metadata in `<installation>\.mod_cache\cli_mod_manager.json`.
-On first use it can seed inventory from the existing GUI mod-manager configuration,
-but it never overwrites the GUI configuration or reuses its enabled-mod selection.
+Core shares physical managed-pak ownership between GUI and CLI through
+`<installation>\TBL\Content\Paks\.unchained_managed_paks.json`, updated after mod
+preparation (including partial failures). On first use it migrates ownership from
+both existing host caches; later host snapshots cannot replace this inventory.
+The CLI still saves its own metadata in `.mod_cache\cli_mod_manager.json`, but
+never overwrites GUI configuration or reuses the GUI's enabled-mod selection.
+Each launch reconciles the installed managed set with that host's selected releases;
+genuinely unmanaged user paks are preserved.
 Core's installation pipeline changes the installed managed pak set and signatures.
 Do not prepare a launch concurrently with the GUI or another CLI using the same
 installation; multiple running servers sharing that installation must use the

@@ -1,7 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Help;
 using UnchainedLauncher.Core.JsonModels;
-using UnchainedLauncher.Core.Services.Processes.Chivalry;
 
 namespace UnchainedLauncher.CLI;
 
@@ -65,7 +64,8 @@ internal static class CommandLineOptions {
             Add<string?>("--chivalry2-path", "Game installation directory.", null, value => _configuration.Chiv2Path = value, required: true);
             var platform = new Option<InstallationType?>("--platform") {
                 Description = "Steam or EGS (EpicGamesStore); EGS auth must be forwarded after --.",
-                Arity = ArgumentArity.ExactlyOne, Required = true,
+                Arity = ArgumentArity.ExactlyOne,
+                Required = true,
                 CustomParser = result => {
                     if (result.Tokens.Count != 1) { result.AddError("Specify --platform once."); return null; }
                     try { return InstallationTypeYamlConverter.Parse(result.Tokens[0].Value); }
@@ -120,8 +120,10 @@ internal static class CommandLineOptions {
 
         private void Add<T>(string name, string description, T defaultValue, Action<T> bind, bool required = false) {
             var option = new Option<T>(name) {
-                Description = description, Arity = ArgumentArity.ExactlyOne,
-                DefaultValueFactory = _ => defaultValue, Required = required
+                Description = description,
+                Arity = ArgumentArity.ExactlyOne,
+                DefaultValueFactory = _ => defaultValue,
+                Required = required
             };
             option.Validators.Add(result => {
                 if (result.Tokens.Count > 1) result.AddError($"Duplicate option: {name}");

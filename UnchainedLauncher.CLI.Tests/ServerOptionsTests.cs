@@ -1,5 +1,5 @@
-using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using Xunit;
 
 namespace UnchainedLauncher.CLI.Tests;

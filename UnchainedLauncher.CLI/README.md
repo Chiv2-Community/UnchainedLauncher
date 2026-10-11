@@ -1,8 +1,8 @@
-# Server CLI
+# Launcher CLI
 
-This project launches an Unchained Chivalry 2 **server**, without the WPF GUI.
+This project launches an Unchained Chivalry 2 **client or server**, without the WPF GUI.
 It uses Core for mod installation, plugin updates, signature preparation,
-process launching, DLL injection, and A2S queries. Client launching is not included.
+process launching, DLL injection, and A2S queries.
 
 ## Build and run
 
@@ -25,7 +25,8 @@ dotnet run --project UnchainedLauncher.CLI -c Release -- server `
 ```
 
 The path is the installation root containing `TBL`, not the Win64 directory.
-The server is headless (`-nullrhi -unattended -nosound`). The plugin is installed
+The server is headless by default (`-nullrhi -unattended -nosound`); use
+`--headless false` to render it. The plugin is installed
 or updated from the latest stable UnchainedPlugin release by default. Use
 `--no-plugin-update` to keep your installed `UnchainedPlugin.dll`; it must already
 exist. `--allow-unstable-plugin` permits prerelease plugin updates.
@@ -39,6 +40,107 @@ dotnet publish UnchainedLauncher.CLI -c Release -r win-x64 --self-contained true
 
 Help, parsing, and the unit tests also work on Linux. Actual game launching and
 DLL injection require Windows; Wine/Proton launching is not implemented.
+
+## YAML configuration
+
+CLI options and command-specific help are defined with System.CommandLine.
+Use `server --help` or `client --help` to list the options for that command.
+CLI input and typed YAML configurations share the same models and validation.
+Client and server launch requests compose `SharedLaunchOptions` for installation,
+platform, profile, registry/mod selection, plugin-update policy, and common game
+arguments. Server-only settings are carried only by `ServerOptions`; there is no
+client/server mode flag on a launch request. Platforms use Core's `InstallationType`;
+`EGS` remains an alias for `EpicGamesStore` in both CLI and YAML input.
+
+Use a configuration file instead of individual arguments:
+
+```powershell
+.\out-cli\UnchainedLauncher.CLI.exe server --config-path "C:\Configs\server.yaml"
+.\out-cli\UnchainedLauncher.CLI.exe client --config-path "C:\Configs\client.yaml"
+# From the repository root:
+dotnet run --project UnchainedLauncher.CLI -- server --config-path "C:\Configs\server.yaml"
+```
+
+`--config-path` (or `--config-path=...`) replaces **all other launcher and game
+arguments except the required `client`/`server` subcommand**. There are no CLI
+overrides or merging. Put all intended options in the file. A `--config-path`
+token after the game-argument separator `--` is just a game argument, not a
+configuration selector. Relative installation and local/config registry paths
+in YAML are resolved relative to the YAML file, not the caller's working directory.
+
+`chiv2-path` and `platform` (`Steam` or `EGS`) are required. See the complete
+[server example](examples/server.yaml) and [client example](examples/client.yaml).
+
+```yaml
+chiv2-path: 'C:\Games\Chivalry 2'
+platform: Steam
+saved-dir-suffix: MyServer
+mod-setup:
+  registries: [] # Official registry remains enabled, even with an empty list.
+  mods: []       # organization/mod-id:exact-release-tag
+  dlls: []       # Reserved; selection remains deferred to issue #149.
+server:
+  name: My Server
+  description: My server description
+  game-port: 7777
+  ping-port: 3075
+  query-port: 7071
+  rcon-port: 9001
+  map: FFA_Courtyard
+  mod-actors: [] # Explicit blueprint class paths to activate.
+  desync-patch: true
+  use-backend-banlist: true
+```
+
+Separate mode-specific schemas:
+- The **subcommand**, not the document's contents, always determines mode.
+- `server --config-path ...` reads the `server` mapping and completely ignores `client`.
+- `client --config-path ...` reads the `client` mapping and completely ignores `server`,
+  including actors, Discord, and server-only arguments; ignored blocks are not schema-validated.
+- A missing active block uses that command's defaults. `client` is a mapping, not a boolean mode switch.
+- Client launches omit `-server`, headless flags, and server-specific options,
+  do not create a server dashboard, and return after launching without stopping the game.
+
+Common root options are `server-browser-backend`, `update-plugin` (default true),
+`allow-unstable-plugin` (default false), `no-tui` (default false), and `game-args`
+(list of strings). `server.game-args` or `client.game-args` is appended to the
+common list only for the matching command. The client schema currently supports
+`game-args`; shared installation, platform, plugin, and mod options remain at the root.
+
+The server section supports name, description/MOTD, password, map, local IP,
+all four ports, `headless`, `register`, `mod-actors`, `desync-patch`,
+`use-backend-banlist`, and `censor-mode` (`none`, `standard`, `sex`, `zealous`).
+Desync patch and backend banlist **default to true in server mode**; set their
+YAML values to false, or pass `--no-desync-patch` / `--no-backend-banlist`, to disable.
+Local IPv4 is automatically detected from active non-loopback/non-tunnel interfaces,
+preferring one with a default gateway; it falls back to another usable IPv4 or loopback.
+Set `local-ip` only to override this choice (for example, with a VPN or multiple adapters).
+Time/score/ticket limits, player bot count, and warmup are **INI settings**, not
+part of either CLI schema; configure them in the selected saved profile.
+No INI files are rewritten; other existing saved-profile INI settings still apply.
+
+Discord configuration is nested under the server:
+
+```yaml
+server:
+  discord:
+    bot-token: 'your-bot-token'
+    general-channel-id: '123456789012345678'
+    # Optional: admin-channel-id, dashboard-channel-id, event-log-channel-id,
+    #           admin-role-id, mention-admins (default true).
+```
+
+Discord requires a token and at least one channel. Keep tokens/passwords private
+and restrict access to configuration files; do not commit real credentials.
+YAML syntax errors report a location without quoting the configuration contents.
+Unknown keys, duplicate keys, invalid types, ports, modes, or coordinates fail
+before preparing or launching the game. Lists accept any number of entries.
+
+The `client` command also accepts individual common arguments, for example:
+
+```text
+UnchainedLauncher.CLI.exe client --chivalry2-path "C:\Games\Chivalry 2" --platform Steam
+```
 
 ## Registries and mods
 
@@ -125,10 +227,17 @@ Run `server --help` for the full option list. Additional settings include:
 | `--ping-port` | `3075` |
 | `--query-port` | `7071` (A2S) |
 | `--rcon-port` | `9001` |
-| `--local-ip` | Optional local server address; also used for A2S monitoring |
+| `--local-ip` | Optional override of auto-detected local IPv4; also used for A2S monitoring |
 | `--register` | Opt in to server-browser registration; off by default |
 | `--server-browser-backend` | `https://servers.polehammer.net` |
 | `--no-tui` | Periodic plain-text status instead of the dashboard |
+| `--headless true/false` | `true`; server rendering can be enabled |
+| `--no-desync-patch`, `--no-backend-banlist` | Disable the default-enabled server features |
+| `--censor-mode` | `none`; also `standard`, `sex`, `zealous` |
+| `--discord-bot-token` | Requires at least one Discord channel |
+| `--discord-admin-channel-id`, `--discord-general-channel-id` | Optional channel IDs |
+| `--discord-dashboard-channel-id`, `--discord-event-log-channel-id` | Optional channel IDs |
+| `--discord-admin-role-id`, `--discord-mention-admins true/false` | Optional role; mention defaults true |
 
 Ports must be distinct and between 1 and 65535. Configure firewall/port forwarding
 for your deployment; this CLI does not change firewall rules. Existing INI files

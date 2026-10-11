@@ -1,6 +1,7 @@
 using Octokit;
 using System.Diagnostics;
 using System.Net;
+using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -13,8 +14,9 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.CLI;
 
 public static class ServerLauncher {
-    public static async Task<Process> LaunchAsync(ServerOptions options, CancellationToken cancellationToken) {
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Server launching requires Windows (Core's DLL injector uses kernel32.dll).");
+    public static async Task<Process> LaunchAsync(CliLaunchOptions request, CancellationToken cancellationToken) {
+        var options = request.Shared;
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Game launching requires Windows (Core's DLL injector uses kernel32.dll).");
         var executable = Path.Combine(options.Chivalry2Path, FilePaths.GameBinPath);
         var pakPath = Path.Combine(options.Chivalry2Path, FilePaths.PakDir);
         var pluginsPath = Path.Combine(options.Chivalry2Path, FilePaths.PluginDir);
@@ -23,9 +25,9 @@ public static class ServerLauncher {
         if (!options.UpdatePlugin && !File.Exists(Path.Combine(options.Chivalry2Path, FilePaths.UnchainedPluginPath)))
             throw new FileNotFoundException("--no-plugin-update requires an existing UnchainedPlugin.dll in the Plugins directory.");
 
-        var registry = CreateRegistry(options);
+        var registry = CreateRegistry(request);
 
-        return await InInstallationDirectoryAsync(options, async () => {
+        return await InInstallationDirectoryAsync(request, async () => {
             var cachePath = Path.Combine(options.Chivalry2Path, FilePaths.ModCachePath, "cli_mod_manager.json");
             var codec = new ModManagerCodec(registry);
             ModManager? cached = null;
@@ -46,7 +48,7 @@ public static class ServerLauncher {
             }
             ValidateReleases(manager, options.Mods);
 
-            if (options.Platform == GamePlatform.Steam) {
+            if (options.Platform == InstallationType.Steam) {
                 var appIdPath = Path.Combine(options.Chivalry2Path, FilePaths.SteamAppIdPath);
                 if (!File.Exists(appIdPath)) File.WriteAllText(appIdPath, "1824220");
             }
@@ -64,7 +66,7 @@ public static class ServerLauncher {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (updated.IsNone) return LanguageExt.Option<LaunchOptions>.None;
                 if (!File.Exists(Path.Combine(pluginsPath, "UnchainedPlugin.dll")))
-                    throw new FileNotFoundException("UnchainedPlugin.dll is required to host a server.");
+                    throw new FileNotFoundException("UnchainedPlugin.dll is required for an Unchained launch.");
                 try {
                     updated = await modInstaller.PrepareLaunch(updated.IfNone(launch));
                 }
@@ -79,24 +81,24 @@ public static class ServerLauncher {
             });
             var launcher = new UnchainedChivalry2Launcher(preparer, new ProcessLauncher(executable),
                 options.Chivalry2Path, new DllInjector(pluginsPath));
-            var result = await launcher.Launch(options.ToLaunchOptions());
+            var result = await launcher.Launch(request.ToLaunchOptions());
             return result.Match(
                 Right: process => process,
                 // Do not print LaunchFailed.Message: it contains raw password/auth arguments.
-                Left: failure => throw new InvalidOperationException("Server launch or DLL injection failed. Check the installation, plugin, and mod files.", failure));
+                Left: failure => throw new InvalidOperationException("Game launch or DLL injection failed. Check the installation, plugin, and mod files.", failure));
         });
     }
 
-    internal static AggregateModRegistry CreateRegistry(ServerOptions options) =>
+    internal static AggregateModRegistry CreateRegistry(CliLaunchOptions options) =>
         new(new IModRegistry[] {
             new GithubModRegistry("Chiv2-Community", "C2ModRegistry")
-        }.Concat(options.Registries.Select(r => r.Create())).ToArray());
+        }.Concat(options.Shared.Registries.Select(r => r.Create())).ToArray());
 
     // Several existing Core preparers use installation-relative paths.
     // This standalone CLI sets CWD only for preparation, then restores it.
-    internal static async Task<T> InInstallationDirectoryAsync<T>(ServerOptions options, Func<Task<T>> action) {
+    internal static async Task<T> InInstallationDirectoryAsync<T>(CliLaunchOptions options, Func<Task<T>> action) {
         var previousDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(options.Chivalry2Path);
+        Directory.SetCurrentDirectory(options.Shared.Chivalry2Path);
         try {
             return await action();
         }
@@ -126,9 +128,9 @@ public static class ServerLauncher {
     }
 
     public static IA2S CreateQuery(ServerOptions options) {
-        var address = options.LocalIp is null ? IPAddress.Loopback : IPAddress.Parse(options.LocalIp);
+        var address = options.Settings.LocalIp is null ? IPAddress.Loopback : IPAddress.Parse(options.Settings.LocalIp);
         if (address.Equals(IPAddress.Any)) address = IPAddress.Loopback;
         if (address.Equals(IPAddress.IPv6Any)) address = IPAddress.IPv6Loopback;
-        return new A2S(new IPEndPoint(address, options.QueryPort));
+        return new A2S(new IPEndPoint(address, options.Settings.QueryPort));
     }
 }

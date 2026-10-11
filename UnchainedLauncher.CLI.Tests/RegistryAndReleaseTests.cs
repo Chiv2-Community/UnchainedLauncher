@@ -126,7 +126,7 @@ public class RegistryAndReleaseTests : IDisposable {
             await registry.AddRelease(release, source);
             var manager = new ModManager(registry, new PakDir(paks, []), []);
             Assert.False((await manager.UpdateModsList()).HasErrors);
-            var options = ServerOptions.Parse(["server", "--chivalry2-path", _directory, "--platform", "Steam"]).ToLaunchOptions();
+            var options = CliLaunchOptions.Parse(["server", "--chivalry2-path", _directory, "--platform", "Steam"]).ToLaunchOptions();
             var dialogue = new ConsoleDialogue();
             Assert.True((await new Chivalry2ModsInstaller(manager, dialogue).PrepareLaunch(options)).IsSome);
             var registryPak = Path.Combine(registry.RegistryPath, release.Info.Organization, release.Info.RepoName,
@@ -145,8 +145,10 @@ public class RegistryAndReleaseTests : IDisposable {
         });
     }
 
-    [Fact]
-    public async Task ProductionWiringInstallsManyModsAndForwardsActorsFromAnotherDirectory() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ProductionWiringInstallsManyModsAndForwardsActorsFromAnotherDirectory(bool useYaml) {
         var callerDirectory = Directory.GetCurrentDirectory();
         var install = Path.Combine(_directory, "arbitrary game installation");
         var paks = Path.Combine(install, FilePaths.PakDir);
@@ -167,7 +169,19 @@ public class RegistryAndReleaseTests : IDisposable {
             if (i == 0) await registry.AddRelease(Common().Releases.Single() with { ReleaseHash = hash }, source);
             args.AddRange(["--add-registry", "local:" + registryPath, "--mod", $"org/mod{i}:v1.0.0", "--server-mod", actors[i]]);
         }
-        var options = ServerOptions.Parse(args.ToArray());
+        var options = CliLaunchOptions.Parse(args.ToArray());
+        if (useYaml) {
+            string Quote(string value) => "'" + value.Replace("'", "''") + "'";
+            var yaml = new List<string> { "chiv2-path: " + Quote(install), "platform: Steam", "mod-setup:", "  registries:" };
+            yaml.AddRange(options.Shared.Registries.Select(r => "    - " + Quote(r.Kind + ":" + r.Location)));
+            yaml.Add("  mods:");
+            yaml.AddRange(options.Shared.Mods.Select(m => "    - " + Quote($"{m.Org}/{m.ModuleName}:{m.Version}")));
+            yaml.AddRange(["server:", "  mod-actors:"]);
+            yaml.AddRange(actors.Select(actor => "    - " + Quote(actor)));
+            var config = Path.Combine(_directory, "launch.yaml");
+            File.WriteAllLines(config, yaml);
+            options = CliLaunchOptions.Parse(["server", "--config-path", config]);
+        }
         var aggregate = ServerLauncher.CreateRegistry(options);
         var official = Assert.Single(aggregate.ModRegistries.OfType<GithubModRegistry>());
         Assert.Equal(("Chiv2-Community", "C2ModRegistry"), (official.Organization, official.RepoName));
@@ -175,9 +189,9 @@ public class RegistryAndReleaseTests : IDisposable {
         // Keep metadata deterministic/offline; assert the official production entry above,
         // then use all real local registries created by the production factory for installs.
         var offline = new AggregateModRegistry(aggregate.ModRegistries.OfType<LocalModRegistry>().Cast<IModRegistry>().ToArray());
-        var manager = new ModManager(offline, new PakDir(paks, []), options.Mods);
+        var manager = new ModManager(offline, new PakDir(paks, []), options.Shared.Mods);
         Assert.False((await manager.UpdateModsList()).HasErrors);
-        ServerLauncher.ValidateReleases(manager, options.Mods);
+        ServerLauncher.ValidateReleases(manager, options.Shared.Mods);
         var process = new CapturingProcessLauncher();
         await ServerLauncher.InInstallationDirectoryAsync(options, async () => {
             Assert.Equal(install, Directory.GetCurrentDirectory());
@@ -191,7 +205,7 @@ public class RegistryAndReleaseTests : IDisposable {
                 return prepared;
             });
             // Capture at the OS process boundary; retain Core preparation/argument rendering.
-            var launcher = new UnchainedChivalry2Launcher(preparer, process, options.Chivalry2Path, new NullInjector());
+            var launcher = new UnchainedChivalry2Launcher(preparer, process, options.Shared.Chivalry2Path, new NullInjector());
             return await launcher.Launch(options.ToLaunchOptions());
         });
         Assert.Equal(callerDirectory, Directory.GetCurrentDirectory());
@@ -218,7 +232,7 @@ public class RegistryAndReleaseTests : IDisposable {
     [InlineData(true)]
     public async Task ProductionDirectoryScopeRestoresCallerAfterFailureOrCancellation(bool cancel) {
         var callerDirectory = Directory.GetCurrentDirectory();
-        var options = ServerOptions.Parse(["server", "--chivalry2-path", _directory, "--platform", "Steam"]);
+        var options = CliLaunchOptions.Parse(["server", "--chivalry2-path", _directory, "--platform", "Steam"]);
         await Assert.ThrowsAnyAsync<Exception>(() => ServerLauncher.InInstallationDirectoryAsync<int>(options, () => {
             Assert.Equal(_directory, Directory.GetCurrentDirectory());
             if (cancel) throw new OperationCanceledException();

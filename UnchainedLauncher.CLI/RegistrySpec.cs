@@ -4,7 +4,7 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 namespace UnchainedLauncher.CLI;
 
 public sealed record RegistrySpec(string Kind, string Location) {
-    public static RegistrySpec Parse(string value) {
+    public static RegistrySpec Parse(string value, string? baseDirectory = null) {
         var parts = value.Split(':', 2);
         if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[1]))
             throw new ArgumentException("Registry must be github:owner/repo, local:<directory>, or config:<json-file>.");
@@ -14,7 +14,8 @@ public sealed record RegistrySpec(string Kind, string Location) {
                 throw new ArgumentException("GitHub registry must be github:owner/repo.");
             return new RegistrySpec(kind, parts[1]);
         }
-        if (kind is "local" or "config") return new RegistrySpec(kind, Path.GetFullPath(parts[1]));
+        if (kind is "local" or "config") return new RegistrySpec(kind,
+            baseDirectory is null ? Path.GetFullPath(parts[1]) : Path.GetFullPath(parts[1], baseDirectory));
         throw new ArgumentException($"Unsupported registry kind: {kind}");
     }
 

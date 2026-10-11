@@ -104,7 +104,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public EitherAsync<RegistryMetadataException, Release> GetModRelease(ReleaseCoordinates coords);
 
         /// <summary>
-        /// Download pak
+        /// Acquires a single-use pak writer that owns the registry input stream.
+        /// The caller must execute WriteAsync or dispose the returned writer.
         /// </summary>
         /// <param name="coordinates"></param>
         /// <param name="outputLocation"></param>

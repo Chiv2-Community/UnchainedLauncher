@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="UnchainedLauncher.CLI.Tests" />
     <ProjectReference Include="..\UnchainedLauncher.Core\UnchainedLauncher.Core.csproj" />
   </ItemGroup>
 </Project>

@@ -20,14 +20,16 @@ namespace UnchainedLauncher.Core.Utilities {
 
     public class AccumulatedMemoryProgress : MemoryProgress {
         private readonly SynchronizationContext? _synchronizationContext;
+        private readonly object _progressLock = new();
 
         // average the progress of sub-percentages
-        private double CalcAggregatePercentage() =>
-            !Progresses.Any()
-                ? 100.00
-                : Progresses.ToList()
-                      .Sum(mp => mp.ProgressPercentage)
-                  / Progresses.Count;
+        private double CalcAggregatePercentage() {
+            lock (_progressLock) {
+                return Progresses.Count == 0
+                    ? 100.00
+                    : Progresses.Sum(mp => mp.ProgressPercentage) / Progresses.Count;
+            }
+        }
 
         public ObservableCollection<MemoryProgress> Progresses { get; private set; }
 
@@ -40,8 +42,10 @@ namespace UnchainedLauncher.Core.Utilities {
 
         public void AlsoTrack(MemoryProgress memoryProgress) {
             void AddProgress() {
-                Progresses.Add(memoryProgress);
-                ProgressPercentage = CalcAggregatePercentage();
+                lock (_progressLock) {
+                    Progresses.Add(memoryProgress);
+                    ProgressPercentage = CalcAggregatePercentage();
+                }
             }
 
             // Console hosts have no UI SynchronizationContext. Keep the UI's
@@ -54,7 +58,9 @@ namespace UnchainedLauncher.Core.Utilities {
 
         private void OnProgressPropertyChanged(object? sender, PropertyChangedEventArgs e) {
             if (e.PropertyName == nameof(ProgressPercentage)) {
-                ProgressPercentage = CalcAggregatePercentage();
+                lock (_progressLock) {
+                    ProgressPercentage = CalcAggregatePercentage();
+                }
             }
         }
 

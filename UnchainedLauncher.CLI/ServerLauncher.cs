@@ -23,15 +23,9 @@ public static class ServerLauncher {
         if (!options.UpdatePlugin && !File.Exists(Path.Combine(options.Chivalry2Path, FilePaths.UnchainedPluginPath)))
             throw new FileNotFoundException("--no-plugin-update requires an existing UnchainedPlugin.dll in the Plugins directory.");
 
-        var registry = new AggregateModRegistry(new IModRegistry[] {
-            new GithubModRegistry("Chiv2-Community", "C2ModRegistry")
-        }.Concat(options.Registries.Select(r => r.Create())).ToArray());
+        var registry = CreateRegistry(options);
 
-        // Several existing Core preparers use installation-relative paths.
-        // This standalone CLI sets CWD only for preparation, then restores it.
-        var previousDirectory = Directory.GetCurrentDirectory();
-        Directory.SetCurrentDirectory(options.Chivalry2Path);
-        try {
+        return await InInstallationDirectoryAsync(options, async () => {
             var cachePath = Path.Combine(options.Chivalry2Path, FilePaths.ModCachePath, "cli_mod_manager.json");
             var codec = new ModManagerCodec(registry);
             ModManager? cached = null;
@@ -90,6 +84,21 @@ public static class ServerLauncher {
                 Right: process => process,
                 // Do not print LaunchFailed.Message: it contains raw password/auth arguments.
                 Left: failure => throw new InvalidOperationException("Server launch or DLL injection failed. Check the installation, plugin, and mod files.", failure));
+        });
+    }
+
+    internal static AggregateModRegistry CreateRegistry(ServerOptions options) =>
+        new(new IModRegistry[] {
+            new GithubModRegistry("Chiv2-Community", "C2ModRegistry")
+        }.Concat(options.Registries.Select(r => r.Create())).ToArray());
+
+    // Several existing Core preparers use installation-relative paths.
+    // This standalone CLI sets CWD only for preparation, then restores it.
+    internal static async Task<T> InInstallationDirectoryAsync<T>(ServerOptions options, Func<Task<T>> action) {
+        var previousDirectory = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(options.Chivalry2Path);
+        try {
+            return await action();
         }
         finally {
             Directory.SetCurrentDirectory(previousDirectory);

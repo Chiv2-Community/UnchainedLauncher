@@ -70,6 +70,12 @@ ignored. Only enable publishers you trust: these checks do not make native code 
 Inactive managed DLLs are cached outside `Plugins` and restored when selected.
 Unknown filenames and unregistered versions stay where they are.
 
+## Server CLI
+
+`UnchainedLauncher.CLI` is a server-only console application that depends on Core, not WPF.
+See [the CLI guide](UnchainedLauncher.CLI/README.md) for building, launch options,
+registry formats, and the live server dashboard.
+
 ## License
 
 This project is licensed under the terms of the [LICENSE](LICENSE) file.

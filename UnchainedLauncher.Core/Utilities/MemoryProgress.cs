@@ -39,10 +39,15 @@ namespace UnchainedLauncher.Core.Utilities {
         }
 
         public void AlsoTrack(MemoryProgress memoryProgress) {
-            _synchronizationContext.Post(_ => {
+            void AddProgress() {
                 Progresses.Add(memoryProgress);
                 ProgressPercentage = CalcAggregatePercentage();
-            }, null);
+            }
+
+            // Console hosts have no UI SynchronizationContext. Keep the UI's
+            // existing dispatch behavior, but track synchronously when headless.
+            if (_synchronizationContext is null) AddProgress();
+            else _synchronizationContext.Post(_ => AddProgress(), null);
 
             BindTo(memoryProgress);
         }

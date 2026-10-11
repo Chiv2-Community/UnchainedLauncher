@@ -27,6 +27,7 @@
       <ProjectReference Include="..\UnchainedLauncher.UnrealModScanner\UnchainedLauncher.UnrealModScanner.csproj" />
 
     <PackageReference Include="LanguageExt.Core" Version="4.4.9" />
+    <PackageReference Include="CliWrap" Version="3.10.5" />
     <PackageReference Include="LanguageExt.Sys" Version="4.4.9" />
     <PackageReference Include="log4net" Version="3.0.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />

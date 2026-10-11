@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
+using YamlDotNet.Serialization;
 
 namespace UnchainedLauncher.CLI;
 
@@ -29,7 +30,8 @@ public abstract class LaunchConfiguration {
 public sealed class ServerConfiguration : LaunchConfiguration {
     public bool NoTui { get; set; }
     public ServerSettings? Server { get; set; }
-    // Recognized but intentionally untyped: do not validate the inactive schema.
+    // Recognized but skipped: do not deserialize or validate the inactive schema.
+    [YamlConverter(typeof(IgnoredYamlNodeConverter))]
     public object? Client { get; set; }
 
     public override void Validate() {
@@ -40,6 +42,7 @@ public sealed class ServerConfiguration : LaunchConfiguration {
 
 public sealed class ClientConfiguration : LaunchConfiguration {
     public ClientSettings? Client { get; set; }
+    [YamlConverter(typeof(IgnoredYamlNodeConverter))]
     public object? Server { get; set; }
 }
 

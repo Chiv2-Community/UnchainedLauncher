@@ -13,6 +13,7 @@ public static class YamlConfiguration {
             var deserializer = new DeserializerBuilder()
                 .WithNamingConvention(HyphenatedNamingConvention.Instance)
                 .WithTypeConverter(new InstallationTypeYamlConverter())
+                .WithTypeConverter(new IgnoredYamlNodeConverter())
                 .WithDuplicateKeyChecking()
                 .WithEnforceNullability()
                 .Build();

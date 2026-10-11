@@ -170,6 +170,84 @@ public class YamlConfigurationTests : IDisposable {
         Assert.IsType<ClientOptions>(Load("server: not-a-mapping\nclient: {}", client: true));
     }
 
+    public static TheoryData<bool, string> InactiveYamlNodes {
+        get {
+            var data = new TheoryData<bool, string>();
+            foreach (var client in new[] { true, false }) {
+                foreach (var node in new[] {
+                    "not-a-mapping", "null", "[]", "{}", "*unused-alias",
+                    "{game-args: [], game-args: []}",
+                    "{nested: {password: first-secret, password: second-secret}}",
+                    "[{nested: {field: one, field: two}}, [scalar, {field: [], field: {}}]]",
+                    "{nested: [{field: one, field: two}], nested: ignored}",
+                    "!ignored-tag {field: one, field: two}",
+                    "|-\n  literal scalar\n  field: not-a-mapping",
+                    "\n  nested:\n    field: one\n    field: two",
+                    "\n  - nested:\n      field: one\n      field: two\n  - [scalar, {}]"
+                }) data.Add(client, node);
+            }
+            return data;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(InactiveYamlNodes))]
+    public void InactiveYamlNodeIsSkippedAtProductionLaunchBoundary(bool client, string node) {
+        var active = client ? "client" : "server";
+        var inactive = client ? "server" : "client";
+        var options = Load($"{inactive}: {node}\n{active}: {{game-args: ['-active']}}\ngame-args: ['-shared']\n", client);
+        Assert.Equal(client, options is ClientOptions);
+        var launch = options.ToLaunchOptions();
+        Assert.Equal(client, launch.ServerLaunchOptions.IsNone);
+        Assert.Contains("-active", launch.LaunchArgs);
+        Assert.Contains("-shared", launch.LaunchArgs);
+        Assert.DoesNotContain("secret", launch.LaunchArgs);
+        Assert.Equal(!client, launch.ToCLIArgs().Any(arg => arg.Rendered == "-nullrhi"));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void InactiveYamlAliasIsNotBoundToAnActiveObject(bool client) {
+        var active = client ? "client" : "server";
+        var inactive = client ? "server" : "client";
+        var options = Load($"{active}: &active {{game-args: ['-active']}}\n{inactive}: *active\n", client);
+        Assert.Equal(client, options is ClientOptions);
+        Assert.Contains("-active", options.ToLaunchOptions().LaunchArgs);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SkippingInactiveYamlRetainsRootSharedAndActiveDuplicateChecks(bool client) {
+        var active = client ? "client" : "server";
+        var inactive = client ? "server" : "client";
+        foreach (var body in new[] {
+            "platform: Steam\n",
+            "game-args: []\ngame-args: []\n",
+            "mod-setup: {mods: [], mods: []}\n",
+            $"{active}: {{game-args: [], game-args: []}}\n",
+            $"{active}: {{}}\n{active}: {{}}\n",
+            $"{inactive}: {{}}\n"
+        }) {
+            var error = Assert.Throws<ArgumentException>(() => Load($"{inactive}: {{nested: {{field: one, field: two}}}}\n" + body, client));
+            Assert.Contains("Invalid YAML configuration or schema", error.Message);
+        }
+        if (!client) {
+            Assert.Throws<ArgumentException>(() => Load("client: {}\nserver: {discord: {bot-token: first-secret, bot-token: second-secret}}\n"));
+        }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SkippedInactiveYamlStillRequiresValidSyntaxWithoutExposingSecrets(bool client) {
+        var inactive = client ? "server" : "client";
+        var error = Assert.Throws<ArgumentException>(() => Load($"{inactive}: {{password: TOP-SECRET, nested: [}}\n", client));
+        Assert.Contains("Invalid YAML configuration or schema", error.Message);
+        Assert.DoesNotContain("TOP-SECRET", error.Message);
+    }
+
     [Fact]
     public void ServerSafetyFlagsDefaultOnAndCanBeDisabledInYaml() {
         var defaults = Assert.IsType<ServerOptions>(Load("server: {}")).ToServerLaunchOptions();

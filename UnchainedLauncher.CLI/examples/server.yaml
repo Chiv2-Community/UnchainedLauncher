@@ -7,7 +7,7 @@ mod-setup:
   registries: [] # Official GitHub registry is included automatically.
   # Additional entries: github:owner/repository, local:../registry, config:../registries.json
   mods: [] # Exact coordinates: organization/mod-id:v1.2.3
-  dlls: [] # Reserved: all Plugins DLLs still load; selection is not implemented.
+  dlls: [] # Optional dll_db release coordinates; the required core plugin is always included.
 
 # Run with: UnchainedLauncher.CLI.exe server --config-path server.yaml
 # A client block, if included, is ignored by the server command.

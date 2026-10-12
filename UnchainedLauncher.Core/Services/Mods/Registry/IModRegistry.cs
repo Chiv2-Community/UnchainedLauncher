@@ -103,6 +103,9 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         /// <returns></returns>
         public EitherAsync<RegistryMetadataException, Release> GetModRelease(ReleaseCoordinates coords);
 
+        /// <summary>Returns pak length without downloading the pak, or null if unavailable.</summary>
+        public Task<long?> GetPakSize(Release release, CancellationToken cancellationToken = default) => Task.FromResult<long?>(null);
+
         /// <summary>
         /// Acquires a single-use pak writer that owns the registry input stream.
         /// The caller must execute WriteAsync or dispose the returned writer.

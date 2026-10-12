@@ -4,24 +4,33 @@ namespace UnchainedLauncher.CLI;
 
 public static class Program {
     public static async Task<int> Main(string[] args) {
-        CliLaunchOptions options;
+        CliCommandOptions command;
         try {
-            options = CliLaunchOptions.Parse(args);
+            command = CommandLineOptions.Parse(args);
         }
         catch (ArgumentException ex) {
             Console.Error.WriteLine(ex.Message);
             Console.Error.WriteLine("Use '--help' for usage.");
             return 2;
         }
-        if (options.Help) { Console.Write(options.HelpText); return 0; }
-        if (options.Shared.Dlls.Count != 0) {
-            Console.Error.WriteLine("WARNING: --dll version selection is NOT implemented; ALL DLLs in TBL/Binaries/Win64/Plugins will be injected, regardless of the requested IDs/versions.");
+        if (command.Help) { Console.Write(command.HelpText); return 0; }
+        if (command is CliLaunchOptions launch && launch.Shared.Dlls.Count != 0) {
+            Console.Error.WriteLine("Resolving explicitly selected DLL releases from dll_db; native code will execute in the game.");
             Console.Error.WriteLine("Tracking: https://github.com/Chiv2-Community/UnchainedLauncher/issues/149");
         }
+        if (command is CliLaunchOptions unsafeLaunch && unsafeLaunch.Shared.UnsafeLoadAllDlls)
+            Console.Error.WriteLine("DANGER: explicitly enabled injection of ALL DLLs recursively in Plugins; arbitrary native code will execute in the game.");
         using var stop = new CancellationTokenSource();
         ConsoleCancelEventHandler handler = (_, e) => { e.Cancel = true; stop.Cancel(); };
         Console.CancelKeyPress += handler;
         try {
+            if (command is ModQueryOptions query) {
+                var registry = query.RegistryOptions.CreateRegistry();
+                return query.Kind == RegistryPackageKind.Dll
+                    ? await DllQuery.RunAsync(query, registry, Console.Out, Console.Error, stop.Token)
+                    : await ModQuery.RunAsync(query, registry, Console.Out, Console.Error, stop.Token);
+            }
+            var options = (CliLaunchOptions)command;
             using var process = await ServerLauncher.LaunchAsync(options, stop.Token);
             return await SuperviseAsync(options, process, stop);
         }

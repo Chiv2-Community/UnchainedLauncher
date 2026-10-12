@@ -49,6 +49,7 @@ public record LaunchOptions(
     Option<string> SavedDirSuffix,
     Option<ServerLaunchOptions> ServerLaunchOptions
 ) {
+    public IReadOnlyList<ReleaseCoordinates> EnabledDlls { get; init; } = [];
     public IReadOnlyList<CLIArg> ToCLIArgs() {
         var args = new List<CLIArg> {
             new RawArgs(LaunchArgs),

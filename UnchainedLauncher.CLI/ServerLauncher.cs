@@ -1,4 +1,3 @@
-using Octokit;
 using System.Diagnostics;
 using System.Net;
 using UnchainedLauncher.Core.JsonModels;
@@ -22,8 +21,6 @@ public static class ServerLauncher {
         var pluginsPath = Path.Combine(options.Chivalry2Path, FilePaths.PluginDir);
         if (!File.Exists(executable)) throw new FileNotFoundException("Chivalry 2 shipping executable was not found. Check --chivalry2-path.", executable);
         if (!Directory.Exists(pakPath)) throw new DirectoryNotFoundException($"Chivalry 2 Paks directory was not found: {pakPath}");
-        if (!options.UpdatePlugin && !File.Exists(Path.Combine(options.Chivalry2Path, FilePaths.UnchainedPluginPath)))
-            throw new FileNotFoundException("--no-plugin-update requires an existing UnchainedPlugin.dll in the Plugins directory.");
 
         var registry = CreateRegistry(request);
 
@@ -48,9 +45,7 @@ public static class ServerLauncher {
                 if (!File.Exists(appIdPath)) File.WriteAllText(appIdPath, "1824220");
             }
             var dialogue = new ConsoleDialogue();
-            var pluginUpdater = new UnchainedPluginUpdateChecker(
-                new GithubReleaseLocator(new GitHubClient(new ProductHeaderValue("UnchainedLauncher.CLI")),
-                    "Chiv2-Community", "UnchainedPlugin"), new FileInfoVersionExtractor(), dialogue);
+            var pluginUpdater = new DllManager(registry, manager, pluginsPath, options.Dlls, options.UnsafeLoadAllDlls, cancellationToken);
             var modInstaller = new Chivalry2ModsInstaller(manager, dialogue);
             var signing = SigPreparer.Create(manager.PakDir, dialogue);
             // Call preparers sequentially so each receives the previous result.
@@ -60,8 +55,6 @@ public static class ServerLauncher {
                 var updated = await pluginUpdater.PrepareLaunch(launch);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (updated.IsNone) return LanguageExt.Option<LaunchOptions>.None;
-                if (!File.Exists(Path.Combine(pluginsPath, "UnchainedPlugin.dll")))
-                    throw new FileNotFoundException("UnchainedPlugin.dll is required for an Unchained launch.");
                 try {
                     updated = await modInstaller.PrepareLaunch(updated.IfNone(launch));
                 }
@@ -75,7 +68,7 @@ public static class ServerLauncher {
                 return updated;
             });
             var launcher = new UnchainedChivalry2Launcher(preparer, new ProcessLauncher(executable),
-                options.Chivalry2Path, new DllInjector(pluginsPath));
+                options.Chivalry2Path, pluginUpdater);
             var result = await launcher.Launch(request.ToLaunchOptions());
             return result.Match(
                 Right: process => process,
@@ -85,9 +78,7 @@ public static class ServerLauncher {
     }
 
     internal static AggregateModRegistry CreateRegistry(CliLaunchOptions options) =>
-        new(new IModRegistry[] {
-            new GithubModRegistry("Chiv2-Community", "C2ModRegistry")
-        }.Concat(options.Shared.Registries.Select(r => r.Create())).ToArray());
+        options.Shared.RegistryOptions.CreateRegistry();
 
     // Several existing Core preparers use installation-relative paths.
     // This standalone CLI sets CWD only for preparation, then restores it.

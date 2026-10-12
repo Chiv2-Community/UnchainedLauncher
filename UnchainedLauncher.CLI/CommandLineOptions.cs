@@ -1,33 +1,42 @@
 using System.CommandLine;
 using System.CommandLine.Help;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Services.Processes;
 
 namespace UnchainedLauncher.CLI;
 
 internal static class CommandLineOptions {
-    public static CliLaunchOptions Parse(string[] args) => Parse(args, static (root, tokens, configuration) => root.Parse(tokens, configuration));
+    public static CliCommandOptions Parse(string[] args) => Parse(args, static (root, tokens, configuration) => root.Parse(tokens, configuration));
 
     // The delegate is the single library-parse boundary, also exercised by tests.
-    internal static CliLaunchOptions Parse(string[] args, Func<RootCommand, string[], ParserConfiguration, ParseResult> parse) {
+    internal static CliCommandOptions Parse(string[] args, Func<RootCommand, string[], ParserConfiguration, ParseResult> parse) {
         var separator = Array.IndexOf(args, "--");
         var launcherArgs = separator < 0 ? args : args[..separator];
         var gameArgs = separator < 0 ? [] : args[(separator + 1)..];
-        var root = new RootCommand("Unchained client/server launcher. Windows is required for launching and DLL injection.");
+        var root = new RootCommand("Unchained client/server launcher and mod registry queries. Only launching and DLL injection require Windows.");
         var config = new Option<string?>("--config-path") {
-            Description = "YAML replaces other options; the subcommand selects its schema.",
+            Description = "Launch YAML overrides launch options; mod-query reads its registry settings.",
             Arity = ArgumentArity.ExactlyOne,
             Recursive = true
         };
         root.Options.Add(config);
+        var unsafeDlls = UnsafeDllLoading.CreateOption(recursive: true);
+        root.Options.Add(unsafeDlls);
         var server = new Definition(client: false);
         var client = new Definition(client: true);
         root.Subcommands.Add(server.Command);
         root.Subcommands.Add(client.Command);
+        var queries = new ModQueryDefinition();
+        root.Subcommands.Add(queries.Command);
+        var dllQueries = new ModQueryDefinition(RegistryPackageKind.Dll);
+        root.Subcommands.Add(dllQueries.Command);
         // Never interpret @values as file reads, including ignored YAML overrides.
         // Response-file expansion is deliberately disabled for all launcher input.
         var parsed = parse(root, launcherArgs, new ParserConfiguration { ResponseFileTokenReplacer = null });
+        var loadAllDlls = UnsafeDllLoading.Read(parsed, unsafeDlls, launcherArgs);
         var definition = parsed.CommandResult.Command == server.Command ? server : client;
-        if (parsed.GetResult(config) is { } configResult) {
+        var isQuery = queries.Contains(parsed.CommandResult.Command) || dllQueries.Contains(parsed.CommandResult.Command);
+        if (!isQuery && parsed.GetResult(config) is { } configResult) {
             if (parsed.CommandResult.Command == root) throw new ArgumentException("Expected the 'server' or 'client' subcommand.");
             // Help actions skip library validators. Check the parsed selector itself
             // so --help cannot bypass its singleton/non-empty contract either.
@@ -37,7 +46,9 @@ internal static class CommandLineOptions {
             // are irrelevant when YAML is authoritative; do not bind those values.
             var errors = parsed.Errors.Where(error => error.SymbolResult == configResult);
             ThrowErrors(errors.Select(error => error.Message));
-            return YamlConfiguration.Load(parsed.GetValue(config)!, definition.Command == client.Command);
+            var configured = YamlConfiguration.Load(parsed.GetValue(config)!, definition.Command == client.Command);
+            if (loadAllDlls) configured.Shared.EnableUnsafeDllLoading();
+            return configured;
         }
         if (args.Length == 0 || parsed.GetResult("--help") is not null) {
             using var output = new StringWriter();
@@ -47,8 +58,15 @@ internal static class CommandLineOptions {
             return CliLaunchOptions.ForHelp(output.ToString());
         }
         ThrowErrors(parsed);
+        if (isQuery) {
+            if (loadAllDlls) throw new ArgumentException("Unsafe DLL loading is only valid for launch commands.");
+            if (separator >= 0) throw new ArgumentException("mod-query does not accept forwarded game arguments.");
+            return (dllQueries.Contains(parsed.CommandResult.Command) ? dllQueries : queries).ToOptions(parsed, config);
+        }
         if (parsed.CommandResult.Command == root) throw new ArgumentException("Expected the 'server' or 'client' subcommand.");
-        return definition.ToOptions(parsed, gameArgs);
+        var launch = definition.ToOptions(parsed, gameArgs);
+        if (loadAllDlls) launch.Shared.EnableUnsafeDllLoading();
+        return launch;
     }
 
     private static void ThrowErrors(ParseResult result) {
@@ -87,9 +105,10 @@ internal static class CommandLineOptions {
             Flag("--no-plugin-update", "Use the existing UnchainedPlugin.dll.", value => _configuration.UpdatePlugin = !value);
             Flag("--allow-unstable-plugin", "Allow prerelease plugin updates.", value => _configuration.AllowUnstablePlugin = value);
             _configuration.ModSetup = new ModSetupConfiguration();
-            Many("--add-registry", "Additional github:owner/repo, local:directory, or config:file registry; official registry is always included.", value => _configuration.ModSetup.Registries = value);
+            var registries = RegistryOptions.AddOption(Command);
+            _bindings.Add(result => _configuration.ModSetup.Registries = [.. result.GetValue(registries) ?? []]);
             Many("--mod", "Install organization/id:version (exact release tag).", value => _configuration.ModSetup.Mods = value);
-            Many("--dll", "Reserved: ALL Plugins DLLs still load; selection tracked in issue #149.", value => _configuration.ModSetup.Dlls = value);
+            Many("--dll", "Select a registry DLL release: organization/id:version (repeatable).", value => _configuration.ModSetup.Dlls = value);
             if (_configuration is ServerConfiguration serverConfig) {
                 var settings = serverConfig.Server!;
                 Add("--name", "Server name.", settings.Name, value => settings.Name = value);

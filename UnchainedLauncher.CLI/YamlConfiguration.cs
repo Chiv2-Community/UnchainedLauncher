@@ -7,6 +7,13 @@ namespace UnchainedLauncher.CLI;
 
 public static class YamlConfiguration {
     public static CliLaunchOptions Load(string path, bool client) {
+        LaunchConfiguration configuration = client ? LoadDocument<ClientConfiguration>(path) : LoadDocument<ServerConfiguration>(path);
+        try { configuration.Validate(); }
+        catch (ValidationException ex) { throw new ArgumentException("Invalid configuration: " + ex.Message); }
+        return CliLaunchOptions.FromConfiguration(configuration, Path.GetDirectoryName(Path.GetFullPath(path))!);
+    }
+
+    internal static T LoadDocument<T>(string path) where T : class {
         path = Path.GetFullPath(path);
         try {
             using var reader = File.OpenText(path);
@@ -17,12 +24,9 @@ public static class YamlConfiguration {
                 .WithDuplicateKeyChecking()
                 .WithEnforceNullability()
                 .Build();
-            LaunchConfiguration? configuration = client
-                ? deserializer.Deserialize<ClientConfiguration>(reader)
-                : deserializer.Deserialize<ServerConfiguration>(reader);
+            var configuration = deserializer.Deserialize<T>(reader);
             if (configuration is null) throw new ArgumentException("Configuration must contain one YAML mapping.");
-            configuration.Validate();
-            return CliLaunchOptions.FromConfiguration(configuration, Path.GetDirectoryName(path)!);
+            return configuration;
         }
         catch (YamlException ex) {
             // Library errors can include passwords/tokens; report only location.

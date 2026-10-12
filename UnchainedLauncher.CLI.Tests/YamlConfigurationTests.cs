@@ -87,9 +87,9 @@ public class YamlConfigurationTests : IDisposable {
             calls++;
             Assert.Null(configuration.ResponseFileTokenReplacer);
             Assert.Equal(args, tokens);
-            Assert.Equal(new[] { "server", "client" }, root.Subcommands.Select(subcommand => subcommand.Name));
+            Assert.Equal(new[] { "server", "client", "mod-query", "dll-query" }, root.Subcommands.Select(subcommand => subcommand.Name));
             Assert.Single(root.Options.Where(option => option.Name == "--config-path"));
-            foreach (var subcommand in root.Subcommands) {
+            foreach (var subcommand in root.Subcommands.Where(command => command.Name is "client" or "server")) {
                 Assert.Single(subcommand.Options.Where(option => option.Name == "--platform"));
                 Assert.Single(subcommand.Options.Where(option => option.Name == "--chivalry2-path"));
             }
@@ -97,7 +97,7 @@ public class YamlConfigurationTests : IDisposable {
         });
         Assert.Equal(1, calls);
         Assert.Equal(command == "server", options is ServerOptions);
-        Assert.Equal(yaml ? [] : new[] { "@game-file", "--config-path", "not-config" }, options.GameArguments);
+        Assert.Equal(yaml ? [] : new[] { "@game-file", "--config-path", "not-config" }, Assert.IsAssignableFrom<CliLaunchOptions>(options).GameArguments);
     }
 
     [Fact]

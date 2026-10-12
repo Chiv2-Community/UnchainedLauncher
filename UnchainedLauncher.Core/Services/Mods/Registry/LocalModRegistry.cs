@@ -139,7 +139,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
         public override Task<GetAllModsResult> GetAllMods() {
             return Task
-                .Run(() => Directory.EnumerateFiles(RegistryPath, "*.json", SearchOption.AllDirectories))
+                .Run(() => Directory.EnumerateFiles(RegistryPath, "*.json", SearchOption.AllDirectories)
+                    .Where(path => !Path.GetRelativePath(RegistryPath, path).StartsWith("dll_db" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)))
                 .Bind(paths =>
                     paths.ToImmutableList()
                         .Select(InternalGetModMetadata)
@@ -177,7 +178,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
         private EitherAsync<ModPakStreamAcquisitionFailure, SizedStream> ModPakStream(Release release) {
             // Paks will be found in PakReleasesDir/org/repoName/releaseTag/fileName
-            var path = Path.Combine(RegistryPath, release.Info.Organization, release.Info.RepoName, release.Tag, release.PakFileName);
+            var path = GetPakPath(release);
 
             if (!File.Exists(path))
                 return
@@ -198,6 +199,14 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                             Error.New($"Failed to fetch pak from {path}.", e)
                         )
                     );
+        }
+
+        private string GetPakPath(Release release) => Path.Combine(RegistryPath, release.Info.Organization, release.Info.RepoName, release.Tag, release.PakFileName);
+
+        public override Task<long?> GetPakSize(Release release, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            try { return Task.FromResult<long?>(new FileInfo(GetPakPath(release)).Length); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return Task.FromResult<long?>(null); }
         }
     }
 }

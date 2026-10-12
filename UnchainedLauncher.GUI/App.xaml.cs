@@ -37,10 +37,13 @@ namespace UnchainedLauncher.GUI {
     /// </summary>
     public partial class App : Application {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
+        private bool _unsafeLoadAllDlls;
+        private string[] _launchArguments = [];
 
         protected override async void OnStartup(StartupEventArgs e) {
             try {
                 base.OnStartup(e);
+                (_unsafeLoadAllDlls, _launchArguments) = UnsafeDllLoading.ParseGuiArguments(e.Args);
 
                 AppDomain.CurrentDomain.UnhandledException +=
                     (sender, args) => {
@@ -263,8 +266,7 @@ namespace UnchainedLauncher.GUI {
             RegistryWindowVM registryWindowViewModel, RegistryWindowService registryWindowService, ModManager modManager,
             MessageBoxSpawner userDialogueSpawner) {
             var cliArgs = string.Join(" ",
-                Environment.GetCommandLineArgs()
-                    .Skip(1)
+                _launchArguments
                     .ToList()
                     .Select(ArgumentEscaper.Escape)
             );

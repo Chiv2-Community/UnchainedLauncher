@@ -48,7 +48,7 @@ public class CommandLineOptionsTests {
     public void HelpAndInvalidCliAlsoUseOneLibraryParse() {
         foreach (var args in new string[][] { [], ["client", "--help"], ["server", "--platform=Invalid"] }) {
             var calls = 0;
-            CliLaunchOptions Parse() => CommandLineOptions.Parse(args, (root, tokens, configuration) => {
+            CliCommandOptions Parse() => CommandLineOptions.Parse(args, (root, tokens, configuration) => {
                 calls++;
                 return root.Parse(tokens, configuration);
             });

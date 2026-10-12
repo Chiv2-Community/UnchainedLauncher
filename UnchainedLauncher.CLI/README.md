@@ -42,6 +42,73 @@ dotnet publish UnchainedLauncher.CLI -c Release -r win-x64 --self-contained true
 Help, parsing, and the unit tests also work on Linux. Actual game launching and
 DLL injection require Windows; Wine/Proton launching is not implemented.
 
+## Mod registry queries
+
+Query metadata without installing mods, changing the game profile, or launching
+the game. These commands work on Linux as well as Windows and require no game
+installation or platform selection:
+
+```text
+UnchainedLauncher.CLI mod-query list
+UnchainedLauncher.CLI mod-query get Chiv2-Community/Unchained-Mods
+UnchainedLauncher.CLI mod-query get organization/mod-id --version v1.2.3
+UnchainedLauncher.CLI mod-query versions organization/mod-id
+UnchainedLauncher.CLI mod-query list --add-registry local:./registry
+UnchainedLauncher.CLI mod-query get organization/mod-id --config-path ./server.yaml
+```
+
+The official registry is always included. Repeat `--add-registry` to include
+GitHub, local, or Core JSON-config registries, using the same formats as launch
+commands. `--config-path` reads `mod-setup.registries` from an existing launch
+YAML file instead of the `--add-registry` arguments. YAML-relative paths resolve
+relative to that file. Only registry configuration is used: installation,
+platform, client/server settings, mod selections, and plugin policies are not
+required or applied. Query operands and `--version` remain command-line inputs.
+
+`list` displays mod ID (`organization/id`), name, and latest version. `get`
+defaults to Core's latest stable semantic version; if none is stable it shows
+the newest release by date. `--version` selects an exact release tag, including
+prereleases. `versions` lists all tags, release dates, and stable/prerelease status.
+
+Details include release-specific description/authors, repository/homepage,
+release date/notes, pak filename, SHA-512 hash, size in bytes, declared dependency
+ranges, map count/names/paths/modes, blueprints, and other manifest asset counts.
+Local size is read from the filesystem; GitHub size uses an HTTP HEAD request,
+never a pak download. An inaccessible pak or missing length is reported as
+`unknown`, not zero. Declared dependencies are displayed, not installed or resolved.
+
+Exit status is 0 for success, 2 for invalid arguments/configuration, and 1 for
+registry/runtime errors or a missing mod/version. A failed registry during
+`list` leaves the available rows visible but reports errors and exits 1 rather
+than presenting a partial catalog as complete. Game arguments after `--` are
+not accepted by `mod-query`. Use `mod-query <subcommand> --help` for details.
+
+## DLL registry queries
+
+```text
+UnchainedLauncher.CLI dll-query list
+UnchainedLauncher.CLI dll-query get Chiv2-Community/UnchainedPlugin
+UnchainedLauncher.CLI dll-query get Chiv2-Community/UnchainedPlugin --version v1.0.0-RC2
+UnchainedLauncher.CLI dll-query versions Chiv2-Community/UnchainedPlugin
+UnchainedLauncher.CLI dll-query list --config-path ./server.yaml
+```
+
+DLL queries share the mod-query command definitions, configured registry object,
+and `--add-registry`/`--config-path` behavior. They use the existing
+[zero-infra plugin schema](https://github.com/Chiv2-Community/zero-infra-mod-registry/blob/prepare-v1/schemas/plugin.schema.json)
+and live C2ModRegistry `dll_db`: `plugin_list_index.txt` and
+`packages/<organization>/<id>.json`. Local registries use
+`<local-directory>/dll_db/packages/...`. Pak-only registries without a DLL
+database contribute no DLL packages.
+
+Details show release-specific name/description/authors, execution target
+(`client`, `server`, or `shared`), filename, **SHA-256** hash, recorded size,
+download URL, plugin dependencies separately from pak mod dependencies, and
+release notes. Versions include prereleases; defaults choose latest stable,
+falling back to the newest dated release when no stable exists. Queries do not
+download, install, or execute DLLs. Recorded hashes/sizes are registry metadata,
+not a claim that an installed file has been verified.
+
 ## YAML configuration
 
 CLI options and command-specific help are defined with System.CommandLine.
@@ -86,7 +153,7 @@ saved-dir-suffix: MyServer
 mod-setup:
   registries: [] # Official registry remains enabled, even with an empty list.
   mods: []       # organization/mod-id:exact-release-tag
-  dlls: []       # Reserved; selection remains deferred to issue #149.
+  dlls: []       # Optional dll_db coordinates: organization/id:version.
 server:
   name: My Server
   description: My server description
@@ -221,14 +288,44 @@ same installed mod set and separate saved suffixes/ports.
 
 ## DLL compatibility behavior
 
-Every launch recursively injects **all `.dll` files** under
-`<installation>\TBL\Binaries\Win64\Plugins`, preserving the GUI behavior.
+Both GUI and CLI resolve the required UnchainedPlugin release from `dll_db`.
+`--dll organization/id:version` (or YAML `mod-setup.dlls`) additionally selects
+registry releases in CLI launches. Plugin dependencies are resolved before their
+dependents; target mismatches, missing releases, cycles, and conflicting versions
+fail preparation. Pak dependencies enter the shared mod manager. The GUI uses
+this same manager for the core plugin; a GUI DLL-selection editor is not included.
 
-`--dll organization/dll-id:version` is accepted as a reserved option and emits a
-warning. It does **not** download, filter, select, or pin DLL versions yet.
-Registry-backed DLL packages and selection are tracked in
-[issue #149](https://github.com/Chiv2-Community/UnchainedLauncher/issues/149).
-Only put trusted DLLs in this directory.
+Every selected DLL must match the registry's SHA-256 and size. Downloads are
+verified before installation. Existing matching root DLLs can be reused;
+new downloads go into `Plugins/.dll-managed/<sha256>/` without replacing unknown
+root DLLs. `Plugins/dll_manager.json` records the last successful selection.
+Safe injection uses only that launch's verified allowlist, not the directory or
+the saved inventory. Old managed files are retained, not automatically deleted.
+`--no-plugin-update` forbids downloads and requires matching local files.
+Only explicitly pinned prereleases (or `--allow-unstable-plugin` for automatic
+selection) are eligible; automatic selection otherwise uses the latest stable.
+
+Other DLLs in `<installation>\TBL\Binaries\Win64\Plugins` are not enumerated
+for injection unless this exact command-line flag is explicitly supplied:
+
+```text
+--unsafe-very-dangerous-load-all-dlls
+```
+
+This is a dangerous compatibility escape hatch: it recursively injects **all**
+DLLs in Plugins, executing arbitrary native code in the game. For the GUI,
+pass it when starting `UnchainedLauncher.GUI.exe`; for the CLI, pass it to a
+`client` or `server` command. It is hidden from generated help, has no GUI
+checkbox, is never saved in settings, and is not accepted as a YAML property.
+It must be explicitly present before `--`, even with `--config-path`; unlike
+ordinary YAML-overridden launch settings, this process-local permission is
+honored only from the actual command line. After `--` it is only a game argument
+and grants no permission. It is rejected for query commands.
+
+The unsafe escape hatch also includes retained managed releases; it can load
+multiple versions and bypass normal selection. Only opt in if you trust every
+DLL in this directory. Registry integrity checks establish file identity, not
+that native code is safe.
 
 ## Server options
 

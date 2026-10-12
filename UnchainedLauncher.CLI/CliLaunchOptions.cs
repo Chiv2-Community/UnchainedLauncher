@@ -16,7 +16,10 @@ public sealed class SharedLaunchOptions {
     public string Backend { get; }
     public bool UpdatePlugin { get; }
     public bool AllowUnstablePlugin { get; }
-    public IReadOnlyList<RegistrySpec> Registries { get; }
+    public bool UnsafeLoadAllDlls { get; private set; }
+    internal void EnableUnsafeDllLoading() => UnsafeLoadAllDlls = true;
+    public RegistryOptions RegistryOptions { get; }
+    public IReadOnlyList<RegistrySpec> Registries => RegistryOptions.Registries;
     public IReadOnlyList<ReleaseCoordinates> Mods { get; }
     public IReadOnlyList<ReleaseCoordinates> Dlls { get; }
     public IReadOnlyList<string> GameArguments { get; }
@@ -30,7 +33,7 @@ public sealed class SharedLaunchOptions {
         AllowUnstablePlugin = configuration.AllowUnstablePlugin;
         GameArguments = Entries(configuration.GameArgs, allowEmpty: true).ToArray();
         var setup = configuration.ModSetup ?? new ModSetupConfiguration();
-        Registries = Entries(setup.Registries).Select(value => RegistrySpec.Parse(value, directory)).ToArray();
+        RegistryOptions = new RegistryOptions(setup.Registries, directory);
         Mods = Entries(setup.Mods).Select(ParseCoordinates).ToArray();
         Dlls = Entries(setup.Dlls).Select(ParseCoordinates).ToArray();
         if (!Regex.IsMatch(SavedDirSuffix, @"\A[A-Za-z0-9_-]+\z"))
@@ -52,12 +55,10 @@ public sealed class SharedLaunchOptions {
     }
 }
 
-public abstract class CliLaunchOptions {
+public abstract class CliLaunchOptions : CliCommandOptions {
     private readonly SharedLaunchOptions? _shared;
     public SharedLaunchOptions Shared => _shared ?? throw new InvalidOperationException("Help is not a launch request.");
     public IReadOnlyList<string> GameArguments { get; }
-    public bool Help { get; protected init; }
-    public string HelpText { get; protected init; } = "";
 
     private protected CliLaunchOptions(SharedLaunchOptions shared, IEnumerable<string> gameArguments) {
         _shared = shared;
@@ -70,7 +71,8 @@ public abstract class CliLaunchOptions {
         GameArguments = [];
     }
 
-    public static CliLaunchOptions Parse(string[] args) => CommandLineOptions.Parse(args);
+    public static CliLaunchOptions Parse(string[] args) => CommandLineOptions.Parse(args) as CliLaunchOptions
+        ?? throw new ArgumentException("Expected a client or server launch command.");
 
     internal static CliLaunchOptions FromConfiguration(LaunchConfiguration configuration, string directory) {
         var shared = new SharedLaunchOptions(configuration, directory);

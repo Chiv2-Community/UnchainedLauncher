@@ -11,9 +11,22 @@ public static class UnrealModScannerDtoExtensions {
         }
 
         public bool IsRelevant() {
-            return !string.IsNullOrEmpty(map.GamemodeType?.Trim());
+            // An explicit missing rules class identifies a support level, even if
+            // it serialized a default/native GamemodeType. Prefixes are display metadata.
+            if (HasRulesClass(map.GameMode) || HasRulesClass(map.TBLDefaultGameMode)) return true;
+            if (IsExplicitlyAbsent(map.GameMode) || IsExplicitlyAbsent(map.TBLDefaultGameMode)) return false;
+            // Older manifests may omit the class fields; retain their mode metadata fallback.
+            return HasRulesClass(map.GamemodeType);
         }
     }
+
+    private static bool HasRulesClass(string? value) =>
+        !string.IsNullOrWhiteSpace(value) && !IsExplicitlyAbsent(value);
+
+    private static bool IsExplicitlyAbsent(string? value) =>
+        value is not null && (string.IsNullOrWhiteSpace(value)
+            || string.Equals(value.Trim(), "None", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value.Trim(), "null", StringComparison.OrdinalIgnoreCase));
 
     extension(BlueprintDto blueprintDto) {
         public bool IsRelevant() {

@@ -69,17 +69,22 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             });
         }
 
-        [Fact]
-        public void LiveMapSelectionBindingSendsTravelStringAndUpdatesCommandState() {
+        [Theory]
+        [InlineData("FFA_Courtyard")]
+        [InlineData("BR_Island")]
+        [InlineData("COOP_HordeTestArena")]
+        [InlineData("CUSTOMMODE_Test")]
+        public void LiveMapSelectionBindingSendsTravelStringAndUpdatesCommandState(string travelName) {
             RunSta(() => {
                 var rcon = new Mock<IRCON>();
                 rcon.Setup(r => r.SendCommand(It.IsAny<string>())).Returns(Task.CompletedTask);
                 using var process = new Process();
-                var launchOptions = new ServerLaunchOptions(false, "test", "", false, default, "ffa_courtyard",
+                var launchOptions = new ServerLaunchOptions(false, "test", "", false, default, travelName.ToLowerInvariant(),
                     7777, 3075, 7071, 9001, null, null, null, null, null, null, default, [], default,
                     false, true, CensorArg.Standard);
                 var server = new Chivalry2Server(process, launchOptions, null!, rcon.Object);
-                var map = Courtyard();
+                var map = new MapDto($"TBL/Content/Mods/{travelName}.umap", "hash", null, "World",
+                    "BP_CustomRules_C", travelName, null, null, null, null, null);
                 var vm = new ServerVM(server, "test", new ObservableCollection<MapDto> { map });
                 // Read the production XAML contract rather than duplicating an unchecked binding.
                 var xaml = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "TestData", "Server.xaml"));
@@ -97,8 +102,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                 Assert.Same(map, vm.SelectedMapToChange);
                 Assert.True(vm.ChangeMapCommand.CanExecute(null));
                 vm.ChangeMapCommand.ExecuteAsync(null).GetAwaiter().GetResult();
-                rcon.Verify(r => r.SendCommand("servertravel FFA_Courtyard"), Times.Once);
-                vm.CurrentMap = "ffa_courtyard";
+                rcon.Verify(r => r.SendCommand($"servertravel {travelName}"), Times.Once);
+                vm.CurrentMap = travelName.ToLowerInvariant();
                 Assert.False(vm.ChangeMapCommand.CanExecute(null));
                 Assert.True(notifications >= 2);
                 vm.SelectedMapToChange = null;

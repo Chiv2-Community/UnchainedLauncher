@@ -66,3 +66,13 @@ Update this record if PR #152 is merged, closed, materially revised, or replaced
 The source conversation was compacted, so it is not a complete original design
 transcript; this record relies on the supplied response plus independently
 verified Git and PR state.
+
+## Subsequent developments (2026-10-12)
+
+The claim at lines 31-33 that both the local branch and PR #152 resolved to
+`c8bd89504e6f4a789456882b4ca6c97b1e8c577e` is superseded. The published PR
+head is now `3f19f94b06bb93326a98e19931c73dd7843195b5` (`[GHA] Format Source`),
+while this local branch is at annals-only commit
+`e57be08e77214d941f738ef711359083ebd6f143`. The PR remains open and unmerged.
+The user also replaced its summary with direct, terse change-and-reason bullets.
+See [PR #152 description and formatting update](2026-10-12-pr-152-description-and-formatting-update.md).

@@ -111,3 +111,11 @@ a saved false preference. Stable builds retain the same-version saved-preference
 behavior. See [Plugin Manager links and prerelease startup default](2026-10-12-plugin-manager-links-and-prerelease-startup-default.md). This does not change
 the manual-update boundary or the decision to use the existing setting rather
 than a separate prerelease preference.
+
+## Subsequent developments (2026-10-12)
+
+The implementation-state claim at lines 90-93 is superseded: the Plugin Manager
+work was included in commit `c8bd89504e6f4a789456882b4ca6c97b1e8c577e`, pushed
+on `feature/dll-validation`, and submitted as [PR #152](https://github.com/Chiv2-Community/UnchainedLauncher/pull/152).
+The PR remains open; its creation does not establish live game-injection
+validation. See [DLL-validation implementation committed and submitted](2026-10-12-dll-validation-implementation-committed-and-submitted.md).

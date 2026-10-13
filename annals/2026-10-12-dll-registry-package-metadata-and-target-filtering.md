@@ -164,3 +164,11 @@ builds. Such builds now force the existing setting enabled for the session;
 stable builds continue to use an applicable same-version saved preference. See
 [Plugin Manager links and prerelease startup default](2026-10-12-plugin-manager-links-and-prerelease-startup-default.md). The decision against a separate
 prerelease-display preference remains unchanged.
+
+## Subsequent developments (2026-10-12)
+
+The implementation-state claim at lines 117-130 is superseded: this work was
+committed as `c8bd89504e6f4a789456882b4ca6c97b1e8c577e`, pushed on
+`feature/dll-validation`, and submitted as [PR #152](https://github.com/Chiv2-Community/UnchainedLauncher/pull/152).
+It is implemented and reviewable, but not merged or released. See [DLL-validation
+implementation committed and submitted](2026-10-12-dll-validation-implementation-committed-and-submitted.md).

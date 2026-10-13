@@ -97,3 +97,11 @@ No issue, pull request, original request transcript, response ID, independently
 retained test log, or live GUI capture was available. Reported build/test results
 are checkpoint and session-memory testimony corroborated by the current tests,
 not independently reproduced here.
+
+## Subsequent developments (2026-10-12)
+
+The implementation-state claim at lines 75-79 is superseded: these changes were
+included in commit `c8bd89504e6f4a789456882b4ca6c97b1e8c577e`, pushed on
+`feature/dll-validation`, and submitted as [PR #152](https://github.com/Chiv2-Community/UnchainedLauncher/pull/152).
+The branch is reviewable but unmerged, and this delivery event does not add live
+GUI or game-injection evidence. See [DLL-validation implementation committed and submitted](2026-10-12-dll-validation-implementation-committed-and-submitted.md).

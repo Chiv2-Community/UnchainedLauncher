@@ -76,3 +76,12 @@ while this local branch is at annals-only commit
 `e57be08e77214d941f738ef711359083ebd6f143`. The PR remains open and unmerged.
 The user also replaced its summary with direct, terse change-and-reason bullets.
 See [PR #152 description and formatting update](2026-10-12-pr-152-description-and-formatting-update.md).
+
+## Subsequent developments (2026-10-12)
+
+The implementation was materially revised after independent review identified two
+defects: a registry-revoked enabled selection could not be cleared, and local
+release editing dropped plugin dependencies. Commit
+`6d6e181167eb6e51b374494b927749c61c7d2fb5` fixes both. The current PR head is
+`9e5a1118221f0b74ff75033e43b79c179156b661`; it remains open and unmerged. See
+[PR #152 review fixes and clean review](2026-10-12-pr-152-review-fixes-and-clean-review.md).

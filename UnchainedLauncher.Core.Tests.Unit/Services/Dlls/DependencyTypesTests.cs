@@ -7,7 +7,6 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using UnchainedLauncher.Core.Utilities;
-using Xunit;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
     public sealed class DependencyTypesTests {

@@ -8,8 +8,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using UnchainedLauncher.Core.Services.Dlls;
 using UnchainedLauncher.Core.Services;
+using UnchainedLauncher.Core.Services.Dlls;
 
 namespace UnchainedLauncher.GUI.ViewModels {
     public interface IPluginSettings {

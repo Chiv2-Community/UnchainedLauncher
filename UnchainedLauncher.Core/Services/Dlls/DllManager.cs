@@ -316,7 +316,10 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             stream.Position = 0;
         }
 
-        public async Task PrepareAsync(bool server = false, bool allowDownloads = true) {
+        public Task PrepareAsync(bool server = false, bool allowDownloads = true) =>
+            PrepareAsync(server, allowDownloads, null);
+
+        private async Task PrepareAsync(bool server, bool allowDownloads, Action<string>? activePublishing) {
             var selected = SelectedReleases(server);
             // Fill and validate the cache before changing any installed DLLs.
             foreach (var release in selected) {
@@ -379,7 +382,8 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 }
                 foreach (var release in selected) {
                     var path = GetPath(release);
-                    if (!File.Exists(path)) CopyValidated(GetCachePath(release), path, release);
+                    if (!File.Exists(path)) CopyValidated(GetCachePath(release), path, release,
+                        beforePublish: activePublishing == null ? null : () => activePublishing(path), overwrite: false);
                     using var installed = File.OpenRead(path);
                     ValidateBytes(installed, release);
                 }
@@ -387,7 +391,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         }
 
         private static void CopyValidated(string source, string destination, DllRelease release,
-            bool archive = false, Action? cachePublished = null) {
+            bool archive = false, Action? cachePublished = null, Action? beforePublish = null, bool overwrite = true) {
             // Unix pathname unlink cannot condition deletion on an open file identity.
             // Keep portable validation/copying, but never silently use unsafe archival.
             if (archive && !OperatingSystem.IsWindows())
@@ -402,7 +406,10 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                     input.CopyTo(output);
                     ValidateBytes(output, release);
                 }
-                File.Move(temp, destination, true);
+                beforePublish?.Invoke();
+                // Cache entries may be replaced, but active publication must atomically
+                // fail if an external writer has created any destination file.
+                File.Move(temp, destination, overwrite);
                 // Deterministic test boundary: the cache exists, and the validated
                 // source must still deny writes, renames and pathname replacement.
                 cachePublished?.Invoke();

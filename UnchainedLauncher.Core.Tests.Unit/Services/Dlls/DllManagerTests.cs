@@ -808,11 +808,39 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
                 cacheDirectory: Path.Combine(PluginPath, ".cache")));
         }
 
+        [Fact]
+        public async Task ActivePublicationCollisionPreservesUnknownFileAndBlocksPreparation() {
+            Index(Release());
+            var manager = Manager();
+            await manager.RefreshAsync();
+            await manager.PrepareAsync();
+            var installed = Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
+            var cache = Assert.Single(Directory.GetFiles(Path.Combine(_dir, ".cache"), "*.dll", SearchOption.AllDirectories));
+            File.Delete(installed);
+            var reached = false;
+            Action<string> publishing = path => {
+                reached = true;
+                Assert.Equal(installed, path);
+                Assert.False(File.Exists(path));
+                // The production absence check and validated staging copy have
+                // completed. A separate writer wins the destination before rename.
+                Task.Run(() => File.WriteAllText(path, "unknown user version")).GetAwaiter().GetResult();
+            };
+            var prepare = typeof(DllManager).GetMethod("PrepareAsync",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            await Assert.ThrowsAsync<IOException>(() => (Task)prepare.Invoke(manager, [false, false, publishing])!);
+            Assert.True(reached);
+            Assert.Equal("unknown user version", File.ReadAllText(installed));
+            Assert.Equal(_binary, File.ReadAllBytes(cache));
+            Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(installed)!, "*.tmp"));
+            Assert.Throws<InvalidDataException>(() => manager.OpenForInjection());
+        }
+
         private static void ArchiveAtPublication(string source, string cache, DllRelease release, Action published) {
             // Exercise exactly the helper used by PrepareAsync, not a simulated
             // lock or pathname-delete algorithm. Reflection keeps this seam private.
             var copy = typeof(DllManager).GetMethod("CopyValidated", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-            try { copy.Invoke(null, [source, cache, release, true, published]); }
+            try { copy.Invoke(null, [source, cache, release, true, published, null, true]); }
             catch (System.Reflection.TargetInvocationException error) {
                 System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException!).Throw();
             }

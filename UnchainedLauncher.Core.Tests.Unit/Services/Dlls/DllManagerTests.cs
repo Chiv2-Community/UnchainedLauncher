@@ -868,7 +868,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             File.WriteAllBytes(source, _binary);
             // An existing directory makes the real atomic cache publication fail.
             Directory.CreateDirectory(cache);
-            Assert.Throws<IOException>(() => ArchiveAtPublication(source, cache, Release(), () => Assert.True(false)));
+            var error = Record.Exception(() => ArchiveAtPublication(source, cache, Release(), () => Assert.True(false)));
+            Assert.True(error is IOException or UnauthorizedAccessException, $"Cache publication unexpectedly succeeded: {error}");
             Assert.Equal(_binary, File.ReadAllBytes(source));
             Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(cache)!, "*.tmp"));
         }

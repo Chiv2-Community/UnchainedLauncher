@@ -175,19 +175,11 @@ namespace UnchainedLauncher.GUI {
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
-                modManager, userDialogueSpawner, allowPluginDependencies: true
+                modManager, userDialogueSpawner
             );
-            IChivalry2LaunchPreparer<LaunchOptions> clientsideModInstaller = new Chivalry2ModsInstaller(modManager, userDialogueSpawner);
 
             var vanillaLauncher = new Chivalry2Launcher(
                 noSigLaunchPreparer.IgnoreOptions<LaunchOptions>(),
-                officialProcessLauncher,
-                Directory.GetCurrentDirectory()
-            );
-
-            var clientsideModdedLauncher = new Chivalry2Launcher(
-                clientsideModInstaller
-                    .Sub(sigLaunchPreparer),
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );

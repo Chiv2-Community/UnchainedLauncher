@@ -13,10 +13,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         private readonly ILog _logger = LogManager.GetLogger(typeof(Chivalry2ModsInstaller));
         private readonly IUserDialogueSpawner _userDialogueSpawner;
         private IModManager _modManager { get; }
-        private readonly bool _allowPluginDependencies;
 
-        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner, bool allowPluginDependencies = false) {
-            _allowPluginDependencies = allowPluginDependencies;
+        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner) {
             _modManager = modManager;
             _userDialogueSpawner = dialogueSpawner;
         }
@@ -76,27 +74,6 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
             // Get all releases that will be installed (enabled mods + dependencies)
             var releasesToInstall = _modManager.GetEnabledAndDependencyReleases().ToList();
-            if (!_allowPluginDependencies) {
-                var pluginsByMod = releasesToInstall
-                    .Where(release => release.Info.EffectivePluginDependencies.Count != 0)
-                    .GroupBy(release => release.Info.RepoUrl, StringComparer.OrdinalIgnoreCase)
-                    .ToDictionary(group => group.First().Info,
-                        group => group.SelectMany(release => release.Info.EffectivePluginDependencies).Distinct().ToList());
-                if (pluginsByMod.Count != 0) {
-                    var mods = pluginsByMod.Count == 1 ? "One mod requires" : "Some mods require";
-                    var plugins = pluginsByMod.Values.SelectMany(dependencies => dependencies).Distinct().Count() == 1
-                        ? "a DLL plugin" : "DLL plugins";
-                    var details = pluginsByMod.OrderBy(pair => pair.Key.Name, StringComparer.OrdinalIgnoreCase)
-                        .ThenBy(pair => pair.Key.RepoUrl, StringComparer.OrdinalIgnoreCase)
-                        .Select(pair => $"{pair.Key.Name}:\n" + string.Join("\n", pair.Value
-                            .OrderBy(dependency => dependency.RepoName, StringComparer.OrdinalIgnoreCase)
-                            .ThenBy(dependency => dependency.RepoUrl, StringComparer.OrdinalIgnoreCase)
-                            .ThenBy(dependency => dependency.Version, StringComparer.OrdinalIgnoreCase)
-                            .Select(dependency => $"\t- {dependency.RepoName} {dependency.Version}")));
-                    _userDialogueSpawner.DisplayMessage($"{mods} {plugins}. Enable them in the Plugin Manager.\n\n{string.Join("\n\n", details)}");
-                    return None;
-                }
-            }
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
 
             // Validate hashes before installation

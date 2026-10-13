@@ -76,9 +76,26 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
             // Get all releases that will be installed (enabled mods + dependencies)
             var releasesToInstall = _modManager.GetEnabledAndDependencyReleases().ToList();
-            if (!_allowPluginDependencies && releasesToInstall.Any(release => release.Info.EffectivePluginDependencies.Count != 0)) {
-                _userDialogueSpawner.DisplayMessage("An enabled mod requires a DLL plugin. Use Unchained launch and enable its registered plugin dependencies in Plugin Manager.");
-                return None;
+            if (!_allowPluginDependencies) {
+                var pluginsByMod = releasesToInstall
+                    .Where(release => release.Info.EffectivePluginDependencies.Count != 0)
+                    .GroupBy(release => release.Info.RepoUrl, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(group => group.First().Info,
+                        group => group.SelectMany(release => release.Info.EffectivePluginDependencies).Distinct().ToList());
+                if (pluginsByMod.Count != 0) {
+                    var mods = pluginsByMod.Count == 1 ? "One mod requires" : "Some mods require";
+                    var plugins = pluginsByMod.Values.SelectMany(dependencies => dependencies).Distinct().Count() == 1
+                        ? "a DLL plugin" : "DLL plugins";
+                    var details = pluginsByMod.OrderBy(pair => pair.Key.Name, StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(pair => pair.Key.RepoUrl, StringComparer.OrdinalIgnoreCase)
+                        .Select(pair => $"{pair.Key.Name}:\n" + string.Join("\n", pair.Value
+                            .OrderBy(dependency => dependency.RepoName, StringComparer.OrdinalIgnoreCase)
+                            .ThenBy(dependency => dependency.RepoUrl, StringComparer.OrdinalIgnoreCase)
+                            .ThenBy(dependency => dependency.Version, StringComparer.OrdinalIgnoreCase)
+                            .Select(dependency => $"\t- {dependency.RepoName} {dependency.Version}")));
+                    _userDialogueSpawner.DisplayMessage($"{mods} {plugins}. Enable them in the Plugin Manager.\n\n{string.Join("\n\n", details)}");
+                    return None;
+                }
             }
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
 

@@ -1,6 +1,6 @@
-using System.Security.Cryptography;
 using LanguageExt;
 using Semver;
+using System.Security.Cryptography;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes;

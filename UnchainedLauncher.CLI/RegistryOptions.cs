@@ -16,7 +16,9 @@ public sealed class RegistryOptions {
     internal static Option<string[]> AddOption(Command command, bool recursive = false) {
         var option = new Option<string[]>("--add-registry") {
             Description = "Additional github:owner/repo, local:directory, or config:file registry; official registry is always included.",
-            Arity = ArgumentArity.OneOrMore, AllowMultipleArgumentsPerToken = false, Recursive = recursive
+            Arity = ArgumentArity.OneOrMore,
+            AllowMultipleArgumentsPerToken = false,
+            Recursive = recursive
         };
         command.Options.Add(option);
         return option;

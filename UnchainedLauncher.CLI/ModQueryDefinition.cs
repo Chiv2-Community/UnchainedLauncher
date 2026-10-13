@@ -69,7 +69,10 @@ internal sealed class ModQueryDefinition {
             identifier = new ModIdentifier(coordinate.Org, coordinate.ModuleName);
         }
         return new ModQueryOptions {
-            Kind = _kind, Operation = operation, Mod = identifier, Version = parsed.GetValue(_version),
+            Kind = _kind,
+            Operation = operation,
+            Mod = identifier,
+            Version = parsed.GetValue(_version),
             RegistryOptions = new RegistryOptions(specifications, directory)
         };
     }

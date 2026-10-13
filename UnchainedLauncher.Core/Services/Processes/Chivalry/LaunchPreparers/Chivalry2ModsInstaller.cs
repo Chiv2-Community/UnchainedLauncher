@@ -13,8 +13,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         private readonly ILog _logger = LogManager.GetLogger(typeof(Chivalry2ModsInstaller));
         private readonly IUserDialogueSpawner _userDialogueSpawner;
         private IModManager _modManager { get; }
+        private readonly bool _allowPluginDependencies;
 
-        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner) {
+        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner, bool allowPluginDependencies = false) {
+            _allowPluginDependencies = allowPluginDependencies;
             _modManager = modManager;
             _userDialogueSpawner = dialogueSpawner;
         }
@@ -74,6 +76,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
             // Get all releases that will be installed (enabled mods + dependencies)
             var releasesToInstall = _modManager.GetEnabledAndDependencyReleases().ToList();
+            if (!_allowPluginDependencies && releasesToInstall.Any(release => release.Info.EffectivePluginDependencies.Count != 0)) {
+                _userDialogueSpawner.DisplayMessage("An enabled mod requires a DLL plugin. Use Unchained launch and enable its registered plugin dependencies in Plugin Manager.");
+                return None;
+            }
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
 
             // Validate hashes before installation

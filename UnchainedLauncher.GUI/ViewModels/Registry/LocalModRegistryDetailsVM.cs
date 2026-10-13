@@ -243,7 +243,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
             IconUrl = release.Info.IconUrl;
             ImageUrls = release.Info.ImageUrls;
             Authors = release.Info.Authors;
-            Dependencies = release.Info.Dependencies;
+            Dependencies = release.Info.EffectiveModDependencies;
             ReleaseNotesMarkdown = release.ReleaseNotesMarkdown ?? "";
         }
 

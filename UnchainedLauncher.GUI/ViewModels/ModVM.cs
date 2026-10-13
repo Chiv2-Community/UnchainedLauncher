@@ -69,6 +69,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public bool HasContents => HasMarkers || HasBlueprints || HasMaps || HasReplacements || HasArbitrary;
 
         public bool HasDependencies =>
+            ((EnabledRelease ?? Mod.LatestRelease.FirstOrDefault())?.Info.EffectivePluginDependencies.Count ?? 0) > 0 ||
             (EnabledRelease ?? Mod.LatestRelease)
                 .ToList()
                 .Bind(r => ModManager.GetAllDependenciesForRelease(r))
@@ -79,6 +80,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 .ToList()
                 .Bind(r => ModManager.GetAllDependenciesForRelease(r))
                 .ToList();
+
+        public List<Dependency> PluginDependencies =>
+            (EnabledRelease ?? Mod.LatestRelease.FirstOrDefault())?.Info.EffectivePluginDependencies ?? [];
 
         public string ButtonText =>
             Optional(EnabledRelease).Match(

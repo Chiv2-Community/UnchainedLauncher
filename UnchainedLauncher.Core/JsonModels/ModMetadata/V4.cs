@@ -52,8 +52,14 @@ namespace UnchainedLauncher.Core.JsonModels.ModMetadata {
         [property: JsonPropertyName("icon_url")] string? IconUrl,
         [property: JsonPropertyName("image_urls")] List<string> ImageUrls,
         [property: JsonPropertyName("authors")] List<string> Authors,
-        [property: JsonPropertyName("dependencies")] List<Dependency> Dependencies
+        [property: JsonPropertyName("dependencies"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] List<Dependency>? Dependencies = null,
+        [property: JsonPropertyName("mod_dependencies"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] List<Dependency>? ModDependencies = null,
+        [property: JsonPropertyName("plugin_dependencies"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] List<Dependency>? PluginDependencies = null
     ) {
+        [JsonIgnore]
+        public List<Dependency> EffectiveModDependencies => (ModDependencies ?? []).Concat(Dependencies ?? []).Distinct().ToList();
+        [JsonIgnore]
+        public List<Dependency> EffectivePluginDependencies => PluginDependencies ?? [];
         public string? NonEmptyIconUrl => string.IsNullOrWhiteSpace(IconUrl) ? null : IconUrl;
         public string Organization => RepoUrl.Split('/')[^2];
         public string RepoName => RepoUrl.Split('/')[^1];

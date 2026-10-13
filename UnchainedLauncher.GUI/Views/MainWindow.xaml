@@ -8,6 +8,7 @@
     xmlns:servers="clr-namespace:UnchainedLauncher.GUI.Views.Servers"
     xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
     xmlns:scanner="clr-namespace:UnchainedLauncher.UnrealModScanner.GUI.Views;assembly=UnchainedLauncher.UnrealModScanner.GUI"
+    xmlns:behaviors="clr-namespace:UnchainedLauncher.GUI.Behaviors"
     mc:Ignorable="d"
     d:DataContext="{d:DesignInstance instances:MainWindowDesignVM}"
     x:Class="UnchainedLauncher.GUI.Views.MainWindow"
@@ -156,6 +157,161 @@
                 </StackPanel>
             </TabItem.Header>
             <mods:ModList DataContext="{Binding ModListViewModel}" />
+        </TabItem>
+        <TabItem x:Name="PluginManagerTab">
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🔌" Margin="0,0,6,0" />
+                    <TextBlock Text="Plugin Manager" />
+                </StackPanel>
+            </TabItem.Header>
+            <Grid DataContext="{Binding DllManagerViewModel}" Margin="10"
+                       Background="{DynamicResource Brush.Background}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="220" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="Search:" Style="{StaticResource Heading.H3}" VerticalAlignment="Center" />
+                    <TextBox Grid.Column="2" Text="{Binding SearchTerm, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Search by plugin name, repository, description or author" Padding="8,6" VerticalContentAlignment="Center" />
+                    <TextBlock Grid.Column="3" Text="Sort: " Style="{StaticResource Heading.H3}" VerticalAlignment="Center" Margin="8,0,0,0" />
+                    <ComboBox Grid.Column="4" ItemsSource="{Binding SortModes}" SelectedItem="{Binding SelectedSortMode}"
+                              ToolTip="Sort plugins" VerticalAlignment="Center">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Converter={StaticResource ModSortModeToStringConverter}, ConverterParameter=Plugins}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button x:Name="UpdatePluginsButton" Grid.Column="6" Content="Update Plugins" Command="{Binding UpdatePluginsCommand}"
+                            ToolTip="Check enabled, visible plugins for updates" Margin="0,0,8,0" Style="{StaticResource Button.Primary}" />
+                    <Button x:Name="RefreshPluginListButton" Grid.Column="7" Content="Refresh Plugin List" Command="{Binding RefreshCommand}"
+                            Style="{StaticResource Button.Primary}" />
+                </Grid>
+                <Grid Grid.Row="2" Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,8"
+                            BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" SnapsToDevicePixels="True" />
+                    <CheckBox Grid.Row="1" Grid.Column="0" IsChecked="{Binding EnablePluginAutomaticUpdates}"
+                              Content="Enable Automatic Plugin Updates and Downloads"
+                              Margin="0,5,12,5" />
+                    <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding AllowUnstablePluginReleases}"
+                              Content="Enable Unstable Plugin Releases"
+                              IsEnabled="{Binding EnablePluginAutomaticUpdates}"
+                              Margin="0,5" />
+                </Grid>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" behaviors:MouseWheelScrollForwardingBehavior.IsEnabled="True">
+                    <ItemsControl ItemsSource="{Binding Plugins}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource PluginCard}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="220" />
+                                            </Grid.ColumnDefinitions>
+                                            <Image Source="{Binding IconUrl}" Width="48" Height="48" Margin="0,0,12,0"
+                                                   VerticalAlignment="Center" Stretch="Uniform" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <Button Content="{Binding Name}" Command="{Binding ViewOnGithubCommand}"
+                                                        ToolTip="View plugin source on GitHub" FontWeight="SemiBold" FontSize="14"
+                                                        VerticalAlignment="Center" Background="{DynamicResource Brush.PrimaryTransparent}"
+                                                        Width="Auto" HorizontalAlignment="Left" BorderThickness="1"
+                                                        BorderBrush="{DynamicResource Brush.Border}" />
+                                                <TextBlock Text="{Binding Organization}" Foreground="{DynamicResource Brush.Muted}" />
+                                            </StackPanel>
+                                            <Button Grid.Column="2" Content="{Binding ButtonText}"
+                                                    Command="{Binding EnableOrDisableCommand}" Margin="0,0,8,0">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource Button.Secondary}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                                                <Setter Property="Background" Value="{DynamicResource Brush.Success}" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                                                                <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <ComboBox Grid.Column="3" ItemsSource="{Binding AvailableVersions}"
+                                                      SelectedItem="{Binding SelectedVersion, Mode=TwoWay}"
+                                                      ToolTip="Select version" VerticalAlignment="Stretch">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="{Binding Version}" VerticalAlignment="Center" />
+                                                            <ContentControl Style="{StaticResource Release.PrereleaseBadge}"
+                                                                            Visibility="{Binding IsPrerelease, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </Grid>
+                                        <TextBlock Text="An enabled prerelease is hidden. Check Enable Unstable Plugin Releases to view it."
+                                                   Visibility="{Binding HasHiddenEnabledVersion, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                   TextWrapping="Wrap" Margin="0,8,0,0" />
+                                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Margin="0,12,0,0" />
+                                        <ItemsControl ItemsSource="{Binding ImageUrls}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Image Source="{Binding}" Width="160" Height="100" Stretch="Uniform" Margin="0,8,8,0" />
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock Text="{Binding Authors, StringFormat='Authors: {0}'}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                        <TextBlock Text="{Binding Dependencies, StringFormat='Dependencies: {0}'}" TextWrapping="Wrap" Margin="0,8,0,0" />
+                                        <TextBlock Text="{Binding Target, StringFormat='Target: {0}'}" Margin="0,8,0,0" />
+                                        <TextBlock Text="{Binding FileName, StringFormat='DLL file: {0}'}" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding ReleaseTag, StringFormat='Release: {0}'}" />
+                                        <TextBlock Text="{Binding ReleaseDate, StringFormat='Release date (UTC): {0}'}" />
+                                        <Expander Header="Release notes" Margin="0,8,0,0">
+                                            <StackPanel>
+                                                <Button Content="View original release notes on GitHub" Command="{Binding OpenGithubReleaseCommand}"
+                                                        ToolTip="Open the displayed plugin release on GitHub" Style="{StaticResource Button.Secondary}"
+                                                        HorizontalAlignment="Left" Margin="0,0,0,8" />
+                                                <TextBlock Text="{Binding ReleaseNotes}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Expander>
+                                        <TextBlock Text="{Binding SelectedVersion.Size, StringFormat='Bytes: {0}'}"
+                                                   Foreground="{DynamicResource Brush.Muted}" FontSize="11" Margin="0,8,0,0" />
+                                        <TextBlock Text="{Binding SelectedVersion.Source}" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource Brush.Muted}" FontSize="11" />
+                                        <TextBlock Text="{Binding SelectedVersion.Sha256, StringFormat='SHA-256: {0}'}" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource Brush.Muted}" FontSize="11" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
         </TabItem>
         <TabItem Visibility="{Binding SettingsViewModel.IsUnrealScannerEnabled, Converter={StaticResource BoolToVis}}">
             <TabItem.Header>

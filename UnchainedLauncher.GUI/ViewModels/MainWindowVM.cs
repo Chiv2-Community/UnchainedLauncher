@@ -11,19 +11,22 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public SettingsVM SettingsViewModel { get; }
         public ServersTabVM ServersTab { get; }
         public HelpVM HelpVM { get; }
+        public DllManagerVM? DllManagerViewModel { get; }
 
         public MainWindowVM(HomeVM launcherVM,
                             ModListVM modListViewModel,
                             SettingsVM settingsViewModel,
                             ServersTabVM serversTab,
                             ModScanTabVM modScanTabVM,
-                            HelpVM helpVM) {
+                            HelpVM helpVM,
+                            DllManagerVM? dllManagerViewModel = null) {
             HomeVM = launcherVM;
             ModListViewModel = modListViewModel;
             SettingsViewModel = settingsViewModel;
             ServersTab = serversTab;
             ModScanTabVM = modScanTabVM;
             HelpVM = helpVM;
+            DllManagerViewModel = dllManagerViewModel;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

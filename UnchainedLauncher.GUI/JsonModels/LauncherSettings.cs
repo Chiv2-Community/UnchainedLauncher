@@ -12,5 +12,8 @@ namespace UnchainedLauncher.GUI.JsonModels {
         [property: JsonPropertyName("use_light_theme")] bool? UseLightTheme,
         [property: JsonPropertyName("allow_unstable_plugin_releases")] bool? AllowUnstablePluginReleases,
         [property: JsonPropertyName("last_launch_version")] SemVersion? LastLaunchVersion
-    );
+    ) {
+        public bool ShouldAllowUnstablePluginReleases(SemVersion runningVersion) => runningVersion.IsPrerelease
+            || (LastLaunchVersion?.WithoutMetadata() == runningVersion.WithoutMetadata() && AllowUnstablePluginReleases == true);
+    }
 }

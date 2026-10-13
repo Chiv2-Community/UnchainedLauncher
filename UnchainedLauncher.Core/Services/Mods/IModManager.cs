@@ -389,7 +389,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var newDependencies =
                 modManager.GetLatestRelease(coordinates)
                     .ToList()
-                    .Bind(release => release.Info.Dependencies)
+                    .Bind(release => release.Info.EffectiveModDependencies)
                     .Map(ModIdentifier.FromDependency)
                     .Bind(id => modManager.GetLatestRelease(id).ToList()) // Get the latest release for each dependency (we're ignoring dependency version range requirements currently)
                     .Filter(dep => !seenDependencies.Contains(dep)) // Filter out any dependency we've already seen

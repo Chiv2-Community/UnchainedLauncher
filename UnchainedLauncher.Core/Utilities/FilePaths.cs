@@ -14,6 +14,7 @@
         public const string ServersTabConfigurationPath = $"{ModCachePath}\\servers_tab.json";
         public const string RegistryConfigPath = $"{ModCachePath}\\registry_config.json";
         public const string ModManagerConfigPath = $"{ModCachePath}\\mod_manager_config.json";
+        public const string DllManagerConfigPath = $"{ModCachePath}\\dll_manager_config.json";
         public const string PakDirMetadata = $"{ModCachePath}\\pak_dir_metadata.json";
 
         public static string Chiv2ConfigPath(string? savedDirSuffix) {

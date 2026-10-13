@@ -6,8 +6,8 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
-using ManagedDllManager = UnchainedLauncher.Core.Services.Dlls.DllManager;
 using DllRelease = UnchainedLauncher.Core.JsonModels.DllRelease;
+using ManagedDllManager = UnchainedLauncher.Core.Services.Dlls.DllManager;
 
 namespace UnchainedLauncher.Core.Services.Mods;
 

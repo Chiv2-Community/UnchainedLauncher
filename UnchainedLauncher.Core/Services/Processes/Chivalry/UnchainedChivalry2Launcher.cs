@@ -88,12 +88,12 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
                 },
                 Right: proc => {
                     Logger.Info("Successfully launched Chivalry 2 process.");
-                    return InjectDlLs(proc, server: updatedLaunchOpts.ServerLaunchOptions.IsSome);
+                    return InjectDLLs(proc, server: updatedLaunchOpts.ServerLaunchOptions.IsSome);
                 }
             );
         }
 
-        private Either<UnchainedLaunchFailure, Process> InjectDlLs(Process process, bool server) {
+        private Either<UnchainedLaunchFailure, Process> InjectDLLs(Process process, bool server) {
             Logger.Info($"Injecting DLLs into {process.Id}");
             if (ProcessInjector.Inject(process, server)) return Right(process);
 

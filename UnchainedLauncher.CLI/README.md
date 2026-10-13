@@ -195,7 +195,10 @@ preferring one with a default gateway; it falls back to another usable IPv4 or l
 Set `local-ip` only to override this choice (for example, with a VPN or multiple adapters).
 Time/score/ticket limits, player bot count, and warmup are **INI settings**, not
 part of either CLI schema; configure them in the selected saved profile.
-No INI files are rewritten; other existing saved-profile INI settings still apply.
+Before a server launch, the CLI initializes the selected profile's `Game.ini` with
+`bSavedHasAgreedToTOS=True` and `FirstLoadCompleted=True`, matching the GUI's startup
+defaults so first-run screens do not block unattended startup. Other existing INI
+settings are preserved. Client launches do not initialize or rewrite INI files.
 
 Discord configuration is nested under the server:
 

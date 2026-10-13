@@ -1,5 +1,7 @@
 using System.Diagnostics;
 using System.Net;
+using StructuredINI;
+using UnchainedLauncher.Core.INIModels.Game;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
@@ -65,6 +67,7 @@ public static class ServerLauncher {
                 if (updated.IsNone || (await signing.PrepareLaunch(LanguageExt.Unit.Default)).IsNone)
                     return LanguageExt.Option<LaunchOptions>.None;
                 cancellationToken.ThrowIfCancellationRequested();
+                InitializeServerProfile(request);
                 return updated;
             });
             var launcher = new UnchainedChivalry2Launcher(preparer, new ProcessLauncher(executable),
@@ -79,6 +82,17 @@ public static class ServerLauncher {
 
     internal static AggregateModRegistry CreateRegistry(CliLaunchOptions options) =>
         options.Shared.RegistryOptions.CreateRegistry();
+
+    internal static void InitializeServerProfile(CliLaunchOptions request, Func<string, string>? configPath = null) {
+        if (request is not ServerOptions) return;
+
+        var directory = (configPath ?? FilePaths.Chiv2ConfigPath)(request.Shared.SavedDirSuffix);
+        // Match the GUI's startup defaults without rewriting unrelated server or player settings.
+        var writer = new StructuredINIWriter();
+        if (!writer.BufferWrite(new TBLTitleScreen()) || !writer.BufferWrite(new TBLGameInstance()) ||
+            !writer.WriteOut(Path.Combine(directory, "Game.ini")))
+            throw new IOException("Could not initialize the server INI profile; refusing to launch.");
+    }
 
     // Several existing Core preparers use installation-relative paths.
     // This standalone CLI sets CWD only for preparation, then restores it.

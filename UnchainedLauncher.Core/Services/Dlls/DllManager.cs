@@ -1,7 +1,7 @@
-using System.Security.Cryptography;
-using System.Text.Json;
 using Semver;
 using System.Net;
+using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace UnchainedLauncher.Core.Services.Dlls {
@@ -144,12 +144,17 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         }
 
         private static string Canonical(DllRelease release) => JsonSerializer.Serialize(release with {
-            Organization = release.Organization.ToLowerInvariant(), Name = release.Name.ToLowerInvariant(), Tag = release.Tag ?? release.Version,
+            Organization = release.Organization.ToLowerInvariant(),
+            Name = release.Name.ToLowerInvariant(),
+            Tag = release.Tag ?? release.Version,
             Info = release.Info == null ? null : NormalizeInfo(release.Info)
         });
 
         private static PluginInfo NormalizeInfo(PluginInfo info) => info with {
-            PluginDependencies = info.RequiredPlugins, ModDependencies = info.RequiredMods, ImageUrls = info.ImageUrls ?? [], Schema = null
+            PluginDependencies = info.RequiredPlugins,
+            ModDependencies = info.RequiredMods,
+            ImageUrls = info.ImageUrls ?? [],
+            Schema = null
         };
 
         private static string CanonicalInfo(PluginInfo info) => JsonSerializer.Serialize(NormalizeInfo(info));

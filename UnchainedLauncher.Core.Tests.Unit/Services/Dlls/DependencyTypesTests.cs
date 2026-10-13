@@ -1,7 +1,6 @@
 using System.Text.Json;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Dlls;
-using Xunit;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
     public sealed class DependencyTypesTests {

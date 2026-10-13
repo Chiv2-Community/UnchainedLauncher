@@ -1,6 +1,6 @@
+using Semver;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using Semver;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 
 namespace UnchainedLauncher.Core.Services.Dlls {
@@ -99,8 +99,12 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 var target = SemVersion.Parse(match.Groups[2].Value, SemVersionStyles.Strict);
                 var comparison = candidate.ComparePrecedenceTo(target);
                 matches &= match.Groups[1].Value switch {
-                    ">=" => comparison >= 0, "<=" => comparison <= 0, ">" => comparison > 0, "<" => comparison < 0,
-                    "!=" => comparison != 0, "" or "=" or "==" => comparison == 0,
+                    ">=" => comparison >= 0,
+                    "<=" => comparison <= 0,
+                    ">" => comparison > 0,
+                    "<" => comparison < 0,
+                    "!=" => comparison != 0,
+                    "" or "=" or "==" => comparison == 0,
                     _ => throw new InvalidDataException("Invalid dependency version operator.")
                 };
             }

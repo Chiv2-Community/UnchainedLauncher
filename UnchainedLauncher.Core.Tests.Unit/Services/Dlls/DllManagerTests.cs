@@ -3,7 +3,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using UnchainedLauncher.Core.Services.Dlls;
-using Xunit;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
     public sealed class DllManagerTests : IDisposable {
@@ -142,8 +141,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
 
         [Fact]
         public async Task PluginModDependenciesAreCheckedAgainBeforeInjection() {
-            var plugin = Release() with { Info = new PluginInfo("Plugin", "Description", ["Author"], [],
-                ModDependencies: [new UnchainedLauncher.Core.JsonModels.ModMetadata.Dependency("https://github.com/Test/Pak", "1.0.0")]) };
+            var plugin = Release() with {
+                Info = new PluginInfo("Plugin", "Description", ["Author"], [],
+                ModDependencies: [new UnchainedLauncher.Core.JsonModels.ModMetadata.Dependency("https://github.com/Test/Pak", "1.0.0")])
+            };
             Index(plugin);
             var enabledMods = new List<UnchainedLauncher.Core.JsonModels.ModMetadata.Release>();
             var manager = new DllManager(PluginPath, StatePath, _http, () => enabledMods);
@@ -162,10 +163,14 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
 
         [Fact]
         public async Task CircularDependenciesFailBeforeDownloadsOrInjection() {
-            var first = Release() with { Info = new PluginInfo("First", "Description", ["Author"],
-                [new UnchainedLauncher.Core.JsonModels.ModMetadata.Dependency("https://github.com/Chiv2-Community/OtherPlugin", "1.0.0")]) };
-            var second = Release("OtherPlugin") with { Info = new PluginInfo("Second", "Description", ["Author"],
-                [new UnchainedLauncher.Core.JsonModels.ModMetadata.Dependency("https://github.com/Chiv2-Community/UnchainedPlugin", "1.0.0")]) };
+            var first = Release() with {
+                Info = new PluginInfo("First", "Description", ["Author"],
+                [new UnchainedLauncher.Core.JsonModels.ModMetadata.Dependency("https://github.com/Chiv2-Community/OtherPlugin", "1.0.0")])
+            };
+            var second = Release("OtherPlugin") with {
+                Info = new PluginInfo("Second", "Description", ["Author"],
+                [new UnchainedLauncher.Core.JsonModels.ModMetadata.Dependency("https://github.com/Chiv2-Community/UnchainedPlugin", "1.0.0")])
+            };
             Index(first, second);
             var manager = Manager();
             await manager.RefreshAsync();
@@ -199,7 +204,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         private DllRelease ModernRelease(string name = "UnchainedPlugin", string target = "shared", string version = "1.0.0") =>
             Release(name, version) with {
                 Info = new PluginInfo("Display " + name, "Description", ["Author"], RepoUrl: "https://github.com/Chiv2-Community/" + name, Target: target),
-                Tag = "v" + version, DllFileName = name + "-native.dll", ReleaseDate = DateTimeOffset.Parse("2026-03-23T15:37:46+00:00"),
+                Tag = "v" + version,
+                DllFileName = name + "-native.dll",
+                ReleaseDate = DateTimeOffset.Parse("2026-03-23T15:37:46+00:00"),
                 ReleaseNotesMarkdown = "Release notes"
             };
 
@@ -269,9 +276,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         [Fact]
         public async Task IncompatibleDependencyTargetFailsBeforeDownload() {
             var client = ModernRelease("OtherPlugin", "client");
-            var shared = ModernRelease() with { Info = ModernRelease().Info! with {
-                PluginDependencies = [new UnchainedLauncher.Core.JsonModels.ModMetadata.Dependency("https://github.com/Chiv2-Community/OtherPlugin", "1.0.0")]
-            } };
+            var shared = ModernRelease() with {
+                Info = ModernRelease().Info! with {
+                    PluginDependencies = [new UnchainedLauncher.Core.JsonModels.ModMetadata.Dependency("https://github.com/Chiv2-Community/OtherPlugin", "1.0.0")]
+                }
+            };
             Packages(shared, client);
             var manager = Manager();
             await manager.RefreshAsync();
@@ -286,9 +295,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         public async Task OppositeSidePakRequirementsDoNotBlockClientLaunch() {
             var shared = ModernRelease();
             var server = ModernRelease("ServerPlugin", "server");
-            server = server with { Info = server.Info! with {
-                ModDependencies = [new UnchainedLauncher.Core.JsonModels.ModMetadata.Dependency("https://github.com/Org/Pak.Mod", "1.0.0")]
-            } };
+            server = server with {
+                Info = server.Info! with {
+                    ModDependencies = [new UnchainedLauncher.Core.JsonModels.ModMetadata.Dependency("https://github.com/Org/Pak.Mod", "1.0.0")]
+                }
+            };
             Packages(shared, server);
             var manager = Manager();
             await manager.RefreshAsync();
@@ -317,9 +328,14 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
 
         [Fact]
         public void PackageInfoComparisonUsesSchemaDefaultsAndIgnoresSchemaAnnotation() {
-            var release = ModernRelease() with { Info = ModernRelease().Info! with {
-                Schema = "https://example.test/plugin.schema.json", PluginDependencies = [], ModDependencies = [], ImageUrls = []
-            } };
+            var release = ModernRelease() with {
+                Info = ModernRelease().Info! with {
+                    Schema = "https://example.test/plugin.schema.json",
+                    PluginDependencies = [],
+                    ModDependencies = [],
+                    ImageUrls = []
+                }
+            };
             var json = JsonSerializer.Serialize(new PluginPackage(ModernRelease().Info!, [new PluginRelease(release.Tag!, release.Sha256,
                 release.DllFileName, release.DownloadUrl, release.Size, release.ReleaseDate, release.Info, null)]));
             Assert.Single(DllManager.ParsePackage(json, release.Id));
@@ -681,7 +697,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
                 if (Fail) throw new HttpRequestException("Offline fixture");
                 if (Responses.TryGetValue(request.RequestUri!.AbsoluteUri, out var content))
                     return Task.FromResult(new HttpResponseMessage(content == null ? HttpStatusCode.NotFound : HttpStatusCode.OK) {
-                        RequestMessage = request, Content = new StringContent(content ?? "")
+                        RequestMessage = request,
+                        Content = new StringContent(content ?? "")
                     });
                 if (request.RequestUri!.AbsoluteUri == DllManager.PackageListUrl)
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request });

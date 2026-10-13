@@ -4,6 +4,7 @@ Durable records of consequential repository decisions. Entries are ordered newes
 
 | Date | Record | Status | Scope | Git provenance |
 | --- | --- | --- | --- | --- |
+| 2026-10-13 | [Managed DLL cache boundary](2026-10-13-managed-dll-cache-boundary.md) | implemented; PR #152 open | On-disk lifecycle for registry-validated native DLL plugins | `ce7cefd4cdd89ce31e8e0faa34faa00801d91e6c` |
 | 2026-10-12 | [PR #152 review fixes and clean review](2026-10-12-pr-152-review-fixes-and-clean-review.md) | implemented; PR #152 open | Revoked plugin selections, local release metadata, review outcome | `9e5a1118221f0b74ff75033e43b79c179156b661` |
 | 2026-10-12 | [Remove Clientside launch and validate enabled plugin dependencies](2026-10-12-remove-clientside-launch-and-validate-enabled-plugin-dependencies.md) | implemented; PR #152 open | Launch-mode support and mod-to-plugin dependency validation | `9e19a544263fe6c9e4407dccfbd7806725edd735` |
 | 2026-10-12 | [Mod-plugin dependency warning and concise Plugin Manager docs](2026-10-12-mod-plugin-dependency-warning-and-concise-docs.md) | implemented; PR #152 open | Clientside launch dependency guidance; user documentation | `74db8a51b7ddce9bc1314f587d661f740a372929` |

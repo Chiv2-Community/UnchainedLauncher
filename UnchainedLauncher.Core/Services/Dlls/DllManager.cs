@@ -1,5 +1,8 @@
+using Microsoft.Win32.SafeHandles;
 using Semver;
+using System.ComponentModel;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -371,8 +374,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                         if (release == null || (active.Contains(path) && selected.Any(candidate =>
                             GetPath(candidate).Equals(path, StringComparison.OrdinalIgnoreCase) && MatchesFile(path, candidate))))
                             continue;
-                        CopyValidated(path, GetCachePath(release), release);
-                        File.Delete(path);
+                        CopyValidated(path, GetCachePath(release), release, archive: true);
                     }
                 }
                 foreach (var release in selected) {
@@ -384,20 +386,57 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             }
         }
 
-        private static void CopyValidated(string source, string destination, DllRelease release) {
+        private static void CopyValidated(string source, string destination, DllRelease release,
+            bool archive = false, Action? cachePublished = null) {
+            // Unix pathname unlink cannot condition deletion on an open file identity.
+            // Keep portable validation/copying, but never silently use unsafe archival.
+            if (archive && !OperatingSystem.IsWindows())
+                throw new PlatformNotSupportedException("Safe managed DLL archival requires Windows file handles.");
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             var temp = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try {
-                using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using var input = archive ? OpenForArchive(source)
+                    : new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read);
                 using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
                     ValidateBytes(input, release);
                     input.CopyTo(output);
                     ValidateBytes(output, release);
                 }
                 File.Move(temp, destination, true);
+                // Deterministic test boundary: the cache exists, and the validated
+                // source must still deny writes, renames and pathname replacement.
+                cachePublished?.Invoke();
+                if (archive) {
+                    byte delete = 1; // FILE_DISPOSITION_INFO.DeleteFile (BOOLEAN)
+                    if (!SetFileInformationByHandle(input.SafeFileHandle, 4, ref delete, 1))
+                        throw new IOException("Could not delete the validated managed DLL.", new Win32Exception(Marshal.GetLastWin32Error()));
+                }
             }
             finally { if (File.Exists(temp)) File.Delete(temp); }
         }
+
+        private static FileStream OpenForArchive(string path) {
+            // GENERIC_READ | DELETE, FILE_SHARE_READ, OPEN_EXISTING. Do not grant
+            // FILE_SHARE_WRITE/DELETE: the validated identity stays protected until
+            // deletion is marked on this very handle and the handle closes.
+            var handle = CreateFileW(path, 0x80010000, 1, IntPtr.Zero, 3, 0, IntPtr.Zero);
+            if (handle.IsInvalid) {
+                var error = Marshal.GetLastWin32Error();
+                handle.Dispose();
+                throw new IOException("Could not protect the managed DLL for archival.", new Win32Exception(error));
+            }
+            try { return new FileStream(handle, FileAccess.Read); }
+            catch { handle.Dispose(); throw; }
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+        private static extern SafeFileHandle CreateFileW(string path, uint access, uint share, IntPtr security,
+            uint creation, uint flags, IntPtr template);
+
+        [DllImport("kernel32.dll", ExactSpelling = true, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetFileInformationByHandle(SafeFileHandle handle, int informationClass,
+            ref byte information, uint size);
 
         // Read handles deny writes/deletion on Windows until injection completes.
         public IReadOnlyList<ValidatedDll> OpenForInjection(bool server = false) {

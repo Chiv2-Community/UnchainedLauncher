@@ -293,6 +293,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             try { Assert.Equal(new[] { client.DllFileName, shared.DllFileName }.Order(), files.Select(file => Path.GetFileName(file.Path)).Order()); }
             finally { foreach (var file in files) file.Dispose(); }
             Assert.DoesNotContain(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories), file => Path.GetFileName(file) == server.DllFileName);
+            if (!OperatingSystem.IsWindows()) {
+                await Assert.ThrowsAsync<PlatformNotSupportedException>(() => manager.PrepareAsync(server: true));
+                Assert.Contains(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories), file => Path.GetFileName(file) == client.DllFileName);
+                return;
+            }
             await manager.PrepareAsync(server: true);
             files = manager.OpenForInjection(server: true);
             try { Assert.Equal(new[] { server.DllFileName, shared.DllFileName }.Order(), files.Select(file => Path.GetFileName(file.Path)).Order()); }
@@ -617,6 +622,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             await manager.PrepareAsync();
             _handler.Binary = nextBytes;
             manager.SetEnabled(second, true);
+            if (!OperatingSystem.IsWindows()) {
+                await Assert.ThrowsAsync<PlatformNotSupportedException>(() => manager.PrepareAsync());
+                Assert.Equal(_binary, File.ReadAllBytes(Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories))));
+                return;
+            }
             await manager.PrepareAsync();
             Assert.Equal(nextBytes, File.ReadAllBytes(Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories))));
             Assert.False(Directory.Exists(Path.Combine(PluginPath, ".cache")));
@@ -648,6 +658,14 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             var manager = Manager();
             await manager.RefreshAsync();
             _handler.Fail = true;
+            if (!OperatingSystem.IsWindows()) {
+                await Assert.ThrowsAsync<PlatformNotSupportedException>(() => manager.PrepareAsync(allowDownloads: false));
+                Assert.Equal(_binary, File.ReadAllBytes(legacy));
+                Assert.Equal(_binary, File.ReadAllBytes(unknownName));
+                Assert.Equal("unregistered version", File.ReadAllText(unknownVersion));
+                Assert.Equal("unregistered root DLL", File.ReadAllText(loose));
+                return;
+            }
             await manager.PrepareAsync(allowDownloads: false);
             Assert.False(File.Exists(legacy));
             Assert.Equal(_binary, File.ReadAllBytes(unknownName));
@@ -668,6 +686,15 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             await manager.PrepareAsync();
             var installed = Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
             manager.Disable(release.Id);
+            if (!OperatingSystem.IsWindows()) {
+                await Assert.ThrowsAsync<PlatformNotSupportedException>(() => manager.PrepareAsync(allowDownloads: false));
+                Assert.Equal(_binary, File.ReadAllBytes(installed));
+                Assert.Empty(manager.OpenForInjection());
+                File.WriteAllText(installed, "unregistered version");
+                await manager.PrepareAsync(allowDownloads: false);
+                Assert.Equal("unregistered version", File.ReadAllText(installed));
+                return;
+            }
             await manager.PrepareAsync(allowDownloads: false);
             Assert.False(File.Exists(installed));
             Assert.Empty(manager.OpenForInjection());
@@ -764,6 +791,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             Assert.Equal(_binary, File.ReadAllBytes(loose));
             await manager.PrepareAsync();
             manager.Disable(Release().Id);
+            if (!OperatingSystem.IsWindows()) {
+                await Assert.ThrowsAsync<PlatformNotSupportedException>(() => manager.PrepareAsync(allowDownloads: false));
+                Assert.Equal(_binary, File.ReadAllBytes(loose));
+                return;
+            }
             await manager.PrepareAsync(allowDownloads: false);
             Assert.Equal(_binary, File.ReadAllBytes(loose));
             Assert.Equal(loose, Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories)));
@@ -774,6 +806,71 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             Assert.Throws<ArgumentException>(() => new DllManager(PluginPath, StatePath, _http, cacheDirectory: PluginPath));
             Assert.Throws<ArgumentException>(() => new DllManager(PluginPath, StatePath, _http,
                 cacheDirectory: Path.Combine(PluginPath, ".cache")));
+        }
+
+        private static void ArchiveAtPublication(string source, string cache, DllRelease release, Action published) {
+            // Exercise exactly the helper used by PrepareAsync, not a simulated
+            // lock or pathname-delete algorithm. Reflection keeps this seam private.
+            var copy = typeof(DllManager).GetMethod("CopyValidated", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            try { copy.Invoke(null, [source, cache, release, true, published]); }
+            catch (System.Reflection.TargetInvocationException error) {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException!).Throw();
+            }
+        }
+
+        [Theory]
+        [InlineData("write")]
+        [InlineData("replace")]
+        [InlineData("delete")]
+        public void ArchiveProtectsValidatedIdentityAfterCachePublication(string operation) {
+            if (!OperatingSystem.IsWindows()) return;
+            var source = Path.Combine(_dir, "approved.dll");
+            var cache = Path.Combine(_dir, "cache", "approved.dll");
+            var replacement = Path.Combine(_dir, "replacement.dll");
+            File.WriteAllBytes(source, _binary);
+            File.WriteAllText(replacement, "unknown user version");
+            var reached = false;
+            ArchiveAtPublication(source, cache, Release(), () => {
+                reached = true;
+                Assert.Equal(_binary, File.ReadAllBytes(cache));
+                // A separate writer reaches the original vulnerable boundary
+                // deterministically, without sleeps or filesystem watcher timing.
+                Task.Run(() => {
+                    var error = Record.Exception(() => {
+                        switch (operation) {
+                            case "write": File.WriteAllText(source, "unknown user version"); break;
+                            case "replace": File.Move(replacement, source, true); break;
+                            default: File.Delete(source); break;
+                        }
+                    });
+                    Assert.True(error is IOException or UnauthorizedAccessException, $"Writer was not blocked: {error}");
+                }).GetAwaiter().GetResult();
+                using var reader = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+                DllManager.ValidateBytes(reader, Release());
+            });
+            Assert.True(reached);
+            Assert.False(File.Exists(source));
+            Assert.Equal(_binary, File.ReadAllBytes(cache));
+            Assert.Equal("unknown user version", File.ReadAllText(replacement));
+            File.Move(replacement, source);
+            Assert.Equal("unknown user version", File.ReadAllText(source));
+        }
+
+        [Fact]
+        public void ArchiveNeverDeletesOnValidationOrPublicationFailure() {
+            if (!OperatingSystem.IsWindows()) return;
+            var source = Path.Combine(_dir, "approved.dll");
+            var cache = Path.Combine(_dir, "cache", "approved.dll");
+            File.WriteAllText(source, "unknown user version");
+            Assert.Throws<InvalidDataException>(() => ArchiveAtPublication(source, cache, Release(), () => Assert.True(false)));
+            Assert.Equal("unknown user version", File.ReadAllText(source));
+            Assert.False(File.Exists(cache));
+            File.WriteAllBytes(source, _binary);
+            // An existing directory makes the real atomic cache publication fail.
+            Directory.CreateDirectory(cache);
+            Assert.Throws<IOException>(() => ArchiveAtPublication(source, cache, Release(), () => Assert.True(false)));
+            Assert.Equal(_binary, File.ReadAllBytes(source));
+            Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(cache)!, "*.tmp"));
         }
 
         [Fact]

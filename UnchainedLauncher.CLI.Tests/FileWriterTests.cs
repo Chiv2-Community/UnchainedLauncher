@@ -9,7 +9,7 @@ namespace UnchainedLauncher.CLI.Tests;
 
 public class FileWriterTests : IDisposable {
     private readonly string _directory = Path.Combine(
-        OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "writer-tests-" + Guid.NewGuid().ToString("N"));
+        Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "writer-tests-" + Guid.NewGuid().ToString("N"));
 
     public FileWriterTests() => Directory.CreateDirectory(_directory);
     public void Dispose() => Directory.Delete(_directory, recursive: true);

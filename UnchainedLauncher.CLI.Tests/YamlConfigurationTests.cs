@@ -8,7 +8,7 @@ namespace UnchainedLauncher.CLI.Tests;
 [Collection("Installation directory")]
 public class YamlConfigurationTests : IDisposable {
     private readonly string _directory = Path.Combine(
-        OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "yaml-cli-tests-" + Guid.NewGuid().ToString("N"));
+        Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "yaml-cli-tests-" + Guid.NewGuid().ToString("N"));
 
     public YamlConfigurationTests() => Directory.CreateDirectory(_directory);
     public void Dispose() => Directory.Delete(_directory, recursive: true);

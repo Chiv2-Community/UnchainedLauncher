@@ -9,6 +9,7 @@ namespace UnchainedLauncher.Core.JsonModels;
 public sealed record DllPackage(
     [property: JsonPropertyName("latest_release_info"), JsonRequired] DllInfo LatestReleaseInfo,
     [property: JsonPropertyName("releases"), JsonRequired] List<DllRelease> Releases) {
+    [JsonIgnore]
     public DllRelease? LatestRelease => Releases.Where(release => release.Version?.IsRelease == true)
         .OrderByDescending(release => release.Version).FirstOrDefault()
         ?? Releases.OrderByDescending(release => release.ReleaseDate).FirstOrDefault();
@@ -24,6 +25,14 @@ public sealed record DllRelease(
     [property: JsonPropertyName("info"), JsonRequired] DllInfo Info,
     [property: JsonPropertyName("release_notes_markdown")] string? ReleaseNotesMarkdown) {
     [JsonIgnore] public SemVersion? Version => SemVersion.TryParse(Tag, SemVersionStyles.AllowV, out var version) ? version : null;
+    [JsonIgnore] internal Services.Dlls.DllRelease? RegisteredRelease { get; init; }
+
+    public Services.Dlls.DllRelease ToManagedRelease() => RegisteredRelease ?? new(
+        Info.Identifier.Org, Info.Identifier.ModuleName, Version?.ToString() ?? throw new InvalidDataException("Invalid DLL version."),
+        DownloadUrl, Hash.ToLowerInvariant(), Size,
+        new Services.Dlls.PluginInfo(Info.Name, Info.Description, Info.Authors, Info.PluginDependencies,
+            Info.IconUrl, Info.ImageUrls, Info.ModDependencies, Info.RepoUrl, Info.Target),
+        Tag, ReleaseDate, ReleaseNotesMarkdown, DllFileName);
 }
 
 public sealed record DllInfo {

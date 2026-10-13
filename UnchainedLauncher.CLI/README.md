@@ -291,20 +291,26 @@ same installed mod set and separate saved suffixes/ports.
 
 ## DLL compatibility behavior
 
-Both GUI and CLI resolve the required UnchainedPlugin release from `dll_db`.
+GUI and CLI share DLL registry validation, managed storage, caching, and injection.
+The CLI selects UnchainedPlugin from `dll_db` for each launch; GUI selections stay
+in the Plugin Manager's saved profile.
 `--dll organization/id:version` (or YAML `mod-setup.dlls`) additionally selects
 registry releases in CLI launches. Plugin dependencies are resolved before their
 dependents; target mismatches, missing releases, cycles, and conflicting versions
-fail preparation. Pak dependencies enter the shared mod manager. The GUI uses
-this same manager for the core plugin; a GUI DLL-selection editor is not included.
+fail preparation. Pak dependencies enter the shared mod manager.
 
 Every selected DLL must match the registry's SHA-256 and size. Downloads are
-verified before installation. Existing matching root DLLs can be reused;
-new downloads go into `Plugins/.dll-managed/<sha256>/` without replacing unknown
-root DLLs. `Plugins/dll_manager.json` records the last successful selection.
+verified before installation. Active DLLs use
+`Plugins/Managed/<organization>/<repository>/<dll_file_name>`; inactive registered
+versions use `Win64/.cache/dlls/<sha256>/<dll_file_name>`. Switching versions restores
+validated cached files without downloading again. Registered files in historical
+`Managed` hash directories or `.dll-managed` directories migrate after validation.
+Loose DLLs, unknown filenames, and unregistered versions stay untouched and are
+not loaded in safe mode. CLI selections never overwrite the GUI plugin profile.
+`Plugins/dll_manager.json` records the last successful selection.
 Safe injection uses only that launch's verified allowlist, not the directory or
-the saved inventory. Old managed files are retained, not automatically deleted.
-`--no-plugin-update` forbids downloads and requires matching local files.
+the saved inventory. The unsafe load-all option retains other DLLs for injection.
+`--no-plugin-update` forbids downloads but permits restoring cached versions.
 Only explicitly pinned prereleases (or `--allow-unstable-plugin` for automatic
 selection) are eligible; automatic selection otherwise uses the latest stable.
 

@@ -6,7 +6,7 @@ using Xunit;
 namespace UnchainedLauncher.CLI.Tests;
 
 public sealed class DllQueryAndLoadingTests : IDisposable {
-    private readonly string _directory = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "dll-query-" + Guid.NewGuid().ToString("N"));
+    private readonly string _directory = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "dll-query-" + Guid.NewGuid().ToString("N"));
     public DllQueryAndLoadingTests() => Directory.CreateDirectory(_directory);
     public void Dispose() => Directory.Delete(_directory, recursive: true);
 
@@ -76,7 +76,7 @@ public sealed class DllQueryAndLoadingTests : IDisposable {
         Directory.CreateDirectory(nested);
         foreach (var file in new[] { "UnchainedPlugin.dll", "Unexpected.dll", "not-a-dll.txt", "nested/Other.DLL" })
             File.WriteAllText(Path.Combine(_directory, file), "not executed");
-        Assert.Equal(new[] { Path.Combine(_directory, "UnchainedPlugin.dll") }, new DllInjector(_directory).GetDllPaths());
+        Assert.Empty(new DllInjector(_directory).GetDllPaths());
         Assert.Equal(3, new DllInjector(_directory, unsafeLoadAllDlls: true).GetDllPaths().Count());
         Assert.Empty(new DllInjector(Path.Combine(_directory, "missing")).GetDllPaths());
     }

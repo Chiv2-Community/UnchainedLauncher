@@ -38,8 +38,11 @@ public static class ModQuery {
         await output.WriteLineAsync($"Mod ID: {Id(options.Mod!)}\nName: {Line(selected.Info.Name)}\nVersion: {Line(selected.Tag)}\nDescription: {Line(selected.Info.Description)}");
         await output.WriteLineAsync($"Authors: {string.Join(", ", selected.Info.Authors.Select(Line))}\nRepository: {Line(selected.Info.RepoUrl)}\nHomepage: {Line(selected.Info.HomePage ?? "none")}\nRelease date: {selected.ReleaseDate.ToString("O", CultureInfo.InvariantCulture)}");
         await output.WriteLineAsync($"Pak file: {Line(selected.PakFileName)}\nPak hash (SHA-512): {Line(selected.ReleaseHash)}\nSize: {(size is null ? "unknown (not available from registry/file)" : size.Value.ToString(CultureInfo.InvariantCulture) + " bytes")}");
-        await output.WriteLineAsync($"Dependencies ({selected.Info.Dependencies.Count}):");
-        foreach (var dependency in selected.Info.Dependencies)
+        await output.WriteLineAsync($"Dependencies ({selected.Info.EffectiveModDependencies.Count}):");
+        foreach (var dependency in selected.Info.EffectiveModDependencies)
+            await output.WriteLineAsync($"  {Id(ModIdentifier.FromDependency(dependency))}: {Line(dependency.Version)}");
+        await output.WriteLineAsync($"Plugin dependencies ({selected.Info.EffectivePluginDependencies.Count}):");
+        foreach (var dependency in selected.Info.EffectivePluginDependencies)
             await output.WriteLineAsync($"  {Id(ModIdentifier.FromDependency(dependency))}: {Line(dependency.Version)}");
         await output.WriteLineAsync($"Maps ({selected.Manifest.Maps.Count}):");
         foreach (var map in selected.Manifest.Maps)

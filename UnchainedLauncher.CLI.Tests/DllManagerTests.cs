@@ -7,12 +7,13 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 using Xunit;
+using DllManager = UnchainedLauncher.Core.Services.Mods.DllLaunchSession;
 
 namespace UnchainedLauncher.CLI.Tests;
 
 public sealed class DllManagerTests {
     private static DllRelease Release(string id, string version = "v1.0.0", string target = "shared", params Dependency[] dependencies) =>
-        new(version, Convert.ToHexString(SHA256.HashData([1, 2, 3])), "Plugin.dll", "https://example.test/plugin.dll", 3,
+        new(version, Convert.ToHexString(SHA256.HashData([1, 2, 3])).ToLowerInvariant(), "Plugin.dll", "https://example.test/plugin.dll", 3,
             DateTimeOffset.UtcNow, new DllInfo {
                 RepoUrl = "https://github.com/" + id,
                 Name = id,
@@ -77,9 +78,11 @@ public sealed class DllManagerTests {
     public void UnsafeRegistryFileNamesAreRejected(string name) =>
         Assert.Throws<InvalidOperationException>(() => DllManager.SafeFileName(name));
 
-    [Fact]
-    public async Task ExistingFilesRequireRegistryHashAndSizeAndInventoryRecordsApprovedSelection() {
-        var root = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "dll-manager-" + Guid.NewGuid().ToString("N"));
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ExistingFilesRequireRegistryHashAndSizeAndInventoryRecordsApprovedSelection(bool legacyCli) {
+        var root = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "dll-manager-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
             var release = Release("Chiv2-Community/UnchainedPlugin") with { DllFileName = "UnchainedPlugin.dll" };
@@ -88,15 +91,23 @@ public sealed class DllManagerTests {
             File.WriteAllText(Path.Combine(packagePath, "UnchainedPlugin.json"), JsonHelpers.Serialize(Package(release)));
             var registry = new AggregateModRegistry(new LocalModRegistry(root));
             var mods = new ModManager(registry, new PakDir(root, []), []);
-            var manager = new DllManager(registry, mods, root);
+            var plugins = Path.Combine(root, "Plugins");
+            Directory.CreateDirectory(plugins);
+            var manager = new DllManager(registry, mods, plugins);
             var options = new LaunchOptions([], Option<string>.None, "", false, false, Option<string>.None, Option<ServerLaunchOptions>.None);
-            var plugin = Path.Combine(root, "UnchainedPlugin.dll");
+            var plugin = legacyCli
+                ? Path.Combine(plugins, ".dll-managed", release.Hash, "UnchainedPlugin.dll")
+                : Path.Combine(plugins, "Managed", "Chiv2-Community", "UnchainedPlugin", release.Hash, "UnchainedPlugin.dll");
+            Directory.CreateDirectory(Path.GetDirectoryName(plugin)!);
             await File.WriteAllBytesAsync(plugin, [1, 2, 3]);
             Assert.True((await manager.PrepareLaunch(options)).IsSome);
-            Assert.Contains(release.Hash, await File.ReadAllTextAsync(Path.Combine(root, "dll_manager.json")));
+            plugin = Assert.Single(Directory.GetFiles(plugins, "*.dll", SearchOption.AllDirectories));
+            Assert.Contains(release.Hash, await File.ReadAllTextAsync(Path.Combine(plugins, "dll_manager.json")));
+            Assert.Equal(Path.Combine(plugins, "Managed", "Chiv2-Community", "UnchainedPlugin", "UnchainedPlugin.dll"), plugin);
             await File.WriteAllBytesAsync(plugin, [3, 2, 1]);
             Assert.False(await DllManager.MatchesFileAsync(plugin, release));
             Assert.False(manager.Inject(new System.Diagnostics.Process()));
+            await File.WriteAllBytesAsync(Path.Combine(root, ".cache", "dlls", release.Hash.ToLowerInvariant(), release.DllFileName), [3, 2, 1]);
             await Assert.ThrowsAsync<InvalidOperationException>(() => manager.PrepareLaunch(options));
             Assert.False(manager.Inject(new System.Diagnostics.Process()));
             Assert.Equal(new byte[] { 3, 2, 1 }, await File.ReadAllBytesAsync(plugin));
@@ -106,14 +117,51 @@ public sealed class DllManagerTests {
 
     private sealed class DownloadHandler(byte[] bytes) : HttpMessageHandler {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) });
+            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new ByteArrayContent(bytes) });
+    }
+
+    [Fact]
+    public async Task SwitchingVersionsKeepsOnlySelectedDllInPluginsAndReusesExternalCache() {
+        var root = Path.Combine(Path.GetTempPath(), "dll-switch-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            var plugins = Path.Combine(root, "Plugins");
+            var rc3 = Release("Chiv2-Community/UnchainedPlugin", "v1.0.0-RC3") with { DllFileName = "UnchainedPlugin.dll" };
+            var rc2 = rc3 with { Tag = "v1.0.0-RC2", Hash = Convert.ToHexString(SHA256.HashData(new byte[] { 4, 5, 6 })).ToLowerInvariant() };
+            var oldManagedPath = Path.Combine(plugins, ".dll-managed", rc2.Hash.ToLowerInvariant(), rc2.DllFileName);
+            Directory.CreateDirectory(Path.GetDirectoryName(oldManagedPath)!);
+            await File.WriteAllBytesAsync(oldManagedPath, [4, 5, 6]);
+            var packagePath = Path.Combine(root, "dll_db", "packages", "Chiv2-Community");
+            Directory.CreateDirectory(packagePath);
+            File.WriteAllText(Path.Combine(packagePath, "UnchainedPlugin.json"), JsonHelpers.Serialize(Package(rc3, rc2)));
+            var registry = new AggregateModRegistry(new LocalModRegistry(root));
+            var mods = new ModManager(registry, new PakDir(root, []), []);
+            var options = new LaunchOptions([], Option<string>.None, "", true, false, Option<string>.None, Option<ServerLaunchOptions>.None);
+            foreach (var (release, bytes, download) in new[] {
+                (rc3, new byte[] { 1, 2, 3 }, true),
+                (rc2, new byte[] { 4, 5, 6 }, true),
+                (rc3, Array.Empty<byte>(), false)
+            }) {
+                using var client = new HttpClient(new DownloadHandler(bytes));
+                var manager = new DllManager(registry, mods, plugins,
+                    [new ReleaseCoordinates("Chiv2-Community", "UnchainedPlugin", release.Tag)], client: client);
+                var launch = download ? options : new LaunchOptions([], Option<string>.None, "", false, false, Option<string>.None, Option<ServerLaunchOptions>.None);
+                Assert.True((await manager.PrepareLaunch(launch)).IsSome);
+                var active = Assert.Single(Directory.EnumerateFiles(plugins, "*.dll", SearchOption.AllDirectories));
+                Assert.True(await DllManager.MatchesFileAsync(active, release));
+                Assert.False(Directory.Exists(Path.Combine(plugins, ".cache")));
+            }
+            Assert.Equal(2, Directory.EnumerateFiles(Path.Combine(root, ".cache"), "*.dll", SearchOption.AllDirectories).Count());
+            Assert.False(File.Exists(oldManagedPath));
+        }
+        finally { Directory.Delete(root, recursive: true); }
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task PakDependenciesAreEnabledOrRejectedWhenExistingSelectionConflicts(bool conflict) {
-        var root = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "dll-pak-" + Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "dll-pak-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
             var registryRoot = Path.Combine(root, "registry");
@@ -130,7 +178,9 @@ public sealed class DllManagerTests {
             var metadata = Path.Combine(registryRoot, "org", "mod");
             Directory.CreateDirectory(metadata);
             File.WriteAllText(Path.Combine(metadata, "mod.json"), JsonHelpers.Serialize(new Mod(info, pakReleases)));
-            await File.WriteAllBytesAsync(Path.Combine(plugins, "UnchainedPlugin.dll"), [1, 2, 3]);
+            var managed = Path.Combine(plugins, "Managed", "Chiv2-Community", "UnchainedPlugin", release.Hash, "UnchainedPlugin.dll");
+            Directory.CreateDirectory(Path.GetDirectoryName(managed)!);
+            await File.WriteAllBytesAsync(managed, [1, 2, 3]);
             var registry = new AggregateModRegistry(new LocalModRegistry(registryRoot));
             var mods = new ModManager(registry, new PakDir(root, []), conflict ? [new ReleaseCoordinates("org", "mod", "v2.0.0")] : []);
             var manager = new DllManager(registry, mods, plugins);
@@ -149,34 +199,39 @@ public sealed class DllManagerTests {
     [InlineData(true)]
     [InlineData(false)]
     public async Task DownloadsAreVerifiedBeforePublicationAndUnknownRootFilesArePreserved(bool valid) {
-        var root = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "dll-download-" + Guid.NewGuid().ToString("N"));
+        var root = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "dll-download-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
             var release = Release("Chiv2-Community/UnchainedPlugin") with { DllFileName = "UnchainedPlugin.dll" };
             var packagePath = Path.Combine(root, "dll_db", "packages", "Chiv2-Community");
             Directory.CreateDirectory(packagePath);
             File.WriteAllText(Path.Combine(packagePath, "UnchainedPlugin.json"), JsonHelpers.Serialize(Package(release)));
-            var legacy = Path.Combine(root, "UnchainedPlugin.dll");
+            var plugins = Path.Combine(root, "Plugins");
+            Directory.CreateDirectory(plugins);
+            var legacy = Path.Combine(plugins, "UnchainedPlugin.dll");
             await File.WriteAllBytesAsync(legacy, [9, 9, 9]);
             var registry = new AggregateModRegistry(new LocalModRegistry(root));
             var mods = new ModManager(registry, new PakDir(root, []), []);
             using var client = new HttpClient(new DownloadHandler(valid ? [1, 2, 3] : [3, 2, 1]));
-            var manager = new DllManager(registry, mods, root, client: client);
+            var manager = new DllManager(registry, mods, plugins, client: client);
             var options = new LaunchOptions([], Option<string>.None, "", true, false, Option<string>.None, Option<ServerLaunchOptions>.None);
-            var destination = Path.Combine(root, ".dll-managed", release.Hash.ToLowerInvariant(), release.DllFileName);
+            var destination = Path.Combine(root, ".cache", "dlls", release.Hash.ToLowerInvariant(), release.DllFileName);
             if (valid) {
                 Assert.True((await manager.PrepareLaunch(options)).IsSome);
                 Assert.True(await DllManager.MatchesFileAsync(destination, release));
-                Assert.True(File.Exists(Path.Combine(root, "dll_manager.json")));
+                var installed = Assert.Single(Directory.GetFiles(Path.Combine(plugins, "Managed"), "*.dll", SearchOption.AllDirectories));
+                Assert.True(await DllManager.MatchesFileAsync(installed, release));
+                Assert.True(File.Exists(Path.Combine(plugins, "dll_manager.json")));
             }
             else {
                 await Assert.ThrowsAsync<InvalidOperationException>(() => manager.PrepareLaunch(options));
                 Assert.False(File.Exists(destination));
-                Assert.False(File.Exists(Path.Combine(root, "dll_manager.json")));
+                Assert.False(File.Exists(Path.Combine(plugins, "dll_manager.json")));
                 Assert.False(manager.Inject(new System.Diagnostics.Process()));
+                Assert.Equal(new byte[] { 9, 9, 9 }, await File.ReadAllBytesAsync(legacy));
             }
             Assert.Equal(new byte[] { 9, 9, 9 }, await File.ReadAllBytesAsync(legacy));
-            Assert.Empty(Directory.EnumerateFiles(root, ".dll-download-*"));
+            Assert.Empty(Directory.GetFiles(Path.Combine(root, ".cache", "dlls"), "*.tmp", SearchOption.AllDirectories));
         }
         finally { Directory.Delete(root, recursive: true); }
     }

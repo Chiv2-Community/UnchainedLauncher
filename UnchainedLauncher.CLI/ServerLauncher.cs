@@ -46,7 +46,7 @@ public static class ServerLauncher {
                 if (!File.Exists(appIdPath)) File.WriteAllText(appIdPath, "1824220");
             }
             var dialogue = new ConsoleDialogue();
-            var pluginUpdater = new DllManager(registry, manager, pluginsPath, options.Dlls, options.UnsafeLoadAllDlls, cancellationToken);
+            var pluginUpdater = new DllLaunchSession(registry, manager, pluginsPath, options.Dlls, options.UnsafeLoadAllDlls, cancellationToken);
             var modInstaller = new Chivalry2ModsInstaller(manager, dialogue);
             var signing = SigPreparer.Create(manager.PakDir, dialogue);
             // Call preparers sequentially so each receives the previous result.
@@ -117,7 +117,7 @@ public static class ServerLauncher {
         if (releases.GroupBy(r => (r.Info.Organization, r.Info.RepoName)).Any(g => g.Select(r => r.Tag).Distinct().Count() > 1))
             throw new ArgumentException("Dependency resolution selected conflicting versions of a mod. Core currently selects the latest stable dependencies, including Unchained-Mods.");
         foreach (var release in releases) {
-            foreach (var dependency in release.Info.Dependencies) {
+            foreach (var dependency in release.Info.EffectiveModDependencies) {
                 if (manager.GetLatestRelease(ModIdentifier.FromDependency(dependency)).IsNone)
                     throw new InvalidOperationException($"Missing stable dependency: {dependency.Organization}/{dependency.RepoName}");
                 if (!releases.Any(r => r.Info.Organization == dependency.Organization && r.Info.RepoName == dependency.RepoName))

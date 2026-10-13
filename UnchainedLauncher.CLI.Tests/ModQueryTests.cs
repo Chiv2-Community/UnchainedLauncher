@@ -7,7 +7,7 @@ using Xunit;
 namespace UnchainedLauncher.CLI.Tests;
 
 public sealed class ModQueryTests : IDisposable {
-    private readonly string _directory = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "mod-query-" + Guid.NewGuid().ToString("N"));
+    private readonly string _directory = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "mod-query-" + Guid.NewGuid().ToString("N"));
     public ModQueryTests() => Directory.CreateDirectory(_directory);
     public void Dispose() => Directory.Delete(_directory, recursive: true);
 

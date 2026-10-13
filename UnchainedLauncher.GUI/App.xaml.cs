@@ -197,7 +197,7 @@ namespace UnchainedLauncher.GUI {
                 // don't shove dlls into processes that don't need them and cause crashes
                 new NullInjector(true)
 #else
-                new DllInjector(dllManager)
+                new DllInjector(dllManager, Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir), _unsafeLoadAllDlls)
 #endif
             );
 
@@ -305,7 +305,7 @@ namespace UnchainedLauncher.GUI {
 
             var loadedResult =
                 InitializeFromFileWithCodec(ModRegistryCodec.Instance, jsonPath, CreateDefaultModRegistry);
-            // Ensure that we've got an AggregateModRegistry. The constructor will handle it if we're wrapping 
+            // Ensure that we've got an AggregateModRegistry. The constructor will handle it if we're wrapping
             // another AggregateModRegistry, so no worries there.
             var registry = new AggregateModRegistry(loadedResult);
 

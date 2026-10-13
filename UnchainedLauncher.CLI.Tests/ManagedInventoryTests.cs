@@ -11,7 +11,7 @@ namespace UnchainedLauncher.CLI.Tests;
 
 [Collection("Installation directory")]
 public class ManagedInventoryTests : IDisposable {
-    private readonly string _root = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(),
+    private readonly string _root = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()),
         "inventory-tests-" + Guid.NewGuid().ToString("N"));
 
     public ManagedInventoryTests() => Directory.CreateDirectory(_root);

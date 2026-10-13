@@ -8,6 +8,7 @@ on:
     branches:
         - 'main'
         - 'series/*'
+        - 'feature/dll-validation'
 
 env:
   DOTNET_VERSION: '10.x'
@@ -58,6 +59,9 @@ jobs:
 
     - name: Run CLI Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.CLI.Tests --logger:"console;verbosity=detailed"
+
+    - name: Run Plugin Manager Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.GUI.Tests.Unit --logger:"console;verbosity=detailed"
 
     - name: Package CLI binaries
       run: dotnet publish UnchainedLauncher.CLI -c ${{ matrix.configuration }} -r win-x64 --self-contained true -o out-cli/

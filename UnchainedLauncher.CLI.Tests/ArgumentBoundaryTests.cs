@@ -11,7 +11,7 @@ namespace UnchainedLauncher.CLI.Tests;
 
 public sealed class ArgumentBoundaryTests : IDisposable {
     private readonly string _directory = Path.Combine(
-        OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "argument-tests-" + Guid.NewGuid().ToString("N"));
+        Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "argument-tests-" + Guid.NewGuid().ToString("N"));
     private static string Probe => Path.Combine(AppContext.BaseDirectory, "argument-probe",
         OperatingSystem.IsWindows() ? "ArgumentProbe.exe" : "ArgumentProbe");
 

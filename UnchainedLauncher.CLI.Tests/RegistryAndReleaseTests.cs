@@ -16,7 +16,7 @@ namespace UnchainedLauncher.CLI.Tests;
 [Collection("Installation directory")]
 public class RegistryAndReleaseTests : IDisposable {
     private readonly string _directory = Path.Combine(
-        OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "cli-tests-" + Guid.NewGuid().ToString("N"));
+        Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "cli-tests-" + Guid.NewGuid().ToString("N"));
 
     public RegistryAndReleaseTests() => Directory.CreateDirectory(_directory);
     public void Dispose() => Directory.Delete(_directory, recursive: true);

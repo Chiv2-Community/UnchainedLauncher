@@ -56,3 +56,13 @@ Reconsider the dialog only if plugin dependency records gain presentation metada
 ## Historical gaps
 
 The supplied conversation was compacted. It contains the user requests and reported command results, but not independent CI results or live game validation. No issue or architecture-record identifier was supplied.
+
+## Correction (2026-10-12)
+
+The decision summary at lines 18-19 and consequences at line 50 are reversed in
+part. The grouped warning is no longer a pre-install block for a launch mode that
+cannot load plugins: Clientside Modded launch was removed permanently. The
+grouping now occurs in `DependencyValidator` only for missing or incompatible
+enabled plugin requirements, so manually enabled compatible plugins permit
+Unchained launch. See [Remove Clientside launch and validate enabled plugin
+dependencies](2026-10-12-remove-clientside-launch-and-validate-enabled-plugin-dependencies.md).

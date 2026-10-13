@@ -297,7 +297,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             files = manager.OpenForInjection(server: true);
             try { Assert.Equal(new[] { server.DllFileName, shared.DllFileName }.Order(), files.Select(file => Path.GetFileName(file.Path)).Order()); }
             finally { foreach (var file in files) file.Dispose(); }
-            // Selection is per call, not the side of the most recent preparation.
+            // Restore the requested side from cache without changing selections.
+            await manager.PrepareAsync(server: false, allowDownloads: false);
             files = manager.OpenForInjection(server: false);
             try { Assert.Equal(new[] { client.DllFileName, shared.DllFileName }.Order(), files.Select(file => Path.GetFileName(file.Path)).Order()); }
             finally { foreach (var file in files) file.Dispose(); }
@@ -602,6 +603,178 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         }
 
         [Fact]
+        public async Task SwitchingVersionsRestoresExternalCacheWithoutDownloading() {
+            var first = Release();
+            var nextBytes = Encoding.UTF8.GetBytes("second registered DLL");
+            var second = Release(version: "2.0.0") with {
+                Sha256 = Convert.ToHexString(SHA256.HashData(nextBytes)).ToLowerInvariant(), Size = nextBytes.Length
+            };
+            Index(first, second);
+            var manager = Manager();
+            await manager.RefreshAsync();
+            manager.SetEnabled(first, true);
+            await manager.PrepareAsync();
+            _handler.Binary = nextBytes;
+            manager.SetEnabled(second, true);
+            await manager.PrepareAsync();
+            Assert.Equal(nextBytes, File.ReadAllBytes(Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories))));
+            Assert.False(Directory.Exists(Path.Combine(PluginPath, ".cache")));
+            _handler.Fail = true;
+            manager = Manager();
+            manager.SetEnabled(first, true);
+            await manager.PrepareAsync(allowDownloads: false);
+            var files = manager.OpenForInjection();
+            try { Assert.Equal(_binary, File.ReadAllBytes(Assert.Single(files).Path)); }
+            finally { foreach (var file in files) file.Dispose(); }
+            Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
+            Assert.Equal(2, Directory.GetFiles(Path.Combine(_dir, ".cache", "dlls"), "*.dll", SearchOption.AllDirectories).Length);
+        }
+
+        [Fact]
+        public async Task MigratesOnlyRegisteredLegacyManagedFilesAndPreservesUnknownFiles() {
+            var release = Release();
+            Index(release);
+            var legacy = Path.Combine(PluginPath, "Managed", release.Organization, release.Name, release.Sha256, "UnchainedPlugin.dll");
+            Directory.CreateDirectory(Path.GetDirectoryName(legacy)!);
+            File.WriteAllBytes(legacy, _binary);
+            var unknownName = Path.Combine(Path.GetDirectoryName(legacy)!, "unknown.dll");
+            File.WriteAllBytes(unknownName, _binary);
+            var unknownVersion = Path.Combine(PluginPath, "Managed", release.Organization, release.Name, new string('0', 64), "UnchainedPlugin.dll");
+            Directory.CreateDirectory(Path.GetDirectoryName(unknownVersion)!);
+            File.WriteAllText(unknownVersion, "unregistered version");
+            var loose = Path.Combine(PluginPath, "UnchainedPlugin.dll");
+            File.WriteAllText(loose, "unregistered root DLL");
+            var manager = Manager();
+            await manager.RefreshAsync();
+            _handler.Fail = true;
+            await manager.PrepareAsync(allowDownloads: false);
+            Assert.False(File.Exists(legacy));
+            Assert.Equal(_binary, File.ReadAllBytes(unknownName));
+            Assert.Equal("unregistered version", File.ReadAllText(unknownVersion));
+            Assert.Equal("unregistered root DLL", File.ReadAllText(loose));
+            Assert.Single(Directory.GetFiles(Path.Combine(_dir, ".cache", "dlls"), "*.dll", SearchOption.AllDirectories));
+            var files = manager.OpenForInjection();
+            try { Assert.Equal(_binary, File.ReadAllBytes(Assert.Single(files).Path)); }
+            finally { foreach (var file in files) file.Dispose(); }
+        }
+
+        [Fact]
+        public async Task DisabledManagedFilesAreCachedButUnregisteredVersionsStayInPlace() {
+            var release = Release();
+            Index(release);
+            var manager = Manager();
+            await manager.RefreshAsync();
+            await manager.PrepareAsync();
+            var installed = Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
+            manager.Disable(release.Id);
+            await manager.PrepareAsync(allowDownloads: false);
+            Assert.False(File.Exists(installed));
+            Assert.Empty(manager.OpenForInjection());
+            File.WriteAllText(installed, "unregistered version");
+            await manager.PrepareAsync(allowDownloads: false);
+            Assert.Equal("unregistered version", File.ReadAllText(installed));
+            Assert.Single(Directory.GetFiles(Path.Combine(_dir, ".cache", "dlls"), "*.dll", SearchOption.AllDirectories));
+            manager.SetEnabled(release, true);
+            await Assert.ThrowsAsync<InvalidDataException>(() => manager.PrepareAsync());
+            Assert.Equal("unregistered version", File.ReadAllText(installed));
+        }
+
+        [Fact]
+        public async Task FailedDownloadDoesNotChangeInstalledManagedSet() {
+            var first = Release();
+            var second = Release(version: "2.0.0") with { Sha256 = new string('b', 64) };
+            Index(first, second);
+            var manager = Manager();
+            await manager.RefreshAsync();
+            manager.SetEnabled(first, true);
+            await manager.PrepareAsync();
+            var installed = Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
+            manager.SetEnabled(second, true);
+            await Assert.ThrowsAsync<InvalidDataException>(() => manager.PrepareAsync());
+            Assert.Equal(_binary, File.ReadAllBytes(installed));
+            Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
+            Assert.Empty(Directory.GetFiles(Path.Combine(_dir, ".cache"), "*.tmp", SearchOption.AllDirectories));
+        }
+
+        [Fact]
+        public async Task SelectionChangesDuringDownloadDoNotPublishOrArchiveDlls() {
+            var first = Release();
+            var nextBytes = Encoding.UTF8.GetBytes("second registered DLL");
+            var second = Release(version: "2.0.0") with {
+                Sha256 = Convert.ToHexString(SHA256.HashData(nextBytes)).ToLowerInvariant(), Size = nextBytes.Length
+            };
+            Index(first, second);
+            var manager = Manager();
+            await manager.RefreshAsync();
+            manager.SetEnabled(first, true);
+            await manager.PrepareAsync();
+            var installed = Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
+            manager.SetEnabled(second, true);
+            _handler.Binary = nextBytes;
+            _handler.OnBinaryRequest = () => manager.Disable(second.Id);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => manager.PrepareAsync());
+            Assert.Equal(_binary, File.ReadAllBytes(installed));
+            Assert.Empty(manager.EnabledSelections);
+        }
+
+        [Fact]
+        public async Task CorruptCacheCannotBeRestoredOrInjected() {
+            Index(Release());
+            var manager = Manager();
+            await manager.RefreshAsync();
+            await manager.PrepareAsync();
+            var installed = Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
+            File.Delete(installed);
+            var cache = Assert.Single(Directory.GetFiles(Path.Combine(_dir, ".cache"), "*.dll", SearchOption.AllDirectories));
+            File.WriteAllText(cache, "tampered");
+            await Assert.ThrowsAsync<InvalidDataException>(() => manager.PrepareAsync(allowDownloads: false));
+            Assert.False(File.Exists(installed));
+            Assert.Throws<FileNotFoundException>(() => manager.OpenForInjection());
+        }
+
+        [Fact]
+        public async Task RevokedManagedReleaseIsLeftInPlaceAndNeverMovedToCache() {
+            Index(Release());
+            var manager = Manager();
+            await manager.RefreshAsync();
+            await manager.PrepareAsync();
+            var installed = Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
+            var cached = Assert.Single(Directory.GetFiles(Path.Combine(_dir, ".cache"), "*.dll", SearchOption.AllDirectories));
+            File.Delete(cached);
+            Index();
+            await manager.RefreshAsync();
+            manager.Disable(Release().Id);
+            await manager.PrepareAsync(allowDownloads: false);
+            Assert.Equal(_binary, File.ReadAllBytes(installed));
+            Assert.Empty(Directory.GetFiles(Path.Combine(_dir, ".cache"), "*.dll", SearchOption.AllDirectories));
+            Assert.Empty(manager.OpenForInjection());
+        }
+
+        [Fact]
+        public async Task LooseRegisteredBytesAreNotAdoptedAsManagedFiles() {
+            Index(Release());
+            Directory.CreateDirectory(PluginPath);
+            var loose = Path.Combine(PluginPath, "UnchainedPlugin.dll");
+            File.WriteAllBytes(loose, _binary);
+            var manager = Manager();
+            await manager.RefreshAsync();
+            await Assert.ThrowsAsync<InvalidOperationException>(() => manager.PrepareAsync(allowDownloads: false));
+            Assert.Equal(_binary, File.ReadAllBytes(loose));
+            await manager.PrepareAsync();
+            manager.Disable(Release().Id);
+            await manager.PrepareAsync(allowDownloads: false);
+            Assert.Equal(_binary, File.ReadAllBytes(loose));
+            Assert.Equal(loose, Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories)));
+        }
+
+        [Fact]
+        public void CacheMustBeOutsidePluginDirectory() {
+            Assert.Throws<ArgumentException>(() => new DllManager(PluginPath, StatePath, _http, cacheDirectory: PluginPath));
+            Assert.Throws<ArgumentException>(() => new DllManager(PluginPath, StatePath, _http,
+                cacheDirectory: Path.Combine(PluginPath, ".cache")));
+        }
+
+        [Fact]
         public async Task DefaultSelectsLatestStableSemanticVersion() {
             Index(Release(version: "2.0.0"), Release(version: "10.0.0"), Release(version: "11.0.0-rc.1"));
             var manager = Manager();
@@ -650,8 +823,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             var manager = Manager();
             await manager.RefreshAsync();
             await Assert.ThrowsAsync<InvalidDataException>(() => manager.PrepareAsync());
-            Assert.Empty(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
-            Assert.Empty(Directory.GetFiles(PluginPath, "*.tmp", SearchOption.AllDirectories));
+            Assert.False(Directory.Exists(PluginPath));
+            var cache = Path.Combine(_dir, ".cache", "dlls");
+            Assert.Empty(Directory.GetFiles(cache, "*.dll", SearchOption.AllDirectories));
+            Assert.Empty(Directory.GetFiles(cache, "*.tmp", SearchOption.AllDirectories));
         }
 
         [Fact]
@@ -725,6 +900,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             public string Index { get; set; } = "[]";
             public byte[] Binary { get; set; } = [];
             public bool Fail { get; set; }
+            public Action? OnBinaryRequest { get; set; }
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
                 if (Fail) throw new HttpRequestException("Offline fixture");
                 if (Responses.TryGetValue(request.RequestUri!.AbsoluteUri, out var content))
@@ -734,6 +910,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
                     });
                 if (request.RequestUri!.AbsoluteUri == DllManager.PackageListUrl)
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request });
+                if (request.RequestUri.AbsoluteUri != DllManager.IndexUrl) OnBinaryRequest?.Invoke();
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
                     RequestMessage = request,
                     Content = request.RequestUri!.AbsoluteUri == DllManager.IndexUrl

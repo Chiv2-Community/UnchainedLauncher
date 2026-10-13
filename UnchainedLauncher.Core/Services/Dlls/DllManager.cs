@@ -13,6 +13,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         public const string DefaultPluginId = "Chiv2-Community/UnchainedPlugin";
         private readonly HttpClient _http;
         private readonly string _root;
+        private readonly string _cacheRoot;
         private readonly string _statePath;
         private readonly string _indexPath;
         private readonly Func<IReadOnlyList<string>> _registryUrls;
@@ -26,10 +27,16 @@ namespace UnchainedLauncher.Core.Services.Dlls {
 
         public DllManager(string pluginDirectory, string statePath, HttpClient http,
             Func<IReadOnlyList<UnchainedLauncher.Core.JsonModels.ModMetadata.Release>>? modReleases = null,
-            Func<IReadOnlyList<string>>? registryUrls = null) {
+            Func<IReadOnlyList<string>>? registryUrls = null, string? cacheDirectory = null) {
             _registryUrls = registryUrls ?? (() => [DatabaseUrl]);
             _modReleases = modReleases ?? (() => []);
-            _root = Path.GetFullPath(Path.Combine(pluginDirectory, "Managed"));
+            var plugins = Path.TrimEndingDirectorySeparator(Path.GetFullPath(pluginDirectory));
+            _root = Path.Combine(plugins, "Managed");
+            _cacheRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(cacheDirectory
+                ?? Path.Combine(Path.GetDirectoryName(plugins)!, ".cache", "dlls")));
+            if (_cacheRoot.Equals(plugins, StringComparison.OrdinalIgnoreCase)
+                || _cacheRoot.StartsWith(plugins + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("DLL cache must be outside Plugins.", nameof(cacheDirectory));
             _statePath = statePath;
             _indexPath = statePath + ".index.json";
             _http = http;
@@ -281,7 +288,20 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 throw new InvalidOperationException("DLL registry settings changed. Refresh Plugin Manager before launching.");
         }
 
-        private string GetPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.Sha256, release.DllFileName ?? release.Name + ".dll");
+        private string GetPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.DllFileName ?? release.Name + ".dll");
+        private string GetLegacyPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.Sha256, release.DllFileName ?? release.Name + ".dll");
+        private string GetCachePath(DllRelease release) => Path.Combine(_cacheRoot, release.Sha256, release.DllFileName ?? release.Name + ".dll");
+
+        private static bool MatchesFile(string path, DllRelease release) {
+            using var stream = File.OpenRead(path);
+            try { ValidateBytes(stream, release); return true; }
+            catch (InvalidDataException) { return false; }
+        }
+
+        private DllRelease? ManagedReleaseAt(string path) => Releases.FirstOrDefault(release =>
+            (GetPath(release).Equals(path, StringComparison.OrdinalIgnoreCase)
+             || GetLegacyPath(release).Equals(path, StringComparison.OrdinalIgnoreCase))
+            && MatchesFile(path, release));
 
         public static void ValidateBytes(Stream stream, DllRelease release) {
             release.Validate();
@@ -294,18 +314,28 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         }
 
         public async Task PrepareAsync(bool server = false, bool allowDownloads = true) {
-            foreach (var release in SelectedReleases(server)) {
+            var selected = SelectedReleases(server);
+            // Fill and validate the cache before changing any installed DLLs.
+            foreach (var release in selected) {
                 var path = GetPath(release);
-                if (File.Exists(path)) {
-                    // A modified installed DLL fails closed; do not silently overwrite it.
-                    using var existing = File.OpenRead(path);
+                if (File.Exists(path) && !MatchesFile(path, release) && ManagedReleaseAt(path) == null)
+                    throw new InvalidDataException($"Unrecognized DLL at managed path; file left unchanged: {path}");
+                var cache = GetCachePath(release);
+                if (File.Exists(cache)) {
+                    using var existing = File.OpenRead(cache);
                     ValidateBytes(existing, release);
+                    continue;
+                }
+                var installed = new[] { path, GetLegacyPath(release) }
+                    .FirstOrDefault(candidate => File.Exists(candidate) && MatchesFile(candidate, release));
+                if (installed != null) {
+                    CopyValidated(installed, cache, release);
                     continue;
                 }
                 if (!allowDownloads)
                     throw new InvalidOperationException($"Automatic plugin downloads are disabled; missing registered DLL: {release.Key}");
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                var temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                Directory.CreateDirectory(Path.GetDirectoryName(cache)!);
+                var temp = cache + "." + Guid.NewGuid().ToString("N") + ".tmp";
                 try {
                     using var response = await _http.GetAsync(release.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
                     response.EnsureSuccessStatusCode();
@@ -325,10 +355,48 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                         target.Position = 0;
                         ValidateBytes(target, release);
                     }
-                    File.Move(temp, path, true);
+                    File.Move(temp, cache, true);
                 }
                 finally { if (File.Exists(temp)) File.Delete(temp); }
             }
+            lock (_gate) {
+                if (!SelectedReleases(server).SequenceEqual(selected))
+                    throw new InvalidOperationException("Plugin selections or metadata changed during preparation. Launch again.");
+                var active = selected.Select(GetPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                // Only validated files at paths owned by this manager may be archived.
+                // Unknown names/versions, even inside Managed, are left untouched.
+                if (Directory.Exists(_root)) {
+                    foreach (var path in Directory.EnumerateFiles(_root, "*", SearchOption.AllDirectories).ToArray()) {
+                        var release = ManagedReleaseAt(path);
+                        if (release == null || (active.Contains(path) && selected.Any(candidate =>
+                            GetPath(candidate).Equals(path, StringComparison.OrdinalIgnoreCase) && MatchesFile(path, candidate))))
+                            continue;
+                        CopyValidated(path, GetCachePath(release), release);
+                        File.Delete(path);
+                    }
+                }
+                foreach (var release in selected) {
+                    var path = GetPath(release);
+                    if (!File.Exists(path)) CopyValidated(GetCachePath(release), path, release);
+                    using var installed = File.OpenRead(path);
+                    ValidateBytes(installed, release);
+                }
+            }
+        }
+
+        private static void CopyValidated(string source, string destination, DllRelease release) {
+            Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+            var temp = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try {
+                using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read))
+                using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                    ValidateBytes(input, release);
+                    input.CopyTo(output);
+                    ValidateBytes(output, release);
+                }
+                File.Move(temp, destination, true);
+            }
+            finally { if (File.Exists(temp)) File.Delete(temp); }
         }
 
         // Read handles deny writes/deletion on Windows until injection completes.

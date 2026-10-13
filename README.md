@@ -67,6 +67,8 @@ client/server target load.
 
 DLL size and SHA-256 are checked before installation and loading. Loose DLLs are
 ignored. Only enable publishers you trust: these checks do not make native code safe.
+Inactive managed DLLs are cached outside `Plugins` and restored when selected.
+Unknown filenames and unregistered versions stay where they are.
 
 ## License
 

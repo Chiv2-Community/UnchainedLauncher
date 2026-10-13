@@ -65,3 +65,13 @@ The supplied conversation was compacted and does not show why the formatter
 workflow ran or its CI result. The formatter commit's contents and the current
 PR state were independently inspected; no live game launch or DLL injection
 evidence was added.
+
+## Subsequent developments (2026-10-12)
+
+The PR-head claim at lines 32-37 is superseded. Commit
+`3999a7ecb87b176478139f5121f50106e7a35474` added a grouped pre-install warning
+for mods that require plugins and shortened the Plugin Manager README section.
+After a remote formatter commit caused a non-fast-forward push, merge commit
+`74db8a51b7ddce9bc1314f587d661f740a372929` became the published PR head. The PR
+remains open and unmerged. See [Mod-plugin dependency warning and concise Plugin
+Manager docs](2026-10-12-mod-plugin-dependency-warning-and-concise-docs.md).

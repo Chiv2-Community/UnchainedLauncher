@@ -607,7 +607,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             var first = Release();
             var nextBytes = Encoding.UTF8.GetBytes("second registered DLL");
             var second = Release(version: "2.0.0") with {
-                Sha256 = Convert.ToHexString(SHA256.HashData(nextBytes)).ToLowerInvariant(), Size = nextBytes.Length
+                Sha256 = Convert.ToHexString(SHA256.HashData(nextBytes)).ToLowerInvariant(),
+                Size = nextBytes.Length
             };
             Index(first, second);
             var manager = Manager();
@@ -701,7 +702,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             var first = Release();
             var nextBytes = Encoding.UTF8.GetBytes("second registered DLL");
             var second = Release(version: "2.0.0") with {
-                Sha256 = Convert.ToHexString(SHA256.HashData(nextBytes)).ToLowerInvariant(), Size = nextBytes.Length
+                Sha256 = Convert.ToHexString(SHA256.HashData(nextBytes)).ToLowerInvariant(),
+                Size = nextBytes.Length
             };
             Index(first, second);
             var manager = Manager();

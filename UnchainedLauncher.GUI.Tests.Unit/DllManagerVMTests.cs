@@ -6,6 +6,105 @@ using Xunit;
 namespace UnchainedLauncher.GUI.Tests.Unit {
     public sealed class DllManagerVMTests {
         [Fact]
+        public async Task RemovedPinnedVersionShowsUnavailableEvenWhenOtherVersionsRemainRegistered() {
+            var directory = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "removed-version-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try {
+                var handler = new MutableIndexHandler { Json = JsonSerializer.Serialize(new[] { Release("Plugin") }) };
+                using var http = new HttpClient(handler);
+                var state = Path.Combine(directory, "state.json");
+                File.WriteAllText(state, "{}");
+                var manager = new DllManager(Path.Combine(directory, "Plugins"), state, http);
+                var vm = new DllManagerVM(manager);
+                await vm.Refresh();
+                manager.SetEnabled(Assert.Single(manager.Releases), true);
+                handler.Json = JsonSerializer.Serialize(new[] { Release("Plugin", "2.0.0") });
+                await vm.Refresh();
+                var plugin = Assert.Single(vm.Plugins);
+                Assert.True(plugin.IsUnavailable);
+                Assert.Null(plugin.SelectedVersion);
+                Assert.Equal("2.0.0", Assert.Single(plugin.AvailableVersions).Version);
+                Assert.Equal("1.0.0", plugin.EnabledVersion);
+                plugin.EnableOrDisable();
+                plugin = Assert.Single(vm.Plugins);
+                Assert.False(plugin.IsEnabled);
+                Assert.Empty(manager.EnabledSelections);
+                plugin.EnableOrDisable();
+                Assert.Equal("2.0.0", Assert.Single(vm.Plugins).EnabledVersion);
+                Assert.True(manager.IsEnabled(Assert.Single(manager.Releases)));
+            }
+            finally { Directory.Delete(directory, true); }
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public async Task RemovedSelectionsRemainVisibleAndCanBeDisabledAfterRefreshOrRestart(bool removeRegistry, bool restart) {
+            var directory = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "removed-plugin-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try {
+                var release = Release("RemovedPlugin");
+                var handler = new MutablePackageHandler(release);
+                using var http = new HttpClient(handler);
+                var state = Path.Combine(directory, "state.json");
+                File.WriteAllText(state, "{}");
+                IReadOnlyList<string> sources = [DllManager.DatabaseUrl];
+                DllManager Create() => new(Path.Combine(directory, "Plugins"), state, http, registryUrls: () => sources);
+                var manager = Create();
+                await manager.RefreshAsync();
+                manager.SetEnabled(Assert.Single(manager.Releases), true);
+                var loose = Path.Combine(directory, "Plugins", "unknown.dll");
+                Directory.CreateDirectory(Path.GetDirectoryName(loose)!);
+                File.WriteAllText(loose, "unapproved");
+                if (removeRegistry) sources = [];
+                else handler.Removed = true;
+                if (restart) manager = Create();
+                var vm = new DllManagerVM(manager);
+                await vm.Refresh();
+                if (restart) {
+                    manager = Create();
+                    vm = new DllManagerVM(manager); // Cached empty approvals still display the saved pin offline.
+                }
+                var plugin = Assert.Single(vm.Plugins);
+                Assert.True(plugin.IsUnavailable);
+                Assert.True(plugin.IsEnabled);
+                Assert.Equal("1.0.0", plugin.EnabledVersion);
+                Assert.Equal("Disable", plugin.ButtonText);
+                Assert.Contains("no longer registered", plugin.Description);
+                Assert.Empty(plugin.AvailableVersions);
+                Assert.False(plugin.HasHiddenEnabledVersion);
+                Assert.Throws<InvalidOperationException>(() => manager.OpenForInjection());
+                await Assert.ThrowsAsync<InvalidOperationException>(() => manager.PrepareAsync());
+                Assert.Throws<InvalidOperationException>(() => manager.GetUpdateCandidates(null, false));
+                Assert.Throws<InvalidOperationException>(() => manager.SetEnabled(release, true));
+                plugin.EnableOrDisableCommand.Execute(null);
+                Assert.Empty(vm.Plugins);
+                Assert.Empty(manager.EnabledSelections);
+                Assert.Empty(Create().EnabledSelections);
+                Assert.Equal("{}", File.ReadAllText(state));
+                Assert.Empty(manager.GetUpdateCandidates(null, false));
+                await manager.PrepareAsync();
+                Assert.Empty(manager.OpenForInjection());
+                Assert.Equal("unapproved", File.ReadAllText(loose));
+                Assert.Empty(manager.Releases);
+            }
+            finally { Directory.Delete(directory, true); }
+        }
+
+        private sealed class MutablePackageHandler(DllRelease release) : HttpMessageHandler {
+            public bool Removed { get; set; }
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+                var record = new PluginRelease(release.Tag!, release.Sha256, "RemovedPlugin.dll", release.DownloadUrl, release.Size,
+                    release.ReleaseDate, release.Info, null);
+                var body = request.RequestUri!.AbsoluteUri == DllManager.PackageListUrl
+                    ? (Removed ? "" : release.Id + "\n") : JsonSerializer.Serialize(new PluginPackage(release.Info!, [record]));
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new StringContent(body) });
+            }
+        }
+
+        [Fact]
         public async Task PrereleasesAreOptInAndVersionsUseSemverPrecedence() {
             var directory = Path.Combine(Path.GetTempPath(), "dll-view-tests-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);

@@ -72,12 +72,16 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 observable.PropertyChanged += (_, args) => {
                     if (args.PropertyName is nameof(IPluginSettings.AllowUnstablePluginReleases) or null or "") Populate();
                 };
+            Populate();
         }
         public string Status { get; set; } = "Only enabled, registry-validated DLLs are loaded. Trust the publisher before enabling native code.";
 
         private void Populate() {
-            IEnumerable<DllPluginVM> query = manager.Releases.GroupBy(release => release.Id, StringComparer.OrdinalIgnoreCase)
-                .Select(group => new DllPluginVM(manager, group.ToArray(), AllowUnstablePluginReleases, message => Status = message, ReportError))
+            var selections = manager.EnabledSelections;
+            var ids = manager.Releases.Select(release => release.Id).Concat(selections.Keys).Distinct(StringComparer.OrdinalIgnoreCase);
+            IEnumerable<DllPluginVM> query = ids
+                .Select(id => new DllPluginVM(manager, manager.Releases.Where(release => release.Id.Equals(id, StringComparison.OrdinalIgnoreCase)).ToArray(),
+                    AllowUnstablePluginReleases, message => Status = message, ReportError, id: id))
                 .Where(plugin => plugin.AvailableVersions.Count != 0 || plugin.IsEnabled);
             var term = (SearchTerm ?? "").Trim();
             if (term.Length != 0)
@@ -142,6 +146,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
     public partial class DllPluginVM : INotifyPropertyChanged {
         public event PropertyChangedEventHandler? PropertyChanged;
         private readonly DllManager _manager;
+        private readonly string _id;
         private readonly Action<string> _status;
         private readonly Action<string> _error;
         private readonly Action<string> _openUrl;
@@ -159,7 +164,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string GithubReleaseUrl => DisplayRelease is { } release
             ? $"{RepositoryUrl}/releases/tag/{Uri.EscapeDataString(release.Tag ?? release.Version)}" : RepositoryUrl;
         public string Name => Info?.Name ?? RepositoryName;
-        public string Description => Info?.Description ?? "Metadata unavailable for this legacy release.";
+        public string Description => IsUnavailable ? $"Enabled version {EnabledVersion} is no longer registered. Disable this selection to continue; its DLL will not be loaded."
+            : Info?.Description ?? "Metadata unavailable for this legacy release.";
         public string Authors => Info == null ? "" : string.Join(", ", Info.Authors);
         public string IconUrl => Info?.IconUrl ?? "pack://application:,,,/UnchainedLauncher;component/assets/chiv2-unchained-logo.png";
         public IReadOnlyList<string> ImageUrls => Info?.ImageUrls ?? [];
@@ -176,9 +182,11 @@ namespace UnchainedLauncher.GUI.ViewModels {
             .DefaultIfEmpty(EnabledRelease?.ReleaseDate ?? DateTimeOffset.MinValue).Max();
         public DateTimeOffset FirstReleaseDate { get; }
         public DllRelease? EnabledRelease { get; private set; }
-        public bool IsEnabled => EnabledRelease != null;
+        public string? EnabledVersion { get; private set; }
+        public bool IsEnabled => EnabledVersion != null;
+        public bool IsUnavailable => IsEnabled && EnabledRelease == null;
         public string ButtonText => IsEnabled ? "Disable" : "Enable";
-        public bool HasHiddenEnabledVersion => IsEnabled && !AvailableVersions.Any(row => row.Release == EnabledRelease);
+        public bool HasHiddenEnabledVersion => EnabledRelease != null && !AvailableVersions.Any(row => row.Release == EnabledRelease);
         public DllRow? SelectedVersion {
             get => _selectedVersion;
             set {
@@ -188,6 +196,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     _manager.SetEnabled(value.Release, true);
                     _selectedVersion = value;
                     EnabledRelease = value.Release;
+                    EnabledVersion = value.Release.Version;
                     NotifySelectionChanged();
                     _status("Enabled. The DLL will be validated at next Unchained launch; downloads follow your settings.");
                 }
@@ -196,13 +205,16 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         public DllPluginVM(DllManager manager, IReadOnlyList<DllRelease> releases, bool showPrereleases, Action<string> status,
-            Action<string>? error = null, Action<string>? openUrl = null) {
+            Action<string>? error = null, Action<string>? openUrl = null, string? id = null) {
             _manager = manager;
             _status = status;
             _error = error ?? status;
             _openUrl = openUrl ?? (url => Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true }));
-            Organization = releases[0].Organization;
-            RepositoryName = releases[0].Name;
+            _id = id ?? releases[0].Id;
+            var parts = _id.Split('/', 2);
+            Organization = parts[0];
+            RepositoryName = parts.Length == 2 ? parts[1] : parts[0];
+            EnabledVersion = manager.EnabledSelections.GetValueOrDefault(_id);
             EnabledRelease = releases.FirstOrDefault(manager.IsEnabled);
             FirstReleaseDate = releases.Where(release => release.ReleaseDate.HasValue).Select(release => release.ReleaseDate!.Value)
                 .DefaultIfEmpty(DateTimeOffset.MinValue).Min();
@@ -227,9 +239,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
         [RelayCommand]
         public void EnableOrDisable() {
             try {
-                if (EnabledRelease != null) {
-                    _manager.SetEnabled(EnabledRelease, false);
+                if (IsEnabled) {
+                    _manager.Disable(_id);
                     EnabledRelease = null;
+                    EnabledVersion = null;
                     _selectedVersion = null;
                     NotifySelectionChanged();
                     _status("Disabled. The DLL will not be injected.");
@@ -240,7 +253,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         private void NotifySelectionChanged() {
-            foreach (var property in new[] { nameof(SelectedVersion), nameof(EnabledRelease), nameof(IsEnabled), nameof(ButtonText), nameof(HasHiddenEnabledVersion),
+            foreach (var property in new[] { nameof(SelectedVersion), nameof(EnabledRelease), nameof(EnabledVersion), nameof(IsUnavailable), nameof(IsEnabled), nameof(ButtonText), nameof(HasHiddenEnabledVersion),
                                              nameof(Name), nameof(Description), nameof(Authors), nameof(Dependencies), nameof(IconUrl), nameof(ImageUrls),
                                              nameof(Target), nameof(FileName), nameof(ReleaseTag), nameof(ReleaseDate), nameof(ReleaseNotes), nameof(GithubReleaseUrl) })
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));

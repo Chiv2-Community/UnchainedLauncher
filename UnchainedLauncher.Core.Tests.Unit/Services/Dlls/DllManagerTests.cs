@@ -22,6 +22,38 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         private DllManager Manager() => new(PluginPath, StatePath, _http);
 
         [Fact]
+        public async Task RemovedReleaseCanBeDisabledButNeverReenabled() {
+            Index(Release());
+            var manager = Manager();
+            await manager.RefreshAsync();
+            Index();
+            await manager.RefreshAsync();
+            Assert.Throws<InvalidOperationException>(() => manager.SetEnabled(Release(), true));
+            manager.SetEnabled(Release(), false);
+            Assert.Empty(manager.EnabledSelections);
+            Assert.Empty(Manager().EnabledSelections);
+            Assert.Empty(manager.OpenForInjection());
+        }
+
+        [Fact]
+        public async Task DisableDoesNotRequireCurrentSourcesAndPersistsWithoutReapproving() {
+            Index(Release());
+            IReadOnlyList<string> sources = [DllManager.DatabaseUrl];
+            var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => sources);
+            await manager.RefreshAsync();
+            sources = [];
+            Assert.Throws<InvalidOperationException>(() => manager.SetEnabled(Release(), true));
+            manager.Disable(DllManager.DefaultPluginId.ToLowerInvariant());
+            Assert.Empty(manager.EnabledSelections);
+            Assert.Equal("{}", File.ReadAllText(StatePath));
+            Assert.Throws<InvalidOperationException>(() => manager.OpenForInjection());
+            var restarted = new DllManager(PluginPath, StatePath, _http, registryUrls: () => sources);
+            Assert.Empty(restarted.EnabledSelections);
+            await restarted.RefreshAsync();
+            Assert.Empty(restarted.OpenForInjection());
+        }
+
+        [Fact]
         public async Task AlternateRegistriesMergeAndPersistApprovals() {
             const string alternate = "https://example.com/registry/dll_db";
             Index(Release());

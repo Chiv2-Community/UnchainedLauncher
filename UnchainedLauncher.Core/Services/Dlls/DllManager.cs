@@ -175,13 +175,30 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             lock (_gate) return _enabled.TryGetValue(release.Id, out var version) && version == release.Version;
         }
 
+        public IReadOnlyDictionary<string, string> EnabledSelections {
+            get { lock (_gate) return new Dictionary<string, string>(_enabled, StringComparer.OrdinalIgnoreCase); }
+        }
+
+        // Revoking a selection never requires registry approval and never touches DLL files.
+        public void Disable(string id) {
+            lock (_gate) {
+                if (!_enabled.Remove(id, out var previous)) return;
+                try { Save(); }
+                catch { _enabled[id] = previous; throw; }
+            }
+            SelectionChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         public void SetEnabled(DllRelease release, bool enabled) {
+            if (!enabled) {
+                if (IsEnabled(release)) Disable(release.Id);
+                return;
+            }
             lock (_gate) {
                 EnsureCurrentSources();
                 if (!Releases.Contains(release)) throw new InvalidOperationException("Unregistered DLL.");
                 var previous = _enabled.GetValueOrDefault(release.Id);
-                if (enabled) _enabled[release.Id] = release.Version;
-                else if (IsEnabled(release)) _enabled.Remove(release.Id);
+                _enabled[release.Id] = release.Version;
                 try { Save(); }
                 catch {
                     if (previous == null) _enabled.Remove(release.Id);

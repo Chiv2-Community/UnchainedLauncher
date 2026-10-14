@@ -206,7 +206,13 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             }
             lock (_gate) {
                 EnsureCurrentSources();
-                if (!Releases.Contains(release)) throw new InvalidOperationException("Unregistered DLL.");
+                // Refresh reparses metadata collections, so record equality alone rejects
+                // unchanged releases held by existing cards. Approval still requires the
+                // complete current registry record, not just the same id/version.
+                var registered = Releases.SingleOrDefault(candidate => candidate.Key.Equals(release.Key, StringComparison.OrdinalIgnoreCase));
+                if (registered == null || Canonical(registered) != Canonical(release))
+                    throw new InvalidOperationException("Unregistered DLL. Refresh Plugin List and select a current release.");
+                release = registered;
                 var previous = _enabled.GetValueOrDefault(release.Id);
                 _enabled[release.Id] = release.Version;
                 try { Save(); }

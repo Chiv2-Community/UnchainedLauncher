@@ -1,8 +1,8 @@
-using System.Diagnostics;
-using System.Security.Cryptography;
 using LanguageExt;
 using LanguageExt.Common;
 using Moq;
+using System.Diagnostics;
+using System.Security.Cryptography;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;

@@ -4,6 +4,7 @@ Durable records of consequential repository decisions. Entries are ordered newes
 
 | Date | Record | Status | Scope | Git provenance |
 | --- | --- | --- | --- | --- |
+| 2026-10-14 | [Preserve pak load-order prefixes during collision-safe relocation](2026-10-14-pak-collision-relocation-load-order.md) | implemented | Managed-pak relocation, collision avoidance, and dependency load order | `89aed4c6ce77762dad5fd8b55fa09b236d960bb4` |
 | 2026-10-14 | [Use the shared CollapsibleCard for Plugin Manager release notes](2026-10-14-plugin-release-notes-collapsible-card.md) | implemented | Plugin Manager release-notes presentation | `f93230686031d6d0f6c718a0b3d96f22482d8034` |
 | 2026-10-14 | [Preserve registry approval across unchanged Plugin Manager refreshes](2026-10-14-plugin-card-refresh-approval.md) | implemented | Plugin Manager enablement after DLL registry refresh | implementation `f93230686031d6d0f6c718a0b3d96f22482d8034`; decision baseline `eac86594b65e693edb66b9c6bf154107916e8f86` |
 | 2026-10-14 | [Fail closed on pak launch preparation](2026-10-14-pak-launch-preparation-fail-closed.md) | implemented | Chivalry 2 pak setup and retry launch sequencing | implementation `f93230686031d6d0f6c718a0b3d96f22482d8034`; decision baseline `eac86594b65e693edb66b9c6bf154107916e8f86` |

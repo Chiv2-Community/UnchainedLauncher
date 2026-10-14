@@ -53,3 +53,7 @@ The source checkpoint does not include the responsible implementation agent, exa
 ## Subsequent developments (2026-10-14)
 
 The implementation and regression tests were committed as `f93230686031d6d0f6c718a0b3d96f22482d8034` (`v1.0.0-RC4-31-gf932306`) in `Fix launch preparation failures and refreshed plugin selections`. This supersedes the prior uncommitted-status claims in the metadata, Context and evidence, and Consequences and follow-up sections. The underlying accepted decision is not superseded. The live Steam retry and Windows injection behavior remain unverified.
+
+## Subsequent developments (2026-10-14, later)
+
+Commit `89aed4c6ce77762dad5fd8b55fa09b236d960bb4` corrected a limitation in the collision-safe filename preservation described in this record: a preserved managed name must also retain the currently required load-order prefix. The fail-closed decision and unmanaged-file protection remain in force. See [Preserve pak load-order prefixes during collision-safe relocation](2026-10-14-pak-collision-relocation-load-order.md) for the new decision and evidence.

@@ -4,6 +4,8 @@ Durable records of consequential repository decisions. Entries are ordered newes
 
 | Date | Record | Status | Scope | Git provenance |
 | --- | --- | --- | --- | --- |
+| 2026-10-14 | [Preserve registry approval across unchanged Plugin Manager refreshes](2026-10-14-plugin-card-refresh-approval.md) | accepted; implementation uncommitted | Plugin Manager enablement after DLL registry refresh | `eac86594b65e693edb66b9c6bf154107916e8f86` |
+| 2026-10-14 | [Fail closed on pak launch preparation](2026-10-14-pak-launch-preparation-fail-closed.md) | accepted; implementation uncommitted | Chivalry 2 pak setup and retry launch sequencing | `eac86594b65e693edb66b9c6bf154107916e8f86` |
 | 2026-10-14 | [Steam-install GUI startup smoke test](2026-10-14-steam-install-gui-startup-smoke.md) | implemented; PR #152 open; startup smoke verified | External GUI build against the local Steam installation | local `980af1ccb0f3f5a385a922d74e4f85198c84eeb6`; functional PR head `afb17473d6e3ee8500d8c9c3bea43f6d27029d57` |
 | 2026-10-13 | [DLL cache race hardening and review loop](2026-10-13-dll-cache-race-hardening-and-review-loop.md) | implemented; PR #152 open | Concurrent managed-DLL archival and active publication | `afb17473d6e3ee8500d8c9c3bea43f6d27029d57` |
 | 2026-10-13 | [Managed DLL cache boundary](2026-10-13-managed-dll-cache-boundary.md) | implemented; PR #152 open | On-disk lifecycle for registry-validated native DLL plugins | `ce7cefd4cdd89ce31e8e0faa34faa00801d91e6c` |

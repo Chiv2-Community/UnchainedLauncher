@@ -1,7 +1,7 @@
 # Fail closed on pak launch preparation
 
 - Date: 2026-10-14
-- Status: accepted; implementation uncommitted
+- Status: implemented
 - Scope: Chivalry 2 pak installation, removal, signature preparation, and retry launch sequencing
 - Repository: UnchainedLauncher
 - Canonical remote: https://github.com/Chiv2-Community/UnchainedLauncher.git
@@ -49,3 +49,7 @@ The changes are not committed, pushed, or included in a published GUI build. The
 Reconsider filename preservation if the inventory format gains explicit ownership or collision metadata that permits a safer deterministic repair. Reconsider the fail-closed policy only with evidence that a particular setup failure cannot affect launch correctness.
 
 The source checkpoint does not include the responsible implementation agent, exact portable-harness commands, test output, or source response identifier. The log proves the original failure sequence, but does not prove behavior of the uncommitted correction.
+
+## Subsequent developments (2026-10-14)
+
+The implementation and regression tests were committed as `f93230686031d6d0f6c718a0b3d96f22482d8034` (`v1.0.0-RC4-31-gf932306`) in `Fix launch preparation failures and refreshed plugin selections`. This supersedes the prior uncommitted-status claims in the metadata, Context and evidence, and Consequences and follow-up sections. The underlying accepted decision is not superseded. The live Steam retry and Windows injection behavior remain unverified.

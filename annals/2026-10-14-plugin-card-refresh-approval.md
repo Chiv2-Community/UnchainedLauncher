@@ -1,7 +1,7 @@
 # Preserve registry approval across unchanged Plugin Manager refreshes
 
 - Date: 2026-10-14
-- Status: accepted; implementation uncommitted
+- Status: implemented
 - Scope: Plugin Manager enablement from a card retained across a DLL registry refresh
 - Repository: UnchainedLauncher
 - Canonical remote: https://github.com/Chiv2-Community/UnchainedLauncher.git
@@ -47,3 +47,7 @@ The implementation and tests are uncommitted and unpushed. The corrected Enable 
 Reconsider the comparison representation if canonical serialization stops being stable across equivalent registry parses, or if the registry defines an explicit signed approval identity that should replace it.
 
 The checkpoint does not supply the original exception text, the responsible implementation agent, exact test commands, raw test output, or a source response ID. The test source supports the intended acceptance and rejection cases but does not itself prove the reported run.
+
+## Subsequent developments (2026-10-14)
+
+The implementation and regression tests were committed as `f93230686031d6d0f6c718a0b3d96f22482d8034` (`v1.0.0-RC4-31-gf932306`) in `Fix launch preparation failures and refreshed plugin selections`. This supersedes the prior uncommitted-status claims in the metadata, Context and evidence, and Consequences and follow-up sections. The underlying accepted approval policy is not superseded. The source still lacks the original exception and raw test-run provenance.

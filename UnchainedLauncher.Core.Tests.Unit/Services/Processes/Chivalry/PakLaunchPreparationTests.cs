@@ -34,9 +34,9 @@ public sealed class PakLaunchPreparationTests : IDisposable {
         File.WriteAllText(Path.Combine(_dir, "pakchunk0-WindowsNoEditor.sig"), "signature");
     }
 
-    private ModManager Manager(ManagedPakDirectory pakDir) {
+    private ModManager Manager(ManagedPakDirectory pakDir, string installedName = Installed) {
         var info = new ModInfo("https://github.com/Chiv2-Community/Unchained-Mods", "Unchained-Mods", "test", null, null, [], [], []);
-        var hash = Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(Path.Combine(_dir, Installed)))).ToLowerInvariant();
+        var hash = Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(Path.Combine(_dir, installedName)))).ToLowerInvariant();
         var release = new Release(_coords.Version, hash, "https://example.test/mod.pak", DateTime.UtcNow,
             info, new AssetCollections([], [], [], [], []), null);
         return new ModManager(Mock.Of<IModRegistry>(), pakDir, [_coords], [new Mod(info, [release])]);
@@ -98,6 +98,29 @@ public sealed class PakLaunchPreparationTests : IDisposable {
         dialogue.Verify(d => d.DisplayMessage(It.Is<string>(text => text.Contains("Launch cancelled"))), Times.Once);
         dialogue.Verify(d => d.DisplayYesNoMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         Assert.Equal("registered bytes", File.ReadAllText(Path.Combine(_dir, Installed)));
+    }
+
+    [Fact]
+    public async Task ObsoleteCollisionPrefixMoveFailureCancelsLaunchAndClosesProgress() {
+        SynchronizationContext.SetSynchronizationContext(new ImmediateContext());
+        const string stale = "qz__-__Unchained-Mods (1).pak";
+        File.WriteAllText(Path.Combine(_dir, stale), "registered bytes");
+        File.WriteAllText(Path.Combine(_dir, Preferred), "unmanaged bytes");
+        Directory.CreateDirectory(Path.Combine(_dir, Installed));
+        var pakDir = new ManagedPakDirectory(_dir, [new ManagedPak(_coords, stale, 0)]);
+        var closed = false;
+        var dialogue = new Mock<IUserDialogueSpawner>();
+        dialogue.Setup(d => d.DisplayProgress(It.IsAny<UnchainedLauncher.Core.Utilities.MemoryProgress>())).Returns(() => closed = true);
+        var capture = new Capture();
+        var launcher = new UnchainedChivalry2Launcher(new Chivalry2ModsInstaller(Manager(pakDir, stale), dialogue.Object), capture, _dir, new NullInjector());
+        Assert.True((await launcher.Launch(Options())).IsLeft);
+        Assert.Equal(0, capture.Calls);
+        Assert.True(closed);
+        Assert.Equal(stale, Assert.Single(pakDir.ManagedPaks).PakFileName);
+        Assert.Equal("registered bytes", File.ReadAllText(Path.Combine(_dir, stale)));
+        Assert.Equal("unmanaged bytes", File.ReadAllText(Path.Combine(_dir, Preferred)));
+        dialogue.Verify(d => d.DisplayMessage(It.Is<string>(text => text.Contains("Launch cancelled"))), Times.Once);
+        dialogue.Verify(d => d.DisplayYesNoMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

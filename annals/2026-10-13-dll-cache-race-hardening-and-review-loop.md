@@ -53,6 +53,10 @@ Reconsider only if a portable API can provide equivalent identity-bound archive/
 
 This record refines, rather than reverses, the cache boundary recorded in [Managed DLL cache boundary](2026-10-13-managed-dll-cache-boundary.md). Its broad claim that unknown and unregistered files remain untouched required this race hardening to hold under concurrent writers. See that record's correction note.
 
+### 2026-10-14: Steam-install GUI startup evidence
+
+The claim at line 48 that live interactive GUI use remained unverified is partially superseded by a startup smoke test: an external build initialized against the local Steam installation, loaded persisted state, and refreshed its configured registry. Interactive GUI use, game launch, and DLL injection remain unverified. See [Steam-install GUI startup smoke test](2026-10-14-steam-install-gui-startup-smoke.md).
+
 ## Historical gaps
 
 The supplied source is compacted and does not include complete reviewer reproduction code or raw CI logs. Review/comment IDs, commit history, test counts, final PR SHA, and clean working-tree state were available in the supplied response and local repository evidence. The temporary review-loop ledger mentioned in the source was outside the repository and is not durable repository evidence.

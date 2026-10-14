@@ -4,6 +4,7 @@ Durable records of consequential repository decisions. Entries are ordered newes
 
 | Date | Record | Status | Scope | Git provenance |
 | --- | --- | --- | --- | --- |
+| 2026-10-14 | [Steam-install GUI startup smoke test](2026-10-14-steam-install-gui-startup-smoke.md) | implemented; PR #152 open; startup smoke verified | External GUI build against the local Steam installation | local `980af1ccb0f3f5a385a922d74e4f85198c84eeb6`; functional PR head `afb17473d6e3ee8500d8c9c3bea43f6d27029d57` |
 | 2026-10-13 | [DLL cache race hardening and review loop](2026-10-13-dll-cache-race-hardening-and-review-loop.md) | implemented; PR #152 open | Concurrent managed-DLL archival and active publication | `afb17473d6e3ee8500d8c9c3bea43f6d27029d57` |
 | 2026-10-13 | [Managed DLL cache boundary](2026-10-13-managed-dll-cache-boundary.md) | implemented; PR #152 open | On-disk lifecycle for registry-validated native DLL plugins | `ce7cefd4cdd89ce31e8e0faa34faa00801d91e6c` |
 | 2026-10-12 | [PR #152 review fixes and clean review](2026-10-12-pr-152-review-fixes-and-clean-review.md) | implemented; PR #152 open | Revoked plugin selections, local release metadata, review outcome | `9e5a1118221f0b74ff75033e43b79c179156b661` |

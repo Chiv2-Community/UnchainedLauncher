@@ -135,7 +135,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
             // Build map of existing managed paks by coordinates (for mods in install set)
             var existingByCoords = _managedPaks
-                .Filter(p => installsList.Exists(s => s.Coordinates == p.Coordinates))
+                .Filter(p => installCoordinatesSet.Contains(p.Coordinates))
                 .ToDictionary(p => p.Coordinates, p => p);
             var unmanagedPaths = GetUnmanagedPaks().ToHashSet(StringComparer.OrdinalIgnoreCase);
 

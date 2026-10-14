@@ -4,20 +4,20 @@ namespace UnchainedLauncher.Core.Services.Dlls {
     public static class DependencyValidator {
         public static void Validate(IReadOnlyList<Release> mods, IReadOnlyList<DllRelease> plugins) {
             var pluginsByMod = mods.GroupBy(mod => mod.Info.RepoUrl, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.First().Info, group => group
+                .Select(group => (Info: group.First().Info, MissingDependencies: group
                     .SelectMany(mod => mod.Info.EffectivePluginDependencies)
                     .Where(dependency => !plugins.Any(plugin =>
                         dependency.RepoUrl.Equals($"https://github.com/{plugin.Id}", StringComparison.OrdinalIgnoreCase)
                         && PluginInfo.MatchesVersion(plugin.Version, dependency.Version)))
-                    .Distinct().ToList())
-                .Where(pair => pair.Value.Count != 0).ToDictionary(pair => pair.Key, pair => pair.Value);
-            if (pluginsByMod.Count != 0) {
-                var modText = pluginsByMod.Count == 1 ? "One mod requires" : "Some mods require";
-                var pluginText = pluginsByMod.Values.SelectMany(dependencies => dependencies).Distinct().Count() == 1
+                    .Distinct().ToList()))
+                .Where(group => group.MissingDependencies.Count != 0).ToArray();
+            if (pluginsByMod.Length != 0) {
+                var modText = pluginsByMod.Length == 1 ? "One mod requires" : "Some mods require";
+                var pluginText = pluginsByMod.SelectMany(group => group.MissingDependencies).Distinct().Count() == 1
                     ? "a DLL plugin" : "DLL plugins";
-                var details = pluginsByMod.OrderBy(pair => pair.Key.Name, StringComparer.OrdinalIgnoreCase)
-                    .ThenBy(pair => pair.Key.RepoUrl, StringComparer.OrdinalIgnoreCase)
-                    .Select(pair => $"{pair.Key.Name}:\n" + string.Join("\n", pair.Value
+                var details = pluginsByMod.OrderBy(group => group.Info.Name, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(group => group.Info.RepoUrl, StringComparer.OrdinalIgnoreCase)
+                    .Select(group => $"{group.Info.Name}:\n" + string.Join("\n", group.MissingDependencies
                         .OrderBy(dependency => dependency.RepoName, StringComparer.OrdinalIgnoreCase)
                         .ThenBy(dependency => dependency.RepoUrl, StringComparer.OrdinalIgnoreCase)
                         .ThenBy(dependency => dependency.Version, StringComparer.OrdinalIgnoreCase)

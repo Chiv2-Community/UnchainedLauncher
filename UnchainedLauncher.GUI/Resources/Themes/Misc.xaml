@@ -2,6 +2,18 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
 
+    <!-- Shared by pak and DLL enable controls. -->
+    <Style x:Key="Button.EnableOrDisable" TargetType="Button" BasedOn="{StaticResource Button.Secondary}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                <Setter Property="Background" Value="{DynamicResource Brush.Success}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsEnabled}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
     <!-- Shared by pak and DLL release selectors. -->
     <Style x:Key="Release.PrereleaseBadge" TargetType="ContentControl">
         <Setter Property="Margin" Value="8,0,0,0" />

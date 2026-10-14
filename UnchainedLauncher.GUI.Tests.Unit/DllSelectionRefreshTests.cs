@@ -32,7 +32,8 @@ public sealed class DllSelectionRefreshTests {
             var handler = new Handler { Json = JsonSerializer.Serialize(new[] { release }) };
             using var http = new HttpClient(handler);
             var manager = new DllManager(Path.Combine(directory, "Plugins"), Path.Combine(directory, "state.json"), http);
-            var vm = new DllManagerVM(manager);
+            var dialogue = new RecordingDialogue();
+            var vm = new DllManagerVM(manager, dialogue: dialogue);
             await vm.Refresh();
             Assert.Single(vm.Plugins).EnableOrDisable(); // Disable the initially enabled core plugin.
             var oldCard = Assert.Single(vm.Plugins);
@@ -50,12 +51,12 @@ public sealed class DllSelectionRefreshTests {
             if (change == "unchanged") {
                 Assert.True(oldCard.IsEnabled);
                 Assert.Equal("1.0.0", manager.EnabledSelections[DllManager.DefaultPluginId]);
-                Assert.DoesNotContain("Unregistered", vm.Status);
+                Assert.Empty(dialogue.Messages);
             }
             else {
                 Assert.False(oldCard.IsEnabled);
                 Assert.Empty(manager.EnabledSelections);
-                Assert.Contains("Unregistered", vm.Status);
+                Assert.Contains("Unregistered", Assert.Single(dialogue.Messages));
             }
         }
         finally { Directory.Delete(directory, true); }

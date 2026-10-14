@@ -60,6 +60,10 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         public static IReadOnlyList<DllRelease> ParseIndex(string json) {
             var entries = JsonSerializer.Deserialize<List<DllRelease>>(json)
                           ?? throw new InvalidDataException("Missing DLL index.");
+            return ValidateReleases(entries);
+        }
+
+        private static IReadOnlyList<DllRelease> ValidateReleases(IReadOnlyList<DllRelease> entries) {
             var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var release in entries) {
                 if (release == null) throw new InvalidDataException("Null DLL release.");
@@ -80,8 +84,8 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                     merged[release.Key] = release;
                 }
             }
-            var json = JsonSerializer.Serialize(merged.Values.ToArray());
-            var releases = ParseIndex(json);
+            var releases = ValidateReleases(merged.Values.ToArray());
+            var json = JsonSerializer.Serialize(releases);
             lock (_gate) {
                 if (SourceSignature() != signature) throw new InvalidOperationException("DLL registry settings changed during refresh. Refresh again.");
                 // Invalidate the old source marker before replacing the cached approvals.
@@ -140,10 +144,10 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 throw new InvalidDataException("Plugin latest-release metadata mismatch.");
             // Upstream permits null info/date/filename for previously approved
             // historical releases inside an otherwise metadata-backed package.
-            return ParseIndex(JsonSerializer.Serialize(data.Releases.Select(record => {
+            return ValidateReleases(data.Releases.Select(record => {
                 if (record == null) throw new InvalidDataException("Null plugin release.");
                 return record.ToDllRelease(parts[0], parts[1]);
-            })));
+            }).ToArray());
         }
 
         private static async Task<string> ReadResponse(HttpResponseMessage response) {
@@ -174,7 +178,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             var latest = Releases.Where(r => r.Id == DefaultPluginId)
                 .Where(r => !SemVersion.Parse(r.Version, SemVersionStyles.Strict).IsPrerelease)
                 .OrderByDescending(r => SemVersion.Parse(r.Version, SemVersionStyles.Strict),
-                    Comparer<SemVersion>.Create((a, b) => a.ComparePrecedenceTo(b))).FirstOrDefault();
+                    SemVersion.PrecedenceComparer).FirstOrDefault();
             if (latest == null) return;
             _enabled[latest.Id] = latest.Version;
             Save();
@@ -283,7 +287,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                             && (server == null || AppliesToTarget(release, server.Value))
                             && (allowUnstable || !SemVersion.Parse(release.Version, SemVersionStyles.Strict).IsPrerelease))
                         .OrderByDescending(release => SemVersion.Parse(release.Version, SemVersionStyles.Strict),
-                            Comparer<SemVersion>.Create((a, b) => a.ComparePrecedenceTo(b))).FirstOrDefault();
+                            SemVersion.PrecedenceComparer).FirstOrDefault();
                     if (latest != null && SemVersion.Parse(latest.Version, SemVersionStyles.Strict)
                         .ComparePrecedenceTo(SemVersion.Parse(current.Version, SemVersionStyles.Strict)) > 0)
                         updates.Add((current, latest));
@@ -297,9 +301,9 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 throw new InvalidOperationException("DLL registry settings changed. Refresh Plugin Manager before launching.");
         }
 
-        private string GetPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.DllFileName ?? release.Name + ".dll");
-        private string GetLegacyPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.Sha256, release.DllFileName ?? release.Name + ".dll");
-        private string GetCachePath(DllRelease release) => Path.Combine(_cacheRoot, release.Sha256, release.DllFileName ?? release.Name + ".dll");
+        private string GetPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.EffectiveFileName);
+        private string GetLegacyPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.Sha256, release.EffectiveFileName);
+        private string GetCachePath(DllRelease release) => Path.Combine(_cacheRoot, release.Sha256, release.EffectiveFileName);
 
         private static bool MatchesFile(string path, DllRelease release) {
             using var stream = File.OpenRead(path);

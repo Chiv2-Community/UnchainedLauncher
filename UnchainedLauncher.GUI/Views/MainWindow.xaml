@@ -244,20 +244,8 @@
                                                 <TextBlock Text="{Binding Organization}" Foreground="{DynamicResource Brush.Muted}" />
                                             </StackPanel>
                                             <Button Grid.Column="2" Content="{Binding ButtonText}"
-                                                    Command="{Binding EnableOrDisableCommand}" Margin="0,0,8,0">
-                                                <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource Button.Secondary}">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsEnabled}" Value="False">
-                                                                <Setter Property="Background" Value="{DynamicResource Brush.Success}" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding IsEnabled}" Value="True">
-                                                                <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Button.Style>
-                                            </Button>
+                                                    Command="{Binding EnableOrDisableCommand}" Margin="0,0,8,0"
+                                                    Style="{StaticResource Button.EnableOrDisable}" />
                                             <ComboBox Grid.Column="3" ItemsSource="{Binding AvailableVersions}"
                                                       SelectedItem="{Binding SelectedVersion, Mode=TwoWay}"
                                                       ToolTip="Select version" VerticalAlignment="Stretch">

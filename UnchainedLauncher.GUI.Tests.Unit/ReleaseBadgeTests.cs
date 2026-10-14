@@ -33,6 +33,28 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
             Assert.Contains(dlls.Descendants(), element => element.Name.LocalName == "ComboBox" && element.Attribute("ItemsSource")?.Value == "{Binding AvailableVersions}");
         }
 
+        [Fact]
+        public void BothManagersUseTheSameEnableButtonStyle() {
+            foreach (var name in new[] { "Mod.xaml", "MainWindow.xaml" }) {
+                var button = Assert.Single(Load(name).Descendants().Where(element => element.Name.LocalName == "Button"
+                    && element.Attribute("Command")?.Value == "{Binding EnableOrDisableCommand}"));
+                Assert.Equal("{StaticResource Button.EnableOrDisable}", button.Attribute("Style")?.Value);
+                Assert.Empty(button.Elements());
+            }
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            var style = Assert.Single(Load("Misc.xaml").Descendants().Where(element => element.Attribute(x + "Key")?.Value == "Button.EnableOrDisable"));
+            Assert.Equal("{StaticResource Button.Secondary}", style.Attribute("BasedOn")?.Value);
+            var triggers = style.Descendants().Where(element => element.Name.LocalName == "DataTrigger").ToArray();
+            Assert.Equal(2, triggers.Length);
+            foreach (var (enabled, brush) in new[] { ("False", "Success"), ("True", "Danger") }) {
+                var trigger = Assert.Single(triggers.Where(element => element.Attribute("Value")?.Value == enabled));
+                Assert.Equal("{Binding IsEnabled}", trigger.Attribute("Binding")?.Value);
+                var setter = Assert.Single(trigger.Elements());
+                Assert.Equal("Background", setter.Attribute("Property")?.Value);
+                Assert.Equal($"{{DynamicResource Brush.{brush}}}", setter.Attribute("Value")?.Value);
+            }
+        }
+
         private static XDocument Load(string name) => XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Views", name));
         private static IEnumerable<XElement> Badges(XDocument document) => document.Descendants()
             .Where(element => element.Attribute("Style")?.Value == "{StaticResource Release.PrereleaseBadge}");

@@ -410,6 +410,28 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
                 ModDependencies: [dependency with { RepoUrl = "https://github.com/Org/.." }]).Validate());
         }
 
+        [Theory]
+        [InlineData("null")]
+        [InlineData("invalid")]
+        [InlineData("duplicate")]
+        public void IndexAndPackageShareReleaseValidation(string failure) {
+            var release = ModernRelease();
+            var node = System.Text.Json.Nodes.JsonNode.Parse(Package(release.Id, release))!;
+            var releases = node["releases"]!.AsArray();
+            switch (failure) {
+                case "null": releases.Add((System.Text.Json.Nodes.JsonNode?)null); break;
+                case "invalid": releases[0]!["hash"] = "invalid"; break;
+                case "duplicate": releases.Add(releases[0]!.DeepClone()); break;
+            }
+            Assert.Throws<InvalidDataException>(() => DllManager.ParsePackage(node.ToJsonString(), release.Id));
+            DllRelease?[] entries = failure switch {
+                "null" => [release, null],
+                "invalid" => [release with { Sha256 = "invalid" }],
+                _ => [release, release with { Organization = release.Organization.ToLowerInvariant() }]
+            };
+            Assert.Throws<InvalidDataException>(() => DllManager.ParseIndex(JsonSerializer.Serialize(entries)));
+        }
+
         [Fact]
         public async Task DisabledDownloadsRequireExistingValidatedFilesAndWorkOffline() {
             Index(Release());
@@ -462,15 +484,17 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             var manager = Manager();
             await manager.RefreshAsync();
             await manager.PrepareAsync();
-            Index(current, Release(version: "2.0.0"), Release(version: "3.0.0-RC1"));
+            Index(current, Release(version: "2.0.0+build.abc"), Release(version: "3.0.0-RC1+build.abc"));
             var dialogue = new UpdateDialogue(approve);
             var preparer = new UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers.DllLaunchPreparer(manager, dialogue);
             var options = new UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchOptions([], LanguageExt.Option<string>.None, "",
                 true, allowUnstable, LanguageExt.Option<string>.None,
                 LanguageExt.Option<UnchainedLauncher.Core.Services.Processes.Chivalry.ServerLaunchOptions>.None);
             Assert.True((await preparer.PrepareLaunch(options)).IsSome);
-            var expectedVersion = allowUnstable ? "3.0.0-RC1" : "2.0.0";
+            var expectedVersion = allowUnstable ? "3.0.0-RC1+build.abc" : "2.0.0+build.abc";
             Assert.Equal(expectedVersion, Assert.Single(dialogue.Updates).LatestVersion);
+            Assert.Equal($"https://github.com/{current.Id}/releases/tag/{Uri.EscapeDataString(expectedVersion)}",
+                Assert.Single(dialogue.Updates).ReleaseUrl);
             Assert.Equal(approve ? expectedVersion : current.Version, Assert.Single(manager.Releases.Where(manager.IsEnabled)).Version);
             Assert.Empty(dialogue.Messages);
         }
@@ -499,6 +523,30 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         private void Index(params DllRelease[] releases) {
             _handler.Index = JsonSerializer.Serialize(releases);
             _handler.Binary = _binary;
+        }
+
+        [Theory]
+        [InlineData(null, "1.0.0%2Bbuild.abc")]
+        [InlineData("v1.0.0+build.abc", "v1.0.0%2Bbuild.abc")]
+        public void ReleaseUrlEscapesOriginalTagOrFallbackWithoutChangingRegistryJson(string? tag, string encodedTag) {
+            var release = Release(version: "1.0.0+build.abc") with { Tag = tag };
+            release.Validate();
+            Assert.Equal($"https://github.com/{release.Id}/releases/tag/{encodedTag}", release.GithubReleaseUrl);
+            var json = JsonSerializer.Serialize(release);
+            Assert.DoesNotContain("GithubReleaseUrl", json);
+            Assert.Equal(release, JsonSerializer.Deserialize<DllRelease>(json));
+        }
+
+        [Theory]
+        [InlineData(null, "UnchainedPlugin.dll")]
+        [InlineData("CustomPlugin.dll", "CustomPlugin.dll")]
+        public void EffectiveFileNamePreservesAssetOrLegacyFallbackWithoutChangingRegistryJson(string? fileName, string expected) {
+            var release = Release() with { DllFileName = fileName };
+            release.Validate();
+            Assert.Equal(expected, release.EffectiveFileName);
+            var json = JsonSerializer.Serialize(release);
+            Assert.DoesNotContain("EffectiveFileName", json);
+            Assert.Equal(release, JsonSerializer.Deserialize<DllRelease>(json));
         }
 
         [Fact]

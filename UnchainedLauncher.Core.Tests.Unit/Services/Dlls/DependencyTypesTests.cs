@@ -29,6 +29,15 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         }
 
         [Fact]
+        public void ModPluginWarningMergesCaseInsensitiveRepositoriesAndKeepsFirstDisplayName() {
+            var dependency = new Dependency("https://github.com/Test/Native", "1.0.0");
+            var first = Pak("Arena", dependency);
+            var second = first with { Info = first.Info with { RepoUrl = first.Info.RepoUrl.ToLowerInvariant(), Name = "Other name" } };
+            var error = Assert.Throws<InvalidOperationException>(() => DependencyValidator.Validate([first, second], []));
+            Assert.Equal("One mod requires a DLL plugin. Enable them in the Plugin Manager.\n\nArena:\n\t- Native 1.0.0", error.Message);
+        }
+
+        [Fact]
         public void ModPluginWarningUsesPluralPluginsForOneMod() {
             var error = Assert.Throws<InvalidOperationException>(() => DependencyValidator.Validate([
                 Pak("Arena", new Dependency("https://github.com/Test/Native", "1.0.0"),

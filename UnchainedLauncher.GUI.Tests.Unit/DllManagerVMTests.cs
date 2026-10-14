@@ -74,6 +74,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
                 Assert.Equal("Disable", plugin.ButtonText);
                 Assert.Contains("no longer registered", plugin.Description);
                 Assert.Empty(plugin.AvailableVersions);
+                Assert.Equal("RemovedPlugin.dll", plugin.FileName);
                 Assert.False(plugin.HasHiddenEnabledVersion);
                 Assert.Throws<InvalidOperationException>(() => manager.OpenForInjection());
                 await Assert.ThrowsAsync<InvalidOperationException>(() => manager.PrepareAsync());
@@ -363,7 +364,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
                 await manager.RefreshAsync();
                 var opened = new List<string>();
                 var errors = new List<string>();
-                var plugin = new DllPluginVM(manager, manager.Releases, true, _ => { }, errors.Add, opened.Add);
+                var plugin = new DllPluginVM(manager, manager.Releases, true, errors.Add, opened.Add);
                 plugin.ViewOnGithubCommand.Execute(null);
                 plugin.OpenGithubReleaseCommand.Execute(null);
                 Assert.Equal(new[] { "https://github.com/Chiv2-Community/Plugin",
@@ -376,12 +377,12 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
                 Assert.Equal("https://github.com/Chiv2-Community/Plugin/releases/tag/v1.0.0", opened.Last());
                 Assert.Contains(nameof(plugin.GithubReleaseUrl), changed);
                 plugin.SelectedVersion = plugin.AvailableVersions.Single(row => row.IsPrerelease);
-                var hidden = new DllPluginVM(manager, manager.Releases, false, _ => { }, errors.Add, opened.Add);
+                var hidden = new DllPluginVM(manager, manager.Releases, false, errors.Add, opened.Add);
                 Assert.True(hidden.HasHiddenEnabledVersion);
                 hidden.OpenGithubReleaseCommand.Execute(null);
                 Assert.Equal("https://github.com/Chiv2-Community/Plugin/releases/tag/v2.0.0-RC1%2Bbuild.abc", opened.Last());
                 Assert.Empty(errors);
-                var failing = new DllPluginVM(manager, manager.Releases, true, _ => { }, errors.Add,
+                var failing = new DllPluginVM(manager, manager.Releases, true, errors.Add,
                     _ => throw new InvalidOperationException("Browser unavailable"));
                 failing.ViewOnGithubCommand.Execute(null);
                 Assert.Contains("Could not open GitHub link", Assert.Single(errors));
@@ -445,20 +446,6 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
             finally { Directory.Delete(directory, true); }
         }
 
-        private sealed class UpdateDialogue(bool approve) : UnchainedLauncher.Core.Services.IUserDialogueSpawner {
-            public List<UnchainedLauncher.Core.Services.DependencyUpdate> Updates { get; } = [];
-            public List<string> Messages { get; } = [];
-            public void DisplayMessage(string message) => Messages.Add(message);
-            public UnchainedLauncher.Core.Services.UserDialogueChoice DisplayYesNoMessage(string message, string caption) => approve
-                ? UnchainedLauncher.Core.Services.UserDialogueChoice.Yes : UnchainedLauncher.Core.Services.UserDialogueChoice.No;
-            public UnchainedLauncher.Core.Services.UserDialogueChoice? DisplayUpdateMessage(string titleText, string messageText,
-                string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<UnchainedLauncher.Core.Services.DependencyUpdate> updates) {
-                Updates.AddRange(updates);
-                return DisplayYesNoMessage(messageText, titleText);
-            }
-            public Action DisplayProgress(UnchainedLauncher.Core.Utilities.MemoryProgress progress) => () => { };
-        }
-
         [Theory]
         [InlineData(false, false)]
         [InlineData(false, true)]
@@ -473,20 +460,22 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
                 }) };
                 using var http = new HttpClient(handler);
                 var manager = new DllManager(Path.Combine(directory, "Plugins"), Path.Combine(directory, "state.json"), http);
-                var dialogue = new UpdateDialogue(approve);
+                var dialogue = new RecordingDialogue(approve);
                 var settings = new PluginSettings { EnablePluginAutomaticUpdates = false, AllowUnstablePluginReleases = unstable };
                 var vm = new DllManagerVM(manager, settings, dialogue);
                 await vm.Refresh();
                 manager.SetEnabled(manager.Releases.Single(release => release.Name == "ServerPlugin"), true);
                 handler.Json = JsonSerializer.Serialize(new[] {
-                    Release("UnchainedPlugin"), Release("UnchainedPlugin", "2.0.0"), Release("UnchainedPlugin", "3.0.0-RC1"),
+                    Release("UnchainedPlugin"), Release("UnchainedPlugin", "2.0.0+build.abc"), Release("UnchainedPlugin", "3.0.0-RC1+build.abc"),
                     Release("ServerPlugin", target: "server"), Release("ServerPlugin", "2.0.0", target: "server"),
                     Release("DisabledPlugin"), Release("DisabledPlugin", "2.0.0")
                 });
                 await vm.UpdatePlugins();
                 Assert.Equal(2, dialogue.Updates.Count);
-                var newest = unstable ? "3.0.0-RC1" : "2.0.0";
+                var newest = unstable ? "3.0.0-RC1+build.abc" : "2.0.0+build.abc";
                 Assert.Equal(newest, dialogue.Updates.Single(update => update.Name == "UnchainedPlugin tools").LatestVersion);
+                Assert.Equal($"https://github.com/{DllManager.DefaultPluginId}/releases/tag/v{Uri.EscapeDataString(newest)}",
+                    dialogue.Updates.Single(update => update.Name == "UnchainedPlugin tools").ReleaseUrl);
                 Assert.All(dialogue.Updates, update => Assert.Contains("/releases/tag/v", update.ReleaseUrl));
                 Assert.Equal(approve ? newest : "1.0.0", manager.Releases.Single(release => release.Name == "UnchainedPlugin" && manager.IsEnabled(release)).Version);
                 Assert.Equal(approve ? "2.0.0" : "1.0.0", manager.Releases.Single(release => release.Name == "ServerPlugin" && manager.IsEnabled(release)).Version);
@@ -497,11 +486,10 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
                 vm.SearchTerm = "not found";
                 await vm.UpdatePlugins();
                 Assert.Empty(dialogue.Updates);
-                Assert.Equal("No plugin updates available.", vm.Status);
+                Assert.Empty(dialogue.Messages);
                 handler.Fail = true;
                 await vm.UpdatePlugins();
-                Assert.StartsWith("Could not update plugins:", vm.Status);
-                Assert.Equal(vm.Status, Assert.Single(dialogue.Messages));
+                Assert.StartsWith("Could not update plugins:", Assert.Single(dialogue.Messages));
             }
             finally { Directory.Delete(directory, true); }
         }

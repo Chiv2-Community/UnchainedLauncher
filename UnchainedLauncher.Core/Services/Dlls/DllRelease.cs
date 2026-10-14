@@ -21,6 +21,10 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         public string Id => $"{Organization}/{Name}";
         [JsonIgnore]
         public string Key => $"{Id}:{Version}";
+        [JsonIgnore]
+        public string GithubReleaseUrl => $"https://github.com/{Id}/releases/tag/{Uri.EscapeDataString(Tag ?? Version)}";
+        [JsonIgnore]
+        public string EffectiveFileName => DllFileName ?? Name + ".dll";
 
         public void Validate() {
             Info?.Validate();

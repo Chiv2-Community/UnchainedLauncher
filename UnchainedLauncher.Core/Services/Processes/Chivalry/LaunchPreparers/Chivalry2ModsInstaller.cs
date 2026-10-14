@@ -99,10 +99,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             successes.ForEach(succ => _logger.Debug($"Successfully installed {succ.Coordinates.ModuleName} version {succ.Coordinates.Version}"));
 
             if (errors.Count != 0) {
-                errors.ToList().ForEach(e => _logger.Error($"Failed to install releases: {e.Message}"));
+                errors.ForEach(e => _logger.Error($"Failed to install releases: {e.Message}"));
                 _userDialogueSpawner.DisplayMessage(
                     $"There were errors while installing releases:\n " +
-                    $"{errors.Aggregate((a, b) => $"{a}\n\n{b}")}\n" +
+                    $"{string.Join("\n\n", errors)}\n" +
                     "Launch cancelled. Resolve the pak setup errors before launching."
                     );
                 return None;

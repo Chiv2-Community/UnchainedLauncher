@@ -30,7 +30,6 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         public IChivalry2LaunchPreparer<T> AndThen(IChivalry2LaunchPreparer<T> otherLaunchPreparer) {
             return Chivalry2LaunchPreparer.Create<T>(async opts => {
                 var prepared = await PrepareLaunch(opts);
-                if (prepared.IsNone) return Option<T>.None;
                 return await prepared.Match(
                     Some: otherLaunchPreparer.PrepareLaunch,
                     None: () => Task.FromResult(Option<T>.None));

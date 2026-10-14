@@ -74,14 +74,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 };
             Populate();
         }
-        public string Status { get; set; } = "Only enabled, registry-validated DLLs are loaded. Trust the publisher before enabling native code.";
 
         private void Populate() {
             var selections = manager.EnabledSelections;
             var ids = manager.Releases.Select(release => release.Id).Concat(selections.Keys).Distinct(StringComparer.OrdinalIgnoreCase);
             IEnumerable<DllPluginVM> query = ids
                 .Select(id => new DllPluginVM(manager, manager.Releases.Where(release => release.Id.Equals(id, StringComparison.OrdinalIgnoreCase)).ToArray(),
-                    AllowUnstablePluginReleases, message => Status = message, ReportError, id: id))
+                    AllowUnstablePluginReleases, ReportError, id: id))
                 .Where(plugin => plugin.AvailableVersions.Count != 0 || plugin.IsEnabled);
             var term = (SearchTerm ?? "").Trim();
             if (term.Length != 0)
@@ -103,7 +102,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public async Task Refresh() {
             try {
                 await manager.RefreshAsync();
-                Status = "Plugin list refreshed. Automatic updates are checked at launch when enabled.";
             }
             catch (Exception ex) { ReportError($"Could not refresh plugin list (using cached metadata if available): {ex.Message}"); }
             Populate();
@@ -118,26 +116,22 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 var updates = manager.GetUpdateCandidates(server: null, allowUnstable: AllowUnstablePluginReleases)
                     .Where(update => displayed.Contains(update.Current.Id)).ToArray();
                 if (updates.Length == 0) {
-                    Status = "No plugin updates available.";
                     return;
                 }
                 var details = updates.Select(update => new DependencyUpdate(update.Latest.Info?.Name ?? update.Latest.Id,
                     update.Current.Version, update.Latest.Version,
-                    $"https://github.com/{update.Latest.Id}/releases/tag/{update.Latest.Tag ?? update.Latest.Version}",
+                    update.Latest.GithubReleaseUrl,
                     update.Latest.Info?.Description ?? "Native plugin")).ToArray();
                 if (_dialogue?.DisplayUpdateMessage("Update Plugins?", "Plugin updates available.", "Yes", "No", null, details) != UserDialogueChoice.Yes) {
-                    Status = "Plugins not updated.";
                     return;
                 }
                 foreach (var update in updates) manager.SetEnabled(update.Latest, true);
-                Status = "Plugins updated. Registered DLLs will be validated at launch; downloads follow your settings.";
             }
             catch (Exception ex) { ReportError($"Could not update plugins: {ex.Message}"); }
             Populate();
         }
 
         private void ReportError(string message) {
-            Status = message;
             _dialogue?.DisplayMessage(message);
         }
 
@@ -147,7 +141,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public event PropertyChangedEventHandler? PropertyChanged;
         private readonly DllManager _manager;
         private readonly string _id;
-        private readonly Action<string> _status;
         private readonly Action<string> _error;
         private readonly Action<string> _openUrl;
         private DllRow? _selectedVersion;
@@ -156,13 +149,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private PluginInfo? Info => DisplayRelease?.Info;
         private DllRelease? DisplayRelease => SelectedVersion?.Release ?? EnabledRelease ?? AvailableVersions.FirstOrDefault()?.Release;
         public string Target => DisplayRelease?.Info?.Target ?? "shared";
-        public string FileName => DisplayRelease?.DllFileName ?? RepositoryName + ".dll";
+        public string FileName => DisplayRelease?.EffectiveFileName ?? RepositoryName + ".dll";
         public string ReleaseTag => DisplayRelease?.Tag ?? DisplayRelease?.Version ?? "";
         public string ReleaseDate => DisplayRelease?.ReleaseDate?.ToString("u") ?? "Unknown";
         public string ReleaseNotes => DisplayRelease?.ReleaseNotesMarkdown ?? "No release notes.";
         public string RepositoryUrl => $"https://github.com/{Organization}/{RepositoryName}";
-        public string GithubReleaseUrl => DisplayRelease is { } release
-            ? $"{RepositoryUrl}/releases/tag/{Uri.EscapeDataString(release.Tag ?? release.Version)}" : RepositoryUrl;
+        public string GithubReleaseUrl => DisplayRelease?.GithubReleaseUrl ?? RepositoryUrl;
         public string Name => Info?.Name ?? RepositoryName;
         public string Description => IsUnavailable ? $"Enabled version {EnabledVersion} is no longer registered. Disable this selection to continue; its DLL will not be loaded."
             : Info?.Description ?? "Metadata unavailable for this legacy release.";
@@ -198,17 +190,15 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     EnabledRelease = value.Release;
                     EnabledVersion = value.Release.Version;
                     NotifySelectionChanged();
-                    _status("Enabled. The DLL will be validated at next Unchained launch; downloads follow your settings.");
                 }
                 catch (Exception ex) { _error($"Could not save DLL selection: {ex.Message}"); }
             }
         }
 
-        public DllPluginVM(DllManager manager, IReadOnlyList<DllRelease> releases, bool showPrereleases, Action<string> status,
-            Action<string>? error = null, Action<string>? openUrl = null, string? id = null) {
+        public DllPluginVM(DllManager manager, IReadOnlyList<DllRelease> releases, bool showPrereleases, Action<string> error,
+            Action<string>? openUrl = null, string? id = null) {
             _manager = manager;
-            _status = status;
-            _error = error ?? status;
+            _error = error;
             _openUrl = openUrl ?? (url => Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true }));
             _id = id ?? releases[0].Id;
             var parts = _id.Split('/', 2);
@@ -221,7 +211,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             AvailableVersions = releases.Select(release => new DllRow(release))
                 .Where(row => showPrereleases || !row.IsPrerelease)
                 .OrderByDescending(row => row.SemanticVersion,
-                    Comparer<SemVersion>.Create((a, b) => a.ComparePrecedenceTo(b))).ToArray();
+                    SemVersion.PrecedenceComparer).ToArray();
             _selectedVersion = AvailableVersions.FirstOrDefault(row => row.Release == EnabledRelease);
         }
 
@@ -245,7 +235,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     EnabledVersion = null;
                     _selectedVersion = null;
                     NotifySelectionChanged();
-                    _status("Disabled. The DLL will not be injected.");
                 }
                 else if (AvailableVersions.Count != 0) SelectedVersion = AvailableVersions[0];
             }

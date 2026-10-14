@@ -164,5 +164,31 @@ public sealed class PakLaunchPreparationTests : IDisposable {
         Assert.Equal(1, capture.Calls);
     }
 
+    [Theory]
+    [InlineData(1, "There were errors while installing releases:\n failure 1\nLaunch cancelled. Resolve the pak setup errors before launching.")]
+    [InlineData(2, "There were errors while installing releases:\n failure 1\n\nfailure 2\nLaunch cancelled. Resolve the pak setup errors before launching.")]
+    public async Task InstallationErrorsKeepDiagnosticOrderAndCancelLaunch(int count, string expected) {
+        SynchronizationContext.SetSynchronizationContext(new ImmediateContext());
+        var errors = Enumerable.Range(1, count).Select(index => Error.New($"failure {index}")).ToArray();
+        async IAsyncEnumerable<Either<Error, ManagedPak>> Results() {
+            await Task.CompletedTask;
+            foreach (var error in errors) yield return Prelude.Left(error);
+        }
+        var pakDir = new Mock<IPakDir>();
+        pakDir.Setup(p => p.InstallModSet(It.IsAny<IEnumerable<ModInstallRequest>>(),
+            It.IsAny<Option<UnchainedLauncher.Core.Utilities.AccumulatedMemoryProgress>>())).Returns(Results);
+        var manager = new ModManager(Mock.Of<IModRegistry>(), pakDir.Object, [], []);
+        var closed = false;
+        var dialogue = new Mock<IUserDialogueSpawner>();
+        dialogue.Setup(d => d.DisplayProgress(It.IsAny<UnchainedLauncher.Core.Utilities.MemoryProgress>())).Returns(() => closed = true);
+        var capture = new Capture();
+        var launcher = new UnchainedChivalry2Launcher(new Chivalry2ModsInstaller(manager, dialogue.Object), capture, _dir, new NullInjector());
+        Assert.True((await launcher.Launch(Options())).IsLeft);
+        Assert.Equal(0, capture.Calls);
+        Assert.True(closed);
+        dialogue.Verify(d => d.DisplayMessage(expected), Times.Once);
+        dialogue.Verify(d => d.DisplayYesNoMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
     public void Dispose() => Directory.Delete(_dir, true);
 }

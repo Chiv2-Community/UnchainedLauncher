@@ -48,3 +48,7 @@ This is an implementation refinement of the registry-validated loading decision,
 ## Historical gaps
 
 The source conversation was supplied only as a checkpoint, so the original discussion of alternatives and test command output is unavailable. The chosen behavior and its safeguards are established by the implementation and tests in `ce7cefd4`; the stated test results are checkpoint evidence rather than independently rerun evidence.
+
+## Subsequent developments (2026-10-13)
+
+The decision remains implemented, but the claim in **Consequences and follow-up** that unknown filenames and unregistered versions remain in place was incomplete under concurrent external writers. Two review reproductions found pathname races during archive deletion and active-file restoration. [DLL cache race hardening and review loop](2026-10-13-dll-cache-race-hardening-and-review-loop.md) records the corrective commits `9bcfd9a` and `ab80b43`: archival is bound to a validated Windows handle and active publication cannot overwrite a collision. This is a refinement of the safety mechanism, not a reversal of the external-cache decision.

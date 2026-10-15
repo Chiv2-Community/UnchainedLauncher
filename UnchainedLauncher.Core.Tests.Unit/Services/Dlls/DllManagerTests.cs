@@ -38,7 +38,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         [Fact]
         public async Task DisableDoesNotRequireCurrentSourcesAndPersistsWithoutReapproving() {
             Index(Release());
-            IReadOnlyList<string> sources = [DllManager.DatabaseUrl];
+            IReadOnlyList<string> sources = [DllManager.DefaultDatabaseUrl];
             var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => sources);
             await manager.RefreshAsync();
             sources = [];
@@ -65,14 +65,14 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             _handler.Responses[alternate + "/plugin_list_index.txt"] = "Chiv2-Community/OtherPlugin\n";
             _handler.Responses[alternate + "/packages/Chiv2-Community/OtherPlugin.json"] =
                 JsonSerializer.Serialize(new PluginPackage(info, [record]));
-            var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => [DllManager.DatabaseUrl, alternate]);
+            var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => [DllManager.DefaultDatabaseUrl, alternate]);
             await manager.RefreshAsync();
             Assert.Equal(2, manager.Releases.Count);
             var registered = manager.Releases.Single(release => release.Name == "OtherPlugin");
             Assert.Equal("# Plugin notes", registered.ReleaseNotesMarkdown);
             manager.SetEnabled(registered, true);
             await manager.PrepareAsync();
-            var restarted = new DllManager(PluginPath, StatePath, _http, registryUrls: () => [alternate, DllManager.DatabaseUrl]);
+            var restarted = new DllManager(PluginPath, StatePath, _http, registryUrls: () => [alternate, DllManager.DefaultDatabaseUrl]);
             Assert.Equal(2, restarted.Releases.Count);
             Assert.True(restarted.IsEnabled(registered));
         }
@@ -80,7 +80,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         [Fact]
         public async Task RegistryChangesInvalidateCachedAndLiveApprovals() {
             Index(Release());
-            IReadOnlyList<string> sources = [DllManager.DatabaseUrl];
+            IReadOnlyList<string> sources = [DllManager.DefaultDatabaseUrl];
             var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => sources);
             await manager.RefreshAsync();
             await manager.PrepareAsync();
@@ -98,13 +98,13 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         public async Task ConflictingAlternateRegistryPreservesPreviousApprovals() {
             const string alternate = "https://example.com/registry/dll_db";
             Index(Release());
-            IReadOnlyList<string> sources = [DllManager.DatabaseUrl];
+            IReadOnlyList<string> sources = [DllManager.DefaultDatabaseUrl];
             var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => sources);
             await manager.RefreshAsync();
             var cached = File.ReadAllText(StatePath + ".index.json");
             _handler.Responses[alternate + "/index.json"] = JsonSerializer.Serialize(new[] { Release() with { Sha256 = new string('a', 64) } });
             _handler.Responses[alternate + "/plugin_list_index.txt"] = null;
-            sources = [DllManager.DatabaseUrl, alternate];
+            sources = [DllManager.DefaultDatabaseUrl, alternate];
             await Assert.ThrowsAsync<InvalidDataException>(() => manager.RefreshAsync());
             Assert.Equal(cached, File.ReadAllText(StatePath + ".index.json"));
             Assert.Throws<InvalidOperationException>(() => manager.OpenForInjection());
@@ -119,7 +119,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             _handler.Responses[alternate + "/plugin_list_index.txt"] = null;
             _handler.Responses[modOnly + "/index.json"] = null;
             _handler.Responses[modOnly + "/plugin_list_index.txt"] = null;
-            var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => [DllManager.DatabaseUrl, alternate, modOnly]);
+            var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => [DllManager.DefaultDatabaseUrl, alternate, modOnly]);
             await manager.RefreshAsync();
             Assert.Single(manager.Releases);
         }
@@ -227,9 +227,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
                 release.DllFileName, release.DownloadUrl, release.Size, release.ReleaseDate, release.Info, release.ReleaseNotesMarkdown)).ToArray()));
 
         private void Packages(params DllRelease[] releases) {
-            _handler.Responses[DllManager.PackageListUrl] = string.Join("\n", releases.Select(release => release.Id).Distinct());
+            _handler.Responses[DllManager.DefaultPackageListUrl] = string.Join("\n", releases.Select(release => release.Id).Distinct());
             foreach (var group in releases.GroupBy(release => release.Id))
-                _handler.Responses[$"{DllManager.DatabaseUrl}/packages/{group.Key}.json"] = Package(group.Key, group.ToArray());
+                _handler.Responses[$"{DllManager.DefaultDatabaseUrl}/packages/{group.Key}.json"] = Package(group.Key, group.ToArray());
             _handler.Binary = _binary;
         }
 
@@ -250,7 +250,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             await manager.RefreshAsync();
             var modern = ModernRelease();
             Packages(modern);
-            _handler.Responses[DllManager.IndexUrl] = "invalid stale index must not be read";
+            _handler.Responses[DllManager.DefaultIndexUrl] = "invalid stale index must not be read";
             await manager.RefreshAsync();
             Assert.True(manager.IsEnabled(modern));
             Assert.Equal(modern.Tag, Assert.Single(manager.Releases).Tag);
@@ -272,7 +272,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             var manager = Manager();
             await manager.RefreshAsync();
             _handler.Index = JsonSerializer.Serialize(new[] { release });
-            _handler.Responses[DllManager.PackageListUrl] = "";
+            _handler.Responses[DllManager.DefaultPackageListUrl] = "";
             await manager.RefreshAsync();
             Assert.Empty(manager.Releases);
             await Assert.ThrowsAsync<InvalidOperationException>(() => manager.PrepareAsync());
@@ -1084,12 +1084,12 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
                         RequestMessage = request,
                         Content = new StringContent(content ?? "")
                     });
-                if (request.RequestUri!.AbsoluteUri == DllManager.PackageListUrl)
+                if (request.RequestUri!.AbsoluteUri == DllManager.DefaultPackageListUrl)
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request });
-                if (request.RequestUri.AbsoluteUri != DllManager.IndexUrl) OnBinaryRequest?.Invoke();
+                if (request.RequestUri.AbsoluteUri != DllManager.DefaultIndexUrl) OnBinaryRequest?.Invoke();
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
                     RequestMessage = request,
-                    Content = request.RequestUri!.AbsoluteUri == DllManager.IndexUrl
+                    Content = request.RequestUri!.AbsoluteUri == DllManager.DefaultIndexUrl
                         ? new StringContent(Index) : new ByteArrayContent(Binary)
                 });
             }

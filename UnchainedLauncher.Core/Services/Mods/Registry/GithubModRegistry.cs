@@ -13,12 +13,33 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public override string Name => $"Github mod registry at {Organization}/{RepoName}";
         public string Organization { get; set; }
         public string RepoName { get; set; }
-        public string PackageDBBaseUrl => $"https://raw.githubusercontent.com/{Organization}/{RepoName}/refs/heads/main/package_db";
+        private readonly string _revisionPath = "refs/heads/main";
+        public string RegistryBaseUrl => $"https://raw.githubusercontent.com/{Organization}/{RepoName}/{_revisionPath}";
+        public string PackageDBBaseUrl => $"{RegistryBaseUrl}/package_db";
+        public string DllDatabaseUrl => $"{RegistryBaseUrl}/dll_db";
         public string PackageDBPackageListUrl => $"{PackageDBBaseUrl}/mod_list_index.txt";
 
         public GithubModRegistry(string organization, string repoName) {
             Organization = organization;
             RepoName = repoName;
+        }
+
+        public GithubModRegistry(string baseUrl) {
+            if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri)
+                || uri.Scheme != Uri.UriSchemeHttps || uri.Host != "raw.githubusercontent.com"
+                || !uri.IsDefaultPort || uri.UserInfo.Length != 0 || uri.Query.Length != 0 || uri.Fragment.Length != 0) {
+                throw new InvalidDataException("Invalid GitHub registry base URL.");
+            }
+
+            var parts = uri.AbsolutePath.Trim('/').Split('/');
+            if (parts.Length < 3 || parts.Any(string.IsNullOrWhiteSpace)
+                || parts[^1] is "package_db" or "dll_db") {
+                throw new InvalidDataException("GitHub registry base URL must identify a repository revision, not a database.");
+            }
+
+            Organization = parts[0];
+            RepoName = parts[1];
+            _revisionPath = string.Join('/', parts.Skip(2));
         }
 
         public override Task<GetAllModsResult> GetAllMods() {

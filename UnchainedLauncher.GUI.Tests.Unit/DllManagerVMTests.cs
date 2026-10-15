@@ -50,7 +50,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
                 using var http = new HttpClient(handler);
                 var state = Path.Combine(directory, "state.json");
                 File.WriteAllText(state, "{}");
-                IReadOnlyList<string> sources = [DllManager.DatabaseUrl];
+                IReadOnlyList<string> sources = [DllManager.DefaultDatabaseUrl];
                 DllManager Create() => new(Path.Combine(directory, "Plugins"), state, http, registryUrls: () => sources);
                 var manager = Create();
                 await manager.RefreshAsync();
@@ -99,7 +99,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
                 var record = new PluginRelease(release.Tag!, release.Sha256, "RemovedPlugin.dll", release.DownloadUrl, release.Size,
                     release.ReleaseDate, release.Info, null);
-                var body = request.RequestUri!.AbsoluteUri == DllManager.PackageListUrl
+                var body = request.RequestUri!.AbsoluteUri == DllManager.DefaultPackageListUrl
                     ? (Removed ? "" : release.Id + "\n") : JsonSerializer.Serialize(new PluginPackage(release.Info!, [record]));
                 return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new StringContent(body) });
             }
@@ -242,7 +242,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
 
         private sealed class PackageHandler(string json) : HttpMessageHandler {
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
-                var body = request.RequestUri!.AbsoluteUri == DllManager.PackageListUrl ? "Chiv2-Community/UnchainedPlugin\n" : json;
+                var body = request.RequestUri!.AbsoluteUri == DllManager.DefaultPackageListUrl ? "Chiv2-Community/UnchainedPlugin\n" : json;
                 return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new StringContent(body) });
             }
         }
@@ -344,7 +344,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
                 Requests.Add(request.RequestUri!.AbsoluteUri);
                 if (Fail) throw new HttpRequestException("Offline fixture");
-                return Task.FromResult(new HttpResponseMessage(request.RequestUri.AbsoluteUri == DllManager.PackageListUrl
+                return Task.FromResult(new HttpResponseMessage(request.RequestUri.AbsoluteUri == DllManager.DefaultPackageListUrl
                     ? System.Net.HttpStatusCode.NotFound : System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new StringContent(Json) });
             }
         }
@@ -496,7 +496,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
 
         private sealed class IndexHandler(string json) : HttpMessageHandler {
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-                Task.FromResult(new HttpResponseMessage(request.RequestUri!.AbsoluteUri == DllManager.PackageListUrl
+                Task.FromResult(new HttpResponseMessage(request.RequestUri!.AbsoluteUri == DllManager.DefaultPackageListUrl
                     ? System.Net.HttpStatusCode.NotFound : System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new StringContent(json) });
         }
     }

@@ -144,7 +144,7 @@ namespace UnchainedLauncher.GUI {
                 Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir),
                 FilePaths.DllManagerConfigPath, new HttpClient(), () => modManager.GetEnabledAndDependencyReleases().ToArray(),
                 () => modRegistry.ModRegistries.OfType<GithubModRegistry>()
-                    .Select(registry => registry.PackageDBBaseUrl[..^"package_db".Length] + "dll_db").ToArray());
+                    .Select(registry => registry.DllDatabaseUrl).ToArray());
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
 
@@ -303,7 +303,7 @@ namespace UnchainedLauncher.GUI {
 
             var loadedResult =
                 InitializeFromFileWithCodec(ModRegistryCodec.Instance, jsonPath, CreateDefaultModRegistry);
-            // Ensure that we've got an AggregateModRegistry. The constructor will handle it if we're wrapping 
+            // Ensure that we've got an AggregateModRegistry. The constructor will handle it if we're wrapping
             // another AggregateModRegistry, so no worries there.
             var registry = new AggregateModRegistry(loadedResult);
 

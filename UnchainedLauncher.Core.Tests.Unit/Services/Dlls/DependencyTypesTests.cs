@@ -100,5 +100,18 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             var wrongType = native with { Info = nativeInfo with { ModDependencies = [nativeDependency] } };
             Assert.Throws<InvalidOperationException>(() => DependencyValidator.Validate([pak], [wrongType]));
         }
+
+        [Fact]
+        public void MissingModQueryReportsFirstRequirementInPluginAndDependencyOrder() {
+            var first = new DllRelease("Test", "First", "1.0.0", "https://example.com/First.dll", new string('a', 64), 1,
+                new PluginInfo("First", "Description", ["Author"], ModDependencies: [
+                    new Dependency("https://github.com/Test/Existing", "1.0.0"),
+                    new Dependency("https://github.com/Test/Missing", "2.0.0"),
+                    new Dependency("https://github.com/Test/Other", "3.0.0")]));
+            var second = first with { Name = "Second" };
+            var error = Assert.Throws<InvalidOperationException>(() => DependencyValidator.Validate([Pak("Existing")], [first, second]));
+            Assert.Equal("Enable a compatible mod for Test/First: https://github.com/Test/Missing 2.0.0", error.Message);
+            DependencyValidator.Validate([], [first with { Info = null }]);
+        }
     }
 }

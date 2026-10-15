@@ -10,9 +10,9 @@ using System.Text.RegularExpressions;
 namespace UnchainedLauncher.Core.Services.Dlls {
     /// <summary>Only explicitly enabled, registry-backed releases may reach the injector.</summary>
     public sealed class DllManager {
-        public const string IndexUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/refs/heads/main/dll_db/index.json";
-        public const string DatabaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/refs/heads/main/dll_db";
-        public const string PackageListUrl = DatabaseUrl + "/plugin_list_index.txt";
+        public const string DefaultDatabaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/refs/heads/main/dll_db";
+        public const string DefaultIndexUrl = DefaultDatabaseUrl + "/index.json";
+        public const string DefaultPackageListUrl = DefaultDatabaseUrl + "/plugin_list_index.txt";
         public const string DefaultPluginId = "Chiv2-Community/UnchainedPlugin";
         private readonly HttpClient _http;
         private readonly string _root;
@@ -31,7 +31,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         public DllManager(string pluginDirectory, string statePath, HttpClient http,
             Func<IReadOnlyList<UnchainedLauncher.Core.JsonModels.ModMetadata.Release>>? modReleases = null,
             Func<IReadOnlyList<string>>? registryUrls = null, string? cacheDirectory = null) {
-            _registryUrls = registryUrls ?? (() => [DatabaseUrl]);
+            _registryUrls = registryUrls ?? (() => [DefaultDatabaseUrl]);
             _modReleases = modReleases ?? (() => []);
             var plugins = Path.TrimEndingDirectorySeparator(Path.GetFullPath(pluginDirectory));
             _root = Path.Combine(plugins, "Managed");

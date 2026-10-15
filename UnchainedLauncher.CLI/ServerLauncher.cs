@@ -44,30 +44,8 @@ public static class ServerLauncher {
                 var appIdPath = Path.Combine(options.Chivalry2Path, FilePaths.SteamAppIdPath);
                 if (!File.Exists(appIdPath)) File.WriteAllText(appIdPath, "1824220");
             }
-            var dialogue = new ConsoleDialogue();
             var pluginUpdater = CreateDllSession(request, registry, manager, cancellationToken);
-            var modInstaller = new Chivalry2ModsInstaller(manager, dialogue);
-            var signing = SigPreparer.Create(manager.PakDir, dialogue);
-            // Call preparers sequentially so each receives the previous result.
-            // Always save the managed-pak inventory, even after a partial installation.
-            var preparer = Chivalry2LaunchPreparer.Create<LaunchOptions>(async launch => {
-                cancellationToken.ThrowIfCancellationRequested();
-                var updated = await pluginUpdater.PrepareLaunch(launch);
-                cancellationToken.ThrowIfCancellationRequested();
-                if (updated.IsNone) return LanguageExt.Option<LaunchOptions>.None;
-                try {
-                    updated = await modInstaller.PrepareLaunch(updated.IfNone(launch));
-                }
-                finally {
-                    codec.SerializeFile(cachePath, manager);
-                }
-                cancellationToken.ThrowIfCancellationRequested();
-                if (updated.IsNone || (await signing.PrepareLaunch(LanguageExt.Unit.Default)).IsNone)
-                    return LanguageExt.Option<LaunchOptions>.None;
-                cancellationToken.ThrowIfCancellationRequested();
-                InitializeServerProfile(request);
-                return updated;
-            });
+            var preparer = CreateLaunchPreparer(request, manager, pluginUpdater, codec, cachePath, cancellationToken);
             var launcher = new UnchainedChivalry2Launcher(preparer, new ProcessLauncher(executable),
                 options.Chivalry2Path, pluginUpdater);
             var result = await launcher.Launch(request.ToLaunchOptions());
@@ -75,6 +53,36 @@ public static class ServerLauncher {
                 Right: process => process,
                 // Do not print LaunchFailed.Message: it contains raw password/auth arguments.
                 Left: failure => throw new InvalidOperationException("Game launch or DLL injection failed. Check the installation, plugin, and mod files.", failure));
+        });
+    }
+
+    internal static IChivalry2LaunchPreparer<LaunchOptions> CreateLaunchPreparer(CliLaunchOptions request,
+        ModManager manager, DllLaunchSession pluginUpdater, ModManagerCodec codec, string cachePath,
+        CancellationToken cancellationToken = default) {
+        var dialogue = new ConsoleDialogue();
+        var modInstaller = new Chivalry2ModsInstaller(manager, dialogue);
+        var signing = SigPreparer.Create(manager.PakDir, dialogue);
+        // Call preparers sequentially so each receives the previous result.
+        // Always save the managed-pak inventory, even after a partial installation.
+        return Chivalry2LaunchPreparer.Create<LaunchOptions>(async launch => {
+            cancellationToken.ThrowIfCancellationRequested();
+            var updated = await pluginUpdater.PrepareLaunch(launch);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (updated.IsNone) return LanguageExt.Option<LaunchOptions>.None;
+            // DLL preparation can enable older pak releases with different dependencies.
+            ValidateReleases(manager, request.Shared.Mods);
+            try {
+                updated = await modInstaller.PrepareLaunch(updated.IfNone(launch));
+            }
+            finally {
+                codec.SerializeFile(cachePath, manager);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (updated.IsNone || (await signing.PrepareLaunch(LanguageExt.Unit.Default)).IsNone)
+                return LanguageExt.Option<LaunchOptions>.None;
+            cancellationToken.ThrowIfCancellationRequested();
+            InitializeServerProfile(request);
+            return updated;
         });
     }
 

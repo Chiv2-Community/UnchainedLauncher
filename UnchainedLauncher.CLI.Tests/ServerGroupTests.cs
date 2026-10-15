@@ -43,6 +43,8 @@ public sealed class ServerGroupTests : IDisposable {
         Assert.All(group.Servers, entry => Assert.Equal(Path.Combine(_root, "game"), entry.Options.Shared.Chivalry2Path));
         Assert.Equal(["Courtyard", "Arena"], group.Servers.Select(entry => entry.Options.Settings.Name));
         Assert.Equal(7006, group.Servers[1].Options.ToServerLaunchOptions().QueryPort);
+        Assert.Equal(2, group.Servers.Select(entry => entry.Options.InstancePaths.Paks).Distinct().Count());
+        Assert.Equal(2, group.Servers.Select(entry => entry.Options.InstancePaths.Plugins).Distinct().Count());
     }
 
     [Fact]
@@ -72,6 +74,20 @@ public sealed class ServerGroupTests : IDisposable {
         Assert.Throws<ArgumentException>(() => Parse(Servers.Replace("7007", "7000")));
         Assert.Throws<ArgumentException>(() => Parse(Servers.Replace("name: Courtyard", "name: Courtyard\n    saved-dir-suffix: SAME")
             .Replace("name: Arena", "name: Arena\n    saved-dir-suffix: same")));
+    }
+
+    [Fact]
+    public void InstanceLeasePreventsConcurrentReuseAndCanBeReacquiredAfterRelease() {
+        var paths = Group().Servers[0].Options.InstancePaths;
+        using (paths.AcquireLease()) Assert.Throws<IOException>(() => paths.AcquireLease());
+        using (paths.AcquireLease()) Assert.True(Directory.Exists(paths.Root));
+    }
+
+    [Theory]
+    [InlineData("--additional-pak-dir")]
+    [InlineData("--additional-pak-dir=other")]
+    public void ManagedPakDirectoryCannotBeOverriddenByForwardedArguments(string argument) {
+        Assert.Throws<ArgumentException>(() => Parse(Servers + $"\ngame-args: ['{argument}']"));
     }
 
     [Fact]

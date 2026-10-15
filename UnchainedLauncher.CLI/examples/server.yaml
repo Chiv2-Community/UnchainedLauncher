@@ -10,6 +10,8 @@ mod-setup:
   dlls: [] # Optional dll_db release coordinates; the required core plugin is always included.
 
 # Run with: UnchainedLauncher.CLI.exe server --config-path server.yaml
+# Requires UnchainedPlugin support for --additional-pak-dir.
+# Paks/Plugins are private to <installation>/.unchained/servers/Server-MyServer/.
 # A client block, if included, is ignored by the server command.
 server-browser-backend: https://servers.polehammer.net
 update-plugin: true

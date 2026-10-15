@@ -133,7 +133,8 @@ public class YamlConfigurationTests : IDisposable {
         var options = Load("client: {}\nserver: {}\n", client);
         Assert.Equal(client, options is ClientOptions);
         Assert.Equal(client, options.ToLaunchOptions().ServerLaunchOptions.IsNone);
-        Assert.Equal(client ? "TBL" : "TBL -server", options.ToLaunchOptions().LaunchArgs);
+        if (client) Assert.Equal("TBL", options.ToLaunchOptions().LaunchArgs);
+        else Assert.StartsWith("TBL -server --additional-pak-dir ", options.ToLaunchOptions().LaunchArgs);
         Assert.Equal(!client, options.ToLaunchOptions().ToCLIArgs().Any(arg => arg.Rendered == "-nullrhi"));
     }
 

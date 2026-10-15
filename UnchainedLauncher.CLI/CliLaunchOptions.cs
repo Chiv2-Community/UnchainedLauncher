@@ -110,11 +110,15 @@ public sealed class ClientOptions : CliLaunchOptions {
 public sealed class ServerOptions : CliLaunchOptions {
     public ServerSettings Settings { get; }
     public bool NoTui { get; }
+    public ServerInstancePaths InstancePaths { get; }
 
     internal ServerOptions(SharedLaunchOptions shared, ServerSettings settings, bool noTui)
         : base(shared, SharedLaunchOptions.Entries(settings.GameArgs, allowEmpty: true)) {
         Settings = settings;
         NoTui = noTui;
+        InstancePaths = new ServerInstancePaths(Path.Combine(shared.Chivalry2Path, ".unchained", "servers", "Server-" + shared.SavedDirSuffix));
+        if (GameArguments.Any(argument => argument == "--additional-pak-dir" || argument.StartsWith("--additional-pak-dir=", StringComparison.Ordinal)))
+            throw new ArgumentException("--additional-pak-dir is managed by the launcher; do not pass it through game-args.");
         if (!settings.Headless && settings.DesyncPatch)
             throw new ArgumentException("Desync patch requires a headless server. To enable rendering, pass --no-desync-patch or set server.desync-patch: false in YAML.");
         if (new[] { settings.GamePort, settings.PingPort, settings.QueryPort, settings.RconPort }.Distinct().Count() != 4)
@@ -146,5 +150,6 @@ public sealed class ServerOptions : CliLaunchOptions {
         ServerMods: Settings.ModActors ?? [], DiscordIntegration: ToDiscordOptions(),
         Settings.DesyncPatch, Settings.UseBackendBanlist, Settings.CensorMode);
 
-    public override LaunchOptions ToLaunchOptions() => BuildLaunchOptions(["TBL", "-server"], Some(ToServerLaunchOptions()));
+    public override LaunchOptions ToLaunchOptions() => BuildLaunchOptions(
+        ["TBL", "-server", new Parameter("--additional-pak-dir", InstancePaths.Paks).Rendered], Some(ToServerLaunchOptions()));
 }

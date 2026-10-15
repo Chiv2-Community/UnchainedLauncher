@@ -63,7 +63,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         private static PakDir CreatePakDir(PakDirMetadata? metadata) =>
             metadata != null
-                ? new PakDir(metadata.DirPath, metadata.ManagedPaks)
+                ? new PakDir(metadata.DirPath, metadata.ManagedPaks, metadata.DefaultSigPath)
                 : new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>());
 
         public static ModManagerMetadata ToJsonType(IModManager manager) =>
@@ -72,7 +72,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     m.EnabledModReleaseCoordinates,
                     m.Mods,
                     m.PakDir switch {
-                        PakDir pd => new PakDirMetadata(pd.DirPath, pd.ManagedPaks),
+                        PakDir pd => new PakDirMetadata(pd.DirPath, pd.ManagedPaks, pd.DefaultSigPath),
                         _ => null
                     }
                 ),
@@ -92,7 +92,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
         PakDirMetadata? PakDir
     ) : ModManagerMetadata(ModManagerMetadataKind.StandardModManager);
 
-    public record PakDirMetadata(string DirPath, IEnumerable<ManagedPak> ManagedPaks);
+    public record PakDirMetadata(string DirPath, IEnumerable<ManagedPak> ManagedPaks,
+        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        string? DefaultSigPath = null);
 
     internal static class ModManagerMetadataKind {
         public const string StandardModManager = "StandardModManager";

@@ -202,6 +202,41 @@ public sealed class DllManagerTests {
         finally { Directory.Delete(root, recursive: true); }
     }
 
+    [Fact]
+    public async Task ServerDllPreparationUsesOnlyEachInstancePluginDirectory() {
+        var root = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? Path.GetTempPath(), "dll-instances-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            var release = Release("Chiv2-Community/UnchainedPlugin") with { DllFileName = "UnchainedPlugin.dll" };
+            var packagePath = Path.Combine(root, "registry", "dll_db", "packages", "Chiv2-Community");
+            Directory.CreateDirectory(packagePath);
+            File.WriteAllText(Path.Combine(packagePath, "UnchainedPlugin.json"), JsonHelpers.Serialize(Package(release)));
+            var registry = new AggregateModRegistry(new LocalModRegistry(Path.Combine(root, "registry")));
+            var globalPlugins = Path.Combine(root, FilePaths.PluginDir);
+            Directory.CreateDirectory(globalPlugins);
+            var loose = Path.Combine(globalPlugins, "user.dll");
+            await File.WriteAllBytesAsync(loose, [9, 9, 9]);
+            var paths = new List<string>();
+            using var http = new HttpClient(new DownloadHandler([1, 2, 3]));
+            foreach (var suffix in new[] { "One", "Two" }) {
+                var options = Assert.IsType<ServerOptions>(CliLaunchOptions.Parse([
+                    "server", "--chivalry2-path", root, "--platform", "Steam", "--saved-dir-suffix", suffix]));
+                var mods = ServerLauncher.CreateModManager(options, registry);
+                var session = ServerLauncher.CreateDllSession(options, registry, mods, client: http);
+                Assert.True((await session.PrepareLaunch(options.ToLaunchOptions())).IsSome);
+                var installed = Path.Combine(options.InstancePaths.Plugins, "Managed", "Chiv2-Community", "UnchainedPlugin", "UnchainedPlugin.dll");
+                Assert.True(await DllManager.MatchesFileAsync(installed, release));
+                Assert.True(File.Exists(Path.Combine(options.InstancePaths.Plugins, "dll_manager.json")));
+                paths.Add(installed);
+            }
+            Assert.NotEqual(paths[0], paths[1]);
+            Assert.All(paths, path => Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(path)));
+            Assert.Equal([loose], Directory.GetFiles(globalPlugins, "*", SearchOption.AllDirectories));
+            Assert.Equal(new byte[] { 9, 9, 9 }, await File.ReadAllBytesAsync(loose));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     private sealed class DownloadHandler(byte[] bytes) : HttpMessageHandler {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
             Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new ByteArrayContent(bytes) });

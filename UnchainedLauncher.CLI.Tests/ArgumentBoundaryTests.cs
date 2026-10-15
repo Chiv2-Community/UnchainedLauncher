@@ -34,7 +34,8 @@ public sealed class ArgumentBoundaryTests : IDisposable {
         // Repeat the value so YAML exercises both shared and command-specific forwarding.
         var options = Parse(command, yaml, [argument, argument, "sentinel-after-forwarded"]);
         var expected = new List<string> { "TBL" };
-        if (command == "server") expected.Add("-server");
+        if (command == "server") expected.AddRange(["-server", "--additional-pak-dir",
+            Path.Combine(_directory, ".unchained", "servers", "Server-UnchainedCLI", "Paks")]);
         expected.AddRange([argument, argument, "sentinel-after-forwarded", "-saveddirsuffix=UnchainedCLI", "-unchained"]);
         if (command == "server") expected.AddRange(DefaultServerArguments());
         expected.AddRange(["--server-browser-backend", "https://servers.polehammer.net"]);
@@ -50,12 +51,26 @@ public sealed class ArgumentBoundaryTests : IDisposable {
     public async Task GeneratedServerValuesAlsoPreserveBoundaries(bool yaml) {
         const string value = "quoted \"name\"\\\tline\nend\\";
         var options = Assert.IsType<ServerOptions>(Parse("server", yaml, [], value));
-        var expected = new List<string> { "TBL", "-server", "-saveddirsuffix=UnchainedCLI", "-unchained" };
+        var expected = new List<string> { "TBL", "-server", "--additional-pak-dir",
+            Path.Combine(_directory, ".unchained", "servers", "Server-UnchainedCLI", "Paks"),
+            "-saveddirsuffix=UnchainedCLI", "-unchained" };
         expected.AddRange(DefaultServerArguments(value, value, value));
         // Password follows the headless/backend flags, before local IP and desync options.
         expected.Insert(expected.IndexOf("--local-ip"), "ServerPassword=" + value);
         expected.AddRange(["--server-browser-backend", "https://servers.polehammer.net"]);
         Assert.Equal(expected, await CaptureControl(expected));
+        Assert.Equal(expected, await CaptureLaunch(options.ToLaunchOptions()));
+    }
+
+    [Fact]
+    public async Task PrivatePakDirectoryWithSpacesReachesProcessAsOneArgument() {
+        var installation = Path.Combine(_directory, "Game With Spaces");
+        var options = CliLaunchOptions.Parse(["server", "--chivalry2-path", installation, "--platform", "Steam", "--local-ip", "127.0.0.1"]);
+        var expected = new List<string> { "TBL", "-server", "--additional-pak-dir",
+            Path.Combine(installation, ".unchained", "servers", "Server-UnchainedCLI", "Paks"),
+            "-saveddirsuffix=UnchainedCLI", "-unchained" };
+        expected.AddRange(DefaultServerArguments());
+        expected.AddRange(["--server-browser-backend", "https://servers.polehammer.net"]);
         Assert.Equal(expected, await CaptureLaunch(options.ToLaunchOptions()));
     }
 

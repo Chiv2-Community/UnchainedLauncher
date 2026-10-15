@@ -249,9 +249,23 @@ and individual CLI launch arguments still launch one server.
 - Keys are tab IDs: unique, case-insensitive letters, digits, underscores, and hyphens.
 - Each entry accepts the same fields as `server`, including its own actors,
   arguments, password, and Discord settings. Installation, platform, registry,
-  pak/DLL selections, and common arguments remain shared at the root.
+  pak/DLL selections, and common arguments remain shared at the root; files are
+  prepared separately in each instance directory.
 - Profiles default to `<saved-dir-suffix>-<id>`. Set `saved-dir-suffix` inside an
   entry to override it. Profile names must be distinct, ignoring case.
+- Server paks, DLLs, inventories, and DLL caches live under
+  `<installation>/.unchained/servers/Server-<saved-dir-suffix>/`, in `Paks`,
+  `Plugins`, and `.cache/dlls` subdirectories. This also applies to single-server
+  launches. Directories persist for reuse; a per-instance lock prevents concurrent
+  CLI processes from using the same profile. Plugin injection never scans another
+  instance's directory, including with the unsafe flag.
+- The launcher supplies `--additional-pak-dir <absolute instance Paks path>`.
+  **This requires an UnchainedPlugin release supporting that option.** Do not pass
+  the option manually through `game-args`. Signatures use the installation's base
+  signature as a read-only template; no base pak is copied or modified.
+- The plugin option adds a mount directory; it does not suppress game-wide paks
+  already present in `TBL/Content/Paks`. Existing global mods may still affect all
+  instances. The launcher does not move or delete them during instance setup.
 - Assign all four ports to each server. Every port must be distinct across the
   entire group, even when local IPs differ. Defaults are not automatically offset.
 - All entries are validated before launch. Startup is sequential because Core
@@ -332,9 +346,10 @@ never overwrites GUI configuration or reuses the GUI's enabled-mod selection.
 Each launch reconciles the installed managed set with that host's selected releases;
 genuinely unmanaged user paks are preserved.
 Core's installation pipeline changes the installed managed pak set and signatures.
-Do not prepare a launch concurrently with the GUI or another CLI using the same
-installation; multiple running servers sharing that installation must use the
-same installed mod set and separate saved suffixes/ports.
+Client launches and the GUI share the installation's managed pak set; do not prepare
+those concurrently. CLI servers instead prepare paks and inject DLLs from private
+instance directories. They still need separate saved suffixes/ports; CLI startup
+preparation remains sequential because some Core operations change CWD and metadata.
 
 ## DLL compatibility behavior
 

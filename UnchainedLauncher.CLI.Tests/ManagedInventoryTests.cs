@@ -100,6 +100,44 @@ public class ManagedInventoryTests : IDisposable {
         new(registry, new PakDir(Path.GetFullPath(FilePaths.PakDir), []), selected);
 
     [Fact]
+    public async Task ServerInstancesInstallDifferentPakSetsWithoutChangingBaseOrPeerFiles() {
+        await InInstallation(async (source, common, extra, _) => {
+            var registry = new AggregateModRegistry(source);
+            var first = Assert.IsType<ServerOptions>(CliLaunchOptions.Parse([
+                "server", "--chivalry2-path", _root, "--platform", "Steam", "--saved-dir-suffix", "One"]));
+            var second = Assert.IsType<ServerOptions>(CliLaunchOptions.Parse([
+                "server", "--chivalry2-path", _root, "--platform", "Steam", "--saved-dir-suffix", "Two",
+                "--mod", $"{extra.Info.Organization}/{extra.Info.RepoName}:{extra.Tag}"]));
+            var baseFiles = Directory.GetFiles(Path.GetFullPath(FilePaths.PakDir))
+                .ToDictionary(path => path, File.ReadAllBytes);
+            var firstManager = ServerLauncher.CreateModManager(first, registry);
+            await Prepare(firstManager, first.ToLaunchOptions());
+            var firstFiles = Directory.GetFiles(first.InstancePaths.Paks).ToDictionary(path => path, File.ReadAllBytes);
+            var secondManager = ServerLauncher.CreateModManager(second, registry);
+            await Prepare(secondManager, second.ToLaunchOptions());
+
+            Assert.Single(((PakDir)firstManager.PakDir).ManagedPaks);
+            Assert.Equal(2, ((PakDir)secondManager.PakDir).ManagedPaks.Count());
+            Assert.NotEqual(first.InstancePaths.Paks, second.InstancePaths.Paks);
+            Assert.Equal(baseFiles.Keys.Order(), Directory.GetFiles(Path.GetFullPath(FilePaths.PakDir)).Order());
+            foreach (var (path, bytes) in baseFiles.Concat(firstFiles)) Assert.Equal(bytes, File.ReadAllBytes(path));
+            Assert.True(File.Exists(Path.Combine(first.InstancePaths.Paks, FilePaths.ManagedPakInventoryFileName)));
+            Assert.True(File.Exists(Path.Combine(second.InstancePaths.Paks, FilePaths.ManagedPakInventoryFileName)));
+
+            // Host metadata retains the external signature template when reloaded.
+            var codec = new ModManagerCodec(registry);
+            codec.SerializeFile(first.InstancePaths.ModMetadata, firstManager);
+            var restored = codec.Deserialize(File.ReadAllText(first.InstancePaths.ModMetadata));
+            Assert.True(restored.Success);
+            var restoredPaks = Assert.IsType<PakDir>(restored.Result!.PakDir);
+            Assert.Equal(Path.Combine(Path.GetFullPath(FilePaths.PakDir), "pakchunk0-WindowsNoEditor.sig"), restoredPaks.DefaultSigPath);
+            var managed = Assert.Single(restoredPaks.ManagedPaks);
+            File.Delete(Path.ChangeExtension(Path.Combine(restoredPaks.DirPath, managed.PakFileName), ".sig"));
+            Assert.True(restoredPaks.SignAll().IsRight);
+        });
+    }
+
+    [Fact]
     public async Task SharedOwnershipPreservesUnmanagedCollisionAndUpdatesLoadOrderPrefixes() {
         await InInstallation(async (registry, common, extra, launch) => {
             var paks = Path.GetFullPath(FilePaths.PakDir);

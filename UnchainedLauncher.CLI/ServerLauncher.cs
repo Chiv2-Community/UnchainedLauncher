@@ -18,20 +18,19 @@ public static class ServerLauncher {
         var options = request.Shared;
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Game launching requires Windows (Core's DLL injector uses kernel32.dll).");
         var executable = Path.Combine(options.Chivalry2Path, FilePaths.GameBinPath);
-        var pakPath = Path.Combine(options.Chivalry2Path, FilePaths.PakDir);
-        var pluginsPath = Path.Combine(options.Chivalry2Path, FilePaths.PluginDir);
+        var basePakPath = Path.Combine(options.Chivalry2Path, FilePaths.PakDir);
+        var instance = (request as ServerOptions)?.InstancePaths;
         if (!File.Exists(executable)) throw new FileNotFoundException("Chivalry 2 shipping executable was not found. Check --chivalry2-path.", executable);
-        if (!Directory.Exists(pakPath)) throw new DirectoryNotFoundException($"Chivalry 2 Paks directory was not found: {pakPath}");
+        if (!Directory.Exists(basePakPath)) throw new DirectoryNotFoundException($"Chivalry 2 Paks directory was not found: {basePakPath}");
 
         var registry = CreateRegistry(request);
 
         return await InInstallationDirectoryAsync(request, async () => {
-            var cachePath = Path.Combine(options.Chivalry2Path, FilePaths.ModCachePath, "cli_mod_manager.json");
+            var cachePath = instance?.ModMetadata ?? Path.Combine(options.Chivalry2Path, FilePaths.ModCachePath, "cli_mod_manager.json");
             var codec = new ModManagerCodec(registry);
             // Core reconciles physical ownership across hosts immediately before installing.
             // CLI selection comes only from this request, never from a cached GUI selection.
-            var manager = new ModManager(registry,
-                new PakDir(pakPath, []), options.Mods.Distinct());
+            var manager = CreateModManager(request, registry);
             Console.Error.WriteLine("Loading mod registries...");
             var fetched = await manager.UpdateModsList();
             cancellationToken.ThrowIfCancellationRequested();
@@ -46,7 +45,7 @@ public static class ServerLauncher {
                 if (!File.Exists(appIdPath)) File.WriteAllText(appIdPath, "1824220");
             }
             var dialogue = new ConsoleDialogue();
-            var pluginUpdater = new DllLaunchSession(registry, manager, pluginsPath, options.Dlls, options.UnsafeLoadAllDlls, cancellationToken);
+            var pluginUpdater = CreateDllSession(request, registry, manager, cancellationToken);
             var modInstaller = new Chivalry2ModsInstaller(manager, dialogue);
             var signing = SigPreparer.Create(manager.PakDir, dialogue);
             // Call preparers sequentially so each receives the previous result.
@@ -81,6 +80,18 @@ public static class ServerLauncher {
 
     internal static AggregateModRegistry CreateRegistry(CliLaunchOptions options) =>
         options.Shared.RegistryOptions.CreateRegistry();
+
+    internal static ModManager CreateModManager(CliLaunchOptions request, AggregateModRegistry registry) {
+        var basePakPath = Path.Combine(request.Shared.Chivalry2Path, FilePaths.PakDir);
+        return new ModManager(registry, (request as ServerOptions)?.InstancePaths.CreatePakDir(basePakPath)
+            ?? new PakDir(basePakPath, []), request.Shared.Mods.Distinct());
+    }
+
+    internal static DllLaunchSession CreateDllSession(CliLaunchOptions request, AggregateModRegistry registry,
+        IModManager manager, CancellationToken cancellationToken = default, HttpClient? client = null) =>
+        new(registry, manager, (request as ServerOptions)?.InstancePaths.Plugins
+            ?? Path.Combine(request.Shared.Chivalry2Path, FilePaths.PluginDir),
+            request.Shared.Dlls, request.Shared.UnsafeLoadAllDlls, cancellationToken, client);
 
     internal static void InitializeServerProfile(CliLaunchOptions request, Func<string, string>? configPath = null) {
         if (request is not ServerOptions) return;

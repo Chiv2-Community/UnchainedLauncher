@@ -13,9 +13,12 @@ internal static class ServerGroupRunner {
         query ??= ServerLauncher.CreateQuery;
         using var monitoring = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
         var processes = new List<Process>();
+        var leases = new List<IDisposable>();
         var tasks = new List<Task>();
         var snapshots = new ServerTabSnapshot?[group.Servers.Count];
         try {
+            // Reserve every instance before starting any processes.
+            foreach (var entry in group.Servers) leases.Add(entry.Options.InstancePaths.AcquireLease());
             // Core preparation changes CWD and installation files. Never launch in parallel.
             foreach (var entry in group.Servers) {
                 stop.Token.ThrowIfCancellationRequested();
@@ -76,6 +79,7 @@ internal static class ServerGroupRunner {
                 catch (Exception) { failedStops.Add(process.Id); }
                 finally { process.Dispose(); }
             }
+            foreach (var lease in leases) lease.Dispose();
             if (failedStops.Count != 0)
                 throw new InvalidOperationException($"Could not stop server processes: {string.Join(", ", failedStops)}. Stop them manually.");
         }

@@ -12,6 +12,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
     public class PakDir : IPakDir {
         public string DirPath { get; }
+        public string? DefaultSigPath { get; }
 
         private const string BasePakFileName = "pakchunk0-WindowsNoEditor.pak";
         private const string BaseSigFileName = "pakchunk0-WindowsNoEditor.sig";
@@ -22,8 +23,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public IEnumerable<ManagedPak> ManagedPaks => _managedPaks;
         private readonly List<ManagedPak> _managedPaks;
 
-        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks) {
+        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks, string? defaultSigPath = null) {
             DirPath = dirPath;
+            DefaultSigPath = defaultSigPath;
             _managedPaks = managedPaks.ToList();
             SynchronizeWithDir();
         }
@@ -337,7 +339,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             if (File.Exists(signedName)) {
                 return Right(Unit.Default);
             }
-            var sigPath = Path.Join(DirPath, BaseSigFileName);
+            var sigPath = DefaultSigPath ?? Path.Join(DirPath, BaseSigFileName);
             return (File.Exists(sigPath)
                 ? Either<Error, string>.Right(sigPath)
                 : Error.New($"Default sig file '{sigPath}' not found"))

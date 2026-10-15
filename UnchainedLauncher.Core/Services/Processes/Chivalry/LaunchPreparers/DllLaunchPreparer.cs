@@ -13,8 +13,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                         LogManager.GetLogger(typeof(DllLaunchPreparer)).Warn("DLL refresh unavailable; retaining cached approvals.", ex);
                     }
                     foreach (var (current, latest) in manager.GetUpdateCandidates(server, options.AllowUnstablePluginReleases)) {
-                        var update = new DependencyUpdate(latest.DllFileName ?? latest.Name + ".dll", current.Version, latest.Version,
-                            $"https://github.com/{latest.Id}/releases/tag/{latest.Tag ?? latest.Version}", latest.Info?.Description ?? "Native plugin");
+                        var update = new DependencyUpdate(latest.EffectiveFileName, current.Version, latest.Version,
+                            latest.GithubReleaseUrl, latest.Info?.Description ?? "Native plugin");
                         if (dialogue.DisplayUpdateMessage("Update plugin", $"Would you like to update {latest.Info?.Name ?? latest.Id}?",
                             "yes", "no", null, update) == UserDialogueChoice.Yes)
                             manager.SetEnabled(latest, true);

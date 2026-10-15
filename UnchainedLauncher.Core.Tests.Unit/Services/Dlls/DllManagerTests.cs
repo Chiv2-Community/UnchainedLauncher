@@ -38,7 +38,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         [Fact]
         public async Task DisableDoesNotRequireCurrentSourcesAndPersistsWithoutReapproving() {
             Index(Release());
-            IReadOnlyList<string> sources = [DllManager.DatabaseUrl];
+            IReadOnlyList<string> sources = [DllManager.DefaultDatabaseUrl];
             var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => sources);
             await manager.RefreshAsync();
             sources = [];
@@ -65,14 +65,14 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             _handler.Responses[alternate + "/plugin_list_index.txt"] = "Chiv2-Community/OtherPlugin\n";
             _handler.Responses[alternate + "/packages/Chiv2-Community/OtherPlugin.json"] =
                 JsonSerializer.Serialize(new PluginPackage(info, [record]));
-            var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => [DllManager.DatabaseUrl, alternate]);
+            var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => [DllManager.DefaultDatabaseUrl, alternate]);
             await manager.RefreshAsync();
             Assert.Equal(2, manager.Releases.Count);
             var registered = manager.Releases.Single(release => release.Name == "OtherPlugin");
             Assert.Equal("# Plugin notes", registered.ReleaseNotesMarkdown);
             manager.SetEnabled(registered, true);
             await manager.PrepareAsync();
-            var restarted = new DllManager(PluginPath, StatePath, _http, registryUrls: () => [alternate, DllManager.DatabaseUrl]);
+            var restarted = new DllManager(PluginPath, StatePath, _http, registryUrls: () => [alternate, DllManager.DefaultDatabaseUrl]);
             Assert.Equal(2, restarted.Releases.Count);
             Assert.True(restarted.IsEnabled(registered));
         }
@@ -80,7 +80,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         [Fact]
         public async Task RegistryChangesInvalidateCachedAndLiveApprovals() {
             Index(Release());
-            IReadOnlyList<string> sources = [DllManager.DatabaseUrl];
+            IReadOnlyList<string> sources = [DllManager.DefaultDatabaseUrl];
             var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => sources);
             await manager.RefreshAsync();
             await manager.PrepareAsync();
@@ -98,13 +98,13 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         public async Task ConflictingAlternateRegistryPreservesPreviousApprovals() {
             const string alternate = "https://example.com/registry/dll_db";
             Index(Release());
-            IReadOnlyList<string> sources = [DllManager.DatabaseUrl];
+            IReadOnlyList<string> sources = [DllManager.DefaultDatabaseUrl];
             var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => sources);
             await manager.RefreshAsync();
             var cached = File.ReadAllText(StatePath + ".index.json");
             _handler.Responses[alternate + "/index.json"] = JsonSerializer.Serialize(new[] { Release() with { Sha256 = new string('a', 64) } });
             _handler.Responses[alternate + "/plugin_list_index.txt"] = null;
-            sources = [DllManager.DatabaseUrl, alternate];
+            sources = [DllManager.DefaultDatabaseUrl, alternate];
             await Assert.ThrowsAsync<InvalidDataException>(() => manager.RefreshAsync());
             Assert.Equal(cached, File.ReadAllText(StatePath + ".index.json"));
             Assert.Throws<InvalidOperationException>(() => manager.OpenForInjection());
@@ -119,7 +119,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             _handler.Responses[alternate + "/plugin_list_index.txt"] = null;
             _handler.Responses[modOnly + "/index.json"] = null;
             _handler.Responses[modOnly + "/plugin_list_index.txt"] = null;
-            var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => [DllManager.DatabaseUrl, alternate, modOnly]);
+            var manager = new DllManager(PluginPath, StatePath, _http, registryUrls: () => [DllManager.DefaultDatabaseUrl, alternate, modOnly]);
             await manager.RefreshAsync();
             Assert.Single(manager.Releases);
         }
@@ -227,9 +227,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
                 release.DllFileName, release.DownloadUrl, release.Size, release.ReleaseDate, release.Info, release.ReleaseNotesMarkdown)).ToArray()));
 
         private void Packages(params DllRelease[] releases) {
-            _handler.Responses[DllManager.PackageListUrl] = string.Join("\n", releases.Select(release => release.Id).Distinct());
+            _handler.Responses[DllManager.DefaultPackageListUrl] = string.Join("\n", releases.Select(release => release.Id).Distinct());
             foreach (var group in releases.GroupBy(release => release.Id))
-                _handler.Responses[$"{DllManager.DatabaseUrl}/packages/{group.Key}.json"] = Package(group.Key, group.ToArray());
+                _handler.Responses[$"{DllManager.DefaultDatabaseUrl}/packages/{group.Key}.json"] = Package(group.Key, group.ToArray());
             _handler.Binary = _binary;
         }
 
@@ -250,7 +250,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             await manager.RefreshAsync();
             var modern = ModernRelease();
             Packages(modern);
-            _handler.Responses[DllManager.IndexUrl] = "invalid stale index must not be read";
+            _handler.Responses[DllManager.DefaultIndexUrl] = "invalid stale index must not be read";
             await manager.RefreshAsync();
             Assert.True(manager.IsEnabled(modern));
             Assert.Equal(modern.Tag, Assert.Single(manager.Releases).Tag);
@@ -272,7 +272,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             var manager = Manager();
             await manager.RefreshAsync();
             _handler.Index = JsonSerializer.Serialize(new[] { release });
-            _handler.Responses[DllManager.PackageListUrl] = "";
+            _handler.Responses[DllManager.DefaultPackageListUrl] = "";
             await manager.RefreshAsync();
             Assert.Empty(manager.Releases);
             await Assert.ThrowsAsync<InvalidOperationException>(() => manager.PrepareAsync());
@@ -293,6 +293,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             try { Assert.Equal(new[] { client.DllFileName, shared.DllFileName }.Order(), files.Select(file => Path.GetFileName(file.Path)).Order()); }
             finally { foreach (var file in files) file.Dispose(); }
             Assert.DoesNotContain(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories), file => Path.GetFileName(file) == server.DllFileName);
+            if (!OperatingSystem.IsWindows()) {
+                await Assert.ThrowsAsync<PlatformNotSupportedException>(() => manager.PrepareAsync(server: true));
+                Assert.Contains(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories), file => Path.GetFileName(file) == client.DllFileName);
+                return;
+            }
             await manager.PrepareAsync(server: true);
             files = manager.OpenForInjection(server: true);
             try { Assert.Equal(new[] { server.DllFileName, shared.DllFileName }.Order(), files.Select(file => Path.GetFileName(file.Path)).Order()); }
@@ -405,6 +410,28 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
                 ModDependencies: [dependency with { RepoUrl = "https://github.com/Org/.." }]).Validate());
         }
 
+        [Theory]
+        [InlineData("null")]
+        [InlineData("invalid")]
+        [InlineData("duplicate")]
+        public void IndexAndPackageShareReleaseValidation(string failure) {
+            var release = ModernRelease();
+            var node = System.Text.Json.Nodes.JsonNode.Parse(Package(release.Id, release))!;
+            var releases = node["releases"]!.AsArray();
+            switch (failure) {
+                case "null": releases.Add((System.Text.Json.Nodes.JsonNode?)null); break;
+                case "invalid": releases[0]!["hash"] = "invalid"; break;
+                case "duplicate": releases.Add(releases[0]!.DeepClone()); break;
+            }
+            Assert.Throws<InvalidDataException>(() => DllManager.ParsePackage(node.ToJsonString(), release.Id));
+            DllRelease?[] entries = failure switch {
+                "null" => [release, null],
+                "invalid" => [release with { Sha256 = "invalid" }],
+                _ => [release, release with { Organization = release.Organization.ToLowerInvariant() }]
+            };
+            Assert.Throws<InvalidDataException>(() => DllManager.ParseIndex(JsonSerializer.Serialize(entries)));
+        }
+
         [Fact]
         public async Task DisabledDownloadsRequireExistingValidatedFilesAndWorkOffline() {
             Index(Release());
@@ -457,15 +484,17 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             var manager = Manager();
             await manager.RefreshAsync();
             await manager.PrepareAsync();
-            Index(current, Release(version: "2.0.0"), Release(version: "3.0.0-RC1"));
+            Index(current, Release(version: "2.0.0+build.abc"), Release(version: "3.0.0-RC1+build.abc"));
             var dialogue = new UpdateDialogue(approve);
             var preparer = new UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers.DllLaunchPreparer(manager, dialogue);
             var options = new UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchOptions([], LanguageExt.Option<string>.None, "",
                 true, allowUnstable, LanguageExt.Option<string>.None,
                 LanguageExt.Option<UnchainedLauncher.Core.Services.Processes.Chivalry.ServerLaunchOptions>.None);
             Assert.True((await preparer.PrepareLaunch(options)).IsSome);
-            var expectedVersion = allowUnstable ? "3.0.0-RC1" : "2.0.0";
+            var expectedVersion = allowUnstable ? "3.0.0-RC1+build.abc" : "2.0.0+build.abc";
             Assert.Equal(expectedVersion, Assert.Single(dialogue.Updates).LatestVersion);
+            Assert.Equal($"https://github.com/{current.Id}/releases/tag/{Uri.EscapeDataString(expectedVersion)}",
+                Assert.Single(dialogue.Updates).ReleaseUrl);
             Assert.Equal(approve ? expectedVersion : current.Version, Assert.Single(manager.Releases.Where(manager.IsEnabled)).Version);
             Assert.Empty(dialogue.Messages);
         }
@@ -494,6 +523,30 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         private void Index(params DllRelease[] releases) {
             _handler.Index = JsonSerializer.Serialize(releases);
             _handler.Binary = _binary;
+        }
+
+        [Theory]
+        [InlineData(null, "1.0.0%2Bbuild.abc")]
+        [InlineData("v1.0.0+build.abc", "v1.0.0%2Bbuild.abc")]
+        public void ReleaseUrlEscapesOriginalTagOrFallbackWithoutChangingRegistryJson(string? tag, string encodedTag) {
+            var release = Release(version: "1.0.0+build.abc") with { Tag = tag };
+            release.Validate();
+            Assert.Equal($"https://github.com/{release.Id}/releases/tag/{encodedTag}", release.GithubReleaseUrl);
+            var json = JsonSerializer.Serialize(release);
+            Assert.DoesNotContain("GithubReleaseUrl", json);
+            Assert.Equal(release, JsonSerializer.Deserialize<DllRelease>(json));
+        }
+
+        [Theory]
+        [InlineData(null, "UnchainedPlugin.dll")]
+        [InlineData("CustomPlugin.dll", "CustomPlugin.dll")]
+        public void EffectiveFileNamePreservesAssetOrLegacyFallbackWithoutChangingRegistryJson(string? fileName, string expected) {
+            var release = Release() with { DllFileName = fileName };
+            release.Validate();
+            Assert.Equal(expected, release.EffectiveFileName);
+            var json = JsonSerializer.Serialize(release);
+            Assert.DoesNotContain("EffectiveFileName", json);
+            Assert.Equal(release, JsonSerializer.Deserialize<DllRelease>(json));
         }
 
         [Fact]
@@ -617,6 +670,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             await manager.PrepareAsync();
             _handler.Binary = nextBytes;
             manager.SetEnabled(second, true);
+            if (!OperatingSystem.IsWindows()) {
+                await Assert.ThrowsAsync<PlatformNotSupportedException>(() => manager.PrepareAsync());
+                Assert.Equal(_binary, File.ReadAllBytes(Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories))));
+                return;
+            }
             await manager.PrepareAsync();
             Assert.Equal(nextBytes, File.ReadAllBytes(Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories))));
             Assert.False(Directory.Exists(Path.Combine(PluginPath, ".cache")));
@@ -648,6 +706,14 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             var manager = Manager();
             await manager.RefreshAsync();
             _handler.Fail = true;
+            if (!OperatingSystem.IsWindows()) {
+                await Assert.ThrowsAsync<PlatformNotSupportedException>(() => manager.PrepareAsync(allowDownloads: false));
+                Assert.Equal(_binary, File.ReadAllBytes(legacy));
+                Assert.Equal(_binary, File.ReadAllBytes(unknownName));
+                Assert.Equal("unregistered version", File.ReadAllText(unknownVersion));
+                Assert.Equal("unregistered root DLL", File.ReadAllText(loose));
+                return;
+            }
             await manager.PrepareAsync(allowDownloads: false);
             Assert.False(File.Exists(legacy));
             Assert.Equal(_binary, File.ReadAllBytes(unknownName));
@@ -668,6 +734,15 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             await manager.PrepareAsync();
             var installed = Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
             manager.Disable(release.Id);
+            if (!OperatingSystem.IsWindows()) {
+                await Assert.ThrowsAsync<PlatformNotSupportedException>(() => manager.PrepareAsync(allowDownloads: false));
+                Assert.Equal(_binary, File.ReadAllBytes(installed));
+                Assert.Empty(manager.OpenForInjection());
+                File.WriteAllText(installed, "unregistered version");
+                await manager.PrepareAsync(allowDownloads: false);
+                Assert.Equal("unregistered version", File.ReadAllText(installed));
+                return;
+            }
             await manager.PrepareAsync(allowDownloads: false);
             Assert.False(File.Exists(installed));
             Assert.Empty(manager.OpenForInjection());
@@ -764,6 +839,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             Assert.Equal(_binary, File.ReadAllBytes(loose));
             await manager.PrepareAsync();
             manager.Disable(Release().Id);
+            if (!OperatingSystem.IsWindows()) {
+                await Assert.ThrowsAsync<PlatformNotSupportedException>(() => manager.PrepareAsync(allowDownloads: false));
+                Assert.Equal(_binary, File.ReadAllBytes(loose));
+                return;
+            }
             await manager.PrepareAsync(allowDownloads: false);
             Assert.Equal(_binary, File.ReadAllBytes(loose));
             Assert.Equal(loose, Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories)));
@@ -774,6 +854,100 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
             Assert.Throws<ArgumentException>(() => new DllManager(PluginPath, StatePath, _http, cacheDirectory: PluginPath));
             Assert.Throws<ArgumentException>(() => new DllManager(PluginPath, StatePath, _http,
                 cacheDirectory: Path.Combine(PluginPath, ".cache")));
+        }
+
+        [Fact]
+        public async Task ActivePublicationCollisionPreservesUnknownFileAndBlocksPreparation() {
+            Index(Release());
+            var manager = Manager();
+            await manager.RefreshAsync();
+            await manager.PrepareAsync();
+            var installed = Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
+            var cache = Assert.Single(Directory.GetFiles(Path.Combine(_dir, ".cache"), "*.dll", SearchOption.AllDirectories));
+            File.Delete(installed);
+            var reached = false;
+            Action<string> publishing = path => {
+                reached = true;
+                Assert.Equal(installed, path);
+                Assert.False(File.Exists(path));
+                // The production absence check and validated staging copy have
+                // completed. A separate writer wins the destination before rename.
+                Task.Run(() => File.WriteAllText(path, "unknown user version")).GetAwaiter().GetResult();
+            };
+            var prepare = typeof(DllManager).GetMethod("PrepareAsync",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            await Assert.ThrowsAsync<IOException>(() => (Task)prepare.Invoke(manager, [false, false, publishing, CancellationToken.None])!);
+            Assert.True(reached);
+            Assert.Equal("unknown user version", File.ReadAllText(installed));
+            Assert.Equal(_binary, File.ReadAllBytes(cache));
+            Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(installed)!, "*.tmp"));
+            Assert.Throws<InvalidDataException>(() => manager.OpenForInjection());
+        }
+
+        private static void ArchiveAtPublication(string source, string cache, DllRelease release, Action published) {
+            // Exercise exactly the helper used by PrepareAsync, not a simulated
+            // lock or pathname-delete algorithm. Reflection keeps this seam private.
+            var copy = typeof(DllManager).GetMethod("CopyValidated", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+            try { copy.Invoke(null, [source, cache, release, true, published, null, true]); }
+            catch (System.Reflection.TargetInvocationException error) {
+                System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException!).Throw();
+            }
+        }
+
+        [Theory]
+        [InlineData("write")]
+        [InlineData("replace")]
+        [InlineData("delete")]
+        public void ArchiveProtectsValidatedIdentityAfterCachePublication(string operation) {
+            if (!OperatingSystem.IsWindows()) return;
+            var source = Path.Combine(_dir, "approved.dll");
+            var cache = Path.Combine(_dir, "cache", "approved.dll");
+            var replacement = Path.Combine(_dir, "replacement.dll");
+            File.WriteAllBytes(source, _binary);
+            File.WriteAllText(replacement, "unknown user version");
+            var reached = false;
+            ArchiveAtPublication(source, cache, Release(), () => {
+                reached = true;
+                Assert.Equal(_binary, File.ReadAllBytes(cache));
+                // A separate writer reaches the original vulnerable boundary
+                // deterministically, without sleeps or filesystem watcher timing.
+                Task.Run(() => {
+                    var error = Record.Exception(() => {
+                        switch (operation) {
+                            case "write": File.WriteAllText(source, "unknown user version"); break;
+                            case "replace": File.Move(replacement, source, true); break;
+                            default: File.Delete(source); break;
+                        }
+                    });
+                    Assert.True(error is IOException or UnauthorizedAccessException, $"Writer was not blocked: {error}");
+                }).GetAwaiter().GetResult();
+                using var reader = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+                DllManager.ValidateBytes(reader, Release());
+            });
+            Assert.True(reached);
+            Assert.False(File.Exists(source));
+            Assert.Equal(_binary, File.ReadAllBytes(cache));
+            Assert.Equal("unknown user version", File.ReadAllText(replacement));
+            File.Move(replacement, source);
+            Assert.Equal("unknown user version", File.ReadAllText(source));
+        }
+
+        [Fact]
+        public void ArchiveNeverDeletesOnValidationOrPublicationFailure() {
+            if (!OperatingSystem.IsWindows()) return;
+            var source = Path.Combine(_dir, "approved.dll");
+            var cache = Path.Combine(_dir, "cache", "approved.dll");
+            File.WriteAllText(source, "unknown user version");
+            Assert.Throws<InvalidDataException>(() => ArchiveAtPublication(source, cache, Release(), () => Assert.True(false)));
+            Assert.Equal("unknown user version", File.ReadAllText(source));
+            Assert.False(File.Exists(cache));
+            File.WriteAllBytes(source, _binary);
+            // An existing directory makes the real atomic cache publication fail.
+            Directory.CreateDirectory(cache);
+            var error = Record.Exception(() => ArchiveAtPublication(source, cache, Release(), () => Assert.True(false)));
+            Assert.True(error is IOException or UnauthorizedAccessException, $"Cache publication unexpectedly succeeded: {error}");
+            Assert.Equal(_binary, File.ReadAllBytes(source));
+            Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(cache)!, "*.tmp"));
         }
 
         [Fact]
@@ -910,12 +1084,12 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
                         RequestMessage = request,
                         Content = new StringContent(content ?? "")
                     });
-                if (request.RequestUri!.AbsoluteUri == DllManager.PackageListUrl)
+                if (request.RequestUri!.AbsoluteUri == DllManager.DefaultPackageListUrl)
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) { RequestMessage = request });
-                if (request.RequestUri.AbsoluteUri != DllManager.IndexUrl) OnBinaryRequest?.Invoke();
+                if (request.RequestUri.AbsoluteUri != DllManager.DefaultIndexUrl) OnBinaryRequest?.Invoke();
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
                     RequestMessage = request,
-                    Content = request.RequestUri!.AbsoluteUri == DllManager.IndexUrl
+                    Content = request.RequestUri!.AbsoluteUri == DllManager.DefaultIndexUrl
                         ? new StringContent(Index) : new ByteArrayContent(Binary)
                 });
             }

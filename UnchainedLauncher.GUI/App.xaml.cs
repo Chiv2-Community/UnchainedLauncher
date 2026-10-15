@@ -147,7 +147,7 @@ namespace UnchainedLauncher.GUI {
                 Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir),
                 FilePaths.DllManagerConfigPath, new HttpClient(), () => modManager.GetEnabledAndDependencyReleases().ToArray(),
                 () => modRegistry.ModRegistries.OfType<GithubModRegistry>()
-                    .Select(registry => registry.PackageDBBaseUrl[..^"package_db".Length] + "dll_db").ToArray());
+                    .Select(registry => registry.DllDatabaseUrl).ToArray());
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
 

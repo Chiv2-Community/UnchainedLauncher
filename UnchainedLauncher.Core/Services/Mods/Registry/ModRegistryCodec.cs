@@ -1,4 +1,5 @@
 using DiscriminatedUnions;
+using System.Text.Json.Serialization;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
@@ -10,7 +11,8 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public static IModRegistry ToClassType(ModRegistryMetadata metadata) =>
             metadata switch {
                 LocalModRegistryMetadata m => new LocalModRegistry(m.PakReleaseDir),
-                GithubModRegistryMetadata m => new GithubModRegistry(m.Org, m.RepoName),
+                GithubModRegistryMetadata { BaseUrl: not null } m => new GithubModRegistry(m.BaseUrl),
+                GithubModRegistryMetadata { Org: not null, RepoName: not null } m => new GithubModRegistry(m.Org, m.RepoName),
                 AggregateModRegistryMetadata m => new AggregateModRegistry(m.Registries.Select(ToClassType).ToArray()),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(metadata), metadata,
@@ -20,7 +22,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public static ModRegistryMetadata ToJsonType(IModRegistry registry) =>
             registry switch {
                 LocalModRegistry d => new LocalModRegistryMetadata(d.RegistryPath),
-                GithubModRegistry d => new GithubModRegistryMetadata(d.Organization, d.RepoName),
+                GithubModRegistry d => new GithubModRegistryMetadata(BaseUrl: d.RegistryBaseUrl),
                 AggregateModRegistry d => new AggregateModRegistryMetadata(d.ModRegistries.Select(ToJsonType).ToArray()),
 
                 _ => throw new ArgumentOutOfRangeException(nameof(registry), registry,
@@ -34,7 +36,11 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
     [UnionCase(typeof(AggregateModRegistryMetadata), ModRegistryMetadataKind.AggregateModRegistry)]
     public abstract record ModRegistryMetadata(string Kind);
     public record LocalModRegistryMetadata(string PakReleaseDir) : ModRegistryMetadata(ModRegistryMetadataKind.LocalModRegistry);
-    public record GithubModRegistryMetadata(string Org, string RepoName) : ModRegistryMetadata(ModRegistryMetadataKind.GithubModRegistry);
+    public record GithubModRegistryMetadata(
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Org = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? RepoName = null,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? BaseUrl = null)
+        : ModRegistryMetadata(ModRegistryMetadataKind.GithubModRegistry);
     public record AggregateModRegistryMetadata(ModRegistryMetadata[] Registries) : ModRegistryMetadata(ModRegistryMetadataKind.AggregateModRegistry);
 
     internal static class ModRegistryMetadataKind {

@@ -4,6 +4,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:local="clr-namespace:UnchainedLauncher.GUI.Views"
+    xmlns:controls="clr-namespace:UnchainedLauncher.GUI.Views.Controls"
     xmlns:mods="clr-namespace:UnchainedLauncher.GUI.Views.Mods"
     xmlns:servers="clr-namespace:UnchainedLauncher.GUI.Views.Servers"
     xmlns:instances="clr-namespace:UnchainedLauncher.GUI.Views.DesignInstances"
@@ -243,20 +244,8 @@
                                                 <TextBlock Text="{Binding Organization}" Foreground="{DynamicResource Brush.Muted}" />
                                             </StackPanel>
                                             <Button Grid.Column="2" Content="{Binding ButtonText}"
-                                                    Command="{Binding EnableOrDisableCommand}" Margin="0,0,8,0">
-                                                <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource Button.Secondary}">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding IsEnabled}" Value="False">
-                                                                <Setter Property="Background" Value="{DynamicResource Brush.Success}" />
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding IsEnabled}" Value="True">
-                                                                <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Button.Style>
-                                            </Button>
+                                                    Command="{Binding EnableOrDisableCommand}" Margin="0,0,8,0"
+                                                    Style="{StaticResource Button.EnableOrDisable}" />
                                             <ComboBox Grid.Column="3" ItemsSource="{Binding AvailableVersions}"
                                                       SelectedItem="{Binding SelectedVersion, Mode=TwoWay}"
                                                       ToolTip="Select version" VerticalAlignment="Stretch">
@@ -291,14 +280,16 @@
                                         <TextBlock Text="{Binding FileName, StringFormat='DLL file: {0}'}" TextWrapping="Wrap" />
                                         <TextBlock Text="{Binding ReleaseTag, StringFormat='Release: {0}'}" />
                                         <TextBlock Text="{Binding ReleaseDate, StringFormat='Release date (UTC): {0}'}" />
-                                        <Expander Header="Release notes" Margin="0,8,0,0">
-                                            <StackPanel>
-                                                <Button Content="View original release notes on GitHub" Command="{Binding OpenGithubReleaseCommand}"
-                                                        ToolTip="Open the displayed plugin release on GitHub" Style="{StaticResource Button.Secondary}"
-                                                        HorizontalAlignment="Left" Margin="0,0,0,8" />
-                                                <TextBlock Text="{Binding ReleaseNotes}" TextWrapping="Wrap" />
-                                            </StackPanel>
-                                        </Expander>
+                                        <controls:CollapsibleCard Header="Release notes" IsExpanded="False" Margin="0,8,0,0">
+                                            <controls:CollapsibleCard.Body>
+                                                <StackPanel>
+                                                    <Button Content="View original release notes on GitHub" Command="{Binding OpenGithubReleaseCommand}"
+                                                            ToolTip="Open the displayed plugin release on GitHub" Style="{StaticResource Button.Secondary}"
+                                                            HorizontalAlignment="Left" Margin="0,0,0,8" />
+                                                    <TextBlock Text="{Binding ReleaseNotes}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </controls:CollapsibleCard.Body>
+                                        </controls:CollapsibleCard>
                                         <TextBlock Text="{Binding SelectedVersion.Size, StringFormat='Bytes: {0}'}"
                                                    Foreground="{DynamicResource Brush.Muted}" FontSize="11" Margin="0,8,0,0" />
                                         <TextBlock Text="{Binding SelectedVersion.Source}" TextWrapping="Wrap"

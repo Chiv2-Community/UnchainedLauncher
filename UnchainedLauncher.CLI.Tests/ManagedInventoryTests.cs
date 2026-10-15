@@ -100,6 +100,38 @@ public class ManagedInventoryTests : IDisposable {
         new(registry, new PakDir(Path.GetFullPath(FilePaths.PakDir), []), selected);
 
     [Fact]
+    public async Task SharedOwnershipPreservesUnmanagedCollisionAndUpdatesLoadOrderPrefixes() {
+        await InInstallation(async (registry, common, extra, launch) => {
+            var paks = Path.GetFullPath(FilePaths.PakDir);
+            var occupied = Path.Combine(paks, "q__-__Unchained-Mods.pak");
+            File.WriteAllText(occupied, "user collision");
+            var manager = Manager(registry, []);
+            await Prepare(manager, launch);
+            var original = Assert.Single(((PakDir)manager.PakDir).ManagedPaks);
+            Assert.Equal("q__-__Unchained-Mods (1).pak", original.PakFileName);
+            Assert.True(manager.EnableModRelease(ReleaseCoordinates.FromRelease(extra)));
+            await Prepare(manager, launch);
+
+            var owned = ((PakDir)manager.PakDir).ManagedPaks.ToArray();
+            var expectedOrder = manager.SortByDependencies(manager.GetEnabledAndDependencyReleases())
+                .Reverse().Select(ReleaseCoordinates.FromRelease).ToArray();
+            Assert.Equal(expectedOrder, owned.OrderBy(pak => pak.PakFileName, StringComparer.OrdinalIgnoreCase)
+                .Select(pak => pak.Coordinates));
+            Assert.False(File.Exists(Path.Combine(paks, original.PakFileName)));
+            Assert.Equal("user collision", File.ReadAllText(occupied));
+            Assert.Equal(2, owned.Length);
+            Assert.All(owned, pak => Assert.True(File.Exists(Path.ChangeExtension(Path.Combine(paks, pak.PakFileName), ".sig"))));
+
+            await Prepare(manager, launch);
+            Assert.Equal(owned, ((PakDir)manager.PakDir).ManagedPaks);
+            var inventory = JsonHelpers.Deserialize<PakDirMetadata>(File.ReadAllText(Path.Combine(paks, FilePaths.ManagedPakInventoryFileName)));
+            Assert.True(inventory.Success);
+            Assert.Equal(owned, inventory.Result!.ManagedPaks);
+            Assert.Equal("user collision", File.ReadAllText(occupied));
+        });
+    }
+
+    [Fact]
     public async Task FailedDuplicateRemovalPersistsOwnershipAndCanBeRetried() {
         await InInstallation(async (registry, common, extra, launch) => {
             var paks = Path.GetFullPath(FilePaths.PakDir);

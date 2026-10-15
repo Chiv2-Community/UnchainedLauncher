@@ -49,27 +49,6 @@ Join the [Chivalry 2 Unchained community on Discord](https://discord.gg/chiv2unc
 4. Put the downloaded Unchained `Chivalry2Launcher.exe` in place of the old one.
 5. Launch the game normally (either from your steam library or from Epic Games Store).
 
-## Plugin Manager
-
-Manage native DLL plugins from your configured registries. UnchainedPlugin is
-enabled on first use.
-
-- **Enable**, **Disable**, or select a version to control what loads.
-- **Refresh Plugin List** reloads registry data without changing selections.
-- **Update Plugins** asks before updating enabled plugins in the search results.
-- Click a plugin's name for its GitHub source; expand **Release notes** for its release link.
-- **Enable Automatic Plugin Updates and Downloads** checks for updates and downloads missing DLLs at launch. With it off, missing DLLs block launch.
-- **Enable Unstable Plugin Releases** shows prereleases and permits prerelease updates. It starts checked on prerelease launcher builds. Unchecking it does not disable selected plugins.
-
-Plugins require **Unchained** launch. Enable required plugin dependencies yourself;
-missing or incompatible dependencies block launch. Only plugins matching the
-client/server target load.
-
-DLL size and SHA-256 are checked before installation and loading. Loose DLLs are
-ignored. Only enable publishers you trust: these checks do not make native code safe.
-Inactive managed DLLs are cached outside `Plugins` and restored when selected.
-Unknown filenames and unregistered versions stay where they are.
-
 ## Launcher CLI
 
 `UnchainedLauncher.CLI` launches clients or servers and depends on Core, not WPF.

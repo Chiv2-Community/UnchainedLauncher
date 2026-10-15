@@ -19,8 +19,7 @@ public static class DllCatalog {
         foreach (var source in registry.ModRegistries) {
             try {
                 if (source is GithubModRegistry github) {
-                    var root = $"https://raw.githubusercontent.com/{github.Organization}/{github.RepoName}/refs/heads/main/dll_db";
-                    foreach (var release in await ManagedDllManager.ReadRegistryAsync(Client, root, cancellationToken)) Add(release);
+                    foreach (var release in await ManagedDllManager.ReadRegistryAsync(Client, github.DllDatabaseUrl, cancellationToken)) Add(release);
                 }
                 else if (source is LocalModRegistry local) {
                     var root = Path.Combine(local.RegistryPath, "dll_db");
@@ -73,7 +72,7 @@ public static class DllCatalog {
             ModDependencies = info?.RequiredMods.ToList() ?? []
         };
         return new DllPackage(Info(latest), records.Select(release => new DllRelease(
-            release.Tag ?? release.Version, release.Sha256, release.DllFileName ?? release.Name + ".dll", release.DownloadUrl,
+            release.Tag ?? release.Version, release.Sha256, release.EffectiveFileName, release.DownloadUrl,
             release.Size, release.ReleaseDate ?? DateTimeOffset.MinValue, Info(release.Info), release.ReleaseNotesMarkdown) {
             RegisteredRelease = release
         }).ToList());

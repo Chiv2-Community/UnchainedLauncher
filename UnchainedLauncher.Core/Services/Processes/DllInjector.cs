@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using UnchainedLauncher.Core.Extensions;
+using UnchainedLauncher.Core.Services.Dlls;
 
 namespace UnchainedLauncher.Core.Services.Processes {
     //Code modified/adapted from https://codingvision.net/c-inject-a-dll-into-a-process-w-createremotethread
@@ -36,6 +37,12 @@ namespace UnchainedLauncher.Core.Services.Processes {
         [DllImport("kernel32.dll")]
         static extern uint WaitForSingleObject(IntPtr hProcess, uint dwMilliseconds);
 
+        [DllImport("kernel32.dll")]
+        static extern bool CloseHandle(IntPtr handle);
+
+        [DllImport("kernel32.dll")]
+        static extern bool GetExitCodeThread(IntPtr thread, out uint exitCode);
+
         // privileges
         const int ProcessCreateThread = 0x0002;
         const int ProcessQueryInformation = 0x0400;
@@ -50,30 +57,33 @@ namespace UnchainedLauncher.Core.Services.Processes {
 
         const uint PageReadwrite = 4;
 
-        private string DllDir { get; }
+        private readonly DllManager _dllManager;
 
-        public DllInjector(string dllDir) {
-            DllDir = dllDir;
+        public DllInjector(DllManager dllManager) {
+            _dllManager = dllManager;
         }
 
-        public bool Inject(Process p) {
-            try {
-                var paths =
-                    Directory.Exists(DllDir)
-                        ? Directory.EnumerateFiles(DllDir, "*.dll", SearchOption.AllDirectories)
-                        : Enumerable.Empty<string>();
+        public bool Inject(Process p) => Inject(p, server: false);
 
-                if (paths.Length() == 0) {
+        public bool Inject(Process p, bool server) {
+            IReadOnlyList<ValidatedDll> files = Array.Empty<ValidatedDll>();
+            var procHandle = IntPtr.Zero;
+            var allocMemAddress = IntPtr.Zero;
+            try {
+                files = _dllManager.OpenForInjection(server);
+                var paths = files.Select(file => file.Path).ToArray();
+
+                if (paths.Length == 0) {
                     _logger.Info("No dlls present for injection");
                     return true;
                 }
 
                 //Paths to be injected MUST be absolute
-                paths = paths.Select(p => Path.GetFullPath(p));
+                paths = paths.Select(p => Path.GetFullPath(p)).ToArray();
 
                 _logger.LogListInfo("Injecting DLLs: ", paths);
 
-                var procHandle = OpenProcess(ProcessCreateThread |
+                procHandle = OpenProcess(ProcessCreateThread |
                                              ProcessQueryInformation | ProcessVmOperation |
                                              ProcessVmWrite | ProcessVmRead, false, p.Id);
                 if (procHandle == IntPtr.Zero) {
@@ -81,17 +91,17 @@ namespace UnchainedLauncher.Core.Services.Processes {
                 }
 
                 var maxLen = paths.Max(p => p.Length);
-                var allocSize = (uint)((maxLen + 1) * Marshal.SizeOf(typeof(char)));
+                var allocSize = checked((uint)((maxLen + 1) * sizeof(char)));
 
-                // searching for the address of LoadLibraryA and storing it in a pointer
-                var loadLibraryAddr = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
+                // Unicode paths must be encoded exactly as LoadLibraryW expects.
+                var loadLibraryAddr = GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryW");
                 if (loadLibraryAddr == IntPtr.Zero) {
                     return false;
                 }
 
                 // alocating some memory on the target process - enough to store the name of the dll
                 // and storing its address in a pointer
-                var allocMemAddress = VirtualAllocEx(procHandle,
+                allocMemAddress = VirtualAllocEx(procHandle,
                     IntPtr.Zero,
                     allocSize,
                     MemCommit | MemReserve, PageReadwrite);
@@ -101,24 +111,33 @@ namespace UnchainedLauncher.Core.Services.Processes {
 
                 foreach (var path in paths) {
                     // writing the name of the dll there
+                    var bytes = Encoding.Unicode.GetBytes(path + '\0');
                     var res = WriteProcessMemory(procHandle, allocMemAddress,
-                        Encoding.Default.GetBytes(path + '\0'),
-                        (uint)((path.Length + 1) * Marshal.SizeOf(typeof(char))),
+                        bytes, (uint)bytes.Length,
                         out var bytesWritten);
-                    if (!res) { return false; }
+                    if (!res || bytesWritten.ToUInt64() != (ulong)bytes.Length) { return false; }
 
                     //inject
                     var thread = CreateRemoteThread(procHandle, IntPtr.Zero, 0, loadLibraryAddr, allocMemAddress, 0,
                         IntPtr.Zero);
-                    var signalEvent = WaitForSingleObject(thread, unchecked((uint)-1));
+                    if (thread == IntPtr.Zero) return false;
+                    try {
+                        if (WaitForSingleObject(thread, unchecked((uint)-1)) != 0 ||
+                            !GetExitCodeThread(thread, out var result) || result == 0) return false;
+                    }
+                    finally { CloseHandle(thread); }
                 }
 
-                VirtualFreeEx(procHandle, allocMemAddress, allocSize, MemRelease);
                 return true;
             }
             catch (Exception e) {
                 _logger.Error("Injection failed", e);
                 return false;
+            }
+            finally {
+                if (allocMemAddress != IntPtr.Zero) VirtualFreeEx(procHandle, allocMemAddress, 0, MemRelease);
+                if (procHandle != IntPtr.Zero) CloseHandle(procHandle);
+                foreach (var file in files) file.Dispose();
             }
         }
     }

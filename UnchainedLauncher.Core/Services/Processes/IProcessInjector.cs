@@ -8,6 +8,8 @@ namespace UnchainedLauncher.Core.Services.Processes {
     /// </summary>
     public interface IProcessInjector {
         public bool Inject(Process p);
+        // Injectors without side-specific plugins keep their existing behavior.
+        public bool Inject(Process p, bool server) => Inject(p);
     }
 
 

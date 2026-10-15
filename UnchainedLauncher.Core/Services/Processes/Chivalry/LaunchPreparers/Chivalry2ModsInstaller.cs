@@ -83,7 +83,13 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");
             var closeProgressWindow = _userDialogueSpawner.DisplayProgress(progresses);
 
-            var installResults = await _modManager.InstallMods(progresses).ToListAsync();
+            List<Either<LanguageExt.Common.Error, ManagedPak>> installResults;
+            try {
+                installResults = await _modManager.InstallMods(progresses).ToListAsync();
+            }
+            finally {
+                closeProgressWindow();
+            }
 
             var (errors, successes) =
                 installResults.Partition()
@@ -93,16 +99,14 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             successes.ForEach(succ => _logger.Debug($"Successfully installed {succ.Coordinates.ModuleName} version {succ.Coordinates.Version}"));
 
             if (errors.Count != 0) {
-                errors.ToList().ForEach(e => _logger.Error($"Failed to install releases: {e.Message}"));
-                var shouldContinue = _userDialogueSpawner.DisplayYesNoMessage(
+                errors.ForEach(e => _logger.Error($"Failed to install releases: {e.Message}"));
+                _userDialogueSpawner.DisplayMessage(
                     $"There were errors while installing releases:\n " +
-                    $"{errors.Aggregate((a, b) => $"{a}\n\n{b}")}\n" +
-                    "Would you like to continue anyway?", "Errors encountered"
+                    $"{string.Join("\n\n", errors)}\n" +
+                    "Launch cancelled. Resolve the pak setup errors before launching."
                     );
-                if (shouldContinue == UserDialogueChoice.No) return None;
+                return None;
             }
-
-            closeProgressWindow();
 
             return Some(options);
         }

@@ -69,6 +69,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public bool HasContents => HasMarkers || HasBlueprints || HasMaps || HasReplacements || HasArbitrary;
 
         public bool HasDependencies =>
+            ((EnabledRelease ?? Mod.LatestRelease.FirstOrDefault())?.Info.EffectivePluginDependencies.Count ?? 0) > 0 ||
             (EnabledRelease ?? Mod.LatestRelease)
                 .ToList()
                 .Bind(r => ModManager.GetAllDependenciesForRelease(r))
@@ -79,6 +80,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 .ToList()
                 .Bind(r => ModManager.GetAllDependenciesForRelease(r))
                 .ToList();
+
+        public List<Dependency> PluginDependencies =>
+            (EnabledRelease ?? Mod.LatestRelease.FirstOrDefault())?.Info.EffectivePluginDependencies ?? [];
 
         public string ButtonText =>
             Optional(EnabledRelease).Match(
@@ -130,8 +134,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         [RelayCommand]
-        private void ViewOnGithub() {
-            var url = GithubReleaseUrl;
+        private void ViewOnGithub() => OpenLink(GithubReleaseUrl);
+
+        private static void OpenLink(string? url) {
             if (string.IsNullOrWhiteSpace(url))
                 return;
 
@@ -153,19 +158,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             );
 
         [RelayCommand]
-        private void OpenGithubRelease() {
-            var url = GithubReleaseUrl;
-            if (string.IsNullOrWhiteSpace(url)) return;
-            try {
-                Process.Start(new ProcessStartInfo {
-                    FileName = url,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex) {
-                Logger.Warn($"Failed to open URL: {url}", ex);
-            }
-        }
+        private void OpenGithubRelease() => OpenLink(GithubReleaseUrl);
     }
 
     public record VersionNameSort(SemVersion? Version, string Name) : IComparable<VersionNameSort> {

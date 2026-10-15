@@ -9,7 +9,7 @@ namespace UnchainedLauncher.GUI.Converters {
             return value switch {
                 ModSortMode.Alphabetical => "Alphabetical",
                 ModSortMode.LatestReleaseDateFirst => "Latest New Releases First",
-                ModSortMode.NewestModsFirst => "Newest Mods First",
+                ModSortMode.NewestModsFirst => parameter as string == "Plugins" ? "Newest Plugins First" : "Newest Mods First",
                 ModSortMode.EnabledFirst => "Enabled first", // Technically redundant, but it's here for completeness sake
                 _ => value?.ToString() ?? "<Unknown Option>"
             };

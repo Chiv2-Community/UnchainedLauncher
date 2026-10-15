@@ -55,10 +55,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
             };
 
         private static bool IsUsableCache(Mod mod) =>
-            mod?.LatestReleaseInfo is { RepoUrl: not null, Authors: not null, Dependencies: not null, ImageUrls: not null }
+            mod?.LatestReleaseInfo is { RepoUrl: not null, Authors: not null, ImageUrls: not null }
             && mod.Releases != null
             && mod.Releases.All(r =>
-                r?.Info is { RepoUrl: not null, Authors: not null, Dependencies: not null, ImageUrls: not null }
+                r?.Info is { RepoUrl: not null, Authors: not null, ImageUrls: not null }
                 && r.Manifest is { Maps: not null, Blueprints: not null, Markers: not null, Replacements: not null, Arbitrary: not null });
 
         private static PakDir CreatePakDir(PakDirMetadata? metadata) =>

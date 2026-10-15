@@ -22,8 +22,9 @@ Check out [the wiki](https://unchained.wiki) for more information about modding 
 ## Features
 
 - **Launch Chivalry 2**: Easily launch Chivalry 2 with custom configurations.
-- **Switch Between Vanilla, Client Side Modded, Unchained**: Seamlessly switch between vanilla and modded installs without manually moving any files around. Use unchained mode to connect to community hosted servers.
+- **Switch Between Vanilla and Unchained**: Switch without moving files manually. Use Unchained for mods, plugins, and community servers.
 - **Mod Management**: Download and manage mods for Chivalry 2.
+- **DLL Management**: Enable registry-approved native plugins with SHA-256 and size validation.
 - **Server Hosting**: Configure and host a server for your friends to join in Unchained Mode
 
 ## Community

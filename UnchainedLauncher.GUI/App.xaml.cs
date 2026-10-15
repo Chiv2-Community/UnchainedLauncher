@@ -5,11 +5,13 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services;
+using UnchainedLauncher.Core.Services.Dlls;
 using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -73,7 +75,6 @@ namespace UnchainedLauncher.GUI {
                 var githubClient = new Octokit.GitHubClient(new Octokit.ProductHeaderValue("UnchainedLauncher"));
                 var unchainedLauncherReleaseLocator =
                     new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedLauncher");
-                var pluginReleaseLocator = new GithubReleaseLocator(githubClient, "Chiv2-Community", "UnchainedPlugin");
 
 
                 var installationFinder = new Chivalry2InstallationFinder();
@@ -91,8 +92,7 @@ namespace UnchainedLauncher.GUI {
                 var window =
                     needsInstallation && !forceSkipInstallation
                         ? InitializeInstallerWindow(installationFinder, installer, unchainedLauncherReleaseLocator)
-                        : await InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator,
-                            pluginReleaseLocator);
+                        : await InitializeMainWindow(installationFinder, installer, unchainedLauncherReleaseLocator);
 
                 window?.Show();
             }
@@ -134,17 +134,23 @@ namespace UnchainedLauncher.GUI {
         }
 
         private async Task<Window?> InitializeMainWindow(IChivalry2InstallationFinder installationFinder,
-            IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator,
-            IReleaseLocator pluginReleaseLocator) {
+            IUnchainedLauncherInstaller installer, IReleaseLocator launcherReleaseLocator) {
             var userDialogueSpawner = new MessageBoxSpawner();
             var registryWindowService = new RegistryWindowService();
 
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+            var dllManager = new DllManager(
+                Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir),
+                FilePaths.DllManagerConfigPath, new HttpClient(), () => modManager.GetEnabledAndDependencyReleases().ToArray(),
+                () => modRegistry.ModRegistries.OfType<GithubModRegistry>()
+                    .Select(registry => registry.DllDatabaseUrl).ToArray());
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
 
             var settingsViewModel = InitializeSettingsViewModel(installationFinder, installer, launcherReleaseLocator, registryWindowViewModel, registryWindowService, modManager, userDialogueSpawner);
+            var dllManagerViewModel = new DllManagerVM(dllManager, settingsViewModel, userDialogueSpawner);
+            await dllManagerViewModel.RefreshCommand.ExecuteAsync(null);
 
 #if DEBUG_FAKECHIVALRYLAUNCH
             var officialProcessLauncher = new PowershellProcessLauncher(
@@ -166,10 +172,7 @@ namespace UnchainedLauncher.GUI {
             var noSigLaunchPreparer = NoSigPreparer.Create(modManager.PakDir, userDialogueSpawner);
             var sigLaunchPreparer = SigPreparer.Create(modManager.PakDir, userDialogueSpawner);
 
-            IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new UnchainedPluginUpdateChecker(
-                pluginReleaseLocator,
-                new FileInfoVersionExtractor(),
-                userDialogueSpawner);
+            IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
                 modManager, userDialogueSpawner
@@ -177,13 +180,6 @@ namespace UnchainedLauncher.GUI {
 
             var vanillaLauncher = new Chivalry2Launcher(
                 noSigLaunchPreparer.IgnoreOptions<LaunchOptions>(),
-                officialProcessLauncher,
-                Directory.GetCurrentDirectory()
-            );
-
-            var clientsideModdedLauncher = new Chivalry2Launcher(
-                modInstaller
-                    .Sub(sigLaunchPreparer),
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
@@ -198,7 +194,7 @@ namespace UnchainedLauncher.GUI {
                 // don't shove dlls into processes that don't need them and cause crashes
                 new NullInjector(true)
 #else
-                new DllInjector(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir))
+                new DllInjector(dllManager)
 #endif
             );
 
@@ -255,7 +251,8 @@ namespace UnchainedLauncher.GUI {
                 settingsViewModel,
                 serversTabViewModel,
                 modScanTab,
-                helpVM
+                helpVM,
+                dllManagerViewModel
             );
 
             return new MainWindow(mainWindowViewModel);
@@ -306,7 +303,7 @@ namespace UnchainedLauncher.GUI {
 
             var loadedResult =
                 InitializeFromFileWithCodec(ModRegistryCodec.Instance, jsonPath, CreateDefaultModRegistry);
-            // Ensure that we've got an AggregateModRegistry. The constructor will handle it if we're wrapping 
+            // Ensure that we've got an AggregateModRegistry. The constructor will handle it if we're wrapping
             // another AggregateModRegistry, so no worries there.
             var registry = new AggregateModRegistry(loadedResult);
 

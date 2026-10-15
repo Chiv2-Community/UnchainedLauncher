@@ -56,16 +56,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 settings?.AdditionalModActors ?? "",
                 settings?.ServerBrowserBackend ?? "https://servers.polehammer.net",
                 settings?.UseLightTheme ?? false,
-                settings?.LastLaunchVersion?.WithoutMetadata() == SettingsVM.Version.WithoutMetadata()
-                    ? (settings?.AllowUnstablePluginReleases ?? SettingsVM.Version.IsPrerelease)
-                    : SettingsVM.Version.IsPrerelease,
+                settings?.ShouldAllowUnstablePluginReleases(SettingsVM.Version) ?? SettingsVM.Version.IsPrerelease,
                 cliArgs
             );
         }
     }
 
     [AddINotifyPropertyChangedInterface]
-    public partial class SettingsVM {
+    public partial class SettingsVM : IPluginSettings {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(SettingsVM));
         public static readonly SemVersion Version = SemVersion.Parse(Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion, SemVersionStyles.Any);
 

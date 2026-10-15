@@ -55,6 +55,87 @@ public sealed class DllManagerTests {
         Assert.Throws<InvalidOperationException>(() => DllManager.Resolve([Package(core), Package(dependency)], [], false, false));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DependencyPinsAreHonoredInEitherRequestOrder(bool dependencyFirst) {
+        var core = Release("Chiv2-Community/UnchainedPlugin");
+        var older = Release("org/dependency");
+        var newer = older with { Tag = "v2.0.0" };
+        var plugin = Release("org/plugin", dependencies: [new Dependency("https://github.com/org/dependency", ">=1.0.0")]);
+        ReleaseCoordinates[] roots = [new("org", "plugin", plugin.Tag), new("ORG", "Dependency", older.Tag)];
+        if (dependencyFirst) Array.Reverse(roots);
+        var resolved = DllManager.Resolve([Package(core), Package(older, newer), Package(plugin)], roots, false, false);
+        Assert.Equal(new[] { core, older, plugin }, resolved);
+    }
+
+    [Theory]
+    [InlineData(false, "v2.0.0", "shared", ">=1.0.0", false, false)]
+    [InlineData(true, "v2.0.0", "shared", ">=1.0.0", false, false)]
+    [InlineData(false, "latest", "shared", ">=1.0.0", false, true)]
+    [InlineData(true, "latest", "shared", ">=1.0.0", false, true)]
+    [InlineData(false, "v1.0.0", "shared", ">=2.0.0", false, false)]
+    [InlineData(true, "v1.0.0", "shared", ">=2.0.0", false, false)]
+    [InlineData(false, "v1.0.0", "server", ">=1.0.0", false, false)]
+    [InlineData(true, "v1.0.0", "server", ">=1.0.0", false, false)]
+    [InlineData(false, "v1.0.0", "server", ">=1.0.0", true, true)]
+    [InlineData(true, "v1.0.0", "server", ">=1.0.0", true, true)]
+    public void IndexedPinsStillEnforceConflictsRequirementsAndTargets(bool reverse, string otherPin,
+        string target, string requirement, bool server, bool succeeds) {
+        var core = Release("Chiv2-Community/UnchainedPlugin");
+        var older = Release("org/dependency", target: target);
+        var newer = older with { Tag = "v2.0.0", Info = older.Info with { Target = "shared" } };
+        var plugin = Release("org/plugin", dependencies: [new Dependency("https://github.com/org/dependency", requirement)]);
+        ReleaseCoordinates[] roots = [new("org", "plugin", plugin.Tag), new("org", "dependency", older.Tag), new("org", "dependency", otherPin)];
+        if (reverse) Array.Reverse(roots);
+        DllPackage[] packages = [Package(core), Package(older, newer), Package(plugin)];
+        if (succeeds) Assert.Equal(new[] { core, older, plugin }, DllManager.Resolve(packages, roots, server, false));
+        else Assert.Throws<InvalidOperationException>(() => DllManager.Resolve(packages, roots, server, false));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ExplicitPrereleaseDependencyPinIsHonoredInEitherRequestOrder(bool reverse) {
+        var core = Release("Chiv2-Community/UnchainedPlugin");
+        var dependency = Release("org/dependency", "v1.0.0-rc.1");
+        var plugin = Release("org/plugin", dependencies: [new Dependency("https://github.com/org/dependency", "==1.0.0-rc.1")]);
+        ReleaseCoordinates[] roots = [new("org", "plugin", plugin.Tag), new("org", "dependency", dependency.Tag)];
+        if (reverse) Array.Reverse(roots);
+        Assert.Equal(new[] { core, dependency, plugin }, DllManager.Resolve(
+            [Package(core), Package(dependency), Package(plugin)], roots, false, false));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void AutomaticDependencyPrereleasesStillRequirePermission(bool allowUnstable, bool requestLatest) {
+        var core = Release("Chiv2-Community/UnchainedPlugin");
+        var dependency = Release("org/dependency", "v1.0.0-rc.1");
+        var plugin = Release("org/plugin", dependencies: [new Dependency("https://github.com/org/dependency", "==1.0.0-rc.1")]);
+        List<ReleaseCoordinates> roots = [new("org", "plugin", plugin.Tag)];
+        if (requestLatest) roots.Add(new("org", "dependency", "latest"));
+        DllPackage[] packages = [Package(core), Package(dependency), Package(plugin)];
+        if (allowUnstable) Assert.Equal(new[] { core, dependency, plugin }, DllManager.Resolve(packages, roots, false, true));
+        else Assert.Throws<InvalidOperationException>(() => DllManager.Resolve(packages, roots, false, false));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void IndexedPinsDoNotBypassDependencyCycleDetection(bool reverse) {
+        var core = Release("Chiv2-Community/UnchainedPlugin");
+        var dependency = Release("org/dependency", dependencies: [new Dependency("https://github.com/org/plugin", ">=1.0.0")]);
+        var plugin = Release("org/plugin", dependencies: [new Dependency("https://github.com/org/dependency", ">=1.0.0")]);
+        ReleaseCoordinates[] roots = [new("org", "plugin", plugin.Tag), new("org", "dependency", dependency.Tag)];
+        if (reverse) Array.Reverse(roots);
+        var error = Assert.Throws<InvalidOperationException>(() => DllManager.Resolve(
+            [Package(core), Package(dependency), Package(plugin)], roots, false, false));
+        Assert.StartsWith("Cyclic DLL dependency:", error.Message);
+    }
+
     [Fact]
     public void ConflictingPinsAndUnapprovedAutomaticPrereleasesAreRejected() {
         var core = Release("Chiv2-Community/UnchainedPlugin");

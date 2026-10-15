@@ -54,6 +54,13 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
         if (!roots.Any(root => root.Org.Equals("Chiv2-Community", StringComparison.OrdinalIgnoreCase)
             && root.ModuleName.Equals("UnchainedPlugin", StringComparison.OrdinalIgnoreCase)))
             roots.Insert(0, new ReleaseCoordinates("Chiv2-Community", "UnchainedPlugin", "latest"));
+        var pins = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var root in roots.Where(root => root.Version != "latest")) {
+            var id = root.Org + "/" + root.ModuleName;
+            if (pins.TryGetValue(id, out var pin) && pin != root.Version)
+                throw new InvalidOperationException($"Conflicting DLL requirements: {id}");
+            pins[id] = root.Version;
+        }
         foreach (var root in roots) Visit(root.Org + "/" + root.ModuleName, root.Version, exact: true);
         return ordered;
 
@@ -66,9 +73,10 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
                 if (!Accept(previous)) throw new InvalidOperationException($"Conflicting DLL requirements: {id}");
                 return;
             }
-            var candidates = package.Releases.Where(Accept)
+            var pinned = pins.TryGetValue(id, out var tag);
+            var candidates = package.Releases.Where(Accept).Where(release => !pinned || release.Tag == tag)
                 .Where(release => release.Info.Target == "shared" || release.Info.Target == (server ? "server" : "client"));
-            if (!exact || requirement == "latest") candidates = candidates.Where(r => allowUnstable || r.Version?.IsRelease == true);
+            if (!pinned) candidates = candidates.Where(r => allowUnstable || r.Version?.IsRelease == true);
             var release = candidates.OrderByDescending(r => r.Version).ThenByDescending(r => r.ReleaseDate).FirstOrDefault()
                 ?? throw new InvalidOperationException($"DLL release not found for launch target: {id}:{requirement}");
             selected.Add(id, release);

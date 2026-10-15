@@ -30,6 +30,7 @@ public abstract class LaunchConfiguration {
 public sealed class ServerConfiguration : LaunchConfiguration {
     public bool NoTui { get; set; }
     public ServerSettings? Server { get; set; }
+    public Dictionary<string, ServerSettings?>? Servers { get; set; }
     // Recognized but skipped: do not deserialize or validate the inactive schema.
     [YamlConverter(typeof(IgnoredYamlNodeConverter))]
     public object? Client { get; set; }
@@ -37,6 +38,14 @@ public sealed class ServerConfiguration : LaunchConfiguration {
     public override void Validate() {
         base.Validate();
         if (Server is not null) Validator.ValidateObject(Server, new ValidationContext(Server), validateAllProperties: true);
+        if (Servers is not null) {
+            if (Server is not null) throw new ValidationException("Use either server or servers, not both.");
+            if (Servers.Count == 0) throw new ValidationException("servers must contain at least one named server.");
+            foreach (var settings in Servers.Values) {
+                if (settings is null) throw new ValidationException("Each servers entry must contain server settings.");
+                Validator.ValidateObject(settings, new ValidationContext(settings), validateAllProperties: true);
+            }
+        }
     }
 }
 
@@ -44,6 +53,8 @@ public sealed class ClientConfiguration : LaunchConfiguration {
     public ClientSettings? Client { get; set; }
     [YamlConverter(typeof(IgnoredYamlNodeConverter))]
     public object? Server { get; set; }
+    [YamlConverter(typeof(IgnoredYamlNodeConverter))]
+    public object? Servers { get; set; }
 }
 
 public sealed class ModSetupConfiguration {
@@ -57,6 +68,7 @@ public sealed class ClientSettings {
 }
 
 public sealed class ServerSettings {
+    public string? SavedDirSuffix { get; set; }
     [Required]
     public string Name { get; set; } = "Unchained Server";
     public string Description { get; set; } = "";

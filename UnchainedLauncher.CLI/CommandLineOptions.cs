@@ -47,7 +47,11 @@ internal static class CommandLineOptions {
             var errors = parsed.Errors.Where(error => error.SymbolResult == configResult);
             ThrowErrors(errors.Select(error => error.Message));
             var configured = YamlConfiguration.Load(parsed.GetValue(config)!, definition.Command == client.Command);
-            if (loadAllDlls) configured.Shared.EnableUnsafeDllLoading();
+            if (loadAllDlls) {
+                if (configured is CliLaunchOptions single) single.Shared.EnableUnsafeDllLoading();
+                if (configured is ServerGroupOptions group)
+                    foreach (var entry in group.Servers) entry.Options.Shared.EnableUnsafeDllLoading();
+            }
             return configured;
         }
         if (args.Length == 0 || parsed.GetResult("--help") is not null) {

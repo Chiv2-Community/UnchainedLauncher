@@ -6,11 +6,14 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace UnchainedLauncher.CLI;
 
 public static class YamlConfiguration {
-    public static CliLaunchOptions Load(string path, bool client) {
+    public static CliCommandOptions Load(string path, bool client) {
         LaunchConfiguration configuration = client ? LoadDocument<ClientConfiguration>(path) : LoadDocument<ServerConfiguration>(path);
         try { configuration.Validate(); }
         catch (ValidationException ex) { throw new ArgumentException("Invalid configuration: " + ex.Message); }
-        return CliLaunchOptions.FromConfiguration(configuration, Path.GetDirectoryName(Path.GetFullPath(path))!);
+        var directory = Path.GetDirectoryName(Path.GetFullPath(path))!;
+        return configuration is ServerConfiguration { Servers: not null } group
+            ? ServerGroupOptions.Create(group, directory)
+            : CliLaunchOptions.FromConfiguration(configuration, directory);
     }
 
     internal static T LoadDocument<T>(string path) where T : class {

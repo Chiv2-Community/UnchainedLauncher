@@ -24,9 +24,9 @@ public sealed class SharedLaunchOptions {
     public IReadOnlyList<ReleaseCoordinates> Dlls { get; }
     public IReadOnlyList<string> GameArguments { get; }
 
-    internal SharedLaunchOptions(LaunchConfiguration configuration, string directory) {
+    internal SharedLaunchOptions(LaunchConfiguration configuration, string directory, string? savedDirSuffix = null) {
         Chivalry2Path = Path.GetFullPath(configuration.Chiv2Path!, directory);
-        SavedDirSuffix = configuration.SavedDirSuffix;
+        SavedDirSuffix = savedDirSuffix ?? configuration.SavedDirSuffix;
         Platform = configuration.Platform!.Value;
         Backend = configuration.ServerBrowserBackend;
         UpdatePlugin = configuration.UpdatePlugin;
@@ -77,7 +77,9 @@ public abstract class CliLaunchOptions : CliCommandOptions {
     internal static CliLaunchOptions FromConfiguration(LaunchConfiguration configuration, string directory) {
         var shared = new SharedLaunchOptions(configuration, directory);
         return configuration switch {
-            ServerConfiguration server => new ServerOptions(shared, server.Server ?? new ServerSettings(), server.NoTui),
+            ServerConfiguration server => new ServerOptions(
+                server.Server?.SavedDirSuffix is { } suffix ? new SharedLaunchOptions(configuration, directory, suffix) : shared,
+                server.Server ?? new ServerSettings(), server.NoTui),
             ClientConfiguration client => new ClientOptions(shared, SharedLaunchOptions.Entries(client.Client?.GameArgs, allowEmpty: true)),
             _ => throw new ArgumentException("Expected client or server configuration.")
         };

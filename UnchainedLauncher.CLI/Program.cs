@@ -14,11 +14,16 @@ public static class Program {
             return 2;
         }
         if (command.Help) { Console.Write(command.HelpText); return 0; }
-        if (command is CliLaunchOptions launch && launch.Shared.Dlls.Count != 0) {
+        var launches = command switch {
+            ServerGroupOptions group => group.Servers.Select(entry => (CliLaunchOptions)entry.Options).ToArray(),
+            CliLaunchOptions single => [single],
+            _ => Array.Empty<CliLaunchOptions>()
+        };
+        if (launches.Any(launch => launch.Shared.Dlls.Count != 0)) {
             Console.Error.WriteLine("Resolving explicitly selected DLL releases from dll_db; native code will execute in the game.");
             Console.Error.WriteLine("Tracking: https://github.com/Chiv2-Community/UnchainedLauncher/issues/149");
         }
-        if (command is CliLaunchOptions unsafeLaunch && unsafeLaunch.Shared.UnsafeLoadAllDlls)
+        if (launches.Any(launch => launch.Shared.UnsafeLoadAllDlls))
             Console.Error.WriteLine("DANGER: explicitly enabled injection of ALL DLLs recursively in Plugins; arbitrary native code will execute in the game.");
         using var stop = new CancellationTokenSource();
         ConsoleCancelEventHandler handler = (_, e) => { e.Cancel = true; stop.Cancel(); };
@@ -30,6 +35,7 @@ public static class Program {
                     ? await DllQuery.RunAsync(query, registry, Console.Out, Console.Error, stop.Token)
                     : await ModQuery.RunAsync(query, registry, Console.Out, Console.Error, stop.Token);
             }
+            if (command is ServerGroupOptions group) return await ServerGroupRunner.RunAsync(group, stop);
             var options = (CliLaunchOptions)command;
             using var process = await ServerLauncher.LaunchAsync(options, stop.Token);
             return await SuperviseAsync(options, process, stop);
@@ -51,7 +57,7 @@ public static class Program {
         }
         if (options is not ServerOptions server) throw new ArgumentException("Expected a launch request.");
         try {
-            using var dashboard = new ServerDashboard(!server.NoTui);
+            using var dashboard = new ServerDashboard(!server.NoTui, server.ToServerLaunchOptions());
             var monitor = new ServerMonitor(process, ServerLauncher.CreateQuery(server));
             await monitor.RunAsync(dashboard, stop);
             return stop.IsCancellationRequested ? 0 : process.ExitCode;

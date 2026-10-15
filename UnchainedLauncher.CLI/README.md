@@ -217,6 +217,53 @@ YAML syntax errors report a location without quoting the configuration contents.
 Unknown keys, duplicate keys, invalid types, ports, modes, or coordinates fail
 before preparing or launching the game. Lists accept any number of entries.
 
+### Multiple servers
+
+Use a `servers` dictionary instead of the single `server` block:
+
+```yaml
+chiv2-path: 'C:\Games\Chivalry 2'
+platform: Steam
+saved-dir-suffix: MyHost
+servers:
+  courtyard:
+    name: Courtyard FFA
+    map: FFA_Courtyard
+    game-port: 7777
+    ping-port: 3075
+    query-port: 7071
+    rcon-port: 9001
+  arena:
+    name: Arena FFA
+    map: FFA_Courtyard
+    game-port: 7778
+    ping-port: 3076
+    query-port: 7072
+    rcon-port: 9002
+```
+
+Run `UnchainedLauncher.CLI.exe server --config-path servers.yaml`.
+See [the multi-server example](examples/servers.yaml). The existing `server` schema
+and individual CLI launch arguments still launch one server.
+
+- Keys are tab IDs: unique, case-insensitive letters, digits, underscores, and hyphens.
+- Each entry accepts the same fields as `server`, including its own actors,
+  arguments, password, and Discord settings. Installation, platform, registry,
+  pak/DLL selections, and common arguments remain shared at the root.
+- Profiles default to `<saved-dir-suffix>-<id>`. Set `saved-dir-suffix` inside an
+  entry to override it. Profile names must be distinct, ignoring case.
+- Assign all four ports to each server. Every port must be distinct across the
+  entire group, even when local IPs differ. Defaults are not automatically offset.
+- All entries are validated before launch. Startup is sequential because Core
+  preparation changes the installation and working directory. A startup failure
+  stops previously launched servers; it does not leave a partial group running.
+- After startup, one server exiting does not stop the others. Its tab retains the
+  exit code and last metrics. Once all exit, the CLI returns the first nonzero exit
+  code in dictionary order, or zero if all succeeded. Q/Ctrl+C stops the entire group.
+
+Do not mix `server` and `servers` in one document. The client command and registry
+queries ignore the inactive `servers` block.
+
 The `client` command also accepts individual common arguments, for example:
 
 ```text
@@ -381,19 +428,30 @@ Avoid exposing authentication arguments and passwords in shared scripts or proce
 
 While the server is running, the dashboard displays:
 
-- PID and process uptime.
+- Server name, PID, process uptime, and restart count (zero; no automatic restart).
+- Game, query, beacon, and RCON ports, local IP, and configured mod actors.
 - CPU use as a percentage of total host logical CPU capacity (0–100%).
-- Private process memory in MiB.
-- A2S player/max-player counts, current map, and query availability.
-- Bounded rolling CPU/memory/player sparklines (up to 120 samples).
+- Private process memory and observed peak memory in MiB, plus handle count.
+- A2S player/max-player counts, current map, game type, and query availability.
+- Bounded rolling CPU/memory/player sparklines and an uptime-state strip
+  (up to 12 hours, sampled every ten seconds, scaled to the terminal width).
 - A bounded timeline of launch, map/player changes, and query outages/recovery.
 
-Metrics are sampled approximately once per second. During startup or query failure,
+Metrics refresh approximately once per second. During startup or query failure,
 player count and map are **unknown**, not zero; `?` marks missing chart samples.
 The timeline represents observed changes, not per-player join/leave identities or
-the full game log. Network throughput and RCON controls are not included yet.
+the full game log. The uptime strip shows `S` until the first successful query,
+then `U` while the process runs, including query outages, matching the GUI.
+Network throughput and RCON controls are not included yet.
 
-Press **Q** in the TUI or **Ctrl+C** to stop. Redirected input/output and dumb terminals
+Press **Q** in the TUI or **Ctrl+C** to stop. **Page Up**/**Page Down** scroll wrapped content
+and **Home** returns to the top; narrow terminals do not discard long mod lists.
+With multiple servers, **Left**/**Right** select tabs, wrapping at either end.
+Click a visible tab with the primary mouse button in terminals supporting SGR mouse
+reports (including xterm-compatible terminals and Windows Terminal). Keyboard
+navigation remains available when mouse reporting is unsupported. Mouse capture
+and Windows console modes are restored on exit.
+Redirected input/output and dumb terminals
 automatically use plain-text status (every ten seconds). The CLI owns its server:
 stopping it terminates the game process, matching Core's current stop behavior;
 there is no detach mode or automatic restart. Natural exits return the server's

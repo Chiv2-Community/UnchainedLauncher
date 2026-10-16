@@ -58,6 +58,7 @@ public sealed class LaunchPreparationTests : IDisposable {
             .. command == "server" ? new[] { "--local-ip", "127.0.0.1" } : []
         ]);
         var pakPath = Path.Combine(_directory, FilePaths.PakDir);
+        request.Shared.Assets = new ProfileAssetPaths(request.Shared.SavedDirSuffix, _directory);
         Directory.CreateDirectory(pakPath);
         File.WriteAllText(Path.Combine(pakPath, "pakchunk0-WindowsNoEditor.sig"), "signature");
         var registry = new AggregateModRegistry(local);
@@ -75,13 +76,13 @@ public sealed class LaunchPreparationTests : IDisposable {
         if (hasTransitiveDependency) {
             var error = await Assert.ThrowsAsync<InvalidOperationException>(() => preparer.PrepareLaunch(request.ToLaunchOptions()));
             Assert.Contains(dependencyPublished ? "Core did not resolve dependency org/transitive" : "Missing stable dependency: org/transitive", error.Message);
-            Assert.Empty(Directory.GetFiles(pakPath, "*.pak"));
+            Assert.Empty(Directory.GetFiles(request.InstancePaths.Paks, "*.pak"));
             Assert.False(File.Exists(cachePath));
         }
         else {
             Assert.True((await preparer.PrepareLaunch(request.ToLaunchOptions())).IsSome);
             Assert.True(File.Exists(cachePath));
-            var paks = Directory.GetFiles(pakPath, "*.pak");
+            var paks = Directory.GetFiles(request.InstancePaths.Paks, "*.pak");
             Assert.Equal(2, paks.Length);
             Assert.All(paks, pak => Assert.Equal("signature", File.ReadAllText(Path.ChangeExtension(pak, ".sig"))));
         }

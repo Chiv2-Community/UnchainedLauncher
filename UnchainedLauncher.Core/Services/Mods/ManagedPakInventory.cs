@@ -43,7 +43,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public void Save() {
             var temporaryPath = _path + ".tmp";
-            File.WriteAllText(temporaryPath, JsonHelpers.Serialize(new PakDirMetadata(_pakDir.DirPath, _pakDir.ManagedPaks, _pakDir.DefaultSigPath)));
+            File.WriteAllText(temporaryPath, JsonHelpers.Serialize(new PakDirMetadata(_pakDir.DirPath, _pakDir.ManagedPaks, _pakDir.DefaultSigPath, _pakDir.CachePath)));
             File.Move(temporaryPath, _path, overwrite: true);
         }
 

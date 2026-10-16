@@ -1,7 +1,8 @@
 # Run: UnchainedLauncher.CLI.exe server --config-path servers.yaml
 # Paths resolve relative to this file. Servers share these selections, not active files.
 # Requires UnchainedPlugin support for --additional-pak-dir.
-# Each profile has private Paks/Plugins under <installation>/.unchained/servers/.
+# Active paks/plugins: %LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/unchained/.
+# Pak bytes are shared through the common content-addressed cache and hard links.
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam
 saved-dir-suffix: MyHost # Default profiles: MyHost-courtyard and MyHost-arena.

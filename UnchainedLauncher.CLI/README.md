@@ -1,6 +1,11 @@
 # Launcher CLI
 
 This project launches an Unchained Chivalry 2 **client or server**, without the WPF GUI.
+On Windows, the shared game launcher creates the game suspended, injects DLLs,
+then resumes its main thread. Failed injection terminates the suspended game.
+CLI servers also pass TOS-acceptance and first-load-completed INI overrides to
+avoid interactive first-run screens. The CLI also initializes the game's saved profile.
+Profile-local paks require an UnchainedPlugin build supporting `--additional-pak-dir`.
 It uses Core for mod installation, plugin updates, signature preparation,
 process launching, DLL injection, and A2S queries.
 
@@ -199,6 +204,8 @@ Before a server launch, the CLI initializes the selected profile's `Game.ini` wi
 `bSavedHasAgreedToTOS=True` and `FirstLoadCompleted=True`, matching the GUI's startup
 defaults so first-run screens do not block unattended startup. Other existing INI
 settings are preserved. Client launches do not initialize or rewrite INI files.
+Chivalry removes hyphens from the suffix in its `Saved_<suffix>` directory;
+the CLI initializes that directory. Plugin log paths retain the original suffix.
 
 Discord configuration is nested under the server:
 
@@ -252,11 +259,11 @@ and individual CLI launch arguments still launch one server.
   pak/DLL selections, and common arguments remain shared at the root; files are
   prepared separately in each instance directory.
 - Profiles default to `<saved-dir-suffix>-<id>`. Set `saved-dir-suffix` inside an
-  entry to override it. Profile names must be distinct, ignoring case.
-- Server paks, DLLs, inventories, and DLL caches live under
-  `<installation>/.unchained/servers/Server-<saved-dir-suffix>/`, in `Paks`,
-  `Plugins`, and `.cache/dlls` subdirectories. This also applies to single-server
-  launches. Directories persist for reuse; a per-instance lock prevents concurrent
+  entry to override it. Profile names must be distinct, ignoring case and hyphens.
+- Active paks and DLLs live under
+  `%LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/unchained/{paks,plugins}`.
+  Hyphens are removed from the saved suffix, matching the game. This also applies to
+  clients; the default client suffix is `unchained`. A per-profile lock prevents concurrent
   CLI processes from using the same profile. Plugin injection never scans another
   instance's directory, including with the unsafe flag.
 - The launcher supplies `--additional-pak-dir <absolute instance Paks path>`.
@@ -266,6 +273,12 @@ and individual CLI launch arguments still launch one server.
 - The plugin option adds a mount directory; it does not suppress game-wide paks
   already present in `TBL/Content/Paks`. Existing global mods may still affect all
   instances. The launcher does not move or delete them during instance setup.
+- Shared caches live under `%LOCALAPPDATA%/Chivalry 2/unchained/cache/{paks,dlls}`.
+  Pak objects are keyed by SHA-512 and downloaded once under a per-object lock.
+  Profiles use hard links when supported, or copies from cache across volumes or
+  unsupported filesystems. Cache objects and linked paks must not be edited in place.
+  Signatures stay profile-local. Windows may prevent removal or reordering of a
+  linked pak while another process holds that file open; stop affected servers first.
 - Assign all four ports to each server. Every port must be distinct across the
   entire group, even when local IPs differ. Defaults are not automatically offset.
 - All entries are validated before launch. Startup is sequential because Core
@@ -337,18 +350,18 @@ paths from release metadata:
 --server-mod /Game/Mods/Example/BP_Example.BP_Example_C
 ```
 
-Core shares physical managed-pak ownership between GUI and CLI through
-`<installation>\TBL\Content\Paks\.unchained_managed_paks.json`, updated after mod
-preparation (including partial failures). On first use it migrates ownership from
-both existing host caches; later host snapshots cannot replace this inventory.
-The CLI still saves its own metadata in `.mod_cache\cli_mod_manager.json`, but
+Core records physical managed-pak ownership in each active pak directory's
+`.unchained_managed_paks.json`, updated after preparation, including partial failures.
+That inventory is shared by hosts using the same profile; it does not authorize
+changes to another profile or to legacy installation-wide paks.
+The CLI saves its metadata in the profile's `unchained/cli_mod_manager.json`, but
 never overwrites GUI configuration or reuses the GUI's enabled-mod selection.
 Each launch reconciles the installed managed set with that host's selected releases;
 genuinely unmanaged user paks are preserved.
 Core's installation pipeline changes the installed managed pak set and signatures.
-Client launches and the GUI share the installation's managed pak set; do not prepare
-those concurrently. CLI servers instead prepare paks and inject DLLs from private
-instance directories. They still need separate saved suffixes/ports; CLI startup
+The GUI uses one shared `Saved_unchained/unchained` pak/plugin set for all clients and
+servers. Only the CLI differentiates selections by launch profile. CLI profiles
+need separate saved suffixes/ports; CLI startup
 preparation remains sequential because some Core operations change CWD and metadata.
 
 ## DLL compatibility behavior
@@ -363,21 +376,29 @@ fail preparation. Pak dependencies enter the shared mod manager.
 
 Every selected DLL must match the registry's SHA-256 and size. Downloads are
 verified before installation. Active DLLs use
-`Plugins/Managed/<organization>/<repository>/<dll_file_name>`; inactive registered
-versions use `Win64/.cache/dlls/<sha256>/<dll_file_name>`. Switching versions restores
-validated cached files without downloading again. Registered files in historical
-`Managed` hash directories or `.dll-managed` directories migrate after validation.
+`plugins/Managed/<organization>/<repository>/<dll_file_name>` under the selected
+profile's `unchained` directory; inactive registered versions use the shared
+`unchained/cache/dlls/<sha256>/<dll_file_name>`. Switching versions restores
+validated cached files without downloading again.
+Active DLLs use hard links to validated cached bytes where supported, with an atomic
+copy fallback across volumes or on unsupported filesystems. Concurrent preparations
+serialize downloads per cache object. Never edit cached or linked DLLs in place.
+If Windows blocks removal of a DLL linked to a running peer, stop that peer before
+changing versions; preparation fails rather than modifying shared bytes.
+Registered files in historical `Managed` hash directories or `.dll-managed`
+directories migrate after validation.
 Loose DLLs, unknown filenames, and unregistered versions stay untouched and are
 not loaded in safe mode. CLI selections never overwrite the GUI plugin profile.
-`Plugins/dll_manager.json` records the last successful selection.
+`plugins/dll_manager.json` records the last successful CLI selection.
 Safe injection uses only that launch's verified allowlist, not the directory or
 the saved inventory. The unsafe load-all option retains other DLLs for injection.
 `--no-plugin-update` forbids downloads but permits restoring cached versions.
 Only explicitly pinned prereleases (or `--allow-unstable-plugin` for automatic
 selection) are eligible; automatic selection otherwise uses the latest stable.
 
-Other DLLs in `<installation>\TBL\Binaries\Win64\Plugins` are not enumerated
-for injection unless this exact command-line flag is explicitly supplied:
+Other DLLs in the selected profile's `unchained/plugins` directory are not enumerated
+for injection unless this exact command-line flag is explicitly supplied. Legacy
+installation-wide plugin directories are left untouched and are never scanned:
 
 ```text
 --unsafe-very-dangerous-load-all-dlls
@@ -404,7 +425,7 @@ Run `server --help` for the full option list. Additional settings include:
 
 | Option | Default / behavior |
 | --- | --- |
-| `--saved-dir-suffix` | `UnchainedCLI`; letters, digits, `_`, and `-` only |
+| `--saved-dir-suffix` | client: `unchained`; server: `UnchainedCLI`; letters, digits, `_`, and `-` only |
 | `--name`, `--description`, `--password` | Name, description/MOTD, optional password |
 | `--map` | `FFA_Courtyard` |
 | `--game-port` | `7777` |

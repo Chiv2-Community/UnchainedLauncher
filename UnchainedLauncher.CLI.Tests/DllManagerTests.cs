@@ -202,8 +202,10 @@ public sealed class DllManagerTests {
         finally { Directory.Delete(root, recursive: true); }
     }
 
-    [Fact]
-    public async Task ServerDllPreparationUsesOnlyEachInstancePluginDirectory() {
+    [Theory]
+    [InlineData("client")]
+    [InlineData("server")]
+    public async Task DllPreparationUsesOnlyEachProfilePluginDirectory(string command) {
         var root = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? Path.GetTempPath(), "dll-instances-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
@@ -219,8 +221,9 @@ public sealed class DllManagerTests {
             var paths = new List<string>();
             using var http = new HttpClient(new DownloadHandler([1, 2, 3]));
             foreach (var suffix in new[] { "One", "Two" }) {
-                var options = Assert.IsType<ServerOptions>(CliLaunchOptions.Parse([
-                    "server", "--chivalry2-path", root, "--platform", "Steam", "--saved-dir-suffix", suffix]));
+                var options = CliLaunchOptions.Parse([
+                    command, "--chivalry2-path", root, "--platform", "Steam", "--saved-dir-suffix", suffix]);
+                options.Shared.Assets = new ProfileAssetPaths(suffix, root);
                 var mods = ServerLauncher.CreateModManager(options, registry);
                 var session = ServerLauncher.CreateDllSession(options, registry, mods, client: http);
                 Assert.True((await session.PrepareLaunch(options.ToLaunchOptions())).IsSome);

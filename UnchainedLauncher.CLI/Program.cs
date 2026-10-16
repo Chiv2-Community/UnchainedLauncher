@@ -37,7 +37,7 @@ public static class Program {
             }
             if (command is ServerGroupOptions group) return await ServerGroupRunner.RunAsync(group, stop);
             var options = (CliLaunchOptions)command;
-            using var instanceLease = (options as ServerOptions)?.InstancePaths.AcquireLease();
+            using var instanceLease = options.InstancePaths.AcquireLease();
             using var process = await ServerLauncher.LaunchAsync(options, stop.Token);
             return await SuperviseAsync(options, process, stop);
         }

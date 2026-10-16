@@ -50,6 +50,7 @@ public sealed class ServerConfiguration : LaunchConfiguration {
 }
 
 public sealed class ClientConfiguration : LaunchConfiguration {
+    public ClientConfiguration() { SavedDirSuffix = UnchainedLauncher.Core.Services.Mods.ProfileAssetPaths.SharedSuffix; }
     public ClientSettings? Client { get; set; }
     [YamlConverter(typeof(IgnoredYamlNodeConverter))]
     public object? Server { get; set; }

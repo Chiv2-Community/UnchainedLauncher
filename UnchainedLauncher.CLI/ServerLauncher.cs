@@ -19,18 +19,18 @@ public static class ServerLauncher {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Game launching requires Windows (Core's DLL injector uses kernel32.dll).");
         var executable = Path.Combine(options.Chivalry2Path, FilePaths.GameBinPath);
         var basePakPath = Path.Combine(options.Chivalry2Path, FilePaths.PakDir);
-        var instance = (request as ServerOptions)?.InstancePaths;
+        var instance = request.InstancePaths;
         if (!File.Exists(executable)) throw new FileNotFoundException("Chivalry 2 shipping executable was not found. Check --chivalry2-path.", executable);
         if (!Directory.Exists(basePakPath)) throw new DirectoryNotFoundException($"Chivalry 2 Paks directory was not found: {basePakPath}");
 
         var registry = CreateRegistry(request);
 
         return await InInstallationDirectoryAsync(request, async () => {
-            var cachePath = instance?.ModMetadata ?? Path.Combine(options.Chivalry2Path, FilePaths.ModCachePath, "cli_mod_manager.json");
+            var cachePath = instance.ModMetadata;
             var codec = new ModManagerCodec(registry);
             // Core reconciles physical ownership across hosts immediately before installing.
             // CLI selection comes only from this request, never from a cached GUI selection.
-            var manager = CreateModManager(request, registry);
+            var manager = CreateModManager(request, registry, cancellationToken);
             Console.Error.WriteLine("Loading mod registries...");
             var fetched = await manager.UpdateModsList();
             cancellationToken.ThrowIfCancellationRequested();
@@ -89,22 +89,20 @@ public static class ServerLauncher {
     internal static AggregateModRegistry CreateRegistry(CliLaunchOptions options) =>
         options.Shared.RegistryOptions.CreateRegistry();
 
-    internal static ModManager CreateModManager(CliLaunchOptions request, AggregateModRegistry registry) {
+    internal static ModManager CreateModManager(CliLaunchOptions request, AggregateModRegistry registry, CancellationToken cancellationToken = default) {
         var basePakPath = Path.Combine(request.Shared.Chivalry2Path, FilePaths.PakDir);
-        return new ModManager(registry, (request as ServerOptions)?.InstancePaths.CreatePakDir(basePakPath)
-            ?? new PakDir(basePakPath, []), request.Shared.Mods.Distinct());
+        return new ModManager(registry, request.InstancePaths.CreatePakDir(basePakPath, cancellationToken), request.Shared.Mods.Distinct());
     }
 
     internal static DllLaunchSession CreateDllSession(CliLaunchOptions request, AggregateModRegistry registry,
         IModManager manager, CancellationToken cancellationToken = default, HttpClient? client = null) =>
-        new(registry, manager, (request as ServerOptions)?.InstancePaths.Plugins
-            ?? Path.Combine(request.Shared.Chivalry2Path, FilePaths.PluginDir),
-            request.Shared.Dlls, request.Shared.UnsafeLoadAllDlls, cancellationToken, client);
+        new(registry, manager, request.InstancePaths.Plugins,
+            request.Shared.Dlls, request.Shared.UnsafeLoadAllDlls, cancellationToken, client, request.Shared.Assets.DllCache);
 
     internal static void InitializeServerProfile(CliLaunchOptions request, Func<string, string>? configPath = null) {
-        if (request is not ServerOptions) return;
+        if (request is not ServerOptions server) return;
 
-        var directory = (configPath ?? FilePaths.Chiv2ConfigPath)(request.Shared.SavedDirSuffix);
+        var directory = (configPath ?? FilePaths.Chiv2ConfigPath)(server.GameSavedDirSuffix);
         // Match the GUI's startup defaults without rewriting unrelated server or player settings.
         var writer = new StructuredINIWriter();
         if (!writer.BufferWrite(new TBLTitleScreen()) || !writer.BufferWrite(new TBLGameInstance()) ||

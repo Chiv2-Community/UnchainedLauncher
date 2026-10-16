@@ -179,7 +179,7 @@ public class ServerOptionsTests {
         ]));
         var launch = options.ToLaunchOptions();
         Assert.True(launch.ServerLaunchOptions.IsNone);
-        Assert.Equal("TBL", launch.LaunchArgs);
+        Assert.StartsWith("TBL --additional-pak-dir ", launch.LaunchArgs);
     }
 
     [Theory]

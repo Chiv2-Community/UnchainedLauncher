@@ -346,7 +346,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
                         coords,
                         outputPath => modManager.ModRegistry
                             .DownloadPak(coords, outputPath)
-                            .MapLeft(e => Error.New(e))
+                            .MapLeft(e => Error.New(e)),
+                        release.ReleaseHash
                     );
                 })
                 .ToList();

@@ -23,8 +23,8 @@ public sealed class ServerGroupOptions : CliCommandOptions {
                 throw new ArgumentException("Server IDs must be unique (case-insensitive) and contain only letters, digits, underscores, and hyphens.");
             var suffix = settings!.SavedDirSuffix ?? $"{configuration.SavedDirSuffix}-{id}";
             var options = new ServerOptions(new SharedLaunchOptions(configuration, directory, suffix), settings, configuration.NoTui);
-            if (!profiles.Add(options.Shared.SavedDirSuffix))
-                throw new ArgumentException("Each server must use a distinct saved-dir-suffix (case-insensitive).");
+            if (!profiles.Add(options.GameSavedDirSuffix))
+                throw new ArgumentException("Each server must use a distinct saved-dir-suffix (case-insensitive, ignoring hyphens).");
             foreach (var port in new[] { settings.GamePort, settings.PingPort, settings.QueryPort, settings.RconPort }) {
                 if (!ports.Add(port)) throw new ArgumentException($"Port {port} is used by more than one server. Assign distinct game, ping, query, and RCON ports to every server.");
             }

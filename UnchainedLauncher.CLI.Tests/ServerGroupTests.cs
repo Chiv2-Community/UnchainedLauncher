@@ -31,7 +31,12 @@ public sealed class ServerGroupTests : IDisposable {
         return CommandLineOptions.Parse([command, "--config-path", path, .. extra]);
     }
 
-    private ServerGroupOptions Group() => Assert.IsType<ServerGroupOptions>(Parse(Servers));
+    private ServerGroupOptions Group() {
+        var group = Assert.IsType<ServerGroupOptions>(Parse(Servers));
+        foreach (var entry in group.Servers)
+            entry.Options.Shared.Assets = new UnchainedLauncher.Core.Services.Mods.ProfileAssetPaths(entry.Options.Shared.SavedDirSuffix, _root);
+        return group;
+    }
     public void Dispose() { if (Directory.Exists(_root)) Directory.Delete(_root, true); }
 
     [Fact]
@@ -74,6 +79,12 @@ public sealed class ServerGroupTests : IDisposable {
         Assert.Throws<ArgumentException>(() => Parse(Servers.Replace("7007", "7000")));
         Assert.Throws<ArgumentException>(() => Parse(Servers.Replace("name: Courtyard", "name: Courtyard\n    saved-dir-suffix: SAME")
             .Replace("name: Arena", "name: Arena\n    saved-dir-suffix: same")));
+    }
+
+    [Fact]
+    public void ProfilesThatCollideAfterGameHyphenRemovalAreRejected() {
+        Assert.Throws<ArgumentException>(() => Parse(Servers.Replace("name: Courtyard", "name: Courtyard\n    saved-dir-suffix: Host-one")
+            .Replace("name: Arena", "name: Arena\n    saved-dir-suffix: Hostone")));
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
@@ -23,10 +24,12 @@ public sealed class SharedLaunchOptions {
     public IReadOnlyList<ReleaseCoordinates> Mods { get; }
     public IReadOnlyList<ReleaseCoordinates> Dlls { get; }
     public IReadOnlyList<string> GameArguments { get; }
+    internal ProfileAssetPaths Assets { get; set; }
 
     internal SharedLaunchOptions(LaunchConfiguration configuration, string directory, string? savedDirSuffix = null) {
         Chivalry2Path = Path.GetFullPath(configuration.Chiv2Path!, directory);
         SavedDirSuffix = savedDirSuffix ?? configuration.SavedDirSuffix;
+        Assets = new ProfileAssetPaths(SavedDirSuffix);
         Platform = configuration.Platform!.Value;
         Backend = configuration.ServerBrowserBackend;
         UpdatePlugin = configuration.UpdatePlugin;
@@ -59,10 +62,13 @@ public abstract class CliLaunchOptions : CliCommandOptions {
     private readonly SharedLaunchOptions? _shared;
     public SharedLaunchOptions Shared => _shared ?? throw new InvalidOperationException("Help is not a launch request.");
     public IReadOnlyList<string> GameArguments { get; }
+    public ServerInstancePaths InstancePaths => new(Shared.Assets.Root, Shared.Assets.PakCache);
 
     private protected CliLaunchOptions(SharedLaunchOptions shared, IEnumerable<string> gameArguments) {
         _shared = shared;
         GameArguments = shared.GameArguments.Concat(gameArguments).ToArray();
+        if (GameArguments.Any(argument => argument == "--additional-pak-dir" || argument.StartsWith("--additional-pak-dir=", StringComparison.Ordinal)))
+            throw new ArgumentException("--additional-pak-dir is managed by the launcher; do not pass it through game-args.");
     }
 
     private protected CliLaunchOptions(string helpText) {
@@ -87,11 +93,15 @@ public abstract class CliLaunchOptions : CliCommandOptions {
 
     public abstract LaunchOptions ToLaunchOptions();
 
-    private protected LaunchOptions BuildLaunchOptions(IEnumerable<string> prefix, LanguageExt.Option<ServerLaunchOptions> server) => new(
+    private protected LaunchOptions BuildLaunchOptions(IEnumerable<string> prefix, LanguageExt.Option<ServerLaunchOptions> server) {
+        var start = prefix.ToList();
+        start.Insert(server.IsSome ? 2 : 1, new Parameter("--additional-pak-dir", InstancePaths.Paks).Rendered);
+        return new(
         EnabledReleases: Shared.Mods.Distinct(), ServerBrowserBackend: Some(Shared.Backend),
-        LaunchArgs: string.Join(" ", prefix.Concat(GameArguments.Select(ArgumentEscaper.Escape))),
+        LaunchArgs: string.Join(" ", start.Concat(GameArguments.Select(ArgumentEscaper.Escape))),
         CheckForDependencyUpdates: Shared.UpdatePlugin, AllowUnstablePluginReleases: Shared.AllowUnstablePlugin,
         SavedDirSuffix: Some(Shared.SavedDirSuffix), ServerLaunchOptions: server);
+    }
 
     internal static CliLaunchOptions ForHelp(string text) => new HelpOptions(text);
 
@@ -110,13 +120,14 @@ public sealed class ClientOptions : CliLaunchOptions {
 public sealed class ServerOptions : CliLaunchOptions {
     public ServerSettings Settings { get; }
     public bool NoTui { get; }
-    public ServerInstancePaths InstancePaths { get; }
+    // Chivalry removes hyphens when choosing its Saved directory (the plugin log path does not).
+    internal string GameSavedDirSuffix => Shared.SavedDirSuffix.Replace("-", "", StringComparison.Ordinal);
 
     internal ServerOptions(SharedLaunchOptions shared, ServerSettings settings, bool noTui)
         : base(shared, SharedLaunchOptions.Entries(settings.GameArgs, allowEmpty: true)) {
         Settings = settings;
         NoTui = noTui;
-        InstancePaths = new ServerInstancePaths(Path.Combine(shared.Chivalry2Path, ".unchained", "servers", "Server-" + shared.SavedDirSuffix));
+        if (GameSavedDirSuffix.Length == 0) throw new ArgumentException("saved-dir-suffix must contain a character other than a hyphen.");
         if (GameArguments.Any(argument => argument == "--additional-pak-dir" || argument.StartsWith("--additional-pak-dir=", StringComparison.Ordinal)))
             throw new ArgumentException("--additional-pak-dir is managed by the launcher; do not pass it through game-args.");
         if (!settings.Headless && settings.DesyncPatch)
@@ -151,5 +162,7 @@ public sealed class ServerOptions : CliLaunchOptions {
         Settings.DesyncPatch, Settings.UseBackendBanlist, Settings.CensorMode);
 
     public override LaunchOptions ToLaunchOptions() => BuildLaunchOptions(
-        ["TBL", "-server", new Parameter("--additional-pak-dir", InstancePaths.Paks).Rendered], Some(ToServerLaunchOptions()));
+        ["TBL", "-server",
+            "-ini:Game:[/Script/TBL.TBLTitleScreen]:bSavedHasAgreedToTOS=True",
+            "-ini:Game:[/Script/TBL.TBLGameInstance]:FirstLoadCompleted=True"], Some(ToServerLaunchOptions()));
 }

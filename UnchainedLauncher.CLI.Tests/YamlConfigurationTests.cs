@@ -133,7 +133,7 @@ public class YamlConfigurationTests : IDisposable {
         var options = Load("client: {}\nserver: {}\n", client);
         Assert.Equal(client, options is ClientOptions);
         Assert.Equal(client, options.ToLaunchOptions().ServerLaunchOptions.IsNone);
-        if (client) Assert.Equal("TBL", options.ToLaunchOptions().LaunchArgs);
+        if (client) Assert.StartsWith("TBL --additional-pak-dir ", options.ToLaunchOptions().LaunchArgs);
         else Assert.StartsWith("TBL -server --additional-pak-dir ", options.ToLaunchOptions().LaunchArgs);
         Assert.Equal(!client, options.ToLaunchOptions().ToCLIArgs().Any(arg => arg.Rendered == "-nullrhi"));
     }
@@ -275,7 +275,7 @@ public class YamlConfigurationTests : IDisposable {
         Assert.Contains("server.desync-patch: false", error.Message);
         var client = Assert.IsType<ClientOptions>(Load(yaml, client: true)).ToLaunchOptions();
         Assert.True(client.ServerLaunchOptions.IsNone);
-        Assert.Equal("TBL", client.LaunchArgs);
+        Assert.StartsWith("TBL --additional-pak-dir ", client.LaunchArgs);
     }
 
     [Fact]
@@ -446,7 +446,7 @@ public class YamlConfigurationTests : IDisposable {
         var options = CliLaunchOptions.Parse(["client", "--chivalry2-path", _directory, "--platform", "EGS"]);
         Assert.IsType<ClientOptions>(options);
         Assert.True(options.ToLaunchOptions().ServerLaunchOptions.IsNone);
-        Assert.Equal("TBL", options.ToLaunchOptions().LaunchArgs);
+        Assert.StartsWith("TBL --additional-pak-dir ", options.ToLaunchOptions().LaunchArgs);
     }
 
     [Theory]

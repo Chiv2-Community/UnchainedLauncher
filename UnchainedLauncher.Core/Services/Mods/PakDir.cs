@@ -13,6 +13,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
     public class PakDir : IPakDir {
         public string DirPath { get; }
         public string? DefaultSigPath { get; }
+        public string? CachePath { get; }
+        private readonly CancellationToken _cancellationToken;
 
         private const string BasePakFileName = "pakchunk0-WindowsNoEditor.pak";
         private const string BaseSigFileName = "pakchunk0-WindowsNoEditor.sig";
@@ -23,9 +25,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public IEnumerable<ManagedPak> ManagedPaks => _managedPaks;
         private readonly List<ManagedPak> _managedPaks;
 
-        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks, string? defaultSigPath = null) {
+        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks, string? defaultSigPath = null, string? cachePath = null,
+            CancellationToken cancellationToken = default) {
             DirPath = dirPath;
             DefaultSigPath = defaultSigPath;
+            CachePath = cachePath;
+            _cancellationToken = cancellationToken;
             _managedPaks = managedPaks.ToList();
             SynchronizeWithDir();
         }
@@ -114,8 +119,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             Logger.Info($"Downloading pak to {fullActualName}");
             return mkFileWriter(PakNameToPakPath(fullActualName))
                 .Bind(fileWriter =>
-                    // TODO: allow passing of a cancellation token here
-                    fileWriter.WriteAsync(progress, CancellationToken.None)
+                    fileWriter.WriteAsync(progress, _cancellationToken)
                     .Map(_ => fullActualName)
                 );
         }
@@ -287,7 +291,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         private async Task<Either<Error, ManagedPak>> ProcessDownload(InstallAction.Download download, Option<MemoryProgress> taskProgress) {
-            return (await _writePak(download.Install.Writer, taskProgress.Map(p => (IProgress<double>)p), download.FinalPakName))
+            var name = AvailablePakName(download.FinalPakName);
+            var progress = taskProgress.Map(p => (IProgress<double>)p);
+            var written = CachePath is null
+                ? await _writePak(download.Install.Writer, progress, download.FinalPakName)
+                : (await new PakCache(CachePath).Install(download.Install, PakNameToPakPath(name), progress, _cancellationToken)).Map(_ => name);
+            return written
                 .Map(pakFileName => {
                     var managedPak = new ManagedPak(download.Install.Coordinates, pakFileName, download.Index);
                     _managedPaks.Add(managedPak);

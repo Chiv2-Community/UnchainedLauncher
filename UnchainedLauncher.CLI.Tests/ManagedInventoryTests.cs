@@ -110,6 +110,8 @@ public class ManagedInventoryTests : IDisposable {
                 "--mod", $"{extra.Info.Organization}/{extra.Info.RepoName}:{extra.Tag}"]));
             var baseFiles = Directory.GetFiles(Path.GetFullPath(FilePaths.PakDir))
                 .ToDictionary(path => path, File.ReadAllBytes);
+            first.Shared.Assets = new ProfileAssetPaths(first.Shared.SavedDirSuffix, _root);
+            second.Shared.Assets = new ProfileAssetPaths(second.Shared.SavedDirSuffix, _root);
             var firstManager = ServerLauncher.CreateModManager(first, registry);
             await Prepare(firstManager, first.ToLaunchOptions());
             var firstFiles = Directory.GetFiles(first.InstancePaths.Paks).ToDictionary(path => path, File.ReadAllBytes);

@@ -31,6 +31,25 @@ public sealed class ServerProfileTests : IDisposable {
     }
 
     [Fact]
+    public void ServerInitializesTheGameObservedHyphenStrippedProfile() {
+        var request = CliLaunchOptions.Parse(["server", "--chivalry2-path", _directory, "--platform", "Steam",
+            "--saved-dir-suffix", "Host-court-yard", "--local-ip", "127.0.0.1"]);
+        ServerLauncher.InitializeServerProfile(request, suffix => {
+            Assert.Equal("Hostcourtyard", suffix);
+            return _directory;
+        });
+        var ini = File.ReadAllText(Path.Combine(_directory, "Game.ini"));
+        Assert.Contains("bSavedHasAgreedToTOS=True", ini);
+        Assert.Contains("FirstLoadCompleted=True", ini);
+    }
+
+    [Fact]
+    public void HyphenOnlyServerProfileIsRejected() {
+        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--chivalry2-path", _directory,
+            "--platform", "Steam", "--saved-dir-suffix", "---", "--local-ip", "127.0.0.1"]));
+    }
+
+    [Fact]
     public void ServerUpdatesStartupSettingsWithoutChangingOtherSettingsAndIsIdempotent() {
         Directory.CreateDirectory(_directory);
         var path = Path.Combine(_directory, "Game.ini");

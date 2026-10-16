@@ -143,11 +143,12 @@ namespace UnchainedLauncher.GUI {
 
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+            var assets = new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix);
             var dllManager = new DllManager(
-                Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir),
+                assets.Plugins,
                 FilePaths.DllManagerConfigPath, new HttpClient(), () => modManager.GetEnabledAndDependencyReleases().ToArray(),
                 () => modRegistry.ModRegistries.OfType<GithubModRegistry>()
-                    .Select(registry => registry.DllDatabaseUrl).ToArray());
+                    .Select(registry => registry.DllDatabaseUrl).ToArray(), assets.DllCache);
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
 
@@ -188,7 +189,13 @@ namespace UnchainedLauncher.GUI {
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                pluginInstaller
+                Chivalry2LaunchPreparer.Create<LaunchOptions>(options => {
+                    if (System.Text.RegularExpressions.Regex.IsMatch(options.LaunchArgs, @"(?:^|\s)--additional-pak-dir(?:\s|=|$)"))
+                        throw new ArgumentException("The additional pak directory is managed by the launcher.");
+                    return LanguageExt.Prelude.Some(options with {
+                        LaunchArgs = options.LaunchArgs + " " + new Parameter("--additional-pak-dir", assets.Paks).Rendered
+                    });
+                }).AndThen(pluginInstaller)
                     .AndThen(modInstaller)
                     .Sub(sigLaunchPreparer),
                 unchainedProcessLauncher,
@@ -197,7 +204,7 @@ namespace UnchainedLauncher.GUI {
                 // don't shove dlls into processes that don't need them and cause crashes
                 new NullInjector(true)
 #else
-                new DllInjector(dllManager, Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir), _unsafeLoadAllDlls)
+                new DllInjector(dllManager, assets.Plugins, _unsafeLoadAllDlls)
 #endif
             );
 
@@ -314,15 +321,19 @@ namespace UnchainedLauncher.GUI {
         }
 
         private ModManager InitializeModManager(string jsonPath, IModRegistry registry) {
+            var assets = new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix);
             Func<ModManager> initializeDefaultModManager = () =>
                 new ModManager(
                     registry,
-                    new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>()),
+                    assets.CreatePakDir(Directory.GetCurrentDirectory()),
                     Enumerable.Empty<ReleaseCoordinates>()
                 );
 
             var codec = new ModManagerCodec(registry);
             var modManager = InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
+            var sameProfile = Path.GetFullPath(modManager.PakDir.DirPath).Equals(Path.GetFullPath(assets.Paks), StringComparison.OrdinalIgnoreCase);
+            modManager = modManager.WithPakDir(assets.CreatePakDir(Directory.GetCurrentDirectory(),
+                sameProfile && modManager.PakDir is PakDir existing ? existing.ManagedPaks : []));
 
             RegisterSaveToFileOnExit(modManager, codec, jsonPath);
             return modManager;

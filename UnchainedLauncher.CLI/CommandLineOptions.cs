@@ -117,7 +117,7 @@ internal static class CommandLineOptions {
                 var settings = serverConfig.Server!;
                 Add("--name", "Server name.", settings.Name, value => settings.Name = value);
                 Add("--description", "Description / MOTD.", settings.Description, value => settings.Description = value);
-                Add("--map", "Initial map.", settings.Map, value => settings.Map = value);
+                Add("--starting-map", "Initial map.", settings.StartingMap, value => settings.StartingMap = value);
                 Add<string?>("--password", "Server password.", null, value => settings.Password = value);
                 Add<string?>("--local-ip", "Override auto-detected local IPv4 (VPN/multi-NIC).", null, value => settings.LocalIp = value);
                 Add("--game-port", "Game port.", settings.GamePort, value => settings.GamePort = value);

@@ -12,12 +12,14 @@ public sealed class ServerGroupTests : IDisposable {
         servers:
           courtyard:
             name: Courtyard
+            starting-map: FFA_Courtyard
             game-port: 7000
             ping-port: 7001
             query-port: 7002
             rcon-port: 7003
           arena:
             name: Arena
+            starting-map: TO_Stronghold
             game-port: 7004
             ping-port: 7005
             query-port: 7006
@@ -47,6 +49,7 @@ public sealed class ServerGroupTests : IDisposable {
         Assert.Equal(["Host-courtyard", "Host-arena"], group.Servers.Select(entry => entry.Options.Shared.SavedDirSuffix));
         Assert.All(group.Servers, entry => Assert.Equal(Path.Combine(_root, "game"), entry.Options.Shared.Chivalry2Path));
         Assert.Equal(["Courtyard", "Arena"], group.Servers.Select(entry => entry.Options.Settings.Name));
+        Assert.Equal(["FFA_Courtyard", "TO_Stronghold"], group.Servers.Select(entry => entry.Options.ToServerLaunchOptions().Map));
         Assert.Equal(7006, group.Servers[1].Options.ToServerLaunchOptions().QueryPort);
         Assert.Equal(2, group.Servers.Select(entry => entry.Options.InstancePaths.Paks).Distinct().Count());
         Assert.Equal(2, group.Servers.Select(entry => entry.Options.InstancePaths.Plugins).Distinct().Count());
@@ -69,6 +72,7 @@ public sealed class ServerGroupTests : IDisposable {
     [InlineData("servers: {one: {}, ONE: {}}")]
     [InlineData("servers: {one: {}, two: {}}")]
     [InlineData("servers: {one: {game-port: 0}}")]
+    [InlineData("servers: {one: {map: TO_Test}}")]
     [InlineData("servers: {one: {saved-dir-suffix: '../outside'}}")]
     [InlineData("servers: {one: {unsafe-very-dangerous-load-all-dlls: true}}")]
     [InlineData("servers: {one: {mod-setup: {mods: []}}}")]

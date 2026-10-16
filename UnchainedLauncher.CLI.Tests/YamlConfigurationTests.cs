@@ -347,7 +347,7 @@ public class YamlConfigurationTests : IDisposable {
               name: YAML Server
               description: Example MOTD
               password: private password
-              map: TO_Test
+              starting-map: TO_Test
               local-ip: 127.0.0.2
               game-port: 10001
               ping-port: 10002
@@ -415,6 +415,8 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData("server: {game-port: 1.5}")]
     [InlineData("server: {headless: invalid}")]
     [InlineData("server: {typo: true}")]
+    [InlineData("server: {map: TO_Test}")]
+    [InlineData("server: {starting-map: ''}")]
     [InlineData("server: {censor-mode: invalid}")]
     [InlineData("server: {warmup-time: -1}")]
     [InlineData("server: {discord: {bot-token: secret}}")]

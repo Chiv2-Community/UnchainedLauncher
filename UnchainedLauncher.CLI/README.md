@@ -26,10 +26,16 @@ dotnet run --project UnchainedLauncher.CLI -c Release -- server `
   --platform Steam `
   --saved-dir-suffix MyServer `
   --name "My Unchained Server" `
-  --map FFA_Courtyard
+  --starting-map FFA_Courtyard `
+  --dll Chiv2-Community/UnchainedPlugin:v1.0.0-RC3 `
+  --mod Chiv2-Community/Unchained-Mods:v0.1.0 `
+  --mod Chiv2-Community/Chiv2Turbo:v0.0.4 `
+  --server-mod /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C
 ```
 
 The path is the installation root containing `TBL`, not the Win64 directory.
+The example pins registered releases; replace the core plugin pin with a registered
+build supporting `--additional-pak-dir` before launching.
 The server is headless by default (`-nullrhi -unattended -nosound`); use
 `--headless false --no-desync-patch` to render it (the desync patch only supports
 headless servers). The plugin is installed
@@ -166,7 +172,7 @@ server:
   ping-port: 3075
   query-port: 7071
   rcon-port: 9001
-  map: FFA_Courtyard
+  starting-map: FFA_Courtyard
   mod-actors: [] # Explicit blueprint class paths to activate.
   desync-patch: true
   use-backend-banlist: true
@@ -187,7 +193,7 @@ Common root options are `server-browser-backend`, `update-plugin` (default true)
 common list only for the matching command. The client schema currently supports
 `game-args`; shared installation, platform, plugin, and mod options remain at the root.
 
-The server section supports name, description/MOTD, password, map, local IP,
+The server section supports name, description/MOTD, password, `starting-map`, local IP,
 all four ports, `headless`, `register`, `mod-actors`, `desync-patch`,
 `use-backend-banlist`, and `censor-mode` (`none`, `standard`, `sex`, `zealous`).
 Desync patch and backend banlist **default to true in server mode**; set their
@@ -200,6 +206,7 @@ preferring one with a default gateway; it falls back to another usable IPv4 or l
 Set `local-ip` only to override this choice (for example, with a VPN or multiple adapters).
 Time/score/ticket limits, player bot count, and warmup are **INI settings**, not
 part of either CLI schema; configure them in the selected saved profile.
+Use `starting-map` / `--starting-map`; the former `map` / `--map` names are rejected.
 Before a server launch, the CLI initializes the selected profile's `Game.ini` with
 `bSavedHasAgreedToTOS=True` and `FirstLoadCompleted=True`, matching the GUI's startup
 defaults so first-run screens do not block unattended startup. Other existing INI
@@ -235,14 +242,14 @@ saved-dir-suffix: MyHost
 servers:
   courtyard:
     name: Courtyard FFA
-    map: FFA_Courtyard
+    starting-map: FFA_Courtyard
     game-port: 7777
     ping-port: 3075
     query-port: 7071
     rcon-port: 9001
   arena:
     name: Arena FFA
-    map: FFA_Courtyard
+    starting-map: FFA_Courtyard
     game-port: 7778
     ping-port: 3076
     query-port: 7072
@@ -427,7 +434,7 @@ Run `server --help` for the full option list. Additional settings include:
 | --- | --- |
 | `--saved-dir-suffix` | client: `unchained`; server: `UnchainedCLI`; letters, digits, `_`, and `-` only |
 | `--name`, `--description`, `--password` | Name, description/MOTD, optional password |
-| `--map` | `FFA_Courtyard` |
+| `--starting-map` | `FFA_Courtyard` |
 | `--game-port` | `7777` |
 | `--ping-port` | `3075` |
 | `--query-port` | `7071` (A2S) |

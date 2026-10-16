@@ -6,11 +6,15 @@ saved-dir-suffix: MyServer
 mod-setup:
   registries: [] # Official GitHub registry is included automatically.
   # Additional entries: github:owner/repository, local:../registry, config:../registries.json
-  mods: [] # Exact coordinates: organization/mod-id:v1.2.3
-  dlls: [] # Optional dll_db release coordinates; the required core plugin is always included.
+  mods:
+    - Chiv2-Community/Unchained-Mods:v0.1.0
+    - Chiv2-Community/Chiv2Turbo:v0.0.4
+  dlls:
+    - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
 
 # Run with: UnchainedLauncher.CLI.exe server --config-path server.yaml
 # Requires UnchainedPlugin support for --additional-pak-dir.
+# Replace the core plugin pin with a registered build supporting that option.
 # Paks/plugins live in %LOCALAPPDATA%/Chivalry 2/Saved_MyServer/unchained/.
 # Pak bytes are shared through the common verified cache and hard links.
 # A client block, if included, is ignored by the server command.
@@ -24,7 +28,7 @@ server:
   name: My Unchained Server
   description: Example server
   password: ''
-  map: FFA_Courtyard
+  starting-map: FFA_Courtyard
   game-port: 7777
   ping-port: 3075
   query-port: 7071
@@ -32,7 +36,8 @@ server:
   headless: true # Rendering requires headless: false AND desync-patch: false.
   register: false
   # local-ip: 192.168.1.10 # Optional override; local IPv4 is auto-detected.
-  mod-actors: [] # Blueprint class paths, e.g. /Game/Mods/Example/BP_Example.BP_Example_C
+  mod-actors:
+    - /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C
   desync-patch: true # Default true; explicitly set false to disable.
   use-backend-banlist: true # Default true; explicitly set false to disable.
   censor-mode: none # none, standard, sex, zealous

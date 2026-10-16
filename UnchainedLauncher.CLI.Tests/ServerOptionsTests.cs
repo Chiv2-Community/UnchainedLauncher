@@ -61,7 +61,7 @@ public class ServerOptionsTests {
 
     [Fact]
     public void ServerFieldsAreMappedToCoreOptions() {
-        var options = CliLaunchOptions.Parse(Args("--name", "Test Server", "--description", "Test MOTD", "--map", "TO_Test",
+        var options = CliLaunchOptions.Parse(Args("--name", "Test Server", "--description", "Test MOTD", "--starting-map", "TO_Test",
             "--password", "secret", "--local-ip", "127.0.0.2", "--game-port", "10001", "--ping-port", "10002",
             "--query-port", "10003", "--rcon-port", "10004", "--register", "--no-tui", "--no-plugin-update",
             "--allow-unstable-plugin", "--server-browser-backend", "https://example.test", "--saved-dir-suffix", "Test_1"));
@@ -92,6 +92,7 @@ public class ServerOptionsTests {
     [InlineData("--add-registry", "github:bad")]
     [InlineData("--add-registry", "http:unsupported")]
     [InlineData("--name", " ")]
+    [InlineData("--starting-map", " ")]
     [InlineData("--headless", "yes")]
     [InlineData("--censor-mode", "invalid")]
     [InlineData("--discord-mention-admins", "maybe")]
@@ -104,7 +105,8 @@ public class ServerOptionsTests {
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server"]));
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--chivalry2-path", "."]));
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(Args("--typo")));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(Args("--map")));
+        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(Args("--starting-map")));
+        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(Args("--map", "TO_Test")));
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(Args("--no-tui=true")));
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["client"]));
     }
@@ -112,7 +114,7 @@ public class ServerOptionsTests {
     [Fact]
     public void RejectsConflictingModVersionsAndDuplicateScalarOptions() {
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(Args("--mod", "org/mod:v1", "--mod", "org/mod:v2")));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(Args("--map", "one", "--map", "two")));
+        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(Args("--starting-map", "one", "--starting-map", "two")));
     }
 
     [Fact]
@@ -120,6 +122,9 @@ public class ServerOptionsTests {
         Assert.True(CliLaunchOptions.Parse([]).Help);
         Assert.True(CliLaunchOptions.Parse(["--help"]).Help);
         Assert.True(CliLaunchOptions.Parse(["server", "--help"]).Help);
+        var help = CliLaunchOptions.Parse(["server", "--help"]).HelpText;
+        Assert.Contains("--starting-map", help);
+        Assert.DoesNotContain("--map", help);
     }
 
     [Fact]

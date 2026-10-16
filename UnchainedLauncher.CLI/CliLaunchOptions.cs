@@ -155,7 +155,7 @@ public sealed class ServerOptions : CliLaunchOptions {
     public ServerLaunchOptions ToServerLaunchOptions() => new(
         Settings.Headless, Settings.Name, Settings.Description, RegisterWithBackend: Settings.Register,
         Password: string.IsNullOrWhiteSpace(Settings.Password) ? None : Some(Settings.Password.Trim()),
-        Settings.Map, Settings.GamePort, BeaconPort: Settings.PingPort, Settings.QueryPort, Settings.RconPort,
+        Settings.StartingMap, Settings.GamePort, BeaconPort: Settings.PingPort, Settings.QueryPort, Settings.RconPort,
         FFATimeLimit: null, FFAScoreLimit: null, TDMTimeLimit: null, TDMTicketCount: null,
         PlayerBotCount: null, WarmupTime: null, LocalIp: Optional(Settings.LocalIp),
         ServerMods: Settings.ModActors ?? [], DiscordIntegration: ToDiscordOptions(),

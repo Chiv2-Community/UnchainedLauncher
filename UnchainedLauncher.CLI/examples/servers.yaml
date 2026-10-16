@@ -3,6 +3,7 @@
 # Requires UnchainedPlugin support for --additional-pak-dir.
 # Active paks/plugins: %LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/unchained/.
 # Pak bytes are shared through the common content-addressed cache and hard links.
+# Replace the core plugin pin with a registered build supporting --additional-pak-dir.
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam
 saved-dir-suffix: MyHost # Default profiles: MyHost-courtyard and MyHost-arena.
@@ -13,24 +14,29 @@ no-tui: false
 game-args: []
 mod-setup:
   registries: [] # Official registry is included automatically.
-  mods: []
-  dlls: []
+  mods:
+    - Chiv2-Community/Unchained-Mods:v0.1.0
+    - Chiv2-Community/Chiv2Turbo:v0.0.4
+  dlls:
+    - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
 
 servers:
   courtyard:
     name: Courtyard FFA
-    map: FFA_Courtyard
+    starting-map: FFA_Courtyard
     game-port: 7777
     ping-port: 3075
     query-port: 7071
     rcon-port: 9001
-    mod-actors: []
+    mod-actors:
+      - /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C
   arena:
     name: Arena FFA
-    map: FFA_Courtyard # Replace with an installed map's travel name.
+    starting-map: FFA_Courtyard # Replace with an installed map's travel name.
     saved-dir-suffix: ArenaProfile # Optional explicit per-server profile.
     game-port: 7778
     ping-port: 3076
     query-port: 7072
     rcon-port: 9002
-    mod-actors: []
+    mod-actors:
+      - /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C

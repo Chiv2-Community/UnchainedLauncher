@@ -75,7 +75,7 @@ public sealed class ServerSettings {
     public string Description { get; set; } = "";
     public string? Password { get; set; }
     [Required]
-    public string Map { get; set; } = "FFA_Courtyard";
+    public string StartingMap { get; set; } = "FFA_Courtyard";
     public string? LocalIp { get; set; }
     [Range(1, 65535)]
     public int GamePort { get; set; } = 7777;

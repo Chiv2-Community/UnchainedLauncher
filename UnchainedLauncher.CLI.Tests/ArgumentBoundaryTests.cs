@@ -81,13 +81,13 @@ public sealed class ArgumentBoundaryTests : IDisposable {
         if (!yaml) return CliLaunchOptions.Parse([command, "--chivalry2-path", _directory, "--platform", "Steam",
             .. command == "server" ? new[] { "--local-ip", "127.0.0.1" } : [],
             .. serverValue is null ? System.Array.Empty<string>() : ["--name", serverValue, "--description", serverValue,
-                "--map", serverValue, "--password", serverValue], "--", .. arguments]);
+                "--starting-map", serverValue, "--password", serverValue], "--", .. arguments]);
         var path = Path.Combine(_directory, "launch.yaml");
         // JSON-quoted strings are YAML scalars; cover both shared and command-specific game-args lists.
         File.WriteAllText(path, $"chiv2-path: {JsonSerializer.Serialize(_directory)}\nplatform: Steam\n" +
             $"game-args: {JsonSerializer.Serialize(arguments.Take(1))}\n{command}:\n" +
             (command == "server" ? "  local-ip: 127.0.0.1\n" : "") +
-            (serverValue is null ? "" : string.Concat(new[] { "name", "description", "map", "password" }
+            (serverValue is null ? "" : string.Concat(new[] { "name", "description", "starting-map", "password" }
                 .Select(key => $"  {key}: {JsonSerializer.Serialize(serverValue)}\n"))) +
             $"  game-args: {JsonSerializer.Serialize(arguments.Skip(1))}\n");
         return CliLaunchOptions.Parse([command, "--config-path", path]);

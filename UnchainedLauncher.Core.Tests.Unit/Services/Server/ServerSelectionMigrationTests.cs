@@ -2,11 +2,17 @@ using Moq;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+using System.Windows.Threading;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
+using UnchainedLauncher.GUI.Views.Servers.Sections;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using ManagedPakDir = UnchainedLauncher.Core.Services.Mods.PakDir;
@@ -183,6 +189,81 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                     saved = next;
                 }
             });
+        }
+
+        [Fact]
+        public void RepeatedActorEnableDoesNotDuplicateSavedSelection() {
+            RunSta(() => {
+                var codec = Codec(new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), []));
+                var configs = Decode(codec, Fixture());
+                var actor = Blueprint("SelectedActor");
+                configs[0].EnableServerBlueprintMod(actor);
+                configs[0].EnableServerBlueprintMod(actor with { });
+                Assert.Equal(actor, Assert.Single(configs[0].EnabledServerModList));
+                var reloaded = Decode(codec, codec.Serialize(configs));
+                Assert.Equal(actor, Assert.Single(reloaded[0].EnabledServerModList));
+            });
+        }
+
+        [Fact]
+        public void DisablingActorRemovesAllSavedDuplicatesAndPreservesOtherSelections() {
+            RunSta(() => {
+                var codec = Codec(new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), []));
+                var configs = Decode(codec, Fixture());
+                var actor = Blueprint("DuplicateActor");
+                var other = Blueprint("OtherActor");
+                foreach (var entry in new[] { actor, other, actor with { }, actor })
+                    configs[0].EnabledServerModList.Add(entry);
+                configs = Decode(codec, codec.Serialize(configs));
+                configs[0].DisableServerBlueprintMod(actor);
+                Assert.Equal(other, Assert.Single(configs[0].EnabledServerModList));
+                configs[0].DisableServerBlueprintMod(actor);
+                var reloaded = Decode(codec, codec.Serialize(configs));
+                Assert.Equal(other, Assert.Single(reloaded[0].EnabledServerModList));
+                Assert.Equal(2, SavedEntries(codec.Serialize(reloaded)).Count(entry => entry.TryGetProperty("Org", out _)));
+            });
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(3)]
+        public void OpeningSavedActorCheckboxDoesNotDuplicateSelectionAndAllowsUnchecking(int savedCopies) {
+            RunSta(() => {
+                var actor = Blueprint("SelectedActor");
+                var mod = Mod("ExampleMod", actor);
+                var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(),
+                    [ReleaseCoordinates.FromRelease(mod.Releases.First())], [mod]);
+                var scan = new ModScanTabVM();
+                var catalog = new AvailableModsAndMapsService(manager, scan);
+                var config = new ServerConfigurationVM(manager, scan, catalog,
+                    enabledServerModList: new ObservableCollection<BlueprintDto>(Enumerable.Repeat(actor, savedCopies)));
+                for (var i = 0; i < 2; i++) {
+                    var view = new ServerModActorsSectionView { DataContext = config };
+                    view.Measure(new Size(640, 480));
+                    view.Arrange(new Rect(0, 0, 640, 480));
+                    view.UpdateLayout();
+                    Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                    var checkbox = Descendants<CheckBox>(view).Single();
+                    Assert.True(checkbox.IsChecked);
+                    Assert.Equal(savedCopies, config.EnabledServerModList.Count);
+                    Assert.All(config.EnabledServerModList, selected => Assert.Equal(actor, selected));
+                    if (i == 1) {
+                        checkbox.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
+                        Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                        Assert.False(checkbox.IsChecked);
+                        Assert.Empty(config.EnabledServerModList);
+                    }
+                    view.DataContext = null;
+                }
+            });
+        }
+
+        private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject {
+            for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++) {
+                var child = VisualTreeHelper.GetChild(root, i);
+                if (child is T match) yield return match;
+                foreach (var descendant in Descendants<T>(child)) yield return descendant;
+            }
         }
 
         private static void RunSta(Action action) {

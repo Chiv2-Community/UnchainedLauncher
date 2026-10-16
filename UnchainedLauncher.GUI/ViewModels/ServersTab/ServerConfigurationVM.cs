@@ -343,11 +343,15 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         }
 
-        public void EnableServerBlueprintMod(BlueprintDto blueprint) =>
-            EnabledServerModList.Add(blueprint);
+        public void EnableServerBlueprintMod(BlueprintDto blueprint) {
+            var selections = EnabledServerModList;
+            if (!selections.Contains(blueprint)) selections.Add(blueprint);
+        }
 
-        public void DisableServerBlueprintMod(BlueprintDto blueprint) =>
-            EnabledServerModList.Remove(blueprint);
+        public void DisableServerBlueprintMod(BlueprintDto blueprint) {
+            var selections = EnabledServerModList;
+            while (selections.Remove(blueprint)) { }
+        }
 
         [RelayCommand]
         public void AutoFillIp() {

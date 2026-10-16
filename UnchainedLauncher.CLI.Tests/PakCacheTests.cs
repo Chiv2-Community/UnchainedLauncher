@@ -1,6 +1,6 @@
-using System.Security.Cryptography;
 using LanguageExt;
 using LanguageExt.Common;
+using System.Security.Cryptography;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;

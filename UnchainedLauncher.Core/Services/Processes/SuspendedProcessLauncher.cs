@@ -1,8 +1,8 @@
+using LanguageExt;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
-using LanguageExt;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Processes;

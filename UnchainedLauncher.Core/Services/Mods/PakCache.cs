@@ -1,7 +1,7 @@
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using LanguageExt;
 using LanguageExt.Common;
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 

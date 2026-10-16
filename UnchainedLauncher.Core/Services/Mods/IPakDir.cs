@@ -9,7 +9,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
     /// </summary>
     /// <param name="Coordinates">The coordinates identifying the specific release to install</param>
     /// <param name="Writer">A factory function that creates a FileWriter for the given output path</param>
-    public record ModInstallRequest(ReleaseCoordinates Coordinates, IPakDir.MakeFileWriter Writer);
+    public record ModInstallRequest(ReleaseCoordinates Coordinates, IPakDir.MakeFileWriter Writer, string? Hash = null);
 
     /// <summary>
     /// Represents a pak file that is managed by the PakDir system.

@@ -52,6 +52,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public IPakDir PakDir { get; }
 
+        public ModManager WithPakDir(IPakDir directory) =>
+            new(ModRegistry, directory, EnabledModReleaseCoordinates, Mods) { NeedsMetadataRefresh = NeedsMetadataRefresh };
+
         public ModManager(
             IModRegistry modRegistry,
             IPakDir pakDir,

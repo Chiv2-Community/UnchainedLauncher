@@ -1,0 +1,14 @@
+chiv2-path: 'C:\Games\Chivalry 2'
+platform: Steam
+saved-dir-suffix: MyClient
+
+mod-setup:
+  registries: []
+  mods: []
+  dlls: []
+
+# Run with: UnchainedLauncher.CLI.exe client --config-path client.yaml
+# A server block, if included, is ignored by the client command.
+update-plugin: true
+client:
+  game-args: []

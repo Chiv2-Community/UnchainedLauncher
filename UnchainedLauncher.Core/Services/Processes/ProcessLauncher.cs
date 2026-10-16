@@ -10,6 +10,10 @@ namespace UnchainedLauncher.Core.Services.Processes {
     public interface IProcessLauncher {
         string Executable { get; }
         public Either<LaunchFailed, Process> Launch(string workingDirectory, string args);
+
+        // Diagnostic launchers and test doubles do not own a suspended native thread.
+        public Either<LaunchFailed, Process> Launch(string workingDirectory, string args, Func<Process, bool> initialize) =>
+            Launch(workingDirectory, args).Bind(process => ProcessLauncher.Initialize(process, initialize, Executable, args));
     }
 
     public class PowershellProcessLauncher : IProcessLauncher {
@@ -55,6 +59,27 @@ namespace UnchainedLauncher.Core.Services.Processes {
 
         public ProcessLauncher(string executable) {
             Executable = executable;
+        }
+
+        public Either<LaunchFailed, Process> Launch(string workingDirectory, string args, Func<Process, bool> initialize) {
+            if (OperatingSystem.IsWindows())
+                return SuspendedProcessLauncher.Launch(Executable, workingDirectory, args, initialize);
+            // Game launching is Windows-only; retain portable argument-probe support.
+            return Launch(workingDirectory, args).Bind(process => Initialize(process, initialize, Executable, args));
+        }
+
+        internal static Either<LaunchFailed, Process> Initialize(Process process, Func<Process, bool> initialize,
+            string executable, string args) {
+            try {
+                if (initialize(process)) return Right(process);
+                throw new InvalidOperationException("DLL injection failed.");
+            }
+            catch (Exception error) {
+                try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
+                catch (Exception cleanupError) { Logger.Error("Could not terminate failed launch.", cleanupError); }
+                finally { process.Dispose(); }
+                return Left(new LaunchFailed(executable, args, error));
+            }
         }
 
         /// <summary>

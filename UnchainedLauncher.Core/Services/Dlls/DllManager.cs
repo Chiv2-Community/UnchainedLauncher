@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Dlls {
     /// <summary>Only explicitly enabled, registry-backed releases may reach the injector.</summary>
@@ -16,9 +17,10 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         public const string DefaultPluginId = "Chiv2-Community/UnchainedPlugin";
         private readonly HttpClient _http;
         private readonly string _root;
+        private readonly string _legacyCliRoot;
         private readonly string _cacheRoot;
-        private readonly string _statePath;
-        private readonly string _indexPath;
+        private readonly string? _statePath;
+        private readonly string? _indexPath;
         private readonly Func<IReadOnlyList<string>> _registryUrls;
         private string? _approvedSources;
         private readonly Dictionary<string, string> _enabled;
@@ -28,28 +30,29 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         public IReadOnlyList<DllRelease> Releases { get; private set; } = [];
         public event EventHandler? SelectionChanged;
 
-        public DllManager(string pluginDirectory, string statePath, HttpClient http,
+        public DllManager(string pluginDirectory, string? statePath, HttpClient http,
             Func<IReadOnlyList<UnchainedLauncher.Core.JsonModels.ModMetadata.Release>>? modReleases = null,
             Func<IReadOnlyList<string>>? registryUrls = null, string? cacheDirectory = null) {
             _registryUrls = registryUrls ?? (() => [DefaultDatabaseUrl]);
             _modReleases = modReleases ?? (() => []);
             var plugins = Path.TrimEndingDirectorySeparator(Path.GetFullPath(pluginDirectory));
             _root = Path.Combine(plugins, "Managed");
+            _legacyCliRoot = Path.Combine(plugins, ".dll-managed");
             _cacheRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(cacheDirectory
                 ?? Path.Combine(Path.GetDirectoryName(plugins)!, ".cache", "dlls")));
             if (_cacheRoot.Equals(plugins, StringComparison.OrdinalIgnoreCase)
                 || _cacheRoot.StartsWith(plugins + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("DLL cache must be outside Plugins.", nameof(cacheDirectory));
             _statePath = statePath;
-            _indexPath = statePath + ".index.json";
+            _indexPath = statePath == null ? null : statePath + ".index.json";
             _http = http;
-            _defaultPending = !File.Exists(statePath);
+            _defaultPending = statePath != null && !File.Exists(statePath);
             var enabled = File.Exists(statePath)
                 ? JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(statePath))
                   ?? throw new InvalidDataException("Invalid DLL selection file.")
                 : new Dictionary<string, string>();
             _enabled = new Dictionary<string, string>(enabled, StringComparer.OrdinalIgnoreCase);
-            if (File.Exists(_indexPath) && File.Exists(_indexPath + ".sources") &&
+            if (_indexPath != null && File.Exists(_indexPath) && File.Exists(_indexPath + ".sources") &&
                 File.ReadAllText(_indexPath + ".sources") == SourceSignature()) {
                 _approvedSources = SourceSignature();
                 Releases = ParseIndex(File.ReadAllText(_indexPath));
@@ -73,6 +76,19 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             return entries;
         }
 
+        // CLI selections belong to a single request, not the GUI's saved profile.
+        public static DllManager CreateForLaunch(string pluginDirectory, IReadOnlyList<DllRelease> catalog,
+            IReadOnlyList<DllRelease> selected, HttpClient http,
+            Func<IReadOnlyList<UnchainedLauncher.Core.JsonModels.ModMetadata.Release>> modReleases,
+            string? cacheDirectory = null) {
+            var manager = new DllManager(pluginDirectory, null, http, modReleases, () => [], cacheDirectory) {
+                Releases = ValidateReleases(catalog).ToArray(),
+                _approvedSources = "[]"
+            };
+            foreach (var release in selected) manager.SetEnabled(release, true);
+            return manager;
+        }
+
         public async Task RefreshAsync() {
             var sources = RegistryUrls();
             var signature = JsonSerializer.Serialize(sources);
@@ -89,9 +105,11 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             lock (_gate) {
                 if (SourceSignature() != signature) throw new InvalidOperationException("DLL registry settings changed during refresh. Refresh again.");
                 // Invalidate the old source marker before replacing the cached approvals.
-                WriteAtomic(_indexPath + ".sources", "");
-                WriteAtomic(_indexPath, json);
-                WriteAtomic(_indexPath + ".sources", signature);
+                if (_indexPath != null) {
+                    WriteAtomic(_indexPath + ".sources", "");
+                    WriteAtomic(_indexPath, json);
+                    WriteAtomic(_indexPath + ".sources", signature);
+                }
                 Releases = releases;
                 _approvedSources = signature;
                 EnableDefault();
@@ -107,12 +125,15 @@ namespace UnchainedLauncher.Core.Services.Dlls {
 
         private string SourceSignature() => JsonSerializer.Serialize(RegistryUrls());
 
-        private async Task<IReadOnlyList<DllRelease>> ReadRegistryAsync(string databaseUrl) {
+        private Task<IReadOnlyList<DllRelease>> ReadRegistryAsync(string databaseUrl) => ReadRegistryAsync(_http, databaseUrl);
+
+        public static async Task<IReadOnlyList<DllRelease>> ReadRegistryAsync(HttpClient http, string databaseUrl,
+            CancellationToken cancellationToken = default) {
             // The package list is authoritative. A stale legacy index must not
             // re-approve removed releases or block metadata/target updates.
-            using var listResponse = await _http.GetAsync(databaseUrl + "/plugin_list_index.txt");
+            using var listResponse = await http.GetAsync(databaseUrl + "/plugin_list_index.txt", cancellationToken);
             if (listResponse.StatusCode == HttpStatusCode.NotFound) {
-                using var legacyResponse = await _http.GetAsync(databaseUrl + "/index.json");
+                using var legacyResponse = await http.GetAsync(databaseUrl + "/index.json", cancellationToken);
                 // Mod-only registries have neither format.
                 return legacyResponse.StatusCode == HttpStatusCode.NotFound ? [] : ParseIndex(await ReadResponse(legacyResponse));
             }
@@ -122,7 +143,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             foreach (var package in packages) {
                 if (!Regex.IsMatch(package, "^[A-Za-z0-9_-]+/[A-Za-z0-9_-]+$") || !seen.Add(package))
                     throw new InvalidDataException("Invalid or duplicate plugin package identifier.");
-                using var packageResponse = await _http.GetAsync($"{databaseUrl}/packages/{package}.json");
+                using var packageResponse = await http.GetAsync($"{databaseUrl}/packages/{package}.json", cancellationToken);
                 foreach (var release in ParsePackage(await ReadResponse(packageResponse), package))
                     merged.Add(release.Key, release);
             }
@@ -157,7 +178,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             return await response.Content.ReadAsStringAsync();
         }
 
-        private static string Canonical(DllRelease release) => JsonSerializer.Serialize(release with {
+        internal static string Canonical(DllRelease release) => JsonSerializer.Serialize(release with {
             Organization = release.Organization.ToLowerInvariant(),
             Name = release.Name.ToLowerInvariant(),
             Tag = release.Tag ?? release.Version,
@@ -229,7 +250,9 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             SelectionChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        private void Save() => WriteAtomic(_statePath, JsonSerializer.Serialize(_enabled));
+        private void Save() {
+            if (_statePath != null) WriteAtomic(_statePath, JsonSerializer.Serialize(_enabled));
+        }
 
         private static void WriteAtomic(string path, string contents) {
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
@@ -303,6 +326,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
 
         private string GetPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.EffectiveFileName);
         private string GetLegacyPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.Sha256, release.EffectiveFileName);
+        private string GetLegacyCliPath(DllRelease release) => Path.Combine(_legacyCliRoot, release.Sha256, release.EffectiveFileName);
         private string GetCachePath(DllRelease release) => Path.Combine(_cacheRoot, release.Sha256, release.EffectiveFileName);
 
         private static bool MatchesFile(string path, DllRelease release) {
@@ -313,7 +337,8 @@ namespace UnchainedLauncher.Core.Services.Dlls {
 
         private DllRelease? ManagedReleaseAt(string path) => Releases.FirstOrDefault(release =>
             (GetPath(release).Equals(path, StringComparison.OrdinalIgnoreCase)
-             || GetLegacyPath(release).Equals(path, StringComparison.OrdinalIgnoreCase))
+             || GetLegacyPath(release).Equals(path, StringComparison.OrdinalIgnoreCase)
+             || GetLegacyCliPath(release).Equals(path, StringComparison.OrdinalIgnoreCase))
             && MatchesFile(path, release));
 
         public static void ValidateBytes(Stream stream, DllRelease release) {
@@ -326,23 +351,27 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             stream.Position = 0;
         }
 
-        public Task PrepareAsync(bool server = false, bool allowDownloads = true) =>
-            PrepareAsync(server, allowDownloads, null);
+        public Task PrepareAsync(bool server = false, bool allowDownloads = true, CancellationToken cancellationToken = default) =>
+            PrepareAsync(server, allowDownloads, null, cancellationToken);
 
-        private async Task PrepareAsync(bool server, bool allowDownloads, Action<string>? activePublishing) {
+        private async Task PrepareAsync(bool server, bool allowDownloads, Action<string>? activePublishing,
+            CancellationToken cancellationToken = default) {
             var selected = SelectedReleases(server);
             // Fill and validate the cache before changing any installed DLLs.
             foreach (var release in selected) {
+                cancellationToken.ThrowIfCancellationRequested();
                 var path = GetPath(release);
                 if (File.Exists(path) && !MatchesFile(path, release) && ManagedReleaseAt(path) == null)
                     throw new InvalidDataException($"Unrecognized DLL at managed path; file left unchanged: {path}");
                 var cache = GetCachePath(release);
+                Directory.CreateDirectory(Path.GetDirectoryName(cache)!);
+                using var cacheLease = await AssetCacheFiles.LockAsync(Path.Combine(Path.GetDirectoryName(cache)!, ".lock"), cancellationToken);
                 if (File.Exists(cache)) {
                     using var existing = File.OpenRead(cache);
                     ValidateBytes(existing, release);
                     continue;
                 }
-                var installed = new[] { path, GetLegacyPath(release) }
+                var installed = new[] { path, GetLegacyPath(release), GetLegacyCliPath(release) }
                     .FirstOrDefault(candidate => File.Exists(candidate) && MatchesFile(candidate, release));
                 if (installed != null) {
                     CopyValidated(installed, cache, release);
@@ -350,39 +379,39 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 }
                 if (!allowDownloads)
                     throw new InvalidOperationException($"Automatic plugin downloads are disabled; missing registered DLL: {release.Key}");
-                Directory.CreateDirectory(Path.GetDirectoryName(cache)!);
                 var temp = cache + "." + Guid.NewGuid().ToString("N") + ".tmp";
                 try {
-                    using var response = await _http.GetAsync(release.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                    using var response = await _http.GetAsync(release.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
                     response.EnsureSuccessStatusCode();
                     if (response.RequestMessage?.RequestUri?.Scheme != Uri.UriSchemeHttps)
                         throw new InvalidDataException("Insecure DLL download redirect.");
-                    await using (var source = await response.Content.ReadAsStreamAsync())
+                    await using (var source = await response.Content.ReadAsStreamAsync(cancellationToken))
                     await using (var target = new FileStream(temp, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
                         var buffer = new byte[81920];
                         long total = 0;
                         int count;
-                        while ((count = await source.ReadAsync(buffer)) != 0) {
+                        while ((count = await source.ReadAsync(buffer, cancellationToken)) != 0) {
                             total += count;
                             if (total > release.Size) throw new InvalidDataException("DLL exceeds registered size.");
-                            await target.WriteAsync(buffer.AsMemory(0, count));
+                            await target.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
                         }
-                        await target.FlushAsync();
+                        await target.FlushAsync(cancellationToken);
                         target.Position = 0;
                         ValidateBytes(target, release);
                     }
-                    File.Move(temp, cache, true);
+                    File.Move(temp, cache);
                 }
                 finally { if (File.Exists(temp)) File.Delete(temp); }
             }
             lock (_gate) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!SelectedReleases(server).SequenceEqual(selected))
                     throw new InvalidOperationException("Plugin selections or metadata changed during preparation. Launch again.");
                 var active = selected.Select(GetPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
                 // Only validated files at paths owned by this manager may be archived.
                 // Unknown names/versions, even inside Managed, are left untouched.
-                if (Directory.Exists(_root)) {
-                    foreach (var path in Directory.EnumerateFiles(_root, "*", SearchOption.AllDirectories).ToArray()) {
+                foreach (var managedRoot in new[] { _root, _legacyCliRoot }.Where(Directory.Exists)) {
+                    foreach (var path in Directory.EnumerateFiles(managedRoot, "*", SearchOption.AllDirectories).ToArray()) {
                         var release = ManagedReleaseAt(path);
                         if (release == null || (active.Contains(path) && selected.Any(candidate =>
                             GetPath(candidate).Equals(path, StringComparison.OrdinalIgnoreCase) && MatchesFile(path, candidate))))
@@ -411,15 +440,28 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             try {
                 using var input = archive ? OpenForArchive(source)
                     : new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read);
-                using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
-                    ValidateBytes(input, release);
-                    input.CopyTo(output);
-                    ValidateBytes(output, release);
+                ValidateBytes(input, release);
+                if (!archive && !overwrite) {
+                    // The validated cache handle denies replacement on Windows until
+                    // publication completes. Never overwrite shared DLL bytes in place.
+                    beforePublish?.Invoke();
+                    if (AssetCacheFiles.TryCreateHardLink(destination, source)) return;
                 }
-                beforePublish?.Invoke();
-                // Cache entries may be replaced, but active publication must atomically
-                // fail if an external writer has created any destination file.
-                File.Move(temp, destination, overwrite);
+                // A linked source and its cache object have the same identity. Do not
+                // replace that cache entry while the archival handle protects it.
+                using var existingCache = archive && File.Exists(destination)
+                    ? new FileStream(destination, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete)
+                    : null;
+                if (existingCache != null) ValidateBytes(existingCache, release);
+                else {
+                    using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                        input.CopyTo(output);
+                        ValidateBytes(output, release);
+                    }
+                    if (archive || overwrite) beforePublish?.Invoke();
+                    // Active publication must fail if another writer won the name.
+                    File.Move(temp, destination, overwrite);
+                }
                 // Deterministic test boundary: the cache exists, and the validated
                 // source must still deny writes, renames and pathname replacement.
                 cachePublished?.Invoke();

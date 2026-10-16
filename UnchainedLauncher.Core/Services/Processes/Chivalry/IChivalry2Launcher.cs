@@ -49,6 +49,7 @@ public record LaunchOptions(
     Option<string> SavedDirSuffix,
     Option<ServerLaunchOptions> ServerLaunchOptions
 ) {
+    public IReadOnlyList<ReleaseCoordinates> EnabledDlls { get; init; } = [];
     public IReadOnlyList<CLIArg> ToCLIArgs() {
         var args = new List<CLIArg> {
             new RawArgs(LaunchArgs),
@@ -122,6 +123,8 @@ public record ServerLaunchOptions(
     bool UseBackendBanlist,
     CensorArg CensorMode
 ) {
+    public bool SuppressServerNameOverride { get; init; }
+
     public IReadOnlyList<CLIArg> ToCLIArgs() {
         var args = new List<CLIArg>() {
             new UEINIParameter("Game", "/Script/TBL.TBLGameMode", "ServerName", Name),
@@ -134,6 +137,8 @@ public record ServerLaunchOptions(
             new Parameter("--motd", Description),
             new Parameter("--censor-mode", CensorMode.ToString().ToLower())
         };
+
+        if (SuppressServerNameOverride) args.RemoveAll(arg => arg is UEINIParameter { Key: "ServerName" });
 
         if (Headless) {
             args.Add(new Flag("-nullrhi"));

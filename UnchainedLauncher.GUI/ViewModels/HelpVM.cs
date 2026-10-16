@@ -149,7 +149,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private void CleanUpInstallation_actions() {
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
-            FileHelpers.DeleteDirectory(FilePaths.PluginDir);
+            FileHelpers.DeleteDirectory(new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix).Plugins);
             PakDir.Reset();
         }
 
@@ -159,8 +159,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var message = new List<string>() {
                 "Are you sure? This will disable all mods and reset all settings to their defaults. This will delete the following:",
                 "* All files in .mod_cache",
-                "* All files in TBL\\Binaries\\Win64\\Plugins",
-                "* All non-vanilla paks in TBL\\Content\\Paks.",
+                $"* All files in {new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix).Plugins}",
+                $"* All non-vanilla files in {PakDir.DirPath}",
+                "Shared caches, other CLI profiles, and legacy installation-wide assets are retained.",
                 "",
                 "After deleting, the launcher will restart itself."
             }.Aggregate((accumulator, next) => accumulator + "\n" + next);

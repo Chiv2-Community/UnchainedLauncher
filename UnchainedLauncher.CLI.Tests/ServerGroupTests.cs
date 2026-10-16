@@ -29,7 +29,7 @@ public sealed class ServerGroupTests : IDisposable {
     private CliCommandOptions Parse(string body, string command = "server", params string[] extra) {
         Directory.CreateDirectory(_root);
         var path = Path.Combine(_root, "servers.yaml");
-        File.WriteAllText(path, "chiv2-path: ./game\nplatform: Steam\nno-tui: true\nsaved-dir-suffix: Host\n" + body);
+        File.WriteAllText(path, "chiv2-path: ./game\nplatform: Steam\nno-tui: true\n" + body);
         return CommandLineOptions.Parse([command, "--config-path", path, .. extra]);
     }
 
@@ -46,7 +46,7 @@ public sealed class ServerGroupTests : IDisposable {
         var group = Group();
         Assert.True(group.NoTui);
         Assert.Equal(["courtyard", "arena"], group.Servers.Select(entry => entry.Id));
-        Assert.Equal(["Host-courtyard", "Host-arena"], group.Servers.Select(entry => entry.Options.Shared.SavedDirSuffix));
+        Assert.Equal(["courtyard", "arena"], group.Servers.Select(entry => entry.Options.Shared.SavedDirSuffix));
         Assert.All(group.Servers, entry => Assert.Equal(Path.Combine(_root, "game"), entry.Options.Shared.Chivalry2Path));
         Assert.Equal(["Courtyard", "Arena"], group.Servers.Select(entry => entry.Options.Settings.Name));
         Assert.Equal(["FFA_Courtyard", "TO_Stronghold"], group.Servers.Select(entry => entry.Options.ToServerLaunchOptions().Map));
@@ -58,7 +58,7 @@ public sealed class ServerGroupTests : IDisposable {
     [Fact]
     public void PerServerProfilesAndArgumentsRemainIndependent() {
         var group = Assert.IsType<ServerGroupOptions>(Parse(Servers.Replace("name: Arena", "name: Arena\n    saved-dir-suffix: ArenaProfile\n    game-args: [arena-only]")
-            + "\ngame-args: [common]\nmod-setup: {registries: [], mods: [], dlls: []}"));
+            + "\ngame-args: [common]"));
         Assert.Equal("ArenaProfile", group.Servers[1].Options.Shared.SavedDirSuffix);
         Assert.Equal(["common"], group.Servers[0].Options.GameArguments);
         Assert.Equal(["common", "arena-only"], group.Servers[1].Options.GameArguments);
@@ -75,8 +75,26 @@ public sealed class ServerGroupTests : IDisposable {
     [InlineData("servers: {one: {map: TO_Test}}")]
     [InlineData("servers: {one: {saved-dir-suffix: '../outside'}}")]
     [InlineData("servers: {one: {unsafe-very-dangerous-load-all-dlls: true}}")]
-    [InlineData("servers: {one: {mod-setup: {mods: []}}}")]
+    [InlineData("mod-setup: {mods: []}\nservers: {one: {}}")]
+    [InlineData("saved-dir-suffix: Host\nservers: {one: {}}")]
     public void InvalidGroupsFailBeforeLaunch(string yaml) => Assert.Throws<ArgumentException>(() => Parse(yaml));
+
+    [Fact]
+    public void PerServerModsDllsRegistriesAndIniDoNotLeakAcrossServers() {
+        var group = Assert.IsType<ServerGroupOptions>(Parse(Servers
+            .Replace("name: Courtyard", "name: Courtyard\n    mod-setup: {registries: ['local:one'], mods: ['org/one:v1'], dlls: ['org/plugin:v1']}\n    ini: {Game: {'/Script/TBL.TBLGameMode': {MapList: [FFA_Courtyard]}}}")
+            .Replace("name: Arena", "name: Arena\n    mod-setup: {registries: ['local:two'], mods: ['org/two:v2'], dlls: []}")));
+        var first = group.Servers[0].Options;
+        var second = group.Servers[1].Options;
+        Assert.Equal("one", Assert.Single(first.Shared.Mods).ModuleName);
+        Assert.Equal("two", Assert.Single(second.Shared.Mods).ModuleName);
+        Assert.Single(first.Shared.Dlls);
+        Assert.Empty(second.Shared.Dlls);
+        Assert.Equal(Path.Combine(_root, "one"), Assert.Single(first.Shared.Registries).Location);
+        Assert.Equal(Path.Combine(_root, "two"), Assert.Single(second.Shared.Registries).Location);
+        Assert.True(first.Ini.Contains("Game", "/Script/TBL.TBLGameMode", "MapList"));
+        Assert.False(second.Ini.Contains("Game", "/Script/TBL.TBLGameMode", "MapList"));
+    }
 
     [Fact]
     public void DuplicatePortsAndCaseInsensitiveProfilesAreRejected() {

@@ -65,13 +65,14 @@ UnchainedLauncher.CLI mod-query get Chiv2-Community/Unchained-Mods
 UnchainedLauncher.CLI mod-query get organization/mod-id --version v1.2.3
 UnchainedLauncher.CLI mod-query versions organization/mod-id
 UnchainedLauncher.CLI mod-query list --add-registry local:./registry
-UnchainedLauncher.CLI mod-query get organization/mod-id --config-path ./server.yaml
+UnchainedLauncher.CLI mod-query get organization/mod-id --config-path ./registry-query.yaml
 ```
 
 The official registry is always included. Repeat `--add-registry` to include
 GitHub, local, or Core JSON-config registries, using the same formats as launch
-commands. `--config-path` reads `mod-setup.registries` from an existing launch
-YAML file instead of the `--add-registry` arguments. YAML-relative paths resolve
+commands. For queries, `--config-path` reads root `mod-setup.registries` from a
+query or client YAML file instead of the `--add-registry` arguments. It does not
+select or merge the per-server registries in server YAML. YAML-relative paths resolve
 relative to that file. Only registry configuration is used: installation,
 platform, client/server settings, mod selections, and plugin policies are not
 required or applied. Query operands and `--version` remain command-line inputs.
@@ -160,12 +161,12 @@ Put reusable launcher settings in YAML instead. Arguments after `--`, including
 ```yaml
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam
-saved-dir-suffix: MyServer
-mod-setup:
-  registries: [] # Official registry remains enabled, even with an empty list.
-  mods: []       # organization/mod-id:exact-release-tag
-  dlls: []       # Optional dll_db coordinates: organization/id:version.
 server:
+  saved-dir-suffix: MyServer
+  mod-setup:
+    registries: [] # Official registry remains enabled, even with an empty list.
+    mods: []       # organization/mod-id:exact-release-tag
+    dlls: []       # Optional dll_db coordinates: organization/id:version.
   name: My Server
   description: My server description
   game-port: 7777
@@ -191,7 +192,9 @@ Common root options are `server-browser-backend`, `update-plugin` (default true)
 `allow-unstable-plugin` (default false), `no-tui` (default false), and `game-args`
 (list of strings). `server.game-args` or `client.game-args` is appended to the
 common list only for the matching command. The client schema currently supports
-`game-args`; shared installation, platform, plugin, and mod options remain at the root.
+`game-args`; client installation, platform, plugin, mod, and saved-profile options remain at the root.
+For servers, `mod-setup` and `saved-dir-suffix` belong inside `server` or each
+`servers` entry, never at the root. A single unnamed server defaults to `UnchainedCLI`.
 
 The server section supports name, description/MOTD, password, `starting-map`, local IP,
 all four ports, `headless`, `register`, `mod-actors`, `desync-patch`,
@@ -205,7 +208,7 @@ Local IPv4 is automatically detected from active non-loopback/non-tunnel interfa
 preferring one with a default gateway; it falls back to another usable IPv4 or loopback.
 Set `local-ip` only to override this choice (for example, with a VPN or multiple adapters).
 Time/score/ticket limits, player bot count, and warmup are **INI settings**, not
-part of either CLI schema; configure them in the selected saved profile.
+dedicated launcher flags; configure them in the selected saved profile or `server.ini`.
 Use `starting-map` / `--starting-map`; the former `map` / `--map` names are rejected.
 Before a server launch, the CLI initializes the selected profile's `Game.ini` with
 `bSavedHasAgreedToTOS=True` and `FirstLoadCompleted=True`, matching the GUI's startup
@@ -213,6 +216,56 @@ defaults so first-run screens do not block unattended startup. Other existing IN
 settings are preserved. Client launches do not initialize or rewrite INI files.
 Chivalry removes hyphens from the suffix in its `Saved_<suffix>` directory;
 the CLI initializes that directory. Plugin log paths retain the original suffix.
+
+### INI overrides
+
+Nest `ini` under `server` or a named `servers` entry. Its shape is
+`file category -> section -> field -> value`:
+
+```yaml
+server:
+  ini:
+    Game:
+      /Script/TBL.TBLGameMode:
+        MapList: [FFA_Courtyard, FFA_Wardenglade]
+        BotBackfillEnabled: true
+        ClassLimits:
+          - Class: Poleman
+            ClassLimitPercent: 10
+          - Class: Archer
+            ClassLimitPercent: 0
+        SomeUnknownOption:
+          type: String
+          value: example
+        SomeOtherUnknownOption:
+          type: raw
+          value: SomeStructuredThing(foo, bar, 10, baz, false)
+```
+
+- Known fields infer their type from Core's INI models. They also accept
+  `{value: ...}` or `{type: Boolean, value: true}`. An explicit known-field type
+  must match its definition, unless it is `raw`.
+- Unknown fields require both `type` and `value`; a bare value fails with instructions.
+- Types are case-insensitive: `String`, `Boolean` (`Bool`), `Int32` (`Int`),
+  `Single` (`Float`), `Double`, `Decimal`, `CharacterClass`, `ClassLimit`,
+  `AutoBalance`, and `CallbackList`. Append `[]` for an array, for example
+  `{type: 'String[]', value: [one, two]}`. Quote array type names in YAML flow mappings.
+- Records accept named members or positional lists in constructor order:
+  `ClassLimit` uses `[Class, ClassLimitPercent]`; `AutoBalance` uses
+  `[MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference]`.
+  `CallbackList` accepts a list of strings. Numbers use invariant decimal notation;
+  enum values must be named members. Values are not rescaled (10 stays 10).
+- Typed values patch only selected keys in the server's saved-profile INI files.
+  Arrays replace that field's existing entries; `[]` explicitly clears it.
+  Other keys and sections are preserved. These changes persist after the server exits;
+  omitting a field on a later launch does not undo it.
+- `raw` requires a string and bypasses type parsing and validation. Its exact value
+  is escaped for transport in one `-ini:` argument, not written to the profile.
+  It cannot override an array: Unreal's command-line INI overrides do not support arrays.
+- File categories have no path or `.ini` extension (`Game`, `Engine`, etc.).
+  All overrides are validated before preparation. Explicit INI `ServerName` and
+  startup-screen fields take precedence over the launcher's generated defaults.
+  Forwarded `game-args` remain explicit user arguments; avoid conflicting INI overrides there.
 
 Discord configuration is nested under the server:
 
@@ -238,7 +291,6 @@ Use a `servers` dictionary instead of the single `server` block:
 ```yaml
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam
-saved-dir-suffix: MyHost
 servers:
   courtyard:
     name: Courtyard FFA
@@ -261,11 +313,11 @@ See [the multi-server example](examples/servers.yaml). The existing `server` sch
 and individual CLI launch arguments still launch one server.
 
 - Keys are tab IDs: unique, case-insensitive letters, digits, underscores, and hyphens.
-- Each entry accepts the same fields as `server`, including its own actors,
-  arguments, password, and Discord settings. Installation, platform, registry,
-  pak/DLL selections, and common arguments remain shared at the root; files are
-  prepared separately in each instance directory.
-- Profiles default to `<saved-dir-suffix>-<id>`. Set `saved-dir-suffix` inside an
+- Each entry accepts the same fields as `server`, including its own `mod-setup`,
+  `ini`, actors, arguments, password, and Discord settings. Installation, platform,
+  plugin-update policy, and common arguments remain shared at the root.
+  Registries and pak/DLL selections are independent; verified bytes share the cache.
+- Profiles default to the server key (`courtyard`, `arena`). Set `saved-dir-suffix` inside an
   entry to override it. Profile names must be distinct, ignoring case and hyphens.
 - Active paks and DLLs live under
   `%LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/unchained/{paks,plugins}`.
@@ -376,7 +428,7 @@ preparation remains sequential because some Core operations change CWD and metad
 GUI and CLI share DLL registry validation, managed storage, caching, and injection.
 The CLI selects UnchainedPlugin from `dll_db` for each launch; GUI selections stay
 in the Plugin Manager's saved profile.
-`--dll organization/id:version` (or YAML `mod-setup.dlls`) additionally selects
+`--dll organization/id:version` (or each server's YAML `mod-setup.dlls`) additionally selects
 registry releases in CLI launches. Plugin dependencies are resolved before their
 dependents; target mismatches, missing releases, cycles, and conflicting versions
 fail preparation. Pak dependencies enter the shared mod manager.

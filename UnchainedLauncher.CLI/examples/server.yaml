@@ -1,16 +1,6 @@
 # Paths are relative to this file, unless absolute. Change this installation path.
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam # Steam or EGS; required
-saved-dir-suffix: MyServer
-
-mod-setup:
-  registries: [] # Official GitHub registry is included automatically.
-  # Additional entries: github:owner/repository, local:../registry, config:../registries.json
-  mods:
-    - Chiv2-Community/Unchained-Mods:v0.1.0
-    - Chiv2-Community/Chiv2Turbo:v0.0.4
-  dlls:
-    - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
 
 # Run with: UnchainedLauncher.CLI.exe server --config-path server.yaml
 # Requires UnchainedPlugin support for --additional-pak-dir.
@@ -25,6 +15,24 @@ no-tui: false
 game-args: [] # Common game/auth arguments; one YAML string per argument.
 
 server:
+  saved-dir-suffix: MyServer
+  mod-setup:
+    registries: [] # Official GitHub registry is included automatically.
+    mods:
+      - Chiv2-Community/Unchained-Mods:v0.1.0
+      - Chiv2-Community/Chiv2Turbo:v0.0.4
+    dlls:
+      - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
+  ini:
+    Game:
+      /Script/TBL.TBLGameMode:
+        MapList: [FFA_Courtyard, FFA_Wardenglade]
+        BotBackfillEnabled: true
+        ClassLimits:
+          - Class: Poleman
+            ClassLimitPercent: 10
+          - Class: Archer
+            ClassLimitPercent: 0
   name: My Unchained Server
   description: Example server
   password: ''
@@ -42,7 +50,7 @@ server:
   use-backend-banlist: true # Default true; explicitly set false to disable.
   censor-mode: none # none, standard, sex, zealous
   game-args: [] # Additional server-only arguments, appended after common game-args.
-  # INI settings such as time/score/ticket limits, bots, and warmup stay in the saved profile.
+  # ini patches only specified fields in the saved profile; other fields are preserved.
   # Optional Discord integration: token and at least one channel are required.
   # discord:
   #   bot-token: 'replace-with-your-bot-token'

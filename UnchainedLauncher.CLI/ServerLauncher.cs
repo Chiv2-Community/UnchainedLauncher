@@ -108,6 +108,7 @@ public static class ServerLauncher {
         if (!writer.BufferWrite(new TBLTitleScreen()) || !writer.BufferWrite(new TBLGameInstance()) ||
             !writer.WriteOut(Path.Combine(directory, "Game.ini")))
             throw new IOException("Could not initialize the server INI profile; refusing to launch.");
+        server.Ini.Apply(directory);
     }
 
     // Several existing Core preparers use installation-relative paths.

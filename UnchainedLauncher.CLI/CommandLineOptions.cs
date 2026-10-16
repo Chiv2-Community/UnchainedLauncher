@@ -104,15 +104,22 @@ internal static class CommandLineOptions {
             };
             Command.Options.Add(platform);
             _bindings.Add(result => _configuration.Platform = result.GetValue(platform));
-            Add("--saved-dir-suffix", "Saved profile suffix.", _configuration.SavedDirSuffix, value => _configuration.SavedDirSuffix = value);
+            var clientConfig = _configuration as ClientConfiguration;
+            var serverSettings = (_configuration as ServerConfiguration)?.Server;
+            Add("--saved-dir-suffix", "Saved profile suffix.", clientConfig?.SavedDirSuffix ?? "UnchainedCLI", value => {
+                if (clientConfig is not null) clientConfig.SavedDirSuffix = value;
+                else serverSettings!.SavedDirSuffix = value;
+            });
             Add("--server-browser-backend", "HTTP(S) server-browser backend URL.", _configuration.ServerBrowserBackend, value => _configuration.ServerBrowserBackend = value);
             Flag("--no-plugin-update", "Use the existing UnchainedPlugin.dll.", value => _configuration.UpdatePlugin = !value);
             Flag("--allow-unstable-plugin", "Allow prerelease plugin updates.", value => _configuration.AllowUnstablePlugin = value);
-            _configuration.ModSetup = new ModSetupConfiguration();
+            var setup = new ModSetupConfiguration();
+            if (clientConfig is not null) clientConfig.ModSetup = setup;
+            else serverSettings!.ModSetup = setup;
             var registries = RegistryOptions.AddOption(Command);
-            _bindings.Add(result => _configuration.ModSetup.Registries = [.. result.GetValue(registries) ?? []]);
-            Many("--mod", "Install organization/id:version (exact release tag).", value => _configuration.ModSetup.Mods = value);
-            Many("--dll", "Select a registry DLL release: organization/id:version (repeatable).", value => _configuration.ModSetup.Dlls = value);
+            _bindings.Add(result => setup.Registries = [.. result.GetValue(registries) ?? []]);
+            Many("--mod", "Install organization/id:version (exact release tag).", value => setup.Mods = value);
+            Many("--dll", "Select a registry DLL release: organization/id:version (exact release tag).", value => setup.Dlls = value);
             if (_configuration is ServerConfiguration serverConfig) {
                 var settings = serverConfig.Server!;
                 Add("--name", "Server name.", settings.Name, value => settings.Name = value);

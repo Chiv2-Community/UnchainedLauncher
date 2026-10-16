@@ -1,27 +1,36 @@
 # Run: UnchainedLauncher.CLI.exe server --config-path servers.yaml
-# Paths resolve relative to this file. Servers share these selections, not active files.
+# Paths resolve relative to this file. Each server has independent selections and files.
 # Requires UnchainedPlugin support for --additional-pak-dir.
 # Active paks/plugins: %LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/unchained/.
 # Pak bytes are shared through the common content-addressed cache and hard links.
 # Replace the core plugin pin with a registered build supporting --additional-pak-dir.
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam
-saved-dir-suffix: MyHost # Default profiles: MyHost-courtyard and MyHost-arena.
 server-browser-backend: https://servers.polehammer.net
 update-plugin: true
 allow-unstable-plugin: false
 no-tui: false
 game-args: []
-mod-setup:
-  registries: [] # Official registry is included automatically.
-  mods:
-    - Chiv2-Community/Unchained-Mods:v0.1.0
-    - Chiv2-Community/Chiv2Turbo:v0.0.4
-  dlls:
-    - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
-
 servers:
   courtyard:
+    # saved-dir-suffix defaults to courtyard (the server key).
+    mod-setup:
+      registries: [] # Official registry is included automatically.
+      mods:
+        - Chiv2-Community/Unchained-Mods:v0.1.0
+        - Chiv2-Community/Chiv2Turbo:v0.0.4
+      dlls:
+        - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
+    ini:
+      Game:
+        /Script/TBL.TBLGameMode:
+          MapList: [FFA_Courtyard, FFA_Wardenglade]
+          BotBackfillEnabled: true
+          ClassLimits:
+            - Class: Poleman
+              ClassLimitPercent: 10
+            - Class: Archer
+              ClassLimitPercent: 0
     name: Courtyard FFA
     starting-map: FFA_Courtyard
     game-port: 7777
@@ -31,6 +40,13 @@ servers:
     mod-actors:
       - /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C
   arena:
+    mod-setup:
+      registries: []
+      mods:
+        - Chiv2-Community/Unchained-Mods:v0.1.0
+        - Chiv2-Community/Chiv2Turbo:v0.0.4
+      dlls:
+        - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
     name: Arena FFA
     starting-map: FFA_Courtyard # Replace with an installed map's travel name.
     saved-dir-suffix: ArenaProfile # Optional explicit per-server profile.

@@ -8,6 +8,12 @@ namespace StructuredINI {
         private readonly List<string> _sectionOrder = new();
         private readonly Dictionary<string, string> _bufferedSections = new(StringComparer.OrdinalIgnoreCase);
 
+        // Buffer only caller-selected keys; WriteOut preserves all other keys.
+        public void BufferSection(string sectionName, IEnumerable<KeyValuePair<string, string>> entries) {
+            if (!_bufferedSections.ContainsKey(sectionName)) _sectionOrder.Add(sectionName);
+            _bufferedSections[sectionName] = $"[{sectionName}]\n" + string.Join("\n", entries.Select(entry => $"{entry.Key}={entry.Value}"));
+        }
+
         public static bool Save<T>(string path, T t) {
             var writer = new StructuredINIWriter();
             return writer.BufferWrite(t) && writer.WriteOut(path);

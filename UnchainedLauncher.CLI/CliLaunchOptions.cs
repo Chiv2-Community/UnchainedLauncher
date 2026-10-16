@@ -26,16 +26,16 @@ public sealed class SharedLaunchOptions {
     public IReadOnlyList<string> GameArguments { get; }
     internal ProfileAssetPaths Assets { get; set; }
 
-    internal SharedLaunchOptions(LaunchConfiguration configuration, string directory, string? savedDirSuffix = null) {
+    internal SharedLaunchOptions(LaunchConfiguration configuration, string directory, string? savedDirSuffix = null, ServerSettings? server = null) {
         Chivalry2Path = Path.GetFullPath(configuration.Chiv2Path!, directory);
-        SavedDirSuffix = savedDirSuffix ?? configuration.SavedDirSuffix;
+        SavedDirSuffix = savedDirSuffix ?? server?.SavedDirSuffix ?? (configuration as ClientConfiguration)?.SavedDirSuffix ?? "UnchainedCLI";
         Assets = new ProfileAssetPaths(SavedDirSuffix);
         Platform = configuration.Platform!.Value;
         Backend = configuration.ServerBrowserBackend;
         UpdatePlugin = configuration.UpdatePlugin;
         AllowUnstablePlugin = configuration.AllowUnstablePlugin;
         GameArguments = Entries(configuration.GameArgs, allowEmpty: true).ToArray();
-        var setup = configuration.ModSetup ?? new ModSetupConfiguration();
+        var setup = server?.ModSetup ?? (configuration as ClientConfiguration)?.ModSetup ?? new ModSetupConfiguration();
         RegistryOptions = new RegistryOptions(setup.Registries, directory);
         Mods = Entries(setup.Mods).Select(ParseCoordinates).ToArray();
         Dlls = Entries(setup.Dlls).Select(ParseCoordinates).ToArray();
@@ -81,12 +81,11 @@ public abstract class CliLaunchOptions : CliCommandOptions {
         ?? throw new ArgumentException("Expected a client or server launch command.");
 
     internal static CliLaunchOptions FromConfiguration(LaunchConfiguration configuration, string directory) {
-        var shared = new SharedLaunchOptions(configuration, directory);
         return configuration switch {
             ServerConfiguration server => new ServerOptions(
-                server.Server?.SavedDirSuffix is { } suffix ? new SharedLaunchOptions(configuration, directory, suffix) : shared,
+                new SharedLaunchOptions(configuration, directory, server: server.Server),
                 server.Server ?? new ServerSettings(), server.NoTui),
-            ClientConfiguration client => new ClientOptions(shared, SharedLaunchOptions.Entries(client.Client?.GameArgs, allowEmpty: true)),
+            ClientConfiguration client => new ClientOptions(new SharedLaunchOptions(configuration, directory), SharedLaunchOptions.Entries(client.Client?.GameArgs, allowEmpty: true)),
             _ => throw new ArgumentException("Expected client or server configuration.")
         };
     }
@@ -118,6 +117,7 @@ public sealed class ClientOptions : CliLaunchOptions {
 }
 
 public sealed class ServerOptions : CliLaunchOptions {
+    internal IniOverrides Ini { get; }
     public ServerSettings Settings { get; }
     public bool NoTui { get; }
     // Chivalry removes hyphens when choosing its Saved directory (the plugin log path does not).
@@ -126,6 +126,7 @@ public sealed class ServerOptions : CliLaunchOptions {
     internal ServerOptions(SharedLaunchOptions shared, ServerSettings settings, bool noTui)
         : base(shared, SharedLaunchOptions.Entries(settings.GameArgs, allowEmpty: true)) {
         Settings = settings;
+        Ini = IniOverrides.Parse(settings.Ini);
         NoTui = noTui;
         if (GameSavedDirSuffix.Length == 0) throw new ArgumentException("saved-dir-suffix must contain a character other than a hyphen.");
         if (GameArguments.Any(argument => argument == "--additional-pak-dir" || argument.StartsWith("--additional-pak-dir=", StringComparison.Ordinal)))
@@ -159,10 +160,17 @@ public sealed class ServerOptions : CliLaunchOptions {
         FFATimeLimit: null, FFAScoreLimit: null, TDMTimeLimit: null, TDMTicketCount: null,
         PlayerBotCount: null, WarmupTime: null, LocalIp: Optional(Settings.LocalIp),
         ServerMods: Settings.ModActors ?? [], DiscordIntegration: ToDiscordOptions(),
-        Settings.DesyncPatch, Settings.UseBackendBanlist, Settings.CensorMode);
+        Settings.DesyncPatch, Settings.UseBackendBanlist, Settings.CensorMode) {
+        SuppressServerNameOverride = Ini.Contains("Game", "/Script/TBL.TBLGameMode", "ServerName")
+    };
 
-    public override LaunchOptions ToLaunchOptions() => BuildLaunchOptions(
-        ["TBL", "-server",
-            "-ini:Game:[/Script/TBL.TBLTitleScreen]:bSavedHasAgreedToTOS=True",
-            "-ini:Game:[/Script/TBL.TBLGameInstance]:FirstLoadCompleted=True"], Some(ToServerLaunchOptions()));
+    public override LaunchOptions ToLaunchOptions() {
+        var prefix = new List<string> { "TBL", "-server" };
+        if (!Ini.Contains("Game", "/Script/TBL.TBLTitleScreen", "bSavedHasAgreedToTOS"))
+            prefix.Add("-ini:Game:[/Script/TBL.TBLTitleScreen]:bSavedHasAgreedToTOS=True");
+        if (!Ini.Contains("Game", "/Script/TBL.TBLGameInstance", "FirstLoadCompleted"))
+            prefix.Add("-ini:Game:[/Script/TBL.TBLGameInstance]:FirstLoadCompleted=True");
+        prefix.AddRange(Ini.RawArguments);
+        return BuildLaunchOptions(prefix, Some(ToServerLaunchOptions()));
+    }
 }

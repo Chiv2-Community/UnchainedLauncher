@@ -21,8 +21,8 @@ public sealed class ServerGroupOptions : CliCommandOptions {
         foreach (var (id, settings) in configuration.Servers!) {
             if (!Regex.IsMatch(id, @"\A[A-Za-z0-9_-]+\z") || !ids.Add(id))
                 throw new ArgumentException("Server IDs must be unique (case-insensitive) and contain only letters, digits, underscores, and hyphens.");
-            var suffix = settings!.SavedDirSuffix ?? $"{configuration.SavedDirSuffix}-{id}";
-            var options = new ServerOptions(new SharedLaunchOptions(configuration, directory, suffix), settings, configuration.NoTui);
+            var suffix = settings!.SavedDirSuffix ?? id;
+            var options = new ServerOptions(new SharedLaunchOptions(configuration, directory, suffix, settings), settings, configuration.NoTui);
             if (!profiles.Add(options.GameSavedDirSuffix))
                 throw new ArgumentException("Each server must use a distinct saved-dir-suffix (case-insensitive, ignoring hyphens).");
             foreach (var port in new[] { settings.GamePort, settings.PingPort, settings.QueryPort, settings.RconPort }) {

@@ -77,6 +77,26 @@ public sealed class ArgumentBoundaryTests : IDisposable {
         Assert.Equal(expected, await CaptureLaunch(options.ToLaunchOptions()));
     }
 
+    [Theory]
+    [InlineData("  SomeStructuredThing(foo, bar, 10, baz, false)  ")]
+    [InlineData("quoted \"value\" and trailing slash\\")]
+    [InlineData("line\nbreak\tand & | > shell text")]
+    public async Task RawIniOverridesPreserveExactContentsAsOneArgument(string value) {
+        var path = Path.Combine(_directory, "raw.yaml");
+        File.WriteAllText(path, $"chiv2-path: {JsonSerializer.Serialize(_directory)}\nplatform: Steam\nserver:\n" +
+            "  local-ip: 127.0.0.1\n  ini:\n    Game:\n      /Script/TBL.TBLGameMode:\n" +
+            $"        Custom: {{type: raw, value: {JsonSerializer.Serialize(value)}}}\n");
+        var options = CliLaunchOptions.Parse(["server", "--config-path", path]);
+        var expected = new List<string> { "TBL", "-server", "--additional-pak-dir", options.InstancePaths.Paks };
+        expected.AddRange(FirstRunArguments);
+        expected.Add("-ini:Game:[/Script/TBL.TBLGameMode]:Custom=" + value);
+        expected.AddRange(["-saveddirsuffix=UnchainedCLI", "-unchained"]);
+        expected.AddRange(DefaultServerArguments());
+        expected.AddRange(["--server-browser-backend", "https://servers.polehammer.net"]);
+        Assert.Equal(expected, await CaptureControl(expected));
+        Assert.Equal(expected, await CaptureLaunch(options.ToLaunchOptions()));
+    }
+
     private CliLaunchOptions Parse(string command, bool yaml, string[] arguments, string? serverValue = null) {
         if (!yaml) return CliLaunchOptions.Parse([command, "--chivalry2-path", _directory, "--platform", "Steam",
             .. command == "server" ? new[] { "--local-ip", "127.0.0.1" } : [],

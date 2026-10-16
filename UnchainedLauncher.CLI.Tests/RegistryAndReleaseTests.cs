@@ -172,11 +172,11 @@ public class RegistryAndReleaseTests : IDisposable {
         var options = CliLaunchOptions.Parse(args.ToArray());
         if (useYaml) {
             string Quote(string value) => "'" + value.Replace("'", "''") + "'";
-            var yaml = new List<string> { "chiv2-path: " + Quote(install), "platform: Steam", "mod-setup:", "  registries:" };
-            yaml.AddRange(options.Shared.Registries.Select(r => "    - " + Quote(r.Kind + ":" + r.Location)));
-            yaml.Add("  mods:");
-            yaml.AddRange(options.Shared.Mods.Select(m => "    - " + Quote($"{m.Org}/{m.ModuleName}:{m.Version}")));
-            yaml.AddRange(["server:", "  mod-actors:"]);
+            var yaml = new List<string> { "chiv2-path: " + Quote(install), "platform: Steam", "server:", "  mod-setup:", "    registries:" };
+            yaml.AddRange(options.Shared.Registries.Select(r => "      - " + Quote(r.Kind + ":" + r.Location)));
+            yaml.Add("    mods:");
+            yaml.AddRange(options.Shared.Mods.Select(m => "      - " + Quote($"{m.Org}/{m.ModuleName}:{m.Version}")));
+            yaml.Add("  mod-actors:");
             yaml.AddRange(actors.Select(actor => "    - " + Quote(actor)));
             var config = Path.Combine(_directory, "launch.yaml");
             File.WriteAllLines(config, yaml);

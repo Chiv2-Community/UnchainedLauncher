@@ -308,14 +308,15 @@ public class YamlConfigurationTests : IDisposable {
         var cwd = Directory.GetCurrentDirectory();
         Directory.CreateDirectory(Path.Combine(_directory, "local registry"));
         var options = Load("""
-            saved-dir-suffix: Test_1
             update-plugin: false
             allow-unstable-plugin: true
             no-tui: true
-            mod-setup:
-              registries: ['local:local registry', 'config:registries.json', 'github:owner/repo']
-              mods: ['org/one:v1.2.3', 'org/two:v2.0.0']
-              dlls: ['org/plugin:v1.0.0']
+            server:
+              saved-dir-suffix: Test_1
+              mod-setup:
+                registries: ['local:local registry', 'config:registries.json', 'github:owner/repo']
+                mods: ['org/one:v1.2.3', 'org/two:v2.0.0']
+                dlls: ['org/plugin:v1.0.0']
             """);
         Assert.Equal(cwd, Directory.GetCurrentDirectory());
         Assert.Equal(Path.Combine(_directory, "game installation"), options.Shared.Chivalry2Path);
@@ -328,7 +329,7 @@ public class YamlConfigurationTests : IDisposable {
         Assert.False(options.Shared.UpdatePlugin);
         Assert.True(options.Shared.AllowUnstablePlugin);
         Assert.True(Assert.IsType<ServerOptions>(options).NoTui);
-        var plain = Load("mod-setup: { registries: [], mods: [], dlls: [] }");
+        var plain = Load("server: {mod-setup: { registries: [], mods: [], dlls: [] }}");
         var official = Assert.Single(ServerLauncher.CreateRegistry(plain).ModRegistries);
         Assert.IsType<GithubModRegistry>(official);
         Assert.Equal("Chiv2-Community", ((GithubModRegistry)official).Organization);
@@ -407,9 +408,11 @@ public class YamlConfigurationTests : IDisposable {
     [Theory]
     [InlineData("typo: value")]
     [InlineData("server: []")]
-    [InlineData("mod-setup: {registries: not-a-list}")]
-    [InlineData("mod-setup: {mods: [null]}")]
-    [InlineData("mod-setup: {mods: ['org/mod:v1', 'org/mod:v2']}")]
+    [InlineData("server: {mod-setup: {registries: not-a-list}}")]
+    [InlineData("server: {mod-setup: {mods: [null]}}")]
+    [InlineData("server: {mod-setup: {mods: ['org/mod:v1', 'org/mod:v2']}}")]
+    [InlineData("saved-dir-suffix: OldRootValue")]
+    [InlineData("mod-setup: {mods: []}")]
     [InlineData("server: {query-port: 7777}")]
     [InlineData("server: {game-port: 0}")]
     [InlineData("server: {game-port: 1.5}")]

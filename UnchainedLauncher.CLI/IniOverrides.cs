@@ -1,9 +1,9 @@
+using StructuredINI;
+using StructuredINI.Codecs;
 using System.Collections;
 using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using StructuredINI;
-using StructuredINI.Codecs;
 using UnchainedLauncher.Core.INIModels;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 

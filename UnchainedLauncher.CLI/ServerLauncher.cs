@@ -143,6 +143,10 @@ public static class ServerLauncher {
                     throw new InvalidOperationException($"Core did not resolve dependency {dependency.Organization}/{dependency.RepoName} for the requested release. Its current resolver uses latest-release dependency metadata.");
             }
         }
+        var selected = releases.Select(ReleaseCoordinates.FromRelease).ToHashSet();
+        var sorted = manager.SortByDependencies(releases).Select(ReleaseCoordinates.FromRelease).ToHashSet();
+        if (!selected.SetEquals(sorted))
+            throw new InvalidOperationException("Mod dependencies contain a cycle; refusing to install an incomplete pak set.");
     }
 
     public static IA2S CreateQuery(ServerOptions options) {

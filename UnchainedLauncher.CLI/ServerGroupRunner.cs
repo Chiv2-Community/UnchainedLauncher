@@ -53,12 +53,10 @@ internal static class ServerGroupRunner {
                 var monitor = new ServerMonitor(process, query(group.Servers[index].Options));
                 var last = new ServerSample(DateTimeOffset.Now, TimeSpan.Zero, null, null, null, null, null, false);
                 Volatile.Write(ref snapshots[index], new(last, monitor.History.Snapshot(), "Starting"));
-                if (!process.HasExited) {
-                    await monitor.RunAsync((sample, history) => {
-                        last = sample;
-                        Volatile.Write(ref snapshots[index], new(sample, history.Snapshot(), "Running"));
-                    }, monitoring.Token);
-                }
+                await monitor.RunAsync((sample, history) => {
+                    last = sample;
+                    Volatile.Write(ref snapshots[index], new(sample, history.Snapshot(), "Running"));
+                }, monitoring.Token);
                 var status = process.HasExited ? $"Exited (code {process.ExitCode}); last recorded metrics" : "Stopping";
                 Volatile.Write(ref snapshots[index], new(last, monitor.History.Snapshot(stopped: process.HasExited), status));
             }

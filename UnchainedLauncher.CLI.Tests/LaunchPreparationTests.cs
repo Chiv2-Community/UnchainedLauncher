@@ -39,19 +39,7 @@ public sealed class LaunchPreparationTests : IDisposable {
         await local.AddRelease(Pak("org/required", "v2.0.0"), source);
         if (dependencyPublished) await local.AddRelease(Pak("org/transitive", "v1.0.0"), source);
 
-        var dll = new DllRelease("v1.0.0", Convert.ToHexString(SHA256.HashData([1, 2, 3])).ToLowerInvariant(),
-            "UnchainedPlugin.dll", "https://example.test/UnchainedPlugin.dll", 3,
-            new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
-            new DllInfo {
-                RepoUrl = "https://github.com/Chiv2-Community/UnchainedPlugin",
-                Name = "core",
-                Description = "test",
-                Authors = ["test"],
-                ModDependencies = [new Dependency("https://github.com/org/required", "<2.0.0")]
-            }, null);
-        var packages = Path.Combine(local.RegistryPath, "dll_db", "packages", "Chiv2-Community");
-        Directory.CreateDirectory(packages);
-        File.WriteAllText(Path.Combine(packages, "UnchainedPlugin.json"), JsonHelpers.Serialize(new DllPackage(dll.Info, [dll])));
+        AddPlugin(local, "org/required", "<2.0.0");
 
         var request = CliLaunchOptions.Parse([
             command, "--chivalry2-path", _directory, "--platform", "Steam",
@@ -89,6 +77,84 @@ public sealed class LaunchPreparationTests : IDisposable {
         Assert.True(File.Exists(Path.Combine(plugins, "dll_manager.json")));
         Assert.Contains(manager.EnabledModReleaseCoordinates, coordinate =>
             coordinate.Org == "org" && coordinate.ModuleName == "required" && coordinate.Version == "v1.0.0");
+    }
+
+    [Theory]
+    [InlineData("cycle", true)]
+    [InlineData("self", true)]
+    [InlineData("acyclic", true)]
+    [InlineData("cycle", false)]
+    [InlineData("self", false)]
+    [InlineData("acyclic", false)]
+    public async Task DependencySortMustRetainEverySelectedReleaseBeforePakMutation(string graph, bool validateDirectly) {
+        var local = new LocalModRegistry(Path.Combine(_directory, "registry"));
+        var source = Path.Combine(_directory, "payload.pak");
+        File.WriteAllText(source, "pak payload");
+        var hash = FileHelpers.Sha512(source).Match(value => value, error => throw new Exception(error.Message));
+        Release Pak(string id, params string[] dependencies) => new("v1.0.0", hash, "mod.pak",
+            new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            new ModInfo("https://github.com/" + id, id.Split('/')[1], "test", null, null, [], ["test"],
+                dependencies.Select(dep => new Dependency("https://github.com/" + dep, "*")).ToList()),
+            new AssetCollections([], [], [], [], []), null);
+        await local.AddRelease(Pak("Chiv2-Community/Unchained-Mods"), source);
+        await local.AddRelease(Pak("org/a", graph == "self" ? "org/a" : "org/b"), source);
+        await local.AddRelease(Pak("org/b", graph == "cycle" ? ["org/a"] : []), source);
+        AddPlugin(local, "org/a", ">=1.0.0");
+
+        var request = CliLaunchOptions.Parse(["client", "--chivalry2-path", _directory, "--platform", "Steam"]);
+        request.Shared.Assets = new ProfileAssetPaths(request.Shared.SavedDirSuffix, _directory);
+        var pakPath = Path.Combine(_directory, FilePaths.PakDir);
+        Directory.CreateDirectory(pakPath);
+        File.WriteAllText(Path.Combine(pakPath, "pakchunk0-WindowsNoEditor.sig"), "signature");
+        var registry = new AggregateModRegistry(local);
+        var manager = ServerLauncher.CreateModManager(request, registry);
+        Assert.False((await manager.UpdateModsList()).HasErrors);
+        var selected = new ReleaseCoordinates("org", "a", "v1.0.0");
+        if (validateDirectly) {
+            manager.EnableModRelease(selected);
+            if (graph == "acyclic") ServerLauncher.ValidateReleases(manager, [selected]);
+            else Assert.Contains("cycle", Assert.Throws<InvalidOperationException>(() =>
+                ServerLauncher.ValidateReleases(manager, [selected])).Message);
+            Assert.Empty(Directory.GetFiles(request.InstancePaths.Paks, "*.pak"));
+            return;
+        }
+        ServerLauncher.ValidateReleases(manager, []);
+
+        var unknown = Path.Combine(request.InstancePaths.Paks, "unknown.pak");
+        File.WriteAllText(unknown, "preserve unknown bytes");
+        using var client = new HttpClient(new DownloadHandler());
+        var session = new DllLaunchSession(registry, manager, Path.Combine(_directory, "plugins"), client: client,
+            cacheDirectory: Path.Combine(_directory, "dll-cache"));
+        var cachePath = Path.Combine(_directory, "cli_mod_manager.json");
+        var preparer = ServerLauncher.CreateLaunchPreparer(request, manager, session, new ModManagerCodec(registry), cachePath);
+        if (graph == "acyclic") {
+            Assert.True((await preparer.PrepareLaunch(request.ToLaunchOptions())).IsSome);
+            Assert.Equal(4, Directory.GetFiles(request.InstancePaths.Paks, "*.pak").Length);
+        }
+        else {
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() => preparer.PrepareLaunch(request.ToLaunchOptions()));
+            Assert.Contains("cycle", error.Message);
+            Assert.Equal([unknown], Directory.GetFiles(request.InstancePaths.Paks, "*.pak"));
+            Assert.False(File.Exists(cachePath));
+        }
+        Assert.Contains(selected, manager.EnabledModReleaseCoordinates);
+        Assert.Equal("preserve unknown bytes", File.ReadAllText(unknown));
+    }
+
+    private static void AddPlugin(LocalModRegistry local, string dependency, string version) {
+        var dll = new DllRelease("v1.0.0", Convert.ToHexString(SHA256.HashData([1, 2, 3])).ToLowerInvariant(),
+            "UnchainedPlugin.dll", "https://example.test/UnchainedPlugin.dll", 3,
+            new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
+            new DllInfo {
+                RepoUrl = "https://github.com/Chiv2-Community/UnchainedPlugin",
+                Name = "core",
+                Description = "test",
+                Authors = ["test"],
+                ModDependencies = [new Dependency("https://github.com/" + dependency, version)]
+            }, null);
+        var packages = Path.Combine(local.RegistryPath, "dll_db", "packages", "Chiv2-Community");
+        Directory.CreateDirectory(packages);
+        File.WriteAllText(Path.Combine(packages, "UnchainedPlugin.json"), JsonHelpers.Serialize(new DllPackage(dll.Info, [dll])));
     }
 
     private sealed class DownloadHandler : HttpMessageHandler {

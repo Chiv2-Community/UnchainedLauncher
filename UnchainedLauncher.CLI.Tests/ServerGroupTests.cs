@@ -202,4 +202,53 @@ public sealed class ServerGroupTests : IDisposable {
         Assert.Equal(2, calls);
         Assert.False(stop.IsCancellationRequested);
     }
+
+    [Fact]
+    public async Task ExitAtMonitorInitializationDoesNotStopSurvivingSibling() {
+        using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        Process? first = null;
+        Process? survivor = null;
+        Task? survivorExit = null;
+        var calls = 0;
+        var queriedSurvivor = false;
+        Assert.Equal(7, await ServerGroupRunner.RunAsync(Group(), stop, (_, _) => {
+            if (++calls == 1) {
+                var info = new ProcessStartInfo(OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh") {
+                    UseShellExecute = false,
+                    RedirectStandardInput = true,
+                    ArgumentList = { OperatingSystem.IsWindows() ? "/c" : "-c",
+                        OperatingSystem.IsWindows() ? "set /p ignored= & exit 7" : "read ignored; exit 7" }
+                };
+                first = Process.Start(info)!;
+                return Task.FromResult(first);
+            }
+            survivor = Child();
+            survivorExit = survivor.WaitForExitAsync();
+            return Task.FromResult(survivor);
+        }, _ => {
+            if (!first!.HasExited) {
+                // Release the real child exactly when group monitoring initializes.
+                first.StandardInput.WriteLine("exit");
+                first.StandardInput.Flush();
+                Assert.True(first.WaitForExit(5000));
+                return new FailingQuery();
+            }
+            return new CallbackQuery(() => {
+                Assert.NotNull(survivor);
+                Assert.False(survivor!.HasExited);
+                queriedSurvivor = true;
+                survivor.Kill(entireProcessTree: true);
+            });
+        }));
+        Assert.True(queriedSurvivor);
+        await survivorExit!.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.False(stop.IsCancellationRequested);
+    }
+
+    private sealed class CallbackQuery(Action callback) : IA2S {
+        public Task<A2SInfo> InfoAsync() {
+            callback();
+            return Task.FromException<A2SInfo>(new TimeoutException());
+        }
+    }
 }

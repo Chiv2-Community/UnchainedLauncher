@@ -63,13 +63,20 @@ public sealed class ServerMonitor(Process process, IA2S query) {
     }
 
     internal async Task RunAsync(Action<ServerSample, ServerHistory> render, CancellationToken stop) {
-        var started = new DateTimeOffset(process.StartTime);
-        var previousTime = Stopwatch.GetTimestamp();
-        var previousCpu = process.TotalProcessorTime;
-        double? peakMemory = null;
-        History.AddEvent(DateTimeOffset.Now, $"Server started (PID {process.Id})");
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
         try {
+            DateTimeOffset started;
+            TimeSpan previousCpu;
+            try {
+                started = new DateTimeOffset(process.StartTime);
+                previousCpu = process.TotalProcessorTime;
+            }
+            catch (Exception ex) when ((ex is InvalidOperationException or Win32Exception) && process.HasExited) {
+                return;
+            }
+            var previousTime = Stopwatch.GetTimestamp();
+            double? peakMemory = null;
+            History.AddEvent(DateTimeOffset.Now, $"Server started (PID {process.Id})");
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
             while (!stop.IsCancellationRequested && !process.HasExited) {
                 A2SInfo? info = null;
                 try {
@@ -81,11 +88,11 @@ public sealed class ServerMonitor(Process process, IA2S query) {
                     // Never convert an unavailable query into a zero player count.
                 }
                 if (process.HasExited) break;
-                process.Refresh();
                 double? cpu = null;
                 double? memory = null;
                 int? handles = null;
                 try {
+                    process.Refresh();
                     var nowTicks = Stopwatch.GetTimestamp();
                     var elapsed = Stopwatch.GetElapsedTime(previousTime, nowTicks).TotalSeconds;
                     var totalCpu = process.TotalProcessorTime;

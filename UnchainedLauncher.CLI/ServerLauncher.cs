@@ -109,6 +109,7 @@ public static class ServerLauncher {
             !writer.WriteOut(Path.Combine(directory, "Game.ini")))
             throw new IOException("Could not initialize the server INI profile; refusing to launch.");
         server.Ini.Apply(directory);
+        server.Settings.Rotation?.Apply(directory);
     }
 
     // Several existing Core preparers use installation-relative paths.

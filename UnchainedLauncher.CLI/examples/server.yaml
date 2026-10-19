@@ -1,6 +1,9 @@
 # Paths are relative to this file, unless absolute. Change this installation path.
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam # Steam or EGS; required
+map-profiles:
+  courtyard:
+    map-name: FFA_Courtyard
 
 # Run with: UnchainedLauncher.CLI.exe server --config-path server.yaml
 # Requires UnchainedPlugin support for --additional-pak-dir.
@@ -15,6 +18,9 @@ no-tui: false
 game-args: [] # Common game/auth arguments; one YAML string per argument.
 
 server:
+  map-rotation:
+    - courtyard
+    - map-name: FFA_Wardenglade
   saved-dir-suffix: MyServer
   mod-setup:
     registries: [] # Official GitHub registry is included automatically.
@@ -26,7 +32,6 @@ server:
   ini:
     Game:
       /Script/TBL.TBLGameMode:
-        MapList: [FFA_Courtyard, FFA_Wardenglade]
         BotBackfillEnabled: true
         ClassLimits:
           - Class: Poleman

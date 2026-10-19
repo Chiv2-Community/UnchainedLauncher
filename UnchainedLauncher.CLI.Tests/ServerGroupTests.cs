@@ -82,7 +82,7 @@ public sealed class ServerGroupTests : IDisposable {
     [Fact]
     public void PerServerModsDllsRegistriesAndIniDoNotLeakAcrossServers() {
         var group = Assert.IsType<ServerGroupOptions>(Parse(Servers
-            .Replace("name: Courtyard", "name: Courtyard\n    mod-setup: {registries: ['local:one'], mods: ['org/one:v1'], dlls: ['org/plugin:v1']}\n    ini: {Game: {'/Script/TBL.TBLGameMode': {MapList: [FFA_Courtyard]}}}")
+            .Replace("name: Courtyard", "name: Courtyard\n    mod-setup: {registries: ['local:one'], mods: ['org/one:v1'], dlls: ['org/plugin:v1']}\n    ini: {Game: {'/Script/TBL.TBLGameMode': {BotBackfillEnabled: true}}}")
             .Replace("name: Arena", "name: Arena\n    mod-setup: {registries: ['local:two'], mods: ['org/two:v2'], dlls: []}")));
         var first = group.Servers[0].Options;
         var second = group.Servers[1].Options;
@@ -92,8 +92,8 @@ public sealed class ServerGroupTests : IDisposable {
         Assert.Empty(second.Shared.Dlls);
         Assert.Equal(Path.Combine(_root, "one"), Assert.Single(first.Shared.Registries).Location);
         Assert.Equal(Path.Combine(_root, "two"), Assert.Single(second.Shared.Registries).Location);
-        Assert.True(first.Ini.Contains("Game", "/Script/TBL.TBLGameMode", "MapList"));
-        Assert.False(second.Ini.Contains("Game", "/Script/TBL.TBLGameMode", "MapList"));
+        Assert.True(first.Ini.Contains("Game", "/Script/TBL.TBLGameMode", "BotBackfillEnabled"));
+        Assert.False(second.Ini.Contains("Game", "/Script/TBL.TBLGameMode", "BotBackfillEnabled"));
     }
 
     [Fact]

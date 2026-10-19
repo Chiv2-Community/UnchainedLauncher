@@ -24,6 +24,7 @@ public static class YamlConfiguration {
                 .WithNamingConvention(HyphenatedNamingConvention.Instance)
                 .WithTypeConverter(new InstallationTypeYamlConverter())
                 .WithTypeConverter(new IgnoredYamlNodeConverter())
+                .WithTypeConverter(new MapRotationEntryYamlConverter())
                 .WithDuplicateKeyChecking()
                 .WithEnforceNullability()
                 .Build();

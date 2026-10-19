@@ -127,6 +127,8 @@ public sealed class ServerOptions : CliLaunchOptions {
         : base(shared, SharedLaunchOptions.Entries(settings.GameArgs, allowEmpty: true)) {
         Settings = settings;
         Ini = IniOverrides.Parse(settings.Ini);
+        if (settings.Rotation is not null && Ini.Contains("Game", "/Script/TBL.TBLGameMode", "MapListIndex"))
+            throw new ArgumentException("MapListIndex is managed by map-rotation; use starting-map to choose the first map.");
         NoTui = noTui;
         if (GameSavedDirSuffix.Length == 0) throw new ArgumentException("saved-dir-suffix must contain a character other than a hyphen.");
         if (GameArguments.Any(argument => argument == "--additional-pak-dir" || argument.StartsWith("--additional-pak-dir=", StringComparison.Ordinal)))

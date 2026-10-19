@@ -217,6 +217,44 @@ settings are preserved. Client launches do not initialize or rewrite INI files.
 Chivalry removes hyphens from the suffix in its `Saved_<suffix>` directory;
 the CLI initializes that directory. Plugin log paths retain the original suffix.
 
+### Map rotation and profiles
+
+```yaml
+map-profiles:
+  courtyard:
+    map-name: FFA_Courtyard
+
+servers:
+  first:
+    map-rotation:
+      - courtyard
+      - map-name: FFA_Wardenglade
+  second:
+    game-port: 7778
+    ping-port: 3076
+    query-port: 7072
+    rcon-port: 9002
+    map-rotation:
+      - courtyard
+      - map-name: FFA_Bazaar
+```
+
+- Put `map-rotation` inside `server` or each `servers` entry.
+- Entries are inline `{map-name: ...}` objects or exact, case-sensitive keys from root `map-profiles`.
+- A bare string is a profile reference, not a map name.
+- Order and repeated entries are preserved.
+- The first entry is the default starting map.
+- Set `starting-map` to a rotation map-name to start at its first occurrence, matching case-insensitively.
+- Map names accept short names or package paths, without travel options.
+- An explicit rotation must contain at least one entry.
+- Rotation setup replaces only `MapList` and `MapListIndex` in the server's saved `Game.ini`.
+- Omitting `map-rotation` preserves the profile's existing rotation and the normal `starting-map` default.
+- `MapList` is forbidden in `ini`, including typed and `raw` forms.
+- `MapListIndex` cannot be set through `ini` when a rotation is configured.
+- Profile and inline map objects currently accept only `map-name`.
+- Per-map INI and actors remain deferred to [#154](https://github.com/Chiv2-Community/UnchainedLauncher/issues/154) and [#155](https://github.com/Chiv2-Community/UnchainedLauncher/issues/155).
+- Server-level `mod-actors` still apply to every map.
+
 ### INI overrides
 
 Nest `ini` under `server` or a named `servers` entry. Its shape is
@@ -227,7 +265,6 @@ server:
   ini:
     Game:
       /Script/TBL.TBLGameMode:
-        MapList: [FFA_Courtyard, FFA_Wardenglade]
         BotBackfillEnabled: true
         ClassLimits:
           - Class: Poleman
@@ -259,6 +296,7 @@ server:
   Arrays replace that field's existing entries; `[]` explicitly clears it.
   Other keys and sections are preserved. These changes persist after the server exits;
   omitting a field on a later launch does not undo it.
+- Use `map-rotation`, not an INI `MapList` override, to configure maps.
 - `raw` requires a string and bypasses type parsing and validation. Its exact value
   is escaped for transport in one `-ini:` argument, not written to the profile.
   It cannot override an array: Unreal's command-line INI overrides do not support arrays.

@@ -6,6 +6,9 @@
 # Replace the core plugin pin with a registered build supporting --additional-pak-dir.
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam
+map-profiles:
+  courtyard:
+    map-name: FFA_Courtyard
 server-browser-backend: https://servers.polehammer.net
 update-plugin: true
 allow-unstable-plugin: false
@@ -13,6 +16,9 @@ no-tui: false
 game-args: []
 servers:
   courtyard:
+    map-rotation:
+      - courtyard
+      - map-name: FFA_Wardenglade
     # saved-dir-suffix defaults to courtyard (the server key).
     mod-setup:
       registries: [] # Official registry is included automatically.
@@ -24,7 +30,6 @@ servers:
     ini:
       Game:
         /Script/TBL.TBLGameMode:
-          MapList: [FFA_Courtyard, FFA_Wardenglade]
           BotBackfillEnabled: true
           ClassLimits:
             - Class: Poleman
@@ -40,6 +45,9 @@ servers:
     mod-actors:
       - /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C
   arena:
+    map-rotation:
+      - courtyard
+      - map-name: FFA_Bazaar
     mod-setup:
       registries: []
       mods:

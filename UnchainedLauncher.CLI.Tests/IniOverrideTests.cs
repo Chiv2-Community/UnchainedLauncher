@@ -21,7 +21,7 @@ public sealed class IniOverrideTests : IDisposable {
     [Fact]
     public void InferredFieldsPatchOnlySelectedKeysAndReplaceLists() {
         var options = Parse("""
-            MapList: [FFA_Courtyard, FFA_Wardenglade]
+            CustomMaps: {type: 'String[]', value: [FFA_Courtyard, FFA_Wardenglade]}
             BotBackfillEnabled: true
             ClassLimits:
               - Class: Poleman
@@ -30,7 +30,7 @@ public sealed class IniOverrideTests : IDisposable {
                 ClassLimitPercent: 0
             """);
         var path = Path.Combine(_directory, "Game.ini");
-        File.WriteAllText(path, $"; preserve comment\n[{Section}]\nServerName=Original\nBotBackfillEnabled=False\n+MapList=Old\n.ClassLimits=(Class=Knight,ClassLimitPercent=25)\nCustom=keep-me\n[/Other]\nUntouched=yes\n");
+        File.WriteAllText(path, $"; preserve comment\n[{Section}]\nServerName=Original\nBotBackfillEnabled=False\n+CustomMaps=Old\n+MapList=KeepMap\n.ClassLimits=(Class=Knight,ClassLimitPercent=25)\nCustom=keep-me\n[/Other]\nUntouched=yes\n");
         options.Ini.Apply(_directory);
         var text = File.ReadAllText(path);
         Assert.Contains("ServerName=Original", text);
@@ -38,12 +38,13 @@ public sealed class IniOverrideTests : IDisposable {
         Assert.Contains("Untouched=yes", text);
         Assert.Contains("; preserve comment", text);
         Assert.Contains("BotBackfillEnabled=True", text);
-        Assert.Contains("!MapList=ClearArray", text);
-        Assert.Contains(".MapList=FFA_Courtyard", text);
-        Assert.Contains(".MapList=FFA_Wardenglade", text);
+        Assert.Contains("!CustomMaps=ClearArray", text);
+        Assert.Contains(".CustomMaps=FFA_Courtyard", text);
+        Assert.Contains(".CustomMaps=FFA_Wardenglade", text);
+        Assert.Contains("+MapList=KeepMap", text);
         Assert.Contains(".ClassLimits=(Class=Poleman,ClassLimitPercent=10)", text);
         Assert.Contains(".ClassLimits=(Class=Archer,ClassLimitPercent=0)", text);
-        Assert.DoesNotContain("MapList=Old", text);
+        Assert.DoesNotContain("CustomMaps=Old", text);
         Assert.DoesNotContain("Class=Knight", text);
         options.Ini.Apply(_directory);
         Assert.Equal(text, File.ReadAllText(path));
@@ -52,7 +53,7 @@ public sealed class IniOverrideTests : IDisposable {
     [Fact]
     public void ExplicitAndInferredWrappersAndPositionalParametersWork() {
         var options = Parse("""
-            MapList: {type: 'String[]', value: []}
+            CustomMaps: {type: 'String[]', value: []}
             BotBackfillEnabled: {value: false}
             ClassLimits: {type: 'ClassLimit[]', value: [[Archer, 0.25]]}
             Custom: {type: String, value: example}
@@ -61,7 +62,7 @@ public sealed class IniOverrideTests : IDisposable {
             """);
         options.Ini.Apply(_directory);
         var text = File.ReadAllText(Path.Combine(_directory, "Game.ini"));
-        Assert.Contains("!MapList=ClearArray", text);
+        Assert.Contains("!CustomMaps=ClearArray", text);
         Assert.Contains("BotBackfillEnabled=False", text);
         Assert.Contains(".ClassLimits=(Class=Archer,ClassLimitPercent=0.25)", text);
         Assert.Contains("Custom=example", text);
@@ -106,15 +107,15 @@ public sealed class IniOverrideTests : IDisposable {
     [InlineData("BotBackfillEnabled: nope", "Boolean")]
     [InlineData("BotBackfillEnabled: {type: String, value: nope}", "requires type Boolean")]
     [InlineData("BotBackfillLowBots: 1.5", "Int32")]
-    [InlineData("MapList: map", "require a list")]
-    [InlineData("MapList: [null]", "cannot be null")]
+    [InlineData("CustomMaps: {type: 'String[]', value: map}", "require a list")]
+    [InlineData("CustomMaps: {type: 'String[]', value: [null]}", "cannot be null")]
     [InlineData("ClassLimits: [{Class: Invalid, ClassLimitPercent: 0}]", "CharacterClass")]
     [InlineData("ClassLimits: [{Class: Archer}]", "Missing ClassLimit.ClassLimitPercent")]
     [InlineData("ClassLimits: [{Class: Archer, ClassLimitPercent: 0, Typo: 1}]", "Invalid or duplicate member")]
     [InlineData("ClassLimits: [[Archer]]", "requires a member mapping")]
     [InlineData("Unknown: {type: String, value: \"a\\nb\"}", "line breaks")]
     [InlineData("MinTimeBeforeStartingMatch: NaN", "finite")]
-    [InlineData("MapList: []\nmaplist: []", "Duplicate INI field")]
+    [InlineData("ClassLimits: []\nclasslimits: []", "Duplicate INI field")]
     public void InvalidValuesFailBeforeFilesAreWritten(string fields, string error) {
         var exception = Assert.Throws<ArgumentException>(() => Parse(fields));
         Assert.Contains(error, exception.Message);

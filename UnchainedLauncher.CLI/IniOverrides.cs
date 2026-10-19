@@ -36,6 +36,8 @@ internal sealed class IniOverrides {
                 ValidateName(section, "section");
                 if (fields is null) throw new ArgumentException($"ini.{file}.{section} must contain a field mapping.");
                 foreach (var (key, node) in fields) {
+                    if (key.TrimStart('!', '+', '-', '.').Equals("MapList", StringComparison.OrdinalIgnoreCase))
+                        throw new ArgumentException("MapList cannot be set in ini; use server.map-rotation (or each servers entry's map-rotation) instead.");
                     ValidateName(key, "key");
                     var path = $"ini.{file}.{section}.{key}";
                     if (!paths.Add($"{file}\0{section}\0{key}")) throw new ArgumentException($"Duplicate INI field: {path} (names are case-insensitive).");

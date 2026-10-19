@@ -16,6 +16,7 @@ public sealed class RegistryQueryConfiguration {
     [YamlConverter(typeof(IgnoredYamlNodeConverter))] public object? GameArgs { get; set; }
     [YamlConverter(typeof(IgnoredYamlNodeConverter))] public object? Server { get; set; }
     [YamlConverter(typeof(IgnoredYamlNodeConverter))] public object? Servers { get; set; }
+    [YamlConverter(typeof(IgnoredYamlNodeConverter))] public object? MapProfiles { get; set; }
     [YamlConverter(typeof(IgnoredYamlNodeConverter))] public object? Client { get; set; }
 }
 

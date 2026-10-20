@@ -32,7 +32,7 @@ public sealed class ProfileModsLaunchPreparer(
             // DLL selection and injection stay bound to the shared manager and plugin directory.
             IChivalry2LaunchPreparer<LaunchOptions> installer = new Chivalry2ModsInstaller(profileManager, dialogue);
             return await installer
-                .Sub(SigPreparer.Create(profileManager.PakDir, dialogue))
+                .Sub(SigPreparer.CreateForProfile(profileManager.PakDir, dialogue))
                 .PrepareLaunch(options with { SavedDirSuffix = assets.Suffix });
         }
     }

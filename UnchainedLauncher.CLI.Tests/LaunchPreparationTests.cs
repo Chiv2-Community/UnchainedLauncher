@@ -16,6 +16,46 @@ public sealed class LaunchPreparationTests : IDisposable {
     public LaunchPreparationTests() => Directory.CreateDirectory(_directory);
     public void Dispose() => Directory.Delete(_directory, recursive: true);
 
+    [Fact]
+    public async Task ProfilePreparationPreservesUnknownSignaturesAcrossLaunches() {
+        var local = new LocalModRegistry(Path.Combine(_directory, "registry"));
+        var source = Path.Combine(_directory, "payload.pak");
+        File.WriteAllText(source, "payload");
+        var hash = FileHelpers.Sha512(source).Match(value => value, error => throw new Exception(error.Message));
+        foreach (var id in new[] { "Chiv2-Community/Unchained-Mods", "org/mod" }) {
+            var release = new Release("v1.0.0", hash, "mod.pak", DateTime.UnixEpoch,
+                new ModInfo("https://github.com/" + id, id.Split('/')[1], "test", null, null, [], [], []),
+                new AssetCollections([], [], [], [], []), null);
+            await local.AddRelease(release, source);
+        }
+        AddPlugin(local, "org/mod", ">=1.0.0");
+        var request = CliLaunchOptions.Parse(["client", "--chivalry2-path", _directory, "--platform", "Steam"]);
+        request.Shared.Assets = new ProfileAssetPaths(request.Shared.SavedDirSuffix, _directory);
+        var basePaks = Path.Combine(_directory, FilePaths.PakDir);
+        Directory.CreateDirectory(basePaks);
+        File.WriteAllText(Path.Combine(basePaks, "pakchunk0-WindowsNoEditor.sig"), "signature");
+        var registry = new AggregateModRegistry(local);
+        var manager = ServerLauncher.CreateModManager(request, registry);
+        Assert.False((await manager.UpdateModsList()).HasErrors);
+        var unknownSigs = new[] { "UserBackup.sig", "mod_1_P.sig" };
+        foreach (var name in unknownSigs) File.WriteAllText(Path.Combine(manager.PakDir.DirPath, name), "unknown " + name);
+        using var client = new HttpClient(new DownloadHandler());
+        var session = new DllLaunchSession(registry, manager, request.InstancePaths.Plugins, client: client,
+            cacheDirectory: Path.Combine(_directory, "dll-cache"));
+        var preparer = ServerLauncher.CreateLaunchPreparer(request, manager, session, new ModManagerCodec(registry),
+            Path.Combine(_directory, "host.json"));
+        ManagedPak[]? first = null;
+        for (var i = 0; i < 2; i++) {
+            Assert.True((await preparer.PrepareLaunch(request.ToLaunchOptions())).IsSome);
+            var owned = Assert.IsType<PakDir>(manager.PakDir).ManagedPaks.ToArray();
+            Assert.Equal("mod (1)_1_P.pak", Assert.Single(owned, pak => pak.Coordinates.ModuleName == "mod").PakFileName);
+            if (first is not null) Assert.Equal(first, owned);
+            first = owned;
+            foreach (var pak in owned) Assert.Equal("signature", File.ReadAllText(Path.ChangeExtension(Path.Combine(manager.PakDir.DirPath, pak.PakFileName), ".sig")));
+            foreach (var name in unknownSigs) Assert.Equal("unknown " + name, File.ReadAllText(Path.Combine(manager.PakDir.DirPath, name)));
+        }
+    }
+
     [Theory]
     [InlineData("client", true, false)]
     [InlineData("server", true, false)]

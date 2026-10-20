@@ -61,7 +61,7 @@ public static class ServerLauncher {
         CancellationToken cancellationToken = default) {
         var dialogue = new ConsoleDialogue();
         var modInstaller = new Chivalry2ModsInstaller(manager, dialogue);
-        var signing = SigPreparer.Create(manager.PakDir, dialogue);
+        var signing = SigPreparer.CreateForProfile(manager.PakDir, dialogue);
         // Call preparers sequentially so each receives the previous result.
         // Always save the managed-pak inventory, even after a partial installation.
         return Chivalry2LaunchPreparer.Create<LaunchOptions>(async launch => {

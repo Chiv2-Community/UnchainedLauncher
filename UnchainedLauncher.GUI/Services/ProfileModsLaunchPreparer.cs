@@ -1,7 +1,7 @@
+using LanguageExt;
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using LanguageExt;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;

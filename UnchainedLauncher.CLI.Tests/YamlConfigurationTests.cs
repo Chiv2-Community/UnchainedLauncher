@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using Xunit;
@@ -21,6 +23,39 @@ public class YamlConfigurationTests : IDisposable {
 
     private CliLaunchOptions Load(string body, bool client = false) =>
         CliLaunchOptions.Parse([client ? "client" : "server", "--config-path", Write(body)]);
+
+    [Theory]
+    [InlineData(false, "::1")]
+    [InlineData(true, "::1")]
+    [InlineData(false, "::")]
+    [InlineData(true, "::")]
+    [InlineData(false, "::ffff:127.0.0.1")]
+    [InlineData(true, "::ffff:127.0.0.1")]
+    public void ServerRejectsIpv6DuringParsing(bool yaml, string address) {
+        var error = Assert.Throws<ArgumentException>(() => yaml
+            ? Load($"server: {{local-ip: '{address}'}}")
+            : CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam", "--local-ip", address]));
+        Assert.Contains("local-ip must be an IPv4 address", error.Message);
+    }
+
+    [Theory]
+    [InlineData(false, "127.0.0.1")]
+    [InlineData(true, "127.0.0.1")]
+    [InlineData(false, "192.168.50.10")]
+    [InlineData(true, "192.168.50.10")]
+    [InlineData(false, "0.0.0.0")]
+    [InlineData(true, "0.0.0.0")]
+    [InlineData(false, null)]
+    [InlineData(true, null)]
+    public void ServerAcceptsIpv4OverridesAndAutoDetection(bool yaml, string? address) {
+        var options = Assert.IsType<ServerOptions>(yaml
+            ? Load(address is null ? "server: {}" : $"server: {{local-ip: '{address}'}}")
+            : CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam",
+                .. address is null ? Array.Empty<string>() : ["--local-ip", address]]));
+        Assert.Equal(AddressFamily.InterNetwork, IPAddress.Parse(options.Settings.LocalIp!).AddressFamily);
+        if (address is not null) Assert.Equal(address, options.Settings.LocalIp);
+        Assert.Equal(options.Settings.LocalIp, options.ToServerLaunchOptions().LocalIp.IfNone(""));
+    }
 
     [Fact]
     public void ConfigurationIsAuthoritativeWithEitherConfigPathSyntax() {

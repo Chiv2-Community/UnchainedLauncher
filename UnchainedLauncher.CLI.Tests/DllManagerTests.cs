@@ -320,8 +320,57 @@ public sealed class DllManagerTests {
     }
 
     private sealed class DownloadHandler(byte[] bytes) : HttpMessageHandler {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new ByteArrayContent(bytes) });
+        public int Requests { get; private set; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+            Requests++;
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new ByteArrayContent(bytes) });
+        }
+    }
+
+    [Theory]
+    [InlineData("client")]
+    [InlineData("server")]
+    public async Task NoPluginUpdateStillSelectsLatestUnlessExplicitlyPinned(string command) {
+        var root = Path.Combine(Path.GetTempPath(), "dll-no-update-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            var older = Release("Chiv2-Community/UnchainedPlugin") with { DllFileName = "UnchainedPlugin.dll" };
+            var newer = older with { Tag = "v2.0.0", Hash = Convert.ToHexString(SHA256.HashData(new byte[] { 4, 5, 6 })).ToLowerInvariant() };
+            var packagePath = Path.Combine(root, "registry", "dll_db", "packages", "Chiv2-Community");
+            Directory.CreateDirectory(packagePath);
+            File.WriteAllText(Path.Combine(packagePath, "UnchainedPlugin.json"), JsonHelpers.Serialize(Package(older, newer)));
+            var registry = new AggregateModRegistry(new LocalModRegistry(Path.Combine(root, "registry")));
+            var mods = new ModManager(registry, new PakDir(Path.Combine(root, "paks"), []), []);
+            CliLaunchOptions Parse(params string[] extra) {
+                var options = CliLaunchOptions.Parse([command, "--chivalry2-path", root, "--platform", "Steam", .. extra]);
+                options.Shared.Assets = new ProfileAssetPaths(options.Shared.SavedDirSuffix, root);
+                return options;
+            }
+            string[] pin = ["--dll", "Chiv2-Community/UnchainedPlugin:v1.0.0"];
+            var initial = Parse(pin);
+            var downloads = new DownloadHandler([1, 2, 3]);
+            using var client = new HttpClient(downloads);
+            Assert.True((await ServerLauncher.CreateDllSession(initial, registry, mods, client: client)
+                .PrepareLaunch(initial.ToLaunchOptions())).IsSome);
+            var installed = Path.Combine(initial.InstancePaths.Plugins, "Managed", "Chiv2-Community", "UnchainedPlugin", older.DllFileName);
+            Assert.True(await DllManager.MatchesFileAsync(installed, older));
+
+            var unpinned = Parse("--no-plugin-update");
+            Assert.False(unpinned.ToLaunchOptions().CheckForDependencyUpdates);
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                ServerLauncher.CreateDllSession(unpinned, registry, mods, client: client).PrepareLaunch(unpinned.ToLaunchOptions()));
+            Assert.Contains("Automatic plugin downloads are disabled; missing registered DLL", error.Message);
+            Assert.Contains("UnchainedPlugin:2.0.0", error.Message);
+            Assert.True(await DllManager.MatchesFileAsync(installed, older));
+
+            File.Delete(installed);
+            var pinned = Parse(["--no-plugin-update", .. pin]);
+            Assert.True((await ServerLauncher.CreateDllSession(pinned, registry, mods, client: client)
+                .PrepareLaunch(pinned.ToLaunchOptions())).IsSome);
+            Assert.True(await DllManager.MatchesFileAsync(installed, older));
+            Assert.Equal(1, downloads.Requests);
+        }
+        finally { Directory.Delete(root, recursive: true); }
     }
 
     [Fact]

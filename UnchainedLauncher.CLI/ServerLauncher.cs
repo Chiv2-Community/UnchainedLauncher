@@ -152,7 +152,6 @@ public static class ServerLauncher {
     public static IA2S CreateQuery(ServerOptions options) {
         var address = options.Settings.LocalIp is null ? IPAddress.Loopback : IPAddress.Parse(options.Settings.LocalIp);
         if (address.Equals(IPAddress.Any)) address = IPAddress.Loopback;
-        if (address.Equals(IPAddress.IPv6Any)) address = IPAddress.IPv6Loopback;
         return new A2S(new IPEndPoint(address, options.Settings.QueryPort));
     }
 }

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Mods;
@@ -131,7 +132,8 @@ public sealed class ServerOptions : CliLaunchOptions {
         if (new[] { settings.GamePort, settings.PingPort, settings.QueryPort, settings.RconPort }.Distinct().Count() != 4)
             throw new ArgumentException("Game, ping, query, and RCON ports must be distinct.");
         settings.LocalIp = string.IsNullOrWhiteSpace(settings.LocalIp) ? LocalAddressDetector.Detect().ToString() : settings.LocalIp.Trim();
-        if (!IPAddress.TryParse(settings.LocalIp, out _)) throw new ArgumentException("local-ip must be an IP address.");
+        if (!IPAddress.TryParse(settings.LocalIp, out var address) || address.AddressFamily != AddressFamily.InterNetwork)
+            throw new ArgumentException("local-ip must be an IPv4 address.");
         settings.ModActors = SharedLaunchOptions.Entries(settings.ModActors).Distinct().ToList();
         ToDiscordOptions();
     }

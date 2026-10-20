@@ -39,8 +39,11 @@ The server is headless by default (`-nullrhi -unattended -nosound`); use
 `--headless false --no-desync-patch` to render it (the desync patch only supports
 headless servers). The plugin is installed
 or updated from the latest stable UnchainedPlugin release by default. Use
-`--no-plugin-update` to keep your installed `UnchainedPlugin.dll`; it must already
-exist. `--allow-unstable-plugin` permits prerelease plugin updates.
+`--no-plugin-update` to disable DLL downloads, not version selection; all required
+registered DLL versions must already be installed or cached. To retain a desired
+registered plugin version, pin its exact tag with
+`--dll Chiv2-Community/UnchainedPlugin:<tag>`.
+`--allow-unstable-plugin` permits automatic prerelease selection.
 
 For deployment without a .NET runtime:
 
@@ -497,6 +500,8 @@ not loaded in safe mode. CLI selections never overwrite the GUI plugin profile.
 Safe injection uses only that launch's verified allowlist, not the directory or
 the saved inventory. The unsafe load-all option retains other DLLs for injection.
 `--no-plugin-update` forbids downloads but permits restoring cached versions.
+It does not retain the installed version; pin the desired registered tag with
+`--dll Chiv2-Community/UnchainedPlugin:<tag>` and install or cache every required DLL.
 Only explicitly pinned prereleases (or `--allow-unstable-plugin` for automatic
 selection) are eligible; automatic selection otherwise uses the latest stable.
 

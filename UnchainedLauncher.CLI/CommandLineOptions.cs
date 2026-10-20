@@ -111,7 +111,7 @@ internal static class CommandLineOptions {
                 else serverSettings!.SavedDirSuffix = value;
             });
             Add("--server-browser-backend", "HTTP(S) server-browser backend URL.", _configuration.ServerBrowserBackend, value => _configuration.ServerBrowserBackend = value);
-            Flag("--no-plugin-update", "Use the existing UnchainedPlugin.dll.", value => _configuration.UpdatePlugin = !value);
+            Flag("--no-plugin-update", "Disable DLL downloads; required registered versions must be installed or cached (use --dll to pin).", value => _configuration.UpdatePlugin = !value);
             Flag("--allow-unstable-plugin", "Allow prerelease plugin updates.", value => _configuration.AllowUnstablePlugin = value);
             var setup = new ModSetupConfiguration();
             if (clientConfig is not null) clientConfig.ModSetup = setup;

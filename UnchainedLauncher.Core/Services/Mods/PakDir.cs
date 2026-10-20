@@ -19,6 +19,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
         private const string BasePakFileName = "pakchunk0-WindowsNoEditor.pak";
         private const string BaseSigFileName = "pakchunk0-WindowsNoEditor.sig";
         private const string ForcedSortDivider = "__-__";
+        // A fixed patch version keeps all mods above vanilla at the same priority tier.
+        private const string ManagedPakSuffix = "_0_P.pak";
 
         private static readonly ILog Logger = LogManager.GetLogger(nameof(PakDir));
 
@@ -103,8 +105,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         private string AvailablePakName(string suggestedFileName) {
             var unManagedPaks = GetUnmanagedPaks().ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var actualName = Path.GetFileNameWithoutExtension(suggestedFileName);
-            var extension = Path.GetExtension(suggestedFileName);
+            var extension = suggestedFileName.EndsWith(ManagedPakSuffix, StringComparison.OrdinalIgnoreCase)
+                ? ManagedPakSuffix : Path.GetExtension(suggestedFileName);
+            var actualName = suggestedFileName[..^extension.Length];
             var fullActualName = actualName + extension;
             while (_managedPaks.Exists(x => x.PakFileName.Equals(fullActualName, StringComparison.OrdinalIgnoreCase))
                    || unManagedPaks.Contains(PakNameToPakPath(fullActualName))) {
@@ -146,7 +149,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     var baseName = needsOrgPrefix
                         ? $"{install.Coordinates.Org}_{moduleName}"
                         : moduleName;
-                    return baseName + ".pak";
+                    return baseName + ManagedPakSuffix;
                 })
                 .ToList();
 
@@ -168,7 +171,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     return existing.Match(
                         // A collision-safe name is reusable only while its load-order prefix is correct.
                         Some: pak => pak.PakFileName.Equals(item.FinalPakName, StringComparison.OrdinalIgnoreCase)
-                            || (unmanagedPaths.Contains(PakNameToPakPath(item.FinalPakName))
+                            || (pak.PakFileName.EndsWith(ManagedPakSuffix, StringComparison.OrdinalIgnoreCase)
+                                && unmanagedPaths.Contains(PakNameToPakPath(item.FinalPakName))
                                 && pak.PakFileName.StartsWith(
                                     item.FinalPakName.Substring(0, item.FinalPakName.IndexOf(ForcedSortDivider, StringComparison.Ordinal) + ForcedSortDivider.Length),
                                     StringComparison.OrdinalIgnoreCase))

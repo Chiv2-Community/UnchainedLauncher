@@ -143,12 +143,12 @@ public class ManagedInventoryTests : IDisposable {
     public async Task SharedOwnershipPreservesUnmanagedCollisionAndUpdatesLoadOrderPrefixes() {
         await InInstallation(async (registry, common, extra, launch) => {
             var paks = Path.GetFullPath(FilePaths.PakDir);
-            var occupied = Path.Combine(paks, "q__-__Unchained-Mods.pak");
+            var occupied = Path.Combine(paks, "q__-__Unchained-Mods_0_P.pak");
             File.WriteAllText(occupied, "user collision");
             var manager = Manager(registry, []);
             await Prepare(manager, launch);
             var original = Assert.Single(((PakDir)manager.PakDir).ManagedPaks);
-            Assert.Equal("q__-__Unchained-Mods (1).pak", original.PakFileName);
+            Assert.Equal("q__-__Unchained-Mods (1)_0_P.pak", original.PakFileName);
             Assert.True(manager.EnableModRelease(ReleaseCoordinates.FromRelease(extra)));
             await Prepare(manager, launch);
 
@@ -161,6 +161,7 @@ public class ManagedInventoryTests : IDisposable {
             Assert.Equal("user collision", File.ReadAllText(occupied));
             Assert.Equal(2, owned.Length);
             Assert.All(owned, pak => Assert.True(File.Exists(Path.ChangeExtension(Path.Combine(paks, pak.PakFileName), ".sig"))));
+            Assert.All(owned, pak => Assert.EndsWith("_0_P.pak", pak.PakFileName));
 
             await Prepare(manager, launch);
             Assert.Equal(owned, ((PakDir)manager.PakDir).ManagedPaks);
@@ -211,6 +212,7 @@ public class ManagedInventoryTests : IDisposable {
         var pakDir = (PakDir)manager.PakDir;
         var owned = Assert.Single(pakDir.ManagedPaks);
         Assert.Equal(ReleaseCoordinates.FromRelease(common), owned.Coordinates);
+        Assert.EndsWith("_0_P.pak", owned.PakFileName);
         Assert.Equal(3, Directory.GetFiles(pakDir.DirPath, "*.pak").Length); // base, common, unknown
         Assert.Equal("user payload", File.ReadAllText(Path.Combine(pakDir.DirPath, "user.pak")));
         Assert.Equal("base payload", File.ReadAllText(Path.Combine(pakDir.DirPath, "pakchunk0-WindowsNoEditor.pak")));

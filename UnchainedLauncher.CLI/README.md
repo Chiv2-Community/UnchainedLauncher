@@ -363,6 +363,9 @@ and individual CLI launch arguments still launch one server.
   CLI processes from using the same profile. Plugin injection never scans another
   instance's directory, including with the unsafe flag.
 - The game discovers profile paks without an additional plugin argument.
+  Managed filenames end in `_0_P.pak`, using Unreal's native patch priority so
+  profile mods override vanilla assets. All managed mods share the same patch
+  version; dependency-order prefixes still determine their relative order.
   Signatures use the installation's base
   signature as a read-only template; no base pak is copied or modified.
 - Relaunch with the desired `--mod` selections to install them into `Paks`.

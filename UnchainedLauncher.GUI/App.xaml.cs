@@ -174,12 +174,11 @@ namespace UnchainedLauncher.GUI {
 #endif
 
             var noSigLaunchPreparer = NoSigPreparer.Create(modManager.PakDir, userDialogueSpawner);
-            var sigLaunchPreparer = SigPreparer.Create(modManager.PakDir, userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
-            IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
-                modManager, userDialogueSpawner
+            IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new ProfileModsLaunchPreparer(
+                modManager, userDialogueSpawner, Directory.GetCurrentDirectory()
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
@@ -189,15 +188,8 @@ namespace UnchainedLauncher.GUI {
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                Chivalry2LaunchPreparer.Create<LaunchOptions>(options => {
-                    if (System.Text.RegularExpressions.Regex.IsMatch(options.LaunchArgs, @"(?:^|\s)--additional-pak-dir(?:\s|=|$)"))
-                        throw new ArgumentException("The additional pak directory is managed by the launcher.");
-                    return LanguageExt.Prelude.Some(options with {
-                        LaunchArgs = options.LaunchArgs + " " + new Parameter("--additional-pak-dir", assets.Paks).Rendered
-                    });
-                }).AndThen(pluginInstaller)
-                    .AndThen(modInstaller)
-                    .Sub(sigLaunchPreparer),
+                pluginInstaller
+                    .AndThen(modInstaller),
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
 #if DEBUG_FAKECHIVALRYLAUNCH

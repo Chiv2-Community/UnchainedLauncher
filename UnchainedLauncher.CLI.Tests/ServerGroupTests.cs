@@ -116,11 +116,10 @@ public sealed class ServerGroupTests : IDisposable {
         using (paths.AcquireLease()) Assert.True(Directory.Exists(paths.Root));
     }
 
-    [Theory]
-    [InlineData("--additional-pak-dir")]
-    [InlineData("--additional-pak-dir=other")]
-    public void ManagedPakDirectoryCannotBeOverriddenByForwardedArguments(string argument) {
-        Assert.Throws<ArgumentException>(() => Parse(Servers + $"\ngame-args: ['{argument}']"));
+    [Fact]
+    public void NativePakDirectoriesDoNotAddPluginArguments() {
+        Assert.All(Group().Servers, entry =>
+            Assert.DoesNotContain("--additional-pak-dir", entry.Options.ToLaunchOptions().LaunchArgs));
     }
 
     [Fact]

@@ -5,7 +5,7 @@ On Windows, the shared game launcher creates the game suspended, injects DLLs,
 then resumes its main thread. Failed injection terminates the suspended game.
 CLI servers also pass TOS-acceptance and first-load-completed INI overrides to
 avoid interactive first-run screens. The CLI also initializes the game's saved profile.
-Profile-local paks require an UnchainedPlugin build supporting `--additional-pak-dir`.
+Profile-local paks use the game's native `Saved_<suffix>/Paks` search directory.
 It uses Core for mod installation, plugin updates, signature preparation,
 process launching, DLL injection, and A2S queries.
 
@@ -34,8 +34,7 @@ dotnet run --project UnchainedLauncher.CLI -c Release -- server `
 ```
 
 The path is the installation root containing `TBL`, not the Win64 directory.
-The example pins registered releases; replace the core plugin pin with a registered
-build supporting `--additional-pak-dir` before launching.
+The example pins registered releases.
 The server is headless by default (`-nullrhi -unattended -nosound`); use
 `--headless false --no-desync-patch` to render it (the desync patch only supports
 headless servers). The plugin is installed
@@ -357,17 +356,23 @@ and individual CLI launch arguments still launch one server.
   Registries and pak/DLL selections are independent; verified bytes share the cache.
 - Profiles default to the server key (`courtyard`, `arena`). Set `saved-dir-suffix` inside an
   entry to override it. Profile names must be distinct, ignoring case and hyphens.
-- Active paks and DLLs live under
-  `%LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/unchained/{paks,plugins}`.
+- Active paks live under `%LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/Paks`;
+  DLLs remain under `%LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/unchained/plugins`.
   Hyphens are removed from the saved suffix, matching the game. This also applies to
   clients; the default client suffix is `unchained`. A per-profile lock prevents concurrent
   CLI processes from using the same profile. Plugin injection never scans another
   instance's directory, including with the unsafe flag.
-- The launcher supplies `--additional-pak-dir <absolute instance Paks path>`.
-  **This requires an UnchainedPlugin release supporting that option.** Do not pass
-  the option manually through `game-args`. Signatures use the installation's base
+- The game discovers profile paks without an additional plugin argument.
+  Managed filenames use `<mod>_<order>_P.pak`, using Unreal's native patch priority
+  instead of alphabetical prefixes. Orders start at zero in dependency order;
+  higher numbers override lower numbers, so dependents override their dependencies
+  and all managed mods override vanilla assets. Collision counters stay before
+  the order suffix, for example `SomeMod (1)_2_P.pak`.
+  Signatures use the installation's base
   signature as a read-only template; no base pak is copied or modified.
-- The plugin option adds a mount directory; it does not suppress game-wide paks
+- Relaunch with the desired `--mod` selections to install them into `Paks`.
+  Old files under `unchained/paks` are not migrated or deleted automatically.
+- Profile-local discovery does not suppress game-wide paks
   already present in `TBL/Content/Paks`. Existing global mods may still affect all
   instances. The launcher does not move or delete them during instance setup.
 - Shared caches live under `%LOCALAPPDATA%/Chivalry 2/unchained/cache/{paks,dlls}`.

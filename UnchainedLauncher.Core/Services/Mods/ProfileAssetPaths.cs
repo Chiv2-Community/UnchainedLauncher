@@ -4,8 +4,9 @@ namespace UnchainedLauncher.Core.Services.Mods;
 
 public sealed class ProfileAssetPaths {
     public const string SharedSuffix = "unchained";
+    public string Suffix { get; }
     public string Root { get; }
-    public string Paks => Path.Combine(Root, "paks");
+    public string Paks => Path.Combine(Path.GetDirectoryName(Root)!, "Paks");
     public string Plugins => Path.Combine(Root, "plugins");
     public string PakCache { get; }
     public string DllCache { get; }
@@ -15,6 +16,7 @@ public sealed class ProfileAssetPaths {
         var normalized = suffix.Replace("-", "", StringComparison.Ordinal);
         if (normalized.Length == 0 || normalized.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_'))
             throw new ArgumentException("Invalid saved directory suffix.");
+        Suffix = normalized;
         Root = Path.Combine(game, "Saved_" + normalized, "unchained");
         PakCache = Path.Combine(game, "unchained", "cache", "paks");
         DllCache = Path.Combine(game, "unchained", "cache", "dlls");

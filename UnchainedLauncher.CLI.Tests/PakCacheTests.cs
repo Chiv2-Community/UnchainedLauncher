@@ -154,12 +154,13 @@ public sealed class PakCacheTests : IDisposable {
     public void ProfileAssetsAndSharedCachesUseLocalAppData() {
         var first = new ProfileAssetPaths("Host-one", _root);
         var second = new ProfileAssetPaths("Host-two", _root);
-        Assert.Equal(Path.Combine(_root, "Chivalry 2", "Saved_Hostone", "unchained", "paks"), first.Paks);
+        Assert.Equal(Path.Combine(_root, "Chivalry 2", "Saved_Hostone", "Paks"), first.Paks);
+        Assert.Equal(first.Paks, new ServerInstancePaths(first.Root, first.PakCache).Paks);
         Assert.Equal(Path.Combine(_root, "Chivalry 2", "Saved_Hostone", "unchained", "plugins"), first.Plugins);
         Assert.NotEqual(first.Paks, second.Paks);
         Assert.Equal(first.PakCache, second.PakCache);
         Assert.Equal(first.DllCache, second.DllCache);
-        Assert.Equal(Path.Combine(_root, "Chivalry 2", "Saved_unchained", "unchained", "paks"),
+        Assert.Equal(Path.Combine(_root, "Chivalry 2", "Saved_unchained", "Paks"),
             new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix, _root).Paks);
     }
 }

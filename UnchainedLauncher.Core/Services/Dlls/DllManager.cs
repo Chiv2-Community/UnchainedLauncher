@@ -399,7 +399,11 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                         target.Position = 0;
                         ValidateBytes(target, release);
                     }
-                    File.Move(temp, cache);
+                    try { File.Move(temp, cache); }
+                    catch (IOException) when (File.Exists(cache)) {
+                        using var winner = File.OpenRead(cache);
+                        ValidateBytes(winner, release);
+                    }
                 }
                 finally { if (File.Exists(temp)) File.Delete(temp); }
             }

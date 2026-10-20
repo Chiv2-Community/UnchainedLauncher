@@ -19,7 +19,7 @@ public sealed class ProfileModsLaunchPreparerTests {
     [InlineData(true)]
     [InlineData(false)]
     public void RebindingCopiesOwnershipOnlyWithinTheSameProfileAndSnapshotsSelection(bool sameProfile) {
-        var root = Path.Combine(Path.GetTempPath(), "gui-rebind-" + Guid.NewGuid().ToString("N"));
+        var root = Scratch("gui-rebind-");
         try {
             var source = new ProfileAssetPaths("Source", root);
             var target = sameProfile ? new ProfileAssetPaths("Source", root) : new ProfileAssetPaths("Target", root);
@@ -51,7 +51,7 @@ public sealed class ProfileModsLaunchPreparerTests {
     [InlineData("Court_yard_1", "Court_yard_1")]
     [InlineData("Court-yard", "Courtyard")]
     public async Task LaunchSuffixSelectsInstalledAndSignedPaks(string? suffix, string expectedSuffix) {
-        var root = Path.Combine(Path.GetTempPath(), "gui-profile-" + Guid.NewGuid().ToString("N"));
+        var root = Scratch("gui-profile-");
         Directory.CreateDirectory(root);
         try {
             var installation = Path.Combine(root, "game");
@@ -117,6 +117,120 @@ public sealed class ProfileModsLaunchPreparerTests {
             Assert.Empty(dialogue.Messages);
         }
         finally { Directory.Delete(root, true); }
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("---")]
+    [InlineData("../other")]
+    public async Task InvalidExplicitSuffixCancelsBeforeCreatingProfileAssets(string suffix) {
+        var root = Scratch("gui-invalid-profile-");
+        try {
+            var registry = new LocalModRegistry(Path.Combine(root, "registry"));
+            var manager = new ModManager(registry, new PakDir(Path.Combine(root, "source"), []), []);
+            var before = Directory.GetFileSystemEntries(root, "*", SearchOption.AllDirectories).Order().ToArray();
+            var dialogue = new Dialogue();
+            var result = await new ProfileModsLaunchPreparer(manager, dialogue, root, root).PrepareLaunch(Options(suffix));
+            Assert.True(result.IsNone);
+            Assert.Contains("Invalid saved directory suffix", Assert.Single(dialogue.Messages));
+            Assert.Equal(before, Directory.GetFileSystemEntries(root, "*", SearchOption.AllDirectories).Order().ToArray());
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public async Task HeldCliLeaseCancelsGuiPreparationWithoutReconcilingOwnedFiles() {
+        var root = Scratch("gui-cli-lease-");
+        try {
+            var assets = new ProfileAssetPaths("unchained", root);
+            var coordinates = new ReleaseCoordinates("org", "owned", "v1.0.0");
+            var owned = new ManagedPak(coordinates, "owned_0_P.pak", 0);
+            var manager = new ModManager(new LocalModRegistry(Path.Combine(root, "registry")), assets.CreatePakDir(root), []);
+            var payload = Path.Combine(assets.Paks, owned.PakFileName);
+            File.WriteAllText(payload, "owned payload");
+            File.WriteAllText(Path.ChangeExtension(payload, ".sig"), "owned signature");
+            File.WriteAllText(Path.Combine(assets.Paks, FilePaths.ManagedPakInventoryFileName),
+                JsonHelpers.Serialize(new PakDirMetadata(assets.Paks, [owned])));
+            // Exact CLI convention, independently opened rather than a second test-only lock.
+            Directory.CreateDirectory(assets.Root);
+            using var lease = new FileStream(Path.Combine(assets.Root, ".instance.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            var before = Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+                .Where(path => !path.EndsWith(".instance.lock")).ToDictionary(path => path, File.ReadAllText);
+            var dialogue = new Dialogue();
+            Assert.True((await new ProfileModsLaunchPreparer(manager, dialogue, root, root).PrepareLaunch(Options(null))).IsNone);
+            Assert.Contains("another launcher", Assert.Single(dialogue.Messages));
+            Assert.Equal(before.Keys.Order(), Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+                .Where(path => !path.EndsWith(".instance.lock")).Order());
+            foreach (var pair in before) Assert.Equal(pair.Value, File.ReadAllText(pair.Key));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
+    public async Task PendingGuiTransactionRejectsSameProfileButAllowsAnotherProfile() {
+        var root = Scratch("gui-concurrent-profile-");
+        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        try {
+            var defaultPaks = Path.Combine(root, FilePaths.PakDir);
+            Directory.CreateDirectory(defaultPaks);
+            File.WriteAllText(Path.Combine(defaultPaks, "pakchunk0-WindowsNoEditor.sig"), "signature");
+            var payload = Path.Combine(root, "source.pak");
+            File.WriteAllText(payload, "payload");
+            var hash = FileHelpers.Sha512(payload).Match(Right: value => value, Left: e => throw new Exception(e.Message));
+            var release = new Release("v1.0.0", hash, "mod.pak", DateTime.UnixEpoch,
+                new ModInfo("https://github.com/org/mod", "mod", "test", null, null, [], [], []),
+                new AssetCollections([], [], [], [], []), null);
+            var local = new LocalModRegistry(Path.Combine(root, "registry"));
+            await local.AddRelease(release, payload);
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var registry = new PausedRegistry(local, started, finish);
+            var source = new ProfileAssetPaths("Source", root);
+            var manager = new ModManager(registry, source.CreatePakDir(root), [ReleaseCoordinates.FromRelease(release)]);
+            Assert.False((await manager.UpdateModsList()).HasErrors);
+            var firstDialogue = new Dialogue();
+            var preparer = new ProfileModsLaunchPreparer(manager, firstDialogue, root, root);
+            var first = preparer.PrepareLaunch(Options("First"));
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            var firstAssets = new ProfileAssetPaths("First", root);
+            var before = Directory.GetFiles(firstAssets.Paks).ToDictionary(path => path, File.ReadAllBytes);
+            Assert.True((await preparer.PrepareLaunch(Options("First")).WaitAsync(TimeSpan.FromSeconds(10))).IsNone);
+            Assert.Contains("another launcher", Assert.Single(firstDialogue.Messages));
+            Assert.Equal(before.Keys.Order(), Directory.GetFiles(firstAssets.Paks).Order());
+            foreach (var pair in before) Assert.Equal(pair.Value, File.ReadAllBytes(pair.Key));
+            // An empty selection avoids waiting on the intentionally shared immutable cache object.
+            var otherManager = new ModManager(local, source.CreatePakDir(root), []);
+            var otherDialogue = new Dialogue();
+            Assert.True((await new ProfileModsLaunchPreparer(otherManager, otherDialogue, root, root)
+                .PrepareLaunch(Options("Other"))).IsSome);
+            Assert.False(first.IsCompleted);
+            Assert.Empty(otherDialogue.Messages);
+            finish.SetResult();
+            Assert.True((await first.WaitAsync(TimeSpan.FromSeconds(10))).IsSome);
+            Assert.Single(ReadInventory(firstAssets.Paks));
+            Assert.True((await preparer.PrepareLaunch(Options("First"))).IsSome);
+        }
+        finally { finish.TrySetResult(); Directory.Delete(root, true); }
+    }
+
+    private static string Scratch(string prefix) => Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ??
+        (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), prefix + Guid.NewGuid().ToString("N"));
+
+    private static LaunchOptions Options(string? suffix) => new([], Option<string>.None, "", false, false,
+        suffix is null ? Option<string>.None : Option<string>.Some(suffix), Option<ServerLaunchOptions>.None);
+
+    private sealed class PausedRegistry(IModRegistry inner, TaskCompletionSource started, TaskCompletionSource finish) : IModRegistry {
+        public string Name => inner.Name;
+        public Task<GetAllModsResult> GetAllMods() => inner.GetAllMods();
+        public EitherAsync<RegistryMetadataException, Mod> GetMod(ModIdentifier id) => inner.GetMod(id);
+        public EitherAsync<RegistryMetadataException, Release> GetModRelease(ReleaseCoordinates coordinates) => inner.GetModRelease(coordinates);
+        public Task<long?> GetPakSize(Release release, CancellationToken cancellationToken = default) => inner.GetPakSize(release, cancellationToken);
+        public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation) =>
+            Download(coordinates, outputLocation).ToAsync();
+        private async Task<Either<ModPakStreamAcquisitionFailure, FileWriter>> Download(ReleaseCoordinates coordinates, string outputLocation) {
+            started.TrySetResult();
+            await finish.Task;
+            return await inner.DownloadPak(coordinates, outputLocation).ToEither();
+        }
     }
 
     private static ManagedPak[] ReadInventory(string paks) {

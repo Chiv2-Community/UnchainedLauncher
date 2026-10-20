@@ -23,6 +23,7 @@ public class RegistryAndReleaseTests : IDisposable {
 
     [Fact]
     public void ConfigurationSupportsNestedAggregatesAndRelativeLocalPaths() {
+        var cwd = Directory.GetCurrentDirectory();
         var local = Path.Combine(_directory, "local");
         Directory.CreateDirectory(local);
         var path = Path.Combine(_directory, "registries.json");
@@ -36,6 +37,7 @@ public class RegistryAndReleaseTests : IDisposable {
         var localRegistry = Assert.Single(registry.ModRegistries.OfType<LocalModRegistry>());
         Assert.Equal(local, localRegistry.RegistryPath);
         Assert.Single(registry.ModRegistries.OfType<GithubModRegistry>());
+        Assert.Equal(cwd, Directory.GetCurrentDirectory());
     }
 
     [Fact]
@@ -43,6 +45,19 @@ public class RegistryAndReleaseTests : IDisposable {
         var path = Path.Combine(_directory, "missing");
         Assert.Throws<DirectoryNotFoundException>(() => RegistrySpec.Parse("local:" + path).Create());
         Assert.False(Directory.Exists(path));
+    }
+
+    [Fact]
+    public void MissingNestedLocalRegistryDoesNotCreateADirectoryOrChangeCwd() {
+        var cwd = Directory.GetCurrentDirectory();
+        var path = Path.Combine(_directory, "registries.json");
+        var metadata = new AggregateModRegistryMetadata([
+            new AggregateModRegistryMetadata([new LocalModRegistryMetadata("missing")])
+        ]);
+        File.WriteAllText(path, JsonHelpers.Serialize<ModRegistryMetadata>(metadata));
+        Assert.Throws<DirectoryNotFoundException>(() => RegistrySpec.Parse("config:" + path).Create());
+        Assert.False(Directory.Exists(Path.Combine(_directory, "missing")));
+        Assert.Equal(cwd, Directory.GetCurrentDirectory());
     }
 
     [Fact]
@@ -108,6 +123,37 @@ public class RegistryAndReleaseTests : IDisposable {
         var coordinate = new ReleaseCoordinates("org", "mod", "v1.0.0");
         var manager = Manager([coordinate], Common(), older, Mod("org", "old-dependency", "v1.0.0"));
         Assert.Throws<InvalidOperationException>(() => ServerLauncher.ValidateReleases(manager, [coordinate]));
+    }
+
+    [Theory]
+    [InlineData("cycle")]
+    [InlineData("self")]
+    [InlineData("out-of-order")]
+    [InlineData("valid")]
+    public void PinnedReleaseEdgesMustPrecedeDependentsDespiteDifferentLatestMetadata(string graph) {
+        var a = Mod("org", "a", "v1.0.0");
+        var b = Mod("org", "b", "v1.0.0");
+        a.Releases.Add(Mod("org", "a", "v2.0.0").Releases.Single());
+        b.Releases.Add(Mod("org", "b", "v2.0.0").Releases.Single());
+        ReleaseCoordinates[] requested = [new("org", "a", "v1.0.0"), new("org", "b", "v1.0.0")];
+        var manager = Manager(requested, Common(), a, b);
+        var sorted = manager.SortByDependencies(manager.GetEnabledAndDependencyReleases()).ToArray();
+        var pinned = sorted.Where(release => release.Info.Organization == "org").ToArray();
+        // Hash-set iteration is unspecified; construct an edge relative to the actual latest-metadata order.
+        void Depends(Release dependent, Release dependency) => dependent.Info.Dependencies!.Add(new Dependency(dependency.Info.RepoUrl, "*"));
+        if (graph == "self") Depends(pinned[0], pinned[0]);
+        else if (graph == "valid") Depends(pinned[1], pinned[0]);
+        else {
+            Depends(pinned[0], pinned[1]);
+            if (graph == "cycle") Depends(pinned[1], pinned[0]);
+        }
+        Assert.Equal(sorted, manager.SortByDependencies(manager.GetEnabledAndDependencyReleases()).ToArray());
+        File.WriteAllText(Path.Combine(_directory, "unknown.pak"), "untouched");
+        if (graph == "valid") ServerLauncher.ValidateReleases(manager, requested);
+        else Assert.Throws<InvalidOperationException>(() => ServerLauncher.ValidateReleases(manager, requested));
+        Assert.Equal("untouched", File.ReadAllText(Path.Combine(_directory, "unknown.pak")));
+        Assert.Single(Directory.GetFiles(_directory));
+        Assert.Empty(Assert.IsType<PakDir>(manager.PakDir).ManagedPaks);
     }
 
     [Fact]

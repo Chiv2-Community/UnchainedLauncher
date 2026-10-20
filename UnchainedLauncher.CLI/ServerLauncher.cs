@@ -144,9 +144,15 @@ public static class ServerLauncher {
             }
         }
         var selected = releases.Select(ReleaseCoordinates.FromRelease).ToHashSet();
-        var sorted = manager.SortByDependencies(releases).Select(ReleaseCoordinates.FromRelease).ToHashSet();
-        if (!selected.SetEquals(sorted))
+        var sorted = manager.SortByDependencies(releases).ToArray();
+        if (!selected.SetEquals(sorted.Select(ReleaseCoordinates.FromRelease)))
             throw new InvalidOperationException("Mod dependencies contain a cycle; refusing to install an incomplete pak set.");
+        var preceding = new HashSet<ModIdentifier>();
+        foreach (var release in sorted) {
+            if (release.Info.EffectiveModDependencies.Any(dependency => !preceding.Contains(ModIdentifier.FromDependency(dependency))))
+                throw new InvalidOperationException("Selected mod dependencies contain a cycle or violate the resolved pak order; refusing to install.");
+            preceding.Add(ModIdentifier.FromRelease(release));
+        }
     }
 
     public static IA2S CreateQuery(ServerOptions options) {

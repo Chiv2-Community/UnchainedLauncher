@@ -188,8 +188,9 @@ Separate mode-specific schemas:
   do not create a server dashboard, and return after launching without stopping the game.
 
 Common root options are `server-browser-backend`, `update-plugin` (default true),
-`allow-unstable-plugin` (default false), `no-tui` (default false), and `game-args`
-(list of strings). `server.game-args` or `client.game-args` is appended to the
+`allow-unstable-plugin` (default false), and `game-args` (list of strings).
+The root `no-tui` option (default false) is server-only.
+`server.game-args` or `client.game-args` is appended to the
 common list only for the matching command. The client schema currently supports
 `game-args`; client installation, platform, plugin, mod, and saved-profile options remain at the root.
 For servers, `mod-setup` and `saved-dir-suffix` belong inside `server` or each

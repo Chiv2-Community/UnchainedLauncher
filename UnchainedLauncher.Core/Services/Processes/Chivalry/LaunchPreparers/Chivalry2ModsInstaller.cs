@@ -72,7 +72,17 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
-            var inventory = ManagedPakInventory.Reconcile(_modManager);
+            ManagedPakInventory? inventory;
+            try {
+                inventory = ManagedPakInventory.Reconcile(_modManager);
+            }
+            catch (InvalidDataException e) {
+                _logger.Error($"Failed to reconcile managed pak inventory: {e.Message}");
+                _userDialogueSpawner.DisplayMessage(
+                    $"Could not reconcile managed pak inventory: {e.Message}\n" +
+                    "Launch cancelled. Resolve the pak setup errors before launching.");
+                return None;
+            }
             try {
                 return await PrepareMods(options);
             }

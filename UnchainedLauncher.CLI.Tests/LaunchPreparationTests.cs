@@ -141,20 +141,90 @@ public sealed class LaunchPreparationTests : IDisposable {
         Assert.Equal("preserve unknown bytes", File.ReadAllText(unknown));
     }
 
-    private static void AddPlugin(LocalModRegistry local, string dependency, string version) {
+    [Theory]
+    [InlineData(false, null, false)]
+    [InlineData(true, null, false)]
+    [InlineData(false, "v1.0.0", false)]
+    [InlineData(true, "v1.0.0", false)]
+    [InlineData(false, "v2.0.0", false)]
+    [InlineData(true, "v2.0.0", false)]
+    [InlineData(false, null, true)]
+    [InlineData(true, null, true)]
+    public async Task PreparationIntersectsDllPakRequirementsBeforeEnabling(
+        bool reverse, string? selectedTag, bool incompatible) {
+        var local = new LocalModRegistry(Path.Combine(_directory, "registry"));
+        var source = Path.Combine(_directory, "payload.pak");
+        File.WriteAllText(source, "pak payload");
+        var hash = FileHelpers.Sha512(source).Match(value => value, error => throw new Exception(error.Message));
+        Release Pak(string id, string tag) => new(tag, hash, "mod.pak",
+            new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            new ModInfo("https://github.com/" + id, id.Split('/')[1], "test", null, null, [], ["test"], []),
+            new AssetCollections([], [], [], [], []), null);
+        await local.AddRelease(Pak("Chiv2-Community/Unchained-Mods", "v1.0.0"), source);
+        await local.AddRelease(Pak("org/independent", "v1.0.0"), source);
+        foreach (var tag in new[] { "v1.0.0", "v1.5.0", "v2.0.0" })
+            await local.AddRelease(Pak("org/shared", tag), source);
+        AddPlugin(local, "org/independent", ">=1.0.0");
+        AddPlugin(local, "org/shared", incompatible ? ">=2.0.0" : ">=1.0.0", "org/A");
+        AddPlugin(local, "ORG/shared", "<2.0.0", "org/B");
+
+        string[] dlls = reverse ? ["org/B:v1.0.0", "org/A:v1.0.0"] : ["org/A:v1.0.0", "org/B:v1.0.0"];
+        var request = CliLaunchOptions.Parse([
+            "client", "--chivalry2-path", _directory, "--platform", "Steam",
+            "--dll", dlls[0], "--dll", dlls[1],
+            .. selectedTag is null ? Array.Empty<string>() : ["--mod", "org/shared:" + selectedTag]
+        ]);
+        request.Shared.Assets = new ProfileAssetPaths(request.Shared.SavedDirSuffix, _directory);
+        var pakPath = Path.Combine(_directory, FilePaths.PakDir);
+        Directory.CreateDirectory(pakPath);
+        File.WriteAllText(Path.Combine(pakPath, "pakchunk0-WindowsNoEditor.sig"), "signature");
+        var registry = new AggregateModRegistry(local);
+        var manager = ServerLauncher.CreateModManager(request, registry);
+        Assert.False((await manager.UpdateModsList()).HasErrors);
+        ServerLauncher.ValidateReleases(manager, request.Shared.Mods);
+        var original = manager.EnabledModReleaseCoordinates.ToArray();
+        Assert.Equal(2, request.Shared.Dlls.Count);
+        using var client = new HttpClient(new DownloadHandler());
+        var plugins = Path.Combine(_directory, "plugins");
+        var session = new DllLaunchSession(registry, manager, plugins, request.Shared.Dlls, client: client,
+            cacheDirectory: Path.Combine(_directory, "dll-cache"));
+        var cachePath = Path.Combine(_directory, "cli_mod_manager.json");
+        var preparer = ServerLauncher.CreateLaunchPreparer(request, manager, session, new ModManagerCodec(registry), cachePath);
+
+        if (incompatible || selectedTag == "v2.0.0") {
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() => preparer.PrepareLaunch(request.ToLaunchOptions()));
+            Assert.Contains(selectedTag is null ? "DLL pak dependency unavailable" : "conflicts with selected mods", error.Message);
+            Assert.Equal(original, manager.EnabledModReleaseCoordinates);
+            Assert.Empty(Directory.GetFiles(request.InstancePaths.Paks, "*.pak"));
+            Assert.False(File.Exists(cachePath));
+            Assert.False(File.Exists(Path.Combine(plugins, "dll_manager.json")));
+        }
+        else {
+            Assert.True((await preparer.PrepareLaunch(request.ToLaunchOptions())).IsSome);
+            Assert.Contains(new ReleaseCoordinates("org", "shared", selectedTag ?? "v1.5.0"), manager.EnabledModReleaseCoordinates);
+            Assert.Single(manager.EnabledModReleaseCoordinates.Where(c => c.ModuleName == "shared"));
+            Assert.Equal(3, Directory.GetFiles(request.InstancePaths.Paks, "*.pak").Length);
+            Assert.True(File.Exists(cachePath));
+            Assert.True(File.Exists(Path.Combine(plugins, "dll_manager.json")));
+        }
+    }
+
+    private static void AddPlugin(LocalModRegistry local, string dependency, string version,
+        string identifier = "Chiv2-Community/UnchainedPlugin") {
+        var parts = identifier.Split('/');
         var dll = new DllRelease("v1.0.0", Convert.ToHexString(SHA256.HashData([1, 2, 3])).ToLowerInvariant(),
-            "UnchainedPlugin.dll", "https://example.test/UnchainedPlugin.dll", 3,
+            parts[1] + ".dll", "https://example.test/" + parts[1] + ".dll", 3,
             new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
             new DllInfo {
-                RepoUrl = "https://github.com/Chiv2-Community/UnchainedPlugin",
+                RepoUrl = "https://github.com/" + identifier,
                 Name = "core",
                 Description = "test",
                 Authors = ["test"],
                 ModDependencies = [new Dependency("https://github.com/" + dependency, version)]
             }, null);
-        var packages = Path.Combine(local.RegistryPath, "dll_db", "packages", "Chiv2-Community");
+        var packages = Path.Combine(local.RegistryPath, "dll_db", "packages", parts[0]);
         Directory.CreateDirectory(packages);
-        File.WriteAllText(Path.Combine(packages, "UnchainedPlugin.json"), JsonHelpers.Serialize(new DllPackage(dll.Info, [dll])));
+        File.WriteAllText(Path.Combine(packages, parts[1] + ".json"), JsonHelpers.Serialize(new DllPackage(dll.Info, [dll])));
     }
 
     private sealed class DownloadHandler : HttpMessageHandler {

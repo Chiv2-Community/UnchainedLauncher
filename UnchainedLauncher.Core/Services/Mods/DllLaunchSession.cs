@@ -1,6 +1,7 @@
 using LanguageExt;
 using Semver;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Dlls;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes;
@@ -128,19 +129,27 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
             var fetched = await _mods.UpdateModsList();
             if (fetched.HasErrors) throw new InvalidOperationException("Pak registry loading failed while resolving DLL dependencies.");
         }
-        foreach (var dependency in releases.SelectMany(r => r.Info.ModDependencies)) {
-            var id = ModIdentifier.FromDependency(dependency);
-            var existing = _mods.GetEnabledAndDependencyReleases().Where(r =>
-                r.Info.RepoUrl.Equals(dependency.RepoUrl, StringComparison.OrdinalIgnoreCase)).ToArray();
+        var selectedPaks = _mods.GetEnabledAndDependencyReleases().ToArray();
+        var paksToEnable = new List<Release>();
+        foreach (var requirements in releases.SelectMany(r => r.Info.ModDependencies)
+                     .GroupBy(d => d.RepoUrl, StringComparer.OrdinalIgnoreCase)) {
+            var id = ModIdentifier.FromDependency(requirements.First());
+            bool Accept(Release release) => release.Version is { } version &&
+                requirements.All(dependency => SatisfiesVersion(version, dependency.Version));
+            var existing = selectedPaks.Where(r =>
+                r.Info.RepoUrl.Equals(requirements.Key, StringComparison.OrdinalIgnoreCase)).ToArray();
             if (existing.Length != 0) {
-                if (existing.Any(r => r.Version is null || !SatisfiesVersion(r.Version, dependency.Version)))
+                if (existing.Any(r => !Accept(r)))
                     throw new InvalidOperationException("DLL pak dependency conflicts with selected mods.");
                 continue;
             }
-            var mod = _mods.Mods.FirstOrDefault(m => m.LatestReleaseInfo.RepoUrl.Equals(dependency.RepoUrl, StringComparison.OrdinalIgnoreCase));
-            var release = mod?.Releases.Where(r => r.Version is { } version && SatisfiesVersion(version, dependency.Version))
+            var mod = _mods.Mods.FirstOrDefault(m => m.LatestReleaseInfo.RepoUrl.Equals(requirements.Key, StringComparison.OrdinalIgnoreCase));
+            var release = mod?.Releases.Where(Accept)
                 .OrderByDescending(r => r.Version).FirstOrDefault()
                 ?? throw new InvalidOperationException($"DLL pak dependency unavailable: {id.Org}/{id.ModuleName}");
+            paksToEnable.Add(release);
+        }
+        foreach (var release in paksToEnable) {
             if (!_mods.EnableModRelease(ReleaseCoordinates.FromRelease(release)))
                 throw new InvalidOperationException("Could not enable DLL pak dependency.");
         }

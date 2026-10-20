@@ -21,7 +21,7 @@ public class ServerOptionsTests {
         Assert.Equal(7777, server.GamePort);
         Assert.Equal(7071, server.QueryPort);
         Assert.Equal("FFA_Courtyard", server.Map);
-        Assert.StartsWith("TBL -server --additional-pak-dir ", options.ToLaunchOptions().LaunchArgs);
+        Assert.StartsWith("TBL -server ", options.ToLaunchOptions().LaunchArgs);
         Assert.Equal("UnchainedCLI", options.ToLaunchOptions().SavedDirSuffix.IfNone(""));
         Assert.Contains(server.ToCLIArgs(), arg => arg.Rendered == "-nullrhi");
         Assert.Contains(server.ToCLIArgs(), arg => arg.Rendered == "--desync-patch");
@@ -184,7 +184,7 @@ public class ServerOptionsTests {
         ]));
         var launch = options.ToLaunchOptions();
         Assert.True(launch.ServerLaunchOptions.IsNone);
-        Assert.StartsWith("TBL --additional-pak-dir ", launch.LaunchArgs);
+        Assert.Equal("TBL", launch.LaunchArgs);
     }
 
     [Theory]

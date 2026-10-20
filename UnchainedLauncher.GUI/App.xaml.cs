@@ -189,13 +189,7 @@ namespace UnchainedLauncher.GUI {
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                Chivalry2LaunchPreparer.Create<LaunchOptions>(options => {
-                    if (System.Text.RegularExpressions.Regex.IsMatch(options.LaunchArgs, @"(?:^|\s)--additional-pak-dir(?:\s|=|$)"))
-                        throw new ArgumentException("The additional pak directory is managed by the launcher.");
-                    return LanguageExt.Prelude.Some(options with {
-                        LaunchArgs = options.LaunchArgs + " " + new Parameter("--additional-pak-dir", assets.Paks).Rendered
-                    });
-                }).AndThen(pluginInstaller)
+                pluginInstaller
                     .AndThen(modInstaller)
                     .Sub(sigLaunchPreparer),
                 unchainedProcessLauncher,

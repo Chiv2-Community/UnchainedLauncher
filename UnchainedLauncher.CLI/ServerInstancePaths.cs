@@ -3,7 +3,7 @@ using UnchainedLauncher.Core.Services.Mods;
 namespace UnchainedLauncher.CLI;
 
 public sealed record ServerInstancePaths(string Root, string? PakCache = null) {
-    public string Paks => Path.Combine(Root, "paks");
+    public string Paks => Path.Combine(Path.GetDirectoryName(Root)!, "Paks");
     public string Plugins => Path.Combine(Root, "plugins");
     public string ModMetadata => Path.Combine(Root, "cli_mod_manager.json");
 

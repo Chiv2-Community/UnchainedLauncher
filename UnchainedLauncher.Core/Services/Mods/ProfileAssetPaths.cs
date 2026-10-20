@@ -5,7 +5,7 @@ namespace UnchainedLauncher.Core.Services.Mods;
 public sealed class ProfileAssetPaths {
     public const string SharedSuffix = "unchained";
     public string Root { get; }
-    public string Paks => Path.Combine(Root, "paks");
+    public string Paks => Path.Combine(Path.GetDirectoryName(Root)!, "Paks");
     public string Plugins => Path.Combine(Root, "plugins");
     public string PakCache { get; }
     public string DllCache { get; }

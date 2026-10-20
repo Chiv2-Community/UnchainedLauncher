@@ -67,8 +67,6 @@ public abstract class CliLaunchOptions : CliCommandOptions {
     private protected CliLaunchOptions(SharedLaunchOptions shared, IEnumerable<string> gameArguments) {
         _shared = shared;
         GameArguments = shared.GameArguments.Concat(gameArguments).ToArray();
-        if (GameArguments.Any(argument => argument == "--additional-pak-dir" || argument.StartsWith("--additional-pak-dir=", StringComparison.Ordinal)))
-            throw new ArgumentException("--additional-pak-dir is managed by the launcher; do not pass it through game-args.");
     }
 
     private protected CliLaunchOptions(string helpText) {
@@ -93,11 +91,9 @@ public abstract class CliLaunchOptions : CliCommandOptions {
     public abstract LaunchOptions ToLaunchOptions();
 
     private protected LaunchOptions BuildLaunchOptions(IEnumerable<string> prefix, LanguageExt.Option<ServerLaunchOptions> server) {
-        var start = prefix.ToList();
-        start.Insert(server.IsSome ? 2 : 1, new Parameter("--additional-pak-dir", InstancePaths.Paks).Rendered);
         return new(
         EnabledReleases: Shared.Mods.Distinct(), ServerBrowserBackend: Some(Shared.Backend),
-        LaunchArgs: string.Join(" ", start.Concat(GameArguments.Select(ArgumentEscaper.Escape))),
+        LaunchArgs: string.Join(" ", prefix.Concat(GameArguments.Select(ArgumentEscaper.Escape))),
         CheckForDependencyUpdates: Shared.UpdatePlugin, AllowUnstablePluginReleases: Shared.AllowUnstablePlugin,
         SavedDirSuffix: Some(Shared.SavedDirSuffix), ServerLaunchOptions: server);
     }
@@ -131,8 +127,6 @@ public sealed class ServerOptions : CliLaunchOptions {
             throw new ArgumentException("MapListIndex is managed by map-rotation; use starting-map to choose the first map.");
         NoTui = noTui;
         if (GameSavedDirSuffix.Length == 0) throw new ArgumentException("saved-dir-suffix must contain a character other than a hyphen.");
-        if (GameArguments.Any(argument => argument == "--additional-pak-dir" || argument.StartsWith("--additional-pak-dir=", StringComparison.Ordinal)))
-            throw new ArgumentException("--additional-pak-dir is managed by the launcher; do not pass it through game-args.");
         if (!settings.Headless && settings.DesyncPatch)
             throw new ArgumentException("Desync patch requires a headless server. To enable rendering, pass --no-desync-patch or set server.desync-patch: false in YAML.");
         if (new[] { settings.GamePort, settings.PingPort, settings.QueryPort, settings.RconPort }.Distinct().Count() != 4)

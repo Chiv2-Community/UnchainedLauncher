@@ -48,8 +48,6 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
     public static IReadOnlyList<DllRelease> Resolve(IReadOnlyList<DllPackage> packages,
         IEnumerable<ReleaseCoordinates> requested, bool server, bool allowUnstable) {
         var selected = new Dictionary<string, DllRelease>(StringComparer.OrdinalIgnoreCase);
-        var visiting = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var ordered = new List<DllRelease>();
         var roots = requested.ToList();
         if (!roots.Any(root => root.Org.Equals("Chiv2-Community", StringComparison.OrdinalIgnoreCase)
             && root.ModuleName.Equals("UnchainedPlugin", StringComparison.OrdinalIgnoreCase)))
@@ -61,31 +59,59 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
                 throw new InvalidOperationException($"Conflicting DLL requirements: {id}");
             pins[id] = root.Version;
         }
-        foreach (var root in roots) Visit(root.Org + "/" + root.ModuleName, root.Version, exact: true);
+        if (!Search(roots.Select(root => (root.Org + "/" + root.ModuleName, root.Version, true, Array.Empty<string>())).ToArray(), out var error))
+            throw new InvalidOperationException(error);
+        var ordered = new List<DllRelease>();
+        var emitted = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var root in roots) Emit(root.Org + "/" + root.ModuleName);
         return ordered;
 
-        void Visit(string id, string requirement, bool exact) {
-            var package = packages.FirstOrDefault(p => (p.LatestReleaseInfo.Identifier.Org + "/" + p.LatestReleaseInfo.Identifier.ModuleName).Equals(id, StringComparison.OrdinalIgnoreCase))
-                ?? throw new InvalidOperationException($"DLL package not found: {id}");
+        bool Search(IReadOnlyList<(string Id, string Requirement, bool Exact, string[] Path)> pending, out string? failure) {
+            failure = null;
+            if (pending.Count == 0) return true;
+            var (id, requirement, exact, path) = pending[0];
+            if (path.Contains(id, StringComparer.OrdinalIgnoreCase)) {
+                failure = $"Cyclic DLL dependency: {id}";
+                return false;
+            }
+            var package = packages.FirstOrDefault(p => (p.LatestReleaseInfo.Identifier.Org + "/" + p.LatestReleaseInfo.Identifier.ModuleName).Equals(id, StringComparison.OrdinalIgnoreCase));
+            if (package == null) {
+                failure = $"DLL package not found: {id}";
+                return false;
+            }
             bool Accept(DllRelease r) => exact ? requirement == "latest" || r.Tag == requirement : Satisfies(r, requirement);
             if (selected.TryGetValue(id, out var previous)) {
-                if (visiting.Contains(id)) throw new InvalidOperationException($"Cyclic DLL dependency: {id}");
-                if (!Accept(previous)) throw new InvalidOperationException($"Conflicting DLL requirements: {id}");
-                return;
+                if (Accept(previous)) return Search(pending.Skip(1).ToArray(), out failure);
+                failure = $"Conflicting DLL requirements: {id}";
+                return false;
             }
             var pinned = pins.TryGetValue(id, out var tag);
             var candidates = package.Releases.Where(Accept).Where(release => !pinned || release.Tag == tag)
                 .Where(release => release.Info.Target == "shared" || release.Info.Target == (server ? "server" : "client"));
             if (!pinned) candidates = candidates.Where(r => allowUnstable || r.Version?.IsRelease == true);
-            var release = candidates.OrderByDescending(r => r.Version).ThenByDescending(r => r.ReleaseDate).FirstOrDefault()
-                ?? throw new InvalidOperationException($"DLL release not found for launch target: {id}:{requirement}");
-            selected.Add(id, release);
-            visiting.Add(id);
+            failure = $"DLL release not found for launch target: {id}:{requirement}";
+            foreach (var release in candidates.OrderByDescending(r => r.Version).ThenByDescending(r => r.ReleaseDate)) {
+                selected.Add(id, release);
+                // Keep later roots in the same search so their constraints can reselect earlier dependencies.
+                List<(string Id, string Requirement, bool Exact, string[] Path)> next = [];
+                foreach (var dependency in release.Info.PluginDependencies) {
+                    var dep = ModIdentifier.FromDependency(dependency);
+                    next.Add((dep.Org + "/" + dep.ModuleName, dependency.Version, false, [.. path, id]));
+                }
+                next.AddRange(pending.Skip(1));
+                if (Search(next, out failure)) return true;
+                selected.Remove(id);
+            }
+            return false;
+        }
+
+        void Emit(string id) {
+            if (!emitted.Add(id)) return;
+            var release = selected[id];
             foreach (var dependency in release.Info.PluginDependencies) {
                 var dep = ModIdentifier.FromDependency(dependency);
-                Visit(dep.Org + "/" + dep.ModuleName, dependency.Version, exact: false);
+                Emit(dep.Org + "/" + dep.ModuleName);
             }
-            visiting.Remove(id);
             ordered.Add(release);
         }
     }

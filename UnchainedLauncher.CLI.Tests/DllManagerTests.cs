@@ -151,6 +151,80 @@ public sealed class DllManagerTests {
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void SharedDependenciesUseAllRootRequirements(bool reverse, bool conflict) {
+        var core = Release("Chiv2-Community/UnchainedPlugin");
+        var older = Release("org/dependency");
+        var newer = older with { Tag = "v2.0.0" };
+        var first = Release("org/first", dependencies: [new Dependency("https://github.com/org/dependency", conflict ? ">=2.0.0" : ">=1.0.0")]);
+        var second = Release("org/second", dependencies: [new Dependency("https://github.com/org/dependency", "<2.0.0")]);
+        ReleaseCoordinates[] roots = [new("org", "first", first.Tag), new("org", "second", second.Tag)];
+        if (reverse) Array.Reverse(roots);
+        DllPackage[] packages = [Package(core), Package(older, newer), Package(first), Package(second)];
+        if (conflict) {
+            var error = Assert.Throws<InvalidOperationException>(() => DllManager.Resolve(packages, roots, false, false));
+            Assert.Equal("Conflicting DLL requirements: org/dependency", error.Message);
+        }
+        else Assert.Equal(reverse ? new[] { core, older, second, first } : new[] { core, older, first, second },
+            DllManager.Resolve(packages, roots, false, false));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void ReselectionReplacesTransitiveRequirementsAndDropsAbandonedDependencies(bool reverse, bool constrainDependency) {
+        var core = Release("Chiv2-Community/UnchainedPlugin");
+        var leaf = Release("org/leaf");
+        var newerLeaf = leaf with { Tag = "v2.0.0" };
+        var abandoned = Release("org/abandoned");
+        var older = Release("org/dependency", dependencies: [new Dependency("https://github.com/org/leaf", "<2.0.0")]);
+        var newer = older with { Tag = "v2.0.0", Info = older.Info with { PluginDependencies = [
+            new Dependency("https://github.com/org/leaf", ">=2.0.0"), new Dependency("https://github.com/org/abandoned", ">=1.0.0") ] } };
+        var first = Release("org/first", dependencies: [new Dependency("https://github.com/org/dependency", ">=1.0.0")]);
+        var second = Release("org/second", dependencies: constrainDependency
+            ? [new Dependency("https://github.com/org/dependency", "<2.0.0"), new Dependency("https://github.com/org/leaf", "<2.0.0")]
+            : [new Dependency("https://github.com/org/leaf", "<2.0.0")]);
+        ReleaseCoordinates[] roots = [new("org", "first", first.Tag), new("org", "second", second.Tag)];
+        if (reverse) Array.Reverse(roots);
+        var expected = !reverse ? new[] { core, leaf, older, first, second }
+            : constrainDependency ? new[] { core, leaf, older, second, first } : new[] { core, leaf, second, older, first };
+        Assert.Equal(expected,
+            DllManager.Resolve([Package(core), Package(older, newer), Package(leaf, newerLeaf), Package(abandoned), Package(first), Package(second)],
+                roots, false, false));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LatestSharedDependencyUsesHighestCompatibleRelease(bool reverse) {
+        var core = Release("Chiv2-Community/UnchainedPlugin");
+        var oldest = Release("org/dependency");
+        var compatible = oldest with { Tag = "v1.5.0" };
+        var newest = oldest with { Tag = "v2.0.0" };
+        var plugin = Release("org/plugin", dependencies: [new Dependency("https://github.com/org/dependency", "<2.0.0")]);
+        ReleaseCoordinates[] roots = [new("org", "dependency", "latest"), new("org", "plugin", plugin.Tag)];
+        if (reverse) Array.Reverse(roots);
+        Assert.Equal(new[] { core, compatible, plugin }, DllManager.Resolve(
+            [Package(core), Package(oldest, newest, compatible), Package(plugin)], roots, false, false));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void UnavailableDependenciesKeepSpecificErrors(bool missingPackage) {
+        var core = Release("Chiv2-Community/UnchainedPlugin", dependencies: [new Dependency("https://github.com/org/dependency", ">=2.0.0")]);
+        DllPackage[] packages = missingPackage ? [Package(core)] : [Package(core), Package(Release("org/dependency"))];
+        var error = Assert.Throws<InvalidOperationException>(() => DllManager.Resolve(packages, [], false, false));
+        Assert.Equal(missingPackage ? "DLL package not found: org/dependency"
+            : "DLL release not found for launch target: org/dependency:>=2.0.0", error.Message);
+    }
+
+    [Theory]
     [InlineData("../x.dll")]
     [InlineData("..\\x.dll")]
     [InlineData("C:x.dll")]

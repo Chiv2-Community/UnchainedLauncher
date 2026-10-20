@@ -101,10 +101,28 @@ public class ManagedInventoryTests : IDisposable {
     private ModManager Manager(IModRegistry registry, ReleaseCoordinates[] selected) =>
         new(registry, new PakDir(Path.GetFullPath(FilePaths.PakDir), []), selected);
 
+    public static IEnumerable<object[]> InvalidInventories() {
+        yield return ["{", "Cannot read shared pak inventory."];
+        yield return ["null", "Cannot read shared pak inventory."];
+        foreach (var json in new[] { "{}", "{\"ManagedPaks\":null}", "{\"ManagedPaks\":[null]}" })
+            yield return [json, "Invalid managed pak inventory."];
+        var valid = new ManagedPak(new ReleaseCoordinates("org", "mod", "v1.0.0"), "owned.pak", 0);
+        foreach (var field in new[] { "Coordinates", "PakFileName", "Org", "ModuleName", "Version" }) {
+            foreach (var missing in new[] { false, true }) {
+                var entry = System.Text.Json.Nodes.JsonNode.Parse(JsonHelpers.Serialize(valid))!;
+                var parent = field is "Org" or "ModuleName" or "Version" ? entry["Coordinates"]! : entry;
+                if (missing) parent.AsObject().Remove(field);
+                else parent[field] = null;
+                yield return [$"{{\"ManagedPaks\":[{entry}]}}", "Invalid managed pak inventory."];
+            }
+        }
+        var invalid = valid with { PakFileName = "../outside.pak" };
+        yield return [JsonHelpers.Serialize(new PakDirMetadata("unused", [invalid])), "Invalid managed pak filename in inventory."];
+    }
+
     [Theory]
-    [InlineData(false, "Cannot read shared pak inventory.")]
-    [InlineData(true, "Invalid managed pak filename in inventory.")]
-    public async Task InvalidInventoryCancelsBeforeInstallationWithoutChangingFiles(bool invalidFilename, string diagnostic) {
+    [MemberData(nameof(InvalidInventories))]
+    public async Task InvalidInventoryCancelsBeforeInstallationWithoutChangingFiles(string inventoryJson, string diagnostic) {
         await InInstallation(async (registry, common, extra, launch) => {
             var owned = new ManagedPak(ReleaseCoordinates.FromRelease(common), "owned.pak", 0);
             var paks = Path.GetFullPath(FilePaths.PakDir);
@@ -112,10 +130,7 @@ public class ManagedInventoryTests : IDisposable {
             File.WriteAllText(Path.Combine(paks, "owned.sig"), "owned signature");
             var manager = new ModManager(registry, new PakDir(paks, [owned]), []);
             var inventoryPath = Path.Combine(manager.PakDir.DirPath, FilePaths.ManagedPakInventoryFileName);
-            var invalid = new ManagedPak(ReleaseCoordinates.FromRelease(common), "../outside.pak", 0);
-            File.WriteAllText(inventoryPath, invalidFilename
-                ? JsonHelpers.Serialize(new PakDirMetadata(manager.PakDir.DirPath, [invalid]))
-                : "{");
+            File.WriteAllText(inventoryPath, inventoryJson);
             var cache = Path.Combine(FilePaths.ModCachePath, "cli_mod_manager.json");
             Directory.CreateDirectory(FilePaths.ModCachePath);
             File.WriteAllText(cache, "unchanged host cache");
@@ -134,6 +149,20 @@ public class ManagedInventoryTests : IDisposable {
             });
             Assert.Equal(owned, Assert.Single(((PakDir)manager.PakDir).ManagedPaks));
             Assert.Equal(before.Keys.Order(), Directory.GetFiles(_root, "*", SearchOption.AllDirectories).Order());
+            foreach (var (path, bytes) in before) Assert.Equal(bytes, File.ReadAllBytes(path));
+        });
+    }
+
+    [Fact]
+    public async Task EmptyInventoryIsAcceptedWithoutAdoptingUnmanagedFiles() {
+        await InInstallation(async (registry, common, extra, launch) => {
+            var manager = Manager(registry, []);
+            var inventoryPath = Path.Combine(manager.PakDir.DirPath, FilePaths.ManagedPakInventoryFileName);
+            File.WriteAllText(inventoryPath, "{\"ManagedPaks\":[]}");
+            var before = Directory.GetFiles(_root, "*", SearchOption.AllDirectories)
+                .Where(path => path != inventoryPath).ToDictionary(path => path, File.ReadAllBytes);
+            await Prepare(manager, launch);
+            AssertOnlyCommonAndUnknown(manager, common);
             foreach (var (path, bytes) in before) Assert.Equal(bytes, File.ReadAllBytes(path));
         });
     }

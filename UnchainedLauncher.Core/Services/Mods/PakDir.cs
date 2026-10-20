@@ -34,7 +34,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         internal void ReconcileManagedPaks(IEnumerable<ManagedPak> managedPaks) {
-            var owned = managedPaks.ToList();
+            var owned = managedPaks?.ToList();
+            if (owned is null || owned.Any(p => p is null || p.PakFileName is null
+                || p.Coordinates is null || string.IsNullOrWhiteSpace(p.Coordinates.Org)
+                || string.IsNullOrWhiteSpace(p.Coordinates.ModuleName)
+                || string.IsNullOrWhiteSpace(p.Coordinates.Version)))
+                throw new InvalidDataException("Invalid managed pak inventory.");
             // Inventory authorizes deletion only inside this directory, never base/user paks.
             if (owned.Any(p => string.IsNullOrWhiteSpace(p.PakFileName)
                 || Path.GetFileName(p.PakFileName) != p.PakFileName

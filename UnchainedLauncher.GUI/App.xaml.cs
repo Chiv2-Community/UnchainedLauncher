@@ -173,12 +173,12 @@ namespace UnchainedLauncher.GUI {
                 new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 #endif
 
-            var noSigLaunchPreparer = NoSigPreparer.Create(modManager.PakDir, userDialogueSpawner);
+            var noSigLaunchPreparer = NoSigPreparer.CreateForInstallation(Directory.GetCurrentDirectory(), userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new ProfileModsLaunchPreparer(
-                modManager, userDialogueSpawner, Directory.GetCurrentDirectory()
+                modManager, userDialogueSpawner, Directory.GetCurrentDirectory(), precedingDllPreparer: pluginInstaller
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
@@ -188,8 +188,7 @@ namespace UnchainedLauncher.GUI {
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                pluginInstaller
-                    .AndThen(modInstaller),
+                modInstaller,
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
 #if DEBUG_FAKECHIVALRYLAUNCH

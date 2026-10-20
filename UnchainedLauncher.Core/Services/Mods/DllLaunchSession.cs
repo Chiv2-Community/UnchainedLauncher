@@ -42,9 +42,7 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
 
     public static bool Satisfies(DllRelease release, string requirement) => release.Version is { } version && SatisfiesVersion(version, requirement);
 
-    public static bool SatisfiesVersion(SemVersion version, string requirement) => PluginInfo.MatchesVersion(version.ToString(),
-        string.Join(",", requirement.Split(',').Select(part =>
-            System.Text.RegularExpressions.Regex.Replace(part.Trim(), @"^(\^|>=|<=|==|!=|>|<)?v", "$1"))));
+    public static bool SatisfiesVersion(SemVersion version, string requirement) => PluginInfo.MatchesVersion(version.ToString(), requirement);
 
     public static IReadOnlyList<DllRelease> Resolve(IReadOnlyList<DllPackage> packages,
         IEnumerable<ReleaseCoordinates> requested, bool server, bool allowUnstable) {

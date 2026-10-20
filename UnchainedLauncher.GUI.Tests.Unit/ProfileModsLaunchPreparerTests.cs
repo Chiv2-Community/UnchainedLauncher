@@ -16,6 +16,190 @@ using Xunit;
 namespace UnchainedLauncher.GUI.Tests.Unit;
 
 public sealed class ProfileModsLaunchPreparerTests {
+    [Fact]
+    public async Task VanillaLaunchOnlyUnsignsInstallationEvenWhileProfileIsLeased() {
+        var root = Scratch("gui-vanilla-boundary-");
+        try {
+            var installationPaks = Path.Combine(root, FilePaths.PakDir);
+            Directory.CreateDirectory(installationPaks);
+            var baseSig = Path.Combine(installationPaks, "pakchunk0-WindowsNoEditor.sig");
+            var legacySig = Path.Combine(installationPaks, "legacy.sig");
+            File.WriteAllText(baseSig, "base signature");
+            File.WriteAllText(legacySig, "legacy signature");
+            File.WriteAllText(Path.ChangeExtension(legacySig, ".pak"), "legacy payload");
+            var assets = new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix, root);
+            Directory.CreateDirectory(assets.Paks);
+            File.WriteAllText(Path.Combine(assets.Paks, "unknown.sig"), "profile signature");
+            File.WriteAllText(Path.Combine(assets.Paks, "unknown.pak"), "profile payload");
+            File.WriteAllText(Path.Combine(assets.Paks, FilePaths.ManagedPakInventoryFileName), "profile inventory");
+            var before = Directory.GetFiles(assets.Paks).ToDictionary(path => path, File.ReadAllBytes);
+            using var held = assets.AcquireLease();
+            var dialogue = new Dialogue();
+            var process = new CapturingProcessLauncher();
+            var launcher = new Chivalry2Launcher(NoSigPreparer.CreateForInstallation(root, dialogue)
+                .IgnoreOptions<LaunchOptions>(), process, root);
+
+            Assert.True((await launcher.Launch(Options(null))).IsLeft);
+            Assert.Equal(1, process.Calls);
+            Assert.False(File.Exists(legacySig));
+            Assert.Equal("legacy payload", File.ReadAllText(Path.ChangeExtension(legacySig, ".pak")));
+            Assert.Equal("base signature", File.ReadAllText(baseSig));
+            Assert.Equal(before.Keys.Order(), Directory.GetFiles(assets.Paks).Order());
+            foreach (var pair in before) Assert.Equal(pair.Value, File.ReadAllBytes(pair.Key));
+            Assert.Empty(dialogue.Messages);
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("AAA", true)]
+    [InlineData("AAA", false)]
+    [InlineData("zzz", true)]
+    [InlineData("zzz", false)]
+    public async Task CombinedPipelineLocksBothProfilesBeforeEnteringRealDllPreparer(string? suffix, bool holdShared) {
+        var root = Scratch("gui-combined-held-");
+        try {
+            var shared = new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix, root);
+            var selected = new ProfileAssetPaths(suffix ?? ProfileAssetPaths.SharedSuffix, root);
+            var manager = new ModManager(new LocalModRegistry(Path.Combine(root, "registry")), shared.CreatePakDir(root), []);
+            Directory.CreateDirectory(selected.Paks);
+            File.WriteAllText(Path.Combine(selected.Paks, "unknown.sig"), "profile signature");
+            var dialogue = new Dialogue();
+            using var http = new HttpClient();
+            var (dll, active) = CachedDll(shared, http);
+            var entered = 0;
+            var preceding = new CallbackPreparer(async options => {
+                entered++;
+                return await new DllLaunchPreparer(dll, dialogue).PrepareLaunch(options);
+            });
+            var preparer = new ProfileModsLaunchPreparer(manager, dialogue, root, root, preceding);
+            var heldAssets = holdShared ? shared : selected;
+            using (heldAssets.AcquireLease()) {
+                var before = Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+                    .Where(path => !path.EndsWith(".instance.lock")).ToDictionary(path => path, File.ReadAllBytes);
+                var process = new CapturingProcessLauncher();
+                var launcher = new UnchainedChivalry2Launcher(preparer, process, root, new NullInjector());
+                Assert.True((await launcher.Launch(Options(suffix))).IsLeft);
+                Assert.Equal(0, process.Calls);
+                Assert.Equal(0, entered);
+                Assert.False(File.Exists(active));
+                Assert.Contains("another launcher", Assert.Single(dialogue.Messages));
+                Assert.Equal(before.Keys.Order(), Directory.GetFiles(root, "*", SearchOption.AllDirectories)
+                    .Where(path => !path.EndsWith(".instance.lock")).Order());
+                foreach (var pair in before) Assert.Equal(pair.Value, File.ReadAllBytes(pair.Key));
+                // The lower-sorted profile is acquired first, regardless of which one holds DLLs.
+                if (shared.Root != selected.Root) {
+                    var first = new[] { shared, selected }.OrderBy(p => p.Root, StringComparer.OrdinalIgnoreCase).First();
+                    var second = first == shared ? selected : shared;
+                    if (heldAssets == second) {
+                        Assert.True(File.Exists(Path.Combine(first.Root, ".instance.lock")));
+                        using (first.AcquireLease()) { }
+                    }
+                    else Assert.False(File.Exists(Path.Combine(second.Root, ".instance.lock")));
+                }
+            }
+            Assert.True((await preparer.PrepareLaunch(Options(suffix))).IsSome);
+            Assert.Equal(1, entered);
+            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(active));
+            Assert.Empty(ReadInventory(selected.Paks));
+            Assert.Equal("profile signature", File.ReadAllText(Path.Combine(selected.Paks, "unknown.sig")));
+            using (shared.AcquireLease()) { }
+            using (selected.AcquireLease()) { }
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Theory]
+    [InlineData(null, "success")]
+    [InlineData("un-chained", "success")]
+    [InlineData("Other", "success")]
+    [InlineData("Other", "cancel")]
+    [InlineData("Other", "error")]
+    [InlineData("Other", "throw-cancel")]
+    public async Task CombinedPipelineHoldsLeasesAcrossAsyncDllPreparationAndRebindsAfterSelection(string? suffix, string outcome) {
+        var root = Scratch("gui-combined-async-");
+        var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<Option<LaunchOptions>>? pending = null;
+        try {
+            var shared = new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix, root);
+            var selected = new ProfileAssetPaths(suffix ?? ProfileAssetPaths.SharedSuffix, root);
+            var installationPaks = Path.Combine(root, FilePaths.PakDir);
+            Directory.CreateDirectory(installationPaks);
+            File.WriteAllText(Path.Combine(installationPaks, "pakchunk0-WindowsNoEditor.sig"), "signature");
+            var payload = Path.Combine(root, "source.pak");
+            File.WriteAllText(payload, "pak payload");
+            var hash = FileHelpers.Sha512(payload).Match(value => value, error => throw new Exception(error.Message));
+            var release = new Release("v1.0.0", hash, "mod.pak", DateTime.UnixEpoch,
+                new ModInfo("https://github.com/org/mod", "mod", "test", null, null, [], [], []),
+                new AssetCollections([], [], [], [], []), null);
+            var registry = new LocalModRegistry(Path.Combine(root, "registry"));
+            await registry.AddRelease(release, payload);
+            var manager = new ModManager(registry, shared.CreatePakDir(root), []);
+            Assert.False((await manager.UpdateModsList()).HasErrors);
+            var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var dialogue = new Dialogue();
+            using var http = new HttpClient();
+            var (dll, active) = CachedDll(shared, http);
+            Exception error = outcome == "throw-cancel" ? new OperationCanceledException("original cancellation")
+                : new InvalidOperationException("original DLL error");
+            dialogue.ProgressStarted = () => {
+                Assert.True(File.Exists(active));
+                Assert.Throws<IOException>(() => shared.AcquireLease());
+                Assert.Throws<IOException>(() => selected.AcquireLease());
+            };
+            var preceding = new CallbackPreparer(async options => {
+                Assert.Empty(Directory.GetFiles(selected.Paks, "*.pak"));
+                started.SetResult();
+                await finish.Task;
+                if (outcome is "error" or "throw-cancel") throw error;
+                if (outcome == "cancel") return Option<LaunchOptions>.None;
+                Assert.True(manager.EnableModRelease(ReleaseCoordinates.FromRelease(release)));
+                return await new DllLaunchPreparer(dll, dialogue).PrepareLaunch(options);
+            });
+            var preparer = new ProfileModsLaunchPreparer(manager, dialogue, root, root, preceding);
+            pending = preparer.PrepareLaunch(Options(suffix));
+            await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Throws<IOException>(() => shared.AcquireLease());
+            Assert.Throws<IOException>(() => selected.AcquireLease());
+            Assert.False(File.Exists(active));
+            finish.SetResult();
+            if (outcome is "error" or "throw-cancel") Assert.Same(error, await Assert.ThrowsAnyAsync<Exception>(() => pending));
+            else Assert.Equal(outcome == "success", (await pending.WaitAsync(TimeSpan.FromSeconds(10))).IsSome);
+            using (shared.AcquireLease()) { }
+            using (selected.AcquireLease()) { }
+            if (outcome == "success") {
+                Assert.True(File.Exists(active));
+                Assert.Equal(ReleaseCoordinates.FromRelease(release), Assert.Single(ReadInventory(selected.Paks)).Coordinates);
+                Assert.Single(manager.EnabledModReleaseCoordinates);
+            }
+            else {
+                Assert.False(File.Exists(active));
+                Assert.Empty(Directory.GetFiles(selected.Paks));
+            }
+            Assert.Empty(dialogue.Messages);
+        }
+        finally {
+            finish.TrySetResult();
+            if (pending is not null) try { await pending; } catch { }
+            Directory.Delete(root, true);
+        }
+    }
+
+    private static (UnchainedLauncher.Core.Services.Dlls.DllManager Manager, string Active) CachedDll(ProfileAssetPaths shared, HttpClient http) {
+        var release = new UnchainedLauncher.Core.Services.Dlls.DllRelease("org", "plugin", "1.0.0",
+            "https://example.test/plugin.dll", Convert.ToHexString(System.Security.Cryptography.SHA256.HashData([1, 2, 3])).ToLowerInvariant(), 3);
+        var cache = Path.Combine(shared.DllCache, release.Sha256, "plugin.dll");
+        Directory.CreateDirectory(Path.GetDirectoryName(cache)!);
+        File.WriteAllBytes(cache, [1, 2, 3]);
+        return (UnchainedLauncher.Core.Services.Dlls.DllManager.CreateForLaunch(shared.Plugins, [release], [release], http, () => [], shared.DllCache),
+            Path.Combine(shared.Plugins, "Managed", "org", "plugin", "plugin.dll"));
+    }
+
+    private sealed class CallbackPreparer(Func<LaunchOptions, Task<Option<LaunchOptions>>> prepare) : IChivalry2LaunchPreparer<LaunchOptions> {
+        public Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) => prepare(options);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -140,7 +324,13 @@ public sealed class ProfileModsLaunchPreparerTests {
             var manager = new ModManager(registry, new PakDir(Path.Combine(root, "source"), []), []);
             var before = Directory.GetFileSystemEntries(root, "*", SearchOption.AllDirectories).Order().ToArray();
             var dialogue = new Dialogue();
-            var result = await new ProfileModsLaunchPreparer(manager, dialogue, root, root).PrepareLaunch(Options(suffix));
+            var entered = false;
+            var preceding = new CallbackPreparer(options => {
+                entered = true;
+                return Task.FromResult(Option<LaunchOptions>.Some(options));
+            });
+            var result = await new ProfileModsLaunchPreparer(manager, dialogue, root, root, preceding).PrepareLaunch(Options(suffix));
+            Assert.False(entered);
             Assert.True(result.IsNone);
             Assert.Contains("Invalid saved directory suffix", Assert.Single(dialogue.Messages));
             Assert.Equal(before, Directory.GetFileSystemEntries(root, "*", SearchOption.AllDirectories).Order().ToArray());
@@ -235,13 +425,19 @@ public sealed class ProfileModsLaunchPreparerTests {
             byte[] obstruction = [0, 1, 255, 42];
             File.WriteAllBytes(assets.Paks, obstruction);
             var dialogue = new Dialogue();
-            var preparer = new ProfileModsLaunchPreparer(manager, dialogue, root, root);
+            var entered = 0;
+            var preceding = new CallbackPreparer(options => {
+                entered++;
+                return Task.FromResult(Option<LaunchOptions>.Some(options));
+            });
+            var preparer = new ProfileModsLaunchPreparer(manager, dialogue, root, root, preceding);
             var process = new CapturingProcessLauncher();
             var launcher = new UnchainedChivalry2Launcher(preparer, process, root, new NullInjector());
 
             Assert.True((await preparer.PrepareLaunch(Options(suffix))).IsNone);
             Assert.True((await launcher.Launch(Options(suffix))).IsLeft);
             Assert.Equal(0, process.Calls);
+            Assert.Equal(0, entered);
             Assert.Equal(obstruction, File.ReadAllBytes(assets.Paks));
             Assert.Equal(2, dialogue.Messages.Count);
             Assert.All(dialogue.Messages, message => {
@@ -256,6 +452,7 @@ public sealed class ProfileModsLaunchPreparerTests {
             Assert.True((await preparer.PrepareLaunch(Options(suffix))).IsSome);
             Assert.True((await launcher.Launch(Options(suffix))).IsLeft); // Stop at the OS process boundary.
             Assert.Equal(1, process.Calls);
+            Assert.Equal(2, entered);
             Assert.Empty(dialogue.Messages);
             Assert.Equal(2, dialogue.ProgressClosed);
             using (assets.AcquireLease()) { }
@@ -412,11 +609,13 @@ public sealed class ProfileModsLaunchPreparerTests {
         public List<string> Messages { get; } = [];
         public int ProgressClosed { get; private set; }
         public Exception? ProgressError { get; init; }
+        public Action? ProgressStarted { get; set; }
         public void DisplayMessage(string message) => Messages.Add(message);
         public UserDialogueChoice DisplayYesNoMessage(string message, string caption) => throw new NotSupportedException();
         public UserDialogueChoice? DisplayUpdateMessage(string titleText, string messageText, string yesButtonText,
             string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates) => throw new NotSupportedException();
         public Action DisplayProgress(MemoryProgress progress) {
+            ProgressStarted?.Invoke();
             if (ProgressError is not null) throw ProgressError;
             return () => { ProgressClosed++; };
         }

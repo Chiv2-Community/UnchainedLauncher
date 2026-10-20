@@ -88,7 +88,8 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         public static bool MatchesVersion(string version, string requirement) {
             var candidate = SemVersion.Parse(version, SemVersionStyles.Strict);
             if (string.IsNullOrEmpty(requirement)) throw new InvalidDataException("Missing dependency version.");
-            if (requirement.StartsWith('v')) requirement = requirement[1..];
+            requirement = string.Join(",", requirement.Split(',').Select(part =>
+                Regex.Replace(part.Trim(), @"^(\^|>=|<=|==|!=|>|<)?v", "$1")));
             if (requirement.StartsWith('^')) {
                 var lower = SemVersion.Parse(requirement[1..], SemVersionStyles.Strict);
                 var upper = lower.Major != 0 ? new SemVersion(checked(lower.Major + 1), 0, 0)

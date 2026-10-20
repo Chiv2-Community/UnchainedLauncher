@@ -1,6 +1,8 @@
 using LanguageExt;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
@@ -10,7 +12,8 @@ using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 namespace UnchainedLauncher.GUI.Services;
 
 public sealed class ProfileModsLaunchPreparer(
-    ModManager manager, IUserDialogueSpawner dialogue, string installation, string? localAppData = null)
+    ModManager manager, IUserDialogueSpawner dialogue, string installation, string? localAppData = null,
+    IChivalry2LaunchPreparer<LaunchOptions>? precedingDllPreparer = null)
     : IChivalry2LaunchPreparer<LaunchOptions> {
     public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
         ProfileAssetPaths assets;
@@ -20,12 +23,25 @@ public sealed class ProfileModsLaunchPreparer(
         catch (ArgumentException e) {
             return Cancel(e);
         }
-        IDisposable lease;
-        try { lease = assets.AcquireLease(); }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
-            return Cancel(e);
-        }
-        using (lease) {
+        var profiles = precedingDllPreparer is null ? new[] { assets }
+            : new[] { assets, new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix, localAppData) };
+        var leases = new List<IDisposable>();
+        try {
+            try {
+                foreach (var profile in profiles.DistinctBy(p => p.Root, StringComparer.OrdinalIgnoreCase)
+                             .OrderBy(p => p.Root, StringComparer.OrdinalIgnoreCase))
+                    leases.Add(profile.AcquireLease());
+                Directory.CreateDirectory(assets.Paks);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+                return Cancel(e);
+            }
+            options = options with { SavedDirSuffix = assets.Suffix };
+            if (precedingDllPreparer is not null) {
+                var prepared = await precedingDllPreparer.PrepareLaunch(options);
+                if (prepared.IsNone) return Option<LaunchOptions>.None;
+                options = prepared.IfNone(options);
+            }
             ModManager profileManager;
             try { profileManager = assets.Rebind(manager, installation); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
@@ -35,7 +51,10 @@ public sealed class ProfileModsLaunchPreparer(
             IChivalry2LaunchPreparer<LaunchOptions> installer = new Chivalry2ModsInstaller(profileManager, dialogue);
             return await installer
                 .Sub(SigPreparer.CreateForProfile(profileManager.PakDir, dialogue))
-                .PrepareLaunch(options with { SavedDirSuffix = assets.Suffix });
+                .PrepareLaunch(options);
+        }
+        finally {
+            for (var i = leases.Count - 1; i >= 0; i--) leases[i].Dispose();
         }
     }
 

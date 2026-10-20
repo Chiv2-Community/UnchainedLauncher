@@ -59,11 +59,13 @@ internal sealed record MapRotation(IReadOnlyList<string> Maps, int StartIndex) {
 
     internal void Apply(string directory) {
         var writer = new StructuredINIWriter();
-        var values = new[] { KeyValuePair.Create("!MapList", "ClearArray") }
-            .Concat(Maps.Select(map => KeyValuePair.Create(".MapList", map)))
+        BufferInto(writer);
+        IniPatches.Write(directory, new(StringComparer.OrdinalIgnoreCase) { ["Game"] = writer });
+    }
+
+    internal void BufferInto(StructuredINIWriter writer) {
+        var values = IniPatches.Array("MapList", Maps)
             .Append(KeyValuePair.Create("MapListIndex", StartIndex.ToString(CultureInfo.InvariantCulture)));
-        writer.BufferSection("/Script/TBL.TBLGameMode", values);
-        if (!writer.WriteOut(Path.Combine(directory, "Game.ini")))
-            throw new IOException("Could not apply map-rotation to the server profile; refusing to launch.");
+        writer.MergeSection("/Script/TBL.TBLGameMode", values);
     }
 }

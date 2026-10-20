@@ -155,7 +155,7 @@ public sealed class PakCacheTests : IDisposable {
         var first = new ProfileAssetPaths("Host-one", _root);
         var second = new ProfileAssetPaths("Host-two", _root);
         Assert.Equal(Path.Combine(_root, "Chivalry 2", "Saved_Hostone", "Paks"), first.Paks);
-        Assert.Equal(first.Paks, new ServerInstancePaths(first.Root, first.PakCache).Paks);
+        Assert.Equal(first.Paks, new ServerInstancePaths(first).Paks);
         Assert.Equal(Path.Combine(_root, "Chivalry 2", "Saved_Hostone", "unchained", "plugins"), first.Plugins);
         Assert.NotEqual(first.Paks, second.Paks);
         Assert.Equal(first.PakCache, second.PakCache);
@@ -163,4 +163,34 @@ public sealed class PakCacheTests : IDisposable {
         Assert.Equal(Path.Combine(_root, "Chivalry 2", "Saved_unchained", "Paks"),
             new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix, _root).Paks);
     }
+
+    [Fact]
+    public async Task InstanceUsesCorePathsSignatureCacheCancellationAndExclusiveLease() {
+        var assets = new ProfileAssetPaths("Host-one", _root);
+        var instance = new ServerInstancePaths(assets);
+        var installation = Path.Combine(_root, "game");
+        using var stop = new CancellationTokenSource();
+        var paks = instance.CreatePakDir(installation, stop.Token);
+        Assert.Equal(assets.Plugins, instance.Plugins);
+        Assert.Equal(assets.PakCache, paks.CachePath);
+        Assert.Equal(Path.Combine(installation, FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig"), paks.DefaultSigPath);
+        using (instance.AcquireLease()) {
+            Assert.Throws<IOException>(() => instance.AcquireLease());
+        }
+        using var lease = instance.AcquireLease();
+        stop.Cancel();
+        var results = new List<Either<Error, ManagedPak>>();
+        await foreach (var result in paks.InstallModSet([Request(_ => throw new Exception("Cancelled install must not download."))], None))
+            results.Add(result);
+        Assert.True(Assert.Single(results).IsLeft);
+        Assert.Empty(Directory.GetFiles(assets.Paks, "*.pak"));
+    }
+
+    [Theory]
+    [InlineData("---")]
+    [InlineData("../outside")]
+    [InlineData("bad suffix")]
+    [InlineData("")]
+    public void CoreProfileValidationRejectsUnsafeOrEmptyNormalizedSuffix(string suffix) =>
+        Assert.Throws<ArgumentException>(() => new ProfileAssetPaths(suffix, _root));
 }

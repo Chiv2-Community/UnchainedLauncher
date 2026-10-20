@@ -14,6 +14,20 @@ namespace StructuredINI {
             _bufferedSections[sectionName] = $"[{sectionName}]\n" + string.Join("\n", entries.Select(entry => $"{entry.Key}={entry.Value}"));
         }
 
+        // Merge caller-selected keys into a pending section; later values replace only those keys.
+        public void MergeSection(string sectionName, IEnumerable<KeyValuePair<string, string>> entries) {
+            var lines = entries.Select(entry => $"{entry.Key}={entry.Value}").ToList();
+            if (!_bufferedSections.TryGetValue(sectionName, out var buffered)) {
+                _sectionOrder.Add(sectionName);
+                _bufferedSections[sectionName] = $"[{sectionName}]\n" + string.Join("\n", lines);
+                return;
+            }
+
+            var section = new IniSection(sectionName, SplitLines(buffered).Skip(1).ToList());
+            PatchSection(section, ExtractKeysFromLines(lines), lines);
+            _bufferedSections[sectionName] = $"[{sectionName}]\n" + string.Join("\n", section.BodyLines);
+        }
+
         public static bool Save<T>(string path, T t) {
             var writer = new StructuredINIWriter();
             return writer.BufferWrite(t) && writer.WriteOut(path);

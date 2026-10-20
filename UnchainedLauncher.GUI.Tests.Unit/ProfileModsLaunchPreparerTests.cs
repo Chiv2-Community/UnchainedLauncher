@@ -16,6 +16,36 @@ namespace UnchainedLauncher.GUI.Tests.Unit;
 
 public sealed class ProfileModsLaunchPreparerTests {
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RebindingCopiesOwnershipOnlyWithinTheSameProfileAndSnapshotsSelection(bool sameProfile) {
+        var root = Path.Combine(Path.GetTempPath(), "gui-rebind-" + Guid.NewGuid().ToString("N"));
+        try {
+            var source = new ProfileAssetPaths("Source", root);
+            var target = sameProfile ? new ProfileAssetPaths("Source", root) : new ProfileAssetPaths("Target", root);
+            Directory.CreateDirectory(source.Paks);
+            Directory.CreateDirectory(target.Paks);
+            var coordinates = new ReleaseCoordinates("org", "mod", "v1.0.0");
+            var owned = new ManagedPak(coordinates, "mod_0_P.pak", 0);
+            File.WriteAllText(Path.Combine(source.Paks, owned.PakFileName), "source");
+            if (!sameProfile) File.WriteAllText(Path.Combine(target.Paks, owned.PakFileName), "unknown target payload");
+            var manager = new ModManager(new LocalModRegistry(Path.Combine(root, "registry")),
+                source.CreatePakDir(root, [owned]), [coordinates]);
+            var rebound = target.Rebind(manager, root);
+            Assert.NotSame(manager, rebound);
+            Assert.NotSame(manager.PakDir, rebound.PakDir);
+            Assert.Same(manager.ModRegistry, rebound.ModRegistry);
+            Assert.Equal(new[] { coordinates }, rebound.EnabledModReleaseCoordinates);
+            Assert.Equal(sameProfile ? new[] { owned } : [], Assert.IsType<PakDir>(rebound.PakDir).ManagedPaks);
+            Assert.Single(Assert.IsType<PakDir>(manager.PakDir).ManagedPaks);
+            Assert.IsType<List<ReleaseCoordinates>>(manager.EnabledModReleaseCoordinates).Clear();
+            Assert.Single(rebound.EnabledModReleaseCoordinates);
+            if (!sameProfile) Assert.Equal("unknown target payload", File.ReadAllText(Path.Combine(target.Paks, owned.PakFileName)));
+        }
+        finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+    }
+
+    [Theory]
     [InlineData(null, "unchained")]
     [InlineData("Courtyard", "Courtyard")]
     [InlineData("Court_yard_1", "Court_yard_1")]

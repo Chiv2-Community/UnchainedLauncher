@@ -323,9 +323,7 @@ namespace UnchainedLauncher.GUI {
 
             var codec = new ModManagerCodec(registry);
             var modManager = InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
-            var sameProfile = Path.GetFullPath(modManager.PakDir.DirPath).Equals(Path.GetFullPath(assets.Paks), StringComparison.OrdinalIgnoreCase);
-            modManager = modManager.WithPakDir(assets.CreatePakDir(Directory.GetCurrentDirectory(),
-                sameProfile && modManager.PakDir is PakDir existing ? existing.ManagedPaks : []));
+            modManager = assets.Rebind(modManager, Directory.GetCurrentDirectory());
 
             RegisterSaveToFileOnExit(modManager, codec, jsonPath);
             return modManager;

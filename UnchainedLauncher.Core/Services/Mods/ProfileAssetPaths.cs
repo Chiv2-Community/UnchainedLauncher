@@ -22,8 +22,14 @@ public sealed class ProfileAssetPaths {
         DllCache = Path.Combine(game, "unchained", "cache", "dlls");
     }
 
-    public PakDir CreatePakDir(string installation, IEnumerable<ManagedPak>? managedPaks = null) {
+    public ModManager Rebind(ModManager manager, string installation) {
+        var sameProfile = Path.GetFullPath(manager.PakDir.DirPath).Equals(Path.GetFullPath(Paks), StringComparison.OrdinalIgnoreCase);
+        return manager.WithPakDir(CreatePakDir(installation,
+            sameProfile && manager.PakDir is PakDir existing ? existing.ManagedPaks : []));
+    }
+
+    public PakDir CreatePakDir(string installation, IEnumerable<ManagedPak>? managedPaks = null, CancellationToken cancellationToken = default) {
         Directory.CreateDirectory(Paks);
-        return new PakDir(Paks, managedPaks ?? [], Path.Combine(installation, FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig"), PakCache);
+        return new PakDir(Paks, managedPaks ?? [], Path.Combine(installation, FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig"), PakCache, cancellationToken);
     }
 }

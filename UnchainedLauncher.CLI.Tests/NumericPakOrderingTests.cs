@@ -100,4 +100,32 @@ public sealed class NumericPakOrderingTests : IDisposable {
         Assert.Equal(["one_Common_0_P.pak", "two_Common_1_P.pak"],
             directory.ManagedPaks.OrderBy(pak => pak.Priority).Select(pak => pak.PakFileName));
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task DownloadUsesCollisionSafeNumericNameForPayloadAndSignature(bool cached) {
+        File.WriteAllText(Path.Combine(_root, "Mod_0_P.pak"), "unknown payload");
+        File.WriteAllText(Path.Combine(_root, "Mod (1)_0_P.sig"), "unknown signature");
+        var signature = Path.Combine(_root, "base.sig");
+        File.WriteAllText(signature, "base signature");
+        var bytes = Encoding.UTF8.GetBytes("selected payload");
+        var hash = Convert.ToHexString(System.Security.Cryptography.SHA512.HashData(bytes));
+        string? writerPath = null;
+        var request = new ModInstallRequest(new ReleaseCoordinates("org", "Mod", "v1.0.0"), path => {
+            writerPath = path;
+            return RightAsync<Error, FileWriter>(new FileWriter(path, new MemoryStream(bytes), bytes.Length));
+        }, hash);
+        var directory = new PakDir(_root, [], signature, cached ? Path.Combine(_root, "cache") : null);
+
+        await Install(directory, request);
+
+        Assert.Equal("Mod (2)_0_P.pak", Assert.Single(directory.ManagedPaks).PakFileName);
+        var selected = Path.Combine(_root, "Mod (2)_0_P.pak");
+        if (!cached) Assert.Equal(selected, writerPath);
+        Assert.Equal("selected payload", File.ReadAllText(selected));
+        Assert.Equal("base signature", File.ReadAllText(Path.ChangeExtension(selected, ".sig")));
+        Assert.Equal("unknown payload", File.ReadAllText(Path.Combine(_root, "Mod_0_P.pak")));
+        Assert.Equal("unknown signature", File.ReadAllText(Path.Combine(_root, "Mod (1)_0_P.sig")));
+    }
 }

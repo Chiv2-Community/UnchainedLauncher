@@ -1,6 +1,4 @@
 using LanguageExt;
-using System;
-using System.IO;
 using System.Threading.Tasks;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
@@ -14,10 +12,7 @@ public sealed class ProfileModsLaunchPreparer(
     : IChivalry2LaunchPreparer<LaunchOptions> {
     public Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
         var assets = new ProfileAssetPaths(options.SavedDirSuffix.IfNone(ProfileAssetPaths.SharedSuffix), localAppData);
-        var sameProfile = Path.GetFullPath(manager.PakDir.DirPath).Equals(
-            Path.GetFullPath(assets.Paks), StringComparison.OrdinalIgnoreCase);
-        var profileManager = manager.WithPakDir(assets.CreatePakDir(installation,
-            sameProfile && manager.PakDir is PakDir existing ? existing.ManagedPaks : []));
+        var profileManager = assets.Rebind(manager, installation);
         // DLL selection and injection stay bound to the shared manager and plugin directory.
         IChivalry2LaunchPreparer<LaunchOptions> installer = new Chivalry2ModsInstaller(profileManager, dialogue);
         return installer

@@ -90,8 +90,7 @@ public static class ServerLauncher {
         options.Shared.RegistryOptions.CreateRegistry();
 
     internal static ModManager CreateModManager(CliLaunchOptions request, AggregateModRegistry registry, CancellationToken cancellationToken = default) {
-        var basePakPath = Path.Combine(request.Shared.Chivalry2Path, FilePaths.PakDir);
-        return new ModManager(registry, request.InstancePaths.CreatePakDir(basePakPath, cancellationToken), request.Shared.Mods.Distinct());
+        return new ModManager(registry, request.InstancePaths.CreatePakDir(request.Shared.Chivalry2Path, cancellationToken), request.Shared.Mods.Distinct());
     }
 
     internal static DllLaunchSession CreateDllSession(CliLaunchOptions request, AggregateModRegistry registry,
@@ -105,11 +104,12 @@ public static class ServerLauncher {
         var directory = (configPath ?? FilePaths.Chiv2ConfigPath)(server.GameSavedDirSuffix);
         // Match the GUI's startup defaults without rewriting unrelated server or player settings.
         var writer = new StructuredINIWriter();
-        if (!writer.BufferWrite(new TBLTitleScreen()) || !writer.BufferWrite(new TBLGameInstance()) ||
-            !writer.WriteOut(Path.Combine(directory, "Game.ini")))
+        if (!writer.BufferWrite(new TBLTitleScreen()) || !writer.BufferWrite(new TBLGameInstance()))
             throw new IOException("Could not initialize the server INI profile; refusing to launch.");
-        server.Ini.Apply(directory);
-        server.Settings.Rotation?.Apply(directory);
+        var files = new Dictionary<string, StructuredINIWriter>(StringComparer.OrdinalIgnoreCase) { ["Game"] = writer };
+        server.Ini.BufferInto(files);
+        server.Settings.Rotation?.BufferInto(writer);
+        IniPatches.Write(directory, files);
     }
 
     // Several existing Core preparers use installation-relative paths.

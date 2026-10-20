@@ -131,8 +131,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             return fullActualName;
         }
 
-        private EitherAsync<Error, string> _writePak(IPakDir.MakeFileWriter mkFileWriter, Option<IProgress<double>> progress, string suggestedFileName) {
-            var fullActualName = AvailablePakName(suggestedFileName);
+        private EitherAsync<Error, string> _writePak(IPakDir.MakeFileWriter mkFileWriter, Option<IProgress<double>> progress, string fullActualName) {
             Logger.Info($"Downloading pak to {fullActualName}");
             return mkFileWriter(PakNameToPakPath(fullActualName))
                 .Bind(fileWriter =>
@@ -309,7 +308,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var name = AvailablePakName(download.FinalPakName);
             var progress = taskProgress.Map(p => (IProgress<double>)p);
             var written = CachePath is null
-                ? await _writePak(download.Install.Writer, progress, download.FinalPakName)
+                ? await _writePak(download.Install.Writer, progress, name)
                 : (await new PakCache(CachePath).Install(download.Install, PakNameToPakPath(name), progress, _cancellationToken)).Map(_ => name);
             return written
                 .Map(pakFileName => {

@@ -18,22 +18,29 @@ public sealed class ProfileModsLaunchPreparer(
             assets = new ProfileAssetPaths(options.SavedDirSuffix.IfNone(ProfileAssetPaths.SharedSuffix), localAppData);
         }
         catch (ArgumentException e) {
-            dialogue.DisplayMessage($"Could not prepare profile assets: {e.Message}\nLaunch cancelled.");
-            return Option<LaunchOptions>.None;
+            return Cancel(e);
         }
         IDisposable lease;
         try { lease = assets.AcquireLease(); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
-            dialogue.DisplayMessage($"Could not prepare profile assets: {e.Message}\nLaunch cancelled.");
-            return Option<LaunchOptions>.None;
+            return Cancel(e);
         }
         using (lease) {
-            var profileManager = assets.Rebind(manager, installation);
+            ModManager profileManager;
+            try { profileManager = assets.Rebind(manager, installation); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+                return Cancel(e);
+            }
             // DLL selection and injection stay bound to the shared manager and plugin directory.
             IChivalry2LaunchPreparer<LaunchOptions> installer = new Chivalry2ModsInstaller(profileManager, dialogue);
             return await installer
                 .Sub(SigPreparer.CreateForProfile(profileManager.PakDir, dialogue))
                 .PrepareLaunch(options with { SavedDirSuffix = assets.Suffix });
         }
+    }
+
+    private Option<LaunchOptions> Cancel(Exception error) {
+        dialogue.DisplayMessage($"Could not prepare profile assets: {error.Message}\nLaunch cancelled.");
+        return Option<LaunchOptions>.None;
     }
 }

@@ -222,6 +222,47 @@ public sealed class ProfileModsLaunchPreparerTests {
         finally { finish.TrySetResult(); Directory.Delete(root, true); }
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Target")]
+    public async Task ObstructedProfilePaksCancelsLaunchAndAllowsRetry(string? suffix) {
+        var root = Scratch("gui-obstructed-profile-");
+        try {
+            var assets = new ProfileAssetPaths(suffix ?? ProfileAssetPaths.SharedSuffix, root);
+            var source = new ProfileAssetPaths("Source", root);
+            var manager = new ModManager(new LocalModRegistry(Path.Combine(root, "registry")), source.CreatePakDir(root), []);
+            Directory.CreateDirectory(Path.GetDirectoryName(assets.Paks)!);
+            byte[] obstruction = [0, 1, 255, 42];
+            File.WriteAllBytes(assets.Paks, obstruction);
+            var dialogue = new Dialogue();
+            var preparer = new ProfileModsLaunchPreparer(manager, dialogue, root, root);
+            var process = new CapturingProcessLauncher();
+            var launcher = new UnchainedChivalry2Launcher(preparer, process, root, new NullInjector());
+
+            Assert.True((await preparer.PrepareLaunch(Options(suffix))).IsNone);
+            Assert.True((await launcher.Launch(Options(suffix))).IsLeft);
+            Assert.Equal(0, process.Calls);
+            Assert.Equal(obstruction, File.ReadAllBytes(assets.Paks));
+            Assert.Equal(2, dialogue.Messages.Count);
+            Assert.All(dialogue.Messages, message => {
+                Assert.Contains("Could not prepare profile assets", message);
+                Assert.Contains("Launch cancelled", message);
+            });
+            Assert.Equal(0, dialogue.ProgressClosed);
+            using (assets.AcquireLease()) { }
+
+            File.Delete(assets.Paks);
+            dialogue.Messages.Clear();
+            Assert.True((await preparer.PrepareLaunch(Options(suffix))).IsSome);
+            Assert.True((await launcher.Launch(Options(suffix))).IsLeft); // Stop at the OS process boundary.
+            Assert.Equal(1, process.Calls);
+            Assert.Empty(dialogue.Messages);
+            Assert.Equal(2, dialogue.ProgressClosed);
+            using (assets.AcquireLease()) { }
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
     private static string Scratch(string prefix) => Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ??
         (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), prefix + Guid.NewGuid().ToString("N"));
 
@@ -384,7 +425,9 @@ public sealed class ProfileModsLaunchPreparerTests {
     private sealed class CapturingProcessLauncher : IProcessLauncher {
         public string Executable => "test-game.exe";
         public string Arguments { get; private set; } = "";
+        public int Calls { get; private set; }
         public Either<LaunchFailed, Process> Launch(string workingDirectory, string args) {
+            Calls++;
             Arguments = args;
             return new LaunchFailed(Executable, args, LanguageExt.Common.Error.New("Stopped at the OS boundary."));
         }

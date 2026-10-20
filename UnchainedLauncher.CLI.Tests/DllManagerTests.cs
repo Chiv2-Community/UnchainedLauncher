@@ -183,8 +183,13 @@ public sealed class DllManagerTests {
         var newerLeaf = leaf with { Tag = "v2.0.0" };
         var abandoned = Release("org/abandoned");
         var older = Release("org/dependency", dependencies: [new Dependency("https://github.com/org/leaf", "<2.0.0")]);
-        var newer = older with { Tag = "v2.0.0", Info = older.Info with { PluginDependencies = [
-            new Dependency("https://github.com/org/leaf", ">=2.0.0"), new Dependency("https://github.com/org/abandoned", ">=1.0.0") ] } };
+        var newer = older with {
+            Tag = "v2.0.0",
+            Info = older.Info with {
+                PluginDependencies = [
+            new Dependency("https://github.com/org/leaf", ">=2.0.0"), new Dependency("https://github.com/org/abandoned", ">=1.0.0") ]
+            }
+        };
         var first = Release("org/first", dependencies: [new Dependency("https://github.com/org/dependency", ">=1.0.0")]);
         var second = Release("org/second", dependencies: constrainDependency
             ? [new Dependency("https://github.com/org/dependency", "<2.0.0"), new Dependency("https://github.com/org/leaf", "<2.0.0")]

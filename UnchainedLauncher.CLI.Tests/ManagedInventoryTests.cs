@@ -140,28 +140,29 @@ public class ManagedInventoryTests : IDisposable {
     }
 
     [Fact]
-    public async Task SharedOwnershipPreservesUnmanagedCollisionAndUpdatesLoadOrderPrefixes() {
+    public async Task SharedOwnershipPreservesUnmanagedCollisionAndUpdatesPatchOrders() {
         await InInstallation(async (registry, common, extra, launch) => {
             var paks = Path.GetFullPath(FilePaths.PakDir);
-            var occupied = Path.Combine(paks, "q__-__Unchained-Mods_0_P.pak");
+            var occupied = Path.Combine(paks, "Unchained-Mods_0_P.pak");
             File.WriteAllText(occupied, "user collision");
             var manager = Manager(registry, []);
             await Prepare(manager, launch);
             var original = Assert.Single(((PakDir)manager.PakDir).ManagedPaks);
-            Assert.Equal("q__-__Unchained-Mods (1)_0_P.pak", original.PakFileName);
+            Assert.Equal("Unchained-Mods (1)_0_P.pak", original.PakFileName);
             Assert.True(manager.EnableModRelease(ReleaseCoordinates.FromRelease(extra)));
             await Prepare(manager, launch);
 
             var owned = ((PakDir)manager.PakDir).ManagedPaks.ToArray();
             var expectedOrder = manager.SortByDependencies(manager.GetEnabledAndDependencyReleases())
-                .Reverse().Select(ReleaseCoordinates.FromRelease).ToArray();
-            Assert.Equal(expectedOrder, owned.OrderBy(pak => pak.PakFileName, StringComparer.OrdinalIgnoreCase)
+                .Select(ReleaseCoordinates.FromRelease).ToArray();
+            Assert.Equal(expectedOrder, owned.OrderBy(pak => pak.Priority)
                 .Select(pak => pak.Coordinates));
-            Assert.False(File.Exists(Path.Combine(paks, original.PakFileName)));
+            Assert.True(File.Exists(Path.Combine(paks, original.PakFileName)));
+            Assert.Equal(original.PakFileName, Assert.Single(owned, pak => pak.Coordinates == original.Coordinates).PakFileName);
             Assert.Equal("user collision", File.ReadAllText(occupied));
             Assert.Equal(2, owned.Length);
             Assert.All(owned, pak => Assert.True(File.Exists(Path.ChangeExtension(Path.Combine(paks, pak.PakFileName), ".sig"))));
-            Assert.All(owned, pak => Assert.EndsWith("_0_P.pak", pak.PakFileName));
+            Assert.All(owned, pak => Assert.EndsWith($"_{pak.Priority}_P.pak", pak.PakFileName));
 
             await Prepare(manager, launch);
             Assert.Equal(owned, ((PakDir)manager.PakDir).ManagedPaks);

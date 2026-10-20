@@ -1,7 +1,6 @@
 using LanguageExt;
 using LanguageExt.Common;
 using log4net;
-using System.Text;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -18,9 +17,6 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         private const string BasePakFileName = "pakchunk0-WindowsNoEditor.pak";
         private const string BaseSigFileName = "pakchunk0-WindowsNoEditor.sig";
-        private const string ForcedSortDivider = "__-__";
-        // A fixed patch version keeps all mods above vanilla at the same priority tier.
-        private const string ManagedPakSuffix = "_0_P.pak";
 
         private static readonly ILog Logger = LogManager.GetLogger(nameof(PakDir));
 
@@ -103,10 +99,21 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     }
                 );
 
+        private static string PakSuffix(string fileName) {
+            var patch = Regex.Match(fileName, @"_[0-9]+_P\.pak\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return patch.Success ? patch.Value : Path.GetExtension(fileName);
+        }
+
+        private static bool IsCollisionName(string fileName, string targetName) {
+            var suffix = PakSuffix(targetName);
+            return Regex.IsMatch(fileName,
+                @"\A" + Regex.Escape(targetName[..^suffix.Length]) + @" \([0-9]+\)" + Regex.Escape(suffix) + @"\z",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+
         private string AvailablePakName(string suggestedFileName) {
             var unManagedPaks = GetUnmanagedPaks().ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var extension = suggestedFileName.EndsWith(ManagedPakSuffix, StringComparison.OrdinalIgnoreCase)
-                ? ManagedPakSuffix : Path.GetExtension(suggestedFileName);
+            var extension = PakSuffix(suggestedFileName);
             var actualName = suggestedFileName[..^extension.Length];
             var fullActualName = actualName + extension;
             while (_managedPaks.Exists(x => x.PakFileName.Equals(fullActualName, StringComparison.OrdinalIgnoreCase))
@@ -143,18 +150,16 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .ToHashSet();
 
             var pakFileNames = installsList
-                .Select(install => {
+                .Select((install, order) => {
                     var moduleName = install.Coordinates.ModuleName;
                     var needsOrgPrefix = moduleNameCounts.Contains(moduleName);
                     var baseName = needsOrgPrefix
                         ? $"{install.Coordinates.Org}_{moduleName}"
                         : moduleName;
-                    return baseName + ManagedPakSuffix;
+                    // Unreal gives higher patch numbers priority over dependencies and vanilla.
+                    return FormattableString.Invariant($"{baseName}_{order}_P.pak");
                 })
                 .ToList();
-
-            // Apply sorted lexicographically to get the final names
-            var sortedPakNames = ApplySortedLexicographically(pakFileNames).ToList();
 
             // Build map of existing managed paks by coordinates (for mods in install set)
             var existingByCoords = _managedPaks
@@ -165,17 +170,14 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
             // Categorize each install: Skip (already correct), Move (relocate), or Download (new)
             var installActions = installsList
-                .Zip(sortedPakNames, (install, finalPakName) => (Install: install, FinalPakName: finalPakName))
+                .Zip(pakFileNames, (install, finalPakName) => (Install: install, FinalPakName: finalPakName))
                 .Select((item, index) => {
                     var existing = existingByCoords.TryGetValue(item.Install.Coordinates, out var e) ? Some(e) : None;
                     return existing.Match(
-                        // A collision-safe name is reusable only while its load-order prefix is correct.
+                        // Reuse collision-safe names only while their module and numeric order match.
                         Some: pak => pak.PakFileName.Equals(item.FinalPakName, StringComparison.OrdinalIgnoreCase)
-                            || (pak.PakFileName.EndsWith(ManagedPakSuffix, StringComparison.OrdinalIgnoreCase)
-                                && unmanagedPaths.Contains(PakNameToPakPath(item.FinalPakName))
-                                && pak.PakFileName.StartsWith(
-                                    item.FinalPakName.Substring(0, item.FinalPakName.IndexOf(ForcedSortDivider, StringComparison.Ordinal) + ForcedSortDivider.Length),
-                                    StringComparison.OrdinalIgnoreCase))
+                            || (unmanagedPaths.Contains(PakNameToPakPath(item.FinalPakName))
+                                && IsCollisionName(pak.PakFileName, item.FinalPakName))
                             ? new InstallAction.Skip(item.Install, index, pak)
                             : new InstallAction.Move(item.Install, index, pak, item.FinalPakName) as InstallAction,
                         None: () => new InstallAction.Download(item.Install, index, item.FinalPakName)
@@ -429,41 +431,5 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .BindLefts();
         }
 
-        /// <summary>
-        /// represents i using characters from alphabet
-        /// </summary>
-        /// <param name="alphabet"></param>
-        /// <param name="i">must be positive</param>
-        /// <returns></returns>
-        private static string RepUsingAlphabet(string alphabet, int i) {
-            var systemBase = alphabet.Length;
-            var sb = new StringBuilder();
-            while (i > 0) {
-                sb.Append(alphabet[i % systemBase]);
-                i /= systemBase;
-            }
-
-            return string.Join("", sb.ToString().Reverse());
-        }
-
-        /// <summary>
-        /// Given a sequence of strings, modify those strings such
-        /// that they are sorted lexicographically and return it
-        /// </summary>
-        /// <param name="inputs"></param>
-        /// <returns></returns>
-        private static IEnumerable<string> ApplySortedLexicographically(IEnumerable<string> inputs) {
-            var inputsList = inputs.ToList();
-
-            // We reverse the alphabet because we actually want to load dependencies backwards
-            var alphabet = new string("abcdefghijklmnopqrstuvwxyz".Reverse().ToArray());
-
-            var requiredSymbols = (int)Math.Ceiling(Math.Log(inputsList.Count, alphabet.Length));
-            return inputsList.Map((i, n) =>
-                $"q{RepUsingAlphabet(alphabet, i).PadLeft(requiredSymbols, alphabet[0])}" +
-                ForcedSortDivider +
-                $"{Regex.Replace(n, $".*{ForcedSortDivider}", "")}"
-            );
-        }
     }
 }

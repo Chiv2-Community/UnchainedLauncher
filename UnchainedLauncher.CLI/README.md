@@ -461,8 +461,9 @@ never overwrites GUI configuration or reuses the GUI's enabled-mod selection.
 Each launch reconciles the installed managed set with that host's selected releases;
 genuinely unmanaged user paks are preserved.
 Core's installation pipeline changes the installed managed pak set and signatures.
-The GUI uses one shared `Saved_unchained/unchained` pak/plugin set for all clients and
-servers. Only the CLI differentiates selections by launch profile. CLI profiles
+The GUI installs paks in each launch profile's `Saved_<suffix>/Paks` directory,
+using a shared GUI mod selection and shared `Saved_unchained/unchained/plugins` DLLs.
+CLI mod and DLL selections remain request-specific. CLI profiles
 need separate saved suffixes/ports; CLI startup
 preparation remains sequential because some Core operations change CWD and metadata.
 

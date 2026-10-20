@@ -81,8 +81,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var message = new List<string>() {
                 "Are you sure? This will disable all mods, reset all settings to their defaults, and uninstall the launcher. This will delete the following:",
                 "* All files in .mod_cache",
-                "* All files in TBL\\Binaries\\Win64\\Plugins",
-                "* All non-vanilla paks in TBL\\Content\\Paks.",
+                $"* All files in {new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix).Plugins}",
+                $"* All non-vanilla files in {PakDir.DirPath}",
+                "Shared caches, other CLI profiles, and legacy installation-wide assets are retained.",
                 "",
                 originalExists
                     ? "IMPORTANT: Wait at least 1 second and then launch normally."

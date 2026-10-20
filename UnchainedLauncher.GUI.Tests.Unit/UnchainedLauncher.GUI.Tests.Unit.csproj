@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Exercise the platform-independent view model without loading WPF. -->
+    <Compile Include="../UnchainedLauncher.GUI/Services/ProfileModsLaunchPreparer.cs" Link="ProfileModsLaunchPreparer.cs" />
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/DllManagerVM.cs" Link="DllManagerVM.cs" />
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/Registry/RegistryReleaseFormVM.cs" Link="RegistryReleaseFormVM.cs" />
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/ModSortMode.cs" Link="ModSortMode.cs" />

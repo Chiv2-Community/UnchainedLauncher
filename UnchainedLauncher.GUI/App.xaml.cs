@@ -174,12 +174,11 @@ namespace UnchainedLauncher.GUI {
 #endif
 
             var noSigLaunchPreparer = NoSigPreparer.Create(modManager.PakDir, userDialogueSpawner);
-            var sigLaunchPreparer = SigPreparer.Create(modManager.PakDir, userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
-            IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
-                modManager, userDialogueSpawner
+            IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new ProfileModsLaunchPreparer(
+                modManager, userDialogueSpawner, Directory.GetCurrentDirectory()
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
@@ -190,8 +189,7 @@ namespace UnchainedLauncher.GUI {
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
                 pluginInstaller
-                    .AndThen(modInstaller)
-                    .Sub(sigLaunchPreparer),
+                    .AndThen(modInstaller),
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
 #if DEBUG_FAKECHIVALRYLAUNCH

@@ -40,8 +40,6 @@ public sealed class SharedLaunchOptions {
         RegistryOptions = new RegistryOptions(setup.Registries, directory);
         Mods = Entries(setup.Mods).Select(ParseCoordinates).ToArray();
         Dlls = Entries(setup.Dlls).Select(ParseCoordinates).ToArray();
-        if (!Regex.IsMatch(SavedDirSuffix, @"\A[A-Za-z0-9_-]+\z"))
-            throw new ArgumentException("saved-dir-suffix may contain only letters, digits, underscores, and hyphens.");
         if (!Uri.TryCreate(Backend, UriKind.Absolute, out var backend) || backend.Scheme is not ("http" or "https"))
             throw new ArgumentException("server-browser-backend must be an HTTP(S) URL.");
         if (Mods.GroupBy(m => (m.Org, m.ModuleName)).Any(g => g.Select(m => m.Version).Distinct().Count() > 1))

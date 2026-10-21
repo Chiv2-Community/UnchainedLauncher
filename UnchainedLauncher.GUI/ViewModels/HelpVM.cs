@@ -80,10 +80,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var originalExists = File.Exists(originalPath);
             var message = new List<string>() {
                 "Are you sure? This will disable all mods, reset all settings to their defaults, and uninstall the launcher. This will delete the following:",
-                "* All files in .mod_cache",
-                $"* All files in {new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix).Plugins}",
-                $"* All non-vanilla files in {PakDir.DirPath}",
-                "Shared caches, other CLI profiles, and legacy installation-wide assets are retained.",
+                CleanupDisclosure(),
                 "",
                 originalExists
                     ? "IMPORTANT: Wait at least 1 second and then launch normally."
@@ -148,6 +145,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
             ExitProgram(0);
         }
 
+        private string CleanupDisclosure() =>
+            "* All files in .mod_cache\n" +
+            $"* All files in {new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix).Plugins}\n" +
+            $"* All non-vanilla files in {PakDir.DirPath}\n" +
+            "Shared caches, other CLI profiles, and legacy installation-wide assets are retained.";
+
         private void CleanUpInstallation_actions() {
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
             FileHelpers.DeleteDirectory(new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix).Plugins);
@@ -159,10 +162,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             Logger.Info("CleanUpInstallation button clicked.");
             var message = new List<string>() {
                 "Are you sure? This will disable all mods and reset all settings to their defaults. This will delete the following:",
-                "* All files in .mod_cache",
-                $"* All files in {new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix).Plugins}",
-                $"* All non-vanilla files in {PakDir.DirPath}",
-                "Shared caches, other CLI profiles, and legacy installation-wide assets are retained.",
+                CleanupDisclosure(),
                 "",
                 "After deleting, the launcher will restart itself."
             }.Aggregate((accumulator, next) => accumulator + "\n" + next);

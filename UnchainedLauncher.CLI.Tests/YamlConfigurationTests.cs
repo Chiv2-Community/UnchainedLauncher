@@ -25,6 +25,47 @@ public class YamlConfigurationTests : IDisposable {
         CliLaunchOptions.Parse([client ? "client" : "server", "--config-path", Write(body)]);
 
     [Theory]
+    [InlineData("a", "a")]
+    [InlineData("Z09_", "Z09_")]
+    [InlineData("_", "_")]
+    [InlineData("-Host-one-", "Hostone")]
+    public void CliAndYamlSuffixesUseTheSameProfileNormalization(string suffix, string normalized) {
+        foreach (var command in new[] { "client", "server" }) {
+            var cli = CliLaunchOptions.Parse([command, "--chivalry2-path", ".", "--platform", "Steam", "--saved-dir-suffix=" + suffix]);
+            var yaml = Load(command == "client" ? $"saved-dir-suffix: '{suffix}'" : $"server: {{saved-dir-suffix: '{suffix}'}}", command == "client");
+            foreach (var options in new[] { cli, yaml }) {
+                Assert.Equal(suffix, options.Shared.SavedDirSuffix);
+                Assert.Equal(normalized, options.Shared.Assets.Suffix);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("---")]
+    [InlineData("é")]
+    [InlineData("Ａ")]
+    [InlineData("../outside")]
+    [InlineData("with space")]
+    [InlineData("line\nbreak")]
+    [InlineData("name\\other")]
+    public void CliAndYamlRejectInvalidSuffixesAtTheProfileBoundary(string suffix) {
+        var expected = Assert.Throws<ArgumentException>(() => new UnchainedLauncher.Core.Services.Mods.ProfileAssetPaths(suffix));
+        foreach (var command in new[] { "client", "server" }) {
+            var cli = Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse([
+                command, "--chivalry2-path", ".", "--platform", "Steam", "--saved-dir-suffix=" + suffix, "--mod=invalid"]));
+            var quoted = System.Text.Json.JsonSerializer.Serialize(suffix);
+            var yaml = Assert.Throws<ArgumentException>(() => Load(command == "client"
+                ? $"saved-dir-suffix: {quoted}\nmod-setup: {{mods: [invalid]}}"
+                : $"server: {{saved-dir-suffix: {quoted}, mod-setup: {{mods: [invalid]}}}}", command == "client"));
+            if (suffix.Length == 0) Assert.Contains("Required argument missing for option: '--saved-dir-suffix'", cli.Message);
+            else Assert.Equal(expected.Message, cli.Message);
+            if (suffix.Length == 0 && command == "client") Assert.Contains("The SavedDirSuffix field is required.", yaml.Message);
+            else Assert.Equal(expected.Message, yaml.Message);
+        }
+    }
+
+    [Theory]
     [InlineData(false, "::1")]
     [InlineData(true, "::1")]
     [InlineData(false, "::")]

@@ -7,7 +7,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
     public sealed class DllManagerVMTests {
         [Fact]
         public async Task RemovedPinnedVersionShowsUnavailableEvenWhenOtherVersionsRemainRegistered() {
-            var directory = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "removed-version-" + Guid.NewGuid().ToString("N"));
+            var directory = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "removed-version-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             try {
                 var handler = new MutableIndexHandler { Json = JsonSerializer.Serialize(new[] { Release("Plugin") }) };
@@ -42,7 +42,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
         [InlineData(true, false)]
         [InlineData(true, true)]
         public async Task RemovedSelectionsRemainVisibleAndCanBeDisabledAfterRefreshOrRestart(bool removeRegistry, bool restart) {
-            var directory = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "removed-plugin-" + Guid.NewGuid().ToString("N"));
+            var directory = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "removed-plugin-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             try {
                 var release = Release("RemovedPlugin");
@@ -200,7 +200,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
 
         [Fact]
         public async Task ModernPackageCardsShowReleaseSpecificTargetsAssetsAndNotes() {
-            var directory = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "dll-package-view-" + Guid.NewGuid().ToString("N"));
+            var directory = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "dll-package-view-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             try {
                 var shared = new PluginInfo("Core", "Description", ["Author"], Target: "shared");
@@ -262,7 +262,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
 
         [Fact]
         public async Task OriginalSettingsDriveDllControlsAndPrereleaseVisibility() {
-            var directory = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "dll-settings-view-" + Guid.NewGuid().ToString("N"));
+            var directory = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "dll-settings-view-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             try {
                 var releases = new[] { "1.0.0", "2.0.0-RC1" }.Select(version => new DllRelease("Chiv2-Community", "UnchainedPlugin", version,
@@ -351,7 +351,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
 
         [Fact]
         public async Task PluginLinksOpenRepositoryAndOriginalDisplayedTagWithoutChangingSelection() {
-            var directory = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "plugin-links-" + Guid.NewGuid().ToString("N"));
+            var directory = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "plugin-links-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             try {
                 var handler = new MutableIndexHandler { Json = JsonSerializer.Serialize(new[] {
@@ -396,7 +396,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
 
         [Fact]
         public async Task PluginSearchAndSharedSortModesRebuildWithoutChangingSelections() {
-            var directory = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "plugin-sort-" + Guid.NewGuid().ToString("N"));
+            var directory = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "plugin-sort-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             try {
                 var handler = new MutableIndexHandler { Json = JsonSerializer.Serialize(new[] {
@@ -452,7 +452,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
         [InlineData(true, false)]
         [InlineData(true, true)]
         public async Task UpdatePluginsConfirmsEligibleVisibleEnabledVersionsWithoutDownloading(bool unstable, bool approve) {
-            var directory = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "plugin-update-" + Guid.NewGuid().ToString("N"));
+            var directory = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "plugin-update-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             try {
                 var handler = new MutableIndexHandler { Json = JsonSerializer.Serialize(new[] {

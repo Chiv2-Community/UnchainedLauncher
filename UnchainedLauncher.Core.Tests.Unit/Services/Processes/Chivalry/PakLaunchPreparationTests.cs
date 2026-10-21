@@ -18,8 +18,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Processes.Chivalry;
 public sealed class PakLaunchPreparationTests : IDisposable {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "pak-launch-" + Guid.NewGuid().ToString("N"));
     private readonly ReleaseCoordinates _coords = new("Chiv2-Community", "Unchained-Mods", "v0.1.0");
-    private const string Preferred = "q__-__Unchained-Mods.pak";
-    private const string Installed = "q__-__Unchained-Mods (1).pak";
+    private const string Preferred = "Unchained-Mods_0_P.pak";
+    private const string Installed = "Unchained-Mods (1)_0_P.pak";
     private sealed class ImmediateContext : SynchronizationContext {
         public override void Post(SendOrPostCallback callback, object? state) {
             var previous = Current;

@@ -8,6 +8,7 @@ on:
     branches:
         - 'main'
         - 'series/*'
+        - 'feature/dll-validation'
 
 env:
   DOTNET_VERSION: '10.x'
@@ -55,6 +56,21 @@ jobs:
 
     - name: Run Scanner Configuration Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.PakScannerApp.Tests --logger:"console;verbosity=detailed"
+
+    - name: Run CLI Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.CLI.Tests --logger:"console;verbosity=detailed"
+
+    - name: Run Plugin Manager Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.GUI.Tests.Unit --logger:"console;verbosity=detailed"
+
+    - name: Package CLI binaries
+      run: dotnet publish UnchainedLauncher.CLI -c ${{ matrix.configuration }} -r win-x64 --self-contained true -o out-cli/
+
+    - name: Upload CLI Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: UnchainedLauncher_CLI_${{ matrix.configuration }}_${{ github.sha }}
+        path: out-cli
 
     - name: Package ${{ matrix.configuration }} binaries
       run: dotnet publish UnchainedLauncher.GUI -c ${{ matrix.configuration}} -o out/

@@ -4,6 +4,7 @@ using Xunit;
 
 namespace UnchainedLauncher.CLI.Tests;
 
+[Collection("Installation directory")]
 public sealed class ServerGroupTests : IDisposable {
     private readonly string _root = Path.Combine(System.Environment.GetEnvironmentVariable("TMPDIR") ?? Path.GetTempPath(),
         "server-group-" + Guid.NewGuid().ToString("N"));
@@ -156,6 +157,35 @@ public sealed class ServerGroupTests : IDisposable {
         info.ArgumentList.Add(OperatingSystem.IsWindows() ? "/c" : "-c");
         info.ArgumentList.Add(exitCode.HasValue ? $"exit {exitCode}" : OperatingSystem.IsWindows() ? "ping -n 30 127.0.0.1 > nul" : "sleep 30");
         return Process.Start(info)!;
+    }
+
+    [Fact]
+    public async Task DashboardRetainsEachConfigurationAfterLaunchAndQueryInitialization() {
+        var group = Group();
+        using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var output = new StringWriter();
+        var original = Console.Out;
+        var launches = 0;
+        var queries = 0;
+        try {
+            Console.SetOut(output);
+            Assert.Equal(0, await ServerGroupRunner.RunAsync(group, stop, (options, _) => {
+                options.Settings.Name = $"prepared-{++launches}";
+                return Task.FromResult(Child());
+            }, options => {
+                Assert.Equal(2, launches);
+                options.Settings.Name += $"-query-{++queries}";
+                if (queries == 2) stop.CancelAfter(250);
+                return new PendingQuery();
+            }).WaitAsync(TimeSpan.FromSeconds(15)));
+        }
+        finally { Console.SetOut(original); }
+        var text = output.ToString();
+        Assert.Contains("[courtyard] Starting | prepared-1-query-1 | PID", text);
+        Assert.Contains("[arena] Starting | prepared-2-query-2 | PID", text);
+        Assert.Contains("Game Port 7000 | Query Port 7002 | Beacon Port 7001 | RCON Port 7003", text);
+        Assert.Contains("Game Port 7004 | Query Port 7006 | Beacon Port 7005 | RCON Port 7007", text);
+        Assert.Equal(2, queries);
     }
 
     [Fact]

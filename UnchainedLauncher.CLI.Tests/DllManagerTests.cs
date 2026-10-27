@@ -25,6 +25,87 @@ public sealed class DllManagerTests {
     private static DllPackage Package(params DllRelease[] releases) => new(releases[0].Info, releases.ToList());
 
     [Theory]
+    [InlineData(">=v1.0.0,<2.0.0")]
+    [InlineData("^v1.0.0")]
+    [InlineData(" >=v1.0.0 , <v2.0.0 ")]
+    [InlineData(">=1.0.0,<2.0.0")]
+    [InlineData("^1.0.0")]
+    [InlineData("v1.0.0")]
+    [InlineData("==v1.0.0")]
+    [InlineData("!=v2.0.0")]
+    public async Task RegisteredLocalPackagesUseTheSameDependencyGrammarDuringSessionPreparation(string requirement) {
+        var root = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()),
+            "dll-registered-range-" + Guid.NewGuid().ToString("N"));
+        try {
+            var core = Release("Chiv2-Community/UnchainedPlugin", dependencies: [new Dependency("https://github.com/org/dependency", requirement)])
+                with { DllFileName = "UnchainedPlugin.dll" };
+            var dependency = Release("org/dependency") with { DllFileName = "dependency.dll" };
+            var newer = dependency with { Tag = "v2.0.0" };
+            foreach (var package in new[] { Package(core), Package(dependency, newer) }) {
+                var id = package.LatestReleaseInfo.Identifier;
+                var directory = Path.Combine(root, "registry", "dll_db", "packages", id.Org);
+                Directory.CreateDirectory(directory);
+                File.WriteAllText(Path.Combine(directory, id.ModuleName + ".json"), JsonHelpers.Serialize(package));
+            }
+            var registry = new AggregateModRegistry(new LocalModRegistry(Path.Combine(root, "registry")));
+            var catalog = await DllCatalog.ReadAsync(registry, CancellationToken.None);
+            Assert.Empty(catalog.Errors);
+            Assert.Equal(2, catalog.Packages.Count);
+            var resolved = DllManager.Resolve(catalog.Packages, [], false, false);
+            Assert.Equal(new[] { dependency.Info.RepoUrl, core.Info.RepoUrl }, resolved.Select(r => r.Info.RepoUrl));
+            Assert.All(resolved, r => Assert.Equal("v1.0.0", r.Tag));
+            var assets = new ProfileAssetPaths("Range", root);
+            foreach (var release in new[] { core, dependency }) {
+                var cache = Path.Combine(assets.DllCache, release.Hash, release.DllFileName);
+                Directory.CreateDirectory(Path.GetDirectoryName(cache)!);
+                File.WriteAllBytes(cache, [1, 2, 3]);
+            }
+            var mods = new ModManager(registry, assets.CreatePakDir(root), []);
+            var session = new DllManager(registry, mods, assets.Plugins, cacheDirectory: assets.DllCache);
+            var options = new LaunchOptions([], Option<string>.None, "", false, false, Option<string>.None, Option<ServerLaunchOptions>.None);
+            Assert.True((await session.PrepareLaunch(options)).IsSome);
+            Assert.Equal(2, Directory.GetFiles(assets.Plugins, "*.dll", SearchOption.AllDirectories).Length);
+            foreach (var file in Directory.GetFiles(assets.Plugins, "*.dll", SearchOption.AllDirectories))
+                Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(file));
+            using var inventory = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(assets.Plugins, "dll_manager.json")));
+            Assert.Equal(new[] { dependency.Info.RepoUrl, core.Info.RepoUrl },
+                inventory.RootElement.EnumerateArray().Select(item => item.GetProperty("Repository").GetString()));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Theory]
+    [InlineData("^vv1.0.0")]
+    [InlineData(">=v1.0,<2.0.0")]
+    [InlineData(">=v01.0.0")]
+    [InlineData(">=V1.0.0")]
+    [InlineData("=v1.0.0")]
+    [InlineData(">=v1.0.0,garbage")]
+    [InlineData(">=v1.0.0,")]
+    public async Task MalformedRegisteredRequirementsFailBeforeSessionMutatesPlugins(string requirement) {
+        var root = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()),
+            "dll-invalid-range-" + Guid.NewGuid().ToString("N"));
+        try {
+            var core = Release("Chiv2-Community/UnchainedPlugin", dependencies: [new Dependency("https://github.com/org/dependency", requirement)]);
+            var directory = Path.Combine(root, "registry", "dll_db", "packages", "Chiv2-Community");
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, "UnchainedPlugin.json"), JsonHelpers.Serialize(Package(core)));
+            var registry = new AggregateModRegistry(new LocalModRegistry(Path.Combine(root, "registry")));
+            var catalog = await DllCatalog.ReadAsync(registry, CancellationToken.None);
+            Assert.NotEmpty(catalog.Errors);
+            var assets = new ProfileAssetPaths("Invalid", root);
+            var mods = new ModManager(registry, assets.CreatePakDir(root), []);
+            var session = new DllManager(registry, mods, assets.Plugins, cacheDirectory: assets.DllCache);
+            var options = new LaunchOptions([], Option<string>.None, "", false, false, Option<string>.None, Option<ServerLaunchOptions>.None);
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() => session.PrepareLaunch(options));
+            Assert.Contains("DLL registry loading failed", error.Message);
+            Assert.False(Directory.Exists(assets.Plugins));
+            Assert.False(Directory.Exists(assets.DllCache));
+        }
+        finally { Directory.Delete(root, true); }
+    }
+
+    [Theory]
     [InlineData("^1.0.0", true)]
     [InlineData(">=v1.0.0,<2.0.0", true)]
     [InlineData("==1.0.0", true)]
@@ -151,6 +232,85 @@ public sealed class DllManagerTests {
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void SharedDependenciesUseAllRootRequirements(bool reverse, bool conflict) {
+        var core = Release("Chiv2-Community/UnchainedPlugin");
+        var older = Release("org/dependency");
+        var newer = older with { Tag = "v2.0.0" };
+        var first = Release("org/first", dependencies: [new Dependency("https://github.com/org/dependency", conflict ? ">=2.0.0" : ">=1.0.0")]);
+        var second = Release("org/second", dependencies: [new Dependency("https://github.com/org/dependency", "<2.0.0")]);
+        ReleaseCoordinates[] roots = [new("org", "first", first.Tag), new("org", "second", second.Tag)];
+        if (reverse) Array.Reverse(roots);
+        DllPackage[] packages = [Package(core), Package(older, newer), Package(first), Package(second)];
+        if (conflict) {
+            var error = Assert.Throws<InvalidOperationException>(() => DllManager.Resolve(packages, roots, false, false));
+            Assert.Equal("Conflicting DLL requirements: org/dependency", error.Message);
+        }
+        else Assert.Equal(reverse ? new[] { core, older, second, first } : new[] { core, older, first, second },
+            DllManager.Resolve(packages, roots, false, false));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void ReselectionReplacesTransitiveRequirementsAndDropsAbandonedDependencies(bool reverse, bool constrainDependency) {
+        var core = Release("Chiv2-Community/UnchainedPlugin");
+        var leaf = Release("org/leaf");
+        var newerLeaf = leaf with { Tag = "v2.0.0" };
+        var abandoned = Release("org/abandoned");
+        var older = Release("org/dependency", dependencies: [new Dependency("https://github.com/org/leaf", "<2.0.0")]);
+        var newer = older with {
+            Tag = "v2.0.0",
+            Info = older.Info with {
+                PluginDependencies = [
+            new Dependency("https://github.com/org/leaf", ">=2.0.0"), new Dependency("https://github.com/org/abandoned", ">=1.0.0") ]
+            }
+        };
+        var first = Release("org/first", dependencies: [new Dependency("https://github.com/org/dependency", ">=1.0.0")]);
+        var second = Release("org/second", dependencies: constrainDependency
+            ? [new Dependency("https://github.com/org/dependency", "<2.0.0"), new Dependency("https://github.com/org/leaf", "<2.0.0")]
+            : [new Dependency("https://github.com/org/leaf", "<2.0.0")]);
+        ReleaseCoordinates[] roots = [new("org", "first", first.Tag), new("org", "second", second.Tag)];
+        if (reverse) Array.Reverse(roots);
+        var expected = !reverse ? new[] { core, leaf, older, first, second }
+            : constrainDependency ? new[] { core, leaf, older, second, first } : new[] { core, leaf, second, older, first };
+        Assert.Equal(expected,
+            DllManager.Resolve([Package(core), Package(older, newer), Package(leaf, newerLeaf), Package(abandoned), Package(first), Package(second)],
+                roots, false, false));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LatestSharedDependencyUsesHighestCompatibleRelease(bool reverse) {
+        var core = Release("Chiv2-Community/UnchainedPlugin");
+        var oldest = Release("org/dependency");
+        var compatible = oldest with { Tag = "v1.5.0" };
+        var newest = oldest with { Tag = "v2.0.0" };
+        var plugin = Release("org/plugin", dependencies: [new Dependency("https://github.com/org/dependency", "<2.0.0")]);
+        ReleaseCoordinates[] roots = [new("org", "dependency", "latest"), new("org", "plugin", plugin.Tag)];
+        if (reverse) Array.Reverse(roots);
+        Assert.Equal(new[] { core, compatible, plugin }, DllManager.Resolve(
+            [Package(core), Package(oldest, newest, compatible), Package(plugin)], roots, false, false));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void UnavailableDependenciesKeepSpecificErrors(bool missingPackage) {
+        var core = Release("Chiv2-Community/UnchainedPlugin", dependencies: [new Dependency("https://github.com/org/dependency", ">=2.0.0")]);
+        DllPackage[] packages = missingPackage ? [Package(core)] : [Package(core), Package(Release("org/dependency"))];
+        var error = Assert.Throws<InvalidOperationException>(() => DllManager.Resolve(packages, [], false, false));
+        Assert.Equal(missingPackage ? "DLL package not found: org/dependency"
+            : "DLL release not found for launch target: org/dependency:>=2.0.0", error.Message);
+    }
+
+    [Theory]
     [InlineData("../x.dll")]
     [InlineData("..\\x.dll")]
     [InlineData("C:x.dll")]
@@ -241,8 +401,57 @@ public sealed class DllManagerTests {
     }
 
     private sealed class DownloadHandler(byte[] bytes) : HttpMessageHandler {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new ByteArrayContent(bytes) });
+        public int Requests { get; private set; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+            Requests++;
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { RequestMessage = request, Content = new ByteArrayContent(bytes) });
+        }
+    }
+
+    [Theory]
+    [InlineData("client")]
+    [InlineData("server")]
+    public async Task NoPluginUpdateStillSelectsLatestUnlessExplicitlyPinned(string command) {
+        var root = Path.Combine(Path.GetTempPath(), "dll-no-update-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            var older = Release("Chiv2-Community/UnchainedPlugin") with { DllFileName = "UnchainedPlugin.dll" };
+            var newer = older with { Tag = "v2.0.0", Hash = Convert.ToHexString(SHA256.HashData(new byte[] { 4, 5, 6 })).ToLowerInvariant() };
+            var packagePath = Path.Combine(root, "registry", "dll_db", "packages", "Chiv2-Community");
+            Directory.CreateDirectory(packagePath);
+            File.WriteAllText(Path.Combine(packagePath, "UnchainedPlugin.json"), JsonHelpers.Serialize(Package(older, newer)));
+            var registry = new AggregateModRegistry(new LocalModRegistry(Path.Combine(root, "registry")));
+            var mods = new ModManager(registry, new PakDir(Path.Combine(root, "paks"), []), []);
+            CliLaunchOptions Parse(params string[] extra) {
+                var options = CliLaunchOptions.Parse([command, "--chivalry2-path", root, "--platform", "Steam", .. extra]);
+                options.Shared.Assets = new ProfileAssetPaths(options.Shared.SavedDirSuffix, root);
+                return options;
+            }
+            string[] pin = ["--dll", "Chiv2-Community/UnchainedPlugin:v1.0.0"];
+            var initial = Parse(pin);
+            var downloads = new DownloadHandler([1, 2, 3]);
+            using var client = new HttpClient(downloads);
+            Assert.True((await ServerLauncher.CreateDllSession(initial, registry, mods, client: client)
+                .PrepareLaunch(initial.ToLaunchOptions())).IsSome);
+            var installed = Path.Combine(initial.InstancePaths.Plugins, "Managed", "Chiv2-Community", "UnchainedPlugin", older.DllFileName);
+            Assert.True(await DllManager.MatchesFileAsync(installed, older));
+
+            var unpinned = Parse("--no-plugin-update");
+            Assert.False(unpinned.ToLaunchOptions().CheckForDependencyUpdates);
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                ServerLauncher.CreateDllSession(unpinned, registry, mods, client: client).PrepareLaunch(unpinned.ToLaunchOptions()));
+            Assert.Contains("Automatic plugin downloads are disabled; missing registered DLL", error.Message);
+            Assert.Contains("UnchainedPlugin:2.0.0", error.Message);
+            Assert.True(await DllManager.MatchesFileAsync(installed, older));
+
+            File.Delete(installed);
+            var pinned = Parse(["--no-plugin-update", .. pin]);
+            Assert.True((await ServerLauncher.CreateDllSession(pinned, registry, mods, client: client)
+                .PrepareLaunch(pinned.ToLaunchOptions())).IsSome);
+            Assert.True(await DllManager.MatchesFileAsync(installed, older));
+            Assert.Equal(1, downloads.Requests);
+        }
+        finally { Directory.Delete(root, recursive: true); }
     }
 
     [Fact]

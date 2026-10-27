@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using Xunit;
@@ -21,6 +23,80 @@ public class YamlConfigurationTests : IDisposable {
 
     private CliLaunchOptions Load(string body, bool client = false) =>
         CliLaunchOptions.Parse([client ? "client" : "server", "--config-path", Write(body)]);
+
+    [Theory]
+    [InlineData("a", "a")]
+    [InlineData("Z09_", "Z09_")]
+    [InlineData("_", "_")]
+    [InlineData("-Host-one-", "Hostone")]
+    public void CliAndYamlSuffixesUseTheSameProfileNormalization(string suffix, string normalized) {
+        foreach (var command in new[] { "client", "server" }) {
+            var cli = CliLaunchOptions.Parse([command, "--chivalry2-path", ".", "--platform", "Steam", "--saved-dir-suffix=" + suffix]);
+            var yaml = Load(command == "client" ? $"saved-dir-suffix: '{suffix}'" : $"server: {{saved-dir-suffix: '{suffix}'}}", command == "client");
+            foreach (var options in new[] { cli, yaml }) {
+                Assert.Equal(suffix, options.Shared.SavedDirSuffix);
+                Assert.Equal(normalized, options.Shared.Assets.Suffix);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("---")]
+    [InlineData("é")]
+    [InlineData("Ａ")]
+    [InlineData("../outside")]
+    [InlineData("with space")]
+    [InlineData("line\nbreak")]
+    [InlineData("name\\other")]
+    public void CliAndYamlRejectInvalidSuffixesAtTheProfileBoundary(string suffix) {
+        var expected = Assert.Throws<ArgumentException>(() => new UnchainedLauncher.Core.Services.Mods.ProfileAssetPaths(suffix));
+        foreach (var command in new[] { "client", "server" }) {
+            var cli = Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse([
+                command, "--chivalry2-path", ".", "--platform", "Steam", "--saved-dir-suffix=" + suffix, "--mod=invalid"]));
+            var quoted = System.Text.Json.JsonSerializer.Serialize(suffix);
+            var yaml = Assert.Throws<ArgumentException>(() => Load(command == "client"
+                ? $"saved-dir-suffix: {quoted}\nmod-setup: {{mods: [invalid]}}"
+                : $"server: {{saved-dir-suffix: {quoted}, mod-setup: {{mods: [invalid]}}}}", command == "client"));
+            if (suffix.Length == 0) Assert.Contains("Required argument missing for option: '--saved-dir-suffix'", cli.Message);
+            else Assert.Equal(expected.Message, cli.Message);
+            if (suffix.Length == 0 && command == "client") Assert.Contains("The SavedDirSuffix field is required.", yaml.Message);
+            else Assert.Equal(expected.Message, yaml.Message);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, "::1")]
+    [InlineData(true, "::1")]
+    [InlineData(false, "::")]
+    [InlineData(true, "::")]
+    [InlineData(false, "::ffff:127.0.0.1")]
+    [InlineData(true, "::ffff:127.0.0.1")]
+    public void ServerRejectsIpv6DuringParsing(bool yaml, string address) {
+        var error = Assert.Throws<ArgumentException>(() => yaml
+            ? Load($"server: {{local-ip: '{address}'}}")
+            : CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam", "--local-ip", address]));
+        Assert.Contains("local-ip must be an IPv4 address", error.Message);
+    }
+
+    [Theory]
+    [InlineData(false, "127.0.0.1")]
+    [InlineData(true, "127.0.0.1")]
+    [InlineData(false, "192.168.50.10")]
+    [InlineData(true, "192.168.50.10")]
+    [InlineData(false, "0.0.0.0")]
+    [InlineData(true, "0.0.0.0")]
+    [InlineData(false, null)]
+    [InlineData(true, null)]
+    public void ServerAcceptsIpv4OverridesAndAutoDetection(bool yaml, string? address) {
+        var options = Assert.IsType<ServerOptions>(yaml
+            ? Load(address is null ? "server: {}" : $"server: {{local-ip: '{address}'}}")
+            : CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam",
+                .. address is null ? Array.Empty<string>() : ["--local-ip", address]]));
+        Assert.Equal(AddressFamily.InterNetwork, IPAddress.Parse(options.Settings.LocalIp!).AddressFamily);
+        if (address is not null) Assert.Equal(address, options.Settings.LocalIp);
+        Assert.Equal(options.Settings.LocalIp, options.ToServerLaunchOptions().LocalIp.IfNone(""));
+    }
 
     [Fact]
     public void ConfigurationIsAuthoritativeWithEitherConfigPathSyntax() {

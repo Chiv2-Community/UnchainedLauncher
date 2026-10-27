@@ -42,8 +42,11 @@ The server is headless by default (`-nullrhi -unattended -nosound`); use
 `--headless false --no-desync-patch` to render it (the desync patch only supports
 headless servers). The plugin is installed
 or updated from the latest stable UnchainedPlugin release by default. Use
-`--no-plugin-update` to keep your installed `UnchainedPlugin.dll`; it must already
-exist. `--allow-unstable-plugin` permits prerelease plugin updates.
+`--no-plugin-update` to disable DLL downloads, not version selection; all required
+registered DLL versions must already be installed or cached. To retain a desired
+registered plugin version, pin its exact tag with
+`--dll Chiv2-Community/UnchainedPlugin:<tag>`.
+`--allow-unstable-plugin` permits automatic prerelease selection.
 
 For deployment without a .NET runtime:
 
@@ -283,8 +286,9 @@ Separate mode-specific schemas:
   do not create a server dashboard, and return after launching without stopping the game.
 
 Common root options are `server-browser-backend`, `update-plugin` (default true),
-`allow-unstable-plugin` (default false), `no-tui` (default false), and `game-args`
-(list of strings). `server.game-args` or `client.game-args` is appended to the
+`allow-unstable-plugin` (default false), and `game-args` (list of strings).
+The root `no-tui` option (default false) is server-only.
+`server.game-args` or `client.game-args` is appended to the
 common list only for the matching command. The client schema currently supports
 `game-args`; client installation, platform, plugin, mod, and saved-profile options remain at the root.
 For servers, `mod-setup` and `saved-dir-suffix` belong inside `server` or each
@@ -556,8 +560,9 @@ never overwrites GUI configuration or reuses the GUI's enabled-mod selection.
 Each launch reconciles the installed managed set with that host's selected releases;
 genuinely unmanaged user paks are preserved.
 Core's installation pipeline changes the installed managed pak set and signatures.
-The GUI uses one shared `Saved_unchained/unchained` pak/plugin set for all clients and
-servers. Only the CLI differentiates selections by launch profile. CLI profiles
+The GUI installs paks in each launch profile's `Saved_<suffix>/Paks` directory,
+using a shared GUI mod selection and shared `Saved_unchained/unchained/plugins` DLLs.
+CLI mod and DLL selections remain request-specific. CLI profiles
 need separate saved suffixes/ports; CLI startup
 preparation remains sequential because some Core operations change CWD and metadata.
 
@@ -590,6 +595,8 @@ not loaded in safe mode. CLI selections never overwrite the GUI plugin profile.
 Safe injection uses only that launch's verified allowlist, not the directory or
 the saved inventory. The unsafe load-all option retains other DLLs for injection.
 `--no-plugin-update` forbids downloads but permits restoring cached versions.
+It does not retain the installed version; pin the desired registered tag with
+`--dll Chiv2-Community/UnchainedPlugin:<tag>` and install or cache every required DLL.
 Only explicitly pinned prereleases (or `--allow-unstable-plugin` for automatic
 selection) are eligible; automatic selection otherwise uses the latest stable.
 

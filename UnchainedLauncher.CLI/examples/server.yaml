@@ -6,9 +6,8 @@ map-profiles:
     map-name: FFA_Courtyard
 
 # Run with: UnchainedLauncher.CLI.exe server --config-path server.yaml
-# Requires UnchainedPlugin support for --additional-pak-dir.
-# Replace the core plugin pin with a registered build supporting that option.
-# Paks/plugins live in %LOCALAPPDATA%/Chivalry 2/Saved_MyServer/unchained/.
+# Paks live in %LOCALAPPDATA%/Chivalry 2/Saved_MyServer/Paks/.
+# Plugins live in %LOCALAPPDATA%/Chivalry 2/Saved_MyServer/unchained/plugins/.
 # Pak bytes are shared through the common verified cache and hard links.
 # A client block, if included, is ignored by the server command.
 server-browser-backend: https://servers.polehammer.net

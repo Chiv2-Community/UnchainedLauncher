@@ -34,7 +34,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         internal void ReconcileManagedPaks(IEnumerable<ManagedPak> managedPaks) {
-            var owned = managedPaks.ToList();
+            var owned = managedPaks?.ToList();
+            if (owned is null || owned.Any(p => p is null || p.PakFileName is null
+                || p.Coordinates is null || string.IsNullOrWhiteSpace(p.Coordinates.Org)
+                || string.IsNullOrWhiteSpace(p.Coordinates.ModuleName)
+                || string.IsNullOrWhiteSpace(p.Coordinates.Version)))
+                throw new InvalidDataException("Invalid managed pak inventory.");
             // Inventory authorizes deletion only inside this directory, never base/user paks.
             if (owned.Any(p => string.IsNullOrWhiteSpace(p.PakFileName)
                 || Path.GetFileName(p.PakFileName) != p.PakFileName
@@ -126,8 +131,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             return fullActualName;
         }
 
-        private EitherAsync<Error, string> _writePak(IPakDir.MakeFileWriter mkFileWriter, Option<IProgress<double>> progress, string suggestedFileName) {
-            var fullActualName = AvailablePakName(suggestedFileName);
+        private EitherAsync<Error, string> _writePak(IPakDir.MakeFileWriter mkFileWriter, Option<IProgress<double>> progress, string fullActualName) {
             Logger.Info($"Downloading pak to {fullActualName}");
             return mkFileWriter(PakNameToPakPath(fullActualName))
                 .Bind(fileWriter =>
@@ -304,7 +308,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var name = AvailablePakName(download.FinalPakName);
             var progress = taskProgress.Map(p => (IProgress<double>)p);
             var written = CachePath is null
-                ? await _writePak(download.Install.Writer, progress, download.FinalPakName)
+                ? await _writePak(download.Install.Writer, progress, name)
                 : (await new PakCache(CachePath).Install(download.Install, PakNameToPakPath(name), progress, _cancellationToken)).Map(_ => name);
             return written
                 .Map(pakFileName => {

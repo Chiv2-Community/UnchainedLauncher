@@ -30,6 +30,7 @@ internal static class ServerGroupRunner {
                 tabNames: group.Servers.Select(entry => entry.Id).ToArray());
             for (var i = 0; i < processes.Count; i++) tasks.Add(MonitorAsync(i));
 
+            var launchOptions = group.Servers.Select(entry => entry.Options.ToServerLaunchOptions()).ToArray();
             using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
             while (true) {
                 if (dashboard.StopRequested()) stop.Cancel();
@@ -37,7 +38,7 @@ internal static class ServerGroupRunner {
                     if (dashboard.IsInteractive && i != dashboard.SelectedTab) continue;
                     var snapshot = Volatile.Read(ref snapshots[i]);
                     if (snapshot is not null) dashboard.Render(processes[i].Id, snapshot.Sample, snapshot.History,
-                        group.Servers[i].Options.ToServerLaunchOptions(), $"[{group.Servers[i].Id}] {snapshot.Status}");
+                        launchOptions[i], $"[{group.Servers[i].Id}] {snapshot.Status}");
                 }
                 if (stop.IsCancellationRequested || tasks.All(task => task.IsCompleted)) break;
                 if (tasks.Any(task => task.IsFaulted))

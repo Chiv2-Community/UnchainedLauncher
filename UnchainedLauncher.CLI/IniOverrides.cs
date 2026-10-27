@@ -160,17 +160,20 @@ internal sealed class IniOverrides {
     }
 
     internal void Apply(string directory) {
+        var files = new Dictionary<string, StructuredINIWriter>(StringComparer.OrdinalIgnoreCase);
+        BufferInto(files);
+        IniPatches.Write(directory, files);
+    }
+
+    internal void BufferInto(Dictionary<string, StructuredINIWriter> files) {
         foreach (var file in _entries.Where(entry => !entry.Raw).GroupBy(entry => entry.File, StringComparer.OrdinalIgnoreCase)) {
-            var writer = new StructuredINIWriter();
+            if (!files.TryGetValue(file.Key, out var writer)) files[file.Key] = writer = new StructuredINIWriter();
             foreach (var section in file.GroupBy(entry => entry.Section, StringComparer.OrdinalIgnoreCase)) {
                 var lines = section.SelectMany(entry => entry.Array
-                    ? new[] { KeyValuePair.Create("!" + entry.Key, "ClearArray") }
-                        .Concat(entry.Values.Select(value => KeyValuePair.Create("." + entry.Key, value)))
+                    ? IniPatches.Array(entry.Key, entry.Values)
                     : [KeyValuePair.Create(entry.Key, entry.Values[0])]);
-                writer.BufferSection(section.Key, lines);
+                writer.MergeSection(section.Key, lines);
             }
-            if (!writer.WriteOut(Path.Combine(directory, file.Key + ".ini")))
-                throw new IOException("Could not apply server INI overrides; refusing to launch.");
         }
     }
 }

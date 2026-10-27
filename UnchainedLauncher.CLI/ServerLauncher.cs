@@ -61,7 +61,7 @@ public static class ServerLauncher {
         CancellationToken cancellationToken = default) {
         var dialogue = new ConsoleDialogue();
         var modInstaller = new Chivalry2ModsInstaller(manager, dialogue);
-        var signing = SigPreparer.Create(manager.PakDir, dialogue);
+        var signing = SigPreparer.CreateForProfile(manager.PakDir, dialogue);
         // Call preparers sequentially so each receives the previous result.
         // Always save the managed-pak inventory, even after a partial installation.
         return Chivalry2LaunchPreparer.Create<LaunchOptions>(async launch => {
@@ -90,8 +90,7 @@ public static class ServerLauncher {
         options.Shared.RegistryOptions.CreateRegistry();
 
     internal static ModManager CreateModManager(CliLaunchOptions request, AggregateModRegistry registry, CancellationToken cancellationToken = default) {
-        var basePakPath = Path.Combine(request.Shared.Chivalry2Path, FilePaths.PakDir);
-        return new ModManager(registry, request.InstancePaths.CreatePakDir(basePakPath, cancellationToken), request.Shared.Mods.Distinct());
+        return new ModManager(registry, request.InstancePaths.CreatePakDir(request.Shared.Chivalry2Path, cancellationToken), request.Shared.Mods.Distinct());
     }
 
     internal static DllLaunchSession CreateDllSession(CliLaunchOptions request, AggregateModRegistry registry,
@@ -106,11 +105,12 @@ public static class ServerLauncher {
             : Path.Combine(Path.GetDirectoryName(request.Shared.Assets.Root)!, "Config", "WindowsNoEditor");
         // Match the GUI's startup defaults without rewriting unrelated server or player settings.
         var writer = new StructuredINIWriter();
-        if (!writer.BufferWrite(new TBLTitleScreen()) || !writer.BufferWrite(new TBLGameInstance()) ||
-            !writer.WriteOut(Path.Combine(directory, "Game.ini")))
+        if (!writer.BufferWrite(new TBLTitleScreen()) || !writer.BufferWrite(new TBLGameInstance()))
             throw new IOException("Could not initialize the server INI profile; refusing to launch.");
-        server.Ini.Apply(directory);
-        server.Settings.Rotation?.Apply(directory);
+        var files = new Dictionary<string, StructuredINIWriter>(StringComparer.OrdinalIgnoreCase) { ["Game"] = writer };
+        server.Ini.BufferInto(files);
+        server.Settings.Rotation?.BufferInto(writer);
+        IniPatches.Write(directory, files);
     }
 
     // Several existing Core preparers use installation-relative paths.
@@ -145,15 +145,20 @@ public static class ServerLauncher {
             }
         }
         var selected = releases.Select(ReleaseCoordinates.FromRelease).ToHashSet();
-        var sorted = manager.SortByDependencies(releases).Select(ReleaseCoordinates.FromRelease).ToHashSet();
-        if (!selected.SetEquals(sorted))
+        var sorted = manager.SortByDependencies(releases).ToArray();
+        if (!selected.SetEquals(sorted.Select(ReleaseCoordinates.FromRelease)))
             throw new InvalidOperationException("Mod dependencies contain a cycle; refusing to install an incomplete pak set.");
+        var preceding = new HashSet<ModIdentifier>();
+        foreach (var release in sorted) {
+            if (release.Info.EffectiveModDependencies.Any(dependency => !preceding.Contains(ModIdentifier.FromDependency(dependency))))
+                throw new InvalidOperationException("Selected mod dependencies contain a cycle or violate the resolved pak order; refusing to install.");
+            preceding.Add(ModIdentifier.FromRelease(release));
+        }
     }
 
     public static IA2S CreateQuery(ServerOptions options) {
         var address = options.Settings.LocalIp is null ? IPAddress.Loopback : IPAddress.Parse(options.Settings.LocalIp);
         if (address.Equals(IPAddress.Any)) address = IPAddress.Loopback;
-        if (address.Equals(IPAddress.IPv6Any)) address = IPAddress.IPv6Loopback;
         return new A2S(new IPEndPoint(address, options.Settings.QueryPort));
     }
 }

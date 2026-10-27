@@ -1,9 +1,8 @@
 # Run: UnchainedLauncher.CLI.exe server --config-path servers.yaml
 # Paths resolve relative to this file. Each server has independent selections and files.
-# Requires UnchainedPlugin support for --additional-pak-dir.
-# Active paks/plugins: %LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/unchained/.
+# Active paks: %LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/Paks/.
+# Active plugins: %LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/unchained/plugins/.
 # Pak bytes are shared through the common content-addressed cache and hard links.
-# Replace the core plugin pin with a registered build supporting --additional-pak-dir.
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam
 map-profiles:

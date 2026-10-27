@@ -22,8 +22,24 @@ public sealed class ProfileAssetPaths {
         DllCache = Path.Combine(game, "unchained", "cache", "dlls");
     }
 
-    public PakDir CreatePakDir(string installation, IEnumerable<ManagedPak>? managedPaks = null) {
+    public IDisposable AcquireLease() {
+        Directory.CreateDirectory(Root);
+        try {
+            return new FileStream(Path.Combine(Root, ".instance.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+        }
+        catch (IOException ex) {
+            throw new IOException("Cannot lock the profile asset directory; another launcher may be using the same saved profile.", ex);
+        }
+    }
+
+    public ModManager Rebind(ModManager manager, string installation) {
+        var sameProfile = Path.GetFullPath(manager.PakDir.DirPath).Equals(Path.GetFullPath(Paks), StringComparison.OrdinalIgnoreCase);
+        return manager.WithPakDir(CreatePakDir(installation,
+            sameProfile && manager.PakDir is PakDir existing ? existing.ManagedPaks : []));
+    }
+
+    public PakDir CreatePakDir(string installation, IEnumerable<ManagedPak>? managedPaks = null, CancellationToken cancellationToken = default) {
         Directory.CreateDirectory(Paks);
-        return new PakDir(Paks, managedPaks ?? [], Path.Combine(installation, FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig"), PakCache);
+        return new PakDir(Paks, managedPaks ?? [], Path.Combine(installation, FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig"), PakCache, cancellationToken);
     }
 }

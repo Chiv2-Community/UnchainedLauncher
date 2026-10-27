@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Mods;
@@ -47,8 +48,6 @@ public sealed class SharedLaunchOptions {
         RegistryOptions = new RegistryOptions(setup.Registries, directory);
         Mods = Entries(setup.Mods).Select(ParseCoordinates).ToArray();
         Dlls = Entries(setup.Dlls).Select(ParseCoordinates).ToArray();
-        if (!Regex.IsMatch(SavedDirSuffix, @"\A[A-Za-z0-9_-]+\z"))
-            throw new ArgumentException("saved-dir-suffix may contain only letters, digits, underscores, and hyphens.");
         if (!Uri.TryCreate(Backend, UriKind.Absolute, out var backend) || backend.Scheme is not ("http" or "https"))
             throw new ArgumentException("server-browser-backend must be an HTTP(S) URL.");
         if (Mods.GroupBy(m => (m.Org, m.ModuleName)).Any(g => g.Select(m => m.Version).Distinct().Count() > 1))
@@ -70,7 +69,7 @@ public abstract class CliLaunchOptions : CliCommandOptions {
     private readonly SharedLaunchOptions? _shared;
     public SharedLaunchOptions Shared => _shared ?? throw new InvalidOperationException("Help is not a launch request.");
     public IReadOnlyList<string> GameArguments { get; }
-    public ServerInstancePaths InstancePaths => new(Shared.Assets.Root, Shared.Assets.PakCache);
+    public ServerInstancePaths InstancePaths => new(Shared.Assets);
     internal bool AttachStd => this is ServerOptions server && (server.Settings.AttachStd ||
         GameArguments.Any(arg => arg is "--attach-std" or "-attach-std"));
 
@@ -127,7 +126,7 @@ public sealed class ServerOptions : CliLaunchOptions {
     public ServerSettings Settings { get; }
     public bool NoTui { get; }
     // Chivalry removes hyphens when choosing its Saved directory (the plugin log path does not).
-    internal string GameSavedDirSuffix => Shared.SavedDirSuffix.Replace("-", "", StringComparison.Ordinal);
+    internal string GameSavedDirSuffix => Shared.Assets.Suffix;
 
     internal ServerOptions(SharedLaunchOptions shared, ServerSettings settings, bool noTui)
         : base(shared, SharedLaunchOptions.Entries(settings.GameArgs, allowEmpty: true)) {
@@ -136,13 +135,13 @@ public sealed class ServerOptions : CliLaunchOptions {
         if (settings.Rotation is not null && Ini.Contains("Game", "/Script/TBL.TBLGameMode", "MapListIndex"))
             throw new ArgumentException("MapListIndex is managed by map-rotation; use starting-map to choose the first map.");
         NoTui = noTui;
-        if (GameSavedDirSuffix.Length == 0) throw new ArgumentException("saved-dir-suffix must contain a character other than a hyphen.");
         if (!settings.Headless && settings.DesyncPatch)
             throw new ArgumentException("Desync patch requires a headless server. To enable rendering, pass --no-desync-patch or set server.desync-patch: false in YAML.");
         if (new[] { settings.GamePort, settings.PingPort, settings.QueryPort, settings.RconPort }.Distinct().Count() != 4)
             throw new ArgumentException("Game, ping, query, and RCON ports must be distinct.");
         settings.LocalIp = string.IsNullOrWhiteSpace(settings.LocalIp) ? LocalAddressDetector.Detect().ToString() : settings.LocalIp.Trim();
-        if (!IPAddress.TryParse(settings.LocalIp, out _)) throw new ArgumentException("local-ip must be an IP address.");
+        if (!IPAddress.TryParse(settings.LocalIp, out var address) || address.AddressFamily != AddressFamily.InterNetwork)
+            throw new ArgumentException("local-ip must be an IPv4 address.");
         settings.ModActors = SharedLaunchOptions.Entries(settings.ModActors).Distinct().ToList();
         ToDiscordOptions();
     }

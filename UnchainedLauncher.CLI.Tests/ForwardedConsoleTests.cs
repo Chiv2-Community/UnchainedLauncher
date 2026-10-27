@@ -19,30 +19,56 @@ public sealed class ForwardedConsoleTests {
     }
 
     [Theory]
-    [InlineData("--attach-std")]
-    [InlineData("-attach-std")]
-    public void AttachStdMapsToPluginArgumentsAndStandardCapture(string flag) {
-        var direct = CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam", "--attach-std"]);
-        Assert.True(direct.AttachStd);
-        Assert.Contains("--attach-std", direct.ToLaunchOptions().LaunchArgs);
+    [InlineData("--attach-stdio")]
+    [InlineData("-attach-stdio")]
+    public void AttachStdioMapsToPluginArgumentsAndStandardCapture(string flag) {
+        var direct = CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam", "--attach-stdio"]);
+        Assert.True(direct.AttachStdio);
+        Assert.Contains("--attach-stdio", direct.ToLaunchOptions().LaunchArgs);
         var passthrough = CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam", "--", flag]);
-        Assert.True(passthrough.AttachStd);
-        Assert.False(CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam"]).AttachStd);
+        Assert.True(passthrough.AttachStdio);
+        Assert.False(CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam"]).AttachStdio);
     }
 
     [Fact]
     public void YamlCanSelectStandardOutputCapture() {
-        var path = Path.Combine(Path.GetTempPath(), "attach-std-" + Guid.NewGuid().ToString("N") + ".yaml");
+        var path = Path.Combine(Path.GetTempPath(), "attach-stdio-" + Guid.NewGuid().ToString("N") + ".yaml");
         try {
-            File.WriteAllText(path, "chiv2-path: .\nplatform: Steam\nserver:\n  attach-std: true\n");
+            File.WriteAllText(path, "chiv2-path: .\nplatform: Steam\nserver:\n  attach-stdio: true\n");
             var options = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
-            Assert.True(options.AttachStd);
-            Assert.Contains("--attach-std", options.ToLaunchOptions().LaunchArgs);
+            Assert.True(options.AttachStdio);
+            Assert.Contains("--attach-stdio", options.ToLaunchOptions().LaunchArgs);
         }
         finally { File.Delete(path); }
     }
     private static byte[] Frame(string text, ulong dropped = 0) => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
         new { version = 1, kind = "log", level = "INFO", text, dropped }) + "\n");
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ConsoleSuppressionDoesNotSelectStandardCapture(bool attach) {
+        var args = new List<string> { "server", "--chivalry2-path", ".", "--platform", "Steam", "--no-spawn-console" };
+        if (attach) args.Add("--attach-stdio");
+        var options = Assert.IsType<ServerOptions>(CliLaunchOptions.Parse(args.ToArray()));
+        Assert.True(options.Settings.NoSpawnConsole);
+        Assert.Equal(attach, options.AttachStdio);
+        Assert.Contains("--no-spawn-console", options.ToLaunchOptions().LaunchArgs);
+        Assert.Equal(attach, options.ToLaunchOptions().LaunchArgs.Contains("--attach-stdio"));
+    }
+
+    [Fact]
+    public void YamlCanSuppressConsoleWithoutAttachment() {
+        var path = Path.Combine(Path.GetTempPath(), "no-spawn-console-" + Guid.NewGuid().ToString("N") + ".yaml");
+        try {
+            File.WriteAllText(path, "chiv2-path: .\nplatform: Steam\nserver:\n  no-spawn-console: true\n");
+            var options = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
+            Assert.True(options.Settings.NoSpawnConsole);
+            Assert.False(options.AttachStdio);
+            Assert.Contains("--no-spawn-console", options.ToLaunchOptions().LaunchArgs);
+        }
+        finally { File.Delete(path); }
+    }
 
     [Fact]
     public async Task PrivateReceiverNeedsNoHandshakeAndAcceptsOnlyOneStream() {

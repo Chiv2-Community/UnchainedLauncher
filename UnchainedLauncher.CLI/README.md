@@ -125,10 +125,13 @@ Registry queries remain portable and do not require Proton.
 
 ### Forwarded plugin console
 
-To use standard output instead of plugin IPC, add **`--attach-std`** to the
-`server` command, or set `server.attach-std: true` in YAML. This passes the plugin
+To use standard output instead of plugin IPC, add **`--attach-stdio`** to the
+`server` command, or set `server.attach-stdio: true` in YAML. This passes the plugin
 flag before initialization and captures stdout/stderr into the same TUI/plain
 handler without opening a separate console. The flag explicitly wins over IPC.
+To suppress plugin console creation without attaching stdio or changing capture,
+use `--no-spawn-console` or `server.no-spawn-console: true` in YAML. It can be
+combined with `--attach-stdio`; configured file logging is unaffected.
 Windows uses private inherited pipes; Linux uses Proton `runinprefix` so the
 Steam.exe wrapper cannot discard those streams. Captured server stdin is EOF,
 not the TUI's keyboard. Standard-stream writes can experience pipe backpressure;

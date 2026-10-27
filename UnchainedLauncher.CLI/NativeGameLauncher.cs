@@ -7,7 +7,7 @@ namespace UnchainedLauncher.CLI;
 internal static class NativeGameLauncher {
     internal static async Task<LaunchedGame> LaunchAsync(string executable, string installationRoot,
         LaunchOptions options, IChivalry2LaunchPreparer<LaunchOptions> preparer,
-        IProcessInjector injector, bool forwardConsole, bool attachStd = false) {
+        IProcessInjector injector, bool forwardConsole, bool attachStdio = false) {
         var console = forwardConsole ? new ForwardedConsole() : null;
         ProcessOutputCapture? capture = null;
         CancellationTokenSource? stop = null;
@@ -19,9 +19,9 @@ internal static class NativeGameLauncher {
                 ["UNCHAINED_CONSOLE_TOKEN"] = null
             };
             if (console != null) {
-                capture = new ProcessOutputCapture(forwardConsole: !attachStd);
+                capture = new ProcessOutputCapture(forwardConsole: !attachStdio);
                 stop = new CancellationTokenSource();
-                drain = attachStd
+                drain = attachStdio
                     ? Task.WhenAll(console.CaptureAsync(capture.StandardOutput, stop.Token),
                         console.CaptureAsync(capture.StandardError, stop.Token))
                     : Task.WhenAll(console.ReadAsync(capture.ConsoleOutput!, stop.Token),

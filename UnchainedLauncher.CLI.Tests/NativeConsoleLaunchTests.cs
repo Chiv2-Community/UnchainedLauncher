@@ -21,14 +21,14 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task CancelledPreparationClosesPipesWithoutWaitingForAChild(bool attachStd) {
+    public async Task CancelledPreparationClosesPipesWithoutWaitingForAChild(bool attachStdio) {
         if (!OperatingSystem.IsWindows()) return;
         var options = new LaunchOptions([], Option<string>.None, "", false, false,
             Option<string>.None, Option<ServerLaunchOptions>.None);
         var preparer = Chivalry2LaunchPreparer.Create<LaunchOptions>(_ => Option<LaunchOptions>.None);
         await Assert.ThrowsAsync<InvalidOperationException>(() => NativeGameLauncher.LaunchAsync(Probe, _root,
             options, preparer, new ProbeInjector(Path.Combine(_root, "not-created")), forwardConsole: true,
-            attachStd: attachStd).WaitAsync(TimeSpan.FromSeconds(5)));
+            attachStdio: attachStdio).WaitAsync(TimeSpan.FromSeconds(5)));
     }
 
     [Theory]
@@ -78,14 +78,14 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
     }
 
     [Fact]
-    public async Task AttachStdCapturesBothStreamsThroughTheSuspendedLaunchWithoutIpc() {
+    public async Task AttachStdioCapturesBothStreamsThroughTheSuspendedLaunchWithoutIpc() {
         if (!OperatingSystem.IsWindows()) return;
         var output = Path.Combine(_root, "std-probe.txt");
         var options = new LaunchOptions([], Option<string>.None,
             "--std-probe " + ArgumentEscaper.Escape(output), false, false, Option<string>.None, Option<ServerLaunchOptions>.None);
         var preparer = Chivalry2LaunchPreparer.Create<LaunchOptions>(value => Prelude.Some(value));
         using var game = await NativeGameLauncher.LaunchAsync(Probe, _root, options, preparer,
-            new ProbeInjector(output), forwardConsole: true, attachStd: true);
+            new ProbeInjector(output), forwardConsole: true, attachStdio: true);
         try {
             List<string> lines = [];
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));

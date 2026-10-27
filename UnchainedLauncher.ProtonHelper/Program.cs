@@ -29,9 +29,9 @@ internal static class Program {
                     throw new InvalidDataException();
             }
             var injector = DllInjector.FromVerifiedPaths(request.Dlls.Select(dll => dll.Path).ToArray());
-            if (request.Server || request.AttachStd) {
-                capture = new ProcessOutputCapture(forwardConsole: request.Server && !request.AttachStd);
-                drain = request.AttachStd
+            if (request.Server || request.AttachStdio) {
+                capture = new ProcessOutputCapture(forwardConsole: request.Server && !request.AttachStdio);
+                drain = request.AttachStdio
                     ? Task.WhenAll(capture.StandardOutput.CopyToAsync(Console.OpenStandardOutput()),
                         capture.StandardError.CopyToAsync(Console.OpenStandardError()))
                     : Task.WhenAll(RelayConsoleAsync(capture.ConsoleOutput!),

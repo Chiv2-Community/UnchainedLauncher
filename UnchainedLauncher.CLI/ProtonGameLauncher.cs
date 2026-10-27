@@ -30,7 +30,7 @@ internal static class ProtonGameLauncher {
             var executable = Path.Combine(options.Shared.Chivalry2Path, FilePaths.GameBinPath);
             var request = new ProtonLaunchRequest(await runtime.WinePathAsync(executable, true, token),
                 await runtime.WinePathAsync(Path.GetDirectoryName(executable)!, true, token),
-                UnchainedChivalry2Launcher.BuildArguments(launch), files, options is ServerOptions, options.AttachStd);
+                UnchainedChivalry2Launcher.BuildArguments(launch), files, options is ServerOptions, options.AttachStdio);
             var requestPath = Path.Combine(directory, "request.json");
             await using (var stream = new FileStream(requestPath, new FileStreamOptions {
                 Mode = FileMode.CreateNew, Access = FileAccess.Write,
@@ -49,10 +49,10 @@ internal static class ProtonGameLauncher {
             supervisor = Process.Start(info) ?? throw new InvalidOperationException("Could not start Proton.");
             // In structured mode only the private game pipe is relayed to helper stdout.
             output = console != null
-                ? options.AttachStd ? console.CaptureAsync(supervisor.StandardOutput.BaseStream, drainStop.Token)
+                ? options.AttachStdio ? console.CaptureAsync(supervisor.StandardOutput.BaseStream, drainStop.Token)
                     : console.ReadAsync(supervisor.StandardOutput.BaseStream, drainStop.Token)
                 : supervisor.StandardOutput.BaseStream.CopyToAsync(Stream.Null, drainStop.Token);
-            errors = options.AttachStd && console != null
+            errors = options.AttachStdio && console != null
                 ? console.CaptureAsync(supervisor.StandardError.BaseStream, drainStop.Token)
                 : supervisor.StandardError.BaseStream.CopyToAsync(Stream.Null, drainStop.Token);
             pulse = PulseAsync();

@@ -11,4 +11,7 @@
     <InternalsVisibleTo Include="UnchainedLauncher.CLI.Tests" />
     <ProjectReference Include="..\UnchainedLauncher.Core\UnchainedLauncher.Core.csproj" />
   </ItemGroup>
+  <Target Name="PublishProtonHelper" AfterTargets="Publish" Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+    <Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)/../UnchainedLauncher.ProtonHelper/UnchainedLauncher.ProtonHelper.csproj&quot; -c $(Configuration) -r win-x64 --self-contained true -o &quot;$(PublishDir)proton-helper&quot;" />
+  </Target>
 </Project>

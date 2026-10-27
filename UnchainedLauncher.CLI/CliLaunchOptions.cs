@@ -25,11 +25,19 @@ public sealed class SharedLaunchOptions {
     public IReadOnlyList<ReleaseCoordinates> Dlls { get; }
     public IReadOnlyList<string> GameArguments { get; }
     internal ProfileAssetPaths Assets { get; set; }
+    internal ProtonConfiguration ProtonConfiguration { get; }
+    internal ProtonRuntime? Proton { get; set; }
 
     internal SharedLaunchOptions(LaunchConfiguration configuration, string directory, string? savedDirSuffix = null, ServerSettings? server = null) {
         Chivalry2Path = Path.GetFullPath(configuration.Chiv2Path!, directory);
         SavedDirSuffix = savedDirSuffix ?? server?.SavedDirSuffix ?? (configuration as ClientConfiguration)?.SavedDirSuffix ?? "UnchainedCLI";
         Assets = new ProfileAssetPaths(SavedDirSuffix);
+        var proton = configuration.Proton ?? new ProtonConfiguration();
+        string? Absolute(string? value) => value == null ? null : Path.GetFullPath(value, directory);
+        ProtonConfiguration = new ProtonConfiguration {
+            Path = Absolute(proton.Path), CompatDataPath = Absolute(proton.CompatDataPath),
+            SteamPath = Absolute(proton.SteamPath), HelperPath = Absolute(proton.HelperPath)
+        };
         Platform = configuration.Platform!.Value;
         Backend = configuration.ServerBrowserBackend;
         UpdatePlugin = configuration.UpdatePlugin;
@@ -63,6 +71,8 @@ public abstract class CliLaunchOptions : CliCommandOptions {
     public SharedLaunchOptions Shared => _shared ?? throw new InvalidOperationException("Help is not a launch request.");
     public IReadOnlyList<string> GameArguments { get; }
     public ServerInstancePaths InstancePaths => new(Shared.Assets.Root, Shared.Assets.PakCache);
+    internal bool AttachStd => this is ServerOptions server && (server.Settings.AttachStd ||
+        GameArguments.Any(arg => arg is "--attach-std" or "-attach-std"));
 
     private protected CliLaunchOptions(SharedLaunchOptions shared, IEnumerable<string> gameArguments) {
         _shared = shared;
@@ -162,6 +172,7 @@ public sealed class ServerOptions : CliLaunchOptions {
 
     public override LaunchOptions ToLaunchOptions() {
         var prefix = new List<string> { "TBL", "-server" };
+        if (Settings.AttachStd && !GameArguments.Any(arg => arg is "--attach-std" or "-attach-std")) prefix.Add("--attach-std");
         if (!Ini.Contains("Game", "/Script/TBL.TBLTitleScreen", "bSavedHasAgreedToTOS"))
             prefix.Add("-ini:Game:[/Script/TBL.TBLTitleScreen]:bSavedHasAgreedToTOS=True");
         if (!Ini.Contains("Game", "/Script/TBL.TBLGameInstance", "FirstLoadCompleted"))

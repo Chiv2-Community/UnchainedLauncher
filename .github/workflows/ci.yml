@@ -15,6 +15,23 @@ env:
 
 # TODO: Run integration tests. Set up some kind of stubbed environment for the tests to run in.
 jobs:
+  cli-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    - name: Test native CLI
+      run: dotnet test UnchainedLauncher.CLI.Tests -c Release
+    - name: Publish native CLI and Windows Proton helper
+      run: dotnet publish UnchainedLauncher.CLI -c Release -r linux-x64 --self-contained true -o out-cli-linux
+    - name: Archive Linux CLI with executable permissions
+      run: tar -czf UnchainedLauncher-CLI-linux-x64.tar.gz -C out-cli-linux .
+    - uses: actions/upload-artifact@v4
+      with:
+        name: UnchainedLauncher_CLI_linux-x64_${{ github.sha }}
+        path: UnchainedLauncher-CLI-linux-x64.tar.gz
   build:
     strategy:
       matrix:

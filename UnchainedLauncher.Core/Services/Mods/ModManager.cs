@@ -13,20 +13,20 @@ namespace UnchainedLauncher.Core.Services.Mods {
     internal static class CoreMods {
         public const string GithubBaseURL = "https://github.com";
 
-        public const string EnabledModsCacheDir = $"{FilePaths.ModCachePath}\\enabled_mods";
-        public const string ModsCachePackageDBDir = $"{FilePaths.ModCachePath}\\package_db";
-        public const string ModsCachePackageDBPackagesDir = $"{ModsCachePackageDBDir}\\packages";
-        public const string ModsCachePackageDBListPath = $"{ModsCachePackageDBDir}\\mod_list_index.txt";
+        public const string EnabledModsCacheDir = $"{FilePaths.ModCachePath}/enabled_mods";
+        public const string ModsCachePackageDBDir = $"{FilePaths.ModCachePath}/package_db";
+        public const string ModsCachePackageDBPackagesDir = $"{ModsCachePackageDBDir}/packages";
+        public const string ModsCachePackageDBListPath = $"{ModsCachePackageDBDir}/mod_list_index.txt";
 
-        public const string AssetLoaderPluginPath = $"{FilePaths.PluginDir}\\C2AssetLoaderPlugin.dll";
-        public const string ServerPluginPath = $"{FilePaths.PluginDir}\\C2ServerPlugin.dll";
-        public const string BrowserPluginPath = $"{FilePaths.PluginDir}\\C2BrowserPlugin.dll";
+        public const string AssetLoaderPluginPath = $"{FilePaths.PluginDir}/C2AssetLoaderPlugin.dll";
+        public const string ServerPluginPath = $"{FilePaths.PluginDir}/C2ServerPlugin.dll";
+        public const string BrowserPluginPath = $"{FilePaths.PluginDir}/C2BrowserPlugin.dll";
 
         //public const string AssetLoaderPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2AssetLoaderPlugin/releases/latest/download/C2AssetLoaderPlugin.dll";
         //public const string ServerPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2ServerPlugin/releases/latest/download/C2ServerPlugin.dll";
         //public const string BrowserPluginURL = $"{GithubBaseURL}/Chiv2-Community/C2BrowserPlugin/releases/latest/download/C2BrowserPlugin.dll";
 
-        public const string UnchainedPluginPath = $"{FilePaths.PluginDir}\\UnchainedPlugin.dll";
+        public const string UnchainedPluginPath = $"{FilePaths.PluginDir}/UnchainedPlugin.dll";
         public const string UnchainedPluginURL = $"{GithubBaseURL}/Chiv2-Community/UnchainedPlugin/releases/latest/download/UnchainedPlugin.dll";
 
         public const string PackageDBBaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/main/package_db";

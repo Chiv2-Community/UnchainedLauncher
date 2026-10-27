@@ -14,9 +14,9 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.CLI;
 
 public static class ServerLauncher {
-    public static async Task<Process> LaunchAsync(CliLaunchOptions request, CancellationToken cancellationToken) {
+    public static async Task<LaunchedGame> LaunchAsync(CliLaunchOptions request, CancellationToken cancellationToken) {
         var options = request.Shared;
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Game launching requires Windows (Core's DLL injector uses kernel32.dll).");
+        await ProtonRuntime.ConfigureAsync(request, cancellationToken);
         var executable = Path.Combine(options.Chivalry2Path, FilePaths.GameBinPath);
         var basePakPath = Path.Combine(options.Chivalry2Path, FilePaths.PakDir);
         var instance = request.InstancePaths;
@@ -46,13 +46,13 @@ public static class ServerLauncher {
             }
             var pluginUpdater = CreateDllSession(request, registry, manager, cancellationToken);
             var preparer = CreateLaunchPreparer(request, manager, pluginUpdater, codec, cachePath, cancellationToken);
-            var launcher = new UnchainedChivalry2Launcher(preparer, new ProcessLauncher(executable),
-                options.Chivalry2Path, pluginUpdater);
-            var result = await launcher.Launch(request.ToLaunchOptions());
-            return result.Match(
-                Right: process => process,
-                // Do not print LaunchFailed.Message: it contains raw password/auth arguments.
-                Left: failure => throw new InvalidOperationException("Game launch or DLL injection failed. Check the installation, plugin, and mod files.", failure));
+            if (options.Proton != null) {
+                var prepared = await preparer.PrepareLaunch(request.ToLaunchOptions());
+                if (prepared.IsNone) throw new InvalidOperationException("Launch preparation was cancelled.");
+                return await ProtonGameLauncher.LaunchAsync(request, prepared.IfNone(request.ToLaunchOptions()), pluginUpdater, cancellationToken);
+            }
+            return await NativeGameLauncher.LaunchAsync(executable, options.Chivalry2Path,
+                request.ToLaunchOptions(), preparer, pluginUpdater, forwardConsole: request is ServerOptions, attachStd: request.AttachStd);
         });
     }
 
@@ -102,7 +102,8 @@ public static class ServerLauncher {
     internal static void InitializeServerProfile(CliLaunchOptions request, Func<string, string>? configPath = null) {
         if (request is not ServerOptions server) return;
 
-        var directory = (configPath ?? FilePaths.Chiv2ConfigPath)(server.GameSavedDirSuffix);
+        var directory = configPath != null ? configPath(server.GameSavedDirSuffix)
+            : Path.Combine(Path.GetDirectoryName(request.Shared.Assets.Root)!, "Config", "WindowsNoEditor");
         // Match the GUI's startup defaults without rewriting unrelated server or player settings.
         var writer = new StructuredINIWriter();
         if (!writer.BufferWrite(new TBLTitleScreen()) || !writer.BufferWrite(new TBLGameInstance()) ||

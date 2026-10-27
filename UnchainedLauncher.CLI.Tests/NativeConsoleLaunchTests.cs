@@ -1,0 +1,129 @@
+using System.Diagnostics;
+using System.Text.Json;
+using LanguageExt;
+using UnchainedLauncher.Core.Services.Processes;
+using UnchainedLauncher.Core.Services.Processes.Chivalry;
+using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
+using UnchainedLauncher.Core.Utilities;
+using Xunit;
+
+namespace UnchainedLauncher.CLI.Tests;
+
+public sealed class NativeConsoleLaunchTests : IDisposable {
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "native-console-" + Guid.NewGuid().ToString("N"));
+    private static string Probe => Path.Combine(AppContext.BaseDirectory, "argument-probe",
+        OperatingSystem.IsWindows() ? "ArgumentProbe.exe" : "ArgumentProbe");
+    public NativeConsoleLaunchTests() => Directory.CreateDirectory(Path.Combine(_root, FilePaths.BinDir));
+    public void Dispose() => Directory.Delete(_root, recursive: true);
+
+    [Fact]
+    public async Task CancelledPreparationClosesStandardPipesWithoutWaitingForAChild() {
+        if (!OperatingSystem.IsWindows()) return;
+        var options = new LaunchOptions([], Option<string>.None, "", false, false,
+            Option<string>.None, Option<ServerLaunchOptions>.None);
+        var preparer = Chivalry2LaunchPreparer.Create<LaunchOptions>(_ => Option<LaunchOptions>.None);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => NativeGameLauncher.LaunchAsync(Probe, _root,
+            options, preparer, new ProbeInjector(Path.Combine(_root, "not-created")), forwardConsole: true,
+            attachStd: true).WaitAsync(TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
+    public async Task AttachStdCapturesBothStreamsThroughTheSuspendedLaunchWithoutIpc() {
+        if (!OperatingSystem.IsWindows()) return;
+        var output = Path.Combine(_root, "std-probe.txt");
+        var options = new LaunchOptions([], Option<string>.None,
+            "--std-probe " + ArgumentEscaper.Escape(output), false, false, Option<string>.None, Option<ServerLaunchOptions>.None);
+        var preparer = Chivalry2LaunchPreparer.Create<LaunchOptions>(value => Prelude.Some(value));
+        using var game = await NativeGameLauncher.LaunchAsync(Probe, _root, options, preparer,
+            new ProbeInjector(output), forwardConsole: true, attachStd: true);
+        try {
+            List<string> lines = [];
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            while (!lines.Contains("stdout marker 世界") || !lines.Contains("stderr marker")) {
+                lines.AddRange(game.ConsoleOutput!.Drain());
+                if (timeout.IsCancellationRequested) throw new InvalidOperationException("Missing captured standard output: " + string.Join(" | ", lines));
+                await Task.Delay(10);
+            }
+            Assert.DoesNotContain("[plugin console connected]", lines);
+        }
+        finally { if (!game.HasExited) await game.StopAsync(); }
+    }
+
+    [Fact]
+    public async Task NativeLaunchForwardsWithoutChangingParentEnvironmentAndDisposesReceiver() {
+        var beforeEndpoint = Environment.GetEnvironmentVariable("UNCHAINED_CONSOLE_ENDPOINT");
+        var beforeToken = Environment.GetEnvironmentVariable("UNCHAINED_CONSOLE_TOKEN");
+        var output = Path.Combine(_root, "environment.json");
+        var options = new LaunchOptions([], Option<string>.None,
+            "--console-probe " + ArgumentEscaper.Escape(output), false, false, Option<string>.None, Option<ServerLaunchOptions>.None);
+        var preparer = Chivalry2LaunchPreparer.Create<LaunchOptions>(value => Prelude.Some(value));
+        var injector = new ProbeInjector(output);
+        var game = await NativeGameLauncher.LaunchAsync(Probe, _root, options, preparer, injector, forwardConsole: true);
+        using var observed = Process.GetProcessById(game.Id);
+        try {
+            Assert.True(injector.Called);
+            Assert.NotNull(game.ConsoleOutput);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            List<string> lines = [];
+            while (!lines.Contains("native console marker")) {
+                lines.AddRange(game.ConsoleOutput!.Drain());
+                if (!lines.Contains("native console marker")) await Task.Delay(10, timeout.Token);
+            }
+            using var environment = JsonDocument.Parse(await File.ReadAllTextAsync(output, timeout.Token));
+            Assert.Equal(game.ConsoleOutput!.Token, environment.RootElement.GetProperty("token").GetString());
+            Assert.Equal(beforeEndpoint, Environment.GetEnvironmentVariable("UNCHAINED_CONSOLE_ENDPOINT"));
+            Assert.Equal(beforeToken, Environment.GetEnvironmentVariable("UNCHAINED_CONSOLE_TOKEN"));
+            game.Dispose(); // A detached receiver read must unblock and close the child's stream.
+            await observed.WaitForExitAsync(timeout.Token);
+            Assert.True(observed.HasExited);
+        }
+        finally {
+            if (!observed.HasExited) {
+                observed.Kill(entireProcessTree: true);
+                await observed.WaitForExitAsync();
+            }
+            game.Dispose();
+        }
+    }
+
+    [Fact]
+    public async Task SuspendedWindowsEnvironmentIsUnicodeAndOverridesCaseInsensitiveWithoutLeaking() {
+        if (!OperatingSystem.IsWindows()) return;
+        var output = Path.Combine(_root, "unicode.json");
+        var inherited = Environment.GetEnvironmentVariable("SystemRoot");
+        var parentPath = Environment.GetEnvironmentVariable("PATH");
+        var parentTemp = Environment.GetEnvironmentVariable("TEMP");
+        var overrides = new Dictionary<string, string?> {
+            ["UNCHAINED_ENV_UNICODE"] = "世界 = value",
+            ["path"] = "child-only",
+            ["TEMP"] = null
+        };
+        IProcessLauncher launcher = new ProcessLauncher(Probe, overrides);
+        overrides["UNCHAINED_ENV_UNICODE"] = "must not change snapshot";
+        var arguments = "--environment-probe " + ArgumentEscaper.Escape(output) + " UNCHAINED_ENV_UNICODE SystemRoot PATH TEMP";
+        using var process = launcher.Launch(_root, arguments, _ => {
+            Assert.False(File.Exists(output));
+            return true;
+        }).Match(Left: error => throw error, Right: process => process);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        await process.WaitForExitAsync(timeout.Token);
+        Assert.Equal(0, process.ExitCode);
+        var values = JsonSerializer.Deserialize<Dictionary<string, string?>>(await File.ReadAllTextAsync(output, timeout.Token))!;
+        Assert.Equal("世界 = value", values["UNCHAINED_ENV_UNICODE"]);
+        Assert.Equal(inherited, values["SystemRoot"]);
+        Assert.Equal("child-only", values["PATH"]);
+        Assert.Null(values["TEMP"]);
+        Assert.Equal(parentPath, Environment.GetEnvironmentVariable("PATH"));
+        Assert.Equal(parentTemp, Environment.GetEnvironmentVariable("TEMP"));
+    }
+
+    private sealed class ProbeInjector(string output) : IProcessInjector {
+        internal bool Called { get; private set; }
+        public bool Inject(Process process) => Inject(process, false);
+        public bool Inject(Process process, bool server) {
+            Called = true;
+            if (OperatingSystem.IsWindows()) Assert.False(File.Exists(output));
+            return true;
+        }
+    }
+}

@@ -60,6 +60,12 @@ namespace UnchainedLauncher.Core.Services.Processes {
         private readonly DllManager? _dllManager;
         private readonly string? _dllDirectory;
         private readonly bool _unsafeLoadAllDlls;
+        private readonly IReadOnlyList<string>? _verifiedPaths;
+
+        private DllInjector(IReadOnlyList<string> verifiedPaths) { _verifiedPaths = verifiedPaths; }
+
+        // The Proton helper validates and holds these files before creating the game.
+        public static DllInjector FromVerifiedPaths(IReadOnlyList<string> paths) => new(paths);
 
         public DllInjector(DllManager dllManager, string? dllDirectory = null, bool unsafeLoadAllDlls = false) {
             _dllManager = dllManager;
@@ -94,9 +100,9 @@ namespace UnchainedLauncher.Core.Services.Processes {
             var procHandle = IntPtr.Zero;
             var allocMemAddress = IntPtr.Zero;
             try {
-                if (_dllManager == null && !_unsafeLoadAllDlls) return false;
+                if (_dllManager == null && !_unsafeLoadAllDlls && _verifiedPaths == null) return false;
                 if (_dllManager != null) files = _dllManager.OpenForInjection(server);
-                var paths = files.Select(file => file.Path).ToArray();
+                var paths = _verifiedPaths?.ToArray() ?? files.Select(file => file.Path).ToArray();
                 if (_unsafeLoadAllDlls) paths = paths.Concat(UnsafePaths()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
                 if (paths.Length == 0) {

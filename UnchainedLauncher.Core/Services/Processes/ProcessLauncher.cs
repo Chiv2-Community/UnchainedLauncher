@@ -56,14 +56,24 @@ namespace UnchainedLauncher.Core.Services.Processes {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ProcessLauncher));
 
         public string Executable { get; }
+        private readonly IReadOnlyDictionary<string, string?>? _environment;
+        private readonly ProcessOutputCapture? _output;
 
-        public ProcessLauncher(string executable) {
+        public ProcessLauncher(string executable) : this(executable, null) { }
+
+        public ProcessLauncher(string executable, IReadOnlyDictionary<string, string?>? environment)
+            : this(executable, environment, null) { }
+
+        public ProcessLauncher(string executable, IReadOnlyDictionary<string, string?>? environment, ProcessOutputCapture? output) {
             Executable = executable;
+            // Snapshot launch-local overrides; never mutate the parent process environment.
+            _environment = environment == null ? null : new Dictionary<string, string?>(environment);
+            _output = output;
         }
 
         public Either<LaunchFailed, Process> Launch(string workingDirectory, string args, Func<Process, bool> initialize) {
             if (OperatingSystem.IsWindows())
-                return SuspendedProcessLauncher.Launch(Executable, workingDirectory, args, initialize);
+                return SuspendedProcessLauncher.Launch(Executable, workingDirectory, args, initialize, _environment, _output);
             // Game launching is Windows-only; retain portable argument-probe support.
             return Launch(workingDirectory, args).Bind(process => Initialize(process, initialize, Executable, args));
         }
@@ -92,6 +102,8 @@ namespace UnchainedLauncher.Core.Services.Processes {
         /// The process that was created.
         /// </returns>
         public Either<LaunchFailed, Process> Launch(string workingDirectory, string args) {
+            if (_output != null && OperatingSystem.IsWindows())
+                return SuspendedProcessLauncher.Launch(Executable, workingDirectory, args, _ => true, _environment, _output);
             var proc = new Process {
                 StartInfo = new ProcessStartInfo() {
                     FileName = Executable,
@@ -100,6 +112,13 @@ namespace UnchainedLauncher.Core.Services.Processes {
                 }
             };
             try {
+                if (_environment != null) {
+                    proc.StartInfo.UseShellExecute = false;
+                    foreach (var (name, value) in _environment) {
+                        if (value == null) proc.StartInfo.Environment.Remove(name);
+                        else proc.StartInfo.Environment[name] = value;
+                    }
+                }
                 proc.Start();
                 proc.EnableRaisingEvents = true;
                 return Right(proc);

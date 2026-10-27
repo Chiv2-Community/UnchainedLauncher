@@ -16,6 +16,7 @@ public abstract class LaunchConfiguration {
     public bool UpdatePlugin { get; set; } = true;
     public bool AllowUnstablePlugin { get; set; }
     public List<string>? GameArgs { get; set; } = [];
+    public ProtonConfiguration? Proton { get; set; }
 
     public virtual void Validate() {
         Validator.ValidateObject(this, new ValidationContext(this), validateAllProperties: true);
@@ -80,6 +81,7 @@ public sealed class ClientSettings {
 }
 
 public sealed class ServerSettings {
+    public bool AttachStd { get; set; }
     public List<MapRotationEntry>? MapRotation { get; set; }
     [YamlIgnore]
     internal MapRotation? Rotation { get; set; }

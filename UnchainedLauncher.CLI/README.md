@@ -3,6 +3,9 @@
 This project launches an Unchained Chivalry 2 **client or server**, without the WPF GUI.
 On Windows, the shared game launcher creates the game suspended, injects DLLs,
 then resumes its main thread. Failed injection terminates the suspended game.
+On Linux, the native CLI invokes Proton with a bundled Windows launch helper.
+The helper uses the same suspended launch and injection path; the TUI stays in
+the invoking Linux terminal. Only the game and helper run under Proton.
 CLI servers also pass TOS-acceptance and first-load-completed INI overrides to
 avoid interactive first-run screens. The CLI also initializes the game's saved profile.
 Profile-local paks use the game's native `Saved_<suffix>/Paks` search directory.
@@ -49,8 +52,100 @@ dotnet publish UnchainedLauncher.CLI -c Release -r win-x64 --self-contained true
 .\out-cli\UnchainedLauncher.CLI.exe server --help
 ```
 
-Help, parsing, and the unit tests also work on Linux. Actual game launching and
-DLL injection require Windows; Wine/Proton launching is not implemented.
+### Linux with Steam and Proton
+
+Use x86-64 Linux, keep Steam running, and launch the game through Steam once to
+initialize its Proton prefix. Publish the native CLI with its Windows helper:
+
+```bash
+dotnet publish UnchainedLauncher.CLI -c Release -r linux-x64 --self-contained true -o out-cli-linux
+./out-cli-linux/UnchainedLauncher.CLI server \
+  --chivalry2-path "$HOME/.local/share/Steam/steamapps/common/Chivalry 2" \
+  --platform Steam \
+  --saved-dir-suffix MyServer \
+  --name 'My Unchained Server' \
+  --starting-map FFA_Courtyard
+```
+
+Keep the entire published directory, including `proton-helper`. Do not run the
+Windows CLI under Proton. Press `Q` or Ctrl+C in the native terminal to stop a
+server. Client launches leave the game running independently.
+
+Discovery uses Steam's `libraryfolders.vdf` and game app manifest to locate the
+game library and its `steamapps/compatdata/1824220` directory. Tool selection
+honors `STEAM_COMPAT_TOOL_PATHS` or Steam's configured compatibility-tool name.
+Ambiguous or unknown tools require an explicit `--proton-path`; the CLI does not
+silently pick a different installed Proton version.
+
+Overrides for nonstandard installations:
+
+- `--proton-path`: Proton executable or its containing directory.
+- `--compat-data-path`: compatibility-data directory **containing `pfx`**, not
+  `pfx` itself. Also honors `STEAM_COMPAT_DATA_PATH` and standard `WINEPREFIX`
+  pointing to a Proton `pfx` directory.
+- `--steam-path`: Steam client directory, also read from
+  `STEAM_COMPAT_CLIENT_INSTALL_PATH`. Standard and Flatpak Steam locations are searched.
+- `--proton-helper`: helper executable for development; published builds locate
+  their bundled helper automatically.
+
+The same settings are available under root-level `proton` in YAML:
+
+```yaml
+proton:
+  path: /path/to/Proton/proton
+  compat-data-path: /path/to/steamapps/compatdata/1824220
+  steam-path: /path/to/Steam
+```
+
+YAML paths resolve relative to the configuration file. Wine's known-folder API
+provides `LocalAppData`; `winepath` translates paths between the native host and
+the selected prefix. The CLI never assumes a Windows username or constructs
+`drive_c/users/steamuser` paths. Profile paks, plugins, INI files, and caches use
+the same `Saved_<suffix>` layout as Windows inside that prefix.
+
+DLLs are registry-validated natively, then hash/size-checked again and held open
+by the helper before injection. Per-launch IPC is private and never puts game
+credentials on the helper's command line. The native monitor uses the game's
+Unix PID for resource metrics and the helper for exit status. Cancellation stops
+only the owned game, never the prefix-wide wineserver. If a server's CLI dies
+unexpectedly, the helper stops its game after the heartbeat expires.
+
+Linux EGS launches require an explicitly initialized compatibility-data path;
+Steam is the validated Linux game-launch path. macOS game launching is unsupported.
+Registry queries remain portable and do not require Proton.
+
+### Forwarded plugin console
+
+To use standard output instead of plugin IPC, add **`--attach-std`** to the
+`server` command, or set `server.attach-std: true` in YAML. This passes the plugin
+flag before initialization and captures stdout/stderr into the same TUI/plain
+handler without opening a separate console. The flag explicitly wins over IPC.
+Windows uses private inherited pipes; Linux uses Proton `runinprefix` so the
+Steam.exe wrapper cannot discard those streams. Captured server stdin is EOF,
+not the TUI's keyboard. Standard-stream writes can experience pipe backpressure;
+the default IPC route retains its nonblocking plugin queue.
+
+Windows and Linux server launches provide an authenticated loopback receiver to compatible
+plugins through the game's environment. No CLI flags or logging YAML overrides
+are needed. The plugin forwards its console records and banner directly, without
+opening its own console. Windows passes a private Unicode environment block to
+the suspended game; Linux passes the same settings through Proton. Neither
+changes the launcher's environment. Older plugins keep their existing console behavior.
+
+Press **L** to switch between the dashboard and full console, **Page Up/Page Down**
+to scroll, and **End** to resume following new output. Each server has its own
+512-line history; the dashboard also shows a short preview. Plain/no-TUI mode
+prints received lines. Output is currently plain text; level metadata is carried
+by the protocol but is not yet used for TUI colors.
+
+Queues, records, and JSON frames are bounded. Invalid authentication is rejected;
+terminal controls are neutralized. Disconnects and queue loss are reported in
+the pane. A slow or missing receiver never blocks the game's logging thread;
+configured file logging continues. This forwards plugin console output, not
+arbitrary UE/Proton stdout, and does not provide interactive console commands.
+
+UE logging switches and custom plugin logging configuration are not added by
+the launcher. Chivalry 2's shipping build does not provide UE log output.
 
 ## Mod registry queries
 
@@ -604,4 +699,7 @@ dotnet test UnchainedLauncher.CLI.Tests -c Release
 
 Tests cover parsing, Core option mapping, registry configuration, dependency checks,
 bounded history, unavailable telemetry, and monitor cancellation without a game installation.
-Windows CI builds, tests, and publishes the CLI separately from the GUI.
+Proton tests cover Steam metadata, library symlinks, tool/prefix overrides, private
+IPC directories, argument boundaries, and separate game/supervisor metrics.
+Windows and Linux CI test and publish the CLI separately from the GUI. Linux
+artifacts include the Windows Proton helper; CI does not launch the actual game.

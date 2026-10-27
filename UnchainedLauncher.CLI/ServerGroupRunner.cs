@@ -9,10 +9,9 @@ internal static class ServerGroupRunner {
     internal static async Task<int> RunAsync(ServerGroupOptions group, CancellationTokenSource stop,
         Func<ServerOptions, CancellationToken, Task<Process>>? launch = null,
         Func<ServerOptions, IA2S>? query = null) {
-        launch ??= (options, token) => ServerLauncher.LaunchAsync(options, token);
         query ??= ServerLauncher.CreateQuery;
         using var monitoring = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
-        var processes = new List<Process>();
+        var processes = new List<LaunchedGame>();
         var leases = new List<IDisposable>();
         var tasks = new List<Task>();
         var snapshots = new ServerTabSnapshot?[group.Servers.Count];
@@ -23,7 +22,8 @@ internal static class ServerGroupRunner {
             foreach (var entry in group.Servers) {
                 stop.Token.ThrowIfCancellationRequested();
                 Console.Error.WriteLine($"Starting server {entry.Id}...");
-                processes.Add(await launch(entry.Options, stop.Token));
+                processes.Add(launch != null ? new LaunchedGame(await launch(entry.Options, stop.Token))
+                    : await ServerLauncher.LaunchAsync(entry.Options, stop.Token));
             }
 
             using var dashboard = new ServerDashboard(!group.NoTui,
@@ -70,8 +70,7 @@ internal static class ServerGroupRunner {
             foreach (var process in processes) {
                 try {
                     if (!process.HasExited) {
-                        process.Kill(entireProcessTree: true);
-                        await process.WaitForExitAsync();
+                        await process.StopAsync();
                     }
                 }
                 catch (Exception) { failedStops.Add(process.Id); }

@@ -167,6 +167,20 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
     }
 
     public bool Inject(System.Diagnostics.Process process) => Inject(process, _server);
+    public IReadOnlyList<ProtonDll> GetProtonDlls() {
+        if (!_prepared || _manager == null) throw new InvalidOperationException("DLL preparation is incomplete.");
+        var files = _manager.OpenForInjection(_server);
+        try {
+            var paths = files.Select(file => file.Path);
+            if (_unsafe) paths = paths.Concat(new DllInjector(_directory, true).GetDllPaths(_server));
+            return paths.Distinct(StringComparer.OrdinalIgnoreCase).Select(path => {
+                using var stream = File.OpenRead(path);
+                return new ProtonDll(path, stream.Length,
+                    Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream)));
+            }).ToArray();
+        }
+        finally { foreach (var file in files) file.Dispose(); }
+    }
     public bool Inject(System.Diagnostics.Process process, bool server) => _prepared && server == _server && _manager != null
         && new DllInjector(_manager, _directory, _unsafe).Inject(process, server);
 }

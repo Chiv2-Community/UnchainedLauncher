@@ -188,6 +188,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         private static PluginInfo NormalizeInfo(PluginInfo info) => info with {
             PluginDependencies = info.RequiredPlugins,
             ModDependencies = info.RequiredMods,
+            Dependencies = null,
             ImageUrls = info.ImageUrls ?? [],
             Schema = null
         };

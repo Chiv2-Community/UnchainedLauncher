@@ -78,14 +78,14 @@ public sealed class ServerMonitor(LaunchedGame process, IA2S query) {
 
     internal async Task RunAsync(Action<ServerSample, ServerHistory> render, CancellationToken stop) {
         try {
-            DateTimeOffset started;
-            TimeSpan previousCpu;
+            DateTimeOffset started = DateTimeOffset.Now;
+            TimeSpan previousCpu = TimeSpan.Zero;
             try {
                 started = new DateTimeOffset(process.Metrics.StartTime);
                 previousCpu = process.Metrics.TotalProcessorTime;
             }
-            catch (Exception ex) when ((ex is InvalidOperationException or Win32Exception) && process.HasExited) {
-                return;
+            catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) {
+                if (process.HasExited) return;
             }
             var previousTime = Stopwatch.GetTimestamp();
             double? peakMemory = null;

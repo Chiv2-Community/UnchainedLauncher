@@ -13,8 +13,18 @@ internal sealed class ForwardedConsole : IDisposable {
     private Stream? _stream;
     private long _dropped;
     private int _disposed;
+    private readonly List<Task> _captures = [];
+    private Task? _completion;
 
-    internal async Task CaptureAsync(Stream stream, CancellationToken token) {
+    internal Task CaptureAsync(Stream stream, CancellationToken token) {
+        var task = CaptureCoreAsync(stream, token);
+        lock (_lines) _captures.Add(task);
+        return task;
+    }
+
+    private async Task CaptureCoreAsync(Stream stream, CancellationToken token) {
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token, token);
+        token = cancellation.Token;
         using var reader = new StreamReader(stream, Encoding.UTF8, true, 4096, leaveOpen: true);
         var buffer = new char[4096];
         var line = new StringBuilder();
@@ -32,9 +42,11 @@ internal sealed class ForwardedConsole : IDisposable {
                     else truncated = true;
                 }
             }
-            if (line.Length != 0) Add(line.ToString() + (truncated ? " [truncated]" : ""));
         }
         catch (Exception ex) when (ex is IOException or OperationCanceledException or ObjectDisposedException) { }
+        finally {
+            if (line.Length != 0) Add(line.ToString() + (truncated ? " [truncated]" : ""));
+        }
     }
 
     internal IReadOnlyList<string> Drain() {
@@ -97,7 +109,24 @@ internal sealed class ForwardedConsole : IDisposable {
         _stop.Cancel();
         _stream?.Dispose();
         // The read task observes cancellation before its cancellation source is released.
-        _ = (_read ?? Task.CompletedTask).ContinueWith(_ => _stop.Dispose(), TaskScheduler.Default);
+        Task completion;
+        lock (_lines) completion = Task.WhenAll(_captures.Append(_read ?? Task.CompletedTask));
+        _ = completion.ContinueWith(_ => _stop.Dispose(), TaskScheduler.Default);
+    }
+
+    // Descendants may retain write handles after game exit. Allow EOF briefly,
+    // then cancel capture; never hold monitor shutdown indefinitely.
+    internal Task FinishAsync() {
+        lock (_lines) return _completion ??= FinishCoreAsync();
+    }
+
+    private async Task FinishCoreAsync() {
+        var reads = Task.WhenAll(_captures.Append(_read ?? Task.CompletedTask));
+        try { await reads.WaitAsync(TimeSpan.FromMilliseconds(250)); }
+        catch (TimeoutException) { }
+        finally { Dispose(); }
+        try { await reads.WaitAsync(TimeSpan.FromMilliseconds(250)); }
+        catch (TimeoutException) { }
     }
 
     private sealed class Frames(Stream stream) {

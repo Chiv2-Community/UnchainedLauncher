@@ -132,10 +132,16 @@ public sealed class ServerMonitor(LaunchedGame process, IA2S query) {
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
         finally {
+            if (process.ConsoleOutput != null) {
+                await process.ConsoleOutput.FinishAsync();
+                History.AddConsole(process.ConsoleOutput.Drain());
+            }
             var message = stop.IsCancellationRequested ? "Stop requested" : process.HasExited
                 ? $"Server exited (code {process.ExitCode})" : "Monitoring ended";
             History.AddEvent(DateTimeOffset.Now, message);
-            // A group owns console output; individual monitors only record events.
+            var last = History.Samples.LastOrDefault() ?? new ServerSample(
+                DateTimeOffset.Now, TimeSpan.Zero, null, null, null, null, null, false);
+            render(last, History);
         }
     }
 }

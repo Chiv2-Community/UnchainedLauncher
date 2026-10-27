@@ -325,7 +325,10 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 throw new InvalidOperationException("DLL registry settings changed. Refresh Plugin Manager before launching.");
         }
 
-        private string GetPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.EffectiveFileName);
+        // Linux injects immutable, content-addressed cache objects. Never unlink an
+        // installed pathname: Unix cannot bind that deletion to a validated handle.
+        private string GetPath(DllRelease release) => OperatingSystem.IsLinux() ? GetCachePath(release) : GetInstalledPath(release);
+        private string GetInstalledPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.EffectiveFileName);
         private string GetLegacyPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.Sha256, release.EffectiveFileName);
         private string GetLegacyCliPath(DllRelease release) => Path.Combine(_legacyCliRoot, release.Sha256, release.EffectiveFileName);
         private string GetCachePath(DllRelease release) => Path.Combine(_cacheRoot, release.Sha256, release.EffectiveFileName);
@@ -372,7 +375,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                     ValidateBytes(existing, release);
                     continue;
                 }
-                var installed = new[] { path, GetLegacyPath(release), GetLegacyCliPath(release) }
+                var installed = new[] { path, GetInstalledPath(release), GetLegacyPath(release), GetLegacyCliPath(release) }
                     .FirstOrDefault(candidate => File.Exists(candidate) && MatchesFile(candidate, release));
                 if (installed != null) {
                     CopyValidated(installed, cache, release);
@@ -415,7 +418,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 var active = selected.Select(GetPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
                 // Only validated files at paths owned by this manager may be archived.
                 // Unknown names/versions, even inside Managed, are left untouched.
-                foreach (var managedRoot in new[] { _root, _legacyCliRoot }.Where(Directory.Exists)) {
+                foreach (var managedRoot in new[] { _root, _legacyCliRoot }.Where(root => !OperatingSystem.IsLinux() && Directory.Exists(root))) {
                     foreach (var path in Directory.EnumerateFiles(managedRoot, "*", SearchOption.AllDirectories).ToArray()) {
                         var release = ManagedReleaseAt(path);
                         if (release == null || (active.Contains(path) && selected.Any(candidate =>
@@ -511,7 +514,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                     var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
                     try { ValidateBytes(stream, release); }
                     catch { stream.Dispose(); throw; }
-                    files.Add(new ValidatedDll(path, stream));
+                    files.Add(new ValidatedDll(path, stream, release.Size, release.Sha256));
                 }
                 return files;
             }
@@ -524,8 +527,12 @@ namespace UnchainedLauncher.Core.Services.Dlls {
 
     public sealed class ValidatedDll : IDisposable {
         public string Path { get; }
+        public long Size { get; }
+        public string Sha256 { get; }
         private readonly Stream _stream;
-        internal ValidatedDll(string path, Stream stream) { Path = path; _stream = stream; }
+        internal ValidatedDll(string path, Stream stream, long size, string sha256) {
+            Path = path; _stream = stream; Size = size; Sha256 = sha256;
+        }
         public void Dispose() => _stream.Dispose();
     }
 }

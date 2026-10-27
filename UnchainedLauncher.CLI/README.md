@@ -106,6 +106,12 @@ the selected prefix. The CLI never assumes a Windows username or constructs
 `drive_c/users/steamuser` paths. Profile paks, plugins, INI files, and caches use
 the same `Saved_<suffix>` layout as Windows inside that prefix.
 
+On Linux, selected DLLs are injected directly from content-addressed cache paths
+outside `Plugins`; inventories remain per-profile. Switching versions or
+deselecting a DLL does not delete old installed files or cache objects. Only the
+selected descriptors are injected (unless unsafe loading is explicitly enabled).
+Windows retains managed installation and handle-protected archival.
+
 DLLs are registry-validated natively, then hash/size-checked again and held open
 by the helper before injection. Per-launch IPC is private and never puts game
 credentials on the helper's command line. The native monitor uses the game's
@@ -132,11 +138,16 @@ Windows and Linux server launches provide a private inherited anonymous pipe to 
 plugins through `UNCHAINED_CONSOLE_HANDLE` in the game's environment. No CLI flags or logging YAML overrides
 are needed. The plugin forwards its console records and banner directly, without
 opening its own console. Windows passes a private Unicode environment block to
-the suspended game with an explicit handle whitelist; on Linux, the Windows helper
+the suspended game with an explicit handle whitelist; on Linux, the CLI's bundled Windows helper
 creates the game pipe and relays only its records through reserved helper stdout
 using Proton `runinprefix`. Game stdout/stderr are drained separately and discarded
 in structured mode. There is no socket listener, token, or handshake. Neither backend
 changes the launcher's environment. Older plugins keep their existing console behavior.
+
+The helper is supplied by UnchainedLauncher, not Proton. Its request/heartbeat
+protocol is private and version-coupled to the CLI; deploy the matching bundle.
+Alternate launcher authors: see the plugin's
+[Windows ownership recipe and Linux helper invocation](https://github.com/Chiv2-Community/UnchainedPlugin/blob/feature/console-forwarding/docs/console-forwarding.md).
 
 Press **L** to switch between the dashboard and full console, **Page Up/Page Down**
 to scroll, and **End** to resume following new output. Each server has its own

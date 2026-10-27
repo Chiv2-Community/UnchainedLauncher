@@ -204,13 +204,15 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
         if (!_prepared || _manager == null) throw new InvalidOperationException("DLL preparation is incomplete.");
         var files = _manager.OpenForInjection(_server);
         try {
-            var paths = files.Select(file => file.Path);
-            if (_unsafe) paths = paths.Concat(new DllInjector(_directory, true).GetDllPaths(_server));
-            return paths.Distinct(StringComparer.OrdinalIgnoreCase).Select(path => {
+            var descriptors = files.Select(file => new ProtonDll(file.Path, file.Size, file.Sha256)).ToList();
+            var managed = files.Select(file => file.Path).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var path in _unsafe ? new DllInjector(_directory, true).GetDllPaths(_server) : []) {
+                if (managed.Contains(path)) continue;
                 using var stream = File.OpenRead(path);
-                return new ProtonDll(path, stream.Length,
-                    Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream)));
-            }).ToArray();
+                descriptors.Add(new ProtonDll(path, stream.Length,
+                    Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(stream))));
+            }
+            return descriptors;
         }
         finally { foreach (var file in files) file.Dispose(); }
     }

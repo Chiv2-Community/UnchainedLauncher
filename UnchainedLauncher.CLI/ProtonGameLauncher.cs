@@ -97,7 +97,7 @@ internal static class ProtonGameLauncher {
                 }
                 catch (InvalidOperationException) { /* The client releases its process handles after launch. */ }
                 finally {
-                    console?.Dispose();
+                    if (console != null) await console.FinishAsync();
                     drainStop.Cancel();
                     try { await Task.WhenAll(output, errors); }
                     catch (Exception ex) when (ex is OperationCanceledException or IOException or ObjectDisposedException) { }

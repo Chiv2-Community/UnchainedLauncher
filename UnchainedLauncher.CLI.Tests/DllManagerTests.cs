@@ -64,8 +64,14 @@ public sealed class DllManagerTests {
             var session = new DllManager(registry, mods, assets.Plugins, cacheDirectory: assets.DllCache);
             var options = new LaunchOptions([], Option<string>.None, "", false, false, Option<string>.None, Option<ServerLaunchOptions>.None);
             Assert.True((await session.PrepareLaunch(options)).IsSome);
-            Assert.Equal(2, Directory.GetFiles(assets.Plugins, "*.dll", SearchOption.AllDirectories).Length);
-            foreach (var file in Directory.GetFiles(assets.Plugins, "*.dll", SearchOption.AllDirectories))
+            Assert.Equal(2, session.GetProtonDlls().Count);
+            if (OperatingSystem.IsWindows())
+                Assert.Equal(2, Directory.GetFiles(assets.Plugins, "*.dll", SearchOption.AllDirectories).Length);
+            Assert.All(session.GetProtonDlls(), dll => {
+                Assert.Equal(3, dll.Size);
+                Assert.Equal(core.Hash, dll.Sha256, ignoreCase: true);
+            });
+            foreach (var file in session.GetProtonDlls().Select(dll => dll.Path))
                 Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(file));
             using var inventory = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(assets.Plugins, "dll_manager.json")));
             Assert.Equal(new[] { dependency.Info.RepoUrl, core.Info.RepoUrl },
@@ -341,17 +347,16 @@ public sealed class DllManagerTests {
                 : Path.Combine(plugins, "Managed", "Chiv2-Community", "UnchainedPlugin", release.Hash, "UnchainedPlugin.dll");
             Directory.CreateDirectory(Path.GetDirectoryName(plugin)!);
             await File.WriteAllBytesAsync(plugin, [1, 2, 3]);
-            if (!OperatingSystem.IsWindows()) {
-                await Assert.ThrowsAsync<PlatformNotSupportedException>(() => manager.PrepareLaunch(options));
-                Assert.Equal(new byte[] { 1, 2, 3 }, await File.ReadAllBytesAsync(plugin));
-                Assert.False(File.Exists(Path.Combine(plugins, "dll_manager.json")));
-                return;
-            }
             Assert.True((await manager.PrepareLaunch(options)).IsSome);
-            plugin = Assert.Single(Directory.GetFiles(plugins, "*.dll", SearchOption.AllDirectories));
+            plugin = Assert.Single(manager.GetProtonDlls()).Path;
+            if (OperatingSystem.IsWindows())
+                Assert.Equal(plugin, Assert.Single(Directory.GetFiles(plugins, "*.dll", SearchOption.AllDirectories)));
             Assert.Contains(release.Hash, await File.ReadAllTextAsync(Path.Combine(plugins, "dll_manager.json")));
-            Assert.Equal(Path.Combine(plugins, "Managed", "Chiv2-Community", "UnchainedPlugin", "UnchainedPlugin.dll"), plugin);
+            if (OperatingSystem.IsWindows())
+                Assert.Equal(Path.Combine(plugins, "Managed", "Chiv2-Community", "UnchainedPlugin", "UnchainedPlugin.dll"), plugin);
+            else Assert.Contains(Path.Combine(".cache", "dlls"), plugin);
             await File.WriteAllBytesAsync(plugin, [3, 2, 1]);
+            Assert.Throws<InvalidDataException>(() => manager.GetProtonDlls());
             Assert.False(await DllManager.MatchesFileAsync(plugin, release));
             Assert.False(manager.Inject(new System.Diagnostics.Process()));
             await File.WriteAllBytesAsync(Path.Combine(root, ".cache", "dlls", release.Hash.ToLowerInvariant(), release.DllFileName), [3, 2, 1]);
@@ -365,7 +370,7 @@ public sealed class DllManagerTests {
     [Theory]
     [InlineData("client")]
     [InlineData("server")]
-    public async Task DllPreparationUsesOnlyEachProfilePluginDirectory(string command) {
+    public async Task ProfilesHaveSeparateInventoriesAndShareImmutableLinuxDllCache(string command) {
         var root = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? Path.GetTempPath(), "dll-instances-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
@@ -387,12 +392,13 @@ public sealed class DllManagerTests {
                 var mods = ServerLauncher.CreateModManager(options, registry);
                 var session = ServerLauncher.CreateDllSession(options, registry, mods, client: http);
                 Assert.True((await session.PrepareLaunch(options.ToLaunchOptions())).IsSome);
-                var installed = Path.Combine(options.InstancePaths.Plugins, "Managed", "Chiv2-Community", "UnchainedPlugin", "UnchainedPlugin.dll");
+                var installed = Assert.Single(session.GetProtonDlls()).Path;
                 Assert.True(await DllManager.MatchesFileAsync(installed, release));
                 Assert.True(File.Exists(Path.Combine(options.InstancePaths.Plugins, "dll_manager.json")));
                 paths.Add(installed);
             }
-            Assert.NotEqual(paths[0], paths[1]);
+            if (OperatingSystem.IsLinux()) Assert.Equal(paths[0], paths[1]); // Shared immutable cache, separate inventories.
+            else Assert.NotEqual(paths[0], paths[1]);
             Assert.All(paths, path => Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(path)));
             Assert.Equal([loose], Directory.GetFiles(globalPlugins, "*", SearchOption.AllDirectories));
             Assert.Equal(new byte[] { 9, 9, 9 }, await File.ReadAllBytesAsync(loose));
@@ -431,9 +437,9 @@ public sealed class DllManagerTests {
             var initial = Parse(pin);
             var downloads = new DownloadHandler([1, 2, 3]);
             using var client = new HttpClient(downloads);
-            Assert.True((await ServerLauncher.CreateDllSession(initial, registry, mods, client: client)
-                .PrepareLaunch(initial.ToLaunchOptions())).IsSome);
-            var installed = Path.Combine(initial.InstancePaths.Plugins, "Managed", "Chiv2-Community", "UnchainedPlugin", older.DllFileName);
+            var initialSession = ServerLauncher.CreateDllSession(initial, registry, mods, client: client);
+            Assert.True((await initialSession.PrepareLaunch(initial.ToLaunchOptions())).IsSome);
+            var installed = Assert.Single(initialSession.GetProtonDlls()).Path;
             Assert.True(await DllManager.MatchesFileAsync(installed, older));
 
             var unpinned = Parse("--no-plugin-update");
@@ -444,7 +450,7 @@ public sealed class DllManagerTests {
             Assert.Contains("UnchainedPlugin:2.0.0", error.Message);
             Assert.True(await DllManager.MatchesFileAsync(installed, older));
 
-            File.Delete(installed);
+            if (!OperatingSystem.IsLinux()) File.Delete(installed);
             var pinned = Parse(["--no-plugin-update", .. pin]);
             Assert.True((await ServerLauncher.CreateDllSession(pinned, registry, mods, client: client)
                 .PrepareLaunch(pinned.ToLaunchOptions())).IsSome);
@@ -455,7 +461,7 @@ public sealed class DllManagerTests {
     }
 
     [Fact]
-    public async Task SwitchingVersionsKeepsOnlySelectedDllInPluginsAndReusesExternalCache() {
+    public async Task SwitchingVersionsInjectsOnlySelectedDllAndReusesExternalCache() {
         var root = Path.Combine(Path.GetTempPath(), "dll-switch-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
@@ -480,20 +486,15 @@ public sealed class DllManagerTests {
                 var manager = new DllManager(registry, mods, plugins,
                     [new ReleaseCoordinates("Chiv2-Community", "UnchainedPlugin", release.Tag)], client: client);
                 var launch = download ? options : new LaunchOptions([], Option<string>.None, "", false, false, Option<string>.None, Option<ServerLaunchOptions>.None);
-                if (!OperatingSystem.IsWindows()) {
-                    await Assert.ThrowsAsync<PlatformNotSupportedException>(() => manager.PrepareLaunch(launch));
-                    Assert.Equal(new byte[] { 4, 5, 6 }, await File.ReadAllBytesAsync(oldManagedPath));
-                    Assert.True(await DllManager.MatchesFileAsync(Path.Combine(root, ".cache", "dlls", rc3.Hash, rc3.DllFileName), rc3));
-                    Assert.False(File.Exists(Path.Combine(plugins, "Managed", "Chiv2-Community", "UnchainedPlugin", rc3.DllFileName)));
-                    return;
-                }
                 Assert.True((await manager.PrepareLaunch(launch)).IsSome);
-                var active = Assert.Single(Directory.EnumerateFiles(plugins, "*.dll", SearchOption.AllDirectories));
+                var active = Assert.Single(manager.GetProtonDlls()).Path;
+                if (OperatingSystem.IsWindows())
+                    Assert.Equal(active, Assert.Single(Directory.EnumerateFiles(plugins, "*.dll", SearchOption.AllDirectories)));
                 Assert.True(await DllManager.MatchesFileAsync(active, release));
                 Assert.False(Directory.Exists(Path.Combine(plugins, ".cache")));
             }
             Assert.Equal(2, Directory.EnumerateFiles(Path.Combine(root, ".cache"), "*.dll", SearchOption.AllDirectories).Count());
-            Assert.False(File.Exists(oldManagedPath));
+            Assert.Equal(OperatingSystem.IsLinux(), File.Exists(oldManagedPath));
         }
         finally { Directory.Delete(root, recursive: true); }
     }
@@ -560,9 +561,15 @@ public sealed class DllManagerTests {
             if (valid) {
                 Assert.True((await manager.PrepareLaunch(options)).IsSome);
                 Assert.True(await DllManager.MatchesFileAsync(destination, release));
-                var installed = Assert.Single(Directory.GetFiles(Path.Combine(plugins, "Managed"), "*.dll", SearchOption.AllDirectories));
+                var installed = Assert.Single(manager.GetProtonDlls()).Path;
                 Assert.True(await DllManager.MatchesFileAsync(installed, release));
                 Assert.True(File.Exists(Path.Combine(plugins, "dll_manager.json")));
+                Assert.DoesNotContain(manager.GetProtonDlls(), dll => dll.Path == legacy);
+                var unsafeSession = new DllManager(registry, mods, plugins, unsafeLoadAllDlls: true, client: client);
+                Assert.True((await unsafeSession.PrepareLaunch(options)).IsSome);
+                var unsafeDll = Assert.Single(unsafeSession.GetProtonDlls().Where(dll => dll.Path == legacy));
+                Assert.Equal(3, unsafeDll.Size);
+                Assert.Equal(Convert.ToHexString(SHA256.HashData(new byte[] { 9, 9, 9 })), unsafeDll.Sha256);
             }
             else {
                 await Assert.ThrowsAsync<InvalidOperationException>(() => manager.PrepareLaunch(options));

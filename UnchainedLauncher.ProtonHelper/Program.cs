@@ -29,12 +29,20 @@ internal static class Program {
                     throw new InvalidDataException();
             }
             var injector = DllInjector.FromVerifiedPaths(request.Dlls.Select(dll => dll.Path).ToArray());
-            if (request.AttachStd) {
-                capture = new ProcessOutputCapture();
-                drain = Task.WhenAll(capture.StandardOutput.CopyToAsync(Console.OpenStandardOutput()),
-                    capture.StandardError.CopyToAsync(Console.OpenStandardError()));
+            if (request.Server || request.AttachStd) {
+                capture = new ProcessOutputCapture(forwardConsole: request.Server && !request.AttachStd);
+                drain = request.AttachStd
+                    ? Task.WhenAll(capture.StandardOutput.CopyToAsync(Console.OpenStandardOutput()),
+                        capture.StandardError.CopyToAsync(Console.OpenStandardError()))
+                    : Task.WhenAll(RelayConsoleAsync(capture.ConsoleOutput!),
+                        capture.StandardOutput.CopyToAsync(Stream.Null), capture.StandardError.CopyToAsync(Stream.Null));
             }
-            var result = new ProcessLauncher(request.Executable, null, capture).Launch(request.WorkingDirectory,
+            var environment = new Dictionary<string, string?> {
+                ["UNCHAINED_CONSOLE_HANDLE"] = null,
+                ["UNCHAINED_CONSOLE_ENDPOINT"] = null,
+                ["UNCHAINED_CONSOLE_TOKEN"] = null
+            };
+            var result = new ProcessLauncher(request.Executable, environment, capture).Launch(request.WorkingDirectory,
                 request.Arguments, process => injector.Inject(process));
             game = result.Match(Right: process => process, Left: _ => throw new InvalidOperationException());
             await File.WriteAllTextAsync(Path.Combine(directory, "ready"), game.Id.ToString());
@@ -69,5 +77,10 @@ internal static class Program {
             }
             catch (IOException) { /* The native launcher may still be removing its IPC directory. */ }
         }
+    }
+
+    private static async Task RelayConsoleAsync(Stream source) {
+        // A lost native reader must also close the game's private pipe.
+        using (source) await source.CopyToAsync(Console.OpenStandardOutput());
     }
 }

@@ -128,11 +128,14 @@ Steam.exe wrapper cannot discard those streams. Captured server stdin is EOF,
 not the TUI's keyboard. Standard-stream writes can experience pipe backpressure;
 the default IPC route retains its nonblocking plugin queue.
 
-Windows and Linux server launches provide an authenticated loopback receiver to compatible
-plugins through the game's environment. No CLI flags or logging YAML overrides
+Windows and Linux server launches provide a private inherited anonymous pipe to compatible
+plugins through `UNCHAINED_CONSOLE_HANDLE` in the game's environment. No CLI flags or logging YAML overrides
 are needed. The plugin forwards its console records and banner directly, without
 opening its own console. Windows passes a private Unicode environment block to
-the suspended game; Linux passes the same settings through Proton. Neither
+the suspended game with an explicit handle whitelist; on Linux, the Windows helper
+creates the game pipe and relays only its records through reserved helper stdout
+using Proton `runinprefix`. Game stdout/stderr are drained separately and discarded
+in structured mode. There is no socket listener, token, or handshake. Neither backend
 changes the launcher's environment. Older plugins keep their existing console behavior.
 
 Press **L** to switch between the dashboard and full console, **Page Up/Page Down**
@@ -141,7 +144,7 @@ to scroll, and **End** to resume following new output. Each server has its own
 prints received lines. Output is currently plain text; level metadata is carried
 by the protocol but is not yet used for TUI colors.
 
-Queues, records, and JSON frames are bounded. Invalid authentication is rejected;
+Queues, records, and JSON frames are bounded. Invalid protocol frames are rejected;
 terminal controls are neutralized. Disconnects and queue loss are reported in
 the pane. A slow or missing receiver never blocks the game's logging thread;
 configured file logging continues. This forwards plugin console output, not

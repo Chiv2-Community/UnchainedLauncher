@@ -23,7 +23,7 @@ internal static class ProtonGameLauncher {
         Task pulse = Task.CompletedTask;
         Task output = Task.CompletedTask, errors = Task.CompletedTask;
         try {
-            if (options is ServerOptions) console = new ForwardedConsole(listen: !options.AttachStd);
+            if (options is ServerOptions) console = new ForwardedConsole();
             var files = new List<ProtonDll>();
             foreach (var dll in dlls.GetProtonDlls())
                 files.Add(dll with { Path = await runtime.WinePathAsync(dll.Path, true, token) });
@@ -39,21 +39,18 @@ internal static class ProtonGameLauncher {
             await File.WriteAllTextAsync(heartbeat, "", token);
             // The Steam.exe wrapper used by `run` discards inherited output handles.
             // `runinprefix` keeps the native pipes connected to the helper.
-            var info = runtime.StartInfo([options.AttachStd ? "runinprefix" : "run", runtime.HelperPath, "launch",
+            var info = runtime.StartInfo([console != null ? "runinprefix" : "run", runtime.HelperPath, "launch",
                 await runtime.WinePathAsync(requestPath, true, token)]);
             info.WorkingDirectory = options.Shared.Chivalry2Path;
             info.Environment["UNCHAINED_LAUNCH_ID"] = id;
-            if (console != null && !options.AttachStd) {
-                info.Environment["UNCHAINED_CONSOLE_ENDPOINT"] = console.Endpoint;
-                info.Environment["UNCHAINED_CONSOLE_TOKEN"] = console.Token;
-            }
-            if (options.AttachStd) {
-                info.Environment.Remove("UNCHAINED_CONSOLE_ENDPOINT");
-                info.Environment.Remove("UNCHAINED_CONSOLE_TOKEN");
-            }
+            info.Environment.Remove("UNCHAINED_CONSOLE_HANDLE");
+            info.Environment.Remove("UNCHAINED_CONSOLE_ENDPOINT");
+            info.Environment.Remove("UNCHAINED_CONSOLE_TOKEN");
             supervisor = Process.Start(info) ?? throw new InvalidOperationException("Could not start Proton.");
-            output = options.AttachStd && console != null
-                ? console.CaptureAsync(supervisor.StandardOutput.BaseStream, drainStop.Token)
+            // In structured mode only the private game pipe is relayed to helper stdout.
+            output = console != null
+                ? options.AttachStd ? console.CaptureAsync(supervisor.StandardOutput.BaseStream, drainStop.Token)
+                    : console.ReadAsync(supervisor.StandardOutput.BaseStream, drainStop.Token)
                 : supervisor.StandardOutput.BaseStream.CopyToAsync(Stream.Null, drainStop.Token);
             errors = options.AttachStd && console != null
                 ? console.CaptureAsync(supervisor.StandardError.BaseStream, drainStop.Token)

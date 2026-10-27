@@ -22,6 +22,15 @@ internal static class SuspendedProcessLauncher {
         var handles = IntPtr.Zero;
         var attributesInitialized = false;
         try {
+            if (output != null) {
+                var childEnvironment = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+                if (environment != null)
+                    foreach (var (name, value) in environment) childEnvironment[name] = value;
+                childEnvironment["UNCHAINED_CONSOLE_HANDLE"] = output.ConsoleHandle;
+                childEnvironment["UNCHAINED_CONSOLE_ENDPOINT"] = null;
+                childEnvironment["UNCHAINED_CONSOLE_TOKEN"] = null;
+                environment = childEnvironment;
+            }
             if (environment != null) environmentBlock = Marshal.StringToHGlobalUni(BuildEnvironmentBlock(environment));
             if (output != null) {
                 startup.Info.Size = Marshal.SizeOf<StartupInfoEx>();
@@ -36,13 +45,12 @@ internal static class SuspendedProcessLauncher {
                 if (!InitializeProcThreadAttributeList(startup.Attributes, 1, 0, ref size))
                     throw new Win32Exception(Marshal.GetLastWin32Error());
                 attributesInitialized = true;
-                handles = Marshal.AllocHGlobal(3 * IntPtr.Size);
-                Marshal.WriteIntPtr(handles, output.OutputHandle);
-                Marshal.WriteIntPtr(handles, IntPtr.Size, output.ErrorHandle);
-                Marshal.WriteIntPtr(handles, 2 * IntPtr.Size, output.InputHandle);
-                // Whitelist only child stdio; never leak other inheritable handles.
+                var inherited = output.InheritedHandles;
+                handles = Marshal.AllocHGlobal(inherited.Length * IntPtr.Size);
+                for (var i = 0; i < inherited.Length; i++) Marshal.WriteIntPtr(handles, i * IntPtr.Size, inherited[i]);
+                // Whitelist child stdio and its dedicated console pipe, never unrelated handles.
                 if (!UpdateProcThreadAttribute(startup.Attributes, 0, (IntPtr)0x00020002, handles,
-                    (nuint)(3 * IntPtr.Size), IntPtr.Zero, IntPtr.Zero))
+                    (nuint)(inherited.Length * IntPtr.Size), IntPtr.Zero, IntPtr.Zero))
                     throw new Win32Exception(Marshal.GetLastWin32Error());
             }
             var path = Path.GetFullPath(executable);

@@ -1,28 +1,18 @@
-using System.Net;
-using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
 namespace UnchainedLauncher.CLI;
 
-/// <summary>One authenticated, bounded console stream per game launch.</summary>
+/// <summary>One private, bounded console stream per game launch.</summary>
 internal sealed class ForwardedConsole : IDisposable {
     internal const int MaxFrameBytes = 128 * 1024;
     internal const int MaxLines = 512;
-    private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
     private readonly CancellationTokenSource _stop = new();
     private readonly Queue<string> _lines = new();
-    private readonly Task _read;
+    private Task? _read;
+    private Stream? _stream;
     private long _dropped;
     private int _disposed;
-    internal string Token { get; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-    internal string Endpoint => ((IPEndPoint)_listener.LocalEndpoint).ToString();
-
-    internal ForwardedConsole(bool listen = true) {
-        if (listen) _listener.Start();
-        _read = listen ? ReadAsync() : Task.CompletedTask;
-    }
 
     internal async Task CaptureAsync(Stream stream, CancellationToken token) {
         using var reader = new StreamReader(stream, Encoding.UTF8, true, 4096, leaveOpen: true);
@@ -68,62 +58,49 @@ internal sealed class ForwardedConsole : IDisposable {
         }
     }
 
-    private async Task ReadAsync() {
+    internal Task ReadAsync(Stream stream, CancellationToken token = default) {
+        if (_stream != null || Volatile.Read(ref _disposed) != 0)
+            throw new InvalidOperationException("A console receiver owns exactly one pipe.");
+        _stream = stream;
+        return _read = ReadFramesAsync(stream, token);
+    }
+
+    private async Task ReadFramesAsync(Stream stream, CancellationToken token) {
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token, token);
         try {
-            while (!_stop.IsCancellationRequested) {
-                using var client = await _listener.AcceptTcpClientAsync(_stop.Token);
-                using var stream = client.GetStream();
-                var frames = new Frames(stream);
-                using var handshake = CancellationTokenSource.CreateLinkedTokenSource(_stop.Token);
-                handshake.CancelAfter(TimeSpan.FromSeconds(2));
-                try {
-                    using var hello = await frames.ReadAsync(handshake.Token);
-                    var root = hello.RootElement;
-                    if (root.GetProperty("version").GetInt32() != 1 || root.GetProperty("kind").GetString() != "hello"
-                        || root.GetProperty("token").GetString() is not { Length: 64 } token
-                        || !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(token), Encoding.UTF8.GetBytes(Token))) continue;
-                    await stream.WriteAsync("OK\n"u8.ToArray(), handshake.Token);
-                }
-                catch (Exception ex) when (ex is IOException or InvalidDataException or JsonException or KeyNotFoundException
-                    or InvalidOperationException or FormatException or OperationCanceledException) {
-                    if (_stop.IsCancellationRequested) return;
-                    continue;
-                }
-                // Only the authenticated game owns this stream; do not mix another launch's records.
-                _listener.Stop();
-                Add("[plugin console connected]");
-                while (!_stop.IsCancellationRequested) {
-                    using var frame = await frames.ReadAsync(_stop.Token);
-                    var root = frame.RootElement;
-                    var kind = root.GetProperty("kind").GetString();
-                    if (root.GetProperty("version").GetInt32() != 1 || kind is not ("log" or "banner"))
-                        throw new InvalidDataException("Unsupported console frame.");
-                    if (root.GetProperty("dropped").GetUInt64() is var dropped && dropped != 0)
-                        Add($"[console: {dropped} records dropped by plugin]");
-                    var text = root.GetProperty("text").GetString() ?? "";
-                    if (Encoding.UTF8.GetByteCount(text) > 16 * 1024 + 3)
-                        throw new InvalidDataException("Console text exceeds limit.");
-                    Add(text);
-                }
-                return;
+            var frames = new Frames(stream);
+            var connected = false;
+            while (!cancellation.IsCancellationRequested) {
+                using var frame = await frames.ReadAsync(cancellation.Token);
+                var root = frame.RootElement;
+                var kind = root.GetProperty("kind").GetString();
+                if (root.GetProperty("version").GetInt32() != 1 || kind is not ("log" or "banner"))
+                    throw new InvalidDataException("Unsupported console frame.");
+                var dropped = root.GetProperty("dropped").GetUInt64();
+                var text = root.GetProperty("text").GetString() ?? "";
+                if (Encoding.UTF8.GetByteCount(text) > 16 * 1024 + 3)
+                    throw new InvalidDataException("Console text exceeds limit.");
+                if (!connected) { Add("[plugin console connected]"); connected = true; }
+                if (dropped != 0) Add($"[console: {dropped} records dropped by plugin]");
+                Add(text);
             }
         }
-        catch (Exception ex) when (ex is IOException or InvalidDataException or SocketException or JsonException or KeyNotFoundException
+        catch (Exception ex) when (ex is IOException or InvalidDataException or JsonException or KeyNotFoundException
             or InvalidOperationException or FormatException or OperationCanceledException or ObjectDisposedException) {
-            if (!_stop.IsCancellationRequested) Add("[plugin console disconnected; file logging remains available]");
+            if (!cancellation.IsCancellationRequested) Add("[plugin console disconnected; file logging remains available]");
         }
-        finally { _listener.Stop(); }
+        finally { stream.Dispose(); }
     }
 
     public void Dispose() {
         if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
         _stop.Cancel();
-        _listener.Stop();
+        _stream?.Dispose();
         // The read task observes cancellation before its cancellation source is released.
-        _ = _read.ContinueWith(_ => _stop.Dispose(), TaskScheduler.Default);
+        _ = (_read ?? Task.CompletedTask).ContinueWith(_ => _stop.Dispose(), TaskScheduler.Default);
     }
 
-    private sealed class Frames(NetworkStream stream) {
+    private sealed class Frames(Stream stream) {
         private readonly byte[] _buffer = new byte[4096];
         private int _position, _count;
 

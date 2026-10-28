@@ -194,16 +194,6 @@ subprocess.run([
 Authentication is intentionally external: this does not store credentials or add
 an Epic login client. Do not save launch tokens in YAML, shell history, screenshots,
 or shared logs; game arguments can still be visible to local process inspection.
-Live Linux validation covers Steam and a Heroic-installed Epic copy using Heroic's
-selected Proton-CachyOS runner with an isolated prefix: `FFA_Courtyard` reached
-the Up state, answered A2S, displayed structured plugin output in the native TUI,
-and stopped cleanly with `Q`. This does not establish client joining, public
-reachability, or compatibility with every Heroic runner.
-
-The first plugin launch for a game build may scan signatures and exit with status
-189 requesting a restart. Obtain fresh Epic arguments for the next launch. A custom
-prefix must have the game's normal `Saved/Config` directory for that cache; launching
-the game through Heroic before injecting the plugin normally creates it.
 
 ### Forwarded plugin console
 

@@ -88,16 +88,17 @@ internal sealed class ForwardedConsole : IDisposable {
                 var root = frame.RootElement;
                 var kind = root.GetProperty("kind").GetString();
                 var version = root.GetProperty("version").GetInt32();
-                if (version is not (1 or 2) || kind is not ("log" or "banner"))
+                if (version != 1 || kind is not ("log" or "banner"))
                     throw new InvalidDataException("Unsupported console frame.");
                 var dropped = root.GetProperty("dropped").GetUInt64();
-                var textField = root.GetProperty("text");
-                if (version == 2 && textField.ValueKind != JsonValueKind.String)
+                var record = root.GetProperty("record");
+                var textField = record.GetProperty("message");
+                if (textField.ValueKind != JsonValueKind.String)
                     throw new InvalidDataException("Invalid console text.");
                 var text = textField.GetString() ?? "";
                 if (Encoding.UTF8.GetByteCount(text) > 16 * 1024 + 3)
                     throw new InvalidDataException("Console text exceeds limit.");
-                if (version == 2) text = RenderRecord(root, kind, text);
+                text = RenderRecord(record, kind, text);
                 if (!connected) { Add("[plugin console connected]"); connected = true; }
                 if (dropped != 0) Add($"[console: {dropped} records dropped by plugin]");
                 Add(text);
@@ -111,30 +112,20 @@ internal sealed class ForwardedConsole : IDisposable {
     }
 
     private static string RenderRecord(JsonElement root, string kind, string text) {
-        var timestamp = root.GetProperty("timestamp").GetString();
-        if (!DateTimeOffset.TryParseExact(timestamp, "yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture,
+        var timestamp = root.GetProperty("time").GetString();
+        if (!DateTimeOffset.TryParse(timestamp, CultureInfo.InvariantCulture,
             DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var time))
             throw new InvalidDataException("Invalid console timestamp.");
-        var module = MetadataText(root, "module");
-        var function = MetadataText(root, "function");
-        var lineField = root.GetProperty("line");
-        uint? line = lineField.ValueKind == JsonValueKind.Null ? null : lineField.GetUInt32();
-        var thread = root.GetProperty("thread_id").GetUInt32();
+        var module = root.TryGetProperty("module_path", out var moduleField) ? moduleField.GetString() : null;
+        var function = root.GetProperty("attributes").TryGetProperty("__unchained_function", out var functionField)
+            ? functionField.GetString() : null;
+        uint? line = root.TryGetProperty("line", out var lineField) ? lineField.GetUInt32() : null;
+        var thread = root.GetProperty("thread_id").GetUInt64();
         var level = root.GetProperty("level").GetString();
-        if (kind == "banner") {
-            if (level != null) throw new InvalidDataException("Invalid banner level.");
-            return text;
-        }
         if (level is not ("ERROR" or "WARN" or "INFO" or "DEBUG" or "TRACE"))
             throw new InvalidDataException("Invalid console level.");
+        if (kind == "banner") return text;
         return $"[{time:HH:mm:ss.fff} {level,-5}] [{module ?? "???"}] [{function ?? "???"}:{line?.ToString(CultureInfo.InvariantCulture) ?? "?"} thread={thread}] {text}";
-    }
-
-    private static string? MetadataText(JsonElement root, string name) {
-        var value = root.GetProperty(name).GetString();
-        if (value != null && Encoding.UTF8.GetByteCount(value) > 1024)
-            throw new InvalidDataException("Console metadata exceeds limit.");
-        return value;
     }
 
     public void Dispose() {

@@ -25,7 +25,9 @@ if (args[0] is "--console-probe" or "--console-probe-idle") {
     Console.WriteLine("stdout must not enter structured records");
     Console.Error.WriteLine("stderr must not enter structured records");
     var frame = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new {
-        version = 1, kind = "log", level = "INFO", text = "native console marker", dropped = 0
+        version = 1, kind = "log", dropped = 0,
+        record = new { time = "2026-10-28T12:34:56+00:00", level = "INFO", message = "native console marker",
+            target = "probe", thread = "main", thread_id = 1234, mdc = new { }, attributes = new { } }
     }) + "\n");
     if (args[0] == "--console-probe-idle") {
         await stream.WriteAsync(frame);

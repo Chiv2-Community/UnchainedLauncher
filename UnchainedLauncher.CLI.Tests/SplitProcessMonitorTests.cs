@@ -27,7 +27,7 @@ public sealed class SplitProcessMonitorTests {
         Assert.True(game.HasExited);
         Assert.Equal(7, game.ExitCode);
         Assert.Equal("Server exited (code 7)", final!.Events.Last().Message);
-        Assert.Contains(final.ConsoleLines, line => line.Text == "supervisor-tail");
+        Assert.Contains(final.ConsoleLines, line => line.Text.EndsWith("supervisor-tail"));
         Assert.Empty(game.ConsoleOutput!.Drain());
     }
 
@@ -109,8 +109,7 @@ public sealed class SplitProcessMonitorTests {
         }
 
         internal async Task ExitSupervisorAsync() {
-            await Game.ConsoleOutput!.ReadAsync(new MemoryStream(Encoding.UTF8.GetBytes(
-                "{\"version\":1,\"kind\":\"log\",\"level\":\"ERROR\",\"text\":\"supervisor-tail\",\"dropped\":0}\n")));
+            await Game.ConsoleOutput!.ReadAsync(new MemoryStream(ForwardedConsoleTests.Frame("supervisor-tail")));
             await supervisor.StandardInput.WriteLineAsync("release");
             await supervisor.StandardInput.FlushAsync();
             await supervisor.WaitForExitAsync();

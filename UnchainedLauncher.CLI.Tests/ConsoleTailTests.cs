@@ -39,8 +39,8 @@ public sealed class ConsoleTailTests {
                 snapshot = history.Snapshot(stopped: game.HasExited);
                 dashboard.Render(game.Id, sample, history);
             }, stop.Token).WaitAsync(TimeSpan.FromSeconds(5));
-            Assert.Contains(monitor.History.ConsoleLines, line => line.Text == "fatal-tail");
-            Assert.Contains(snapshot!.ConsoleLines, line => line.Text == "fatal-tail");
+            Assert.Contains(monitor.History.ConsoleLines, line => line.Text.EndsWith("fatal-tail"));
+            Assert.Contains(snapshot!.ConsoleLines, line => line.Text.EndsWith("fatal-tail"));
             Assert.Contains("fatal-tail", output.ToString());
             Assert.Empty(receiver.Drain());
         }
@@ -50,8 +50,8 @@ public sealed class ConsoleTailTests {
         }
     }
 
-    private static Task ReadTail(ForwardedConsole receiver) => receiver.ReadAsync(new MemoryStream(Encoding.UTF8.GetBytes(
-        "{\"version\":1,\"kind\":\"log\",\"level\":\"ERROR\",\"text\":\"fatal-tail\",\"dropped\":0}\n")));
+    private static Task ReadTail(ForwardedConsole receiver) => receiver.ReadAsync(new MemoryStream(
+        ForwardedConsoleTests.Frame("fatal-tail")));
 
     private sealed class TailQuery(Func<Task> action) : IA2S {
         public async Task<A2SInfo> InfoAsync() { await action(); throw new TimeoutException(); }

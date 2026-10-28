@@ -42,18 +42,24 @@ public sealed class ForwardedConsoleTests {
         }
         finally { File.Delete(path); }
     }
-    private static byte[] Frame(string text, ulong dropped = 0) => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
-        new { version = 1, kind = "log", level = "INFO", text, dropped }) + "\n");
-
-    private static byte[] Frame2(string text, string kind = "log", string? module = "UnchainedPlugin::test",
-        string? function = "example", uint? line = 42, ulong dropped = 0) => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
-        new { version = 2, kind, level = kind == "banner" ? null : "INFO", timestamp = "2026-10-28T12:34:56.789Z",
-            module, function, line, thread_id = 1234, text, dropped }) + "\n");
+    internal static byte[] Frame(string text, ulong dropped = 0, string kind = "log", string? module = "UnchainedPlugin::test",
+        string? function = "example", uint? line = 42) {
+        var record = new Dictionary<string, object?> {
+            ["time"] = "2026-10-28T12:34:56.789123456+00:00", ["level"] = "INFO",
+            ["message"] = text, ["target"] = "UnchainedPlugin::test", ["thread"] = "main",
+            ["thread_id"] = 1234, ["mdc"] = new { },
+            ["attributes"] = function == null ? new Dictionary<string, string>()
+                : new Dictionary<string, string> { ["__unchained_function"] = function }
+        };
+        if (module != null) record["module_path"] = module;
+        if (line != null) record["line"] = line;
+        return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { version = 1, kind, record, dropped }) + "\n");
+    }
 
     [Fact]
-    public async Task RendersV2MessageAndMetadataWithoutRequiringFormattedText() {
+    public async Task RendersMessageAndMetadataWithoutRequiringFormattedText() {
         using var console = new ForwardedConsole();
-        using var stream = new FragmentedStream(Frame2("世界\nsecond\u001b[2J", dropped: 2));
+        using var stream = new FragmentedStream(Frame("世界\nsecond\u001b[2J", dropped: 2));
         await console.ReadAsync(stream);
         var lines = console.Drain();
         Assert.Contains("[12:34:56.789 INFO ] [UnchainedPlugin::test] [example:42 thread=1234] 世界", lines);
@@ -63,38 +69,29 @@ public sealed class ForwardedConsoleTests {
     }
 
     [Fact]
-    public async Task AcceptsNullableV2SourceFieldsAndUnadornedBanners() {
+    public async Task AcceptsOmittedSourceFieldsAndUnadornedBanners() {
         using var console = new ForwardedConsole();
-        using var stream = new MemoryStream(Frame2("message", module: null, function: null, line: null)
-            .Concat(Frame2("banner", "banner", null, null, null)).ToArray());
+        using var stream = new MemoryStream(Frame("message", module: null, function: null, line: null)
+            .Concat(Frame("banner", kind: "banner", module: null, function: null, line: null)).ToArray());
         await console.ReadAsync(stream);
         var lines = console.Drain();
         Assert.Contains("[12:34:56.789 INFO ] [???] [???:? thread=1234] message", lines);
         Assert.Contains("banner", lines);
     }
 
-    [Fact]
-    public async Task AcceptsLegacyV1AndV2FramesInTheSameStream() {
-        using var console = new ForwardedConsole();
-        using var stream = new MemoryStream(Frame("legacy").Concat(Frame2("new message")).ToArray());
-        await console.ReadAsync(stream);
-        var lines = console.Drain();
-        Assert.Contains("legacy", lines);
-        Assert.Contains(lines, line => line.EndsWith("new message"));
-    }
-
     [Theory]
-    [InlineData("timestamp", "\"not a timestamp\"")]
-    [InlineData("text", "null")]
+    [InlineData("time", "\"not a timestamp\"")]
+    [InlineData("message", "null")]
     [InlineData("level", "\"INVALID\"")]
-    [InlineData("module", "123")]
-    [InlineData("function", "[]")]
+    [InlineData("module_path", "123")]
+    [InlineData("attributes", "[]")]
     [InlineData("line", "-1")]
-    [InlineData("thread_id", "4294967296")]
+    [InlineData("thread_id", "-1")]
+    [InlineData("version", "2")]
     [InlineData("version", "3")]
-    public async Task RejectsInvalidV2MetadataWithoutFaultingMonitoring(string field, string value) {
-        var frame = JsonNode.Parse(Frame2("message"))!;
-        frame[field] = JsonNode.Parse(value);
+    public async Task RejectsInvalidMetadataWithoutFaultingMonitoring(string field, string value) {
+        var frame = JsonNode.Parse(Frame("message"))!;
+        (field == "version" ? frame : frame["record"]!)[field] = JsonNode.Parse(value);
         using var console = new ForwardedConsole();
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(frame.ToJsonString() + "\n"));
         await console.ReadAsync(stream);
@@ -102,11 +99,21 @@ public sealed class ForwardedConsoleTests {
     }
 
     [Fact]
-    public async Task RejectsOversizedV2Metadata() {
+    public async Task AcceptsMetadataWithinTheFrameLimitWithoutCustomFieldCaps() {
         using var console = new ForwardedConsole();
-        using var stream = new MemoryStream(Frame2("message", module: new string('x', 1025)));
+        using var stream = new MemoryStream(Frame("message", module: new string('x', 1025)));
         await console.ReadAsync(stream);
-        Assert.DoesNotContain(console.Drain(), line => line.Contains("message"));
+        Assert.Contains(console.Drain(), line => line.Contains("message"));
+    }
+
+    [Fact]
+    public async Task PreservesExplicitFunctionPrefixAndAcceptsNativeThreadIdRange() {
+        var frame = JsonNode.Parse(Frame("[example] intentional prefix"))!;
+        frame["record"]!["thread_id"] = ulong.MaxValue;
+        using var console = new ForwardedConsole();
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(frame.ToJsonString() + "\n"));
+        await console.ReadAsync(stream);
+        Assert.Contains(console.Drain(), line => line.Contains("thread=18446744073709551615] [example] intentional prefix"));
     }
 
     [Theory]
@@ -142,7 +149,7 @@ public sealed class ForwardedConsoleTests {
         await console.ReadAsync(stream);
         var lines = console.Drain();
         Assert.Contains("[plugin console connected]", lines);
-        Assert.Contains("real plugin", lines);
+        Assert.Contains(lines, line => line.EndsWith("real plugin"));
         Assert.Throws<InvalidOperationException>(() => { _ = console.ReadAsync(Stream.Null); });
     }
 
@@ -153,7 +160,7 @@ public sealed class ForwardedConsoleTests {
         using var stream = new FragmentedStream(frame);
         await console.ReadAsync(stream);
         var lines = console.Drain();
-        Assert.Contains("世界", lines);
+        Assert.Contains(lines, line => line.EndsWith("世界"));
         Assert.Contains("[console: 3 records dropped by plugin]", lines);
         Assert.DoesNotContain(lines, line => line.Any(char.IsControl));
     }

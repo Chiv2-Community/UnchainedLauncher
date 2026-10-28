@@ -66,7 +66,7 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
             .Match(Left: error => throw error, Right: value => value);
         try {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-            while (!console.Drain().Contains("native console marker")) await Task.Delay(10, timeout.Token);
+            while (!console.Drain().Any(line => line.EndsWith("native console marker"))) await Task.Delay(10, timeout.Token);
             await Task.Run(console.Dispose).WaitAsync(TimeSpan.FromSeconds(5));
             await read.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.False(process.HasExited);
@@ -117,9 +117,9 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
             Assert.NotNull(game.ConsoleOutput);
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             List<string> lines = [];
-            while (!lines.Contains("native console marker")) {
+            while (!lines.Any(line => line.EndsWith("native console marker"))) {
                 lines.AddRange(game.ConsoleOutput!.Drain());
-                if (!lines.Contains("native console marker")) await Task.Delay(10, timeout.Token);
+                if (!lines.Any(line => line.EndsWith("native console marker"))) await Task.Delay(10, timeout.Token);
             }
             using var environment = JsonDocument.Parse(await File.ReadAllTextAsync(output, timeout.Token));
             Assert.False(string.IsNullOrEmpty(environment.RootElement.GetProperty("handle").GetString()));

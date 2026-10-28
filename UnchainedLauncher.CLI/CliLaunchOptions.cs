@@ -70,8 +70,6 @@ public abstract class CliLaunchOptions : CliCommandOptions {
     public SharedLaunchOptions Shared => _shared ?? throw new InvalidOperationException("Help is not a launch request.");
     public IReadOnlyList<string> GameArguments { get; }
     public ServerInstancePaths InstancePaths => new(Shared.Assets);
-    internal bool AttachStdio => this is ServerOptions server && (server.Settings.AttachStdio ||
-        GameArguments.Any(arg => arg is "--attach-stdio" or "-attach-stdio"));
 
     private protected CliLaunchOptions(SharedLaunchOptions shared, IEnumerable<string> gameArguments) {
         _shared = shared;
@@ -171,7 +169,7 @@ public sealed class ServerOptions : CliLaunchOptions {
 
     public override LaunchOptions ToLaunchOptions() {
         var prefix = new List<string> { "TBL", "-server" };
-        if (Settings.AttachStdio && !GameArguments.Any(arg => arg is "--attach-stdio" or "-attach-stdio")) prefix.Add("--attach-stdio");
+        if (!GameArguments.Any(arg => arg is "--attach-stdio" or "-attach-stdio")) prefix.Add("--attach-stdio");
         if (Settings.NoSpawnConsole && !GameArguments.Any(arg => arg is "--no-spawn-console" or "-no-spawn-console")) prefix.Add("--no-spawn-console");
         if (!Ini.Contains("Game", "/Script/TBL.TBLTitleScreen", "bSavedHasAgreedToTOS"))
             prefix.Add("-ini:Game:[/Script/TBL.TBLTitleScreen]:bSavedHasAgreedToTOS=True");

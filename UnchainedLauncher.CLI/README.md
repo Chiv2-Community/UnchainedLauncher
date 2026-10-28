@@ -159,7 +159,7 @@ Steam installation, Steam login, and Steam game manifests are **not required for
 EGS**. The CLI does not assign Chivalry 2's Steam app ID to Epic launches or choose
 Epic's runner from Steam's game settings. An explicitly selected Proton build may
 still require its normal host/runtime dependencies. Both stores use the same
-plugin injection, structured capture, `--attach-stdio`, and `--no-spawn-console`
+plugin injection, stdio capture, and `--no-spawn-console`
 paths.
 
 If using Legendary to obtain authentication, use Heroic's configured login
@@ -197,46 +197,34 @@ Authentication is intentionally external: this does not store credentials or add
 an Epic login client. Do not save launch tokens in YAML, shell history, screenshots,
 or shared logs; game arguments can still be visible to local process inspection.
 
-### Forwarded plugin console
+### Captured server output
 
-To use standard output instead of plugin IPC, add **`--attach-stdio`** to the
-`server` command, or set `server.attach-stdio: true` in YAML. This passes the plugin
-flag before initialization and captures stdout/stderr into the same TUI/plain
-handler without opening a separate console. The flag explicitly wins over IPC.
-To suppress plugin console creation without attaching stdio or changing capture,
-use `--no-spawn-console` or `server.no-spawn-console: true` in YAML. It can be
-combined with `--attach-stdio`; configured file logging is unaffected.
-Windows uses private inherited pipes; Linux uses Proton `runinprefix` so the
-Steam.exe wrapper cannot discard those streams. Captured server stdin is EOF,
-not the TUI's keyboard. Standard-stream writes can experience pipe backpressure;
-the default IPC route retains its nonblocking plugin queue.
+Server launches capture stdout and stderr and pass the plugin's `--attach-stdio`
+argument automatically. No capture switch or special logging configuration is
+needed. The plugin uses inherited output without opening a separate console.
+Captured stdin is EOF, not the TUI's keyboard.
 
-Windows and Linux server launches provide a private inherited anonymous pipe to compatible
-plugins through `UNCHAINED_CONSOLE_HANDLE` in the game's environment. No CLI flags or logging YAML overrides
-are needed. The plugin forwards its console records and banner directly, without
-opening its own console. Windows passes a private Unicode environment block to
-the suspended game with an explicit handle whitelist; on Linux, the CLI's bundled Windows helper
-creates the game pipe and relays only its records through reserved helper stdout
-using Proton `runinprefix`. Game stdout/stderr are drained separately and discarded
-in structured mode. There is no socket listener, token, or handshake. Neither backend
-changes the launcher's environment. Older plugins keep their existing console behavior.
+Windows supplies ordinary redirected stdio with an explicit handle inheritance
+list. Linux relays game stdio through the bundled Windows helper using Proton
+`runinprefix`, avoiding the Steam.exe wrapper that discards inherited streams.
+There is no dedicated plugin pipe, envelope, or logging protocol.
 
 The helper is supplied by UnchainedLauncher, not Proton. Its request/heartbeat
 protocol is private and version-coupled to the CLI; deploy the matching bundle.
 Alternate launcher authors: see the plugin's
-[Windows ownership recipe and Linux helper invocation](https://github.com/Chiv2-Community/UnchainedPlugin/blob/feature/console-forwarding/docs/console-forwarding.md).
+[stdio attachment instructions](https://github.com/Chiv2-Community/UnchainedPlugin/blob/feature/console-forwarding/docs/console-attachment.md).
 
 Press **L** to switch between the dashboard and full console, **Page Up/Page Down**
 to scroll, and **End** to resume following new output. Each server has its own
 512-line history; the dashboard also shows a short preview. Plain/no-TUI mode
-prints received lines. Output is currently plain text; level metadata is carried
-by the protocol but is not yet used for TUI colors.
+prints received lines. The launcher displays text and JSON as written by the
+configured appenders; it does not decode or reformat JSON records.
 
-Queues, records, and JSON frames are bounded. Invalid protocol frames are rejected;
-terminal controls are neutralized. Disconnects and queue loss are reported in
-the pane. A slow or missing receiver never blocks the game's logging thread;
-configured file logging continues. This forwards plugin console output, not
-arbitrary UE/Proton stdout, and does not provide interactive console commands.
+Retained history and displayed lines are bounded; terminal controls are neutralized.
+Output includes game and other DLL output, not just plugin logs. Slow readers can
+block writers. Configure a log4rs JSON file appender for a separate machine-readable
+log, or select JSON on a console appender to emit it through stdio. File appenders
+remain independent. Interactive console commands are not supported.
 
 UE logging switches and custom plugin logging configuration are not added by
 the launcher. Chivalry 2's shipping build does not provide UE log output.

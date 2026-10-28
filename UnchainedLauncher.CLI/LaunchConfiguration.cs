@@ -81,7 +81,6 @@ public sealed class ClientSettings {
 }
 
 public sealed class ServerSettings {
-    public bool AttachStdio { get; set; }
     public bool NoSpawnConsole { get; set; }
     public List<MapRotationEntry>? MapRotation { get; set; }
     [YamlIgnore]

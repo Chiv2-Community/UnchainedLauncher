@@ -7,29 +7,20 @@ namespace UnchainedLauncher.CLI;
 internal static class NativeGameLauncher {
     internal static async Task<LaunchedGame> LaunchAsync(string executable, string installationRoot,
         LaunchOptions options, IChivalry2LaunchPreparer<LaunchOptions> preparer,
-        IProcessInjector injector, bool forwardConsole, bool attachStdio = false) {
+        IProcessInjector injector, bool forwardConsole) {
         var console = forwardConsole ? new ForwardedConsole() : null;
         ProcessOutputCapture? capture = null;
         CancellationTokenSource? stop = null;
         Task drain = Task.CompletedTask;
         try {
-            var environment = new Dictionary<string, string?> {
-                ["UNCHAINED_CONSOLE_HANDLE"] = null,
-                ["UNCHAINED_CONSOLE_ENDPOINT"] = null,
-                ["UNCHAINED_CONSOLE_TOKEN"] = null
-            };
             if (console != null) {
-                capture = new ProcessOutputCapture(forwardConsole: !attachStdio);
+                capture = new ProcessOutputCapture();
                 stop = new CancellationTokenSource();
-                drain = attachStdio
-                    ? Task.WhenAll(console.CaptureAsync(capture.StandardOutput, stop.Token),
-                        console.CaptureAsync(capture.StandardError, stop.Token))
-                    : Task.WhenAll(console.ReadAsync(capture.ConsoleOutput!, stop.Token),
-                        capture.StandardOutput.CopyToAsync(Stream.Null, stop.Token),
-                        capture.StandardError.CopyToAsync(Stream.Null, stop.Token));
+                drain = Task.WhenAll(console.CaptureAsync(capture.StandardOutput, stop.Token),
+                    console.CaptureAsync(capture.StandardError, stop.Token));
             }
             var launcher = new UnchainedChivalry2Launcher(preparer,
-                new ProcessLauncher(executable, environment, capture), installationRoot, injector);
+                new ProcessLauncher(executable, environment: null, output: capture), installationRoot, injector);
             var result = await launcher.Launch(options);
             return result.Match(
                 Right: process => new LaunchedGame(process) { ConsoleOutput = console,

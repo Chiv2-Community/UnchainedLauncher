@@ -52,7 +52,7 @@ public static class ServerLauncher {
                 return await ProtonGameLauncher.LaunchAsync(request, prepared.IfNone(request.ToLaunchOptions()), pluginUpdater, cancellationToken);
             }
             return await NativeGameLauncher.LaunchAsync(executable, options.Chivalry2Path,
-                request.ToLaunchOptions(), preparer, pluginUpdater, forwardConsole: request is ServerOptions, attachStdio: request.AttachStdio);
+                request.ToLaunchOptions(), preparer, pluginUpdater, forwardConsole: request is ServerOptions);
         });
     }
 

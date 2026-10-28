@@ -50,8 +50,8 @@ public sealed class ConsoleTailTests {
         }
     }
 
-    private static Task ReadTail(ForwardedConsole receiver) => receiver.ReadAsync(new MemoryStream(
-        ForwardedConsoleTests.Frame("fatal-tail")));
+    private static Task ReadTail(ForwardedConsole receiver) => receiver.CaptureAsync(new MemoryStream(
+        Encoding.UTF8.GetBytes("fatal-tail\n")));
 
     private sealed class TailQuery(Func<Task> action) : IA2S {
         public async Task<A2SInfo> InfoAsync() { await action(); throw new TimeoutException(); }
@@ -64,7 +64,7 @@ public sealed class ConsoleTailTests {
         using var child = new System.IO.Pipes.AnonymousPipeClientStream(System.IO.Pipes.PipeDirection.Out,
             pipe.GetClientHandleAsString());
         using var receiver = new ForwardedConsole();
-        var read = receiver.ReadAsync(pipe);
+        var read = receiver.CaptureAsync(pipe);
         await receiver.FinishAsync().WaitAsync(TimeSpan.FromSeconds(2));
         await read.WaitAsync(TimeSpan.FromSeconds(2));
     }

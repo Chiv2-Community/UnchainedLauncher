@@ -22,15 +22,6 @@ internal static class SuspendedProcessLauncher {
         var handles = IntPtr.Zero;
         var attributesInitialized = false;
         try {
-            if (output != null) {
-                var childEnvironment = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-                if (environment != null)
-                    foreach (var (name, value) in environment) childEnvironment[name] = value;
-                childEnvironment["UNCHAINED_CONSOLE_HANDLE"] = output.ConsoleHandle;
-                childEnvironment["UNCHAINED_CONSOLE_ENDPOINT"] = null;
-                childEnvironment["UNCHAINED_CONSOLE_TOKEN"] = null;
-                environment = childEnvironment;
-            }
             if (environment != null) environmentBlock = Marshal.StringToHGlobalUni(BuildEnvironmentBlock(environment));
             if (output != null) {
                 startup.Info.Size = Marshal.SizeOf<StartupInfoEx>();
@@ -48,7 +39,7 @@ internal static class SuspendedProcessLauncher {
                 var inherited = output.InheritedHandles;
                 handles = Marshal.AllocHGlobal(inherited.Length * IntPtr.Size);
                 for (var i = 0; i < inherited.Length; i++) Marshal.WriteIntPtr(handles, i * IntPtr.Size, inherited[i]);
-                // Whitelist child stdio and its dedicated console pipe, never unrelated handles.
+                // Inherit only this child's stdio, never unrelated handles.
                 if (!UpdateProcThreadAttribute(startup.Attributes, 0, (IntPtr)0x00020002, handles,
                     (nuint)(inherited.Length * IntPtr.Size), IntPtr.Zero, IntPtr.Zero))
                     throw new Win32Exception(Marshal.GetLastWin32Error());

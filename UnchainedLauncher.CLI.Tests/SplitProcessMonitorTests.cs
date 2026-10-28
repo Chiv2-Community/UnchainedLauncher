@@ -109,7 +109,7 @@ public sealed class SplitProcessMonitorTests {
         }
 
         internal async Task ExitSupervisorAsync() {
-            await Game.ConsoleOutput!.ReadAsync(new MemoryStream(ForwardedConsoleTests.Frame("supervisor-tail")));
+            await Game.ConsoleOutput!.CaptureAsync(new MemoryStream(Encoding.UTF8.GetBytes("supervisor-tail\n")));
             await supervisor.StandardInput.WriteLineAsync("release");
             await supervisor.StandardInput.FlushAsync();
             await supervisor.WaitForExitAsync();

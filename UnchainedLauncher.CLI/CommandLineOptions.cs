@@ -128,7 +128,6 @@ internal static class CommandLineOptions {
             Many("--dll", "Select a registry DLL release: organization/id:version (exact release tag).", value => setup.Dlls = value);
             if (_configuration is ServerConfiguration serverConfig) {
                 var settings = serverConfig.Server!;
-                Flag("--attach-stdio", "Capture inherited plugin stdout/stderr without a separate console window.", value => settings.AttachStdio = value);
                 Flag("--no-spawn-console", "Prevent plugin console creation without attaching stdout/stderr.", value => settings.NoSpawnConsole = value);
                 Add("--name", "Server name.", settings.Name, value => settings.Name = value);
                 Add("--description", "Description / MOTD.", settings.Description, value => settings.Description = value);

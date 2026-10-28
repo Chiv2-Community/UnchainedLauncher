@@ -29,20 +29,12 @@ internal static class Program {
                     throw new InvalidDataException();
             }
             var injector = DllInjector.FromVerifiedPaths(request.Dlls.Select(dll => dll.Path).ToArray());
-            if (request.Server || request.AttachStdio) {
-                capture = new ProcessOutputCapture(forwardConsole: request.Server && !request.AttachStdio);
-                drain = request.AttachStdio
-                    ? Task.WhenAll(capture.StandardOutput.CopyToAsync(Console.OpenStandardOutput()),
-                        capture.StandardError.CopyToAsync(Console.OpenStandardError()))
-                    : Task.WhenAll(RelayConsoleAsync(capture.ConsoleOutput!),
-                        capture.StandardOutput.CopyToAsync(Stream.Null), capture.StandardError.CopyToAsync(Stream.Null));
+            if (request.Server) {
+                capture = new ProcessOutputCapture();
+                drain = Task.WhenAll(capture.StandardOutput.CopyToAsync(Console.OpenStandardOutput()),
+                    capture.StandardError.CopyToAsync(Console.OpenStandardError()));
             }
-            var environment = new Dictionary<string, string?> {
-                ["UNCHAINED_CONSOLE_HANDLE"] = null,
-                ["UNCHAINED_CONSOLE_ENDPOINT"] = null,
-                ["UNCHAINED_CONSOLE_TOKEN"] = null
-            };
-            var result = new ProcessLauncher(request.Executable, environment, capture).Launch(request.WorkingDirectory,
+            var result = new ProcessLauncher(request.Executable, environment: null, output: capture).Launch(request.WorkingDirectory,
                 request.Arguments, process => injector.Inject(process));
             game = result.Match(Right: process => process, Left: _ => throw new InvalidOperationException());
             await File.WriteAllTextAsync(Path.Combine(directory, "ready"), game.Id.ToString());
@@ -79,8 +71,4 @@ internal static class Program {
         }
     }
 
-    private static async Task RelayConsoleAsync(Stream source) {
-        // A lost native reader must also close the game's private pipe.
-        using (source) await source.CopyToAsync(Console.OpenStandardOutput());
-    }
 }

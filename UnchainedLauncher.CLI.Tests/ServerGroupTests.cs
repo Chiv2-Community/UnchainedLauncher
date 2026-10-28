@@ -297,8 +297,8 @@ public sealed class ServerGroupTests : IDisposable {
                 children.Add(child);
                 if (!cancel) await child.WaitForExitAsync();
                 var console = new ForwardedConsole();
-                var frame = ForwardedConsoleTests.Frame($"group-tail-{++count}");
-                await console.ReadAsync(new MemoryStream(frame));
+                var text = System.Text.Encoding.UTF8.GetBytes($"group-tail-{++count}\n");
+                await console.CaptureAsync(new MemoryStream(text));
                 return new LaunchedGame(child) { ConsoleOutput = console };
             }, _ => {
                 if (cancel) stop.Cancel();

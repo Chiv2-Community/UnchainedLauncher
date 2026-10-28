@@ -1,16 +1,14 @@
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Nodes;
 using Xunit;
 
 namespace UnchainedLauncher.CLI.Tests;
 
 public sealed class ForwardedConsoleTests {
     [Fact]
-    public async Task StandardStreamCaptureIsBoundedAndSanitizedWithoutAListener() {
+    public async Task StandardStreamCaptureIsBoundedAndSanitized() {
         using var console = new ForwardedConsole();
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("hello 世界\r\n" + new string('x', 100000) + "\nunsafe\u001b[2J"));
-        await console.CaptureAsync(stream, CancellationToken.None);
+        await console.CaptureAsync(stream);
         var lines = console.Drain();
         Assert.Equal(3, lines.Count);
         Assert.Equal("hello 世界", lines[0]);
@@ -22,178 +20,58 @@ public sealed class ForwardedConsoleTests {
     [Theory]
     [InlineData("--attach-stdio")]
     [InlineData("-attach-stdio")]
-    public void AttachStdioMapsToPluginArgumentsAndStandardCapture(string flag) {
-        var direct = CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam", "--attach-stdio"]);
-        Assert.True(direct.AttachStdio);
-        Assert.Contains("--attach-stdio", direct.ToLaunchOptions().LaunchArgs);
+    public void ServerLaunchAlwaysAttachesStdioWithoutDuplicatingExplicitArguments(string flag) {
+        var defaults = CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam"]);
+        Assert.Contains("--attach-stdio", defaults.ToLaunchOptions().LaunchArgs);
         var passthrough = CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam", "--", flag]);
-        Assert.True(passthrough.AttachStdio);
-        Assert.False(CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam"]).AttachStdio);
+        Assert.Equal(1, passthrough.ToLaunchOptions().LaunchArgs.Split(' ').Count(arg => arg is "--attach-stdio" or "-attach-stdio"));
     }
 
     [Fact]
-    public void YamlCanSelectStandardOutputCapture() {
-        var path = Path.Combine(Path.GetTempPath(), "attach-stdio-" + Guid.NewGuid().ToString("N") + ".yaml");
-        try {
-            File.WriteAllText(path, "chiv2-path: .\nplatform: Steam\nserver:\n  attach-stdio: true\n");
-            var options = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
-            Assert.True(options.AttachStdio);
-            Assert.Contains("--attach-stdio", options.ToLaunchOptions().LaunchArgs);
-        }
-        finally { File.Delete(path); }
-    }
-    internal static byte[] Frame(string text, ulong dropped = 0, string kind = "log", string? module = "UnchainedPlugin::test",
-        string? function = "example", uint? line = 42) {
-        var record = new Dictionary<string, object?> {
-            ["time"] = "2026-10-28T12:34:56.789123456+00:00", ["level"] = "INFO",
-            ["message"] = text, ["target"] = "UnchainedPlugin::test", ["thread"] = "main",
-            ["thread_id"] = 1234, ["mdc"] = new { },
-            ["attributes"] = function == null ? new Dictionary<string, string>()
-                : new Dictionary<string, string> { ["__unchained_function"] = function }
-        };
-        if (module != null) record["module_path"] = module;
-        if (line != null) record["line"] = line;
-        return Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { version = 1, kind, record, dropped }) + "\n");
-    }
-
-    [Fact]
-    public async Task RendersMessageAndMetadataWithoutRequiringFormattedText() {
-        using var console = new ForwardedConsole();
-        using var stream = new FragmentedStream(Frame("世界\nsecond\u001b[2J", dropped: 2));
-        await console.ReadAsync(stream);
-        var lines = console.Drain();
-        Assert.Contains("[12:34:56.789 INFO ] [UnchainedPlugin::test] [example:42 thread=1234] 世界", lines);
-        Assert.Contains("[console: 2 records dropped by plugin]", lines);
-        Assert.Contains(lines, line => line.Contains("second"));
-        Assert.DoesNotContain(lines, line => line.Any(char.IsControl));
-    }
-
-    [Fact]
-    public async Task AcceptsOmittedSourceFieldsAndUnadornedBanners() {
-        using var console = new ForwardedConsole();
-        using var stream = new MemoryStream(Frame("message", module: null, function: null, line: null)
-            .Concat(Frame("banner", kind: "banner", module: null, function: null, line: null)).ToArray());
-        await console.ReadAsync(stream);
-        var lines = console.Drain();
-        Assert.Contains("[12:34:56.789 INFO ] [???] [???:? thread=1234] message", lines);
-        Assert.Contains("banner", lines);
-    }
-
-    [Theory]
-    [InlineData("time", "\"not a timestamp\"")]
-    [InlineData("message", "null")]
-    [InlineData("level", "\"INVALID\"")]
-    [InlineData("module_path", "123")]
-    [InlineData("attributes", "[]")]
-    [InlineData("line", "-1")]
-    [InlineData("thread_id", "-1")]
-    [InlineData("version", "2")]
-    [InlineData("version", "3")]
-    public async Task RejectsInvalidMetadataWithoutFaultingMonitoring(string field, string value) {
-        var frame = JsonNode.Parse(Frame("message"))!;
-        (field == "version" ? frame : frame["record"]!)[field] = JsonNode.Parse(value);
-        using var console = new ForwardedConsole();
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(frame.ToJsonString() + "\n"));
-        await console.ReadAsync(stream);
-        Assert.Contains(console.Drain(), line => line.Contains("disconnected"));
-    }
-
-    [Fact]
-    public async Task AcceptsMetadataWithinTheFrameLimitWithoutCustomFieldCaps() {
-        using var console = new ForwardedConsole();
-        using var stream = new MemoryStream(Frame("message", module: new string('x', 1025)));
-        await console.ReadAsync(stream);
-        Assert.Contains(console.Drain(), line => line.Contains("message"));
-    }
-
-    [Fact]
-    public async Task PreservesExplicitFunctionPrefixAndAcceptsNativeThreadIdRange() {
-        var frame = JsonNode.Parse(Frame("[example] intentional prefix"))!;
-        frame["record"]!["thread_id"] = ulong.MaxValue;
-        using var console = new ForwardedConsole();
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(frame.ToJsonString() + "\n"));
-        await console.ReadAsync(stream);
-        Assert.Contains(console.Drain(), line => line.Contains("thread=18446744073709551615] [example] intentional prefix"));
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void ConsoleSuppressionDoesNotSelectStandardCapture(bool attach) {
-        var args = new List<string> { "server", "--chivalry2-path", ".", "--platform", "Steam", "--no-spawn-console" };
-        if (attach) args.Add("--attach-stdio");
-        var options = Assert.IsType<ServerOptions>(CliLaunchOptions.Parse(args.ToArray()));
+    public void ConsoleSuppressionPreservesStandardCapture() {
+        var options = Assert.IsType<ServerOptions>(CliLaunchOptions.Parse([
+            "server", "--chivalry2-path", ".", "--platform", "Steam", "--no-spawn-console"]));
         Assert.True(options.Settings.NoSpawnConsole);
-        Assert.Equal(attach, options.AttachStdio);
+        Assert.Contains("--attach-stdio", options.ToLaunchOptions().LaunchArgs);
         Assert.Contains("--no-spawn-console", options.ToLaunchOptions().LaunchArgs);
-        Assert.Equal(attach, options.ToLaunchOptions().LaunchArgs.Contains("--attach-stdio"));
     }
 
     [Fact]
-    public void YamlCanSuppressConsoleWithoutAttachment() {
+    public void YamlCanSuppressConsoleWithoutChangingStandardCapture() {
         var path = Path.Combine(Path.GetTempPath(), "no-spawn-console-" + Guid.NewGuid().ToString("N") + ".yaml");
         try {
             File.WriteAllText(path, "chiv2-path: .\nplatform: Steam\nserver:\n  no-spawn-console: true\n");
             var options = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
             Assert.True(options.Settings.NoSpawnConsole);
-            Assert.False(options.AttachStdio);
-            Assert.Contains("--no-spawn-console", options.ToLaunchOptions().LaunchArgs);
+            Assert.Contains("--attach-stdio", options.ToLaunchOptions().LaunchArgs);
         }
         finally { File.Delete(path); }
     }
 
     [Fact]
-    public async Task PrivateReceiverNeedsNoHandshakeAndAcceptsOnlyOneStream() {
+    public async Task CapturesPlainTextAndJsonWithoutAProtocolOrReformatting() {
+        const string json = "{\"time\":\"2026-10-28T12:34:56+00:00\",\"level\":\"INFO\",\"message\":\"[start] 世界\\nsecond\"}";
         using var console = new ForwardedConsole();
-        using var stream = new MemoryStream(Frame("real plugin"));
-        await console.ReadAsync(stream);
+        using var stdout = new FragmentedStream(Encoding.UTF8.GetBytes(json + "\nplain output\n"));
+        using var stderr = new MemoryStream(Encoding.UTF8.GetBytes("stderr output\n"));
+        await Task.WhenAll(console.CaptureAsync(stdout), console.CaptureAsync(stderr));
         var lines = console.Drain();
-        Assert.Contains("[plugin console connected]", lines);
-        Assert.Contains(lines, line => line.EndsWith("real plugin"));
-        Assert.Throws<InvalidOperationException>(() => { _ = console.ReadAsync(Stream.Null); });
-    }
-
-    [Fact]
-    public async Task HandlesFragmentedUnicodeMultilineAndEscapesTerminalControls() {
-        using var console = new ForwardedConsole();
-        var frame = Frame("世界\r\nsecond\u001b[2J\n", 3);
-        using var stream = new FragmentedStream(frame);
-        await console.ReadAsync(stream);
-        var lines = console.Drain();
-        Assert.Contains(lines, line => line.EndsWith("世界"));
-        Assert.Contains("[console: 3 records dropped by plugin]", lines);
-        Assert.DoesNotContain(lines, line => line.Any(char.IsControl));
-    }
-
-    [Fact]
-    public async Task DisconnectIsReportedWithoutThrowingIntoMonitoring() {
-        using var console = new ForwardedConsole();
-        await console.ReadAsync(Stream.Null);
-        var lines = console.Drain();
-        Assert.Contains(lines, line => line.Contains("file logging remains available"));
-    }
-
-    [Fact]
-    public async Task RejectsOversizedFrameWithoutAnUnboundedReadLine() {
-        using var console = new ForwardedConsole();
-        using var stream = new MemoryStream(new byte[ForwardedConsole.MaxFrameBytes + 1]);
-        await console.ReadAsync(stream);
-        var lines = console.Drain();
-        Assert.Contains(lines, line => line.Contains("disconnected"));
-        Assert.DoesNotContain(lines, line => line.Contains('\0'));
+        Assert.Contains(json, lines);
+        Assert.Contains("plain output", lines);
+        Assert.Contains("stderr output", lines);
+        Assert.Equal(3, lines.Count);
     }
 
     [Fact]
     public async Task ReceiverQueueAndHistorySnapshotsAreBounded() {
         using var console = new ForwardedConsole();
-        // A single multiline frame is enqueued atomically, so draining cannot hide overflow.
         var text = string.Join("\n", Enumerable.Range(0, ForwardedConsole.MaxLines + 20).Select(i => "line " + i)) + "\nlast";
-        using var stream = new MemoryStream(Frame(text));
-        await console.ReadAsync(stream);
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(text));
+        await console.CaptureAsync(stream);
         var lines = console.Drain();
         Assert.Contains(lines, line => line.Contains("lines dropped by receiver"));
         Assert.DoesNotContain("line 0", lines);
-        Assert.True(lines.Count <= ForwardedConsole.MaxLines + 2);
+        Assert.True(lines.Count <= ForwardedConsole.MaxLines + 1);
         var history = new ServerHistory();
         history.AddConsole(Enumerable.Range(0, 2000).Select(i => "history " + i));
         var snapshot = history.Snapshot();
@@ -204,18 +82,12 @@ public sealed class ForwardedConsoleTests {
         Assert.Equal(lines.Count, lines.Distinct().Count());
     }
 
-    [Theory]
-    [InlineData("{\"version\":2,\"kind\":\"log\"}")]
-    [InlineData("{\"version\":1,\"kind\":\"log\"}")]
-    [InlineData("{bad json}")]
-    [InlineData("[]")]
-    [InlineData("{\"version\":1,\"kind\":\"log\",\"dropped\":-1,\"text\":\"bad\"}")]
-    public async Task MalformedProtocolDoesNotFaultMonitoring(string frame) {
-        using var console = new ForwardedConsole();
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(frame + "\n"));
-        await console.ReadAsync(stream);
-        Assert.Contains(console.Drain(), line => line.Contains("disconnected"));
-        Assert.False(stream.CanRead);
+    [Fact]
+    public async Task DisposedCaptureRejectsNewStreams() {
+        var console = new ForwardedConsole();
+        console.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => { _ = console.CaptureAsync(Stream.Null); });
+        await console.FinishAsync();
     }
 
     private sealed class FragmentedStream(byte[] bytes) : MemoryStream(bytes) {

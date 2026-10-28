@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace UnchainedLauncher.CLI.Tests;
@@ -43,6 +44,70 @@ public sealed class ForwardedConsoleTests {
     }
     private static byte[] Frame(string text, ulong dropped = 0) => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
         new { version = 1, kind = "log", level = "INFO", text, dropped }) + "\n");
+
+    private static byte[] Frame2(string text, string kind = "log", string? module = "UnchainedPlugin::test",
+        string? function = "example", uint? line = 42, ulong dropped = 0) => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(
+        new { version = 2, kind, level = kind == "banner" ? null : "INFO", timestamp = "2026-10-28T12:34:56.789Z",
+            module, function, line, thread_id = 1234, text, dropped }) + "\n");
+
+    [Fact]
+    public async Task RendersV2MessageAndMetadataWithoutRequiringFormattedText() {
+        using var console = new ForwardedConsole();
+        using var stream = new FragmentedStream(Frame2("世界\nsecond\u001b[2J", dropped: 2));
+        await console.ReadAsync(stream);
+        var lines = console.Drain();
+        Assert.Contains("[12:34:56.789 INFO ] [UnchainedPlugin::test] [example:42 thread=1234] 世界", lines);
+        Assert.Contains("[console: 2 records dropped by plugin]", lines);
+        Assert.Contains(lines, line => line.Contains("second"));
+        Assert.DoesNotContain(lines, line => line.Any(char.IsControl));
+    }
+
+    [Fact]
+    public async Task AcceptsNullableV2SourceFieldsAndUnadornedBanners() {
+        using var console = new ForwardedConsole();
+        using var stream = new MemoryStream(Frame2("message", module: null, function: null, line: null)
+            .Concat(Frame2("banner", "banner", null, null, null)).ToArray());
+        await console.ReadAsync(stream);
+        var lines = console.Drain();
+        Assert.Contains("[12:34:56.789 INFO ] [???] [???:? thread=1234] message", lines);
+        Assert.Contains("banner", lines);
+    }
+
+    [Fact]
+    public async Task AcceptsLegacyV1AndV2FramesInTheSameStream() {
+        using var console = new ForwardedConsole();
+        using var stream = new MemoryStream(Frame("legacy").Concat(Frame2("new message")).ToArray());
+        await console.ReadAsync(stream);
+        var lines = console.Drain();
+        Assert.Contains("legacy", lines);
+        Assert.Contains(lines, line => line.EndsWith("new message"));
+    }
+
+    [Theory]
+    [InlineData("timestamp", "\"not a timestamp\"")]
+    [InlineData("text", "null")]
+    [InlineData("level", "\"INVALID\"")]
+    [InlineData("module", "123")]
+    [InlineData("function", "[]")]
+    [InlineData("line", "-1")]
+    [InlineData("thread_id", "4294967296")]
+    [InlineData("version", "3")]
+    public async Task RejectsInvalidV2MetadataWithoutFaultingMonitoring(string field, string value) {
+        var frame = JsonNode.Parse(Frame2("message"))!;
+        frame[field] = JsonNode.Parse(value);
+        using var console = new ForwardedConsole();
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(frame.ToJsonString() + "\n"));
+        await console.ReadAsync(stream);
+        Assert.Contains(console.Drain(), line => line.Contains("disconnected"));
+    }
+
+    [Fact]
+    public async Task RejectsOversizedV2Metadata() {
+        using var console = new ForwardedConsole();
+        using var stream = new MemoryStream(Frame2("message", module: new string('x', 1025)));
+        await console.ReadAsync(stream);
+        Assert.DoesNotContain(console.Drain(), line => line.Contains("message"));
+    }
 
     [Theory]
     [InlineData(false)]

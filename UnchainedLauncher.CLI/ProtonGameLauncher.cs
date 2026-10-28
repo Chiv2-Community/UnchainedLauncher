@@ -28,9 +28,14 @@ internal static class ProtonGameLauncher {
             foreach (var dll in dlls.GetProtonDlls())
                 files.Add(dll with { Path = await runtime.WinePathAsync(dll.Path, true, token) });
             var executable = Path.Combine(options.Shared.Chivalry2Path, FilePaths.GameBinPath);
+            var arguments = UnchainedChivalry2Launcher.BuildArguments(launch);
+            if (EpicLaunchArguments.Required(options.Shared.Platform, options.GameArguments)) {
+                var epic = await EpicLaunchArguments.AcquireAsync(options.Shared.Chivalry2Path, token);
+                arguments += " " + string.Join(" ", epic.Select(ArgumentEscaper.Escape));
+            }
             var request = new ProtonLaunchRequest(await runtime.WinePathAsync(executable, true, token),
                 await runtime.WinePathAsync(Path.GetDirectoryName(executable)!, true, token),
-                UnchainedChivalry2Launcher.BuildArguments(launch), files, options is ServerOptions, options.AttachStdio);
+                arguments, files, options is ServerOptions, options.AttachStdio);
             var requestPath = Path.Combine(directory, "request.json");
             await using (var stream = new FileStream(requestPath, new FileStreamOptions {
                 Mode = FileMode.CreateNew, Access = FileAccess.Write,

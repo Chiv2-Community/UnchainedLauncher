@@ -114,18 +114,11 @@ internal sealed record ProtonRuntime(string Executable, string CompatDataPath, s
                 value.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(value.GetString())) throw new InvalidDataException();
             return value.GetString()!;
         }
-        var configHome = environment("XDG_CONFIG_HOME") ?? System.IO.Path.Combine(home, ".config");
-        foreach (var root in new[] { System.IO.Path.Combine(configHome, "heroic"),
-                     System.IO.Path.Combine(home, ".var/app/com.heroicgameslauncher.hgl/config/heroic") }.Distinct()) {
-            var installed = System.IO.Path.Combine(root, "legendaryConfig/legendary/installed.json");
+        foreach (var root in HeroicRoots(environment, home)) {
             var settings = System.IO.Path.Combine(root, "GamesConfig/Peppermint.json");
-            if (!File.Exists(installed) || !File.Exists(settings)) continue;
+            if (!File.Exists(settings)) continue;
             try {
-                using var installs = JsonDocument.Parse(File.ReadAllText(installed));
-                if (installs.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidDataException();
-                if (!installs.RootElement.TryGetProperty("Peppermint", out var entry)) continue;
-                var location = TextField(entry, "install_path");
-                if (!System.IO.Path.IsPathFullyQualified(location) || !Directory.Exists(location) || !SameDirectory(location, game)) continue;
+                if (!HeroicMatches(root, game)) continue;
                 using var document = JsonDocument.Parse(File.ReadAllText(settings));
                 var config = ObjectField(document.RootElement, "Peppermint");
                 var runner = ObjectField(config, "wineVersion");
@@ -142,6 +135,34 @@ internal sealed record ProtonRuntime(string Executable, string CompatDataPath, s
             }
         }
         return null;
+    }
+
+    internal static IEnumerable<string> HeroicRoots(Func<string, string?> environment, string home) =>
+        new[] { System.IO.Path.Combine(environment("XDG_CONFIG_HOME") ?? System.IO.Path.Combine(home, ".config"), "heroic"),
+            System.IO.Path.Combine(home, ".var/app/com.heroicgameslauncher.hgl/config/heroic") }.Distinct();
+
+    internal static string? FindHeroicInstallation(string game, Func<string, string?> environment, string home) {
+        foreach (var root in HeroicRoots(environment, home)) {
+            try {
+                if (HeroicMatches(root, game)) return root;
+            }
+            catch (Exception ex) when (ex is JsonException or InvalidDataException or IOException or UnauthorizedAccessException) {
+                throw new InvalidOperationException("Cannot read Heroic's installed game metadata; pass fresh Epic arguments after -- instead.");
+            }
+        }
+        return null;
+    }
+
+    private static bool HeroicMatches(string root, string game) {
+        var installed = System.IO.Path.Combine(root, "legendaryConfig/legendary/installed.json");
+        if (!File.Exists(installed)) return false;
+        using var document = JsonDocument.Parse(File.ReadAllText(installed));
+        if (document.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidDataException();
+        if (!document.RootElement.TryGetProperty("Peppermint", out var entry)) return false;
+        if (entry.ValueKind != JsonValueKind.Object || !entry.TryGetProperty("install_path", out var path) ||
+            path.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(path.GetString())) throw new InvalidDataException();
+        var location = path.GetString()!;
+        return System.IO.Path.IsPathFullyQualified(location) && Directory.Exists(location) && SameDirectory(location, game);
     }
 
     private static IEnumerable<(string Path, string[] Names)> FindTools(IEnumerable<string> libraries, string steam) {

@@ -201,8 +201,8 @@ or shared logs; game arguments can still be visible to local process inspection.
 
 Server launches capture stdout and stderr and pass the plugin's `--attach-stdio`
 argument automatically. No capture switch or special logging configuration is
-needed. The plugin uses inherited output without opening a separate console.
-Captured stdin is EOF, not the TUI's keyboard.
+needed. The plugin uses inherited output. `--no-spawn-console` independently
+suppresses its console window. Captured stdin is EOF, not the TUI's keyboard.
 
 Windows supplies ordinary redirected stdio with an explicit handle inheritance
 list. Linux relays game stdio through the bundled Windows helper using Proton

@@ -114,9 +114,9 @@ internal static class CommandLineOptions {
             Flag("--no-plugin-update", "Disable DLL downloads; required registered versions must be installed or cached (use --dll to pin).", value => _configuration.UpdatePlugin = !value);
             var proton = new ProtonConfiguration();
             _configuration.Proton = proton;
-            Add<string?>("--proton-path", "Linux: Proton executable or installation directory.", null, value => proton.Path = value);
+            Add<string?>("--proton-path", "Linux: Proton executable or installation directory; EGS can use Heroic's selected Proton.", null, value => proton.Path = value);
             Add<string?>("--compat-data-path", "Linux: Proton compat-data directory containing pfx.", null, value => proton.CompatDataPath = value);
-            Add<string?>("--steam-path", "Linux: Steam client installation directory.", null, value => proton.SteamPath = value);
+            Add<string?>("--steam-path", "Linux: Steam client directory (not required for EGS).", null, value => proton.SteamPath = value);
             Add<string?>("--proton-helper", "Linux: Windows launch helper executable (normally bundled).", null, value => proton.HelperPath = value);
             Flag("--allow-unstable-plugin", "Allow prerelease plugin updates.", value => _configuration.AllowUnstablePlugin = value);
             var setup = new ModSetupConfiguration();

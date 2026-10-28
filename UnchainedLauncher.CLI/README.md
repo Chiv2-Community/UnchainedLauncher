@@ -4,6 +4,8 @@ This project launches an Unchained Chivalry 2 **client or server**, without the 
 On Windows, the shared game launcher creates the game suspended, injects DLLs,
 then resumes its main thread. Failed injection terminates the suspended game.
 On Linux, the native CLI invokes Proton with a bundled Windows launch helper.
+Steam and Epic Games Store/Heroic installations are supported; Epic authentication
+comes from the existing Heroic/Legendary login flow, not Steam.
 The helper uses the same suspended launch and injection path; the TUI stays in
 the invoking Linux terminal. Only the game and helper run under Proton.
 CLI servers also pass TOS-acceptance and first-load-completed INI overrides to
@@ -55,10 +57,13 @@ dotnet publish UnchainedLauncher.CLI -c Release -r win-x64 --self-contained true
 .\out-cli\UnchainedLauncher.CLI.exe server --help
 ```
 
-### Linux with Steam and Proton
+### Linux with Proton
 
-Use x86-64 Linux, keep Steam running, and launch the game through Steam once to
-initialize its Proton prefix. Publish the native CLI with its Windows helper:
+Use x86-64 Linux and publish the native CLI with its Windows helper. The example
+below is for **Steam**: keep Steam running and launch through Steam once to
+initialize its prefix. Epic users use the same published bundle but follow
+[Epic/Heroic setup](#epic-games-store-and-heroic-on-linux) instead; Steam is not a
+prerequisite for that store.
 
 ```bash
 dotnet publish UnchainedLauncher.CLI -c Release -r linux-x64 --self-contained true -o out-cli-linux
@@ -119,9 +124,79 @@ Unix PID for resource metrics and the helper for exit status. Cancellation stops
 only the owned game, never the prefix-wide wineserver. If a server's CLI dies
 unexpectedly, the helper stops its game after the heartbeat expires.
 
-Linux EGS launches require an explicitly initialized compatibility-data path;
-Steam is the validated Linux game-launch path. macOS game launching is unsupported.
+For Linux Epic/Heroic launches, see below. macOS game launching is unsupported.
 Registry queries remain portable and do not require Proton.
+
+### Epic Games Store and Heroic on Linux
+
+Both `server` and `client` accept `--platform EGS` (`EpicGamesStore` is equivalent).
+Use the Heroic-installed game directory for `--chivalry2-path`; the CLI does not
+download the game, sign in to Epic, or select a Heroic account.
+
+1. Install and launch the game through Heroic once using a **Proton** runner.
+   This initializes its compatibility-data directory containing `pfx/system.reg`.
+   Wine-only/Wine-GE prefixes are not supported by the CLI's Proton backend.
+2. Supply fresh Epic launch/authentication arguments from the same Heroic/Legendary
+   login session on each launch. Pass them as individual arguments after `--`.
+   Selecting `EGS` alone does not authenticate; missing or expired credentials can
+   leave the game at Frontend without a working server.
+3. Launch the native CLI with `--platform EGS`. When the installed game path
+   matches Heroic's `Peppermint` entry, the CLI reuses its selected Proton executable
+   and prefix. Discovery reads native `$XDG_CONFIG_HOME/heroic` (default
+   `~/.config/heroic`) and Flatpak
+   `~/.var/app/com.heroicgameslauncher.hgl/config/heroic` settings.
+
+For custom locations, stale Heroic settings, or a separate initialized server
+prefix, override both `--proton-path` and `--compat-data-path`. The latter is the
+directory **containing `pfx`**, not `pfx` itself. `WINEPREFIX` pointing at that
+`pfx` also works. Explicit flags and Proton environment overrides take precedence
+over Heroic settings. Do not substitute an uninitialized directory or a different
+runner into an active prefix.
+
+Steam installation, Steam login, and Steam game manifests are **not required for
+EGS**. The CLI does not assign Chivalry 2's Steam app ID to Epic launches or choose
+Epic's runner from Steam's game settings. An explicitly selected Proton build may
+still require its normal host/runtime dependencies. Both stores use the same
+plugin injection, structured capture, `--attach-stdio`, and `--no-spawn-console`
+paths.
+
+If using Legendary to obtain authentication, use Heroic's configured login
+directory rather than a different Legendary account. For example, after installing
+a compatible native `legendary` command and signing in through the same account:
+
+```bash
+# Flatpak Heroic example; native Heroic uses ~/.config/heroic/legendaryConfig/legendary.
+export LEGENDARY_CONFIG_PATH="$HOME/.var/app/com.heroicgameslauncher.hgl/config/heroic/legendaryConfig/legendary"
+```
+
+This Python example obtains fresh arguments and forwards the returned list without
+shell splitting or printing credentials. Replace the paths and retain your normal
+server options; use `client` instead of `server` for a client launch.
+
+```python
+import json
+import subprocess
+
+reply = subprocess.run(
+    ["legendary", "launch", "Peppermint", "--json"],
+    check=True, capture_output=True, text=True,
+)
+auth = json.loads(reply.stdout)["egl_parameters"]
+if not isinstance(auth, list) or not all(isinstance(arg, str) for arg in auth):
+    raise SystemExit("Expected a Legendary egl_parameters argument list")
+subprocess.run([
+    "/path/to/UnchainedLauncher.CLI", "server",
+    "--chivalry2-path", "/path/to/Heroic/Chivalry2",
+    "--platform", "EGS", "--", *auth,
+], check=True)
+```
+
+Authentication is intentionally external: this does not store credentials or add
+an Epic login client. Do not save launch tokens in YAML, shell history, screenshots,
+or shared logs; game arguments can still be visible to local process inspection.
+The CLI's earlier live Linux validation covered Steam. Epic/Heroic runtime selection
+and argument forwarding have regression coverage; full live Epic startup with the
+current plugin is not yet validated.
 
 ### Forwarded plugin console
 

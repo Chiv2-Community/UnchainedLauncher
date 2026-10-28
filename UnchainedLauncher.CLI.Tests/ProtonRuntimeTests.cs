@@ -281,5 +281,126 @@ public sealed class ProtonRuntimeTests : IDisposable {
         File.WriteAllText(path, text);
     }
 
+    private CliLaunchOptions EpicOptions(params string[] extra) => CliLaunchOptions.Parse(
+        ["server", "--chivalry2-path", Game, "--platform", "EGS", "--proton-helper", Helper, .. extra]);
+
+    private (string Proton, string Compat) Heroic(string root, string? game = null, string type = "proton") {
+        var proton = Path.Combine(root, "tools/proton/selected/proton");
+        var compat = Path.Combine(root, "Prefixes/Chivalry 2");
+        Write(proton, "");
+        Write(Path.Combine(compat, "pfx/system.reg"), "");
+        Write(Path.Combine(root, "legendaryConfig/legendary/installed.json"), System.Text.Json.JsonSerializer.Serialize(
+            new { Peppermint = new { install_path = game ?? Game } }));
+        Write(Path.Combine(root, "GamesConfig/Peppermint.json"), System.Text.Json.JsonSerializer.Serialize(
+            new { Peppermint = new { winePrefix = compat, wineVersion = new { bin = proton, type } } }));
+        return (proton, compat);
+    }
+
+    [Fact]
+    public void EpicExplicitRuntimeDoesNotRequireSteamOrUseSteamGameIdentity() {
+        var proton = Path.Combine(_root, "standalone/proton");
+        var compat = Path.Combine(_root, "Epic prefix");
+        Write(proton, "");
+        Write(Path.Combine(compat, "pfx/system.reg"), "");
+        var runtime = ProtonRuntime.Discover(EpicOptions("--proton-path", proton,
+            "--compat-data-path", compat).Shared, _ => null, _root);
+        Assert.Null(runtime.SteamPath);
+        Assert.Equal(proton, runtime.Executable);
+        Assert.Equal(compat, runtime.CompatDataPath);
+        var info = runtime.StartInfo(["runinprefix", "helper.exe"]);
+        Assert.Equal("0", info.Environment["STEAM_COMPAT_APP_ID"]);
+        Assert.False(info.Environment.ContainsKey("SteamAppId"));
+        Assert.False(info.Environment.ContainsKey("SteamGameId"));
+        Assert.False(info.Environment.ContainsKey("SteamOverlayGameId"));
+        Assert.False(info.Environment.ContainsKey("STEAM_COMPAT_CLIENT_INSTALL_PATH"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EpicDiscoversMatchingNativeAndFlatpakHeroicWithoutSteam(bool flatpak) {
+        var root = Path.Combine(_root, flatpak ? ".var/app/com.heroicgameslauncher.hgl/config/heroic" : ".config/heroic");
+        var selected = Heroic(root);
+        var runtime = ProtonRuntime.Discover(EpicOptions().Shared, _ => null, _root);
+        Assert.Equal(selected.Proton, runtime.Executable);
+        Assert.Equal(selected.Compat, runtime.CompatDataPath);
+        Assert.False(runtime.SteamGame);
+    }
+
+    [Fact]
+    public void EpicHonorsXdgAndDoesNotSelectAnUnrelatedHeroicInstallation() {
+        var other = Path.Combine(_root, "other game");
+        Directory.CreateDirectory(other);
+        Heroic(Path.Combine(_root, ".config/heroic"), other);
+        Assert.Contains("--compat-data-path", Assert.Throws<InvalidOperationException>(() =>
+            ProtonRuntime.Discover(EpicOptions().Shared, _ => null, _root)).Message);
+        var config = Path.Combine(_root, "custom config");
+        var selected = Heroic(Path.Combine(config, "heroic"));
+        var runtime = ProtonRuntime.Discover(EpicOptions().Shared,
+            key => key == "XDG_CONFIG_HOME" ? config : null, _root);
+        Assert.Equal(selected.Proton, runtime.Executable);
+    }
+
+    [Fact]
+    public void EpicExplicitPathsOverrideHeroicAndBrokenSteamMetadata() {
+        Heroic(Path.Combine(_root, ".config/heroic"), type: "wine");
+        Write(Path.Combine(Steam, "steamapps/libraryfolders.vdf"), "invalid {");
+        Write(Path.Combine(Steam, "config/config.vdf"), "invalid {");
+        var proton = Path.Combine(_root, "override/proton");
+        var compat = Path.Combine(_root, "override prefix");
+        Write(proton, "");
+        Write(Path.Combine(compat, "pfx/system.reg"), "");
+        var runtime = ProtonRuntime.Discover(EpicOptions("--proton-path", proton,
+            "--compat-data-path", compat, "--steam-path", Steam).Shared, _ => null, _root);
+        Assert.Equal(proton, runtime.Executable);
+        Assert.Equal(compat, runtime.CompatDataPath);
+    }
+
+    [Fact]
+    public void EpicAcceptsExplicitWineprefixPointingToProtonPfx() {
+        var selected = Heroic(Path.Combine(_root, ".config/heroic"));
+        var runtime = ProtonRuntime.Discover(EpicOptions("--proton-path", selected.Proton).Shared,
+            key => key == "WINEPREFIX" ? Path.Combine(selected.Compat, "pfx") : null, _root);
+        Assert.Equal(selected.Compat, runtime.CompatDataPath);
+    }
+
+    [Fact]
+    public void EpicRejectsWineOnlyHeroicRunnerAndUninitializedPrefixWithActionableErrors() {
+        var root = Path.Combine(_root, ".config/heroic");
+        Heroic(root, type: "wine");
+        Assert.Contains("Proton runner", Assert.Throws<InvalidOperationException>(() =>
+            ProtonRuntime.Discover(EpicOptions().Shared, _ => null, _root)).Message);
+        var selected = Heroic(root);
+        File.Delete(Path.Combine(selected.Compat, "pfx/system.reg"));
+        Assert.Contains("through Heroic", Assert.Throws<InvalidOperationException>(() =>
+            ProtonRuntime.Discover(EpicOptions().Shared, _ => null, _root)).Message);
+    }
+
+    [Theory]
+    [InlineData("not JSON")]
+    [InlineData("[]")]
+    [InlineData("{\"Peppermint\":{\"wineVersion\":123}}")]
+    public void MalformedHeroicSettingsDoNotExposeTheirContents(string settings) {
+        var root = Path.Combine(_root, ".config/heroic");
+        Heroic(root);
+        Write(Path.Combine(root, "GamesConfig/Peppermint.json"), settings);
+        var error = Assert.Throws<InvalidOperationException>(() =>
+            ProtonRuntime.Discover(EpicOptions().Shared, _ => null, _root));
+        Assert.Contains("set --proton-path and --compat-data-path", error.Message);
+        Assert.DoesNotContain(settings, error.Message);
+    }
+
+    [Theory]
+    [InlineData("server")]
+    [InlineData("client")]
+    public void EpicAuthenticationArgumentsRemainLiteralForBothCommands(string command) {
+        var auth = new[] { "-AUTH_LOGIN=unused", "-AUTH_PASSWORD=token value\\\"tail", "-AUTH_TYPE=exchangecode",
+            "-epicapp=Peppermint", "-epicenv=Prod", "-EpicPortal" };
+        var options = CliLaunchOptions.Parse([command, "--chivalry2-path", Game, "--platform", "EGS", "--", .. auth]);
+        Assert.Equal(auth, options.GameArguments);
+        Assert.Equal(UnchainedLauncher.Core.JsonModels.InstallationType.EpicGamesStore, options.Shared.Platform);
+        foreach (var argument in auth) Assert.Contains(ArgumentEscaper.Escape(argument), options.ToLaunchOptions().LaunchArgs);
+    }
+
     public void Dispose() => Directory.Delete(_root, recursive: true);
 }

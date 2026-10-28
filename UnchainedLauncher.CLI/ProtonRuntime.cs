@@ -13,7 +13,8 @@ public sealed class ProtonConfiguration {
     public string? HelperPath { get; set; }
 }
 
-internal sealed record ProtonRuntime(string Executable, string CompatDataPath, string SteamPath, string HelperPath) {
+internal sealed record ProtonRuntime(string Executable, string CompatDataPath, string? SteamPath, string HelperPath,
+    bool SteamGame = true) {
     internal const string AppId = "1824220";
 
     internal static async Task ConfigureAsync(CliLaunchOptions request, CancellationToken token) {
@@ -40,15 +41,17 @@ internal sealed record ProtonRuntime(string Executable, string CompatDataPath, s
         environment ??= Environment.GetEnvironmentVariable;
         home ??= Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var config = options.ProtonConfiguration;
+        var steamGame = options.Platform == InstallationType.Steam;
         var steam = config.SteamPath ?? environment("STEAM_COMPAT_CLIENT_INSTALL_PATH") ??
             new[] { System.IO.Path.Combine(home, ".steam/root"), System.IO.Path.Combine(home, ".local/share/Steam"),
                 System.IO.Path.Combine(home, ".steam/steam"), System.IO.Path.Combine(home, ".var/app/com.valvesoftware.Steam/.local/share/Steam") }
-                .FirstOrDefault(path => Directory.Exists(System.IO.Path.Combine(path, "steamapps")))
-            ?? throw new InvalidOperationException("Steam was not found; set --steam-path.");
-        steam = System.IO.Path.GetFullPath(steam);
-        var libraries = new List<string> { steam };
-        var folders = System.IO.Path.Combine(steam, "steamapps/libraryfolders.vdf");
-        if (File.Exists(folders)) libraries.AddRange(SteamKeyValues.Read(folders).At("libraryfolders")?.Children.Values
+                .FirstOrDefault(path => Directory.Exists(System.IO.Path.Combine(path, "steamapps")));
+        if (steam == null && steamGame) throw new InvalidOperationException("Steam was not found; set --steam-path.");
+        if (steam != null) steam = System.IO.Path.GetFullPath(steam);
+        var libraries = new List<string>();
+        if (steamGame && steam != null) libraries.Add(steam);
+        var folders = steam == null ? null : System.IO.Path.Combine(steam, "steamapps/libraryfolders.vdf");
+        if (steamGame && File.Exists(folders)) libraries.AddRange(SteamKeyValues.Read(folders!).At("libraryfolders")?.Children.Values
             .Select(node => node.At("path")?.Value ?? node.Value).OfType<string>() ?? []);
         libraries = libraries.Select(Canonical).Distinct().ToList();
         var library = libraries.Distinct().FirstOrDefault(path => {
@@ -58,22 +61,32 @@ internal sealed record ProtonRuntime(string Executable, string CompatDataPath, s
             return install != null && SameDirectory(System.IO.Path.Combine(path, "steamapps/common", install), options.Chivalry2Path);
         });
         var compat = config.CompatDataPath ?? environment("STEAM_COMPAT_DATA_PATH");
+        var proton = config.Path ?? environment("STEAM_COMPAT_TOOL_PATHS")?.Split(System.IO.Path.PathSeparator)
+            .FirstOrDefault(path => File.Exists(System.IO.Path.Combine(path, "proton")));
         if (compat == null && environment("WINEPREFIX") is { } winePrefix) {
             if (System.IO.Path.GetFileName(winePrefix.TrimEnd('/')) != "pfx")
                 throw new InvalidOperationException("Proton requires a compat-data directory containing pfx; set --compat-data-path.");
             compat = System.IO.Path.GetDirectoryName(winePrefix.TrimEnd('/'));
         }
+        if (!steamGame && (compat == null || proton == null)) {
+            var heroic = FindHeroic(options.Chivalry2Path, environment, home);
+            compat ??= heroic?.CompatData;
+            proton ??= heroic?.Proton;
+        }
         compat ??= library != null ? System.IO.Path.Combine(library, "steamapps/compatdata", AppId)
-            : throw new InvalidOperationException("Game Steam library was not found; set --compat-data-path.");
+            : throw new InvalidOperationException(steamGame
+                ? "Game Steam library was not found; set --compat-data-path."
+                : "EGS requires a Heroic Proton prefix or explicit --compat-data-path containing pfx.");
         compat = System.IO.Path.GetFullPath(compat);
         if (!File.Exists(System.IO.Path.Combine(compat, "pfx/system.reg")))
-            throw new InvalidOperationException("Initialize this game's Proton prefix by launching it through Steam once.");
+            throw new InvalidOperationException(steamGame
+                ? "Initialize this game's Proton prefix by launching it through Steam once."
+                : "Initialize this game's Proton prefix through Heroic first; --compat-data-path must contain pfx/system.reg. Wine-only prefixes are not supported.");
 
-        var proton = config.Path ?? environment("STEAM_COMPAT_TOOL_PATHS")?.Split(System.IO.Path.PathSeparator)
-            .FirstOrDefault(path => File.Exists(System.IO.Path.Combine(path, "proton")));
         if (proton == null) {
-            var tools = FindTools(libraries, steam).ToArray();
-            var steamConfig = System.IO.Path.Combine(steam, "config/config.vdf");
+            if (!steamGame) throw new InvalidOperationException("EGS requires Heroic's selected Proton runner or explicit --proton-path.");
+            var tools = FindTools(libraries, steam!).ToArray();
+            var steamConfig = System.IO.Path.Combine(steam!, "config/config.vdf");
             var mapping = File.Exists(steamConfig) ? SteamKeyValues.Read(steamConfig)
                 .At("InstallConfigStore", "Software", "Valve", "Steam", "CompatToolMapping") : null;
             var selected = mapping?.At(AppId, "name")?.Value ?? mapping?.At("0", "name")?.Value;
@@ -87,9 +100,48 @@ internal sealed record ProtonRuntime(string Executable, string CompatDataPath, s
         if (!File.Exists(proton)) throw new FileNotFoundException("Proton executable was not found.", proton);
         var helper = config.HelperPath ?? System.IO.Path.Combine(AppContext.BaseDirectory, "proton-helper/UnchainedLauncher.ProtonHelper.exe");
         if (!File.Exists(helper)) throw new FileNotFoundException("Proton helper missing; use a Linux CLI publish containing proton-helper.", helper);
-        if (options.Platform != InstallationType.Steam && config.CompatDataPath == null && environment("STEAM_COMPAT_DATA_PATH") == null)
-            throw new InvalidOperationException("EGS on Linux requires an explicit --compat-data-path.");
-        return new(proton, compat, steam, System.IO.Path.GetFullPath(helper));
+        return new(proton, compat, steam, System.IO.Path.GetFullPath(helper), steamGame);
+    }
+
+    private static (string Proton, string CompatData)? FindHeroic(string game, Func<string, string?> environment, string home) {
+        static JsonElement ObjectField(JsonElement parent, string key) {
+            if (parent.ValueKind != JsonValueKind.Object || !parent.TryGetProperty(key, out var value) ||
+                value.ValueKind != JsonValueKind.Object) throw new InvalidDataException();
+            return value;
+        }
+        static string TextField(JsonElement parent, string key) {
+            if (parent.ValueKind != JsonValueKind.Object || !parent.TryGetProperty(key, out var value) ||
+                value.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(value.GetString())) throw new InvalidDataException();
+            return value.GetString()!;
+        }
+        var configHome = environment("XDG_CONFIG_HOME") ?? System.IO.Path.Combine(home, ".config");
+        foreach (var root in new[] { System.IO.Path.Combine(configHome, "heroic"),
+                     System.IO.Path.Combine(home, ".var/app/com.heroicgameslauncher.hgl/config/heroic") }.Distinct()) {
+            var installed = System.IO.Path.Combine(root, "legendaryConfig/legendary/installed.json");
+            var settings = System.IO.Path.Combine(root, "GamesConfig/Peppermint.json");
+            if (!File.Exists(installed) || !File.Exists(settings)) continue;
+            try {
+                using var installs = JsonDocument.Parse(File.ReadAllText(installed));
+                if (installs.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidDataException();
+                if (!installs.RootElement.TryGetProperty("Peppermint", out var entry)) continue;
+                var location = TextField(entry, "install_path");
+                if (!System.IO.Path.IsPathFullyQualified(location) || !Directory.Exists(location) || !SameDirectory(location, game)) continue;
+                using var document = JsonDocument.Parse(File.ReadAllText(settings));
+                var config = ObjectField(document.RootElement, "Peppermint");
+                var runner = ObjectField(config, "wineVersion");
+                if (TextField(runner, "type") != "proton")
+                    throw new InvalidOperationException("Heroic must use a Proton runner for CLI launching; Wine-only runners are not supported. Set --proton-path and --compat-data-path to override.");
+                var proton = TextField(runner, "bin");
+                var compat = TextField(config, "winePrefix");
+                if (!System.IO.Path.IsPathFullyQualified(proton) || !System.IO.Path.IsPathFullyQualified(compat))
+                    throw new InvalidDataException();
+                return (proton, compat);
+            }
+            catch (Exception ex) when (ex is JsonException or InvalidDataException or IOException or UnauthorizedAccessException) {
+                throw new InvalidOperationException("Cannot read Heroic's game runtime settings; set --proton-path and --compat-data-path explicitly.");
+            }
+        }
+        return null;
     }
 
     private static IEnumerable<(string Path, string[] Names)> FindTools(IEnumerable<string> libraries, string steam) {
@@ -127,12 +179,20 @@ internal sealed record ProtonRuntime(string Executable, string CompatDataPath, s
     internal ProcessStartInfo StartInfo(IEnumerable<string> arguments) {
         var info = new ProcessStartInfo(Executable) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var argument in arguments) info.ArgumentList.Add(argument);
-        info.Environment["STEAM_COMPAT_CLIENT_INSTALL_PATH"] = SteamPath;
+        if (SteamPath != null) info.Environment["STEAM_COMPAT_CLIENT_INSTALL_PATH"] = SteamPath;
+        else info.Environment.Remove("STEAM_COMPAT_CLIENT_INSTALL_PATH");
         info.Environment["STEAM_COMPAT_DATA_PATH"] = CompatDataPath;
         info.Environment["WINEPREFIX"] = System.IO.Path.Combine(CompatDataPath, "pfx");
-        info.Environment["STEAM_COMPAT_APP_ID"] = AppId;
-        info.Environment["SteamAppId"] = AppId;
-        info.Environment["SteamGameId"] = AppId;
+        info.Environment["STEAM_COMPAT_APP_ID"] = SteamGame ? AppId : "0";
+        if (SteamGame) {
+            info.Environment["SteamAppId"] = AppId;
+            info.Environment["SteamGameId"] = AppId;
+        }
+        else {
+            info.Environment.Remove("SteamAppId");
+            info.Environment.Remove("SteamGameId");
+            info.Environment.Remove("SteamOverlayGameId");
+        }
         // Do not let Proton write to the native TUI or enable game logging implicitly.
         info.Environment["WINEDEBUG"] = "-all";
         return info;

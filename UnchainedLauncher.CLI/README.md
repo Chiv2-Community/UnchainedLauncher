@@ -207,12 +207,11 @@ Captured stdin is EOF, not the TUI's keyboard.
 Windows supplies ordinary redirected stdio with an explicit handle inheritance
 list. Linux relays game stdio through the bundled Windows helper using Proton
 `runinprefix`, avoiding the Steam.exe wrapper that discards inherited streams.
-There is no dedicated plugin pipe, envelope, or logging protocol.
 
 The helper is supplied by UnchainedLauncher, not Proton. Its request/heartbeat
 protocol is private and version-coupled to the CLI; deploy the matching bundle.
-Alternate launcher authors: see the plugin's
-[stdio attachment instructions](https://github.com/Chiv2-Community/UnchainedPlugin/blob/feature/console-forwarding/docs/console-attachment.md).
+For JSON output and integration details, see the plugin's
+[structured logging guide](https://github.com/Chiv2-Community/UnchainedPlugin/blob/feature/console-forwarding/docs/logging.md#structured-logging).
 
 Press **L** to switch between the dashboard and full console, **Page Up/Page Down**
 to scroll, and **End** to resume following new output. Each server has its own

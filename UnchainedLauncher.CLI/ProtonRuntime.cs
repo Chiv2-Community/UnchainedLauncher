@@ -99,7 +99,7 @@ internal sealed record ProtonRuntime(string Executable, string CompatDataPath, s
         proton = System.IO.Path.GetFullPath(proton);
         if (!File.Exists(proton)) throw new FileNotFoundException("Proton executable was not found.", proton);
         var helper = config.HelperPath ?? System.IO.Path.Combine(AppContext.BaseDirectory, "proton-helper/UnchainedLauncher.ProtonHelper.exe");
-        if (!File.Exists(helper)) throw new FileNotFoundException("Proton helper missing; use a Linux CLI publish containing proton-helper.", helper);
+        if (!File.Exists(helper)) throw new FileNotFoundException("Proton helper missing; rebuild the Linux CLI or use a complete Linux publish.", helper);
         return new(proton, compat, steam, System.IO.Path.GetFullPath(helper), steamGame);
     }
 

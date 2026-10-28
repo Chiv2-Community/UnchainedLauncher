@@ -75,9 +75,11 @@ dotnet publish UnchainedLauncher.CLI -c Release -r linux-x64 --self-contained tr
   --starting-map FFA_Courtyard
 ```
 
-Keep the entire published directory, including `proton-helper`. Do not run the
-Windows CLI under Proton. Press `Q` or Ctrl+C in the native terminal to stop a
-server. Client launches leave the game running independently.
+Linux publication produces one executable, including the .NET runtime and Windows
+helper; .NET extracts its contents automatically at startup. Ordinary Linux builds
+copy the helper beside the CLI. Do not run the Windows CLI under Proton. Press `Q`
+or Ctrl+C in the native terminal to stop a server. Client launches leave the game
+running independently.
 
 Discovery uses Steam's `libraryfolders.vdf` and game app manifest to locate the
 game library and its `steamapps/compatdata/1824220` directory. Tool selection

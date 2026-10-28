@@ -5,13 +5,38 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+    <PublishSingleFile Condition="'$(PublishSingleFile)' == ''">true</PublishSingleFile>
+    <SelfContained Condition="'$(SelfContained)' == ''">true</SelfContained>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(PublishSingleFile)' == 'true'">
+    <!-- AppContext.BaseDirectory must contain the extracted Windows helper. -->
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.12" />
     <PackageReference Include="YamlDotNet" Version="18.1.0" />
     <InternalsVisibleTo Include="UnchainedLauncher.CLI.Tests" />
     <ProjectReference Include="..\UnchainedLauncher.Core\UnchainedLauncher.Core.csproj" />
   </ItemGroup>
-  <Target Name="PublishProtonHelper" AfterTargets="Publish" Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
-    <Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)/../UnchainedLauncher.ProtonHelper/UnchainedLauncher.ProtonHelper.csproj&quot; -c $(Configuration) -r win-x64 --self-contained true -o &quot;$(PublishDir)proton-helper&quot;" />
+  <Target Name="BuildProtonHelper" BeforeTargets="AssignTargetPaths"
+          Condition="'$(DesignTimeBuild)' != 'true' And ('$(RuntimeIdentifier)' == 'linux-x64' Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Linux'))))">
+    <PropertyGroup>
+      <_ProtonHelperPublishDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'proton-helper'))</_ProtonHelperPublishDir>
+    </PropertyGroup>
+    <!-- Isolate the Windows build so it cannot overwrite native dependency outputs. -->
+    <Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)/../UnchainedLauncher.ProtonHelper/UnchainedLauncher.ProtonHelper.csproj&quot; -c &quot;$(Configuration)&quot; -r win-x64 --self-contained true --disable-build-servers --artifacts-path &quot;$(_ProtonHelperPublishDir)build&quot; -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=embedded -o &quot;$(_ProtonHelperPublishDir)&quot;" />
+    <ItemGroup>
+      <Content Include="$(_ProtonHelperPublishDir)UnchainedLauncher.ProtonHelper.exe"
+               Link="proton-helper/UnchainedLauncher.ProtonHelper.exe"
+               CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+  <Target Name="ExcludeSingleFileSymbolSidecars" BeforeTargets="_ComputeFilesToBundle" Condition="'$(PublishSingleFile)' == 'true'">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
+    </ItemGroup>
   </Target>
 </Project>

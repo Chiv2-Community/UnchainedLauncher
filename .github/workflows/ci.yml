@@ -26,6 +26,13 @@ jobs:
       run: dotnet test UnchainedLauncher.CLI.Tests -c Release
     - name: Publish native CLI and Windows Proton helper
       run: dotnet publish UnchainedLauncher.CLI -c Release -r linux-x64 --self-contained true -o out-cli-linux
+    - name: Verify standalone Linux executable
+      run: |
+        test "$(find out-cli-linux -type f | wc -l)" -eq 1
+        mkdir -p "$RUNNER_TEMP/standalone-cli"
+        cp out-cli-linux/UnchainedLauncher.CLI "$RUNNER_TEMP/standalone-cli/"
+        cd "$RUNNER_TEMP/standalone-cli"
+        ./UnchainedLauncher.CLI --help
     - name: Archive Linux CLI with executable permissions
       run: tar -czf UnchainedLauncher-CLI-linux-x64.tar.gz -C out-cli-linux .
     - uses: actions/upload-artifact@v4

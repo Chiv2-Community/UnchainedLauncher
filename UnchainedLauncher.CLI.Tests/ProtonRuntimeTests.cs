@@ -22,6 +22,16 @@ public sealed class ProtonRuntimeTests : IDisposable {
         Write(Helper, "");
     }
 
+    [Fact]
+    public void LinuxBuildIncludesTheWindowsHelper() {
+        if (!OperatingSystem.IsLinux()) return;
+        var path = Path.Combine(AppContext.BaseDirectory, "proton-helper/UnchainedLauncher.ProtonHelper.exe");
+        Assert.True(File.Exists(path), "Linux builds must include the Proton helper without a separate publish step.");
+        using var file = File.OpenRead(path);
+        Assert.Equal('M', file.ReadByte());
+        Assert.Equal('Z', file.ReadByte());
+    }
+
     private CliLaunchOptions Options(params string[] extra) => CliLaunchOptions.Parse(
         ["server", "--chivalry2-path", Game, "--platform", "Steam", "--steam-path", Steam,
          "--proton-helper", Helper, .. extra]);

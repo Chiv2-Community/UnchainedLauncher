@@ -389,6 +389,7 @@ the CLI initializes that directory. Plugin log paths retain the original suffix.
 ```yaml
 map-profiles:
   courtyard:
+    name: Courtyard FFA
     map-name: FFA_Courtyard
     ini:
       Engine:
@@ -421,7 +422,19 @@ servers:
 - Put `map-rotation` inside `server` or each `servers` entry.
 - Entries are inline `{map-name: ...}` objects or exact, case-sensitive keys from root `map-profiles`.
 - A bare string is a profile reference, not a map name.
-- Order and repeated entries are preserved.
+- Order is preserved. Map names may repeat, but each entry's display name must be
+  unique within that server's rotation, case-insensitively. Separate servers may
+  reuse the same names/profiles.
+- Profiles and inline entries accept an optional `name`. Missing names are derived
+  from the profile key (or the map's name): `foo-bar` becomes `Foo bar`;
+  underscores also become spaces. Mode acronyms (`FFA`, `TDM`, `TO`, `LTS`, `LMS`)
+  stay uppercase, and words from the map identifier retain their capitalization:
+  `ffa-courtyard` becomes `FFA Courtyard`. Explicit names preserve their capitalization.
+  Repeated references to the same profile are rejected; use distinctly named
+  profiles or inline entries for repeated maps.
+- Names also identify generated profile folders: no path separators, Windows-invalid
+  filename characters, control characters, surrounding whitespace, trailing dots,
+  or reserved device names.
 - The first entry is the default starting map.
 - Set `starting-map` to a rotation map-name to start at its first occurrence, matching case-insensitively.
 - Map names accept short names or package paths, without travel options.
@@ -430,7 +443,7 @@ servers:
 - Omitting `map-rotation` preserves the profile's existing rotation and the normal `starting-map` default.
 - `MapList` is forbidden in `ini`, including typed and `raw` forms.
 - `MapListIndex` cannot be set through `ini` when a rotation is configured.
-- Profile and inline map objects accept `map-name` and `ini`. Their INI shape and
+- Profile and inline map objects accept `name`, `map-name`, and `ini`. Their INI shape and
   typed values match `server.ini`; profile fields replace matching server defaults
   case-insensitively. Arrays replace rather than concatenate.
 - Every profile field requires an explicit `server.ini` default. The launcher
@@ -444,8 +457,8 @@ servers:
   or force existing objects to reload. The section above is illustrative; use
   the actual config section and field names defined by your mod.
 - Generated files live under `<saveddir>/unchained/map-config/<configuration-hash>/`:
-  `ini-overrides/unchained.yaml` maps zero-based rotation indices to generated
-  profile IDs, and `ini-overrides/map-profiles/<id>/<Category>.ini` holds each
+  `ini-overrides/unchained.yaml` maps zero-based rotation indices to display
+  names, and `ini-overrides/map-profiles/<name>/<Category>.ini` holds each
   effective INI layer. No `map-indices` folders are generated. The launcher passes
   this root through `--unchained-profile-location`, translated for Proton.
 - Changed configuration selects a new generation, preventing stale fields/slots

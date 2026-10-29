@@ -22,13 +22,14 @@ public sealed class MapRotationTests : IDisposable {
               map-rotation:
                 - courtyard
                 - map-name: FFA_Wardenglade
-                - courtyard
+                - {map-name: FFA_Courtyard, name: Courtyard reprise}
             map-profiles:
               courtyard:
                 map-name: FFA_Courtyard
             """));
         Assert.Equal(["FFA_Courtyard", "FFA_Wardenglade", "FFA_Courtyard"], options.Settings.Rotation!.Maps);
         Assert.Equal(0, options.Settings.Rotation.StartIndex);
+        Assert.Equal(["Courtyard", "FFA Wardenglade", "Courtyard reprise"], options.Settings.Rotation.Names);
         Assert.Equal("FFA_Courtyard", options.ToServerLaunchOptions().Map);
     }
 
@@ -73,7 +74,7 @@ public sealed class MapRotationTests : IDisposable {
         var options = Assert.IsType<ServerOptions>(Parse("""
             server:
               map-rotation:
-                - map-name: FFA_Wardenglade
+                - {map-name: FFA_Wardenglade, name: Wardenglade first}
                 - map-name: FFA_Wardenglade
                 - map-name: /Game/Maps/Custom.Custom
             """));
@@ -162,6 +163,71 @@ public sealed class MapRotationTests : IDisposable {
     public void RotationIndexCannotBeOverriddenByIni() {
         var error = Assert.Throws<ArgumentException>(() => Parse($"server:\n  map-rotation: [{{map-name: FFA_Courtyard}}]\n  ini:\n    Game:\n      {Section}:\n        MapListIndex: 1"));
         Assert.Contains("starting-map", error.Message);
+    }
+
+    [Theory]
+    [InlineData("foo-bar", "Foo bar")]
+    [InlineData("FOO_BAR", "Foo bar")]
+    [InlineData("night-rules", "Night rules")]
+    public void MissingProfileNamesBecomeReadableLabels(string key, string expected) {
+        var options = Assert.IsType<ServerOptions>(Parse($"map-profiles:\n  {key}: {{map-name: FFA_Courtyard}}\nserver: {{map-rotation: [{key}]}}"));
+        Assert.Equal(expected, Assert.Single(options.Settings.Rotation!.Names));
+    }
+
+    [Fact]
+    public void GeneratedNamesPreserveModesAndMapWords() {
+        var options = Assert.IsType<ServerOptions>(Parse("""
+            map-profiles:
+              ffa-courtyard: {map-name: FFA_Courtyard}
+              night-wardenglade: {map-name: TDM_Wardenglade}
+              to-galencourt: {map-name: TO_Galencourt}
+            server:
+              map-rotation:
+                - ffa-courtyard
+                - night-wardenglade
+                - to-galencourt
+                - {map-name: /Game/Maps/TO_TournamentGrounds.TO_TournamentGrounds}
+            """));
+        Assert.Equal(["FFA Courtyard", "Night Wardenglade", "TO Galencourt", "TO Tournament Grounds"], options.Settings.Rotation!.Names);
+    }
+
+    [Fact]
+    public void ExplicitNamesOverrideDefaultsWithoutChangingMapIdentity() {
+        var options = Assert.IsType<ServerOptions>(Parse("""
+            map-profiles:
+              foo-bar:
+                name: Evening FFA
+                map-name: FFA_Courtyard
+            server:
+              map-rotation:
+                - foo-bar
+                - {name: Later FFA, map-name: FFA_Courtyard}
+            """));
+        Assert.Equal(["Evening FFA", "Later FFA"], options.Settings.Rotation!.Names);
+        Assert.Equal(["FFA_Courtyard", "FFA_Courtyard"], options.Settings.Rotation.Maps);
+    }
+
+    [Theory]
+    [InlineData("map-profiles: {one: {map-name: FFA_Courtyard}}\nserver: {map-rotation: [one, one]}")]
+    [InlineData("server: {map-rotation: [{map-name: FFA_Courtyard}, {map-name: FFA_Courtyard}]}")]
+    [InlineData("server: {map-rotation: [{name: Evening, map-name: FFA_Courtyard}, {name: evening, map-name: FFA_Bazaar}]}")]
+    [InlineData("map-profiles: {foo-bar: {map-name: FFA_Courtyard}, foo_bar: {map-name: FFA_Bazaar}}\nserver: {map-rotation: [foo-bar, foo_bar]}")]
+    public void RotationNamesMustBeUniqueAfterDefaultingAndCaseFolding(string yaml) {
+        Assert.Contains("names must be unique", Assert.Throws<ArgumentException>(() => Parse(yaml)).Message);
+        Assert.False(File.Exists(Path.Combine(_root, "Game.ini")));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData("../outside")]
+    [InlineData("CON")]
+    [InlineData("trailing.")]
+    [InlineData(" leading")]
+    public void ProfileNamesMustBePortableFolders(string name) {
+        var quoted = System.Text.Json.JsonSerializer.Serialize(name);
+        var error = Assert.Throws<ArgumentException>(() => Parse("server: {map-rotation: [{map-name: FFA_Courtyard, name: " + quoted + "}]}"));
+        Assert.Contains("profile name", error.Message);
     }
 
     [Theory]

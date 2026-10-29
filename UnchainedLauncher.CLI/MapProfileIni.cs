@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using YamlDotNet.Serialization;
 
@@ -12,12 +11,12 @@ internal static class MapProfileIni {
         var identities = layers.Select(ini => ini.Identity).ToArray();
         string Hash(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
         // Immutable generations avoid carrying removed fields or slots into later launches.
-        var root = Path.Combine(request.InstancePaths.Root, "map-config", Hash(JsonSerializer.SerializeToUtf8Bytes(identities)));
+        var root = Path.Combine(request.InstancePaths.Root, "map-config", Hash(JsonSerializer.SerializeToUtf8Bytes(new { rotation.Names, identities })));
         var directory = Path.Combine(root, "ini-overrides");
         var profiles = new Dictionary<int, string>();
         for (var index = 0; index < layers.Length; index++) {
             token.ThrowIfCancellationRequested();
-            var profile = "profile-" + Hash(Encoding.UTF8.GetBytes(identities[index]));
+            var profile = rotation.Names[index];
             profiles[index] = profile;
             layers[index].Apply(Path.Combine(directory, "map-profiles", profile));
         }

@@ -11,17 +11,16 @@ internal static class MapProfileIni {
         var identities = layers.Select(ini => ini.Identity).ToArray();
         string Hash(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
         // Immutable generations avoid carrying removed fields or slots into later launches.
-        var root = Path.Combine(request.InstancePaths.Root, "map-config", Hash(JsonSerializer.SerializeToUtf8Bytes(new { rotation.Names, identities })));
+        var root = Path.Combine(request.InstancePaths.Root, "map-config", Hash(JsonSerializer.SerializeToUtf8Bytes(new { rotation.Names, rotation.Profiles, identities })));
         var directory = Path.Combine(root, "ini-overrides");
-        var profiles = new Dictionary<int, string>();
         for (var index = 0; index < layers.Length; index++) {
             token.ThrowIfCancellationRequested();
-            var profile = rotation.Names[index];
-            profiles[index] = profile;
+            var profile = rotation.Profiles[index];
             layers[index].Apply(Path.Combine(directory, "map-profiles", profile));
         }
         Directory.CreateDirectory(directory);
-        var yaml = new SerializerBuilder().Build().Serialize(new Dictionary<string, object> { ["map_profiles"] = profiles });
+        var entries = rotation.Profiles.Select((profile, index) => new { profile, name = rotation.Names[index] }).ToArray();
+        var yaml = new SerializerBuilder().Build().Serialize(new Dictionary<string, object> { ["map-rotation"] = entries });
         await File.WriteAllTextAsync(Path.Combine(directory, "unchained.yaml"), yaml, token);
         server.MapProfilePath = request.Shared.Proton is { } proton
             ? await proton.WinePathAsync(root, windows: true, token) : root;

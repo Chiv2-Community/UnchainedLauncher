@@ -432,9 +432,11 @@ servers:
   `ffa-courtyard` becomes `FFA Courtyard`. Explicit names preserve their capitalization.
   Repeated references to the same profile are rejected; use distinctly named
   profiles or inline entries for repeated maps.
-- Names also identify generated profile folders: no path separators, Windows-invalid
-  filename characters, control characters, surrounding whitespace, trailing dots,
-  or reserved device names.
+- Names are display labels, independent of profile directory references. Profile
+  keys identify generated folders and must be portable folder names. Inline entries
+  use generated `inline-<index>` folders. Directory references must not collide
+  case-insensitively within a server. Labels cannot be blank or contain surrounding
+  whitespace or control characters.
 - The first entry is the default starting map.
 - Set `starting-map` to a rotation map-name to start at its first occurrence, matching case-insensitively.
 - Map names accept short names or package paths, without travel options.
@@ -450,17 +452,31 @@ servers:
   includes those defaults in every rotation entry, including entries without INI,
   so later maps can restore values changed by earlier profiles. `raw` values are
   unsupported in profile INI or the server defaults used with profile INI.
-- Requires UnchainedPlugin built with **`map_profiles` enabled**. It is disabled
-  by default in plugin main `6c2eacb`; no runtime capability detection is available.
+- Requires UnchainedPlugin with the ordered `map-rotation` configuration schema
+  ([plugin PR #20](https://github.com/Chiv2-Community/UnchainedPlugin/pull/20))
+  and **`map_profiles` enabled**. Plugin main `6c2eacb` has the older schema and
+  disables this feature by default; no runtime capability detection is available.
   The plugin overlays config loads for **mod-owned objects** under
   `/Game/Mods/AgMods/`. It does not apply arbitrary engine/game settings on travel
   or force existing objects to reload. The section above is illustrative; use
   the actual config section and field names defined by your mod.
 - Generated files live under `<saveddir>/unchained/map-config/<configuration-hash>/`:
-  `ini-overrides/unchained.yaml` maps zero-based rotation indices to display
-  names, and `ini-overrides/map-profiles/<name>/<Category>.ini` holds each
+  `ini-overrides/unchained.yaml` contains an ordered `map-rotation` list, with
+  `profile` (directory reference) and `name` (display label) in each entry.
+  List positions correspond to zero-based rotation indices.
+  `ini-overrides/map-profiles/<profile>/<Category>.ini` holds each
   effective INI layer. No `map-indices` folders are generated. The launcher passes
   this root through `--unchained-profile-location`, translated for Proton.
+  For example, the generated runtime configuration is:
+
+  ```yaml
+  map-rotation:
+    - profile: courtyard
+      name: Courtyard FFA
+    - profile: inline-1
+      name: FFA Wardenglade
+  ```
+
 - Changed configuration selects a new generation, preventing stale fields/slots
   from being reused. Old generations are retained; edit launcher YAML, not generated
   files. Removing all profile INI stops selecting a generated root. Do not combine

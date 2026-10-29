@@ -35,7 +35,7 @@ internal sealed class MapRotationEntryYamlConverter : IYamlTypeConverter {
         throw new NotSupportedException("Map rotation YAML is read-only.");
 }
 
-internal sealed record MapRotation(IReadOnlyList<string> Maps, int StartIndex, IReadOnlyList<IniOverrides> Overrides, IReadOnlyList<string> Names) {
+internal sealed record MapRotation(IReadOnlyList<string> Maps, int StartIndex, IReadOnlyList<IniOverrides> Overrides, IReadOnlyList<string> Names, IReadOnlyList<string> Profiles) {
     internal bool HasOverrides => Overrides.Any(ini => !ini.IsEmpty);
 
     internal static IniOverrides ValidateMap(MapProfile? profile, string location) {
@@ -68,10 +68,15 @@ internal sealed record MapRotation(IReadOnlyList<string> Maps, int StartIndex, I
     }
 
     private static void ValidateName(string name) {
+        if (string.IsNullOrWhiteSpace(name) || name != name.Trim() || name.Any(char.IsControl))
+            throw new ValidationException("Map profile name must be nonblank, without surrounding whitespace or control characters.");
+    }
+
+    private static void ValidateProfile(string name) {
         if (string.IsNullOrWhiteSpace(name) || name != name.Trim() || name.EndsWith('.') ||
             name.Any(character => char.IsControl(character) || "<>:\"/\\|?*".Contains(character)) ||
             Regex.IsMatch(name.Split('.')[0], @"\A(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-            throw new ValidationException("Map profile name must be nonblank and a portable folder name, without surrounding whitespace, trailing dots, or reserved device names.");
+            throw new ValidationException("Map profile directory must be a portable folder name, without path separators, surrounding whitespace, trailing dots, or reserved device names.");
     }
 
     internal static MapRotation? Resolve(List<MapRotationEntry>? entries, Dictionary<string, MapProfile?>? profiles, string? startingMap) {
@@ -80,7 +85,9 @@ internal sealed record MapRotation(IReadOnlyList<string> Maps, int StartIndex, I
         var maps = new List<string>();
         var overrides = new List<IniOverrides>();
         var names = new List<string>();
+        var directories = new List<string>();
         var uniqueNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var uniqueDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var entry in entries) {
             var profile = entry?.Inline;
             if (entry?.Profile is { } name) {
@@ -91,13 +98,17 @@ internal sealed record MapRotation(IReadOnlyList<string> Maps, int StartIndex, I
             var displayName = profile!.Name ?? FriendlyName(entry!.Profile ?? profile.MapName!.Split('/').Last().Split('.')[0], profile.MapName!);
             ValidateName(displayName);
             if (!uniqueNames.Add(displayName)) throw new ValidationException($"Map rotation names must be unique within each server (case-insensitive); duplicate name '{displayName}'. Set a distinct name on each entry/profile.");
+            var directory = entry.Profile ?? "inline-" + maps.Count.ToString(CultureInfo.InvariantCulture);
+            ValidateProfile(directory);
+            if (!uniqueDirectories.Add(directory)) throw new ValidationException("Map profile directory references must be unique within each server (case-insensitive); rename conflicting profile keys.");
+            directories.Add(directory);
             names.Add(displayName);
             maps.Add(profile!.MapName!);
             overrides.Add(ini);
         }
         var index = startingMap is null ? 0 : maps.FindIndex(map => map.Equals(startingMap, StringComparison.OrdinalIgnoreCase));
         if (index < 0) throw new ValidationException("starting-map must match a map-name in map-rotation.");
-        return new MapRotation(maps.ToArray(), index, overrides.ToArray(), names.ToArray());
+        return new MapRotation(maps.ToArray(), index, overrides.ToArray(), names.ToArray(), directories.ToArray());
     }
 
     internal void Apply(string directory) {

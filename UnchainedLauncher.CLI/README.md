@@ -390,9 +390,17 @@ the CLI initializes that directory. Plugin log paths retain the original suffix.
 map-profiles:
   courtyard:
     map-name: FFA_Courtyard
+    ini:
+      Engine:
+        /Game/Mods/AgMods/Example.Example_C:
+          RoundLimit: {type: Int, value: 5}
 
 servers:
   first:
+    ini:
+      Engine:
+        /Game/Mods/AgMods/Example.Example_C:
+          RoundLimit: {type: Int, value: 10}
     map-rotation:
       - courtyard
       - map-name: FFA_Wardenglade
@@ -401,6 +409,10 @@ servers:
     ping-port: 3076
     query-port: 7072
     rcon-port: 9002
+    ini:
+      Engine:
+        /Game/Mods/AgMods/Example.Example_C:
+          RoundLimit: {type: Int, value: 15}
     map-rotation:
       - courtyard
       - map-name: FFA_Bazaar
@@ -418,8 +430,29 @@ servers:
 - Omitting `map-rotation` preserves the profile's existing rotation and the normal `starting-map` default.
 - `MapList` is forbidden in `ini`, including typed and `raw` forms.
 - `MapListIndex` cannot be set through `ini` when a rotation is configured.
-- Profile and inline map objects currently accept only `map-name`.
-- Per-map INI and actors remain deferred to [#154](https://github.com/Chiv2-Community/UnchainedLauncher/issues/154) and [#155](https://github.com/Chiv2-Community/UnchainedLauncher/issues/155).
+- Profile and inline map objects accept `map-name` and `ini`. Their INI shape and
+  typed values match `server.ini`; profile fields replace matching server defaults
+  case-insensitively. Arrays replace rather than concatenate.
+- Every profile field requires an explicit `server.ini` default. The launcher
+  includes those defaults in every rotation entry, including entries without INI,
+  so later maps can restore values changed by earlier profiles. `raw` values are
+  unsupported in profile INI or the server defaults used with profile INI.
+- Requires UnchainedPlugin built with **`map_profiles` enabled**. It is disabled
+  by default in plugin main `6c2eacb`; no runtime capability detection is available.
+  The plugin overlays config loads for **mod-owned objects** under
+  `/Game/Mods/AgMods/`. It does not apply arbitrary engine/game settings on travel
+  or force existing objects to reload. The section above is illustrative; use
+  the actual config section and field names defined by your mod.
+- Generated files live under `<saveddir>/unchained/map-config/<configuration-hash>/`:
+  `ini-overrides/unchained.yaml` maps zero-based rotation indices to generated
+  profile IDs, and `ini-overrides/map-profiles/<id>/<Category>.ini` holds each
+  effective INI layer. No `map-indices` folders are generated. The launcher passes
+  this root through `--unchained-profile-location`, translated for Proton.
+- Changed configuration selects a new generation, preventing stale fields/slots
+  from being reused. Old generations are retained; edit launcher YAML, not generated
+  files. Removing all profile INI stops selecting a generated root. Do not combine
+  profile INI with a manual `unchained-profile-location` game argument.
+- Per-map actors remain deferred to [#155](https://github.com/Chiv2-Community/UnchainedLauncher/issues/155).
 - Server-level `mod-actors` still apply to every map.
 
 ### INI overrides

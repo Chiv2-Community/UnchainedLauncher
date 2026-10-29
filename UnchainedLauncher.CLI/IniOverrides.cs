@@ -19,6 +19,20 @@ internal sealed class IniOverrides {
     internal IEnumerable<string> RawArguments => _entries.Where(entry => entry.Raw)
         .Select(entry => new UEINIParameter(entry.File, entry.Section, entry.Key, entry.Values[0]).Rendered);
 
+    internal bool IsEmpty => _entries.Count == 0;
+    internal string Identity => System.Text.Json.JsonSerializer.Serialize(_entries);
+
+    internal IniOverrides WithMapOverrides(IniOverrides overrides) {
+        foreach (var entry in overrides._entries) {
+            if (!Contains(entry.File, entry.Section, entry.Key))
+                throw new ArgumentException($"Map-profile INI field {entry.File}.{entry.Section}.{entry.Key} requires a server.ini default so other maps can restore it.");
+        }
+        var result = new IniOverrides();
+        result._entries.AddRange(_entries.Where(entry => !overrides.Contains(entry.File, entry.Section, entry.Key)));
+        result._entries.AddRange(overrides._entries);
+        return result;
+    }
+
     internal bool Contains(string file, string section, string key) => _entries.Any(entry =>
         string.Equals(entry.File, file, StringComparison.OrdinalIgnoreCase) &&
         string.Equals(entry.Section, section, StringComparison.OrdinalIgnoreCase) &&

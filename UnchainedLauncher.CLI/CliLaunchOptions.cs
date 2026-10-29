@@ -126,6 +126,7 @@ public sealed class ServerOptions : CliLaunchOptions {
     public ServerSettings Settings { get; }
     public bool NoTui { get; }
     internal string? PluginLoggingPath { get; set; }
+    internal string? MapProfilePath { get; set; }
     // Chivalry removes hyphens when choosing its Saved directory (the plugin log path does not).
     internal string GameSavedDirSuffix => Shared.Assets.Suffix;
 
@@ -135,6 +136,12 @@ public sealed class ServerOptions : CliLaunchOptions {
         Ini = IniOverrides.Parse(settings.Ini);
         if (settings.Rotation is not null && Ini.Contains("Game", "/Script/TBL.TBLGameMode", "MapListIndex"))
             throw new ArgumentException("MapListIndex is managed by map-rotation; use starting-map to choose the first map.");
+        if (settings.Rotation is { HasOverrides: true } rotation) {
+            if (Ini.RawArguments.Any()) throw new ArgumentException("server.ini cannot use raw alongside map-profile INI; use typed values for the default layer.");
+            if (GameArguments.Any(argument => argument.TrimStart('-').Split('=', 2)[0] == "unchained-profile-location"))
+                throw new ArgumentException("unchained-profile-location is managed by map-profile INI; remove the conflicting game argument.");
+            foreach (var overrides in rotation.Overrides) Ini.WithMapOverrides(overrides);
+        }
         NoTui = noTui;
         if (!settings.Headless && settings.DesyncPatch)
             throw new ArgumentException("Desync patch requires a headless server. To enable rendering, pass --no-desync-patch or set server.desync-patch: false in YAML.");
@@ -172,6 +179,10 @@ public sealed class ServerOptions : CliLaunchOptions {
 
     public override LaunchOptions ToLaunchOptions() {
         var prefix = new List<string> { "TBL", "-server" };
+        if (MapProfilePath is { } mapProfilePath) {
+            prefix.Add("--unchained-profile-location");
+            prefix.Add(ArgumentEscaper.Escape(mapProfilePath));
+        }
         if (!GameArguments.Any(arg => arg is "--attach-stdio" or "-attach-stdio")) prefix.Add("--attach-stdio");
         if (!PluginLogging.HasOverride(GameArguments)) {
             prefix.Add("--log4rs-yaml");

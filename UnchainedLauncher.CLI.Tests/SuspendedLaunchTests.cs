@@ -65,17 +65,4 @@ public sealed class SuspendedLaunchTests : IDisposable {
         Assert.False(called);
     }
 
-    [Theory]
-    [InlineData("", "value")]
-    [InlineData("BAD=NAME", "value")]
-    [InlineData("BAD\0NAME", "value")]
-    [InlineData("VALID_NAME", "bad\0value")]
-    public void InvalidWindowsEnvironmentDoesNotCreateOrInitializeAChild(string name, string value) {
-        if (!OperatingSystem.IsWindows()) return;
-        var launcher = new ProcessLauncher(Probe, new Dictionary<string, string?> { [name] = value });
-        var called = false;
-        var result = launcher.Launch(_directory, "", _ => { called = true; return true; });
-        Assert.True(result.IsLeft);
-        Assert.False(called);
-    }
 }

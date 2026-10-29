@@ -38,7 +38,7 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
         using var current = Process.GetCurrentProcess();
         var initialized = false;
         var inherited = false;
-        var result = new ProcessLauncher(Probe, null, capture).Launch(_root, "unused", process => {
+        var result = new ProcessLauncher(Probe, capture).Launch(_root, "unused", process => {
             initialized = true;
             inherited = DuplicateHandle(process.Handle, unrelated.ClientSafePipeHandle.DangerousGetHandle(),
                 current.Handle, out var copy, 0, false, 2);
@@ -58,7 +58,7 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
         using var capture = new ProcessOutputCapture();
         using var console = new ForwardedConsole();
         var read = console.CaptureAsync(capture.StandardOutput);
-        using var process = new ProcessLauncher(Probe, null, capture).Launch(_root,
+        using var process = new ProcessLauncher(Probe, capture).Launch(_root,
             "--std-probe " + ArgumentEscaper.Escape(Path.Combine(_root, "idle.txt")), _ => true)
             .Match(Left: error => throw error, Right: value => value);
         try {
@@ -97,34 +97,30 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
     }
 
     [Fact]
-    public async Task SuspendedWindowsEnvironmentIsUnicodeAndOverridesCaseInsensitiveWithoutLeaking() {
+    public async Task SuspendedWindowsLaunchInheritsUnicodeParentEnvironment() {
         if (!OperatingSystem.IsWindows()) return;
         var output = Path.Combine(_root, "unicode.json");
-        var inherited = Environment.GetEnvironmentVariable("SystemRoot");
-        var parentPath = Environment.GetEnvironmentVariable("PATH");
-        var parentTemp = Environment.GetEnvironmentVariable("TEMP");
-        var overrides = new Dictionary<string, string?> {
-            ["UNCHAINED_ENV_UNICODE"] = "世界 = value",
-            ["path"] = "child-only",
-            ["TEMP"] = null
-        };
-        IProcessLauncher launcher = new ProcessLauncher(Probe, overrides);
-        overrides["UNCHAINED_ENV_UNICODE"] = "must not change snapshot";
-        var arguments = "--environment-probe " + ArgumentEscaper.Escape(output) + " UNCHAINED_ENV_UNICODE SystemRoot PATH TEMP";
-        using var process = launcher.Launch(_root, arguments, _ => {
-            Assert.False(File.Exists(output));
-            return true;
-        }).Match(Left: error => throw error, Right: process => process);
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
-        await process.WaitForExitAsync(timeout.Token);
-        Assert.Equal(0, process.ExitCode);
-        var values = JsonSerializer.Deserialize<Dictionary<string, string?>>(await File.ReadAllTextAsync(output, timeout.Token))!;
-        Assert.Equal("世界 = value", values["UNCHAINED_ENV_UNICODE"]);
-        Assert.Equal(inherited, values["SystemRoot"]);
-        Assert.Equal("child-only", values["PATH"]);
-        Assert.Null(values["TEMP"]);
-        Assert.Equal(parentPath, Environment.GetEnvironmentVariable("PATH"));
-        Assert.Equal(parentTemp, Environment.GetEnvironmentVariable("TEMP"));
+        var name = "UNCHAINED_ENV_" + Guid.NewGuid().ToString("N");
+        Environment.SetEnvironmentVariable(name, "世界 = value");
+        try {
+            using var capture = new ProcessOutputCapture();
+            IProcessLauncher launcher = new ProcessLauncher(Probe, capture);
+            var arguments = "--environment-probe " + ArgumentEscaper.Escape(output) + " " + name + " SystemRoot PATH UNCHAINED_LAUNCH_ID";
+            using var process = launcher.Launch(_root, arguments, _ => {
+                Assert.False(File.Exists(output));
+                return true;
+            }).Match(Left: error => throw error, Right: process => process);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            await process.WaitForExitAsync(timeout.Token);
+            Assert.Equal(0, process.ExitCode);
+            var values = JsonSerializer.Deserialize<Dictionary<string, string?>>(await File.ReadAllTextAsync(output, timeout.Token))!;
+            Assert.Equal("世界 = value", values[name]);
+            foreach (var key in new[] { "SystemRoot", "PATH", "UNCHAINED_LAUNCH_ID" })
+                Assert.Equal(Environment.GetEnvironmentVariable(key), values[key]);
+            Assert.Equal("世界 = value", Environment.GetEnvironmentVariable(name));
+            Assert.Equal(0, await capture.StandardOutput.ReadAsync(new byte[1]).AsTask().WaitAsync(TimeSpan.FromSeconds(5)));
+        }
+        finally { Environment.SetEnvironmentVariable(name, null); }
     }
 
     private sealed class ProbeInjector(string output) : IProcessInjector {

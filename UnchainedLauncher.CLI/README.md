@@ -138,10 +138,9 @@ download the game, sign in to Epic, or select a Heroic account.
 1. Install and launch the game through Heroic once using a **Proton** runner.
    This initializes its compatibility-data directory containing `pfx/system.reg`.
    Wine-only/Wine-GE prefixes are not supported by the CLI's Proton backend.
-2. Supply fresh Epic launch/authentication arguments from the same Heroic/Legendary
-   login session on each launch. Pass them as individual arguments after `--`.
-   Selecting `EGS` alone does not authenticate; missing or expired credentials can
-   leave the game at Frontend without a working server.
+2. Sign in through Heroic/Legendary. Native Heroic/Legendary requires a compatible
+   `legendary` command on `PATH`; matching Flatpak Heroic installations use their
+   bundled Legendary through `flatpak`, without a native Legendary installation.
 3. Launch the native CLI with `--platform EGS`. When the installed game path
    matches Heroic's `Peppermint` entry, the CLI reuses its selected Proton executable
    and prefix. Discovery reads native `$XDG_CONFIG_HOME/heroic` (default
@@ -162,40 +161,20 @@ still require its normal host/runtime dependencies. Both stores use the same
 plugin injection, stdio capture, and `--no-spawn-console`
 paths.
 
-If using Legendary to obtain authentication, use Heroic's configured login
-directory rather than a different Legendary account. For example, after installing
-a compatible native `legendary` command and signing in through the same account:
+On each Linux EGS launch, the CLI automatically obtains fresh launch arguments
+noninteractively from Legendary using the matching Heroic login directory, or
+Legendary's default login when no Heroic installation matches. Authentication is
+cancellable and times out after 60 seconds. `LEGENDARY_CONFIG_PATH` overrides the
+login directory; use the account associated with the installed game.
 
-```bash
-# Flatpak Heroic example; native Heroic uses ~/.config/heroic/legendaryConfig/legendary.
-export LEGENDARY_CONFIG_PATH="$HOME/.var/app/com.heroicgameslauncher.hgl/config/heroic/legendaryConfig/legendary"
-```
+Explicit `AUTH_*` game arguments (after `--`, or in YAML `game-args`) bypass
+automatic authentication. Native Windows EGS launches still require fresh arguments
+from an external Epic launch flow. Missing or expired credentials can leave the
+game at Frontend without a working server.
 
-This Python example obtains fresh arguments and forwards the returned list without
-shell splitting or printing credentials. Replace the paths and retain your normal
-server options; use `client` instead of `server` for a client launch.
-
-```python
-import json
-import subprocess
-
-reply = subprocess.run(
-    ["legendary", "launch", "Peppermint", "--json"],
-    check=True, capture_output=True, text=True,
-)
-auth = json.loads(reply.stdout)["egl_parameters"]
-if not isinstance(auth, list) or not all(isinstance(arg, str) for arg in auth):
-    raise SystemExit("Expected a Legendary egl_parameters argument list")
-subprocess.run([
-    "/path/to/UnchainedLauncher.CLI", "server",
-    "--chivalry2-path", "/path/to/Heroic/Chivalry2",
-    "--platform", "EGS", "--", *auth,
-], check=True)
-```
-
-Authentication is intentionally external: this does not store credentials or add
-an Epic login client. Do not save launch tokens in YAML, shell history, screenshots,
-or shared logs; game arguments can still be visible to local process inspection.
+The CLI does not store credentials or add an Epic login client. Do not save launch
+tokens in YAML, shell history, screenshots, or shared logs; game arguments can
+still be visible to local process inspection.
 
 ### Captured server output
 
@@ -742,9 +721,11 @@ UnchainedLauncher.CLI.exe server --chivalry2-path "C:\Games\Chivalry 2" --platfo
 ```
 
 `--platform Steam` creates `steam_appid.txt` with Chivalry 2's app ID if it is missing;
-Steam must be available for authentication. `--platform EGS` does not obtain Epic
-credentials. Supply the current Epic launch/authentication arguments after `--`
-from your existing EGS launch flow. Selecting EGS alone does not authenticate you.
+Steam must be available for authentication. On Linux, `--platform EGS` obtains
+fresh arguments from the existing Heroic/Legendary login unless explicit `AUTH_*`
+game arguments are supplied; see [Epic/Heroic setup](#epic-games-store-and-heroic-on-linux).
+On native Windows, supply fresh Epic launch/authentication arguments after `--`
+from your external EGS launch flow.
 Avoid exposing authentication arguments and passwords in shared scripts or process listings.
 
 ## Live dashboard and shutdown

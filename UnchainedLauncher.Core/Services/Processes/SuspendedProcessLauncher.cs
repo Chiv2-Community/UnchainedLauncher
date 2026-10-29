@@ -10,19 +10,15 @@ namespace UnchainedLauncher.Core.Services.Processes;
 internal static class SuspendedProcessLauncher {
     private static readonly log4net.ILog Logger = log4net.LogManager.GetLogger(typeof(SuspendedProcessLauncher));
     private const uint CreateSuspended = 0x00000004;
-    private const uint CreateUnicodeEnvironment = 0x00000400;
     internal static Either<LaunchFailed, Process> Launch(string executable, string workingDirectory, string args,
-        Func<Process, bool> initialize, IReadOnlyDictionary<string, string?>? environment = null,
-        ProcessOutputCapture? output = null) {
+        Func<Process, bool> initialize, ProcessOutputCapture? output = null) {
         var startup = new StartupInfoEx { Info = new StartupInfo { Size = Marshal.SizeOf<StartupInfo>() } };
         ProcessInformation native = default;
         Process? process = null;
         var resumed = false;
-        var environmentBlock = IntPtr.Zero;
         var handles = IntPtr.Zero;
         var attributesInitialized = false;
         try {
-            if (environment != null) environmentBlock = Marshal.StringToHGlobalUni(BuildEnvironmentBlock(environment));
             if (output != null) {
                 startup.Info.Size = Marshal.SizeOf<StartupInfoEx>();
                 startup.Info.Flags = 0x00000100; // STARTF_USESTDHANDLES
@@ -47,9 +43,9 @@ internal static class SuspendedProcessLauncher {
             var path = Path.GetFullPath(executable);
             var commandLine = new StringBuilder($"\"{path}\" {args}");
             if (!CreateProcessW(path, commandLine, IntPtr.Zero, IntPtr.Zero, output != null,
-                CreateSuspended | (environmentBlock == IntPtr.Zero ? 0u : CreateUnicodeEnvironment)
+                CreateSuspended
                     | (output == null ? 0u : 0x08080000u), // CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT
-                environmentBlock, Path.GetFullPath(workingDirectory), ref startup, out native))
+                IntPtr.Zero, Path.GetFullPath(workingDirectory), ref startup, out native))
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not create suspended process.");
 
             process = Process.GetProcessById(native.ProcessId);
@@ -68,7 +64,6 @@ internal static class SuspendedProcessLauncher {
             return Left(new LaunchFailed(executable, args, error));
         }
         finally {
-            if (environmentBlock != IntPtr.Zero) Marshal.FreeHGlobal(environmentBlock);
             if (attributesInitialized) DeleteProcThreadAttributeList(startup.Attributes);
             if (startup.Attributes != IntPtr.Zero) Marshal.FreeHGlobal(startup.Attributes);
             if (handles != IntPtr.Zero) Marshal.FreeHGlobal(handles);
@@ -82,20 +77,6 @@ internal static class SuspendedProcessLauncher {
             if (!resumed) process?.Dispose();
             output?.SealClientHandles();
         }
-    }
-
-    private static string BuildEnvironmentBlock(IReadOnlyDictionary<string, string?> overrides) {
-        var values = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
-            values[(string)entry.Key] = (string)entry.Value!;
-        foreach (var (name, value) in overrides) {
-            if (string.IsNullOrEmpty(name) || name.IndexOfAny(['=', '\0']) >= 0 || value?.Contains('\0') == true)
-                throw new ArgumentException("Invalid child environment variable.");
-            if (value == null) values.Remove(name);
-            else values[name] = value;
-        }
-        // CreateProcessW requires a sorted, double-NUL-terminated UTF-16 block.
-        return string.Join('\0', values.Select(entry => $"{entry.Key}={entry.Value}")) + "\0\0";
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

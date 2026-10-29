@@ -34,7 +34,7 @@ internal static class Program {
                 drain = Task.WhenAll(capture.StandardOutput.CopyToAsync(Console.OpenStandardOutput()),
                     capture.StandardError.CopyToAsync(Console.OpenStandardError()));
             }
-            var result = new ProcessLauncher(request.Executable, environment: null, output: capture).Launch(request.WorkingDirectory,
+            var result = new ProcessLauncher(request.Executable, output: capture).Launch(request.WorkingDirectory,
                 request.Arguments, process => injector.Inject(process));
             game = result.Match(Right: process => process, Left: _ => throw new InvalidOperationException());
             await File.WriteAllTextAsync(Path.Combine(directory, "ready"), game.Id.ToString());

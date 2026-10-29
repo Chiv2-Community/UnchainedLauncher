@@ -20,7 +20,7 @@ internal static class NativeGameLauncher {
                     console.CaptureAsync(capture.StandardError, stop.Token));
             }
             var launcher = new UnchainedChivalry2Launcher(preparer,
-                new ProcessLauncher(executable, environment: null, output: capture), installationRoot, injector);
+                new ProcessLauncher(executable, output: capture), installationRoot, injector);
             var result = await launcher.Launch(options);
             return result.Match(
                 Right: process => new LaunchedGame(process) { ConsoleOutput = console,

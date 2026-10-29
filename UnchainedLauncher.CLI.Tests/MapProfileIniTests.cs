@@ -24,13 +24,18 @@ public sealed class MapProfileIniTests : IDisposable {
         var directory = Path.Combine(server.MapProfilePath!, "ini-overrides");
         var yaml = new YamlStream();
         yaml.Load(new StringReader(File.ReadAllText(Path.Combine(directory, "unchained.yaml"))));
-        var mapping = Assert.IsType<YamlMappingNode>(((YamlMappingNode)yaml.Documents[0].RootNode)["map_profiles"]);
-        return Enumerable.Range(0, mapping.Children.Count).Select(index => Path.Combine(directory, "map-profiles",
-            ((YamlScalarNode)mapping[new YamlScalarNode(index.ToString())]).Value!)).ToArray();
+        var root = (YamlMappingNode)yaml.Documents[0].RootNode;
+        Assert.False(root.Children.ContainsKey(new YamlScalarNode("map_profiles")));
+        var entries = Assert.IsType<YamlSequenceNode>(root["map-rotation"]);
+        return entries.Children.Select((node, index) => {
+            var entry = Assert.IsType<YamlMappingNode>(node);
+            Assert.Equal(server.Settings.Rotation!.Names[index], ((YamlScalarNode)entry["name"]).Value);
+            return Path.Combine(directory, "map-profiles", ((YamlScalarNode)entry["profile"]).Value!);
+        }).ToArray();
     }
 
     [Fact]
-    public async Task PublishesIndexToProfileMappingAndDefaultMergedTypedFilesOnly() {
+    public async Task PublishesOrderedProfileReferencesAndLabelsWithDefaultMergedTypedFilesOnly() {
         var server = Server("""
             map-profiles:
               day:
@@ -70,8 +75,8 @@ public sealed class MapProfileIniTests : IDisposable {
         var directories = ProfileDirectories(server);
         Assert.Equal(4, directories.Length);
         Assert.NotEqual(directories[0], directories[2]);
-        Assert.Equal("Day", Path.GetFileName(directories[0]));
-        Assert.Equal("Day reprise", Path.GetFileName(directories[2]));
+        Assert.Equal("day", Path.GetFileName(directories[0]));
+        Assert.Equal("inline-2", Path.GetFileName(directories[2]));
         Assert.Equal(File.ReadAllText(Path.Combine(directories[0], "Engine.ini")), File.ReadAllText(Path.Combine(directories[2], "Engine.ini")));
         Assert.NotEqual(directories[0], directories[1]);
         Assert.False(Directory.Exists(Path.Combine(server.MapProfilePath!, "ini-overrides", "map-indices")));

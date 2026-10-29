@@ -24,12 +24,16 @@
   <Target Name="BuildProtonHelper" BeforeTargets="AssignTargetPaths"
           Condition="'$(DesignTimeBuild)' != 'true' And ('$(RuntimeIdentifier)' == 'linux-x64' Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Linux'))))">
     <PropertyGroup>
-      <_ProtonHelperPublishDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'proton-helper'))</_ProtonHelperPublishDir>
+      <_ProtonHelperTargetDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'proton-helper', 'cargo'))</_ProtonHelperTargetDir>
     </PropertyGroup>
-    <!-- Isolate the Windows build so it cannot overwrite native dependency outputs. -->
-    <Exec Command="dotnet publish &quot;$(MSBuildProjectDirectory)/../UnchainedLauncher.ProtonHelper/UnchainedLauncher.ProtonHelper.csproj&quot; -c &quot;$(Configuration)&quot; -r win-x64 --self-contained true --disable-build-servers --artifacts-path &quot;$(_ProtonHelperPublishDir)build&quot; -p:PublishSingleFile=true -p:IncludeAllContentForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=embedded -o &quot;$(_ProtonHelperPublishDir)&quot;" />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)/../UnchainedLauncher.ProtonHelper"
+          Command="uvx cargo-xwin build --locked --release --target x86_64-pc-windows-msvc --target-dir &quot;$(_ProtonHelperTargetDir)&quot;"
+          Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)/../UnchainedLauncher.ProtonHelper"
+          Command="cargo build --locked --release --target x86_64-pc-windows-msvc --target-dir &quot;$(_ProtonHelperTargetDir)&quot;"
+          Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
     <ItemGroup>
-      <Content Include="$(_ProtonHelperPublishDir)UnchainedLauncher.ProtonHelper.exe"
+      <Content Include="$(_ProtonHelperTargetDir)x86_64-pc-windows-msvc/release/unchained-proton-helper.exe"
                Link="proton-helper/UnchainedLauncher.ProtonHelper.exe"
                CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>

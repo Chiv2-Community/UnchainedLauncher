@@ -30,6 +30,11 @@ public sealed class ProtonRuntimeTests : IDisposable {
         using var file = File.OpenRead(path);
         Assert.Equal('M', file.ReadByte());
         Assert.Equal('Z', file.ReadByte());
+        file.Position = 0;
+        using var image = new System.Reflection.PortableExecutable.PEReader(file);
+        Assert.Null(image.PEHeaders.CorHeader);
+        Assert.Equal(System.Reflection.PortableExecutable.Subsystem.WindowsGui, image.PEHeaders.PEHeader!.Subsystem);
+        Assert.True(file.Length < 2 * 1024 * 1024, "The native helper must not bundle a second .NET runtime.");
     }
 
     private CliLaunchOptions Options(params string[] extra) => CliLaunchOptions.Parse(

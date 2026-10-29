@@ -6,7 +6,7 @@ then resumes its main thread. Failed injection terminates the suspended game.
 On Linux, the native CLI invokes Proton with a bundled Windows launch helper.
 Steam and Epic Games Store/Heroic installations are supported; Epic authentication
 comes from the existing Heroic/Legendary login flow, not Steam.
-The helper uses the same suspended launch and injection path; the TUI stays in
+The native Rust helper uses Windows suspended launch and injection APIs; the TUI stays in
 the invoking Linux terminal. Only the game and helper run under Proton.
 CLI servers also pass TOS-acceptance and first-load-completed INI overrides to
 avoid interactive first-run screens. The CLI also initializes the game's saved profile.
@@ -65,6 +65,12 @@ initialize its prefix. Epic users use the same published bundle but follow
 [Epic/Heroic setup](#epic-games-store-and-heroic-on-linux) instead; Steam is not a
 prerequisite for that store.
 
+Building on Linux also requires Rust, the `x86_64-pc-windows-msvc` target
+(`rustup target add x86_64-pc-windows-msvc`), Clang/LLD, and `uv`.
+The build invokes `uvx cargo-xwin` to cross-compile the helper; its first run
+downloads the Windows SDK/CRT. The helper links the CRT statically and has no
+.NET runtime dependency. Published binaries do not require these build tools.
+
 ```bash
 dotnet publish UnchainedLauncher.CLI -c Release -r linux-x64 --self-contained true -o out-cli-linux
 ./out-cli-linux/UnchainedLauncher.CLI server \
@@ -75,8 +81,9 @@ dotnet publish UnchainedLauncher.CLI -c Release -r linux-x64 --self-contained tr
   --starting-map FFA_Courtyard
 ```
 
-Linux publication produces one executable, including the .NET runtime and Windows
-helper; .NET extracts its contents automatically at startup. Ordinary Linux builds
+Linux publication produces one executable, including the Linux .NET runtime and
+native Windows helper; .NET extracts its contents automatically at startup. Updated
+bundles extract into their own content-specific directories. Ordinary Linux builds
 copy the helper beside the CLI. Do not run the Windows CLI under Proton. Press `Q`
 or Ctrl+C in the native terminal to stop a server. Client launches leave the game
 running independently.
@@ -188,7 +195,7 @@ argument to use another file. Proton receives the Windows-mapped path.
 suppresses its console window. Captured stdin is EOF, not the TUI's keyboard.
 
 Windows supplies ordinary redirected stdio with an explicit handle inheritance
-list. Linux relays game stdio through the bundled Windows helper using Proton
+list. Linux passes redirected handles through the bundled Windows helper using Proton
 `runinprefix`, avoiding the Steam.exe wrapper that discards inherited streams.
 
 The helper is supplied by UnchainedLauncher, not Proton. Its request/heartbeat

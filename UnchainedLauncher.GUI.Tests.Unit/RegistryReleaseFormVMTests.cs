@@ -13,7 +13,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
         [InlineData(true, false)]
         [InlineData(true, true)]
         public void EditAndNewReleasePreservePluginAndPakRequirements(bool newRelease, bool modernPakDependencies) {
-            var path = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "form-test-" + Guid.NewGuid().ToString("N") + ".pak");
+            var path = Path.Combine(Environment.GetEnvironmentVariable("TMPDIR") ?? (OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath()), "form-test-" + Guid.NewGuid().ToString("N") + ".pak");
             File.WriteAllText(path, "pak fixture");
             try {
                 var pak = new Dependency("https://github.com/Org/Pak", ">=1.0.0");

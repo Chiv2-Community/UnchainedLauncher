@@ -8,12 +8,45 @@ on:
     branches:
         - 'main'
         - 'series/*'
+        - 'feature/dll-validation'
 
 env:
   DOTNET_VERSION: '10.x'
 
 # TODO: Run integration tests. Set up some kind of stubbed environment for the tests to run in.
 jobs:
+  cli-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: x86_64-pc-windows-msvc
+    - uses: astral-sh/setup-uv@v6
+    - name: Install Windows cross-linker
+      run: sudo apt-get update && sudo apt-get install -y clang lld
+    - name: Test native helper
+      run: cargo test --locked --manifest-path UnchainedLauncher.ProtonHelper/Cargo.toml
+    - name: Test native CLI
+      run: dotnet test UnchainedLauncher.CLI.Tests -c Release
+    - name: Publish native CLI and Windows Proton helper
+      run: dotnet publish UnchainedLauncher.CLI -c Release -r linux-x64 --self-contained true -o out-cli-linux
+    - name: Verify standalone Linux executable
+      run: |
+        test "$(find out-cli-linux -type f | wc -l)" -eq 1
+        mkdir -p "$RUNNER_TEMP/standalone-cli"
+        cp out-cli-linux/UnchainedLauncher.CLI "$RUNNER_TEMP/standalone-cli/"
+        cd "$RUNNER_TEMP/standalone-cli"
+        ./UnchainedLauncher.CLI --help
+    - name: Archive Linux CLI with executable permissions
+      run: tar -czf UnchainedLauncher-CLI-linux-x64.tar.gz -C out-cli-linux .
+    - uses: actions/upload-artifact@v4
+      with:
+        name: UnchainedLauncher_CLI_linux-x64_${{ github.sha }}
+        path: UnchainedLauncher-CLI-linux-x64.tar.gz
   build:
     strategy:
       matrix:
@@ -55,6 +88,21 @@ jobs:
 
     - name: Run Scanner Configuration Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.PakScannerApp.Tests --logger:"console;verbosity=detailed"
+
+    - name: Run CLI Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.CLI.Tests --logger:"console;verbosity=detailed"
+
+    - name: Run Plugin Manager Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.GUI.Tests.Unit --logger:"console;verbosity=detailed"
+
+    - name: Package CLI binaries
+      run: dotnet publish UnchainedLauncher.CLI -c ${{ matrix.configuration }} -r win-x64 --self-contained true -o out-cli/
+
+    - name: Upload CLI Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: UnchainedLauncher_CLI_${{ matrix.configuration }}_${{ github.sha }}
+        path: out-cli
 
     - name: Package ${{ matrix.configuration }} binaries
       run: dotnet publish UnchainedLauncher.GUI -c ${{ matrix.configuration}} -o out/

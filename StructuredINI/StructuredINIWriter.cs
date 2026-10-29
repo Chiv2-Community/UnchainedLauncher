@@ -8,6 +8,26 @@ namespace StructuredINI {
         private readonly List<string> _sectionOrder = new();
         private readonly Dictionary<string, string> _bufferedSections = new(StringComparer.OrdinalIgnoreCase);
 
+        // Buffer only caller-selected keys; WriteOut preserves all other keys.
+        public void BufferSection(string sectionName, IEnumerable<KeyValuePair<string, string>> entries) {
+            if (!_bufferedSections.ContainsKey(sectionName)) _sectionOrder.Add(sectionName);
+            _bufferedSections[sectionName] = $"[{sectionName}]\n" + string.Join("\n", entries.Select(entry => $"{entry.Key}={entry.Value}"));
+        }
+
+        // Merge caller-selected keys into a pending section; later values replace only those keys.
+        public void MergeSection(string sectionName, IEnumerable<KeyValuePair<string, string>> entries) {
+            var lines = entries.Select(entry => $"{entry.Key}={entry.Value}").ToList();
+            if (!_bufferedSections.TryGetValue(sectionName, out var buffered)) {
+                _sectionOrder.Add(sectionName);
+                _bufferedSections[sectionName] = $"[{sectionName}]\n" + string.Join("\n", lines);
+                return;
+            }
+
+            var section = new IniSection(sectionName, SplitLines(buffered).Skip(1).ToList());
+            PatchSection(section, ExtractKeysFromLines(lines), lines);
+            _bufferedSections[sectionName] = $"[{sectionName}]\n" + string.Join("\n", section.BodyLines);
+        }
+
         public static bool Save<T>(string path, T t) {
             var writer = new StructuredINIWriter();
             return writer.BufferWrite(t) && writer.WriteOut(path);

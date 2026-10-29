@@ -3,6 +3,7 @@ chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam # Steam or EGS; required
 map-profiles:
   courtyard:
+    name: Courtyard FFA # Optional; otherwise the key becomes "Courtyard".
     map-name: FFA_Courtyard
     # Optional per-map mod configuration (requires plugin feature map_profiles).
     # Each field needs a server.ini default; profile values override that default.

@@ -64,4 +64,5 @@ public sealed class SuspendedLaunchTests : IDisposable {
         Assert.True(result.IsLeft);
         Assert.False(called);
     }
+
 }

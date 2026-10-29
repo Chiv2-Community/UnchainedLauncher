@@ -171,7 +171,7 @@ public sealed class ServerGroupTests : IDisposable {
             Console.SetOut(output);
             Assert.Equal(0, await ServerGroupRunner.RunAsync(group, stop, (options, _) => {
                 options.Settings.Name = $"prepared-{++launches}";
-                return Task.FromResult(Child());
+                return Task.FromResult(new LaunchedGame(Child()));
             }, options => {
                 Assert.Equal(2, launches);
                 options.Settings.Name += $"-query-{++queries}";
@@ -198,7 +198,7 @@ public sealed class ServerGroupTests : IDisposable {
                 if (++calls == 2) throw new InvalidOperationException("launch failed");
                 var child = Child();
                 exited = child.WaitForExitAsync();
-                return Task.FromResult(child);
+                return Task.FromResult(new LaunchedGame(child));
             }, _ => new PendingQuery()));
         Assert.Equal("launch failed", error.Message);
         await exited!.WaitAsync(TimeSpan.FromSeconds(5));
@@ -216,7 +216,7 @@ public sealed class ServerGroupTests : IDisposable {
             exits.Add(child.WaitForExitAsync());
             if (exits.Count == 2) stop.CancelAfter(250);
             await Task.Yield();
-            return child;
+            return new LaunchedGame(child);
         }, _ => new PendingQuery()).WaitAsync(TimeSpan.FromSeconds(10)));
         Assert.Equal(["Courtyard", "Arena"], order);
         await Task.WhenAll(exits).WaitAsync(TimeSpan.FromSeconds(5));
@@ -227,7 +227,7 @@ public sealed class ServerGroupTests : IDisposable {
         using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         var calls = 0;
         Assert.Equal(7, await ServerGroupRunner.RunAsync(Group(), stop,
-            (_, _) => Task.FromResult(Child(++calls == 1 ? 7 : 0)), _ => new FailingQuery()));
+            (_, _) => Task.FromResult(new LaunchedGame(Child(++calls == 1 ? 7 : 0))), _ => new FailingQuery()));
         Assert.Equal(2, calls);
         Assert.False(stop.IsCancellationRequested);
     }
@@ -249,11 +249,11 @@ public sealed class ServerGroupTests : IDisposable {
                         OperatingSystem.IsWindows() ? "set /p ignored= & exit 7" : "read ignored; exit 7" }
                 };
                 first = Process.Start(info)!;
-                return Task.FromResult(first);
+                return Task.FromResult(new LaunchedGame(first));
             }
             survivor = Child();
             survivorExit = survivor.WaitForExitAsync();
-            return Task.FromResult(survivor);
+            return Task.FromResult(new LaunchedGame(survivor));
         }, _ => {
             if (!first!.HasExited) {
                 // Release the real child exactly when group monitoring initializes.
@@ -279,5 +279,34 @@ public sealed class ServerGroupTests : IDisposable {
             callback();
             return Task.FromException<A2SInfo>(new TimeoutException());
         }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task FinalGroupSnapshotsPrintTailForEveryServer(bool cancel) {
+        using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var output = new StringWriter();
+        var original = Console.Out;
+        var count = 0;
+        var children = new List<Process>();
+        try {
+            Console.SetOut(output);
+            Assert.Equal(0, await ServerGroupRunner.RunAsync(Group(), stop, async (_, _) => {
+                var child = Child(cancel ? null : 0);
+                children.Add(child);
+                if (!cancel) await child.WaitForExitAsync();
+                var console = new ForwardedConsole();
+                var text = System.Text.Encoding.UTF8.GetBytes($"group-tail-{++count}\n");
+                await console.CaptureAsync(new MemoryStream(text));
+                return new LaunchedGame(child) { ConsoleOutput = console };
+            }, _ => {
+                if (cancel) stop.Cancel();
+                return new PendingQuery();
+            }).WaitAsync(TimeSpan.FromSeconds(5)));
+        }
+        finally { Console.SetOut(original); }
+        Assert.Contains("group-tail-1", output.ToString());
+        Assert.Contains("group-tail-2", output.ToString());
     }
 }

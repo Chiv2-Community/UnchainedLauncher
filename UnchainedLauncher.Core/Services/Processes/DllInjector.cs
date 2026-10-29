@@ -60,7 +60,6 @@ namespace UnchainedLauncher.Core.Services.Processes {
         private readonly DllManager? _dllManager;
         private readonly string? _dllDirectory;
         private readonly bool _unsafeLoadAllDlls;
-
         public DllInjector(DllManager dllManager, string? dllDirectory = null, bool unsafeLoadAllDlls = false) {
             _dllManager = dllManager;
             _dllDirectory = dllDirectory;

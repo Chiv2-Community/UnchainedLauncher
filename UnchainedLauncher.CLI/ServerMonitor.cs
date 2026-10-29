@@ -14,6 +14,17 @@ public record TimelineEvent(DateTimeOffset Time, string Message);
 public sealed class ServerHistory {
     public const int MaxSamples = 12 * 60 * 60 / 10;
     public const int MaxEvents = 50;
+    public const int MaxConsoleLines = 512;
+    private readonly Queue<(long Sequence, string Text)> _console = new();
+    private long _consoleSequence;
+    public IReadOnlyCollection<(long Sequence, string Text)> ConsoleLines => _console;
+
+    internal void AddConsole(IEnumerable<string> lines) {
+        foreach (var line in lines) {
+            _console.Enqueue((++_consoleSequence, line));
+            while (_console.Count > MaxConsoleLines) _console.Dequeue();
+        }
+    }
     private readonly Queue<ServerSample> _samples = new();
     private readonly Queue<TimelineEvent> _events = new();
     private ServerSample? _previous;
@@ -27,6 +38,8 @@ public sealed class ServerHistory {
         var snapshot = new ServerHistory { _hasQueryResponse = _hasQueryResponse, _stopped = stopped };
         foreach (var sample in _samples) snapshot._samples.Enqueue(sample);
         foreach (var entry in _events) snapshot._events.Enqueue(entry);
+        foreach (var entry in _console) snapshot._console.Enqueue(entry);
+        snapshot._consoleSequence = _consoleSequence;
         return snapshot;
     }
 
@@ -51,7 +64,8 @@ public sealed class ServerHistory {
     }
 }
 
-public sealed class ServerMonitor(Process process, IA2S query) {
+public sealed class ServerMonitor(LaunchedGame process, IA2S query) {
+    public ServerMonitor(Process process, IA2S query) : this(new LaunchedGame(process), query) { }
     public ServerHistory History { get; } = new();
 
     public async Task RunAsync(ServerDashboard dashboard, CancellationTokenSource stop) {
@@ -64,14 +78,14 @@ public sealed class ServerMonitor(Process process, IA2S query) {
 
     internal async Task RunAsync(Action<ServerSample, ServerHistory> render, CancellationToken stop) {
         try {
-            DateTimeOffset started;
-            TimeSpan previousCpu;
+            DateTimeOffset started = DateTimeOffset.Now;
+            TimeSpan previousCpu = TimeSpan.Zero;
             try {
-                started = new DateTimeOffset(process.StartTime);
-                previousCpu = process.TotalProcessorTime;
+                started = new DateTimeOffset(process.Metrics.StartTime);
+                previousCpu = process.Metrics.TotalProcessorTime;
             }
-            catch (Exception ex) when ((ex is InvalidOperationException or Win32Exception) && process.HasExited) {
-                return;
+            catch (Exception ex) when (ex is InvalidOperationException or Win32Exception) {
+                if (process.HasExited) return;
             }
             var previousTime = Stopwatch.GetTimestamp();
             double? peakMemory = null;
@@ -92,14 +106,14 @@ public sealed class ServerMonitor(Process process, IA2S query) {
                 double? memory = null;
                 int? handles = null;
                 try {
-                    process.Refresh();
+                    process.Metrics.Refresh();
                     var nowTicks = Stopwatch.GetTimestamp();
                     var elapsed = Stopwatch.GetElapsedTime(previousTime, nowTicks).TotalSeconds;
-                    var totalCpu = process.TotalProcessorTime;
+                    var totalCpu = process.Metrics.TotalProcessorTime;
                     cpu = Math.Clamp((totalCpu - previousCpu).TotalSeconds / elapsed / System.Environment.ProcessorCount * 100, 0, 100);
-                    memory = process.PrivateMemorySize64 / 1048576d;
+                    memory = process.Metrics.PrivateMemorySize64 / 1048576d;
                     peakMemory = Math.Max(peakMemory ?? 0, memory.Value);
-                    handles = process.HandleCount;
+                    handles = process.Metrics.HandleCount;
                     previousCpu = totalCpu;
                     previousTime = nowTicks;
                 }
@@ -111,16 +125,23 @@ public sealed class ServerMonitor(Process process, IA2S query) {
                     info?.Players, info?.MaxPlayers, info?.Map, info is not null,
                     info?.GameType, handles, peakMemory);
                 History.Add(sample);
+                History.AddConsole(process.ConsoleOutput?.Drain() ?? []);
                 render(sample, History);
                 if (!await timer.WaitForNextTickAsync(stop)) break;
             }
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
         finally {
+            if (process.ConsoleOutput != null) {
+                await process.ConsoleOutput.FinishAsync();
+                History.AddConsole(process.ConsoleOutput.Drain());
+            }
             var message = stop.IsCancellationRequested ? "Stop requested" : process.HasExited
                 ? $"Server exited (code {process.ExitCode})" : "Monitoring ended";
             History.AddEvent(DateTimeOffset.Now, message);
-            // A group owns console output; individual monitors only record events.
+            var last = History.Samples.LastOrDefault() ?? new ServerSample(
+                DateTimeOffset.Now, TimeSpan.Zero, null, null, null, null, null, false);
+            render(last, History);
         }
     }
 }

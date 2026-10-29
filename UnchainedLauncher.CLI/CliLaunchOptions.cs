@@ -26,11 +26,19 @@ public sealed class SharedLaunchOptions {
     public IReadOnlyList<ReleaseCoordinates> Dlls { get; }
     public IReadOnlyList<string> GameArguments { get; }
     internal ProfileAssetPaths Assets { get; set; }
+    internal ProtonConfiguration ProtonConfiguration { get; }
+    internal ProtonRuntime? Proton { get; set; }
 
     internal SharedLaunchOptions(LaunchConfiguration configuration, string directory, string? savedDirSuffix = null, ServerSettings? server = null) {
         Chivalry2Path = Path.GetFullPath(configuration.Chiv2Path!, directory);
         SavedDirSuffix = savedDirSuffix ?? server?.SavedDirSuffix ?? (configuration as ClientConfiguration)?.SavedDirSuffix ?? "UnchainedCLI";
         Assets = new ProfileAssetPaths(SavedDirSuffix);
+        var proton = configuration.Proton ?? new ProtonConfiguration();
+        string? Absolute(string? value) => value == null ? null : Path.GetFullPath(value, directory);
+        ProtonConfiguration = new ProtonConfiguration {
+            Path = Absolute(proton.Path), CompatDataPath = Absolute(proton.CompatDataPath),
+            SteamPath = Absolute(proton.SteamPath), HelperPath = Absolute(proton.HelperPath)
+        };
         Platform = configuration.Platform!.Value;
         Backend = configuration.ServerBrowserBackend;
         UpdatePlugin = configuration.UpdatePlugin;
@@ -115,6 +123,7 @@ public sealed class ServerOptions : CliLaunchOptions {
     internal IniOverrides Ini { get; }
     public ServerSettings Settings { get; }
     public bool NoTui { get; }
+    internal string? PluginLoggingPath { get; set; }
     // Chivalry removes hyphens when choosing its Saved directory (the plugin log path does not).
     internal string GameSavedDirSuffix => Shared.Assets.Suffix;
 
@@ -161,6 +170,12 @@ public sealed class ServerOptions : CliLaunchOptions {
 
     public override LaunchOptions ToLaunchOptions() {
         var prefix = new List<string> { "TBL", "-server" };
+        if (!GameArguments.Any(arg => arg is "--attach-stdio" or "-attach-stdio")) prefix.Add("--attach-stdio");
+        if (!PluginLogging.HasOverride(GameArguments)) {
+            prefix.Add("--log4rs-yaml");
+            prefix.Add(ArgumentEscaper.Escape(PluginLoggingPath ?? InstancePaths.Logging));
+        }
+        if (Settings.NoSpawnConsole && !GameArguments.Any(arg => arg is "--no-spawn-console" or "-no-spawn-console")) prefix.Add("--no-spawn-console");
         if (!Ini.Contains("Game", "/Script/TBL.TBLTitleScreen", "bSavedHasAgreedToTOS"))
             prefix.Add("-ini:Game:[/Script/TBL.TBLTitleScreen]:bSavedHasAgreedToTOS=True");
         if (!Ini.Contains("Game", "/Script/TBL.TBLGameInstance", "FirstLoadCompleted"))

@@ -41,7 +41,9 @@ public sealed class DllCachePublicationTests {
             finish.SetResult();
             if (winnerKind == "valid") {
                 await preparation.WaitAsync(TimeSpan.FromSeconds(10));
-                Assert.Equal(bytes, File.ReadAllBytes(Assert.Single(Directory.GetFiles(plugins, "*.dll", SearchOption.AllDirectories))));
+                var files = manager.OpenForInjection();
+                try { Assert.Equal(bytes, File.ReadAllBytes(Assert.Single(files).Path)); }
+                finally { foreach (var file in files) file.Dispose(); }
             }
             else {
                 if (winnerKind == "directory") {

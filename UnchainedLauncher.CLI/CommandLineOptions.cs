@@ -13,7 +13,7 @@ internal static class CommandLineOptions {
         var separator = Array.IndexOf(args, "--");
         var launcherArgs = separator < 0 ? args : args[..separator];
         var gameArgs = separator < 0 ? [] : args[(separator + 1)..];
-        var root = new RootCommand("Unchained client/server launcher and mod registry queries. Only launching and DLL injection require Windows.");
+        var root = new RootCommand("Unchained client/server launcher and registry queries. Launch on Windows directly or Linux through Proton.");
         var config = new Option<string?>("--config-path") {
             Description = "Launch YAML overrides launch options; mod-query reads its registry settings.",
             Arity = ArgumentArity.ExactlyOne,
@@ -112,6 +112,12 @@ internal static class CommandLineOptions {
             });
             Add("--server-browser-backend", "HTTP(S) server-browser backend URL.", _configuration.ServerBrowserBackend, value => _configuration.ServerBrowserBackend = value);
             Flag("--no-plugin-update", "Disable DLL downloads; required registered versions must be installed or cached (use --dll to pin).", value => _configuration.UpdatePlugin = !value);
+            var proton = new ProtonConfiguration();
+            _configuration.Proton = proton;
+            Add<string?>("--proton-path", "Linux: Proton executable or installation directory; EGS can use Heroic's selected Proton.", null, value => proton.Path = value);
+            Add<string?>("--compat-data-path", "Linux: Proton compat-data directory containing pfx.", null, value => proton.CompatDataPath = value);
+            Add<string?>("--steam-path", "Linux: Steam client directory (not required for EGS).", null, value => proton.SteamPath = value);
+            Add<string?>("--proton-helper", "Linux: Windows launch helper executable (normally bundled).", null, value => proton.HelperPath = value);
             Flag("--allow-unstable-plugin", "Allow prerelease plugin updates.", value => _configuration.AllowUnstablePlugin = value);
             var setup = new ModSetupConfiguration();
             if (clientConfig is not null) clientConfig.ModSetup = setup;
@@ -122,6 +128,7 @@ internal static class CommandLineOptions {
             Many("--dll", "Select a registry DLL release: organization/id:version (exact release tag).", value => setup.Dlls = value);
             if (_configuration is ServerConfiguration serverConfig) {
                 var settings = serverConfig.Server!;
+                Flag("--no-spawn-console", "Prevent plugin console creation without attaching stdout/stderr.", value => settings.NoSpawnConsole = value);
                 Add("--name", "Server name.", settings.Name, value => settings.Name = value);
                 Add("--description", "Description / MOTD.", settings.Description, value => settings.Description = value);
                 Add("--starting-map", "Initial map.", settings.StartingMap, value => settings.StartingMap = value);

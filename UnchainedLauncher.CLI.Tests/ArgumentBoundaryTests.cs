@@ -34,7 +34,7 @@ public sealed class ArgumentBoundaryTests : IDisposable {
         // Repeat the value so YAML exercises both shared and command-specific forwarding.
         var options = Parse(command, yaml, [argument, argument, "sentinel-after-forwarded"]);
         var expected = new List<string> { "TBL" };
-        if (command == "server") expected.Add("-server");
+        if (command == "server") expected.AddRange(["-server", "--attach-stdio", "--log4rs-yaml", options.InstancePaths.Logging]);
         if (command == "server") expected.AddRange(FirstRunArguments);
         expected.AddRange([argument, argument, "sentinel-after-forwarded", "-saveddirsuffix=" + options.Shared.SavedDirSuffix, "-unchained"]);
         if (command == "server") expected.AddRange(DefaultServerArguments());
@@ -51,7 +51,7 @@ public sealed class ArgumentBoundaryTests : IDisposable {
     public async Task GeneratedServerValuesAlsoPreserveBoundaries(bool yaml) {
         const string value = "quoted \"name\"\\\tline\nend\\";
         var options = Assert.IsType<ServerOptions>(Parse("server", yaml, [], value));
-        var expected = new List<string> { "TBL", "-server" };
+        var expected = new List<string> { "TBL", "-server", "--attach-stdio", "--log4rs-yaml", options.InstancePaths.Logging };
         expected.AddRange(FirstRunArguments);
         expected.AddRange(["-saveddirsuffix=UnchainedCLI", "-unchained"]);
         expected.AddRange(DefaultServerArguments(value, value, value));
@@ -66,7 +66,7 @@ public sealed class ArgumentBoundaryTests : IDisposable {
     public async Task NativePakDirectoryDoesNotRequireAProcessArgument() {
         var installation = Path.Combine(_directory, "Game With Spaces");
         var options = CliLaunchOptions.Parse(["server", "--chivalry2-path", installation, "--platform", "Steam", "--local-ip", "127.0.0.1"]);
-        var expected = new List<string> { "TBL", "-server" };
+        var expected = new List<string> { "TBL", "-server", "--attach-stdio", "--log4rs-yaml", options.InstancePaths.Logging };
         expected.AddRange(FirstRunArguments);
         expected.AddRange(["-saveddirsuffix=UnchainedCLI", "-unchained"]);
         expected.AddRange(DefaultServerArguments());
@@ -84,7 +84,7 @@ public sealed class ArgumentBoundaryTests : IDisposable {
             "  local-ip: 127.0.0.1\n  ini:\n    Game:\n      /Script/TBL.TBLGameMode:\n" +
             $"        Custom: {{type: raw, value: {JsonSerializer.Serialize(value)}}}\n");
         var options = CliLaunchOptions.Parse(["server", "--config-path", path]);
-        var expected = new List<string> { "TBL", "-server" };
+        var expected = new List<string> { "TBL", "-server", "--attach-stdio", "--log4rs-yaml", options.InstancePaths.Logging };
         expected.AddRange(FirstRunArguments);
         expected.Add("-ini:Game:[/Script/TBL.TBLGameMode]:Custom=" + value);
         expected.AddRange(["-saveddirsuffix=UnchainedCLI", "-unchained"]);

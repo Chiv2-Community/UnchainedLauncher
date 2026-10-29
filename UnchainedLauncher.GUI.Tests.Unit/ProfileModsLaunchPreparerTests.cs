@@ -67,7 +67,7 @@ public sealed class ProfileModsLaunchPreparerTests {
             File.WriteAllText(Path.Combine(selected.Paks, "unknown.sig"), "profile signature");
             var dialogue = new Dialogue();
             using var http = new HttpClient();
-            var (dll, active) = CachedDll(shared, http);
+            var (dll, installed) = CachedDll(shared, http);
             var entered = 0;
             var preceding = new CallbackPreparer(async options => {
                 entered++;
@@ -83,7 +83,7 @@ public sealed class ProfileModsLaunchPreparerTests {
                 Assert.True((await launcher.Launch(Options(suffix))).IsLeft);
                 Assert.Equal(0, process.Calls);
                 Assert.Equal(0, entered);
-                Assert.False(File.Exists(active));
+                Assert.False(File.Exists(installed));
                 Assert.Contains("another launcher", Assert.Single(dialogue.Messages));
                 Assert.Equal(before.Keys.Order(), Directory.GetFiles(root, "*", SearchOption.AllDirectories)
                     .Where(path => !path.EndsWith(".instance.lock")).Order());
@@ -101,7 +101,7 @@ public sealed class ProfileModsLaunchPreparerTests {
             }
             Assert.True((await preparer.PrepareLaunch(Options(suffix))).IsSome);
             Assert.Equal(1, entered);
-            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(active));
+            AssertSelectedDll(dll, installed);
             Assert.Empty(ReadInventory(selected.Paks));
             Assert.Equal("profile signature", File.ReadAllText(Path.Combine(selected.Paks, "unknown.sig")));
             using (shared.AcquireLease()) { }
@@ -140,11 +140,11 @@ public sealed class ProfileModsLaunchPreparerTests {
             var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var dialogue = new Dialogue();
             using var http = new HttpClient();
-            var (dll, active) = CachedDll(shared, http);
+            var (dll, installed) = CachedDll(shared, http);
             Exception error = outcome == "throw-cancel" ? new OperationCanceledException("original cancellation")
                 : new InvalidOperationException("original DLL error");
             dialogue.ProgressStarted = () => {
-                Assert.True(File.Exists(active));
+                AssertSelectedDll(dll, installed);
                 Assert.Throws<IOException>(() => shared.AcquireLease());
                 Assert.Throws<IOException>(() => selected.AcquireLease());
             };
@@ -162,19 +162,19 @@ public sealed class ProfileModsLaunchPreparerTests {
             await started.Task.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.Throws<IOException>(() => shared.AcquireLease());
             Assert.Throws<IOException>(() => selected.AcquireLease());
-            Assert.False(File.Exists(active));
+            Assert.False(File.Exists(installed));
             finish.SetResult();
             if (outcome is "error" or "throw-cancel") Assert.Same(error, await Assert.ThrowsAnyAsync<Exception>(() => pending));
             else Assert.Equal(outcome == "success", (await pending.WaitAsync(TimeSpan.FromSeconds(10))).IsSome);
             using (shared.AcquireLease()) { }
             using (selected.AcquireLease()) { }
             if (outcome == "success") {
-                Assert.True(File.Exists(active));
+                AssertSelectedDll(dll, installed);
                 Assert.Equal(ReleaseCoordinates.FromRelease(release), Assert.Single(ReadInventory(selected.Paks)).Coordinates);
                 Assert.Single(manager.EnabledModReleaseCoordinates);
             }
             else {
-                Assert.False(File.Exists(active));
+                Assert.False(File.Exists(installed));
                 Assert.Empty(Directory.GetFiles(selected.Paks));
             }
             Assert.Empty(dialogue.Messages);
@@ -186,7 +186,24 @@ public sealed class ProfileModsLaunchPreparerTests {
         }
     }
 
-    private static (UnchainedLauncher.Core.Services.Dlls.DllManager Manager, string Active) CachedDll(ProfileAssetPaths shared, HttpClient http) {
+    private static void AssertSelectedDll(UnchainedLauncher.Core.Services.Dlls.DllManager manager, string installed) {
+        var files = manager.OpenForInjection();
+        try {
+            var file = Assert.Single(files);
+            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(file.Path));
+            if (OperatingSystem.IsLinux()) {
+                Assert.False(File.Exists(installed));
+                Assert.Contains(Path.Combine("cache", "dlls") + Path.DirectorySeparatorChar, file.Path);
+            }
+            else {
+                Assert.Equal(installed, file.Path);
+                Assert.True(File.Exists(installed));
+            }
+        }
+        finally { foreach (var file in files) file.Dispose(); }
+    }
+
+    private static (UnchainedLauncher.Core.Services.Dlls.DllManager Manager, string Installed) CachedDll(ProfileAssetPaths shared, HttpClient http) {
         var release = new UnchainedLauncher.Core.Services.Dlls.DllRelease("org", "plugin", "1.0.0",
             "https://example.test/plugin.dll", Convert.ToHexString(System.Security.Cryptography.SHA256.HashData([1, 2, 3])).ToLowerInvariant(), 3);
         var cache = Path.Combine(shared.DllCache, release.Sha256, "plugin.dll");

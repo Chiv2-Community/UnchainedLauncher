@@ -15,8 +15,10 @@ public class ServerMonitorTests {
         using var process = Process.Start(info)!;
         await process.WaitForExitAsync();
         var monitor = new ServerMonitor(process, new PendingQuery());
-        await monitor.RunAsync((_, _) => Assert.True(false, "Exited processes must not render samples"), CancellationToken.None)
+        var renders = 0;
+        await monitor.RunAsync((_, _) => renders++, CancellationToken.None)
             .WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(1, renders); // Final history render, not a fabricated metrics sample.
         Assert.Empty(monitor.History.Samples);
         Assert.Equal("Server exited (code 7)", monitor.History.Events.Last().Message);
     }

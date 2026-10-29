@@ -35,6 +35,7 @@ public static class Program {
                     ? await DllQuery.RunAsync(query, registry, Console.Out, Console.Error, stop.Token)
                     : await ModQuery.RunAsync(query, registry, Console.Out, Console.Error, stop.Token);
             }
+            foreach (var launch in launches) await ProtonRuntime.ConfigureAsync(launch, stop.Token);
             if (command is ServerGroupOptions group) return await ServerGroupRunner.RunAsync(group, stop);
             var options = (CliLaunchOptions)command;
             using var instanceLease = options.InstancePaths.AcquireLease();
@@ -49,7 +50,10 @@ public static class Program {
         finally { Console.CancelKeyPress -= handler; }
     }
 
-    internal static async Task<int> SuperviseAsync(CliLaunchOptions options, Process process, CancellationTokenSource stop) {
+    internal static Task<int> SuperviseAsync(CliLaunchOptions options, Process process, CancellationTokenSource stop) =>
+        SuperviseAsync(options, new LaunchedGame(process), stop);
+
+    internal static async Task<int> SuperviseAsync(CliLaunchOptions options, LaunchedGame process, CancellationTokenSource stop) {
         if (options is ClientOptions) {
             // Match the GUI's client lifecycle: launch the game, then leave it
             // running independently. Only servers are owned by this console.
@@ -68,8 +72,7 @@ public static class Program {
             // leave an unobserved server running. Kill is Core's existing stop behavior.
             if (!process.HasExited) {
                 Console.Error.WriteLine("Stopping server...");
-                process.Kill(entireProcessTree: true);
-                await process.WaitForExitAsync();
+                await process.StopAsync();
             }
         }
     }

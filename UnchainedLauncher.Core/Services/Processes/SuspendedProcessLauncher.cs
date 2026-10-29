@@ -11,15 +11,40 @@ internal static class SuspendedProcessLauncher {
     private static readonly log4net.ILog Logger = log4net.LogManager.GetLogger(typeof(SuspendedProcessLauncher));
     private const uint CreateSuspended = 0x00000004;
     internal static Either<LaunchFailed, Process> Launch(string executable, string workingDirectory, string args,
-        Func<Process, bool> initialize) {
-        var startup = new StartupInfo { Size = Marshal.SizeOf<StartupInfo>() };
+        Func<Process, bool> initialize, ProcessOutputCapture? output = null) {
+        var startup = new StartupInfoEx { Info = new StartupInfo { Size = Marshal.SizeOf<StartupInfo>() } };
         ProcessInformation native = default;
         Process? process = null;
         var resumed = false;
+        var handles = IntPtr.Zero;
+        var attributesInitialized = false;
         try {
+            if (output != null) {
+                startup.Info.Size = Marshal.SizeOf<StartupInfoEx>();
+                startup.Info.Flags = 0x00000100; // STARTF_USESTDHANDLES
+                startup.Info.StandardOutput = output.OutputHandle;
+                startup.Info.StandardError = output.ErrorHandle;
+                startup.Info.StandardInput = output.InputHandle;
+                nuint size = 0;
+                InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref size);
+                if (size == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
+                startup.Attributes = Marshal.AllocHGlobal(checked((nint)size));
+                if (!InitializeProcThreadAttributeList(startup.Attributes, 1, 0, ref size))
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+                attributesInitialized = true;
+                var inherited = output.InheritedHandles;
+                handles = Marshal.AllocHGlobal(inherited.Length * IntPtr.Size);
+                for (var i = 0; i < inherited.Length; i++) Marshal.WriteIntPtr(handles, i * IntPtr.Size, inherited[i]);
+                // Inherit only this child's stdio, never unrelated handles.
+                if (!UpdateProcThreadAttribute(startup.Attributes, 0, (IntPtr)0x00020002, handles,
+                    (nuint)(inherited.Length * IntPtr.Size), IntPtr.Zero, IntPtr.Zero))
+                    throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
             var path = Path.GetFullPath(executable);
             var commandLine = new StringBuilder($"\"{path}\" {args}");
-            if (!CreateProcessW(path, commandLine, IntPtr.Zero, IntPtr.Zero, false, CreateSuspended,
+            if (!CreateProcessW(path, commandLine, IntPtr.Zero, IntPtr.Zero, output != null,
+                CreateSuspended
+                    | (output == null ? 0u : 0x08080000u), // CREATE_NO_WINDOW | EXTENDED_STARTUPINFO_PRESENT
                 IntPtr.Zero, Path.GetFullPath(workingDirectory), ref startup, out native))
                 throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not create suspended process.");
 
@@ -39,6 +64,9 @@ internal static class SuspendedProcessLauncher {
             return Left(new LaunchFailed(executable, args, error));
         }
         finally {
+            if (attributesInitialized) DeleteProcThreadAttributeList(startup.Attributes);
+            if (startup.Attributes != IntPtr.Zero) Marshal.FreeHGlobal(startup.Attributes);
+            if (handles != IntPtr.Zero) Marshal.FreeHGlobal(handles);
             if (!resumed && native.Process != IntPtr.Zero) {
                 // Never resume a game after failed injection, including exceptions from the injector.
                 if (!TerminateProcess(native.Process, 1))
@@ -47,7 +75,14 @@ internal static class SuspendedProcessLauncher {
             if (native.Thread != IntPtr.Zero) CloseHandle(native.Thread);
             if (native.Process != IntPtr.Zero) CloseHandle(native.Process);
             if (!resumed) process?.Dispose();
+            output?.SealClientHandles();
         }
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct StartupInfoEx {
+        public StartupInfo Info;
+        public IntPtr Attributes;
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -71,8 +106,20 @@ internal static class SuspendedProcessLauncher {
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool CreateProcessW(string applicationName, StringBuilder commandLine,
         IntPtr processAttributes, IntPtr threadAttributes, [MarshalAs(UnmanagedType.Bool)] bool inheritHandles,
-        uint creationFlags, IntPtr environment, string currentDirectory, ref StartupInfo startupInfo,
+        uint creationFlags, IntPtr environment, string currentDirectory, ref StartupInfoEx startupInfo,
         out ProcessInformation processInformation);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool InitializeProcThreadAttributeList(IntPtr list, int count, uint flags, ref nuint size);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool UpdateProcThreadAttribute(IntPtr list, uint flags, IntPtr attribute,
+        IntPtr value, nuint size, IntPtr previous, IntPtr returnedSize);
+
+    [DllImport("kernel32.dll")]
+    private static extern void DeleteProcThreadAttributeList(IntPtr list);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern uint ResumeThread(IntPtr thread);

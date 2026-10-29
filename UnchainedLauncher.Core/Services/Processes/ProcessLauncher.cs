@@ -56,14 +56,18 @@ namespace UnchainedLauncher.Core.Services.Processes {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ProcessLauncher));
 
         public string Executable { get; }
+        private readonly ProcessOutputCapture? _output;
 
-        public ProcessLauncher(string executable) {
+        public ProcessLauncher(string executable) : this(executable, null) { }
+
+        public ProcessLauncher(string executable, ProcessOutputCapture? output) {
             Executable = executable;
+            _output = output;
         }
 
         public Either<LaunchFailed, Process> Launch(string workingDirectory, string args, Func<Process, bool> initialize) {
             if (OperatingSystem.IsWindows())
-                return SuspendedProcessLauncher.Launch(Executable, workingDirectory, args, initialize);
+                return SuspendedProcessLauncher.Launch(Executable, workingDirectory, args, initialize, _output);
             // Game launching is Windows-only; retain portable argument-probe support.
             return Launch(workingDirectory, args).Bind(process => Initialize(process, initialize, Executable, args));
         }
@@ -92,6 +96,8 @@ namespace UnchainedLauncher.Core.Services.Processes {
         /// The process that was created.
         /// </returns>
         public Either<LaunchFailed, Process> Launch(string workingDirectory, string args) {
+            if (_output != null && OperatingSystem.IsWindows())
+                return SuspendedProcessLauncher.Launch(Executable, workingDirectory, args, _ => true, _output);
             var proc = new Process {
                 StartInfo = new ProcessStartInfo() {
                     FileName = Executable,

@@ -3,6 +3,11 @@
 This project launches an Unchained Chivalry 2 **client or server**, without the WPF GUI.
 On Windows, the shared game launcher creates the game suspended, injects DLLs,
 then resumes its main thread. Failed injection terminates the suspended game.
+On Linux, the native CLI invokes Proton with a bundled Windows launch helper.
+Steam and Epic Games Store/Heroic installations are supported; Epic authentication
+comes from the existing Heroic/Legendary login flow, not Steam.
+The native Rust helper uses Windows suspended launch and injection APIs; the TUI stays in
+the invoking Linux terminal. Only the game and helper run under Proton.
 CLI servers also pass TOS-acceptance and first-load-completed INI overrides to
 avoid interactive first-run screens. The CLI also initializes the game's saved profile.
 Profile-local paks use the game's native `Saved_<suffix>/Paks` search directory.
@@ -52,8 +57,167 @@ dotnet publish UnchainedLauncher.CLI -c Release -r win-x64 --self-contained true
 .\out-cli\UnchainedLauncher.CLI.exe server --help
 ```
 
-Help, parsing, and the unit tests also work on Linux. Actual game launching and
-DLL injection require Windows; Wine/Proton launching is not implemented.
+### Linux with Proton
+
+Use x86-64 Linux and publish the native CLI with its Windows helper. The example
+below is for **Steam**: keep Steam running and launch through Steam once to
+initialize its prefix. Epic users use the same published bundle but follow
+[Epic/Heroic setup](#epic-games-store-and-heroic-on-linux) instead; Steam is not a
+prerequisite for that store.
+
+Building on Linux also requires Rust, the `x86_64-pc-windows-msvc` target
+(`rustup target add x86_64-pc-windows-msvc`), Clang/LLD, and `uv`.
+The build invokes `uvx cargo-xwin` to cross-compile the helper; its first run
+downloads the Windows SDK/CRT. The helper links the CRT statically and has no
+.NET runtime dependency. Published binaries do not require these build tools.
+
+```bash
+dotnet publish UnchainedLauncher.CLI -c Release -r linux-x64 --self-contained true -o out-cli-linux
+./out-cli-linux/UnchainedLauncher.CLI server \
+  --chivalry2-path "$HOME/.local/share/Steam/steamapps/common/Chivalry 2" \
+  --platform Steam \
+  --saved-dir-suffix MyServer \
+  --name 'My Unchained Server' \
+  --starting-map FFA_Courtyard
+```
+
+Linux publication produces one executable, including the Linux .NET runtime and
+native Windows helper; .NET extracts its contents automatically at startup. Updated
+bundles extract into their own content-specific directories. Ordinary Linux builds
+copy the helper beside the CLI. Do not run the Windows CLI under Proton. Press `Q`
+or Ctrl+C in the native terminal to stop a server. Client launches leave the game
+running independently.
+
+Discovery uses Steam's `libraryfolders.vdf` and game app manifest to locate the
+game library and its `steamapps/compatdata/1824220` directory. Tool selection
+honors `STEAM_COMPAT_TOOL_PATHS` or Steam's configured compatibility-tool name.
+Ambiguous or unknown tools require an explicit `--proton-path`; the CLI does not
+silently pick a different installed Proton version.
+
+Overrides for nonstandard installations:
+
+- `--proton-path`: Proton executable or its containing directory.
+- `--compat-data-path`: compatibility-data directory **containing `pfx`**, not
+  `pfx` itself. Also honors `STEAM_COMPAT_DATA_PATH` and standard `WINEPREFIX`
+  pointing to a Proton `pfx` directory.
+- `--steam-path`: Steam client directory, also read from
+  `STEAM_COMPAT_CLIENT_INSTALL_PATH`. Standard and Flatpak Steam locations are searched.
+- `--proton-helper`: helper executable for development; published builds locate
+  their bundled helper automatically.
+
+The same settings are available under root-level `proton` in YAML:
+
+```yaml
+proton:
+  path: /path/to/Proton/proton
+  compat-data-path: /path/to/steamapps/compatdata/1824220
+  steam-path: /path/to/Steam
+```
+
+YAML paths resolve relative to the configuration file. Wine's known-folder API
+provides `LocalAppData`; `winepath` translates paths between the native host and
+the selected prefix. The CLI never assumes a Windows username or constructs
+`drive_c/users/steamuser` paths. Profile paks, plugins, INI files, and caches use
+the same `Saved_<suffix>` layout as Windows inside that prefix.
+
+On Linux, selected DLLs are injected directly from content-addressed cache paths
+outside `Plugins`; inventories remain per-profile. Switching versions or
+deselecting a DLL does not delete old installed files or cache objects. Only the
+selected descriptors are injected (unless unsafe loading is explicitly enabled).
+Windows retains managed installation and handle-protected archival.
+
+DLLs are registry-validated natively, then hash/size-checked again and held open
+by the helper before injection. Per-launch IPC is private and never puts game
+credentials on the helper's command line. The native monitor uses the game's
+Unix PID for resource metrics and the helper for exit status. Cancellation stops
+only the owned game, never the prefix-wide wineserver. If a server's CLI dies
+unexpectedly, the helper stops its game after the heartbeat expires.
+
+For Linux Epic/Heroic launches, see below. macOS game launching is unsupported.
+Registry queries remain portable and do not require Proton.
+
+### Epic Games Store and Heroic on Linux
+
+Both `server` and `client` accept `--platform EGS` (`EpicGamesStore` is equivalent).
+Use the Heroic-installed game directory for `--chivalry2-path`; the CLI does not
+download the game, sign in to Epic, or select a Heroic account.
+
+1. Install and launch the game through Heroic once using a **Proton** runner.
+   This initializes its compatibility-data directory containing `pfx/system.reg`.
+   Wine-only/Wine-GE prefixes are not supported by the CLI's Proton backend.
+2. Sign in through Heroic/Legendary. Native Heroic/Legendary requires a compatible
+   `legendary` command on `PATH`; matching Flatpak Heroic installations use their
+   bundled Legendary through `flatpak`, without a native Legendary installation.
+3. Launch the native CLI with `--platform EGS`. When the installed game path
+   matches Heroic's `Peppermint` entry, the CLI reuses its selected Proton executable
+   and prefix. Discovery reads native `$XDG_CONFIG_HOME/heroic` (default
+   `~/.config/heroic`) and Flatpak
+   `~/.var/app/com.heroicgameslauncher.hgl/config/heroic` settings.
+
+For custom locations, stale Heroic settings, or a separate initialized server
+prefix, override both `--proton-path` and `--compat-data-path`. The latter is the
+directory **containing `pfx`**, not `pfx` itself. `WINEPREFIX` pointing at that
+`pfx` also works. Explicit flags and Proton environment overrides take precedence
+over Heroic settings. Do not substitute an uninitialized directory or a different
+runner into an active prefix.
+
+Steam installation, Steam login, and Steam game manifests are **not required for
+EGS**. The CLI does not assign Chivalry 2's Steam app ID to Epic launches or choose
+Epic's runner from Steam's game settings. An explicitly selected Proton build may
+still require its normal host/runtime dependencies. Both stores use the same
+plugin injection, stdio capture, and `--no-spawn-console`
+paths.
+
+On each Linux EGS launch, the CLI automatically obtains fresh launch arguments
+noninteractively from Legendary using the matching Heroic login directory, or
+Legendary's default login when no Heroic installation matches. Authentication is
+cancellable and times out after 60 seconds. `LEGENDARY_CONFIG_PATH` overrides the
+login directory; use the account associated with the installed game.
+
+Explicit `AUTH_*` game arguments (after `--`, or in YAML `game-args`) bypass
+automatic authentication. Native Windows EGS launches still require fresh arguments
+from an external Epic launch flow. Missing or expired credentials can leave the
+game at Frontend without a working server.
+
+The CLI does not store credentials or add an Epic login client. Do not save launch
+tokens in YAML, shell history, screenshots, or shared logs; game arguments can
+still be visible to local process inspection.
+
+### Captured server output
+
+Server launches capture stdout and stderr and pass the plugin's `--attach-stdio`
+argument automatically. The launcher creates `<saveddir>/unchained/logging.yaml`
+if missing and passes its path through `--log4rs-yaml`. It selects native log4rs
+JSON on stdout and retains normal text file logs and filters. Existing YAML is
+preserved; edit it to customize logging, or pass an explicit `--log4rs-yaml` game
+argument to use another file. Proton receives the Windows-mapped path.
+`--no-spawn-console` independently
+suppresses its console window. Captured stdin is EOF, not the TUI's keyboard.
+
+Windows supplies ordinary redirected stdio with an explicit handle inheritance
+list. Linux passes redirected handles through the bundled Windows helper using Proton
+`runinprefix`, avoiding the Steam.exe wrapper that discards inherited streams.
+
+The helper is supplied by UnchainedLauncher, not Proton. Its request/heartbeat
+protocol is private and version-coupled to the CLI; deploy the matching bundle.
+For JSON output and integration details, see the plugin's
+[structured logging guide](https://github.com/Chiv2-Community/UnchainedPlugin/blob/feature/console-forwarding/docs/logging.md#structured-logging).
+
+Press **L** to switch between the dashboard and full console, **Page Up/Page Down**
+to scroll, and **End** to resume following new output. Each server has its own
+512-line history; the dashboard also shows a short preview. Plain/no-TUI mode
+prints received lines. Native log4rs JSON records are displayed as timestamp,
+level, module (or target), and message. Other output, including non-JSON startup
+diagnostics and malformed records, remains plain text.
+
+Retained history and displayed lines are bounded; terminal controls are neutralized.
+Output includes game and other DLL output, not just plugin logs. Slow readers can
+block writers. Configure a log4rs JSON file appender for a separate machine-readable
+log with all structured attributes. File appenders remain independent. Interactive
+console commands are not supported.
+
+UE logging switches are not added. Chivalry 2's shipping build does not provide
+UE log output.
 
 ## Mod registry queries
 
@@ -564,9 +728,11 @@ UnchainedLauncher.CLI.exe server --chivalry2-path "C:\Games\Chivalry 2" --platfo
 ```
 
 `--platform Steam` creates `steam_appid.txt` with Chivalry 2's app ID if it is missing;
-Steam must be available for authentication. `--platform EGS` does not obtain Epic
-credentials. Supply the current Epic launch/authentication arguments after `--`
-from your existing EGS launch flow. Selecting EGS alone does not authenticate you.
+Steam must be available for authentication. On Linux, `--platform EGS` obtains
+fresh arguments from the existing Heroic/Legendary login unless explicit `AUTH_*`
+game arguments are supplied; see [Epic/Heroic setup](#epic-games-store-and-heroic-on-linux).
+On native Windows, supply fresh Epic launch/authentication arguments after `--`
+from your external EGS launch flow.
 Avoid exposing authentication arguments and passwords in shared scripts or process listings.
 
 ## Live dashboard and shutdown
@@ -611,4 +777,7 @@ dotnet test UnchainedLauncher.CLI.Tests -c Release
 
 Tests cover parsing, Core option mapping, registry configuration, dependency checks,
 bounded history, unavailable telemetry, and monitor cancellation without a game installation.
-Windows CI builds, tests, and publishes the CLI separately from the GUI.
+Proton tests cover Steam metadata, library symlinks, tool/prefix overrides, private
+IPC directories, argument boundaries, and separate game/supervisor metrics.
+Windows and Linux CI test and publish the CLI separately from the GUI. Linux
+artifacts include the Windows Proton helper; CI does not launch the actual game.

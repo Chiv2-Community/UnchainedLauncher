@@ -59,7 +59,11 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         [property: JsonPropertyName("target")] string Target = "shared",
         [property: JsonPropertyName("$schema"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Schema = null) {
         [JsonIgnore]
-        public IReadOnlyList<Dependency> RequiredMods => ModDependencies ?? [];
+        public IReadOnlyList<Dependency> RequiredMods => ModDependencies ?? Dependencies ?? [];
+
+        // A modern list, including an empty list, overrides deprecated dependencies.
+        [JsonPropertyName("dependencies"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public IReadOnlyList<Dependency>? Dependencies { get; init; }
         [JsonIgnore]
         public IReadOnlyList<Dependency> RequiredPlugins => PluginDependencies ?? [];
         public void Validate() {

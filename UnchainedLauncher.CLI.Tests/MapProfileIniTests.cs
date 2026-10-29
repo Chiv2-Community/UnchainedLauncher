@@ -57,13 +57,22 @@ public sealed class MapProfileIniTests : IDisposable {
               map-rotation:
                 - day
                 - night
-                - day
+                - map-name: FFA_Courtyard
+                  name: Day reprise
+                  ini:
+                    engine:
+                      ModSettings:
+                        Value: {type: Int, value: 20}
+                        Names: {type: 'String[]', value: []}
                 - {map-name: FFA_Wardenglade}
             """);
         await MapProfileIni.PrepareAsync(server, CancellationToken.None);
         var directories = ProfileDirectories(server);
         Assert.Equal(4, directories.Length);
-        Assert.Equal(directories[0], directories[2]);
+        Assert.NotEqual(directories[0], directories[2]);
+        Assert.Equal("Day", Path.GetFileName(directories[0]));
+        Assert.Equal("Day reprise", Path.GetFileName(directories[2]));
+        Assert.Equal(File.ReadAllText(Path.Combine(directories[0], "Engine.ini")), File.ReadAllText(Path.Combine(directories[2], "Engine.ini")));
         Assert.NotEqual(directories[0], directories[1]);
         Assert.False(Directory.Exists(Path.Combine(server.MapProfilePath!, "ini-overrides", "map-indices")));
         Assert.Equal(3, server.Settings.Rotation!.StartIndex);

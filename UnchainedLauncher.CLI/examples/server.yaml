@@ -4,6 +4,12 @@ platform: Steam # Steam or EGS; required
 map-profiles:
   courtyard:
     map-name: FFA_Courtyard
+    # Optional per-map mod configuration (requires plugin feature map_profiles).
+    # Each field needs a server.ini default; profile values override that default.
+    # ini:
+    #   Engine:
+    #     /Game/Mods/AgMods/Example.Example_C:
+    #       RoundLimit: {type: Int, value: 5}
 
 # Run with: UnchainedLauncher.CLI.exe server --config-path server.yaml
 # Paks live in %LOCALAPPDATA%/Chivalry 2/Saved_MyServer/Paks/.
@@ -29,6 +35,10 @@ server:
     dlls:
       - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
   ini:
+    # Default for the optional courtyard override above:
+    # Engine:
+    #   /Game/Mods/AgMods/Example.Example_C:
+    #     RoundLimit: {type: Int, value: 10}
     Game:
       /Script/TBL.TBLGameMode:
         BotBackfillEnabled: true

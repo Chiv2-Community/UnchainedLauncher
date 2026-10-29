@@ -123,7 +123,7 @@ public sealed class ServerProfileTests : IDisposable {
                 Engine:
                   Custom:
                     Selected: {type: Int, value: 7}
-            """ + (rotation ? "\n  map-rotation:\n    - {map-name: FFA_New}\n    - {map-name: FFA_New}\n" : ""));
+            """ + (rotation ? "\n  map-rotation:\n    - {map-name: FFA_New, name: First round}\n    - {map-name: FFA_New, name: Second round}\n" : ""));
         File.WriteAllText(Path.Combine(_directory, "Game.ini"), """
             [/Script/TBL.TBLTitleScreen]
             Neighbor=title

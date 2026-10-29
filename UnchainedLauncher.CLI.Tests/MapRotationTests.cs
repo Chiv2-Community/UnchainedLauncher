@@ -22,13 +22,14 @@ public sealed class MapRotationTests : IDisposable {
               map-rotation:
                 - courtyard
                 - map-name: FFA_Wardenglade
-                - courtyard
+                - {map-name: FFA_Courtyard, name: Courtyard reprise}
             map-profiles:
               courtyard:
                 map-name: FFA_Courtyard
             """));
         Assert.Equal(["FFA_Courtyard", "FFA_Wardenglade", "FFA_Courtyard"], options.Settings.Rotation!.Maps);
         Assert.Equal(0, options.Settings.Rotation.StartIndex);
+        Assert.Equal(["Courtyard", "FFA Wardenglade", "Courtyard reprise"], options.Settings.Rotation.Names);
         Assert.Equal("FFA_Courtyard", options.ToServerLaunchOptions().Map);
     }
 
@@ -73,7 +74,7 @@ public sealed class MapRotationTests : IDisposable {
         var options = Assert.IsType<ServerOptions>(Parse("""
             server:
               map-rotation:
-                - map-name: FFA_Wardenglade
+                - {map-name: FFA_Wardenglade, name: Wardenglade first}
                 - map-name: FFA_Wardenglade
                 - map-name: /Game/Maps/Custom.Custom
             """));
@@ -121,14 +122,12 @@ public sealed class MapRotationTests : IDisposable {
     [InlineData("server: {map-rotation: [{map-name: 'map with spaces'}]}")]
     [InlineData("server: {map-rotation: [{map-name: '../outside'}]}")]
     [InlineData("server: {map-rotation: [{map-name: FFA_Courtyard, typo: true}]}")]
-    [InlineData("server: {map-rotation: [{map-name: FFA_Courtyard, ini: {}}]}")]
     [InlineData("server: {map-rotation: [{map-name: FFA_Courtyard, mod-actors: []}]}")]
     [InlineData("map-profiles: {unused: {}}")]
     [InlineData("map-profiles: {unused: null}")]
     [InlineData("map-profiles: {'': {map-name: FFA_Courtyard}}")]
     [InlineData("map-profiles: {one: {map-name: FFA_Courtyard}, one: {map-name: FFA_Bazaar}}")]
     [InlineData("map-profiles: {one: {map-name: FFA_Courtyard, mod-actors: []}}")]
-    [InlineData("map-profiles: {one: {map-name: FFA_Courtyard, ini: {}}}")]
     [InlineData("map-profiles: {one: other}")]
     [InlineData("server: {starting-map: FFA_Bazaar, map-rotation: [{map-name: FFA_Courtyard}]}")]
     public void InvalidRotationsAndProfilesFailBeforePreparation(string yaml) {
@@ -164,6 +163,102 @@ public sealed class MapRotationTests : IDisposable {
     public void RotationIndexCannotBeOverriddenByIni() {
         var error = Assert.Throws<ArgumentException>(() => Parse($"server:\n  map-rotation: [{{map-name: FFA_Courtyard}}]\n  ini:\n    Game:\n      {Section}:\n        MapListIndex: 1"));
         Assert.Contains("starting-map", error.Message);
+    }
+
+    [Theory]
+    [InlineData("foo-bar", "Foo bar")]
+    [InlineData("FOO_BAR", "Foo bar")]
+    [InlineData("night-rules", "Night rules")]
+    public void MissingProfileNamesBecomeReadableLabels(string key, string expected) {
+        var options = Assert.IsType<ServerOptions>(Parse($"map-profiles:\n  {key}: {{map-name: FFA_Courtyard}}\nserver: {{map-rotation: [{key}]}}"));
+        Assert.Equal(expected, Assert.Single(options.Settings.Rotation!.Names));
+    }
+
+    [Fact]
+    public void GeneratedNamesPreserveModesAndMapWords() {
+        var options = Assert.IsType<ServerOptions>(Parse("""
+            map-profiles:
+              ffa-courtyard: {map-name: FFA_Courtyard}
+              night-wardenglade: {map-name: TDM_Wardenglade}
+              to-galencourt: {map-name: TO_Galencourt}
+            server:
+              map-rotation:
+                - ffa-courtyard
+                - night-wardenglade
+                - to-galencourt
+                - {map-name: /Game/Maps/TO_TournamentGrounds.TO_TournamentGrounds}
+            """));
+        Assert.Equal(["FFA Courtyard", "Night Wardenglade", "TO Galencourt", "TO Tournament Grounds"], options.Settings.Rotation!.Names);
+    }
+
+    [Fact]
+    public void ExplicitNamesOverrideDefaultsWithoutChangingMapIdentity() {
+        var options = Assert.IsType<ServerOptions>(Parse("""
+            map-profiles:
+              foo-bar:
+                name: Evening FFA
+                map-name: FFA_Courtyard
+            server:
+              map-rotation:
+                - foo-bar
+                - {name: Later FFA, map-name: FFA_Courtyard}
+            """));
+        Assert.Equal(["Evening FFA", "Later FFA"], options.Settings.Rotation!.Names);
+        Assert.Equal(["FFA_Courtyard", "FFA_Courtyard"], options.Settings.Rotation.Maps);
+    }
+
+    [Theory]
+    [InlineData("map-profiles: {one: {map-name: FFA_Courtyard}}\nserver: {map-rotation: [one, one]}")]
+    [InlineData("server: {map-rotation: [{map-name: FFA_Courtyard}, {map-name: FFA_Courtyard}]}")]
+    [InlineData("server: {map-rotation: [{name: Evening, map-name: FFA_Courtyard}, {name: evening, map-name: FFA_Bazaar}]}")]
+    [InlineData("map-profiles: {foo-bar: {map-name: FFA_Courtyard}, foo_bar: {map-name: FFA_Bazaar}}\nserver: {map-rotation: [foo-bar, foo_bar]}")]
+    public void RotationNamesMustBeUniqueAfterDefaultingAndCaseFolding(string yaml) {
+        Assert.Contains("names must be unique", Assert.Throws<ArgumentException>(() => Parse(yaml)).Message);
+        Assert.False(File.Exists(Path.Combine(_root, "Game.ini")));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData(" leading")]
+    [InlineData("line\nbreak")]
+    public void ProfileNamesMustBeNonblankLabels(string name) {
+        var quoted = System.Text.Json.JsonSerializer.Serialize(name);
+        var error = Assert.Throws<ArgumentException>(() => Parse("server: {map-rotation: [{map-name: FFA_Courtyard, name: " + quoted + "}]}"));
+        Assert.Contains("profile name", error.Message);
+    }
+
+    [Theory]
+    [InlineData("../outside")]
+    [InlineData("CON")]
+    [InlineData("trailing.")]
+    [InlineData("bad:profile")]
+    public void ProfileReferencesMustBePortableFolders(string profile) {
+        var quoted = System.Text.Json.JsonSerializer.Serialize(profile);
+        var error = Assert.Throws<ArgumentException>(() => Parse("map-profiles: {" + quoted + ": {name: Display label, map-name: FFA_Courtyard}}\nserver: {map-rotation: [" + quoted + "]}"));
+        Assert.Contains("profile directory", error.Message);
+    }
+
+    [Fact]
+    public void ProfileReferencesAndDisplayNamesAreIndependent() {
+        var options = Assert.IsType<ServerOptions>(Parse("""
+            map-profiles:
+              wardenglade-giantslayers:
+                map-name: FFA_Wardenglade
+                name: Wardenglade / GiantSlayers
+            server:
+              map-rotation: [wardenglade-giantslayers]
+            """));
+        Assert.Equal("wardenglade-giantslayers", Assert.Single(options.Settings.Rotation!.Profiles));
+        Assert.Equal("Wardenglade / GiantSlayers", Assert.Single(options.Settings.Rotation.Names));
+    }
+
+    [Fact]
+    public void DirectoryReferencesCannotCollideAcrossCaseOrInlineEntries() {
+        foreach (var yaml in new[] {
+            "map-profiles: {foo: {name: First, map-name: FFA_Courtyard}, FOO: {name: Second, map-name: FFA_Bazaar}}\nserver: {map-rotation: [foo, FOO]}",
+            "map-profiles: {inline-1: {name: First, map-name: FFA_Courtyard}}\nserver: {map-rotation: [inline-1, {map-name: FFA_Bazaar}]}"
+        }) Assert.Contains("directory references must be unique", Assert.Throws<ArgumentException>(() => Parse(yaml)).Message);
     }
 
     [Theory]

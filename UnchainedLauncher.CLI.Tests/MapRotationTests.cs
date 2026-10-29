@@ -220,14 +220,45 @@ public sealed class MapRotationTests : IDisposable {
     [Theory]
     [InlineData("")]
     [InlineData("  ")]
-    [InlineData("../outside")]
-    [InlineData("CON")]
-    [InlineData("trailing.")]
     [InlineData(" leading")]
-    public void ProfileNamesMustBePortableFolders(string name) {
+    [InlineData("line\nbreak")]
+    public void ProfileNamesMustBeNonblankLabels(string name) {
         var quoted = System.Text.Json.JsonSerializer.Serialize(name);
         var error = Assert.Throws<ArgumentException>(() => Parse("server: {map-rotation: [{map-name: FFA_Courtyard, name: " + quoted + "}]}"));
         Assert.Contains("profile name", error.Message);
+    }
+
+    [Theory]
+    [InlineData("../outside")]
+    [InlineData("CON")]
+    [InlineData("trailing.")]
+    [InlineData("bad:profile")]
+    public void ProfileReferencesMustBePortableFolders(string profile) {
+        var quoted = System.Text.Json.JsonSerializer.Serialize(profile);
+        var error = Assert.Throws<ArgumentException>(() => Parse("map-profiles: {" + quoted + ": {name: Display label, map-name: FFA_Courtyard}}\nserver: {map-rotation: [" + quoted + "]}"));
+        Assert.Contains("profile directory", error.Message);
+    }
+
+    [Fact]
+    public void ProfileReferencesAndDisplayNamesAreIndependent() {
+        var options = Assert.IsType<ServerOptions>(Parse("""
+            map-profiles:
+              wardenglade-giantslayers:
+                map-name: FFA_Wardenglade
+                name: Wardenglade / GiantSlayers
+            server:
+              map-rotation: [wardenglade-giantslayers]
+            """));
+        Assert.Equal("wardenglade-giantslayers", Assert.Single(options.Settings.Rotation!.Profiles));
+        Assert.Equal("Wardenglade / GiantSlayers", Assert.Single(options.Settings.Rotation.Names));
+    }
+
+    [Fact]
+    public void DirectoryReferencesCannotCollideAcrossCaseOrInlineEntries() {
+        foreach (var yaml in new[] {
+            "map-profiles: {foo: {name: First, map-name: FFA_Courtyard}, FOO: {name: Second, map-name: FFA_Bazaar}}\nserver: {map-rotation: [foo, FOO]}",
+            "map-profiles: {inline-1: {name: First, map-name: FFA_Courtyard}}\nserver: {map-rotation: [inline-1, {map-name: FFA_Bazaar}]}"
+        }) Assert.Contains("directory references must be unique", Assert.Throws<ArgumentException>(() => Parse(yaml)).Message);
     }
 
     [Theory]

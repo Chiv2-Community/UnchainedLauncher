@@ -200,8 +200,12 @@ or shared logs; game arguments can still be visible to local process inspection.
 ### Captured server output
 
 Server launches capture stdout and stderr and pass the plugin's `--attach-stdio`
-argument automatically. No capture switch or special logging configuration is
-needed. The plugin uses inherited output. `--no-spawn-console` independently
+argument automatically. The launcher creates `<saveddir>/unchained/logging.yaml`
+if missing and passes its path through `--log4rs-yaml`. It selects native log4rs
+JSON on stdout and retains normal text file logs and filters. Existing YAML is
+preserved; edit it to customize logging, or pass an explicit `--log4rs-yaml` game
+argument to use another file. Proton receives the Windows-mapped path.
+`--no-spawn-console` independently
 suppresses its console window. Captured stdin is EOF, not the TUI's keyboard.
 
 Windows supplies ordinary redirected stdio with an explicit handle inheritance
@@ -216,17 +220,18 @@ For JSON output and integration details, see the plugin's
 Press **L** to switch between the dashboard and full console, **Page Up/Page Down**
 to scroll, and **End** to resume following new output. Each server has its own
 512-line history; the dashboard also shows a short preview. Plain/no-TUI mode
-prints received lines. The launcher displays text and JSON as written by the
-configured appenders; it does not decode or reformat JSON records.
+prints received lines. Native log4rs JSON records are displayed as timestamp,
+level, module (or target), and message. Other output, including non-JSON startup
+diagnostics and malformed records, remains plain text.
 
 Retained history and displayed lines are bounded; terminal controls are neutralized.
 Output includes game and other DLL output, not just plugin logs. Slow readers can
 block writers. Configure a log4rs JSON file appender for a separate machine-readable
-log, or select JSON on a console appender to emit it through stdio. File appenders
-remain independent. Interactive console commands are not supported.
+log with all structured attributes. File appenders remain independent. Interactive
+console commands are not supported.
 
-UE logging switches and custom plugin logging configuration are not added by
-the launcher. Chivalry 2's shipping build does not provide UE log output.
+UE logging switches are not added. Chivalry 2's shipping build does not provide
+UE log output.
 
 ## Mod registry queries
 

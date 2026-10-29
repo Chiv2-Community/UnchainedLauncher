@@ -22,6 +22,7 @@ public static class ServerLauncher {
         var instance = request.InstancePaths;
         if (!File.Exists(executable)) throw new FileNotFoundException("Chivalry 2 shipping executable was not found. Check --chivalry2-path.", executable);
         if (!Directory.Exists(basePakPath)) throw new DirectoryNotFoundException($"Chivalry 2 Paks directory was not found: {basePakPath}");
+        await PluginLogging.PrepareAsync(request, cancellationToken);
 
         var registry = CreateRegistry(request);
 

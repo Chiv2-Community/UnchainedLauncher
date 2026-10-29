@@ -49,17 +49,31 @@ public sealed class ForwardedConsoleTests {
     }
 
     [Fact]
-    public async Task CapturesPlainTextAndJsonWithoutAProtocolOrReformatting() {
-        const string json = "{\"time\":\"2026-10-28T12:34:56+00:00\",\"level\":\"INFO\",\"message\":\"[start] 世界\\nsecond\"}";
+    public async Task FormatsNativeJsonRecordsAlongsidePlainDiagnostics() {
+        const string json = "{\"time\":\"2026-10-28T12:34:56.123456789+02:00\",\"level\":\"INFO\",\"module_path\":\"plugin::startup\",\"message\":\"[start] 世界\\nsecond\\u001b[2J\",\"attributes\":{\"enclosing_function\":\"start\"}}";
         using var console = new ForwardedConsole();
         using var stdout = new FragmentedStream(Encoding.UTF8.GetBytes(json + "\nplain output\n"));
-        using var stderr = new MemoryStream(Encoding.UTF8.GetBytes("stderr output\n"));
+        using var stderr = new MemoryStream(Encoding.UTF8.GetBytes("stderr output\n" +
+            "{\"time\":\"2026-10-28T12:35:00Z\",\"level\":\"WARN\",\"target\":\"startup\",\"message\":\"warning\"}\n"));
         await Task.WhenAll(console.CaptureAsync(stdout), console.CaptureAsync(stderr));
         var lines = console.Drain();
-        Assert.Contains(json, lines);
+        Assert.Contains("[12:34:56 INFO ] [plugin::startup] [start] 世界 second [2J", lines);
         Assert.Contains("plain output", lines);
         Assert.Contains("stderr output", lines);
-        Assert.Equal(3, lines.Count);
+        Assert.Contains("[12:35:00 WARN ] [startup] warning", lines);
+        Assert.Equal(4, lines.Count);
+    }
+
+    [Theory]
+    [InlineData("{broken json")]
+    [InlineData("{\"message\":\"not a log record\"}")]
+    [InlineData("{\"time\":\"invalid\",\"level\":\"INFO\",\"message\":\"hello\"}")]
+    [InlineData("{\"time\":\"2026-10-28T12:34:56Z\",\"level\":7,\"message\":\"hello\"}")]
+    public async Task UnrecognizedJsonRemainsPlainOutput(string text) {
+        using var console = new ForwardedConsole();
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(text));
+        await console.CaptureAsync(stream);
+        Assert.Equal(text, Assert.Single(console.Drain()));
     }
 
     [Fact]

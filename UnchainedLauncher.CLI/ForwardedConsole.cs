@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Text;
+using System.Text.Json;
 
 namespace UnchainedLauncher.CLI;
 
@@ -62,10 +64,28 @@ internal sealed class ForwardedConsole : IDisposable {
 
     private void Add(string text) {
         if (text.Length == 0) return;
+        var line = ServerDashboard.SafeText(FormatRecord(text));
         lock (_lines) {
-            _lines.Enqueue(ServerDashboard.SafeText(text));
+            _lines.Enqueue(line);
             if (_lines.Count > MaxLines) { _lines.Dequeue(); _dropped++; }
         }
+    }
+
+    private static string FormatRecord(string text) {
+        if (!text.AsSpan().TrimStart().StartsWith("{")) return text;
+        try {
+            using var document = JsonDocument.Parse(text);
+            var record = document.RootElement;
+            string? Field(string name) => record.TryGetProperty(name, out var value)
+                && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+            var level = Field("level");
+            var message = Field("message");
+            if (level is not ("ERROR" or "WARN" or "INFO" or "DEBUG" or "TRACE") || message == null ||
+                !DateTimeOffset.TryParse(Field("time"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var time)) return text;
+            var source = Field("module_path") ?? Field("target");
+            return $"[{time:HH:mm:ss} {level,-5}] {(source == null ? "" : $"[{source}] ")}{message}";
+        }
+        catch (JsonException) { return text; }
     }
 
     public void Dispose() {

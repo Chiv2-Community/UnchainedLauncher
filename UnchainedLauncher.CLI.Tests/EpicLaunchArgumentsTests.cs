@@ -77,7 +77,9 @@ public sealed class EpicLaunchArgumentsTests : IDisposable {
 
     private static ProcessStartInfo Shell(string script) {
         var info = new ProcessStartInfo("/bin/sh") {
-            RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
         };
         info.ArgumentList.Add("-c");
         info.ArgumentList.Add(script);

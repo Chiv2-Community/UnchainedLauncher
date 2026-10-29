@@ -23,13 +23,15 @@ internal static class NativeGameLauncher {
                 new ProcessLauncher(executable, output: capture), installationRoot, injector);
             var result = await launcher.Launch(options);
             return result.Match(
-                Right: process => new LaunchedGame(process) { ConsoleOutput = console,
+                Right: process => new LaunchedGame(process) {
+                    ConsoleOutput = console,
                     CleanupOutput = () => {
                         stop?.Cancel();
                         console?.Dispose();
                         capture?.Dispose();
                         _ = drain.ContinueWith(_ => stop?.Dispose(), TaskScheduler.Default);
-                    } },
+                    }
+                },
                 // LaunchFailed.Message contains raw authentication arguments.
                 Left: failure => throw new InvalidOperationException("Game launch or DLL injection failed. Check the installation, plugin, and mod files.", failure));
         }

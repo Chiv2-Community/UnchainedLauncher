@@ -20,8 +20,10 @@ internal static class EpicLaunchArguments {
         var flatpakRoot = Path.Combine(home, ".var/app/com.heroicgameslauncher.hgl/config/heroic");
         var flatpak = heroic == flatpakRoot;
         var info = new ProcessStartInfo(flatpak ? "flatpak" : "legendary") {
-            UseShellExecute = false, RedirectStandardInput = true,
-            RedirectStandardOutput = true, RedirectStandardError = true
+            UseShellExecute = false,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
         };
         var config = environment("LEGENDARY_CONFIG_PATH") ??
             (heroic == null ? null : Path.Combine(heroic, "legendaryConfig/legendary"));

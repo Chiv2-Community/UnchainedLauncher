@@ -36,8 +36,10 @@ public sealed class SharedLaunchOptions {
         var proton = configuration.Proton ?? new ProtonConfiguration();
         string? Absolute(string? value) => value == null ? null : Path.GetFullPath(value, directory);
         ProtonConfiguration = new ProtonConfiguration {
-            Path = Absolute(proton.Path), CompatDataPath = Absolute(proton.CompatDataPath),
-            SteamPath = Absolute(proton.SteamPath), HelperPath = Absolute(proton.HelperPath)
+            Path = Absolute(proton.Path),
+            CompatDataPath = Absolute(proton.CompatDataPath),
+            SteamPath = Absolute(proton.SteamPath),
+            HelperPath = Absolute(proton.HelperPath)
         };
         Platform = configuration.Platform!.Value;
         Backend = configuration.ServerBrowserBackend;

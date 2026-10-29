@@ -38,7 +38,8 @@ internal static class ProtonGameLauncher {
                 arguments, files, options is ServerOptions);
             var requestPath = Path.Combine(directory, "request.json");
             await using (var stream = new FileStream(requestPath, new FileStreamOptions {
-                Mode = FileMode.CreateNew, Access = FileAccess.Write,
+                Mode = FileMode.CreateNew,
+                Access = FileAccess.Write,
                 UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite
             })) await JsonSerializer.SerializeAsync(stream, request, cancellationToken: token);
             await File.WriteAllTextAsync(heartbeat, "", token);

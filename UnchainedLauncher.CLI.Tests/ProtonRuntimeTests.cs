@@ -1,6 +1,6 @@
 using System.Diagnostics;
-using Xunit;
 using UnchainedLauncher.Core.Utilities;
+using Xunit;
 
 namespace UnchainedLauncher.CLI.Tests;
 

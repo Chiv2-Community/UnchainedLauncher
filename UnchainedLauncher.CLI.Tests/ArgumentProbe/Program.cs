@@ -1,5 +1,5 @@
-using System.Text.Json;
 using System.Text;
+using System.Text.Json;
 
 if (args[0] == "--std-probe") {
     Console.OutputEncoding = new UTF8Encoding(false);

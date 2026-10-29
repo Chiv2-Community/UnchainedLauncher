@@ -1,8 +1,8 @@
+using LanguageExt;
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using LanguageExt;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;

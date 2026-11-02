@@ -53,7 +53,6 @@ internal static class SettingsResolution {
         var maps = new List<string>();
         var labels = new List<string>();
         var directories = new List<string>();
-        var overrides = new List<IniOverrides>();
         var slotActors = new List<IReadOnlyList<string>>();
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var selectedProfiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -83,12 +82,13 @@ internal static class SettingsResolution {
             layers.AddRange(mapRules
                 .Where(pair => Matches(pair.Key, MapLeaf(map!))).Select(pair => pair.Value!));
             layers.AddRange(matchingPresets);
-            if (inline is not null) layers.Add(inline);
-            foreach (var layer in layers) ValidateBlock(layer);
+            if (inline is not null) {
+                ValidateBlock(inline);
+                layers.Add(inline);
+            }
             var inlineIni = IniOverrides.Parse(inline?.Ini);
             // Validate restoration without composing runtime map/profile/index layers.
             always.ValidateMapOverrides(inlineIni);
-            overrides.Add(inlineIni);
             maps.Add(map!);
             labels.Add(label);
             if (!selectedProfiles.Add(selected)) {
@@ -109,7 +109,7 @@ internal static class SettingsResolution {
         }
         var start = server.ExplicitStartingMap is null ? 0 : maps.FindIndex(map => map.Equals(server.ExplicitStartingMap, StringComparison.OrdinalIgnoreCase));
         if (maps.Count > 0 && start < 0) throw new ValidationException("starting-map must match a map in map-rotation.");
-        var rotation = maps.Count == 0 ? null : new MapRotation(maps.AsReadOnly(), start, overrides.AsReadOnly(), labels.AsReadOnly(), directories.AsReadOnly()) {
+        var rotation = maps.Count == 0 ? null : new MapRotation(maps.AsReadOnly(), start, labels.AsReadOnly(), directories.AsReadOnly()) {
             Actors = slotActors.AsReadOnly(), Layers = nativeLayers.AsReadOnly()
         };
         var packages = new ModSetupConfiguration {

@@ -55,7 +55,7 @@ Bar=Old
 
                 var writer = new StructuredINIWriter();
                 Assert.True(writer.BufferWrite(new MyFile(new SectionA(99), new SectionB("New"))));
-                Assert.True(writer.WriteOut(path));
+                Assert.True(writer.WriteOut(path, isConfigRoot: false));
 
                 var content = File.ReadAllText(path);
                 Assert.Contains("[SectionA]", content);

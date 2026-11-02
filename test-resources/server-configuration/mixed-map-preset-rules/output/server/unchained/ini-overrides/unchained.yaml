@@ -1,0 +1,28 @@
+match-rotation:
+- profile: duel-courtyard
+  name: Duel Courtyard
+  map: FFA_Courtyard
+  mod-actors:
+  - always
+  - map-wildcard
+  - map-exact
+  - preset-wildcard
+  - preset-exact
+- profile: duel-open
+  name: Duel open
+  map: FFA_Wardenglade
+  mod-actors:
+  - always
+  - map-wildcard
+  - server-map-exact
+  - preset-wildcard
+  - server-preset-wildcard
+  - server-preset-exact
+- profile: duel-courtyard.slot-2
+  name: Late Courtyard
+  map: FFA_Bazaar
+  mod-actors:
+  - always
+  - map-wildcard
+  - preset-wildcard
+  - preset-exact

@@ -1,0 +1,9 @@
+chiv2-path: .
+platform: Steam
+map-profiles:
+  one:
+    map-name: FFA_Courtyard
+    ini: {Engine: {Mod: {Other: 2}}}
+server:
+  ini: {Engine: {Mod: {Value: 1}}}
+  map-rotation: [one]

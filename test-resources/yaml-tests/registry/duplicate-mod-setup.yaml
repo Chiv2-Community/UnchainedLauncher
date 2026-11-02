@@ -1,0 +1,2 @@
+mod-setup: {registries: ['local:local']}
+mod-setup: {}

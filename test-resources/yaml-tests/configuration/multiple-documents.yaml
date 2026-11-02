@@ -1,0 +1,5 @@
+chiv2-path: './game installation'
+platform: Steam
+---
+chiv2-path: .
+platform: Steam

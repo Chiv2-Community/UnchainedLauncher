@@ -1,0 +1,4 @@
+chiv2-path: .
+platform: Steam
+server: {map-rotation: [__REFERENCE__]}
+map-profiles: {courtyard: {map-name: FFA_Courtyard}}

@@ -20,7 +20,7 @@ ConnectionString=Server=myServerAddress;Database=myDataBase;
             var parser = new StructuredINIParser();
             var config = new ConfigWithEquals("Server=myServerAddress;Database=myDataBase;");
 
-            var ini = parser.Serialize(config);
+            var ini = parser.Serialize(config, isConfigRoot: false);
 
             Assert.Contains("ConnectionString=Server=myServerAddress;Database=myDataBase;", ini);
         }

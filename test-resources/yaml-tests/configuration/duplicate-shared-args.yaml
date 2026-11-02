@@ -1,0 +1,5 @@
+chiv2-path: './game installation'
+platform: Steam
+__INACTIVE__: {nested: {field: one, field: two}}
+game-args: []
+game-args: []

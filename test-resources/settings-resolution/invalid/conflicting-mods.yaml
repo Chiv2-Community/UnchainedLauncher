@@ -1,0 +1,4 @@
+chiv2-path: .
+platform: Steam
+global-settings: {mods: [org/mod:v1]}
+server: {mods: [org/mod:v2]}

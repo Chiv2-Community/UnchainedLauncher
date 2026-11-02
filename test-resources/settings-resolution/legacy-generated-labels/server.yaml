@@ -1,0 +1,12 @@
+chiv2-path: .
+platform: Steam
+map-profiles:
+  ffa-courtyard: {map-name: FFA_Courtyard}
+  night-wardenglade: {map-name: TDM_Wardenglade}
+  to-galencourt: {map-name: TO_Galencourt}
+server:
+  map-rotation:
+    - ffa-courtyard
+    - night-wardenglade
+    - to-galencourt
+    - {map-name: /Game/Maps/TO_TournamentGrounds.TO_TournamentGrounds}

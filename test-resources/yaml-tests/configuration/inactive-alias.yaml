@@ -1,0 +1,4 @@
+chiv2-path: './game installation'
+platform: Steam
+__ACTIVE__: &active {game-args: ['-active']}
+__INACTIVE__: *active

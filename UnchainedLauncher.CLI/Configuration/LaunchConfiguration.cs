@@ -26,6 +26,7 @@ public abstract class LaunchConfiguration {
 }
 
 public sealed class ServerConfiguration : LaunchConfiguration {
+    public ScopedSettings? GlobalSettings { get; set; }
     public Dictionary<string, MapProfile?>? MapProfiles { get; set; }
     public bool NoTui { get; set; }
     public ServerSettings? Server { get; set; }
@@ -36,6 +37,7 @@ public sealed class ServerConfiguration : LaunchConfiguration {
 
     public override void Validate() {
         base.Validate();
+        if (GlobalSettings is not null && Server is null && Servers is null) Server = new ServerSettings();
         foreach (var (name, profile) in MapProfiles ?? []) {
             if (string.IsNullOrWhiteSpace(name) || name != name.Trim()) throw new ValidationException("map-profiles keys must not be blank or have surrounding whitespace.");
             MapRotation.ValidateMap(profile, $"map-profiles.{name}");
@@ -53,11 +55,18 @@ public sealed class ServerConfiguration : LaunchConfiguration {
 
     private void ValidateServer(ServerSettings settings) {
         Validator.ValidateObject(settings, new ValidationContext(settings), validateAllProperties: true);
-        settings.Rotation = MapRotation.Resolve(settings.MapRotation, MapProfiles, settings.ExplicitStartingMap);
+        if (SettingsResolution.IsModern(this, settings)) {
+            if (MapProfiles is not null || settings.ModSetup is not null)
+                throw new ValidationException("Use global-settings/match-presets and mods/plugins/registries instead of map-profiles or mod-setup with layered settings.");
+            settings.Resolved = SettingsResolution.Resolve(GlobalSettings, settings);
+            settings.Rotation = settings.Resolved.Rotation;
+        } else settings.Rotation = MapRotation.Resolve(settings.MapRotation, MapProfiles, settings.ExplicitStartingMap);
     }
 }
 
 public sealed class ClientConfiguration : LaunchConfiguration {
+    [YamlConverter(typeof(IgnoredYamlNodeConverter))]
+    public object? GlobalSettings { get; set; }
     [YamlConverter(typeof(IgnoredYamlNodeConverter))]
     public object? MapProfiles { get; set; }
     [Required]
@@ -80,7 +89,9 @@ public sealed class ClientSettings {
     public List<string>? GameArgs { get; set; } = [];
 }
 
-public sealed class ServerSettings {
+public sealed class ServerSettings : ScopedSettings {
+    [YamlIgnore]
+    internal ResolvedServerSettings? Resolved { get; set; }
     public bool NoSpawnConsole { get; set; }
     public List<MapRotationEntry>? MapRotation { get; set; }
     [YamlIgnore]
@@ -88,7 +99,6 @@ public sealed class ServerSettings {
     [YamlIgnore]
     internal string? ExplicitStartingMap { get; private set; }
     public ModSetupConfiguration? ModSetup { get; set; }
-    public Dictionary<string, Dictionary<string, Dictionary<string, object?>>>? Ini { get; set; }
     public string? SavedDirSuffix { get; set; }
     [Required]
     public string Name { get; set; } = "Unchained Server";
@@ -114,7 +124,6 @@ public sealed class ServerSettings {
     public bool UseBackendBanlist { get; set; } = true;
     [EnumDataType(typeof(CensorArg))]
     public CensorArg CensorMode { get; set; } = CensorArg.None;
-    public List<string>? ModActors { get; set; } = [];
     public List<string>? GameArgs { get; set; } = [];
     public DiscordSettings? Discord { get; set; }
 }

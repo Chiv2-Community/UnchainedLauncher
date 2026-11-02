@@ -1,0 +1,34 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  ini:
+    Engine: ./baseline.ini
+  map-settings:
+    'ffa_~':
+      ini:
+        Engine:
+          Demo:
+            '-Names': [B]
+  match-presets:
+    delta:
+      map: FFA_Courtyard
+      ini:
+        Engine: ./delta.ini
+server:
+  ini:
+    Engine:
+      Demo:
+        '-Names': [A]
+        '+Names': [B, C, C]
+        '.Names': [C]
+        '+NoOp': []
+  map-rotation:
+    - delta
+    - {map: TDM_Wardenglade}
+    - map: FFA_Bazaar
+      name: Fresh
+      ini:
+        Engine:
+          Demo:
+            '!Names': []
+            '.Names': [Fresh]

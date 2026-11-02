@@ -1,0 +1,32 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  ini: {Engine: {Demo: {MapValue: 0, PresetValue: 0}}}
+  map-settings:
+    FFA_Courtyard: {ini: {Engine: {Demo: {MapValue: 30}}}}
+    'FFA_~': {ini: {Engine: {Demo: {MapValue: 10}}}}
+    '~': {ini: {Engine: {Demo: {MapValue: 1}}}}
+    'A~': {ini: {Engine: {Demo: {MapValue: 45}}}}
+  match-presets:
+    duel-night:
+      map: FFA_Courtyard
+      ini: {Engine: {Demo: {PresetValue: 40}}}
+    'duel-~':
+      map: FFA_Bazaar
+      ini: {Engine: {Demo: {PresetValue: 10}}}
+    '~':
+      map: TDM_Wardenglade
+      ini: {Engine: {Demo: {PresetValue: 1}}}
+server:
+  map-settings:
+    'FFA_~': {ini: {Engine: {Demo: {MapValue: 20}}}}
+    'A~': {ini: {Engine: {Demo: {MapValue: 50}}}}
+    AA: {ini: {Engine: {Demo: {MapValue: 60}}}}
+  match-presets:
+    'duel-n~':
+      map: FFA_Bazaar
+      ini: {Engine: {Demo: {PresetValue: 20}}}
+  map-rotation:
+    - duel-night
+    - duel-noon
+    - {map: AA}

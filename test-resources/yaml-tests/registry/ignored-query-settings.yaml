@@ -1,0 +1,8 @@
+platform: invalid
+chiv2-path: null
+mod-setup:
+  registries: ['local:local']
+  mods: {ignored: invalid-selection}
+  dlls: not-a-list
+server: {name: one, name: two}
+client: not-a-mapping

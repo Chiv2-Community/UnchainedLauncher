@@ -318,6 +318,43 @@ public sealed class SettingsResolutionTests : IDisposable {
         Assert.Contains("Value=1", File.ReadAllText(Path.Combine(destination, "Engine.ini")));
     }
 
+    [Theory]
+    [InlineData("Engine", false)]
+    [InlineData("Engine", true)]
+    [InlineData("GameUserSettings", false)]
+    [InlineData("GameUserSettings", true)]
+    public void SavingImportedRootFilesPreservesSnapshotsAndIndependentOutputs(string category, bool existingLinkedRoot) {
+        var server = Server("root-save-isolation");
+        var source = Path.Combine(_root, "Engine.ini");
+        var sourceBytes = File.ReadAllBytes(source);
+        var cache = Path.Combine(server.InstancePaths.Root, "ini-cache");
+        var conditional = Path.Combine(_root, "conditional");
+        server.Ini.Apply(conditional, cache);
+        var conditionalBytes = File.ReadAllBytes(Path.Combine(conditional, category + ".ini"));
+        var first = Path.Combine(_root, "first-profile");
+        var second = Path.Combine(_root, "second-profile");
+        // Simulate a root file linked by an earlier launcher version.
+        if (existingLinkedRoot) server.Ini.Apply(first, cache);
+        ServerLauncher.InitializeServerProfile(server, _ => first);
+        ServerLauncher.InitializeServerProfile(server, _ => second);
+        var rootFile = Path.Combine(first, category + ".ini");
+        var rootBytes = File.ReadAllBytes(rootFile);
+        var snapshots = Directory.GetFiles(cache).ToDictionary(path => path, File.ReadAllBytes);
+
+        var writer = new StructuredINI.StructuredINIWriter();
+        writer.MergeSection("Mod", new[] { KeyValuePair.Create("Value", "99") });
+        Assert.True(writer.WriteOut(rootFile, isConfigRoot: true));
+        Assert.Contains("Value=99", File.ReadAllText(rootFile));
+        var error = Record.Exception(() => ServerLauncher.InitializeServerProfile(server, _ => first));
+
+        Assert.Null(error);
+        Assert.Equal(rootBytes, File.ReadAllBytes(rootFile));
+        Assert.Equal(rootBytes, File.ReadAllBytes(Path.Combine(second, category + ".ini")));
+        Assert.Equal(conditionalBytes, File.ReadAllBytes(Path.Combine(conditional, category + ".ini")));
+        Assert.Equal(sourceBytes, File.ReadAllBytes(source));
+        Assert.All(snapshots, snapshot => Assert.Equal(snapshot.Value, File.ReadAllBytes(snapshot.Key)));
+    }
+
     [Fact]
     public void EffectiveProfileNamesAreStableAcrossReorderingAndDistinctDisplayLabels() {
         var first = LoadServer(Fixture("profile-identity", "first.yaml"));

@@ -279,10 +279,11 @@ internal sealed class IniOverrides {
             }
             files.Remove(category);
             var destination = Path.Combine(directory, category + ".ini");
-            if (File.Exists(destination)) {
+            // Replace even identical roots to detach links created by earlier launcher versions.
+            if (!isConfigRoot && File.Exists(destination)) {
                 if (File.ReadAllBytes(destination).SequenceEqual(imported.Bytes)) continue;
             }
-            // Link an immutable cached snapshot, never a user-owned file that can change later.
+            // Cache immutable snapshots, never user-owned files that can change later.
             cacheDirectory ??= Path.Combine(directory, ".ini-cache");
             Directory.CreateDirectory(cacheDirectory);
             var cached = Path.Combine(cacheDirectory, Convert.ToHexStringLower(SHA256.HashData(imported.Bytes)));
@@ -298,7 +299,8 @@ internal sealed class IniOverrides {
             }
             var temporary = Path.Combine(directory, "." + Guid.NewGuid().ToString("N") + ".tmp");
             try {
-                if (!(createLink ?? AssetCacheFiles.TryCreateHardLink)(temporary, cached)) File.WriteAllBytes(temporary, imported.Bytes);
+                // Root configs can be saved in place; only immutable conditional layers may share the snapshot.
+                if (isConfigRoot || !(createLink ?? AssetCacheFiles.TryCreateHardLink)(temporary, cached)) File.WriteAllBytes(temporary, imported.Bytes);
                 File.Move(temporary, destination, overwrite: true);
             } finally {
                 if (File.Exists(temporary)) File.Delete(temporary);

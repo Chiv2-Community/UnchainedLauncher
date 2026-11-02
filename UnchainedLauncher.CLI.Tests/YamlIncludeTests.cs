@@ -82,7 +82,7 @@ public sealed class YamlIncludeTests : IDisposable {
     }
 
     [Fact]
-    public void AnchorsAreLocalToEachIncludedDocument() {
+    public void IncludedDocumentsResolveLocalAnchorsButRejectCrossFileReferences() {
         Write("one.yaml", "local-anchor", ("NAME", "First"));
         Write("two.yaml", "local-anchor", ("NAME", "Second"));
         var root = Write("launch.yaml", "local-anchors");
@@ -90,13 +90,7 @@ public sealed class YamlIncludeTests : IDisposable {
         Assert.Equal("First", config.Servers!["one"]!.Description);
         Assert.Equal("Second", config.Servers["two"]!.Description);
         Assert.Equal("First", config.Servers["three"]!.Description);
-    }
-
-    [Fact]
-    public void CannotReferenceAnAnchorFromAnotherFile() {
-        Write("one.yaml", "anchor-definition");
         Write("two.yaml", "anchor-reference");
-        var root = Write("launch.yaml", "cross-file-anchor");
         Assert.Throws<ArgumentException>(() => YamlConfiguration.LoadDocument<ServerConfiguration>(root));
     }
 }

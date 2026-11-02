@@ -32,7 +32,7 @@ MyConfigArray=7
         }
 
         [Fact]
-        public void TestScalars() {
+        public void ParsesScalarsAndSerializesModelFields() {
             var parser = new StructuredINIParser();
             var iniContent = @"
 [SomeINISectionName]
@@ -47,11 +47,6 @@ Quux=60.5
             Assert.Equal("Hello World", result.Bar);
             Assert.Equal(3.14, result.Baz);
             Assert.Equal(60.5f, result.Quux);
-        }
-
-        [Fact]
-        public void TestSerialization() {
-            var parser = new StructuredINIParser();
             var instance = new SomeINISection(42, "Hello", 3.14, 60.5f, new[] { 2, 3, 2 });
 
             var ini = parser.Serialize(instance, isConfigRoot: false);

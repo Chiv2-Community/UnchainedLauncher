@@ -1,0 +1,17 @@
+chiv2-path: .
+platform: Steam
+map-profiles:
+  shared:
+    map-name: FFA_Courtyard
+    ini: {Engine: {Mod: {Value: 9}}}
+servers:
+  first:
+    ini: {Engine: {Mod: {Value: 1, Default: 10}}}
+    map-rotation: [shared]
+  second:
+    game-port: 7778
+    ping-port: 3076
+    query-port: 7072
+    rcon-port: 9002
+    ini: {Engine: {Mod: {Value: 2, Default: 20}}}
+    map-rotation: [shared]

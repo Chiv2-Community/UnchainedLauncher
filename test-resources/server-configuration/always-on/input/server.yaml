@@ -1,0 +1,18 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  ini:
+    Engine:
+      Demo:
+        Number: 1
+        Text: global
+        Names: [A, B]
+server:
+  ini:
+    Engine:
+      Demo:
+        Number: 2
+        Names: []
+    Game:
+      /Script/TBL.TBLTitleScreen:
+        bSavedHasAgreedToTOS: false

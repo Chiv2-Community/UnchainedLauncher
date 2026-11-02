@@ -1,0 +1,9 @@
+ini:
+  Game: !load ../common/game.yaml
+map-rotation:
+  - {map: FFA_Wardenglade}
+  - preset: night
+    ini:
+      Engine:
+        Demo:
+          Names: [B]

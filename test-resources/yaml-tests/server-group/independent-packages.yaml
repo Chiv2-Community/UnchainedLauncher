@@ -1,0 +1,21 @@
+chiv2-path: ./game
+platform: Steam
+no-tui: true
+servers:
+  courtyard:
+    name: Courtyard
+    mod-setup: {registries: ['local:one'], mods: ['org/one:v1'], dlls: ['org/plugin:v1']}
+    ini: {Game: {'/Script/TBL.TBLGameMode': {BotBackfillEnabled: true}}}
+    starting-map: FFA_Courtyard
+    game-port: 7000
+    ping-port: 7001
+    query-port: 7002
+    rcon-port: 7003
+  arena:
+    name: Arena
+    mod-setup: {registries: ['local:two'], mods: ['org/two:v2'], dlls: []}
+    starting-map: TO_Stronghold
+    game-port: 7004
+    ping-port: 7005
+    query-port: 7006
+    rcon-port: 7007

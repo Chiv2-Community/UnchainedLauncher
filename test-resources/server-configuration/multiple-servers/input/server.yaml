@@ -1,0 +1,22 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  mod-actors: [/Game/Mods/AgMods/Common.Common_C]
+  ini: {Engine: {Demo: {Value: 1}}}
+  match-presets:
+    foo: {map: FFA_Courtyard}
+servers:
+  first:
+    ini: {Engine: {Demo: {Value: 2}}}
+    map-rotation: [foo]
+  second:
+    game-port: 7778
+    ping-port: 3076
+    query-port: 7072
+    rcon-port: 9002
+    ini: {Engine: {Demo: {Value: 3}}}
+    match-presets:
+      foo:
+        map: TDM_Wardenglade
+        mod-actors: [/Game/Mods/AgMods/Local.Local_C]
+    map-rotation: [foo]

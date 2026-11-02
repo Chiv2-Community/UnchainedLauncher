@@ -1,0 +1,9 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  ini: {Engine: {Mod: {Value: 0}}}
+  map-settings:
+    'tdm_quarry~': {ini: {Engine: {Mod: {Value: 2}}}}
+    '~': {ini: {Engine: {Mod: {Value: 1}}}}
+server:
+  map-rotation: [{map: /Game/Maps/TDM_QuarryKP.TDM_QuarryKP}]

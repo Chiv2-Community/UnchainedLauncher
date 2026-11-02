@@ -1,0 +1,7 @@
+chiv2-path: '__GAME__'
+platform: Steam
+proton:
+  path: ../tool/proton
+  compat-data-path: ../compat
+server:
+  headless: true

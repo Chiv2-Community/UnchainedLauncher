@@ -1,0 +1,5 @@
+
+  - nested:
+      field: one
+      field: two
+  - [scalar, {}]

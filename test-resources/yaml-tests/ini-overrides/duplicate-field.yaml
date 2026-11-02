@@ -1,0 +1,8 @@
+chiv2-path: .
+platform: Steam
+server:
+  ini:
+    Game:
+      /Script/TBL.TBLGameMode:
+        ClassLimits: []
+        classlimits: []

@@ -1,0 +1,1 @@
+server: !load https://example.com/config.yaml

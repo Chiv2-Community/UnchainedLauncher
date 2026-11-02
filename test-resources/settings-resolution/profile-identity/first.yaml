@@ -1,0 +1,6 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  match-presets: {foo: {map: FFA_Courtyard}}
+server:
+  map-rotation: [foo, {map: FFA_Bazaar}, {preset: foo, name: Reprise}]

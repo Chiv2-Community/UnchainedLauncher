@@ -1,8 +1,9 @@
 ﻿using StructuredINI.Codecs;
+using System.Collections.Concurrent;
 
 namespace StructuredINI {
     public static class CodecRegistry {
-        private static readonly Dictionary<Type, object> _codecs = new();
+        private static readonly ConcurrentDictionary<Type, object> _codecs = new();
 
         static CodecRegistry() {
             Register(new StringCodec());

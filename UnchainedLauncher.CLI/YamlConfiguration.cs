@@ -18,23 +18,27 @@ public static class YamlConfiguration {
 
     internal static T LoadDocument<T>(string path) where T : class {
         path = Path.GetFullPath(path);
+        YamlIncludeParser? parser = null;
         try {
-            using var reader = File.OpenText(path);
+            parser = new YamlIncludeParser(path, typeof(T));
             var deserializer = new DeserializerBuilder()
                 .WithNamingConvention(HyphenatedNamingConvention.Instance)
                 .WithTypeConverter(new InstallationTypeYamlConverter())
                 .WithTypeConverter(new IgnoredYamlNodeConverter())
                 .WithTypeConverter(new MapRotationEntryYamlConverter())
+                .WithTypeConverter(new IniSourceYamlConverter())
+                .WithAttemptingUnquotedStringTypeDeserialization()
+                .WithNodeTypeResolver(new YamlNumberTypeResolver())
                 .WithDuplicateKeyChecking()
                 .WithEnforceNullability()
                 .Build();
-            var configuration = deserializer.Deserialize<T>(reader);
+            var configuration = deserializer.Deserialize<T>(parser);
             if (configuration is null) throw new ArgumentException("Configuration must contain one YAML mapping.");
             return configuration;
         }
         catch (YamlException ex) {
             // Library errors can include passwords/tokens; report only location.
-            throw new ArgumentException($"Invalid YAML configuration or schema at line {ex.Start.Line}, column {ex.Start.Column}.");
+            throw new ArgumentException($"Invalid YAML configuration or schema at {parser?.SourcePath ?? path}, line {ex.Start.Line}, column {ex.Start.Column}.");
         }
         catch (ValidationException ex) {
             throw new ArgumentException("Invalid configuration: " + ex.Message);

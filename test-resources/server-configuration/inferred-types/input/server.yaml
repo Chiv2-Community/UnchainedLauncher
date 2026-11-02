@@ -1,0 +1,37 @@
+chiv2-path: .
+platform: Steam
+server:
+  ini:
+    Engine:
+      Demo:
+        MapValue: 0
+        Negative: -12
+        Enabled: true
+        Disabled: false
+        Ratio: 1.25
+        Scientific: 1e-3
+        Precise: 0.1234567890123456789012345678
+        LargeInteger: 9007199254740993
+        MaxUnsigned: 18446744073709551615
+        Hex: 0x20
+        LeadingZeros: 012
+        NumericText: 1.5-
+        CommaText: 1,234.5
+        Text: hello
+        QuotedBoolean: 'true'
+        QuotedNumber: '001'
+        TaggedString: !!str false
+        Flags: [true, false, true]
+        Counts: [1, 2, 1]
+        Ratios: [1, 2.5]
+        Labels: ['true', '001', hello]
+        Empty: []
+        ExplicitString: {type: String, value: 5}
+        ExplicitFloat: {type: Float, value: 1.25}
+        ExplicitRecord: {type: ClassLimit, value: {Class: Archer, ClassLimitPercent: 0.25}}
+        ExplicitMixed: {type: 'String[]', value: [1, 'two', false]}
+        Wrapped: {value: 7}
+    Game:
+      /Script/TBL.TBLGameMode:
+        BotBackfillEnabled: false
+        ClassLimits: [{Class: Archer, ClassLimitPercent: 0.25}]

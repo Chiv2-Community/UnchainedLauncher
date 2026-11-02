@@ -1,0 +1,3 @@
+chiv2-path: './game installation'
+platform: Steam
+server: {discord: {bot-token: secret}}

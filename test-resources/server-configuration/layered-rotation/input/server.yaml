@@ -1,0 +1,38 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  mod-actors: [/Game/Mods/AgMods/Common.Common_C]
+  ini:
+    Engine:
+      Demo:
+        Value: 1
+        Tags: [A, A]
+  map-settings:
+    '~':
+      ini: {Engine: {Demo: {Value: 3}}}
+      mod-actors: [/Game/Mods/AgMods/AnyMap.AnyMap_C]
+  match-presets:
+    duel:
+      map: FFA_Courtyard
+      ini:
+        Engine:
+          Demo:
+            Value: 5
+            Tags: [B]
+      mod-actors: [/Game/Mods/AgMods/Duel.Duel_C]
+server:
+  ini: {Engine: {Demo: {Value: 2}}}
+  map-settings:
+    'ffa_~':
+      ini: {Engine: {Demo: {Value: 4}}}
+      mod-actors: [/Game/Mods/AgMods/Ffa.Ffa_C]
+  starting-map: TDM_Wardenglade
+  map-rotation:
+    - duel
+    - preset: duel
+      name: Late shift
+      map: TDM_Wardenglade
+      ini: {Engine: {Demo: {Value: 6}}}
+      mod-actors: [/Game/Mods/AgMods/Inline.Inline_C]
+    - {map: FFA_Bazaar}
+    - {preset: duel, name: Duel reprise}

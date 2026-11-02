@@ -40,7 +40,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.INIModels {
                     null
                 );
 
-                StructuredINIWriter.Save(tmpPath, gameIni).Should().BeTrue();
+                StructuredINIWriter.Save(tmpPath, gameIni, isConfigRoot: true).Should().BeTrue();
 
                 var loaded = StructuredINIReader.LoadOrDefault(tmpPath, GameINI.Default);
 

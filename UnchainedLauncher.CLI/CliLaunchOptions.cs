@@ -46,7 +46,7 @@ public sealed class SharedLaunchOptions {
         UpdatePlugin = configuration.UpdatePlugin;
         AllowUnstablePlugin = configuration.AllowUnstablePlugin;
         GameArguments = Entries(configuration.GameArgs, allowEmpty: true).ToArray();
-        var setup = server?.ModSetup ?? (configuration as ClientConfiguration)?.ModSetup ?? new ModSetupConfiguration();
+        var setup = server?.Resolved?.Packages ?? server?.ModSetup ?? (configuration as ClientConfiguration)?.ModSetup ?? new ModSetupConfiguration();
         RegistryOptions = new RegistryOptions(setup.Registries, directory);
         Mods = Entries(setup.Mods).Select(ParseCoordinates).ToArray();
         Dlls = Entries(setup.Dlls).Select(ParseCoordinates).ToArray();
@@ -133,14 +133,14 @@ public sealed class ServerOptions : CliLaunchOptions {
     internal ServerOptions(SharedLaunchOptions shared, ServerSettings settings, bool noTui)
         : base(shared, SharedLaunchOptions.Entries(settings.GameArgs, allowEmpty: true)) {
         Settings = settings;
-        Ini = IniOverrides.Parse(settings.Ini);
+        Ini = settings.Resolved?.Ini ?? IniOverrides.Parse(settings.Ini);
         if (settings.Rotation is not null && Ini.Contains("Game", "/Script/TBL.TBLGameMode", "MapListIndex"))
             throw new ArgumentException("MapListIndex is managed by map-rotation; use starting-map to choose the first map.");
-        if (settings.Rotation is { HasOverrides: true } rotation) {
+        if (settings.Rotation is { } rotation && (rotation.HasOverrides || rotation.Actors is not null)) {
             if (Ini.RawArguments.Any()) throw new ArgumentException("server.ini cannot use raw alongside map-profile INI; use typed values for the default layer.");
             if (GameArguments.Any(argument => argument.TrimStart('-').Split('=', 2)[0] == "unchained-profile-location"))
                 throw new ArgumentException("unchained-profile-location is managed by map-profile INI; remove the conflicting game argument.");
-            foreach (var overrides in rotation.Overrides) Ini.WithMapOverrides(overrides);
+            foreach (var overrides in rotation.Overrides) Ini.ValidateMapOverrides(overrides);
         }
         NoTui = noTui;
         if (!settings.Headless && settings.DesyncPatch)
@@ -150,7 +150,7 @@ public sealed class ServerOptions : CliLaunchOptions {
         settings.LocalIp = string.IsNullOrWhiteSpace(settings.LocalIp) ? LocalAddressDetector.Detect().ToString() : settings.LocalIp.Trim();
         if (!IPAddress.TryParse(settings.LocalIp, out var address) || address.AddressFamily != AddressFamily.InterNetwork)
             throw new ArgumentException("local-ip must be an IPv4 address.");
-        settings.ModActors = SharedLaunchOptions.Entries(settings.ModActors).Distinct().ToList();
+        settings.ModActors = settings.Resolved?.Actors.ToList() ?? SharedLaunchOptions.Entries(settings.ModActors).Distinct().ToList();
         ToDiscordOptions();
     }
 

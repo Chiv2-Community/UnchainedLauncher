@@ -1,0 +1,13 @@
+match-rotation:
+- profile: delta
+  name: Delta
+  map: FFA_Courtyard
+  mod-actors: &o0 []
+- profile: inline-1
+  name: TDM Wardenglade
+  map: TDM_Wardenglade
+  mod-actors: *o0
+- profile: inline-2
+  name: Fresh
+  map: FFA_Bazaar
+  mod-actors: *o0

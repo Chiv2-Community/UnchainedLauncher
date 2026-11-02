@@ -568,10 +568,11 @@ server:
 ```
 
 - Category mappings may mix file references and inline section mappings.
-- Imported files preserve repeated keys and Unreal array directives; unchanged files retain their bytes and comments.
+- Imported files preserve repeated keys and comments; unchanged conditional layers retain imported bytes and Unreal array directives.
 - All INI parsing and serialization use StructuredINI. Unprefixed YAML arrays begin with `!Key=ClearArray` to replace inherited values, then use `+Key=` for first occurrences and `.Key=` for duplicates. Empty arrays emit only the clear operation. Imported array operations, including `-Key=` removals, remain unchanged.
 - Files receiving overrides are merged into generated INI, not linked back to the source.
-- Unchanged profile files are hard-linked from immutable cached snapshots, with a copy fallback across filesystems.
+- Conditional-layer files may link immutable cached snapshots; writable root INIs are atomically replaced with independent copies.
+- Serialized INIs have no leading blank lines and exactly one blank line between sections.
 - Source files are never rewritten; changing a referenced file selects a new generation on the next configuration load.
 
 **Explicit array operations**

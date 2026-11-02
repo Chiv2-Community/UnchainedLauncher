@@ -7,8 +7,8 @@ global-settings:
     - Chiv2-Community/Unchained-Mods:v0.1.0
     - Chiv2-Community/Chiv2Turbo:v0.0.4
   plugins:
-    # Replace this pin with a build supporting map-rotation and mod-actors.
-    # The plugin must have the map_profiles Cargo feature enabled.
+    # Replace this pin with a build supporting the native map-config-hierarchy format.
+    # No map_profiles Cargo feature is needed; per-slot mod-actors are display metadata.
     - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
   mod-actors:
     - /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C

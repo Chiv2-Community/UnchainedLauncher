@@ -98,9 +98,7 @@ namespace StructuredINI {
             if (string.IsNullOrWhiteSpace(path)) return false;
             if (_sectionOrder.Count == 0) return false;
 
-            var sectionsToWrite = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-            var keysToReplaceBySection = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-
+            var parsed = File.Exists(path) ? ParseIni(File.ReadAllLines(path)) : new ParsedIni();
             foreach (var sectionName in _sectionOrder) {
                 if (!_bufferedSections.TryGetValue(sectionName, out var sectionText)) {
                     continue;
@@ -113,49 +111,12 @@ namespace StructuredINI {
 
                 // Strip header line, keep only body lines.
                 var bodyLines = lines.Skip(1).ToList();
-                sectionsToWrite[sectionName] = bodyLines;
-                keysToReplaceBySection[sectionName] = ExtractKeysFromLines(bodyLines);
-            }
-
-            var sb = new StringBuilder();
-            if (File.Exists(path)) {
-                var existingLines = File.ReadAllLines(path);
-                var parsed = ParseIni(existingLines);
-
-                // Patch existing sections in-place.
-                foreach (var (sectionName, newBodyLines) in sectionsToWrite) {
-                    var keysToReplace = keysToReplaceBySection.TryGetValue(sectionName, out var keys)
-                        ? keys
-                        : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-                    if (parsed.Sections.TryGetValue(sectionName, out var existingSection)) {
-                        PatchSection(existingSection, keysToReplace, newBodyLines);
-                    }
-                    else {
-                        // Append new section at the end.
-                        parsed.Order.Add(sectionName);
-                        parsed.Sections[sectionName] = new IniSection(sectionName, newBodyLines.ToList());
-                    }
+                if (parsed.Sections.TryGetValue(sectionName, out var existingSection)) {
+                    PatchSection(existingSection, ExtractKeysFromLines(bodyLines), bodyLines);
                 }
-
-                WriteIni(sb, parsed);
-            }
-            else {
-                // No existing file: write only the buffered sections in insertion order.
-                for (int i = 0; i < _sectionOrder.Count; i++) {
-                    var sectionName = _sectionOrder[i];
-                    if (!sectionsToWrite.TryGetValue(sectionName, out var bodyLines)) {
-                        continue;
-                    }
-
-                    if (i > 0) {
-                        sb.AppendLine();
-                    }
-
-                    sb.AppendLine($"[{sectionName}]");
-                    foreach (var line in bodyLines) {
-                        sb.AppendLine(line);
-                    }
+                else {
+                    parsed.Order.Add(sectionName);
+                    parsed.Sections[sectionName] = new IniSection(sectionName, bodyLines);
                 }
             }
 
@@ -164,15 +125,9 @@ namespace StructuredINI {
                 Directory.CreateDirectory(dir);
             }
 
-            var sbOut = sb.ToString();
-            var tripleNewline = Environment.NewLine + Environment.NewLine + Environment.NewLine;
-            var doubleNewline = Environment.NewLine + Environment.NewLine;
-            while (sbOut.Contains(tripleNewline)) {
-                sbOut = sbOut.Replace(tripleNewline, doubleNewline);
-            }
-
-            sbOut = SerializeDocument(sbOut, isConfigRoot);
-            File.WriteAllText(path, sbOut, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            var sb = new StringBuilder();
+            WriteIni(sb, parsed, isConfigRoot);
+            File.WriteAllText(path, sb.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
             return true;
         }
 
@@ -181,10 +136,8 @@ namespace StructuredINI {
             var lines = SplitLines(content);
             if (lines.Count > 0 && lines[^1].Length == 0) lines.RemoveAt(lines.Count - 1);
             var resolved = ParseIni(lines.ToArray());
-            foreach (var section in resolved.Sections.Values)
-                section.BodyLines = ResolveRootArrays(section.BodyLines);
             var root = new StringBuilder();
-            WriteIni(root, resolved);
+            WriteIni(root, resolved, isConfigRoot: true);
             return root.ToString();
         }
 
@@ -269,30 +222,38 @@ namespace StructuredINI {
             existing.BodyLines.InsertRange(insertAt, newBodyLines);
         }
 
-        private static void WriteIni(StringBuilder sb, ParsedIni ini) {
+        private static IEnumerable<string> NormalizeBlankLines(List<string> lines) {
+            var written = false;
+            var pendingBlank = false;
+            foreach (var line in lines) {
+                if (string.IsNullOrWhiteSpace(line)) {
+                    pendingBlank = written;
+                    continue;
+                }
+                if (pendingBlank) yield return "";
+                yield return line;
+                written = true;
+                pendingBlank = false;
+            }
+        }
+
+        private static void WriteIni(StringBuilder sb, ParsedIni ini, bool isConfigRoot) {
             // Preserve leading (non-section) lines.
-            foreach (var line in ini.PreambleLines) {
+            foreach (var line in NormalizeBlankLines(ini.PreambleLines)) {
                 sb.AppendLine(line);
             }
 
-            var firstSectionWritten = ini.PreambleLines.Count == 0;
+            var firstSection = true;
             foreach (var sectionName in ini.Order) {
                 if (!ini.Sections.TryGetValue(sectionName, out var section)) {
                     continue;
                 }
 
-                if (!firstSectionWritten) {
-                    firstSectionWritten = true;
-                }
-                else {
-                    // Separate sections with a blank line.
-                    if (sb.Length > 0 && !sb.ToString().EndsWith(Environment.NewLine + Environment.NewLine)) {
-                        sb.AppendLine();
-                    }
-                }
-
+                if (!firstSection) sb.AppendLine();
+                firstSection = false;
                 sb.AppendLine($"[{section.Name}]");
-                foreach (var line in section.BodyLines) {
+                var bodyLines = isConfigRoot ? ResolveRootArrays(section.BodyLines) : section.BodyLines;
+                foreach (var line in NormalizeBlankLines(bodyLines)) {
                     sb.AppendLine(line);
                 }
             }

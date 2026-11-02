@@ -11,7 +11,7 @@ global-settings:
     - Chiv2-Community/Unchained-Mods:v0.1.0
     - Chiv2-Community/Chiv2Turbo:v0.0.4
   plugins:
-    # Replace with a map-rotation/mod-actors supporting build with map_profiles enabled.
+    # Replace with a build supporting native map-config-hierarchy; no map_profiles feature is needed.
     - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
   mod-actors:
     - /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C

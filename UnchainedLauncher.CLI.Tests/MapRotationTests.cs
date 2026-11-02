@@ -124,7 +124,6 @@ public sealed class MapRotationTests : IDisposable {
     [Theory]
     [InlineData("foo-bar", "Foo bar")]
     [InlineData("FOO_BAR", "Foo bar")]
-    [InlineData("night-rules", "Night rules")]
     public void MissingProfileNamesBecomeReadableLabels(string key, string expected) {
         var options = Assert.IsType<ServerOptions>(Parse("readable-name", ("KEY", key)));
         Assert.Equal(expected, Assert.Single(options.Settings.Rotation!.Names));

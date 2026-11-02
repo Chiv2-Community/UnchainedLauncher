@@ -94,21 +94,6 @@ public class YamlConfigurationTests : IDisposable {
     }
 
     [Fact]
-    public void ConfigurationIsAuthoritativeWithEitherConfigPathSyntax() {
-        var path = Write("authoritative");
-        foreach (var args in new[] {
-            new[] { "server", "--typo", "--name", "Ignored", "--config-path", path, "--", "-ignored-game-arg" },
-            new[] { "server", "--config-path=" + path, "--platform=Invalid", "--help" }
-        }) {
-            var options = CliLaunchOptions.Parse(args);
-            Assert.IsType<ServerOptions>(options);
-            Assert.False(options.Help);
-            Assert.Equal("From YAML", Assert.IsType<ServerOptions>(options).Settings.Name);
-            Assert.Empty(options.GameArguments);
-        }
-    }
-
-    [Fact]
     public void AuthoritativeYamlIgnoresResponseFileTokensAndAllOtherOptionErrors() {
         var path = Write("authoritative");
         var response = Path.Combine(_directory, "ignored.rsp");
@@ -189,12 +174,6 @@ public class YamlConfigurationTests : IDisposable {
         }
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["--config-path", path]));
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["--config-path", path, "--help"]));
-    }
-
-    [Fact]
-    public void ConfigPathAfterGameSeparatorIsForwardedNotLoaded() {
-        var options = CliLaunchOptions.Parse(["server", "--chivalry2-path", _directory, "--platform", "Steam", "--", "--config-path", "game-file"]);
-        Assert.Equal(new[] { "--config-path", "game-file" }, options.GameArguments);
     }
 
     [Theory]

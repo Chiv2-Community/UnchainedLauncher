@@ -117,6 +117,9 @@ public sealed class MapProfileIniTests : IDisposable {
     [InlineData("missing-default", "requires a server.ini default")]
     [InlineData("invalid-index", "MapListIndex")]
     [InlineData("invalid-map-list", "map-rotation")]
+    [InlineData("conflicting-path", "managed by map-profile INI")]
+    [InlineData("conflicting-path-equals", "managed by map-profile INI")]
+    [InlineData("conflicting-raw", "cannot use raw")]
     public void InvalidMapOverridesFailBeforeWritingFiles(string fixture, string error) {
         var exception = Assert.Throws<ArgumentException>(() => Server(fixture));
         Assert.Contains(error, exception.Message);
@@ -135,14 +138,6 @@ public sealed class MapProfileIniTests : IDisposable {
         File.WriteAllText(Path.Combine(server.InstancePaths.Root, "map-config"), "not a directory");
         await Assert.ThrowsAnyAsync<IOException>(() => MapProfileIni.PrepareAsync(server, CancellationToken.None));
         Assert.Null(server.MapProfilePath);
-    }
-
-    [Theory]
-    [InlineData("conflicting-path", "managed by map-profile INI")]
-    [InlineData("conflicting-path-equals", "managed by map-profile INI")]
-    [InlineData("conflicting-raw", "cannot use raw")]
-    public void ConflictingGlobalOverridesAreRejected(string fixture, string error) {
-        Assert.Contains(error, Assert.Throws<ArgumentException>(() => Server(fixture)).Message);
     }
 
     [Fact]

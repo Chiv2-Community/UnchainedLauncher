@@ -243,19 +243,17 @@ namespace StructuredINI {
                 sb.AppendLine(line);
             }
 
-            var firstSection = true;
             foreach (var sectionName in ini.Order) {
                 if (!ini.Sections.TryGetValue(sectionName, out var section)) {
                     continue;
                 }
 
-                if (!firstSection) sb.AppendLine();
-                firstSection = false;
                 sb.AppendLine($"[{section.Name}]");
                 var bodyLines = isConfigRoot ? ResolveRootArrays(section.BodyLines) : section.BodyLines;
                 foreach (var line in NormalizeBlankLines(bodyLines)) {
                     sb.AppendLine(line);
                 }
+                sb.AppendLine();
             }
         }
 

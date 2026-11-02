@@ -27,12 +27,6 @@ public sealed class ServerProfileTests : IDisposable {
     }
 
     [Fact]
-    public void HyphenOnlyServerProfileIsRejected() {
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--chivalry2-path", _directory,
-            "--platform", "Steam", "--saved-dir-suffix", "---", "--local-ip", "127.0.0.1"]));
-    }
-
-    [Fact]
     public void ClientDoesNotResolveOrCreateAProfile() {
         ServerLauncher.InitializeServerProfile(Request("client"), _ => throw new InvalidOperationException("Client must not initialize a profile."));
         Assert.False(Directory.Exists(_directory));

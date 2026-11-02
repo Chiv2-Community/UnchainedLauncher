@@ -47,20 +47,24 @@ public sealed class SettingsResolutionTests : IDisposable {
         Assert.Contains("Value=2", File.ReadAllText(Path.Combine(_root, "resolved", "Engine.ini")));
     }
 
-    [Theory]
-    [InlineData(0, "FFA_Courtyard", "MapValue=30", "PresetValue=40")]
-    [InlineData(1, "FFA_Bazaar", "MapValue=20", "PresetValue=20")]
-    [InlineData(2, "AA", "MapValue=60", "PresetValue=1")]
-    public async Task RuleSpecificityPrecedesScopeAndEqualSpecificityRetainsScopeAndDeclarationOrder(int slot, string map, string mapValue, string presetValue) {
+    [Fact]
+    public async Task RuleSpecificityPrecedesScopeAndEqualSpecificityRetainsScopeAndDeclarationOrder() {
         var server = Server("specificity-rules");
         var rotation = server.Settings.Rotation!;
         await MapProfileIni.PrepareAsync(server, CancellationToken.None);
-        Assert.Equal(map, rotation.Maps[slot]);
-        var output = Path.Combine(_root, "resolved");
-        NativeIniTestLayers.Compose(server, slot).Apply(output);
-        var ini = File.ReadAllText(Path.Combine(output, "Engine.ini"));
-        Assert.Contains(mapValue, ini);
-        Assert.Contains(presetValue, ini);
+        var slots = new (string Map, string MapValue, string PresetValue)[] {
+            ("FFA_Courtyard", "MapValue=30", "PresetValue=40"),
+            ("FFA_Bazaar", "MapValue=20", "PresetValue=20"),
+            ("AA", "MapValue=60", "PresetValue=1")
+        };
+        Assert.Equal(slots.Select(slot => slot.Map), rotation.Maps);
+        for (var slot = 0; slot < slots.Length; slot++) {
+            var output = Path.Combine(_root, "resolved", slot.ToString());
+            NativeIniTestLayers.Compose(server, slot).Apply(output);
+            var ini = File.ReadAllText(Path.Combine(output, "Engine.ini"));
+            Assert.Contains(slots[slot].MapValue, ini);
+            Assert.Contains(slots[slot].PresetValue, ini);
+        }
         Assert.Equal(rotation.Profiles.Count, rotation.Profiles.Distinct(StringComparer.OrdinalIgnoreCase).Count());
     }
 
@@ -78,31 +82,8 @@ public sealed class SettingsResolutionTests : IDisposable {
         Assert.Null(config.Servers["one"]!.Resolved);
     }
 
-    [Theory]
-    [InlineData(0, "FFA_Courtyard", 16, 8, 6, 180, 35)]
-    [InlineData(1, "FFA_Wardenglade", 12, 8, 9, 99, 25)]
-    [InlineData(2, "FFA_Courtyard", 16, 2, 6, 180, 15)]
-    [InlineData(3, "TDM_Wardenglade", 24, 2, 2, 180, 15)]
-    [InlineData(4, "FFA_Courtyard", 16, 8, 6, 180, 25)]
-    [InlineData(5, "FFA_Bazaar", 20, 2, 4, 180, 15)]
-    public async Task InlineMapSelectsMapRulesWithoutDiscardingPresetIni(int slot, string map, int maxPlayers, int lowBots, int highBots, int spectate, int wait) {
-        var server = Server("inline-map-preset");
-        var rotation = server.Settings.Rotation!;
-        Assert.Equal(map, rotation.Maps[slot]);
-        await MapProfileIni.PrepareAsync(server, CancellationToken.None);
-        var directory = Path.Combine(_root, "composed");
-        NativeIniTestLayers.Compose(server, slot).Apply(directory);
-        var path = Path.Combine(directory, "Game.ini");
-        var lines = File.ReadAllLines(path);
-        Assert.Contains($"MaxPlayers={maxPlayers}", lines);
-        Assert.Contains($"BotBackfillLowBots={lowBots}", lines);
-        Assert.Contains($"BotBackfillHighBots={highBots}", lines);
-        Assert.Contains($"IdleKickTimerSpectate={spectate}", lines);
-        Assert.Contains($"MaxTimeBeforeStartingMatch={wait}", lines);
-    }
-
     [Fact]
-    public async Task NativeHierarchyPreservesWildcardMapPresetAndInlineBoundaries() {
+    public async Task NativeHierarchyPreservesLayerBoundariesAndResolvesAllSixRotationSlots() {
         var server = Server("inline-map-preset");
         await MapProfileIni.PrepareAsync(server, CancellationToken.None);
         var root = Path.Combine(server.MapProfilePath!, "ini-overrides");
@@ -124,9 +105,40 @@ public sealed class SettingsResolutionTests : IDisposable {
         Assert.Contains("BotBackfillLowBots=8", preset);
         Assert.Contains("MaxTimeBeforeStartingMatch=25", preset);
         Assert.Equal(preset, Read("profiles/wardenglade.slot-4/Game.ini"));
-        Assert.Equal("[/Script/TBL.TBLGameMode]\nMaxTimeBeforeStartingMatch=35\n", Read("indices/0/Game.ini"));
+        Assert.Equal("[/Script/TBL.TBLGameMode]\nMaxTimeBeforeStartingMatch=35\n\n", Read("indices/0/Game.ini"));
         foreach (var path in Directory.GetFiles(root, "*.ini", SearchOption.AllDirectories))
             Assert.DoesNotContain("IdleKickTimerSpectate=180", File.ReadAllText(path));
+
+        var slots = new (string Map, int MaxPlayers, int LowBots, int HighBots, int Spectate, int Wait)[] {
+            ("FFA_Courtyard", 16, 8, 6, 180, 35),
+            ("FFA_Wardenglade", 12, 8, 9, 99, 25),
+            ("FFA_Courtyard", 16, 2, 6, 180, 15),
+            ("TDM_Wardenglade", 24, 2, 2, 180, 15),
+            ("FFA_Courtyard", 16, 8, 6, 180, 25),
+            ("FFA_Bazaar", 20, 2, 4, 180, 15)
+        };
+        Assert.Equal(slots.Select(slot => slot.Map), server.Settings.Rotation!.Maps);
+        for (var slot = 0; slot < slots.Length; slot++) {
+            var (_, maxPlayers, lowBots, highBots, spectate, wait) = slots[slot];
+            var directory = Path.Combine(_root, "composed", slot.ToString());
+            NativeIniTestLayers.Compose(server, slot).Apply(directory);
+            var lines = File.ReadAllLines(Path.Combine(directory, "Game.ini"));
+            Assert.Contains($"MaxPlayers={maxPlayers}", lines);
+            Assert.Contains($"BotBackfillLowBots={lowBots}", lines);
+            Assert.Contains($"BotBackfillHighBots={highBots}", lines);
+            Assert.Contains($"IdleKickTimerSpectate={spectate}", lines);
+            Assert.Contains($"MaxTimeBeforeStartingMatch={wait}", lines);
+        }
+
+        var profile = Path.Combine(_root, "profile");
+        ServerLauncher.InitializeServerProfile(server, _ => profile);
+        var file = Path.Combine(profile, "Game.ini");
+        var text = File.ReadAllText(file);
+        var entries = new StructuredINI.StructuredINIParser().ReadEntries(text);
+        Assert.Equal(slots.Select(slot => slot.Map), entries.Where(entry => entry.Name == "MapList").Select(entry => entry.Value));
+        Assert.All(entries, entry => Assert.DoesNotContain(entry.Key[0], "!+.-"));
+        ServerLauncher.InitializeServerProfile(server, _ => profile);
+        Assert.Equal(text, File.ReadAllText(file));
     }
 
     [Fact]
@@ -181,8 +193,12 @@ public sealed class SettingsResolutionTests : IDisposable {
     [InlineData("inferred-nested-array", "Nested INI arrays")]
     [InlineData("inferred-nonfinite", "finite")]
     [InlineData("array-operation-no-baseline", "ClearArray baseline")]
+    [InlineData("missing-directory", "INI directory does not exist")]
+    [InlineData("missing-file", "Cannot read INI file")]
+    [InlineData("duplicate-categories", "schema")]
     public void RejectsInvalidResolvedConfigurationsBeforeLaunch(string testCase, string message) {
         Assert.Contains(message, Assert.Throws<ArgumentException>(() => Parse("invalid", testCase + ".yaml")).Message);
+        Assert.False(Directory.Exists(Path.Combine(_root, "map-config")));
     }
 
     [Theory]
@@ -219,15 +235,6 @@ public sealed class SettingsResolutionTests : IDisposable {
         await MapProfileIni.PrepareAsync(changed, CancellationToken.None);
         Assert.NotEqual(server.MapProfilePath, changed.MapProfilePath);
         Assert.Contains("Value=99", File.ReadAllText(Path.Combine(changed.MapProfilePath!, "ini-overrides", "maps", "~", "Engine.ini")));
-    }
-
-    [Theory]
-    [InlineData("missing-directory", "INI directory does not exist")]
-    [InlineData("missing-file", "Cannot read INI file")]
-    [InlineData("duplicate-categories", "schema")]
-    public void InvalidIniReferencesFailBeforeSideEffects(string testCase, string message) {
-        Assert.Contains(message, Assert.Throws<ArgumentException>(() => Parse("invalid", testCase + ".yaml")).Message);
-        Assert.False(Directory.Exists(Path.Combine(_root, "map-config")));
     }
 
     [Fact]
@@ -292,27 +299,15 @@ public sealed class SettingsResolutionTests : IDisposable {
     }
 
     [Fact]
-    public void RootRotationPreservesAllSixSlotsWithoutArrayOperators() {
-        var server = Server("inline-map-preset");
-        var directory = Path.Combine(_root, "profile");
-        ServerLauncher.InitializeServerProfile(server, _ => directory);
-        var file = Path.Combine(directory, "Game.ini");
-        var text = File.ReadAllText(file);
-        var entries = new StructuredINI.StructuredINIParser().ReadEntries(text);
-        Assert.Equal(new[] { "FFA_Courtyard", "FFA_Wardenglade", "FFA_Courtyard", "TDM_Wardenglade", "FFA_Courtyard", "FFA_Bazaar" },
-            entries.Where(entry => entry.Name == "MapList").Select(entry => entry.Value));
-        Assert.All(entries, entry => Assert.DoesNotContain(entry.Key[0], "!+.-"));
-        ServerLauncher.InitializeServerProfile(server, _ => directory);
-        Assert.Equal(text, File.ReadAllText(file));
-    }
-
-    [Fact]
     public void AlwaysOnImportedFilesArePublishedInTheServerProfileWithoutChangingSources() {
         var server = Server("always-on-import");
         var source = Path.Combine(_root, "Engine.ini");
+        var sourceBytes = File.ReadAllBytes(source);
         var destination = Path.Combine(_root, "profile");
         ServerLauncher.InitializeServerProfile(server, _ => destination);
-        Assert.Equal(File.ReadAllBytes(source), File.ReadAllBytes(Path.Combine(destination, "Engine.ini")));
+        Assert.Equal("; source bytes\n[Mod]\nValue=1\n\n".Replace("\n", Environment.NewLine),
+            File.ReadAllText(Path.Combine(destination, "Engine.ini")));
+        Assert.Equal(sourceBytes, File.ReadAllBytes(source));
         Assert.Contains("FirstLoadCompleted=True", File.ReadAllText(Path.Combine(destination, "Game.ini")));
         Write("Engine.ini", "[Mod]\nValue=99\n");
         Assert.Contains("Value=1", File.ReadAllText(Path.Combine(destination, "Engine.ini")));

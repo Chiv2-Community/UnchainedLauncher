@@ -1,3 +1,0 @@
-servers:
-  one: !load one.yaml
-  two: !load two.yaml

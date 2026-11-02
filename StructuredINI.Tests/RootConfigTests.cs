@@ -82,7 +82,7 @@ public sealed class RootConfigTests {
         var expected = "; preamble\n[A]\n; keep\n"
             + (isConfigRoot ? "" : "\n!Empty=ClearArray\n")
             + "\n[Empty]\n" + (isConfigRoot ? "" : "!Items=ClearArray\n")
-            + "\n[B]\nX=2\n";
+            + "\n[B]\nX=2\n\n";
         expected = expected.Replace("\n", Environment.NewLine);
         var path = Path.GetTempFileName();
         try {

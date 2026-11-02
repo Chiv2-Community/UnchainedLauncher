@@ -1,0 +1,1 @@
+server: &shared !load included.yaml

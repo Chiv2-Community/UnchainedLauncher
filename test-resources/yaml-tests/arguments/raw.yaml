@@ -1,0 +1,8 @@
+chiv2-path: __INSTALL__
+platform: Steam
+server:
+  local-ip: 127.0.0.1
+  ini:
+    Game:
+      /Script/TBL.TBLGameMode:
+        Custom: {type: raw, value: __VALUE__}

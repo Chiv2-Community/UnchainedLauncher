@@ -259,16 +259,7 @@ public sealed class ProtonRuntimeTests : IDisposable {
 
     [Fact]
     public void YamlSupportsExplicitProtonPaths() {
-        var path = Path.Combine(_root, "launch.yaml");
-        Write(path, $"""
-            chiv2-path: '{Game}'
-            platform: Steam
-            proton:
-              path: '/tool/proton'
-              compat-data-path: '/library/compatdata/1824220'
-            server:
-              headless: true
-            """);
+        var path = YamlTestResources.Write(_root, "proton/absolute", ("GAME", Game));
         var options = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
         Assert.Equal(Path.GetFullPath("/tool/proton", Path.GetDirectoryName(path)!), options.Shared.ProtonConfiguration.Path);
         Assert.Equal(Path.GetFullPath("/library/compatdata/1824220", Path.GetDirectoryName(path)!), options.Shared.ProtonConfiguration.CompatDataPath);
@@ -276,16 +267,7 @@ public sealed class ProtonRuntimeTests : IDisposable {
 
     [Fact]
     public void YamlProtonPathsResolveRelativeToTheYamlFile() {
-        var path = Path.Combine(_root, "configs/launch.yaml");
-        Write(path, $"""
-            chiv2-path: '{Game}'
-            platform: Steam
-            proton:
-              path: ../tool/proton
-              compat-data-path: ../compat
-            server:
-              headless: true
-            """);
+        var path = YamlTestResources.Write(Path.Combine(_root, "configs"), "proton/relative", ("GAME", Game));
         var options = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
         Assert.Equal(Path.GetFullPath(Path.Combine(_root, "tool/proton")), options.Shared.ProtonConfiguration.Path);
         Assert.Equal(Path.Combine(_root, "compat"), options.Shared.ProtonConfiguration.CompatDataPath);

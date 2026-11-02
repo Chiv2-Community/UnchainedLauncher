@@ -1,0 +1,10 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  match-presets: {foo: {map: FFA_Courtyard, mod-actors: [global-preset]}}
+servers:
+  one:
+    match-presets: {foo: {map: TDM_Wardenglade, mod-actors: [local-preset]}}
+    map-rotation: [foo]
+  two:
+    map-rotation: [foo]

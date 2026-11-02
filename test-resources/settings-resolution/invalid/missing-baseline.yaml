@@ -1,0 +1,4 @@
+chiv2-path: .
+platform: Steam
+global-settings: {}
+server: {map-rotation: [{map: FFA_Courtyard, ini: {Engine: {Mod: {New: 1}}}}]}

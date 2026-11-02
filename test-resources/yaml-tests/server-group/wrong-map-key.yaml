@@ -1,0 +1,4 @@
+chiv2-path: ./game
+platform: Steam
+no-tui: true
+servers: {one: {map: TO_Test}}

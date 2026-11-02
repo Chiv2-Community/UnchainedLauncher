@@ -1,0 +1,7 @@
+match-rotation:
+- profile: foo
+  name: Foo
+  map: TDM_Wardenglade
+  mod-actors:
+  - /Game/Mods/AgMods/Common.Common_C
+  - /Game/Mods/AgMods/Local.Local_C

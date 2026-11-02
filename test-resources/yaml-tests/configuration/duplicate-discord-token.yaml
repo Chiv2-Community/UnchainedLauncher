@@ -1,0 +1,4 @@
+chiv2-path: './game installation'
+platform: Steam
+client: {}
+server: {discord: {bot-token: first-secret, bot-token: second-secret}}

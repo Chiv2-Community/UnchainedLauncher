@@ -18,7 +18,7 @@
 
             var path = Path.Combine(Path.GetTempPath(), $"structuredini-writer-{Guid.NewGuid():N}.ini");
             try {
-                Assert.True(writer.WriteOut(path));
+                Assert.True(writer.WriteOut(path, isConfigRoot: false));
 
                 var content = File.ReadAllText(path);
                 Assert.Contains("[SectionA]", content);
@@ -35,7 +35,7 @@
         public void WriteOut_ReturnsFalse_WhenNothingBuffered() {
             var writer = new StructuredINIWriter();
             var path = Path.Combine(Path.GetTempPath(), $"structuredini-writer-{Guid.NewGuid():N}.ini");
-            Assert.False(writer.WriteOut(path));
+            Assert.False(writer.WriteOut(path, isConfigRoot: false));
         }
 
         [Fact]
@@ -46,7 +46,7 @@
 
             var path = Path.Combine(Path.GetTempPath(), $"structuredini-writer-{Guid.NewGuid():N}.ini");
             try {
-                Assert.True(writer.WriteOut(path));
+                Assert.True(writer.WriteOut(path, isConfigRoot: false));
                 var content = File.ReadAllText(path);
                 Assert.DoesNotContain("Foo=1", content);
                 Assert.Contains("Foo=2", content);
@@ -67,7 +67,7 @@ Extra=KeepMe
 
                 var writer = new StructuredINIWriter();
                 Assert.True(writer.BufferWrite(new SectionA(2)));
-                Assert.True(writer.WriteOut(path));
+                Assert.True(writer.WriteOut(path, isConfigRoot: false));
 
                 var content = File.ReadAllText(path);
                 Assert.Contains("[SectionA]", content);
@@ -93,7 +93,7 @@ Baz=99
 
                 var writer = new StructuredINIWriter();
                 Assert.True(writer.BufferWrite(new SectionA(2)));
-                Assert.True(writer.WriteOut(path));
+                Assert.True(writer.WriteOut(path, isConfigRoot: false));
 
                 var content = File.ReadAllText(path);
                 Assert.Contains("[SectionA]", content);
@@ -116,7 +116,7 @@ Baz=99
 
                 var writer = new StructuredINIWriter();
                 Assert.True(writer.BufferWrite(new SectionA(42)));
-                Assert.True(writer.WriteOut(path));
+                Assert.True(writer.WriteOut(path, isConfigRoot: false));
 
                 var content = File.ReadAllText(path);
                 Assert.Contains("[SectionC]", content);

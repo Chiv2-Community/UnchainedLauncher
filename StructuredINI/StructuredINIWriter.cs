@@ -17,6 +17,10 @@ namespace StructuredINI {
         // Merge caller-selected keys into a pending section; later values replace only those keys.
         public void MergeSection(string sectionName, IEnumerable<KeyValuePair<string, string>> entries) {
             var lines = entries.Select(entry => $"{entry.Key}={entry.Value}").ToList();
+            MergeSectionLines(sectionName, lines);
+        }
+
+        private void MergeSectionLines(string sectionName, List<string> lines) {
             if (!_bufferedSections.TryGetValue(sectionName, out var buffered)) {
                 _sectionOrder.Add(sectionName);
                 _bufferedSections[sectionName] = $"[{sectionName}]\n" + string.Join("\n", lines);
@@ -28,20 +32,22 @@ namespace StructuredINI {
             _bufferedSections[sectionName] = $"[{sectionName}]\n" + string.Join("\n", section.BodyLines);
         }
 
-        public static bool Save<T>(string path, T t) {
+        public static bool Save<T>(string path, T t, bool isConfigRoot) {
             var writer = new StructuredINIWriter();
-            return writer.BufferWrite(t) && writer.WriteOut(path);
+            return writer.BufferWrite(t) && writer.WriteOut(path, isConfigRoot);
         }
 
-        public bool BufferWrite<T>(T iniSection) {
+        public bool BufferWrite<T>(T iniSection) => BufferWrite(iniSection, merge: false);
+
+        public bool BufferWrite<T>(T iniSection, bool merge) {
             if (iniSection == null) return false;
 
             var type = iniSection.GetType();
             if (type.GetCustomAttribute<INIFileAttribute>() != null) {
-                return BufferWriteFileObject(iniSection);
+                return BufferWriteFileObject(iniSection, merge);
             }
 
-            var ini = _parser.Serialize(iniSection);
+            var ini = _parser.Serialize(iniSection, isConfigRoot: false);
 
             // Extract the section name from the first line: [SectionName]
             // Serialize always writes the header first.
@@ -52,6 +58,13 @@ namespace StructuredINI {
 
             var sectionName = ini.Substring(1, headerEnd - 1);
 
+            if (merge) {
+                var lines = SplitLines(ini).Skip(1).ToList();
+                while (lines.Count > 0 && lines[^1].Length == 0) lines.RemoveAt(lines.Count - 1);
+                MergeSectionLines(sectionName, lines);
+                return true;
+            }
+
             if (!_bufferedSections.ContainsKey(sectionName)) {
                 _sectionOrder.Add(sectionName);
             }
@@ -60,7 +73,7 @@ namespace StructuredINI {
             return true;
         }
 
-        private bool BufferWriteFileObject(object iniFile) {
+        private bool BufferWriteFileObject(object iniFile, bool merge) {
             var fileType = iniFile.GetType();
             var props = fileType
                 .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
@@ -75,13 +88,13 @@ namespace StructuredINI {
             foreach (var prop in props) {
                 var sectionObj = prop.GetValue(iniFile);
                 if (sectionObj == null) continue;
-                any |= BufferWrite((dynamic)sectionObj);
+                any |= BufferWrite((dynamic)sectionObj, merge);
             }
 
             return any;
         }
 
-        public bool WriteOut(string path) {
+        public bool WriteOut(string path, bool isConfigRoot) {
             if (string.IsNullOrWhiteSpace(path)) return false;
             if (_sectionOrder.Count == 0) return false;
 
@@ -158,13 +171,55 @@ namespace StructuredINI {
                 sbOut = sbOut.Replace(tripleNewline, doubleNewline);
             }
 
+            sbOut = SerializeDocument(sbOut, isConfigRoot);
             File.WriteAllText(path, sbOut, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
             return true;
         }
 
+        public static string SerializeDocument(string content, bool isConfigRoot) {
+            if (!isConfigRoot) return content;
+            var lines = SplitLines(content);
+            if (lines.Count > 0 && lines[^1].Length == 0) lines.RemoveAt(lines.Count - 1);
+            var resolved = ParseIni(lines.ToArray());
+            foreach (var section in resolved.Sections.Values)
+                section.BodyLines = ResolveRootArrays(section.BodyLines);
+            var root = new StringBuilder();
+            WriteIni(root, resolved);
+            return root.ToString();
+        }
+
+        // Resolve commands before writing standalone configs; never just strip prefixes.
+        private static List<string> ResolveRootArrays(List<string> lines) {
+            var operated = lines.Where(line => {
+                var trimmed = line.Trim();
+                return trimmed.Length > 0 && "!+.-".Contains(trimmed[0]) && TryExtractKey(line) != null;
+            }).Select(line => TryExtractKey(line)!).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var values = operated.ToDictionary(key => key, _ => new List<string>(), StringComparer.OrdinalIgnoreCase);
+            foreach (var line in lines) {
+                var key = TryExtractKey(line);
+                if (key == null || !values.TryGetValue(key, out var items)) continue;
+                var trimmed = line.Trim();
+                var value = trimmed[(trimmed.IndexOf('=') + 1)..].Trim();
+                switch (trimmed[0]) {
+                    case '!': items.Clear(); break;
+                    case '-': items.Remove(value); break;
+                    case '+': if (!items.Contains(value, StringComparer.Ordinal)) items.Add(value); break;
+                    default: items.Add(value); break;
+                }
+            }
+            var result = new List<string>();
+            foreach (var line in lines) {
+                var key = TryExtractKey(line);
+                if (key == null || !operated.Contains(key)) { result.Add(line); continue; }
+                if (values.Remove(key, out var items))
+                    result.AddRange(items.Select(value => $"{key}={value}"));
+            }
+            return result;
+        }
+
         private static List<string> SplitLines(string text) {
             if (string.IsNullOrEmpty(text)) return new List<string>();
-            return text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None).ToList();
+            return text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToList();
         }
 
         private static HashSet<string> ExtractKeysFromLines(IEnumerable<string> lines) {
@@ -286,7 +341,7 @@ namespace StructuredINI {
 
         private sealed class IniSection {
             public string Name { get; }
-            public List<string> BodyLines { get; }
+            public List<string> BodyLines { get; set; }
 
             public IniSection(string name, List<string> bodyLines) {
                 Name = name;

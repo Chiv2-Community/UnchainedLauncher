@@ -5,9 +5,19 @@
 # Pak bytes are shared through the common content-addressed cache and hard links.
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam
-map-profiles:
-  courtyard:
-    map-name: FFA_Courtyard
+global-settings:
+  registries: [] # Official registry is included automatically.
+  mods:
+    - Chiv2-Community/Unchained-Mods:v0.1.0
+    - Chiv2-Community/Chiv2Turbo:v0.0.4
+  plugins:
+    # Replace with a map-rotation/mod-actors supporting build with map_profiles enabled.
+    - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
+  mod-actors:
+    - /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C
+  match-presets:
+    courtyard:
+      map: FFA_Courtyard
 server-browser-backend: https://servers.polehammer.net
 update-plugin: true
 allow-unstable-plugin: false
@@ -17,15 +27,8 @@ servers:
   courtyard:
     map-rotation:
       - courtyard
-      - map-name: FFA_Wardenglade
+      - map: FFA_Wardenglade
     # saved-dir-suffix defaults to courtyard (the server key).
-    mod-setup:
-      registries: [] # Official registry is included automatically.
-      mods:
-        - Chiv2-Community/Unchained-Mods:v0.1.0
-        - Chiv2-Community/Chiv2Turbo:v0.0.4
-      dlls:
-        - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
     ini:
       Game:
         /Script/TBL.TBLGameMode:
@@ -41,19 +44,10 @@ servers:
     ping-port: 3075
     query-port: 7071
     rcon-port: 9001
-    mod-actors:
-      - /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C
   arena:
     map-rotation:
       - courtyard
-      - map-name: FFA_Bazaar
-    mod-setup:
-      registries: []
-      mods:
-        - Chiv2-Community/Unchained-Mods:v0.1.0
-        - Chiv2-Community/Chiv2Turbo:v0.0.4
-      dlls:
-        - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
+      - map: FFA_Bazaar
     name: Arena FFA
     starting-map: FFA_Courtyard # Replace with an installed map's travel name.
     saved-dir-suffix: ArenaProfile # Optional explicit per-server profile.
@@ -61,5 +55,3 @@ servers:
     ping-port: 3076
     query-port: 7072
     rcon-port: 9002
-    mod-actors:
-      - /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C

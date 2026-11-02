@@ -1,0 +1,46 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  mod-actors: [always]
+  ini:
+    Engine:
+      Demo:
+        MapValue: 0
+        PresetValue: 0
+        SlotValue: 0
+        Names: [base]
+  map-settings:
+    'FFA_~':
+      ini: {Engine: {Demo: {MapValue: 1}}}
+      mod-actors: [map-wildcard]
+    FFA_Courtyard:
+      ini: {Engine: {Demo: {MapValue: 2}}}
+      mod-actors: [map-exact]
+  match-presets:
+    'duel-~':
+      map: FFA_Wardenglade
+      ini: {Engine: {Demo: {PresetValue: 3}}}
+      mod-actors: [preset-wildcard]
+    duel-courtyard:
+      map: FFA_Courtyard
+      ini: {Engine: {Demo: {PresetValue: 4}}}
+      mod-actors: [preset-exact]
+server:
+  map-settings:
+    FFA_Wardenglade:
+      ini: {Engine: {Demo: {MapValue: 5}}}
+      mod-actors: [server-map-exact]
+  match-presets:
+    'duel-o~':
+      ini: {Engine: {Demo: {PresetValue: 6}}}
+      mod-actors: [server-preset-wildcard]
+    duel-open:
+      ini: {Engine: {Demo: {Names: [open]}}}
+      mod-actors: [server-preset-exact]
+  map-rotation:
+    - duel-courtyard
+    - duel-open
+    - preset: duel-courtyard
+      map: FFA_Bazaar
+      name: Late Courtyard
+      ini: {Engine: {Demo: {SlotValue: 9}}}

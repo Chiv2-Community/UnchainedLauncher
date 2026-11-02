@@ -1,0 +1,23 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  mod-actors: [global, shared]
+  map-settings:
+    'FFA_~':
+      mod-actors: [global-map]
+  match-presets:
+    foo:
+      map: FFA_Courtyard
+      mod-actors: [preset]
+server:
+  mod-actors: [server, shared]
+  map-settings:
+    'ffa_~':
+      mod-actors: [server-map]
+  map-rotation:
+    - foo
+    - preset: foo
+      name: Override
+      map: TDM_Wardenglade
+      mod-actors: [inline, global]
+    - {map: FFA_Bazaar}

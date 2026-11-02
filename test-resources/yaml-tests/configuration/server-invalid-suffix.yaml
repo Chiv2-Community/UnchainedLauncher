@@ -1,0 +1,3 @@
+chiv2-path: './game installation'
+platform: Steam
+server: {saved-dir-suffix: __SUFFIX__, mod-setup: {mods: [invalid]}}

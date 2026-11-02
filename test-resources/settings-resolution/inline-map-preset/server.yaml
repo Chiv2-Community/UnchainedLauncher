@@ -1,0 +1,42 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  ini:
+    Game:
+      /Script/Engine.GameSession: {MaxPlayers: 24}
+      /Script/TBL.TBLGameMode:
+        BotBackfillLowBots: 2
+        BotBackfillHighBots: 2
+        IdleKickTimerSpectate: 180
+        MaxTimeBeforeStartingMatch: 15
+  map-settings:
+    FFA_Courtyard:
+      ini:
+        Game:
+          /Script/Engine.GameSession: {MaxPlayers: 16}
+          /Script/TBL.TBLGameMode: {BotBackfillHighBots: 6}
+    FFA_Wardenglade:
+      ini:
+        Game:
+          /Script/Engine.GameSession: {MaxPlayers: 12}
+          /Script/TBL.TBLGameMode: {BotBackfillHighBots: 9, IdleKickTimerSpectate: 99}
+    'FFA_~':
+      ini:
+        Game:
+          /Script/Engine.GameSession: {MaxPlayers: 20}
+          /Script/TBL.TBLGameMode: {BotBackfillHighBots: 4}
+  match-presets:
+    wardenglade:
+      map: FFA_Wardenglade
+      ini: {Game: {'/Script/TBL.TBLGameMode': {BotBackfillLowBots: 8, MaxTimeBeforeStartingMatch: 25}}}
+server:
+  map-rotation:
+    - preset: wardenglade
+      map: FFA_Courtyard
+      name: Courtyard with Wardenglade preset and inline INI
+      ini: {Game: {'/Script/TBL.TBLGameMode': {MaxTimeBeforeStartingMatch: 35}}}
+    - wardenglade
+    - {map: FFA_Courtyard, name: Courtyard without preset}
+    - {map: TDM_Wardenglade, name: Baseline restoration}
+    - {preset: wardenglade, map: FFA_Courtyard, name: Courtyard with Wardenglade preset}
+    - {map: FFA_Bazaar, name: Wildcard only}

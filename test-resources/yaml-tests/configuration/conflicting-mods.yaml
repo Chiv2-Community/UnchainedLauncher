@@ -1,0 +1,3 @@
+chiv2-path: './game installation'
+platform: Steam
+server: {mod-setup: {mods: ['org/mod:v1', 'org/mod:v2']}}

@@ -1,0 +1,6 @@
+chiv2-path: .
+platform: Steam
+no-tui: true
+servers:
+  crashed: {game-port: 7000, ping-port: 7001, query-port: 7002, rcon-port: 7003}
+  healthy: {game-port: 7004, ping-port: 7005, query-port: 7006, rcon-port: 7007}

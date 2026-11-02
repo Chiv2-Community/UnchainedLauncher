@@ -1,0 +1,13 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  ini:
+    Engine: ./array-baseline-without-reset.ini
+  map-settings:
+    'FFA_~':
+      ini:
+        Engine:
+          Demo:
+            '-Names': [A]
+server:
+  map-rotation: [{map: FFA_Courtyard}]

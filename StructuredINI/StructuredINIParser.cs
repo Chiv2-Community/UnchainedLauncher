@@ -118,7 +118,6 @@ namespace StructuredINI {
             }
 
             var sectionName = sectionAttr.SectionName;
-            var lines = GetLinesForSection(iniContent, sectionName);
 
             // Prepare storage for property values
             // For arrays/lists, we store the List<ElementType> object.
@@ -141,29 +140,20 @@ namespace StructuredINI {
                 }
             }
 
-            foreach (var line in lines) {
-                ProcessLine(line, propMap, propertyValues);
+            foreach (var entry in ReadEntries(iniContent).Where(entry => entry.Section.Equals(sectionName, StringComparison.OrdinalIgnoreCase))) {
+                ProcessLine(entry, propMap, propertyValues);
             }
 
             return CreateInstance<T>(propertyValues, properties);
         }
 
-        private List<string> GetLinesForSection(string content, string sectionName) {
-            return ReadEntries(content).Where(entry => entry.Section.Equals(sectionName, StringComparison.OrdinalIgnoreCase))
-                .Select(entry => $"{entry.Key}={entry.Value}").ToList();
-        }
-
-        private void ProcessLine(string line, Dictionary<string, PropertyInfo> propMap, Dictionary<string, object> propertyValues) {
+        private void ProcessLine(Entry entry, Dictionary<string, PropertyInfo> propMap, Dictionary<string, object> propertyValues) {
             // Syntax: [Prefix]Key=Value
             // Prefixes: !, +, -, .
             // If no prefix, it's Set.
 
-            // Find position of =
-            int idx = line.IndexOf('=');
-            if (idx == -1) return; // Invalid line
-
-            string keyPart = line.Substring(0, idx).Trim();
-            string valuePart = line.Substring(idx + 1).Trim();
+            string keyPart = entry.Key;
+            string valuePart = entry.Value.Trim();
 
             char prefix = '\0';
             string key = keyPart;

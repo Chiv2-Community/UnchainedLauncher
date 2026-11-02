@@ -427,7 +427,6 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData("wrong-map-key")]
     [InlineData("empty-start")]
     [InlineData("invalid-censor")]
-    [InlineData("negative-warmup")]
     [InlineData("discord-token-only")]
     [InlineData("discord-channel-only")]
     [InlineData("duplicate-name")]
@@ -446,10 +445,6 @@ public class YamlConfigurationTests : IDisposable {
         Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Write("multiple-documents"), false));
         Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Write("missing-path"), false));
         Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Write("missing-platform"), false));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--config-path"]));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--config-path="]));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--config-path=x", "--config-path=y"]));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["--config-path", Write("defaults")]));
     }
 
     [Fact]

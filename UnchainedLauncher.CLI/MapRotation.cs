@@ -38,7 +38,7 @@ internal sealed class MapRotationEntryYamlConverter : IYamlTypeConverter {
 
 internal sealed record NativeIniLayer(string Group, string Name, IniOverrides Ini);
 
-internal sealed record MapRotation(IReadOnlyList<string> Maps, int StartIndex, IReadOnlyList<IniOverrides> Overrides, IReadOnlyList<string> Names, IReadOnlyList<string> Profiles) {
+internal sealed record MapRotation(IReadOnlyList<string> Maps, int StartIndex, IReadOnlyList<string> Names, IReadOnlyList<string> Profiles) {
     private const string Section = "/Script/TBL.TBLGameMode";
     [INISection(Section)]
     private sealed record RotationIni(string[] MapList, int MapListIndex);
@@ -99,7 +99,6 @@ internal sealed record MapRotation(IReadOnlyList<string> Maps, int StartIndex, I
         if (entries is null) return null;
         if (entries.Count == 0) throw new ValidationException("map-rotation must contain at least one map.");
         var maps = new List<string>();
-        var overrides = new List<IniOverrides>();
         var names = new List<string>();
         var directories = new List<string>();
         var uniqueNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -121,19 +120,12 @@ internal sealed record MapRotation(IReadOnlyList<string> Maps, int StartIndex, I
             directories.Add(directory);
             names.Add(displayName);
             maps.Add(profile!.MapName!);
-            overrides.Add(ini);
             layers.Add(new(entry.Profile is null ? "indices" : "profiles",
                 entry.Profile ?? (maps.Count - 1).ToString(CultureInfo.InvariantCulture), ini));
         }
         var index = startingMap is null ? 0 : maps.FindIndex(map => map.Equals(startingMap, StringComparison.OrdinalIgnoreCase));
         if (index < 0) throw new ValidationException("starting-map must match a map-name in map-rotation.");
-        return new MapRotation(maps.ToArray(), index, overrides.ToArray(), names.ToArray(), directories.ToArray()) { Layers = layers.AsReadOnly() };
-    }
-
-    internal void Apply(string directory) {
-        var writer = new StructuredINIWriter();
-        BufferInto(writer);
-        IniPatches.Write(directory, new(StringComparer.OrdinalIgnoreCase) { ["Game"] = writer }, isConfigRoot: true);
+        return new MapRotation(maps.ToArray(), index, names.ToArray(), directories.ToArray()) { Layers = layers.AsReadOnly() };
     }
 
     internal void BufferInto(StructuredINIWriter writer) {

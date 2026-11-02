@@ -140,7 +140,8 @@ public sealed class ServerOptions : CliLaunchOptions {
             if (Ini.RawArguments.Any()) throw new ArgumentException("server.ini cannot use raw alongside map-profile INI; use typed values for the default layer.");
             if (GameArguments.Any(argument => argument.TrimStart('-').Split('=', 2)[0] == "unchained-profile-location"))
                 throw new ArgumentException("unchained-profile-location is managed by map-profile INI; remove the conflicting game argument.");
-            foreach (var overrides in rotation.Overrides) Ini.ValidateMapOverrides(overrides);
+            if (settings.Resolved is null)
+                foreach (var layer in rotation.Layers) Ini.ValidateMapOverrides(layer.Ini);
         }
         NoTui = noTui;
         if (!settings.Headless && settings.DesyncPatch)

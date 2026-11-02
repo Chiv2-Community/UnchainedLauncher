@@ -319,22 +319,25 @@ public sealed class SettingsResolutionTests : IDisposable {
     }
 
     [Theory]
-    [InlineData("Engine", false)]
-    [InlineData("Engine", true)]
-    [InlineData("GameUserSettings", false)]
-    [InlineData("GameUserSettings", true)]
-    public void SavingImportedRootFilesPreservesSnapshotsAndIndependentOutputs(string category, bool existingLinkedRoot) {
-        var server = Server("root-save-isolation");
-        var source = Path.Combine(_root, "Engine.ini");
+    [InlineData("Engine", false, false)]
+    [InlineData("Engine", true, false)]
+    [InlineData("GameUserSettings", false, false)]
+    [InlineData("GameUserSettings", true, false)]
+    [InlineData("Engine", true, true)]
+    [InlineData("GameUserSettings", true, true)]
+    public void SavingImportedRootFilesPreservesSnapshotsAndIndependentOutputs(string category, bool existingLinkedRoot, bool mergedIdentical) {
+        var server = LoadServer(Fixture("root-save-isolation", mergedIdentical ? "merged.yaml" : "server.yaml"));
+        var source = Path.Combine(_root, mergedIdentical ? "Merged.ini" : "Engine.ini");
         var sourceBytes = File.ReadAllBytes(source);
         var cache = Path.Combine(server.InstancePaths.Root, "ini-cache");
         var conditional = Path.Combine(_root, "conditional");
-        server.Ini.Apply(conditional, cache);
+        var imported = mergedIdentical ? IniOverrides.Parse(new IniSource { Files = { [category] = source } }) : server.Ini;
+        imported.Apply(conditional, cache);
         var conditionalBytes = File.ReadAllBytes(Path.Combine(conditional, category + ".ini"));
         var first = Path.Combine(_root, "first-profile");
         var second = Path.Combine(_root, "second-profile");
         // Simulate a root file linked by an earlier launcher version.
-        if (existingLinkedRoot) server.Ini.Apply(first, cache);
+        if (existingLinkedRoot) imported.Apply(first, cache);
         ServerLauncher.InitializeServerProfile(server, _ => first);
         ServerLauncher.InitializeServerProfile(server, _ => second);
         var rootFile = Path.Combine(first, category + ".ini");

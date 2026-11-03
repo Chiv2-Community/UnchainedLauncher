@@ -476,7 +476,7 @@ server:
 - Rule/reference folder names must be portable ASCII letters, digits, `_`, `-`, or `.`, at most 128 characters, without reserved device names or trailing dots. Rule folders may additionally have a trailing `~`.
 - The plugin requires unique profile references. The first use retains its preset name; later uses receive a suffix such as `.slot-1` and a copy of only the exact preset's INI. Prefix-wildcard files remain shared; generated aliases cannot add wildcard matches. If no safe alias exists, use distinct preset references.
 - Slots without a preset use `inline-<slot>` references. Profile wildcard rules, including `profiles/~/`, also match those references; wildcard preset `map` metadata does not override an explicit inline map.
-- Generated `unchained.yaml` keeps concrete maps as display metadata; the native game rotation still controls travel:
+- Generated `<saveddir>/unchained/map-config/<hash>/unchained.yaml` sits beside `ini-overrides/` at the passed `--unchained-profile-location` root. It selects preset layers by slot and keeps concrete maps as display metadata; the native game rotation still controls travel:
 
   ```yaml
   match-rotation:

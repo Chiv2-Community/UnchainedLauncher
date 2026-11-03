@@ -21,7 +21,7 @@ public sealed class MapProfileIniTests : IDisposable {
     private static string[] ProfileDirectories(ServerOptions server) {
         var directory = Path.Combine(server.MapProfilePath!, "ini-overrides");
         var yaml = new YamlStream();
-        yaml.Load(new StringReader(File.ReadAllText(Path.Combine(directory, "unchained.yaml"))));
+        yaml.Load(new StringReader(File.ReadAllText(Path.Combine(server.MapProfilePath!, "unchained.yaml"))));
         var root = (YamlMappingNode)yaml.Documents[0].RootNode;
         Assert.False(root.Children.ContainsKey(new YamlScalarNode("map_profiles")));
         var entries = Assert.IsType<YamlSequenceNode>(root["match-rotation"]);
@@ -145,7 +145,7 @@ public sealed class MapProfileIniTests : IDisposable {
         if (!OperatingSystem.IsLinux()) return;
         var server = Server("per-map");
         var script = Path.Combine(_root, "proton");
-        await File.WriteAllTextAsync(script, "#!/bin/sh\n[ -f \"$4/ini-overrides/unchained.yaml\" ] || exit 2\nprintf '%s\\n' 'Z:\\generated profile'\n");
+        await File.WriteAllTextAsync(script, "#!/bin/sh\n[ -f \"$4/unchained.yaml\" ] || exit 2\nprintf '%s\\n' 'Z:\\generated profile'\n");
         File.SetUnixFileMode(script, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         server.Shared.Proton = new ProtonRuntime(script, _root, null, "unused");
         await MapProfileIni.PrepareAsync(server, CancellationToken.None);

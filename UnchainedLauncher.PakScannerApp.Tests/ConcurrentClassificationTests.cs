@@ -7,6 +7,21 @@ using Xunit;
 namespace UnchainedLauncher.PakScannerApp.Tests;
 
 public class ConcurrentClassificationTests {
+    [Fact]
+    public void ViewStateSupportsOptionalPropertyChangedSubscribers() {
+        var result = new PakScanResult();
+        Assert.Equal(string.Empty, result.PakPathExpanded);
+        result.IsChecked = true;
+        result.IsExpanded = false;
+
+        var changed = new List<string?>();
+        result.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+        result.IsChecked = false;
+        result.IsExpanded = true;
+
+        Assert.Equal([nameof(PakScanResult.IsChecked), nameof(PakScanResult.IsExpanded)], changed);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

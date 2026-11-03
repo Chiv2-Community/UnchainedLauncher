@@ -165,7 +165,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                 // Handle cases where numbers might be boxed as different types
                 if (value is T typedValue) return typedValue;
 
-                try { return (T)Convert.ChangeType(value, typeof(T)); }
+                try { return (T?)Convert.ChangeType(value, typeof(T)); }
                 catch { return default; }
             }
             return default;

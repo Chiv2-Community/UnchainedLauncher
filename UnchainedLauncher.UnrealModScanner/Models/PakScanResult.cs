@@ -123,7 +123,9 @@ public sealed class PakScanResult {
     // Chivalry 2 specific
 
     [JsonProperty("markers")]
+#pragma warning disable CS0618 // Preserve the legacy marker serialization contract.
     public ConcurrentBag<ModMarkerInfo> _Markers { get; } = new();
+#pragma warning restore CS0618
 
     // UI 
 
@@ -139,7 +141,7 @@ public sealed class PakScanResult {
     /// Whether this category is expanded
     /// </summary>
     [JsonIgnore]
-    public string PakPathExpanded { get; set; }
+    public string PakPathExpanded { get; set; } = string.Empty;
 
     [JsonIgnore]
     public bool IsExpanded {
@@ -166,8 +168,8 @@ public sealed class PakScanResult {
         }
     }
 
-    public event PropertyChangedEventHandler PropertyChanged;
-    protected void OnPropertyChanged([CallerMemberName] string name = null)
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
     // Serialization filters

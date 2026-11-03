@@ -12,7 +12,8 @@ internal sealed class YamlNumberTypeResolver : INodeTypeResolver {
             return false;
         if (scalar.Value.IndexOfAny(['.', 'e', 'E']) < 0) return false;
         if (scalar.Value.IndexOfAny(['e', 'E']) < 0 && decimal.TryParse(scalar.Value,
-            NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out _)) currentType = typeof(decimal);
+            NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var number) &&
+            (number != 0 || !scalar.Value.Any(character => character is >= '1' and <= '9'))) currentType = typeof(decimal);
         else if (double.TryParse(scalar.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out _)) currentType = typeof(double);
         else return false;
         return true;

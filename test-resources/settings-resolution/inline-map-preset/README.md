@@ -7,6 +7,7 @@ Map rules must match the final map, not the preset's original map. Exact map rul
 Generated conditional files:
 
 ```text
+unchained.yaml
 ini-overrides/
   maps/FFA_~/Game.ini
   maps/FFA_Courtyard/Game.ini
@@ -15,7 +16,6 @@ ini-overrides/
   profiles/wardenglade.slot-1/Game.ini
   profiles/wardenglade.slot-4/Game.ini
   indices/0/Game.ini
-  unchained.yaml
 ```
 
 The three preset files contain identical preset-only settings; their references are distinct because the plugin requires unique profile names. Only `indices/0/Game.ini` contains the inline match-wait override. Baseline settings remain outside this tree in the server's saved `Game.ini`.
@@ -31,4 +31,4 @@ The three preset files contain identical preset-only settings; their references 
 
 `LowBots` and `HighBots` denote `BotBackfillLowBots` and `BotBackfillHighBots`; `Spectate` denotes `IdleKickTimerSpectate`; `MaxWait` denotes `MaxTimeBeforeStartingMatch`.
 
-`SettingsResolutionTests.NativeHierarchyPreservesWildcardMapPresetAndInlineBoundaries` checks the separate map, profile, and index files and absence of baseline copies. `InlineMapSelectsMapRulesWithoutDiscardingPresetIni` checks expected composition using a test-only model of the plugin's folder order. Neither proves live GameMode imports or restoration across travel.
+`SettingsResolutionTests.NativeHierarchyPreservesLayerBoundariesAndResolvesAllSixRotationSlots` checks separate map, profile, and index files, absence of baseline copies, and all six compositions using generated root metadata and a test-only model of the plugin's folder order. It does not prove live GameMode imports or restoration across travel.

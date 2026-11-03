@@ -24,7 +24,7 @@ internal static class MapProfileIni {
             return entry;
         }).ToArray();
         var yaml = new SerializerBuilder().Build().Serialize(new Dictionary<string, object> { ["match-rotation"] = entries });
-        await File.WriteAllTextAsync(Path.Combine(directory, "unchained.yaml"), yaml, token);
+        await File.WriteAllTextAsync(Path.Combine(root, "unchained.yaml"), yaml, token);
         server.MapProfilePath = request.Shared.Proton is { } proton
             ? await proton.WinePathAsync(root, windows: true, token) : root;
     }

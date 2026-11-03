@@ -100,6 +100,9 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                 await secondPass.ResolveReferencesAsync(discoveryProcessor.DiscoveredReferences, mainResult);
             }
 
+            foreach (var result in mainResult.Paks.Values)
+                result.FinalizeClassification();
+
             //if (discoveryProcessor.DiscoveredReferences.Any()) {
             //    var secondPass = new SecondPassOrchestrator(provider, _options);
 

@@ -57,10 +57,10 @@ internal sealed class IniOverrides {
 
     internal void ValidateMapOverrides(IniOverrides overrides) {
         foreach (var entry in overrides._entries) {
-            if (!Contains(entry.File, entry.Section, entry.Key))
-                throw new ArgumentException($"Map-profile INI field {entry.File}.{entry.Section}.{entry.Key} requires a server.ini default (or global-settings.ini default) so other maps can restore it.");
-            var baseline = _entries.First(item => item.File.Equals(entry.File, StringComparison.OrdinalIgnoreCase) &&
+            var baseline = _entries.FirstOrDefault(item => item.File.Equals(entry.File, StringComparison.OrdinalIgnoreCase) &&
                 item.Section.Equals(entry.Section, StringComparison.OrdinalIgnoreCase) && item.Key.Equals(entry.Key, StringComparison.OrdinalIgnoreCase));
+            if (baseline is null)
+                throw new ArgumentException($"Map-profile INI field {entry.File}.{entry.Section}.{entry.Key} requires a server.ini default (or global-settings.ini default) so other maps can restore it.");
             if (ReferenceEquals(baseline, entry) || Commands(baseline).SequenceEqual(Commands(entry))) continue;
             var array = entry.Array || entry.Lines?.Any(line => "+.-!".Contains(line.Key[0])) == true;
             if (array && baseline.Lines is not null && !baseline.Lines.Any(line => line.Key.StartsWith('!')))

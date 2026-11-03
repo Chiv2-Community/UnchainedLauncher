@@ -271,7 +271,12 @@ internal sealed class IniOverrides {
         Func<string, string, bool>? createLink, bool isConfigRoot, bool gamePatched = false) {
         Directory.CreateDirectory(directory);
         foreach (var (category, snapshot) in _imported) {
-            if (gamePatched && category.Equals("Game", StringComparison.OrdinalIgnoreCase) || EntriesIdentity(category) != snapshot.Entries) continue;
+            if (gamePatched && category.Equals("Game", StringComparison.OrdinalIgnoreCase) || EntriesIdentity(category) != snapshot.Entries) {
+                if (!files.TryGetValue(category, out var writer)) files[category] = writer = new StructuredINIWriter();
+                using var reader = new StreamReader(new MemoryStream(snapshot.Bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+                writer.BufferDocumentTrivia(reader.ReadToEnd());
+                continue;
+            }
             var imported = snapshot;
             if (isConfigRoot) {
                 using var reader = new StreamReader(new MemoryStream(snapshot.Bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);

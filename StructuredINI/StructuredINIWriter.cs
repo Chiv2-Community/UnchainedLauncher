@@ -7,6 +7,10 @@ namespace StructuredINI {
 
         private readonly List<string> _sectionOrder = new();
         private readonly Dictionary<string, List<string>> _bufferedSections = new(StringComparer.OrdinalIgnoreCase);
+        private ParsedIni? _documentTrivia;
+
+        // Import only document trivia; effective keys still come from the buffered patch.
+        public void BufferDocumentTrivia(string content) => _documentTrivia = ParseIni(SplitLines(content).ToArray());
 
         // Buffer only caller-selected keys; WriteOut preserves all other keys.
         public void BufferSection(string sectionName, IEnumerable<KeyValuePair<string, string>> entries) {
@@ -95,9 +99,19 @@ namespace StructuredINI {
 
         public bool WriteOut(string path, bool isConfigRoot) {
             if (string.IsNullOrWhiteSpace(path)) return false;
-            if (_sectionOrder.Count == 0) return false;
+            if (_sectionOrder.Count == 0 && _documentTrivia == null) return false;
 
             var parsed = File.Exists(path) ? ParseIni(File.ReadAllLines(path)) : new ParsedIni();
+            if (_documentTrivia is { } trivia) {
+                MergeTrivia(parsed.PreambleLines, trivia.PreambleLines);
+                foreach (var sectionName in trivia.Order) {
+                    if (!parsed.Sections.TryGetValue(sectionName, out var section)) {
+                        parsed.Order.Add(sectionName);
+                        parsed.Sections[sectionName] = section = new IniSection(sectionName, new List<string>());
+                    }
+                    MergeTrivia(section.BodyLines, trivia.Sections[sectionName].BodyLines);
+                }
+            }
             foreach (var sectionName in _sectionOrder) {
                 var bodyLines = _bufferedSections[sectionName];
                 if (parsed.Sections.TryGetValue(sectionName, out var existingSection)) {
@@ -196,6 +210,11 @@ namespace StructuredINI {
             }
 
             existing.InsertRange(insertAt, newBodyLines);
+        }
+
+        private static void MergeTrivia(List<string> existing, List<string> imported) {
+            var missing = imported.Where(line => TryExtractKey(line) == null && !existing.Contains(line, StringComparer.Ordinal)).ToArray();
+            existing.AddRange(missing);
         }
 
         private static IEnumerable<string> NormalizeBlankLines(List<string> lines) {

@@ -3,6 +3,7 @@ platform: Steam
 global-settings:
   ini:
     Engine: ./baseline.ini
+    Game: ./game.ini
   map-settings:
     'ffa_~':
       ini:

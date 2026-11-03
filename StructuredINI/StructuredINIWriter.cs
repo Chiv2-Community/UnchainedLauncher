@@ -6,12 +6,12 @@ namespace StructuredINI {
         private readonly StructuredINIParser _parser = new();
 
         private readonly List<string> _sectionOrder = new();
-        private readonly Dictionary<string, string> _bufferedSections = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, List<string>> _bufferedSections = new(StringComparer.OrdinalIgnoreCase);
 
         // Buffer only caller-selected keys; WriteOut preserves all other keys.
         public void BufferSection(string sectionName, IEnumerable<KeyValuePair<string, string>> entries) {
             if (!_bufferedSections.ContainsKey(sectionName)) _sectionOrder.Add(sectionName);
-            _bufferedSections[sectionName] = $"[{sectionName}]\n" + string.Join("\n", entries.Select(entry => $"{entry.Key}={entry.Value}"));
+            _bufferedSections[sectionName] = entries.SelectMany(entry => SplitLines($"{entry.Key}={entry.Value}")).ToList();
         }
 
         // Merge caller-selected keys into a pending section; later values replace only those keys.
@@ -23,13 +23,12 @@ namespace StructuredINI {
         private void MergeSectionLines(string sectionName, List<string> lines) {
             if (!_bufferedSections.TryGetValue(sectionName, out var buffered)) {
                 _sectionOrder.Add(sectionName);
-                _bufferedSections[sectionName] = $"[{sectionName}]\n" + string.Join("\n", lines);
+                _bufferedSections[sectionName] = lines.SelectMany(SplitLines).ToList();
                 return;
             }
 
-            var section = new IniSection(sectionName, SplitLines(buffered).Skip(1).ToList());
-            PatchSection(section, ExtractKeysFromLines(lines), lines);
-            _bufferedSections[sectionName] = $"[{sectionName}]\n" + string.Join("\n", section.BodyLines);
+            PatchSection(buffered, lines);
+            _bufferedSections[sectionName] = buffered.SelectMany(SplitLines).ToList();
         }
 
         public static bool Save<T>(string path, T t, bool isConfigRoot) {
@@ -57,9 +56,9 @@ namespace StructuredINI {
             }
 
             var sectionName = ini.Substring(1, headerEnd - 1);
+            var lines = SplitLines(ini).Skip(1).ToList();
 
             if (merge) {
-                var lines = SplitLines(ini).Skip(1).ToList();
                 while (lines.Count > 0 && lines[^1].Length == 0) lines.RemoveAt(lines.Count - 1);
                 MergeSectionLines(sectionName, lines);
                 return true;
@@ -69,7 +68,7 @@ namespace StructuredINI {
                 _sectionOrder.Add(sectionName);
             }
 
-            _bufferedSections[sectionName] = ini;
+            _bufferedSections[sectionName] = lines;
             return true;
         }
 
@@ -100,19 +99,9 @@ namespace StructuredINI {
 
             var parsed = File.Exists(path) ? ParseIni(File.ReadAllLines(path)) : new ParsedIni();
             foreach (var sectionName in _sectionOrder) {
-                if (!_bufferedSections.TryGetValue(sectionName, out var sectionText)) {
-                    continue;
-                }
-
-                var lines = SplitLines(sectionText);
-                if (lines.Count == 0) {
-                    continue;
-                }
-
-                // Strip header line, keep only body lines.
-                var bodyLines = lines.Skip(1).ToList();
+                var bodyLines = _bufferedSections[sectionName];
                 if (parsed.Sections.TryGetValue(sectionName, out var existingSection)) {
-                    PatchSection(existingSection, ExtractKeysFromLines(bodyLines), bodyLines);
+                    PatchSection(existingSection.BodyLines, bodyLines);
                 }
                 else {
                     parsed.Order.Add(sectionName);
@@ -133,9 +122,7 @@ namespace StructuredINI {
 
         public static string SerializeDocument(string content, bool isConfigRoot) {
             if (!isConfigRoot) return content;
-            var lines = SplitLines(content);
-            if (lines.Count > 0 && lines[^1].Length == 0) lines.RemoveAt(lines.Count - 1);
-            var resolved = ParseIni(lines.ToArray());
+            var resolved = ParseIni(SplitLines(content).ToArray());
             var root = new StringBuilder();
             WriteIni(root, resolved, isConfigRoot: true);
             return root.ToString();
@@ -171,20 +158,8 @@ namespace StructuredINI {
         }
 
         private static List<string> SplitLines(string text) {
-            if (string.IsNullOrEmpty(text)) return new List<string>();
+            if (text is null) return new List<string>();
             return text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None).ToList();
-        }
-
-        private static HashSet<string> ExtractKeysFromLines(IEnumerable<string> lines) {
-            var keys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var line in lines) {
-                var key = TryExtractKey(line);
-                if (key != null) {
-                    keys.Add(key);
-                }
-            }
-
-            return keys;
         }
 
         private static string? TryExtractKey(string line) {
@@ -205,21 +180,22 @@ namespace StructuredINI {
             return trimmed.Substring(0, eq).Trim();
         }
 
-        private static void PatchSection(IniSection existing, HashSet<string> keysToReplace, List<string> newBodyLines) {
+        private static void PatchSection(List<string> existing, List<string> newBodyLines) {
+            var keysToReplace = newBodyLines.Select(TryExtractKey).OfType<string>().ToHashSet(StringComparer.OrdinalIgnoreCase);
             if (keysToReplace.Count > 0) {
-                existing.BodyLines.RemoveAll(l => {
+                existing.RemoveAll(l => {
                     var key = TryExtractKey(l);
                     return key != null && keysToReplace.Contains(key);
                 });
             }
 
             // Insert before trailing blank lines to keep section spacing.
-            var insertAt = existing.BodyLines.Count;
-            while (insertAt > 0 && string.IsNullOrWhiteSpace(existing.BodyLines[insertAt - 1])) {
+            var insertAt = existing.Count;
+            while (insertAt > 0 && string.IsNullOrWhiteSpace(existing[insertAt - 1])) {
                 insertAt--;
             }
 
-            existing.BodyLines.InsertRange(insertAt, newBodyLines);
+            existing.InsertRange(insertAt, newBodyLines);
         }
 
         private static IEnumerable<string> NormalizeBlankLines(List<string> lines) {
@@ -244,9 +220,7 @@ namespace StructuredINI {
             }
 
             foreach (var sectionName in ini.Order) {
-                if (!ini.Sections.TryGetValue(sectionName, out var section)) {
-                    continue;
-                }
+                var section = ini.Sections[sectionName];
 
                 sb.AppendLine($"[{section.Name}]");
                 var bodyLines = isConfigRoot ? ResolveRootArrays(section.BodyLines) : section.BodyLines;
@@ -267,17 +241,12 @@ namespace StructuredINI {
 
                 if (trimmed.StartsWith("[") && trimmed.EndsWith("]") && trimmed.Length >= 3) {
                     var sectionName = trimmed.Substring(1, trimmed.Length - 2);
+                    // Repeated sections append to the first occurrence.
                     if (!parsed.Sections.TryGetValue(sectionName, out current)) {
                         current = new IniSection(sectionName, new List<string>());
                         parsed.Sections[sectionName] = current;
                         parsed.Order.Add(sectionName);
                     }
-                    else {
-                        // Duplicate sections: last one wins by continuing to append to the existing section.
-                        // This matches the reader semantics.
-                        // (We keep the first occurrence in order.)
-                    }
-
                     continue;
                 }
 
@@ -300,7 +269,7 @@ namespace StructuredINI {
 
         private sealed class IniSection {
             public string Name { get; }
-            public List<string> BodyLines { get; set; }
+            public List<string> BodyLines { get; }
 
             public IniSection(string name, List<string> bodyLines) {
                 Name = name;

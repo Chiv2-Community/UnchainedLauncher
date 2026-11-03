@@ -16,7 +16,7 @@ internal sealed class IniOverrides {
     private sealed record Entry(string File, string Section, string Key, string[] Values, bool Array, bool Raw, KeyValuePair<string, string>[]? Lines = null);
     private sealed record ImportedFile(byte[] Bytes, string Entries);
     private readonly List<Entry> _entries = [];
-    private readonly Dictionary<string, ImportedFile> _imported = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ImportedFile[]> _imported = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Type[] ScalarTypes = [typeof(string), typeof(bool), typeof(int), typeof(float), typeof(double), typeof(decimal)];
     private static readonly Type[] MappedTypes = ScalarTypes.Concat(typeof(ClassLimit).Assembly.GetTypes()
         .Where(type => type.IsDefined(typeof(DeriveCodecAttribute), false))).Append(typeof(CallbackList)).ToArray();
@@ -25,14 +25,15 @@ internal sealed class IniOverrides {
         .Select(entry => new UEINIParameter(entry.File, entry.Section, entry.Key, entry.Values[0]).Rendered);
 
     internal bool IsEmpty => _entries.Count == 0 && _imported.Count == 0;
-    internal string Identity => System.Text.Json.JsonSerializer.Serialize(new { Entries = _entries, Files = _imported.Select(pair => new { pair.Key, Hash = Convert.ToHexString(SHA256.HashData(pair.Value.Bytes)) }) });
+    internal string Identity => System.Text.Json.JsonSerializer.Serialize(new { Entries = _entries, Files = _imported.Select(pair => new { pair.Key, Hashes = pair.Value.Select(snapshot => Convert.ToHexString(SHA256.HashData(snapshot.Bytes))) }) });
 
     internal IniOverrides Merge(IniOverrides overrides) {
         var result = new IniOverrides();
         result._entries.AddRange(_entries);
         foreach (var entry in overrides._entries) result.AddEntry(entry);
         foreach (var pair in _imported) result._imported[pair.Key] = pair.Value;
-        foreach (var pair in overrides._imported) result._imported[pair.Key] = pair.Value;
+        foreach (var pair in overrides._imported)
+            result._imported[pair.Key] = result._imported.TryGetValue(pair.Key, out var previous) ? [.. previous, .. pair.Value] : pair.Value;
         return result;
     }
 
@@ -270,11 +271,14 @@ internal sealed class IniOverrides {
     private void Publish(string directory, Dictionary<string, StructuredINIWriter> files, string? cacheDirectory,
         Func<string, string, bool>? createLink, bool isConfigRoot, bool gamePatched = false) {
         Directory.CreateDirectory(directory);
-        foreach (var (category, snapshot) in _imported) {
-            if (gamePatched && category.Equals("Game", StringComparison.OrdinalIgnoreCase) || EntriesIdentity(category) != snapshot.Entries) {
+        foreach (var (category, snapshots) in _imported) {
+            var snapshot = snapshots[^1];
+            if (snapshots.Length > 1 || gamePatched && category.Equals("Game", StringComparison.OrdinalIgnoreCase) || EntriesIdentity(category) != snapshot.Entries) {
                 if (!files.TryGetValue(category, out var writer)) files[category] = writer = new StructuredINIWriter();
-                using var reader = new StreamReader(new MemoryStream(snapshot.Bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-                writer.BufferDocumentTrivia(reader.ReadToEnd());
+                foreach (var contribution in snapshots) {
+                    using var reader = new StreamReader(new MemoryStream(contribution.Bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+                    writer.BufferDocumentTrivia(reader.ReadToEnd());
+                }
                 continue;
             }
             var imported = snapshot;
@@ -350,7 +354,7 @@ internal sealed class IniOverrides {
             _entries.Add(new Entry(category, first.Section, first.Name, [], false, false,
                 group.Select(line => KeyValuePair.Create(line.Key, line.Value)).ToArray()));
         }
-        _imported.Add(category, new ImportedFile(bytes, EntriesIdentity(category)));
+        _imported.Add(category, [new ImportedFile(bytes, EntriesIdentity(category))]);
     }
 
     private static void ValidateCategory(string category) {

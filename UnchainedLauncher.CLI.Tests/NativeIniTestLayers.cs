@@ -1,3 +1,5 @@
+using YamlDotNet.RepresentationModel;
+
 namespace UnchainedLauncher.CLI.Tests;
 
 // Test-only model of the plugin's folder order; this does not validate native UE imports.
@@ -5,6 +7,10 @@ internal static class NativeIniTestLayers {
     internal static IReadOnlyList<string> Select(ServerOptions server, int slot) {
         var root = Path.Combine(server.MapProfilePath!, "ini-overrides");
         var rotation = server.Settings.Rotation!;
+        var yaml = new YamlStream();
+        yaml.Load(new StringReader(File.ReadAllText(Path.Combine(server.MapProfilePath!, "unchained.yaml"))));
+        var profiles = (YamlSequenceNode)((YamlMappingNode)yaml.Documents[0].RootNode)["match-rotation"];
+        var profile = ((YamlScalarNode)((YamlMappingNode)profiles.Children[slot])["profile"]).Value!;
         var map = rotation.Maps[slot].Split('/').Last().Split('.')[0];
         IEnumerable<string> Matches(string group, string name) {
             var directory = Path.Combine(root, group);
@@ -16,7 +22,7 @@ internal static class NativeIniTestLayers {
                 .OrderBy(path => !Path.GetFileName(path).EndsWith('~'))
                 .ThenBy(path => Path.GetFileName(path).Length);
         }
-        return Matches("maps", map).Concat(Matches("profiles", rotation.Profiles[slot]))
+        return Matches("maps", map).Concat(Matches("profiles", profile))
             .Append(Path.Combine(root, "indices", slot.ToString(System.Globalization.CultureInfo.InvariantCulture)))
             .Where(Directory.Exists).ToArray();
     }

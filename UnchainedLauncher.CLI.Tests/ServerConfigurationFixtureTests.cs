@@ -49,7 +49,7 @@ public sealed class ServerConfigurationFixtureTests {
                         Assert.All(new StructuredINI.StructuredINIParser().ReadEntries(File.ReadAllText(ini)),
                             entry => Assert.DoesNotContain(entry.Key[0], "!+.-"));
                     await MapProfileIni.PrepareAsync(server, CancellationToken.None);
-                    if (server.MapProfilePath is not null) CopyRuntimeProfile(server.MapProfilePath, Path.Combine(output, id, "unchained", "ini-overrides"));
+                    if (server.MapProfilePath is not null) CopyRuntimeProfile(server.MapProfilePath, Path.Combine(output, id, "unchained"));
                 }
                 AssertTree($"{testCase} pass {pass + 1}", expected, ReadTree(output));
             }
@@ -61,9 +61,8 @@ public sealed class ServerConfigurationFixtureTests {
     }
 
     private static void CopyRuntimeProfile(string profileRoot, string destination) {
-        var source = Path.Combine(profileRoot, "ini-overrides");
-        foreach (var file in Directory.GetFiles(source, "*", SearchOption.AllDirectories)) {
-            var target = Path.Combine(destination, Path.GetRelativePath(source, file));
+        foreach (var file in Directory.GetFiles(profileRoot, "*", SearchOption.AllDirectories)) {
+            var target = Path.Combine(destination, Path.GetRelativePath(profileRoot, file));
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.Copy(file, target, overwrite: true);
         }

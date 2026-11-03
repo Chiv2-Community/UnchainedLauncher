@@ -89,7 +89,7 @@ public sealed class SettingsResolutionTests : IDisposable {
         var root = Path.Combine(server.MapProfilePath!, "ini-overrides");
         Assert.Equal(new[] {
             "indices/0/Game.ini", "maps/FFA_Courtyard/Game.ini", "maps/FFA_Wardenglade/Game.ini", "maps/FFA_~/Game.ini",
-            "profiles/wardenglade.slot-1/Game.ini", "profiles/wardenglade.slot-4/Game.ini", "profiles/wardenglade/Game.ini", "unchained.yaml"
+            "profiles/wardenglade.slot-1/Game.ini", "profiles/wardenglade.slot-4/Game.ini", "profiles/wardenglade/Game.ini"
         }.OrderBy(path => path, StringComparer.Ordinal), Directory.GetFiles(root, "*", SearchOption.AllDirectories)
             .Select(path => Path.GetRelativePath(root, path).Replace('\\', '/')).OrderBy(path => path, StringComparer.Ordinal));
         string Read(string relative) => File.ReadAllText(Path.Combine(root, relative)).Replace("\r\n", "\n");

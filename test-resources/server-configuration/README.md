@@ -7,7 +7,7 @@ Each case contains:
 <case>/input/...                 # Included YAML and referenced INI files
 <case>/input/<server-id>/...     # Optional existing profile files, mirrored to output before generation
 <case>/output/<server-id>/Config/WindowsNoEditor/*.ini
-<case>/output/<server-id>/unchained/ini-overrides/unchained.yaml
+<case>/output/<server-id>/unchained/unchained.yaml
 <case>/output/<server-id>/unchained/ini-overrides/maps/<rule>/*.ini
 <case>/output/<server-id>/unchained/ini-overrides/profiles/<rule>/*.ini
 <case>/output/<server-id>/unchained/ini-overrides/indices/<slot>/*.ini

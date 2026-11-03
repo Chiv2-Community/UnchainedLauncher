@@ -7,10 +7,10 @@ namespace StructuredINI {
 
         private readonly List<string> _sectionOrder = new();
         private readonly Dictionary<string, List<string>> _bufferedSections = new(StringComparer.OrdinalIgnoreCase);
-        private ParsedIni? _documentTrivia;
+        private readonly List<ParsedIni> _documentTrivia = new();
 
         // Import only document trivia; effective keys still come from the buffered patch.
-        public void BufferDocumentTrivia(string content) => _documentTrivia = ParseIni(SplitLines(content).ToArray());
+        public void BufferDocumentTrivia(string content) => _documentTrivia.Add(ParseIni(SplitLines(content).ToArray()));
 
         // Buffer only caller-selected keys; WriteOut preserves all other keys.
         public void BufferSection(string sectionName, IEnumerable<KeyValuePair<string, string>> entries) {
@@ -99,10 +99,10 @@ namespace StructuredINI {
 
         public bool WriteOut(string path, bool isConfigRoot) {
             if (string.IsNullOrWhiteSpace(path)) return false;
-            if (_sectionOrder.Count == 0 && _documentTrivia == null) return false;
+            if (_sectionOrder.Count == 0 && _documentTrivia.Count == 0) return false;
 
             var parsed = File.Exists(path) ? ParseIni(File.ReadAllLines(path)) : new ParsedIni();
-            if (_documentTrivia is { } trivia) {
+            foreach (var trivia in _documentTrivia) {
                 MergeTrivia(parsed.PreambleLines, trivia.PreambleLines);
                 foreach (var sectionName in trivia.Order) {
                     if (!parsed.Sections.TryGetValue(sectionName, out var section)) {

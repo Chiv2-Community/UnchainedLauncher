@@ -237,6 +237,35 @@ public sealed class SettingsResolutionTests : IDisposable {
         Assert.Contains("Value=99", File.ReadAllText(Path.Combine(changed.MapProfilePath!, "ini-overrides", "maps", "~", "Engine.ini")));
     }
 
+    [Theory]
+    [InlineData("Engine")]
+    [InlineData("Game")]
+    public async Task EarlierImportTriviaSurvivesMatchingLastEntriesAndSelectsANewGeneration(string category) {
+        var lower = "; lower comment\n[Mod]\nValue=1\n";
+        Write("global.ini", lower);
+        Write("server.ini", "; upper comment\n[Mod]\nValue=2\n");
+        var input = YamlTestResources.Write(_root, "ini-overrides/import-trivia-generation", ("CATEGORY", category));
+        var server = LoadServer(input);
+        var output = Path.Combine(_root, "conditional");
+        Write("conditional/" + category + ".ini", "[Mod]\nUnknown=keep\n");
+        server.Ini.Apply(output);
+        var text = File.ReadAllText(Path.Combine(output, category + ".ini"));
+        Assert.Contains("; lower comment\n; upper comment".Replace("\n", Environment.NewLine), text);
+        Assert.Contains("Value=2", text);
+        Assert.Contains("Unknown=keep", text);
+        server.Ini.Apply(output);
+        Assert.Equal(text, File.ReadAllText(Path.Combine(output, category + ".ini")));
+
+        await MapProfileIni.PrepareAsync(server, CancellationToken.None);
+        var old = server.MapProfilePath!;
+        var snapshots = Directory.GetFiles(old, "*", SearchOption.AllDirectories).ToDictionary(path => path, File.ReadAllBytes);
+        Write("global.ini", lower.Replace("lower comment", "changed lower comment"));
+        var changed = LoadServer(input);
+        await MapProfileIni.PrepareAsync(changed, CancellationToken.None);
+        Assert.NotEqual(old, changed.MapProfilePath);
+        Assert.All(snapshots, snapshot => Assert.Equal(snapshot.Value, File.ReadAllBytes(snapshot.Key)));
+    }
+
     [Fact]
     public void FilePublicationFallsBackToCopiesAndNeverMutatesItsSource() {
         var source = Fixture("copy-fallback", "Engine.ini");

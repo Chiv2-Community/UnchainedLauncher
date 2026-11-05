@@ -3,5 +3,6 @@ platform: Steam
 proton:
   path: '/tool/proton'
   compat-data-path: '/library/compatdata/1824220'
-server:
-  headless: true
+servers:
+  server:
+    headless: true

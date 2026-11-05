@@ -1,3 +1,4 @@
 chiv2-path: './game installation'
 platform: Steam
 game-args: {invalid: mapping}
+servers: {server: {}}

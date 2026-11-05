@@ -62,6 +62,7 @@ public sealed class YamlIncludeTests : IDisposable {
     [Theory]
     [InlineData(false, "client")]
     [InlineData(true, "server")]
+    [InlineData(true, "servers")]
     [InlineData(true, "global-settings")]
     public void DoesNotReadIncludesInInactiveSettings(bool client, string inactive) {
         var path = Write("launch.yaml", "inactive", ("INACTIVE", inactive));

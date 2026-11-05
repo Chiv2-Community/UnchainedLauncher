@@ -1,3 +1,4 @@
 chiv2-path: .
 platform: Steam
-server: {map-rotation: [{map-name: '../outside'}]}
+servers:
+  server: {map-rotation: [{map-name: '../outside'}]}

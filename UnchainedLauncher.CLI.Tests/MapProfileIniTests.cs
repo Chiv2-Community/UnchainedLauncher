@@ -13,7 +13,7 @@ public sealed class MapProfileIniTests : IDisposable {
     }
 
     private ServerOptions Server(string fixture, params (string Token, string Value)[] replacements) {
-        var server = Assert.IsType<ServerOptions>(Parse(fixture, replacements));
+        var server = YamlTestResources.Server(Parse(fixture, replacements));
         server.Shared.Assets = new ProfileAssetPaths(server.Shared.SavedDirSuffix, _root);
         return server;
     }
@@ -37,7 +37,7 @@ public sealed class MapProfileIniTests : IDisposable {
     [Fact]
     public async Task PublishesSeparateProfileAndIndexLayersWithoutBaselineCopies() {
         var path = Path.Combine(AppContext.BaseDirectory, "test-resources", "settings-resolution", "legacy-profile-arrays", "server.yaml");
-        var server = Assert.IsType<ServerOptions>(CommandLineOptions.Parse(["server", "--config-path", path]));
+        var server = YamlTestResources.Server(CommandLineOptions.Parse(["server", "--config-path", path]));
         server.Shared.Assets = new ProfileAssetPaths(server.Shared.SavedDirSuffix, _root);
         await MapProfileIni.PrepareAsync(server, CancellationToken.None);
         var directories = ProfileDirectories(server);
@@ -114,7 +114,7 @@ public sealed class MapProfileIniTests : IDisposable {
 
     [Theory]
     [InlineData("invalid-raw", "cannot use raw")]
-    [InlineData("missing-default", "requires a server.ini default")]
+    [InlineData("missing-default", "requires a servers.<name>.ini default")]
     [InlineData("invalid-index", "MapListIndex")]
     [InlineData("invalid-map-list", "map-rotation")]
     [InlineData("conflicting-path", "managed by map-profile INI")]

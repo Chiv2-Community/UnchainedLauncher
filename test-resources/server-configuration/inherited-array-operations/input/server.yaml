@@ -6,9 +6,10 @@ global-settings:
       Demo:
         '-Names': [A]
         '+Names': [B]
-server:
-  ini:
-    Engine:
-      Demo:
-        '.Names': [B]
-  map-rotation: [{map: FFA_Courtyard}]
+servers:
+  server:
+    ini:
+      Engine:
+        Demo:
+          '.Names': [B]
+    map-rotation: [{map: FFA_Courtyard}]

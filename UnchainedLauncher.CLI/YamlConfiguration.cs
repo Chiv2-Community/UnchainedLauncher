@@ -11,7 +11,7 @@ public static class YamlConfiguration {
         try { configuration.Validate(); }
         catch (ValidationException ex) { throw new ArgumentException("Invalid configuration: " + ex.Message); }
         var directory = Path.GetDirectoryName(Path.GetFullPath(path))!;
-        return configuration is ServerConfiguration { Servers: not null } group
+        return configuration is ServerConfiguration group
             ? ServerGroupOptions.Create(group, directory)
             : CliLaunchOptions.FromConfiguration(configuration, directory);
     }

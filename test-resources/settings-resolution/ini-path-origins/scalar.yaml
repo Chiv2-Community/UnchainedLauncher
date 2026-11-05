@@ -3,3 +3,4 @@ platform: Steam
 global-settings:
   ini:
     Engine: !load parts/path.yaml
+servers: {server: {}}

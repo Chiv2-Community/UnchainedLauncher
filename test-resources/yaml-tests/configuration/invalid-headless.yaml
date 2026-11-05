@@ -1,3 +1,4 @@
 chiv2-path: './game installation'
 platform: Steam
-server: {headless: invalid}
+servers:
+  server: {headless: invalid}

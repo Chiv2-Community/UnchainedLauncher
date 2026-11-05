@@ -1,7 +1,8 @@
 chiv2-path: .
 platform: Steam
 global-settings: {}
-server:
-  map-rotation:
-    - {map: FFA_Courtyard}
-    - {map: FFA_Wardenglade}
+servers:
+  server:
+    map-rotation:
+      - {map: FFA_Courtyard}
+      - {map: FFA_Wardenglade}

@@ -47,7 +47,13 @@ public sealed class ServerGroupTests : IDisposable {
     [Theory]
     [InlineData("empty")]
     [InlineData("null")]
-    [InlineData("both-forms")]
+    [InlineData("singular")]
+    [InlineData("singular-with-servers")]
+    [InlineData("missing")]
+    [InlineData("global-only")]
+    [InlineData("null-servers")]
+    [InlineData("scalar-servers")]
+    [InlineData("list-servers")]
     [InlineData("unsafe-id")]
     [InlineData("case-folded-ids")]
     [InlineData("default-port-collision")]
@@ -58,6 +64,40 @@ public sealed class ServerGroupTests : IDisposable {
     [InlineData("root-mods")]
     [InlineData("root-suffix")]
     public void InvalidGroupsFailBeforeLaunch(string fixture) => Assert.Throws<ArgumentException>(() => Parse(fixture));
+
+    [Theory]
+    [InlineData("singular")]
+    [InlineData("singular-with-servers")]
+    public void SingularServerIsNotRecognizedByTheServerSchema(string fixture) {
+        var error = Assert.Throws<ArgumentException>(() => Parse(fixture));
+        Assert.Contains("Invalid YAML configuration or schema", error.Message);
+        Assert.Null(typeof(ServerConfiguration).GetProperty("Server"));
+        Assert.IsType<ClientOptions>(Parse(fixture, "client"));
+        var path = YamlTestResources.Write(_root, "server-group/" + fixture);
+        Assert.IsType<ModQueryOptions>(CommandLineOptions.Parse(["mod-query", "list", "--config-path", path]));
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("global-only")]
+    [InlineData("empty")]
+    [InlineData("null-servers")]
+    public void NamedServersAreRequiredEvenWithGlobalSettings(string fixture) {
+        var error = Assert.Throws<ArgumentException>(() => Parse(fixture));
+        Assert.Contains("servers must contain at least one named server", error.Message);
+    }
+
+    [Fact]
+    public void OneNamedServerIsStillAGroupAndUsesItsKeyAsTheProfileDefault() {
+        var group = Assert.IsType<ServerGroupOptions>(Parse("single"));
+        var entry = Assert.Single(group.Servers);
+        Assert.Equal("server", entry.Id);
+        Assert.Equal("server", entry.Options.Shared.SavedDirSuffix);
+        Assert.Equal("FFA_Courtyard", entry.Options.Settings.StartingMap);
+        var cli = Assert.IsType<ServerOptions>(CommandLineOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam"]));
+        Assert.Equal("UnchainedCLI", cli.Shared.SavedDirSuffix);
+        Assert.Equal("FFA_Courtyard", cli.Settings.StartingMap);
+    }
 
     [Fact]
     public void PerServerModsDllsRegistriesAndIniDoNotLeakAcrossServers() {

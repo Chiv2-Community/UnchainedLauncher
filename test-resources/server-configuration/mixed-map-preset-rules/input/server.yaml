@@ -25,22 +25,23 @@ global-settings:
       map: FFA_Courtyard
       ini: {Engine: {Demo: {PresetValue: 4}}}
       mod-actors: [preset-exact]
-server:
-  map-settings:
-    FFA_Wardenglade:
-      ini: {Engine: {Demo: {MapValue: 5}}}
-      mod-actors: [server-map-exact]
-  match-presets:
-    'duel-o~':
-      ini: {Engine: {Demo: {PresetValue: 6}}}
-      mod-actors: [server-preset-wildcard]
-    duel-open:
-      ini: {Engine: {Demo: {Names: [open]}}}
-      mod-actors: [server-preset-exact]
-  map-rotation:
-    - duel-courtyard
-    - duel-open
-    - preset: duel-courtyard
-      map: FFA_Bazaar
-      name: Late Courtyard
-      ini: {Engine: {Demo: {SlotValue: 9}}}
+servers:
+  server:
+    map-settings:
+      FFA_Wardenglade:
+        ini: {Engine: {Demo: {MapValue: 5}}}
+        mod-actors: [server-map-exact]
+    match-presets:
+      'duel-o~':
+        ini: {Engine: {Demo: {PresetValue: 6}}}
+        mod-actors: [server-preset-wildcard]
+      duel-open:
+        ini: {Engine: {Demo: {Names: [open]}}}
+        mod-actors: [server-preset-exact]
+    map-rotation:
+      - duel-courtyard
+      - duel-open
+      - preset: duel-courtyard
+        map: FFA_Bazaar
+        name: Late Courtyard
+        ini: {Engine: {Demo: {SlotValue: 9}}}

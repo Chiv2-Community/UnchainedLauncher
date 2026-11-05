@@ -356,40 +356,41 @@ global-settings:
   registries: [] # Official registry remains enabled.
   mods: []       # organization/mod-id:exact-release-tag
   plugins: []    # dll_db coordinates: organization/id:version
-server:
-  saved-dir-suffix: MyServer
-  name: My Server
-  description: My server description
-  game-port: 7777
-  ping-port: 3075
-  query-port: 7071
-  rcon-port: 9001
-  starting-map: FFA_Courtyard
-  mod-actors: [] # Explicit blueprint class paths to activate.
-  desync-patch: true
-  use-backend-banlist: true
+servers:
+  server:
+    saved-dir-suffix: MyServer
+    name: My Server
+    description: My server description
+    game-port: 7777
+    ping-port: 3075
+    query-port: 7071
+    rcon-port: 9001
+    starting-map: FFA_Courtyard
+    mod-actors: [] # Explicit blueprint class paths to activate.
+    desync-patch: true
+    use-backend-banlist: true
 ```
 
 Separate mode-specific schemas:
 - The **subcommand**, not the document's contents, always determines mode.
-- `server --config-path ...` reads the `server` mapping and completely ignores `client`.
-- `client --config-path ...` reads the `client` mapping and completely ignores `server`,
+- `server --config-path ...` requires a nonempty `servers` mapping of named server settings and completely ignores `client`. The singular `server` key is rejected.
+- `client --config-path ...` reads the `client` mapping and completely ignores server settings,
   including actors, Discord, and server-only arguments; ignored blocks are not schema-validated.
-- A missing active block uses that command's defaults. `client` is a mapping, not a boolean mode switch.
+- A missing `client` block uses client defaults. Server launches require explicit named entries, even when all settings come from `global-settings`. `client` is a mapping, not a boolean mode switch.
 - Client launches omit `-server`, headless flags, and server-specific options,
   do not create a server dashboard, and return after launching without stopping the game.
 
 Common root options are `server-browser-backend`, `update-plugin` (default true),
 `allow-unstable-plugin` (default false), and `game-args` (list of strings).
 The root `no-tui` option (default false) is server-only.
-`server.game-args` or `client.game-args` is appended to the
+`servers.<name>.game-args` or `client.game-args` is appended to the
 common list only for the matching command. The client schema currently supports
 `game-args`; client installation, platform, plugin, mod, and saved-profile options remain at the root.
 Server packages belong under `global-settings` or individual servers as `mods`,
 `plugins`, and `registries`, never directly at the root. `saved-dir-suffix` belongs
-to the server; a single unnamed server defaults to `UnchainedCLI`.
+to each server and defaults to its key. Ordinary non-YAML CLI server launches still default to `UnchainedCLI`.
 
-The server section supports name, description/MOTD, password, `starting-map`, local IP,
+Each `servers` entry supports name, description/MOTD, password, `starting-map`, local IP,
 all four ports, `headless`, `register`, `mod-actors`, `desync-patch`,
 `use-backend-banlist`, and `censor-mode` (`none`, `standard`, `sex`, `zealous`).
 Desync patch and backend banlist **default to true in server mode**; set their
@@ -401,7 +402,7 @@ Local IPv4 is automatically detected from active non-loopback/non-tunnel interfa
 preferring one with a default gateway; it falls back to another usable IPv4 or loopback.
 Set `local-ip` only to override this choice (for example, with a VPN or multiple adapters).
 Time/score/ticket limits, player bot count, and warmup are **INI settings**, not
-dedicated launcher flags; configure them in the selected saved profile or `server.ini`.
+dedicated launcher flags; configure them in the selected saved profile or `servers.<name>.ini`.
 Use `starting-map` / `--starting-map`; the former `map` / `--map` names are rejected.
 Before a server launch, the CLI initializes the selected profile's `Game.ini` with
 `bSavedHasAgreedToTOS=True` and `FirstLoadCompleted=True`, matching the GUI's startup
@@ -430,16 +431,17 @@ global-settings:
       name: Courtyard FFA
       map: FFA_Courtyard
       mod-actors: [/Game/Mods/AgMods/Example.Example_C]
-server:
-  map-rotation:
-    - courtyard
-    - preset: courtyard
-      name: Courtyard reprise
-      ini:
-        Engine:
-          /Game/Mods/AgMods/Example.Example_C:
-            RoundLimit: 5
-    - {map: FFA_Wardenglade}
+servers:
+  server:
+    map-rotation:
+      - courtyard
+      - preset: courtyard
+        name: Courtyard reprise
+        ini:
+          Engine:
+            /Game/Mods/AgMods/Example.Example_C:
+              RoundLimit: 5
+      - {map: FFA_Wardenglade}
 ```
 
 - `global-settings` and each server accept always-on `ini`, `mod-actors`, `mods`, and `plugins`.
@@ -504,7 +506,7 @@ server:
 - Move server `mod-setup.mods` to `mods`, `mod-setup.dlls` to `plugins`, and `mod-setup.registries` to `registries`.
 - Put shared selections under `global-settings`; leave server-specific additions under each server.
 - Move root `map-profiles` to `global-settings.match-presets`, rename `map-name` to `map`, and use `preset` for dictionary references.
-- Unmixed legacy server documents remain supported; mixing legacy `mod-setup`/`map-profiles` with layered settings is rejected.
+- Move a singular `server` block under `servers` with an explicit key. Unmixed legacy settings inside named entries remain supported; mixing legacy `mod-setup`/`map-profiles` with layered settings is rejected.
 - Client and registry-query schemas are unchanged; queries still read root `mod-setup.registries`, not server `global-settings`.
 
 ### INI overrides
@@ -513,19 +515,20 @@ Every settings block accepts `ini`. Inline mappings use the shape
 `file category -> section -> field -> value`:
 
 ```yaml
-server:
-  ini:
-    Game:
-      /Script/TBL.TBLGameMode:
-        BotBackfillEnabled: true
-        ClassLimits:
-          - Class: Poleman
-            ClassLimitPercent: 10
-          - Class: Archer
-            ClassLimitPercent: 0
-        SomeUnknownOption: example
-        MapValue: 0
-        Labels: [one, two]
+servers:
+  server:
+    ini:
+      Game:
+        /Script/TBL.TBLGameMode:
+          BotBackfillEnabled: true
+          ClassLimits:
+            - Class: Poleman
+              ClassLimitPercent: 10
+            - Class: Archer
+              ClassLimitPercent: 0
+          SomeUnknownOption: example
+          MapValue: 0
+          Labels: [one, two]
 ```
 
 - Known fields infer their type from Core's INI models. They also accept
@@ -561,10 +564,11 @@ INI can also reference files, with paths relative to their containing YAML file:
 ```yaml
 global-settings:
   ini: ./ini-defaults # Reads immediate *.ini files in this directory.
-server:
-  ini:
-    Engine: ./overrides/Engine.ini
-    Game: !load ./game-settings.yaml # YAML mapping, not an INI file.
+servers:
+  server:
+    ini:
+      Engine: ./overrides/Engine.ini
+      Game: !load ./game-settings.yaml # YAML mapping, not an INI file.
 ```
 
 - Category mappings may mix file references and inline section mappings.
@@ -585,13 +589,14 @@ global-settings:
     Engine:
       Demo:
         Names: {type: 'String[]', value: [A, B]}
-server:
-  ini:
-    Engine:
-      Demo:
-        '-Names': {type: 'String[]', value: [A]}
-        '+Names': {type: 'String[]', value: [C]}
-        '.Names': {type: 'String[]', value: [C]}
+servers:
+  server:
+    ini:
+      Engine:
+        Demo:
+          '-Names': {type: 'String[]', value: [A]}
+          '+Names': {type: 'String[]', value: [C]}
+          '.Names': {type: 'String[]', value: [C]}
 ```
 
 - The result is `[B, C, C]`: `+` adds uniquely, `.` allows duplicates, and each `-` removes one exact matching occurrence. A missing removal target is harmless.
@@ -606,12 +611,13 @@ server:
 Discord configuration is nested under the server:
 
 ```yaml
-server:
-  discord:
-    bot-token: 'your-bot-token'
-    general-channel-id: '123456789012345678'
-    # Optional: admin-channel-id, dashboard-channel-id, event-log-channel-id,
-    #           admin-role-id, mention-admins (default true).
+servers:
+  server:
+    discord:
+      bot-token: 'your-bot-token'
+      general-channel-id: '123456789012345678'
+      # Optional: admin-channel-id, dashboard-channel-id, event-log-channel-id,
+      #           admin-role-id, mention-admins (default true).
 ```
 
 Discord requires a token and at least one channel. Keep tokens/passwords private
@@ -622,7 +628,7 @@ before preparing or launching the game. Lists accept any number of entries.
 
 ### Multiple servers
 
-Use a `servers` dictionary instead of the single `server` block:
+Use the required `servers` dictionary for one or more named servers:
 
 ```yaml
 chiv2-path: 'C:\Games\Chivalry 2'
@@ -645,11 +651,10 @@ servers:
 ```
 
 Run `UnchainedLauncher.CLI.exe server --config-path servers.yaml`.
-See [the multi-server example](examples/servers.yaml). The existing `server` schema
-and individual CLI launch arguments still launch one server.
+See [the multi-server example](examples/servers.yaml). A dictionary with one entry launches one server; ordinary CLI launch arguments also still launch one server.
 
 - Keys are tab IDs: unique, case-insensitive letters, digits, underscores, and hyphens.
-- Each entry accepts the same fields as `server`, including its own `mod-setup`,
+- Each entry accepts server settings, including its own `mod-setup`,
   `ini`, actors, arguments, password, and Discord settings. Installation, platform,
   plugin-update policy, and common arguments remain shared at the root.
   Registries and pak/DLL selections are independent; verified bytes share the cache.
@@ -689,8 +694,8 @@ and individual CLI launch arguments still launch one server.
   exit code and last metrics. Once all exit, the CLI returns the first nonzero exit
   code in dictionary order, or zero if all succeeded. Q/Ctrl+C stops the entire group.
 
-Do not mix `server` and `servers` in one document. The client command and registry
-queries ignore the inactive `servers` block.
+The singular `server` key is not supported for YAML server launches. The client command
+and registry queries still ignore inactive server settings without validating their schema.
 
 The `client` command also accepts individual common arguments, for example:
 

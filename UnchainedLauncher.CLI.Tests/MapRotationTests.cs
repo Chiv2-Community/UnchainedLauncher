@@ -34,7 +34,7 @@ public sealed class MapRotationTests : IDisposable {
     [Fact]
     public void OmittedRotationUsesTheDefaultStartupMap() {
         var path = Path.Combine(AppContext.BaseDirectory, "test-resources", "server-configuration", "startup-defaults", "input", "server.yaml");
-        var options = Assert.IsType<ServerOptions>(CommandLineOptions.Parse(["server", "--config-path", path]));
+        var options = YamlTestResources.Server(CommandLineOptions.Parse(["server", "--config-path", path]));
         Assert.Null(options.Settings.Rotation);
         Assert.Equal("FFA_Courtyard", options.ToServerLaunchOptions().Map);
     }
@@ -46,7 +46,7 @@ public sealed class MapRotationTests : IDisposable {
     [InlineData("explicit.yaml", "1", 0)]
     [InlineData("explicit.yaml", "invalid", 0)]
     public void ExistingRotationIndexIsReadBeforeSelectingTheStartupMap(string file, string? savedIndex, int expected) {
-        var options = Assert.IsType<ServerOptions>(ParseFixture("startup-index", file));
+        var options = YamlTestResources.Server(ParseFixture("startup-index", file));
         File.WriteAllText(Path.Combine(_root, "Game.ini"), $"[{Section}]\n" + (savedIndex is null ? "" : $"MapListIndex={savedIndex}\n"));
         ServerLauncher.ReadSavedRotationIndex(options, _root);
         Assert.Equal(expected, options.Settings.Rotation!.StartIndex);
@@ -58,7 +58,7 @@ public sealed class MapRotationTests : IDisposable {
     [InlineData("-2")]
     [InlineData("invalid")]
     public void InvalidSavedIndicesRequireAnExplicitStartingMap(string index) {
-        var options = Assert.IsType<ServerOptions>(ParseFixture("startup-index"));
+        var options = YamlTestResources.Server(ParseFixture("startup-index"));
         var path = Path.Combine(_root, "Game.ini");
         var original = $"[{Section}]\nMapListIndex={index}\n";
         File.WriteAllText(path, original);
@@ -125,19 +125,19 @@ public sealed class MapRotationTests : IDisposable {
     [InlineData("foo-bar", "Foo bar")]
     [InlineData("FOO_BAR", "Foo bar")]
     public void MissingProfileNamesBecomeReadableLabels(string key, string expected) {
-        var options = Assert.IsType<ServerOptions>(Parse("readable-name", ("KEY", key)));
+        var options = YamlTestResources.Server(Parse("readable-name", ("KEY", key)));
         Assert.Equal(expected, Assert.Single(options.Settings.Rotation!.Names));
     }
 
     [Fact]
     public void GeneratedNamesPreserveModesAndMapWords() {
-        var options = Assert.IsType<ServerOptions>(ParseFixture("legacy-generated-labels"));
+        var options = YamlTestResources.Server(ParseFixture("legacy-generated-labels"));
         Assert.Equal(["FFA Courtyard", "Night Wardenglade", "TO Galencourt", "TO Tournament Grounds"], options.Settings.Rotation!.Names);
     }
 
     [Fact]
     public void ExplicitLabelsAreIndependentOfMapAndDirectoryIdentity() {
-        var options = Assert.IsType<ServerOptions>(ParseFixture("legacy-explicit-labels"));
+        var options = YamlTestResources.Server(ParseFixture("legacy-explicit-labels"));
         Assert.Equal(["Wardenglade / GiantSlayers", "Later FFA"], options.Settings.Rotation!.Names);
         Assert.Equal(["FFA_Wardenglade", "FFA_Wardenglade"], options.Settings.Rotation.Maps);
         Assert.Equal(["wardenglade-giantslayers", "inline-1"], options.Settings.Rotation.Profiles);

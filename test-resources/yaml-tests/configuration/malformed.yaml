@@ -1,5 +1,6 @@
 chiv2-path: './game installation'
 platform: Steam
-server:
-  password: TOP-SECRET
-  discord: [
+servers:
+  server:
+    password: TOP-SECRET
+    discord: [

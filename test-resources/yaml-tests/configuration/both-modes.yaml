@@ -1,4 +1,5 @@
 chiv2-path: './game installation'
 platform: Steam
 client: {}
-server: {}
+servers:
+  server: {}

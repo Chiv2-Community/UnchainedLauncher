@@ -1,3 +1,5 @@
-server: {}
+servers:
+  server: {}
 ---
-server: {}
+servers:
+  server: {}

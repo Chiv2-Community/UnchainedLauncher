@@ -1,3 +1,4 @@
 chiv2-path: .
 platform: Steam
 global-settings: {mod-actors: [always], mods: [org/mod:v1]}
+servers: {server: {}}

@@ -7,97 +7,97 @@
     </UserControl.Resources>
 
     <Grid>
-        <!-- Keep the shadow off the content subtree so text is not rasterized. -->
-        <Border Style="{DynamicResource Card}" IsHitTestVisible="False" />
-    <Border Style="{DynamicResource Card}" Effect="{x:Null}"
-            Padding="0">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+        <!-- Shadow only the card surface, not the text and nested controls. -->
+        <Border Style="{DynamicResource Card}" Padding="0" IsHitTestVisible="False" />
+        <Border Style="{DynamicResource Card}" Effect="{x:Null}"
+                Padding="0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-            <ToggleButton Grid.Row="0"
-                          Background="Transparent"
-                          BorderThickness="0"
-                          BorderBrush="Transparent"
-                          Padding="12"
-                          HorizontalContentAlignment="Stretch"
-                          VerticalContentAlignment="Center"
-                          FocusVisualStyle="{x:Null}"
-                          OverridesDefaultStyle="True"
-                          IsChecked="{Binding IsExpanded, ElementName=Root, Mode=TwoWay}">
-                <ToggleButton.Template>
-                    <!--
-                        Keep the header area visually stable: no hover/pressed/checked color changes.
-                        We supply our own minimal template without state triggers.
-                    -->
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              Margin="{TemplateBinding Padding}"
-                                              RecognizesAccessKey="True" />
-                        </Border>
-                    </ControlTemplate>
-                </ToggleButton.Template>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+                <ToggleButton Grid.Row="0"
+                              Background="Transparent"
+                              BorderThickness="0"
+                              BorderBrush="Transparent"
+                              Padding="12"
+                              HorizontalContentAlignment="Stretch"
+                              VerticalContentAlignment="Center"
+                              FocusVisualStyle="{x:Null}"
+                              OverridesDefaultStyle="True"
+                              IsChecked="{Binding IsExpanded, ElementName=Root, Mode=TwoWay}">
+                    <ToggleButton.Template>
+                        <!--
+                            Keep the header area visually stable: no hover/pressed/checked color changes.
+                            We supply our own minimal template without state triggers.
+                        -->
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  RecognizesAccessKey="True" />
+                            </Border>
+                        </ControlTemplate>
+                    </ToggleButton.Template>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-                    <ContentPresenter Grid.Column="0"
-                                      Content="{Binding Header, ElementName=Root}"
-                                      ContentTemplate="{Binding HeaderTemplate, ElementName=Root}"
-                                      RecognizesAccessKey="True"
-                                      VerticalAlignment="Center"
-                                      Margin="0,0,8,0"
-                                      TextElement.Foreground="{DynamicResource Brush.TextPrimary}"
-                                      TextElement.FontWeight="SemiBold" />
+                        <ContentPresenter Grid.Column="0"
+                                          Content="{Binding Header, ElementName=Root}"
+                                          ContentTemplate="{Binding HeaderTemplate, ElementName=Root}"
+                                          RecognizesAccessKey="True"
+                                          VerticalAlignment="Center"
+                                          Margin="0,0,8,0"
+                                          TextElement.Foreground="{DynamicResource Brush.TextPrimary}"
+                                          TextElement.FontWeight="SemiBold" />
 
-                    <Path Grid.Column="1"
-                          Width="12"
-                          Height="8"
-                          HorizontalAlignment="Right"
-                          VerticalAlignment="Center"
-                          Data="M 0 0 L 6 6 L 12 0"
-                          StrokeThickness="1"
-                          Stroke="{DynamicResource Brush.TextPrimary}"
-                          StrokeStartLineCap="Round"
-                          StrokeEndLineCap="Round"
-                          IsHitTestVisible="False"
-                          RenderTransformOrigin="0.5,0.5">
-                        <Path.Style>
-                            <Style TargetType="Path">
-                                <Setter Property="RenderTransform">
-                                    <Setter.Value>
-                                        <RotateTransform Angle="0" />
-                                    </Setter.Value>
-                                </Setter>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsExpanded, ElementName=Root}" Value="True">
-                                        <Setter Property="RenderTransform">
-                                            <Setter.Value>
-                                                <RotateTransform Angle="180" />
-                                            </Setter.Value>
-                                        </Setter>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Path.Style>
-                    </Path>
-                </Grid>
-            </ToggleButton>
+                        <Path Grid.Column="1"
+                              Width="12"
+                              Height="8"
+                              HorizontalAlignment="Right"
+                              VerticalAlignment="Center"
+                              Data="M 0 0 L 6 6 L 12 0"
+                              StrokeThickness="1"
+                              Stroke="{DynamicResource Brush.TextPrimary}"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              IsHitTestVisible="False"
+                              RenderTransformOrigin="0.5,0.5">
+                            <Path.Style>
+                                <Style TargetType="Path">
+                                    <Setter Property="RenderTransform">
+                                        <Setter.Value>
+                                            <RotateTransform Angle="0" />
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsExpanded, ElementName=Root}" Value="True">
+                                            <Setter Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <RotateTransform Angle="180" />
+                                                </Setter.Value>
+                                            </Setter>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Path.Style>
+                        </Path>
+                    </Grid>
+                </ToggleButton>
 
-            <!-- Body -->
-            <ContentPresenter Grid.Row="1"
-                              Margin="12,0,12,12"
-                              Content="{Binding Body, ElementName=Root}"
-                              Visibility="{Binding IsExpanded, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}" />
-        </Grid>
-    </Border>
+                <!-- Body -->
+                <ContentPresenter Grid.Row="1"
+                                  Margin="12,0,12,12"
+                                  Content="{Binding Body, ElementName=Root}"
+                                  Visibility="{Binding IsExpanded, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}" />
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

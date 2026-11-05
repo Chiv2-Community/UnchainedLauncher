@@ -1,10 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+    <!-- Windows exercises the real control; WpfTests also permits Linux cross-compilation. -->
+    <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Windows')) Or '$(WpfTests)' == 'true'">net10.0-windows</TargetFramework>
+    <UseWPF Condition="'$(TargetFramework)' == 'net10.0-windows'">true</UseWPF>
+    <EnableDefaultPageItems>false</EnableDefaultPageItems>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-windows'">
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+    <Page Include="../UnchainedLauncher.GUI/Views/Controls/CollapsibleCard.xaml" Link="Controls/CollapsibleCard.xaml" />
+    <Compile Include="../UnchainedLauncher.GUI/Views/Controls/CollapsibleCard.xaml.cs" Link="Controls/CollapsibleCard.xaml.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-windows'">
+    <Compile Remove="CardVisualTreeTests.cs" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="../UnchainedLauncher.GUI/Views/Controls/CollapsibleCard.xaml" Link="Views/CollapsibleCard.xaml" CopyToOutputDirectory="PreserveNewest" />
     <!-- Exercise the platform-independent view model without loading WPF. -->

@@ -78,12 +78,11 @@ public class AvailableModsAndMapsService {
                 }
             }
             var releases = _modManager.GetEnabledAndDependencyReleases().ToList();
-            var known = _modManager.Mods.SelectMany(mod => mod.Releases).ToList();
-            var inactivePaths = known.Except(releases).SelectMany(release => release.Manifest.RelevantBlueprints())
+            var inactivePaths = _modManager.Mods.SelectMany(mod => mod.Releases)
+                .SelectMany(release => release.Manifest.RelevantBlueprints())
                 .Select(ServerBlueprintIdentity.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var activePaths = releases.SelectMany(release => release.Manifest.RelevantBlueprints())
-                .Select(ServerBlueprintIdentity.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            inactivePaths.ExceptWith(activePaths);
+            inactivePaths.ExceptWith(releases.SelectMany(release => release.Manifest.RelevantBlueprints())
+                .Select(ServerBlueprintIdentity.Key));
             // Managed paks are installed/removed by the launcher. A scan must not resurrect their disabled actors.
             var manifests = releases.Select(release => release.Manifest)
                 .Concat((includeScan ? _cachedScanManifest?.Paks : null)?.Where(pak => !string.IsNullOrWhiteSpace(pak.PakPath)

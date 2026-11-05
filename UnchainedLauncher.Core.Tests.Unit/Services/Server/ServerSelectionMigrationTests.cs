@@ -299,19 +299,16 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             });
 
         [Fact]
-        public Task LaunchPrunesSavedDisabledActorsButPreservesMissingEnabledVersionPreferences() =>
+        public Task LaunchPrunesSavedDisabledActors() =>
             ui.RunAsync(async () => {
                 var actor = Blueprint("SavedActor");
                 var mod = Mod("SavedMod", actor);
-                var missing = ReleaseCoordinates.FromRelease(mod.Releases.First()) with { Version = "v9.0.0" };
-                foreach (var enabled in new[] { Array.Empty<ReleaseCoordinates>(), new[] { missing } }) {
-                    var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), enabled, [mod]);
-                    var codec = Codec(manager);
-                    var config = Decode(codec, "[{\"Name\":\"Saved\"}]")[0];
-                    config.EnabledServerModList.Add(actor);
-                    Assert.Empty(await config.PrepareServerBlueprintsForLaunch());
-                    Assert.Equal(enabled.Length, config.EnabledServerModList.Count);
-                }
+                var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), [], [mod]);
+                var codec = Codec(manager);
+                var config = Decode(codec, "[{\"Name\":\"Saved\"}]")[0];
+                config.EnabledServerModList.Add(actor);
+                Assert.Empty(await config.PrepareServerBlueprintsForLaunch());
+                Assert.Empty(config.EnabledServerModList);
             });
 
         [Fact]

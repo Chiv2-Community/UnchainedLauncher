@@ -76,6 +76,42 @@ public class PakReleaseRecoveryTests : IDisposable {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SharedHash_IdentifiesLatestMatchingVersion_RegardlessOfRegistryOrder(bool newestFirst) {
+        var wanted = Release("v9.0.0");
+        var older = Release("v1.0.0");
+        var latest = Release("v10.0.0") with { ReleaseHash = older.ReleaseHash, ReleaseDate = older.ReleaseDate.AddDays(-1) };
+        var path = Path.Join(_dir, "q__-__Mod1.pak");
+        File.WriteAllText(path, older.Tag);
+        var paks = new Core.Services.Mods.PakDir(_dir, []);
+        var manager = Manager(paks, new Mock<IModRegistry>(MockBehavior.Strict), newestFirst ? [wanted, latest, older] : [wanted, older, latest]);
+        var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+            .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, _, _, _, _, updates) => {
+                var update = Assert.Single(updates);
+                Assert.Equal(latest.Tag, update.CurrentVersion);
+                Assert.Equal("Downgrade", update.Reason);
+            }).Returns(UserDialogueChoice.No);
+
+        Assert.False(await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
+        Assert.Equal(older.Tag, File.ReadAllText(path));
+        dialogue.VerifyAll();
+    }
+
+    [Fact]
+    public async Task RequestedHash_SharedWithNewerRelease_StillReusesRequestedRelease() {
+        var wanted = Release("v1.0.0");
+        var newer = Release("v2.0.0") with { ReleaseHash = wanted.ReleaseHash };
+        File.WriteAllText(Path.Join(_dir, "q__-__Mod1.pak"), wanted.Tag);
+        var paks = new Core.Services.Mods.PakDir(_dir, []);
+        var manager = Manager(paks, new Mock<IModRegistry>(MockBehavior.Strict), wanted, newer);
+
+        Assert.True(await new PakReleaseRecovery(manager, new Mock<IUserDialogueSpawner>(MockBehavior.Strict).Object).Recover([wanted]));
+        Assert.Equal(ReleaseCoordinates.FromRelease(wanted), Assert.Single(paks.ManagedPaks).Coordinates);
+    }
+
+    [Theory]
     [InlineData("q__-__Mod1.pak")]
     [InlineData("custom-tracked.pak")]
     public async Task UnknownDestinationHash_DecliningPreservesFileAndMetadata(string name) {

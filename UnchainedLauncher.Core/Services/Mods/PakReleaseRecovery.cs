@@ -14,7 +14,9 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
         if (requested.Count == 0) return true;
         try {
             var names = PakDir.GetInstallFileNames(requested.Select(ReleaseCoordinates.FromRelease)).ToList();
-            var available = requested.Concat(manager.Mods.SelectMany(mod => mod.Releases)).ToList();
+            var available = requested.Concat(manager.Mods.SelectMany(mod => mod.Releases))
+                .OrderByDescending(release => release.Version)
+                .ThenByDescending(release => release.ReleaseDate).ToList();
             var tracked = requested.Select(release => manager.PakDir.GetManagedPakFilePath(ReleaseCoordinates.FromRelease(release)))
                 .SelectMany(path => path.ToList()).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var local = new List<LocalPak>();

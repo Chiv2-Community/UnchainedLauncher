@@ -19,5 +19,7 @@ and after the fix on Windows at 100%, 125%, 150%, and 200% display scaling:
 - Toggle headers and edit text boxes/checkboxes to check input behavior.
 
 Structural tests do not establish screenshot quality or physical-monitor DPI behavior.
+The five WPF cases also passed under Wine/.NET 10.0.2 during combined-branch validation;
+native Windows and before/after visual checks remain outstanding.
 WPF effects introduce intermediate render targets and can disable ClearType:
 https://learn.microsoft.com/en-us/dotnet/api/system.windows.media.renderoptions.cleartypehint

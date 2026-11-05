@@ -53,6 +53,9 @@ jobs:
     - name: Run Unit Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Core.Tests.Unit --logger:"console;verbosity=detailed"
 
+    - name: Run GUI Unit Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.GUI.Tests.Unit --logger:"console;verbosity=detailed"
+
     - name: Run Scanner Configuration Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.PakScannerApp.Tests --logger:"console;verbosity=detailed"
 

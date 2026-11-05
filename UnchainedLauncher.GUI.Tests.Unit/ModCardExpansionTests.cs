@@ -148,6 +148,9 @@ public class ModCardExpansionTests {
         var card = Assert.Single(document.Descendants().Where(element =>
             element.Name.LocalName == "CollapsibleCard" &&
             (string?)element.Attribute("IsExpanded") == "{Binding IsExpanded, Mode=TwoWay}"));
+        Assert.Equal("False", (string?)card.Attribute("ShowExpansionIndicator"));
+        Assert.Equal("True", (string?)card.Attribute("HighlightWhenCollapsed"));
+        Assert.Equal("True", (string?)card.Attribute("ShowHeaderSeparator"));
         var body = Assert.Single(card.Elements().Where(element => element.Name.LocalName == "CollapsibleCard.Body"));
         var header = Assert.Single(card.Elements().Where(element => element.Name.LocalName == "CollapsibleCard.Header"));
         Assert.Contains(header.Descendants(), element => (string?)element.Attribute("Source") == "{Binding IconUrl}");

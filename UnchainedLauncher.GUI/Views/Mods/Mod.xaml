@@ -10,7 +10,10 @@
              d:DesignHeight="300" d:DesignWidth="800"
              Focusable="True">
 
-    <controls:CollapsibleCard IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+    <controls:CollapsibleCard IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+                              ShowExpansionIndicator="False"
+                              HighlightWhenCollapsed="True"
+                              ShowHeaderSeparator="True">
         <controls:CollapsibleCard.Header>
             <!-- Header: Icon, Name, Enable/Disable, Version selector -->
             <Grid>

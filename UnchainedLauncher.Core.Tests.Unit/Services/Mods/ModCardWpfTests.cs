@@ -47,6 +47,14 @@ public class ModCardWpfTests(HomeLaunchUi ui) {
             var grid = Assert.IsType<Grid>(Assert.IsType<Border>(card.Content).Child);
             var toggle = Assert.Single(grid.Children.OfType<ToggleButton>());
             var body = Assert.Single(grid.Children.OfType<ContentPresenter>());
+            var separator = Assert.Single(grid.Children.OfType<Border>());
+            var indicator = Assert.Single(Assert.IsType<Grid>(toggle.Content).Children.OfType<System.Windows.Shapes.Path>());
+            var surface = Assert.IsType<Border>(toggle.Template.FindName("HeaderSurface", toggle));
+            var defaults = new UnchainedLauncher.GUI.Views.Controls.CollapsibleCard();
+            Assert.True(defaults.ShowExpansionIndicator);
+            Assert.False(defaults.HighlightWhenCollapsed);
+            Assert.False(defaults.ShowHeaderSeparator);
+            Assert.Equal(Visibility.Collapsed, indicator.Visibility);
             var enable = Assert.Single(header.Children.OfType<Button>().Where(button => button.Command == vm.EnableOrDisableCommand));
             var version = Assert.Single(header.Children.OfType<ComboBox>());
             var togglePeer = new ToggleButtonAutomationPeer(toggle);
@@ -57,6 +65,8 @@ public class ModCardWpfTests(HomeLaunchUi ui) {
             Assert.True(card.IsExpanded);
             Assert.Equal(Visibility.Visible, body.Visibility);
             Assert.True(details.IsVisible);
+            Assert.Equal(Visibility.Visible, separator.Visibility);
+            Assert.Equal(grid.ActualWidth, separator.ActualWidth, 3);
 
             provider.Toggle();
             FlushBindings();
@@ -66,6 +76,28 @@ public class ModCardWpfTests(HomeLaunchUi ui) {
             Assert.False(card.IsExpanded);
             Assert.Equal(Visibility.Collapsed, body.Visibility);
             Assert.False(details.IsVisible);
+            Assert.Equal(Visibility.Collapsed, separator.Visibility);
+            var normalBackground = surface.Background;
+            var hover = typeof(MouseDevice).GetMethod("ChangeMouseOver", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            try {
+                hover.Invoke(Mouse.PrimaryDevice, new object?[] { toggle, 0 });
+                FlushBindings();
+                Assert.Same(view.FindResource("Brush.PrimaryTransparent"), surface.Background);
+                Assert.Equal(Cursors.Hand, toggle.Cursor);
+                card.HighlightWhenCollapsed = false;
+                FlushBindings();
+                Assert.Same(normalBackground, surface.Background);
+                card.HighlightWhenCollapsed = true;
+                vm.IsExpanded = true;
+                FlushBindings();
+                Assert.Same(normalBackground, surface.Background);
+                vm.IsExpanded = false;
+                FlushBindings();
+            }
+            finally {
+                hover.Invoke(Mouse.PrimaryDevice, new object?[] { null, 0 });
+                FlushBindings();
+            }
             foreach (var control in new Control[] { enable, version, toggle }) {
                 Assert.True(control.IsVisible);
                 Assert.True(control.IsEnabled);
@@ -85,6 +117,12 @@ public class ModCardWpfTests(HomeLaunchUi ui) {
             Assert.True(card.IsExpanded);
             Assert.Equal(Visibility.Visible, body.Visibility);
             Assert.True(details.IsVisible);
+            Assert.Equal(Visibility.Visible, separator.Visibility);
+            card.ShowHeaderSeparator = false;
+            card.ShowExpansionIndicator = true;
+            FlushBindings();
+            Assert.Equal(Visibility.Collapsed, separator.Visibility);
+            Assert.Equal(Visibility.Visible, indicator.Visibility);
         }
         finally {
             window?.Close();

@@ -17,6 +17,15 @@ namespace UnchainedLauncher.GUI.Views.Controls {
         public static readonly DependencyProperty BodyProperty = DependencyProperty.Register(
             nameof(Body), typeof(object), typeof(CollapsibleCard), new PropertyMetadata(null));
 
+        public static readonly DependencyProperty ShowExpansionIndicatorProperty = DependencyProperty.Register(
+            nameof(ShowExpansionIndicator), typeof(bool), typeof(CollapsibleCard), new PropertyMetadata(true));
+
+        public static readonly DependencyProperty HighlightWhenCollapsedProperty = DependencyProperty.Register(
+            nameof(HighlightWhenCollapsed), typeof(bool), typeof(CollapsibleCard), new PropertyMetadata(false));
+
+        public static readonly DependencyProperty ShowHeaderSeparatorProperty = DependencyProperty.Register(
+            nameof(ShowHeaderSeparator), typeof(bool), typeof(CollapsibleCard), new PropertyMetadata(false));
+
         public CollapsibleCard() {
             InitializeComponent();
         }
@@ -39,6 +48,21 @@ namespace UnchainedLauncher.GUI.Views.Controls {
         public object? Body {
             get => GetValue(BodyProperty);
             set => SetValue(BodyProperty, value);
+        }
+
+        public bool ShowExpansionIndicator {
+            get => (bool)GetValue(ShowExpansionIndicatorProperty);
+            set => SetValue(ShowExpansionIndicatorProperty, value);
+        }
+
+        public bool HighlightWhenCollapsed {
+            get => (bool)GetValue(HighlightWhenCollapsedProperty);
+            set => SetValue(HighlightWhenCollapsedProperty, value);
+        }
+
+        public bool ShowHeaderSeparator {
+            get => (bool)GetValue(ShowHeaderSeparatorProperty);
+            set => SetValue(ShowHeaderSeparatorProperty, value);
         }
     }
 }

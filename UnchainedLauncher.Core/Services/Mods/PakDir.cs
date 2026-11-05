@@ -20,11 +20,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public IEnumerable<ManagedPak> ManagedPaks => _managedPaks;
         private readonly List<ManagedPak> _managedPaks;
-        private readonly string _signatureSourceDir;
 
-        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks, string signatureSourceDir = FilePaths.PakDir) {
+        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks) {
             DirPath = dirPath;
-            _signatureSourceDir = signatureSourceDir;
             _managedPaks = managedPaks.ToList();
             SynchronizeWithDir();
         }
@@ -303,7 +301,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             if (File.Exists(signedName)) {
                 return Right(Unit.Default);
             }
-            var sigPath = Path.Join(_signatureSourceDir, BaseSigFileName);
+            var sigPath = Path.Join(FilePaths.PakDir, BaseSigFileName);
             return (File.Exists(sigPath)
                 ? Either<Error, string>.Right(sigPath)
                 : Error.New($"Default sig file '{sigPath}' not found"))

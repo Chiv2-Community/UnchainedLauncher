@@ -1,10 +1,6 @@
 using JetBrains.Annotations;
 using LanguageExt;
 using LanguageExt.Common;
-using log4net;
-using log4net.Appender;
-using log4net.Core;
-using log4net.Repository.Hierarchy;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
@@ -55,85 +51,27 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             PrepareTestDir(dir);
             Directory.CreateDirectory(dir);
             File.WriteAllText(Path.Combine(dir, "pakchunk0-WindowsNoEditor.sig"), "test sig file");
+            Directory.CreateDirectory(FilePaths.PakDir);
+            File.WriteAllText(Path.Join(FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig"), "test sig file");
         }
 
         [Fact]
         public async Task InstallModSet_UsesInstallationSignature_ForSeparateModDirectory() {
-            var root = Path.Join(BaseTestDir, nameof(InstallModSet_UsesInstallationSignature_ForSeparateModDirectory));
-            PrepareTestDir(root);
-            var installationPaks = Path.Join(root, "TBL", "Content", "Paks");
-            var modPaks = Path.Join(root, "Saved_unchained", "Paks");
-            PrepareTestDirWithSig(installationPaks);
-            PrepareTestDir(modPaks);
-            var source = Path.Join(installationPaks, "pakchunk0-WindowsNoEditor.sig");
-            var pd = new Core.Services.Mods.PakDir(modPaks, Enumerable.Empty<ManagedPak>(), installationPaks);
+            var modPaks = Path.Join(BaseTestDir, nameof(InstallModSet_UsesInstallationSignature_ForSeparateModDirectory));
+            PrepareTestDirWithSig(modPaks);
+            File.Delete(Path.Join(modPaks, "pakchunk0-WindowsNoEditor.sig"));
+            var pd = new Core.Services.Mods.PakDir(modPaks, Enumerable.Empty<ManagedPak>());
 
             await InstallDummy(pd, DummyMods[0]);
 
             var pak = Assert.Single(pd.ManagedPaks);
             var signature = Path.ChangeExtension(Path.Join(modPaks, pak.PakFileName), ".sig");
-            Assert.Equal(File.ReadAllBytes(source), File.ReadAllBytes(signature));
+            Assert.Equal("test sig file", File.ReadAllText(signature));
             Assert.False(File.Exists(Path.Join(modPaks, "pakchunk0-WindowsNoEditor.sig")));
 
             File.Delete(signature);
             pd.SignAll().IfLeft(throwErrors);
-            Assert.Equal(File.ReadAllBytes(source), File.ReadAllBytes(signature));
-        }
-
-        [Fact]
-        public async Task InstallModSet_DoesNotUseBaseSignature_FromModDirectory() {
-            var root = Path.Join(BaseTestDir, nameof(InstallModSet_DoesNotUseBaseSignature_FromModDirectory));
-            PrepareTestDir(root);
-            var installationPaks = Path.Join(root, "TBL", "Content", "Paks");
-            var modPaks = Path.Join(root, "Mods");
-            PrepareTestDirWithSig(installationPaks);
-            PrepareTestDirWithSig(modPaks);
-            File.WriteAllText(Path.Join(modPaks, "pakchunk0-WindowsNoEditor.sig"), "wrong signature");
-            var pd = new Core.Services.Mods.PakDir(modPaks, Enumerable.Empty<ManagedPak>(), installationPaks);
-
-            await InstallDummy(pd, DummyMods[0]);
-
-            var pak = Assert.Single(pd.ManagedPaks);
-            Assert.Equal("test sig file", File.ReadAllText(Path.ChangeExtension(Path.Join(modPaks, pak.PakFileName), ".sig")));
-        }
-
-        [Fact]
-        public async Task InstallModSet_MissingInstallationSignature_LogsMessageWithoutErrorException() {
-            var root = Path.Join(BaseTestDir, nameof(InstallModSet_MissingInstallationSignature_LogsMessageWithoutErrorException));
-            PrepareTestDir(root);
-            var installationPaks = Path.Join(root, "TBL", "Content", "Paks");
-            var modPaks = Path.Join(root, "Mods");
-            PrepareTestDir(installationPaks);
-            PrepareTestDirWithSig(modPaks);
-            var pd = new Core.Services.Mods.PakDir(modPaks, Enumerable.Empty<ManagedPak>(), installationPaks);
-            var logger = (Logger)LogManager.GetLogger(typeof(Core.Services.Mods.PakDir).Assembly, nameof(Core.Services.Mods.PakDir)).Logger;
-            var oldLevel = logger.Level;
-            var repository = LogManager.GetRepository(typeof(Core.Services.Mods.PakDir).Assembly);
-            var wasConfigured = repository.Configured;
-            // Do not render exceptions: the old call would overflow the test runner's stack.
-            var appender = new MemoryAppender { Fix = FixFlags.None };
-            appender.ActivateOptions();
-            logger.AddAppender(appender);
-            logger.Level = Level.Error;
-            repository.Configured = true;
-            try {
-                await InstallDummy(pd, new ReleaseCoordinates("Org", "MissingSignatureSource", "1.0.0"));
-
-                var entry = Assert.Single(appender.GetEvents().Where(e => e.MessageObject is string message && message.Contains("MissingSignatureSource")));
-                Assert.Null(entry.ExceptionObject);
-                var message = Assert.IsType<string>(entry.MessageObject);
-                Assert.Contains(Path.Join(installationPaks, "pakchunk0-WindowsNoEditor.sig"), message);
-                Assert.Contains("not found", message);
-                pd.SignAll().Match(
-                    _ => Assert.True(false, "Signing should fail without the installation signature"),
-                    errors => Assert.All(errors, error => Assert.Contains(installationPaks, error.Message)));
-            }
-            finally {
-                logger.Level = oldLevel;
-                repository.Configured = wasConfigured;
-                logger.RemoveAppender(appender);
-                appender.Close();
-            }
+            Assert.Equal("test sig file", File.ReadAllText(signature));
         }
 
         [Fact]
@@ -144,7 +82,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var orphanedSigName = Path.Join(thisTestPath, "orphaned.sig");
             File.WriteAllText(orphanedSigName, "orphaned sig file");
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             Assert.True(File.Exists(orphanedSigName));
             pd.DeleteOrphanedSigs();
             Assert.False(File.Exists(orphanedSigName));
@@ -159,7 +97,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, System.Reflection.MethodBase.GetCurrentMethod()?.Name);
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             new List<string> {
                 "pakchunk0-WindowsNoEditor.pak",
                 "file1.pak",
@@ -192,7 +130,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
                 return StaticMkWriter(path);
             };
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var coords = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
 
             // First install - should download
@@ -219,7 +157,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(InstallModSet_RelocatesExistingMods_WhenOrderChanges));
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var modA = new ReleaseCoordinates("Unchained-Mods", "ModA", "1.0.0");
             var modB = new ReleaseCoordinates("Chained-Mods", "ModB", "1.0.0");
 
@@ -267,7 +205,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(Uninstall_DeletesFileAndSig));
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var coords = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
 
             // Install the mod first
@@ -294,7 +232,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(Uninstall_SynchronizeRemovesMissingPaks));
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var coords = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
 
             // Install the mod first
@@ -305,7 +243,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             pd.Uninstall(coords);
 
             // Creating a new PakDir with the old managed paks should synchronize and remove missing entries
-            var pdAfterSync = new Core.Services.Mods.PakDir(thisTestPath, pd.ManagedPaks, thisTestPath);
+            var pdAfterSync = new Core.Services.Mods.PakDir(thisTestPath, pd.ManagedPaks);
             Assert.Empty(pdAfterSync.ManagedPaks);
         }
 
@@ -314,7 +252,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(Uninstall_NonExistentMod_Succeeds));
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var coords = new ReleaseCoordinates("Unchained-Mods", "NonExistent", "1.0.0");
 
             // Uninstalling a mod that doesn't exist should succeed (no-op)
@@ -327,7 +265,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(SignAll_SignsAllManagedPaks));
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var mod1 = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
             var mod2 = new ReleaseCoordinates("Unchained-Mods", "Mod2", "1.0.0");
 
@@ -362,7 +300,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(UnSignAll_RemovesAllSigFiles));
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var mod1 = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
             var mod2 = new ReleaseCoordinates("Unchained-Mods", "Mod2", "1.0.0");
 
@@ -404,7 +342,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             };
 
             // Constructor should synchronize and remove the missing entry
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, managedPaks, thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, managedPaks);
 
             // Only the existing pak should remain
             Assert.Single(pd.ManagedPaks);
@@ -428,7 +366,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
                 new ManagedPak(new ReleaseCoordinates("Org", "Mod2", "1.0.0"), pak2Name, 1)
             };
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, managedPaks, thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, managedPaks);
 
             // Both paks should be preserved
             Assert.Equal(2, pd.ManagedPaks.Count());
@@ -439,7 +377,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(InstallModSet_EmptySet_ReturnsNoResults));
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
 
             var results = await pd.InstallModSet(
                 Enumerable.Empty<ModInstallRequest>(),
@@ -455,7 +393,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(InstallModSet_DuplicateModuleNames_AddsOrgPrefix));
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
 
             // Same module name, different organizations
             var mod1 = new ReleaseCoordinates("Unchained-Mods", "SharedName", "1.0.0");
@@ -500,7 +438,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
                 new ManagedPak(new ReleaseCoordinates("Org", "TestMod", "1.0.0"), pakName, 0)
             };
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, managedPaks, thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, managedPaks);
             pd.DeleteOrphanedSigs();
 
             // Managed sig should be preserved, orphaned sig should be deleted
@@ -520,7 +458,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var orphanedSigName = "orphaned.sig";
             File.WriteAllText(Path.Join(thisTestPath, orphanedSigName), "orphaned sig");
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             pd.DeleteOrphanedSigs();
 
             // Base sig should be preserved (because base pak exists)
@@ -537,7 +475,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             // The lexicographic prefix will make the actual name qa__-__TestMod.pak
             File.WriteAllText(Path.Join(thisTestPath, "qa__-__TestMod.pak"), "unmanaged pak contents");
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var coords = new ReleaseCoordinates("Org", "TestMod", "1.0.0");
 
             var results = await pd.InstallModSet(
@@ -562,7 +500,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(SignAll_SkipsAlreadySignedFiles));
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var coords = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
 
             await InstallDummy(pd, coords);
@@ -591,6 +529,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         public void SignAll_FailsGracefully_WhenBaseSigMissing() {
             var thisTestPath = Path.Join(BaseTestDir, nameof(SignAll_FailsGracefully_WhenBaseSigMissing));
             PrepareTestDir(thisTestPath); // Note: no sig file created
+            File.Delete(Path.Join(FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig"));
 
             var pakName = "qa__-__TestMod.pak";
             File.WriteAllText(Path.Join(thisTestPath, pakName), "mod contents");
@@ -599,7 +538,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
                 new ManagedPak(new ReleaseCoordinates("Org", "TestMod", "1.0.0"), pakName, 0)
             };
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, managedPaks, thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, managedPaks);
 
             // Delete the sig file for the pak if it exists
             var sigPath = Path.ChangeExtension(Path.Join(thisTestPath, pakName), ".sig");
@@ -615,7 +554,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(Reset_ClearsAllManagedPaks));
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
 
             // Install multiple mods in one call (InstallModSet treats each call as the complete desired state)
             var mod1 = new ReleaseCoordinates("Org1", "Mod1", "1.0.0");
@@ -645,7 +584,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(InstallModSet_UpdatesPriority_WhenModAlreadyInstalled));
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var modA = new ReleaseCoordinates("Unchained-Mods", "ModA", "1.0.0");
             var modB = new ReleaseCoordinates("Chained-Mods", "ModB", "1.0.0");
             var modC = new ReleaseCoordinates("Other-Mods", "ModC", "1.0.0");
@@ -692,7 +631,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(InstallModSet_SingleMod_CreatesCorrectFileName) + "_" + coords.ModuleName + "_" + coords.Org);
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
 
             var results = await pd.InstallModSet(
                 new[] { new ModInstallRequest(coords, StaticMkWriter) },
@@ -729,7 +668,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.True(File.Exists(unmanagedSigPath));
 
             // Create PakDir with no managed paks
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
 
             // Unsign all should unsign the unmanaged pak
             var result = pd.UnSignAll();
@@ -756,7 +695,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.False(File.Exists(unmanagedSigPath));
 
             // Create PakDir with no managed paks
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
 
             // Sign all should sign the unmanaged pak
             var result = pd.SignAll();
@@ -771,7 +710,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var thisTestPath = Path.Join(BaseTestDir, nameof(InstallModSet_MoveAlsoMovesSigFile));
             PrepareTestDirWithSig(thisTestPath);
 
-            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>(), thisTestPath);
+            var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var modA = new ReleaseCoordinates("Unchained-Mods", "ModA", "1.0.0");
             var modB = new ReleaseCoordinates("Chained-Mods", "ModB", "1.0.0");
 

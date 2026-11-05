@@ -127,11 +127,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         }
 
         [Fact]
-        public void CatalogWithoutScanDoesNotReadPakInventory() {
+        public async Task CatalogWithoutScanDoesNotReadPakInventory() {
             var manager = new Mock<IModManager>();
             manager.SetupGet(m => m.PakDir).Throws(new InvalidOperationException("No scan needs a pak inventory"));
             var catalog = new AvailableModsAndMapsService(manager.Object, new ModScanTabVM());
-            catalog.RefreshCatalog();
+            await catalog.RefreshCatalog();
             Assert.Empty(catalog.AvailableServerModBlueprints);
             Assert.NotEmpty(catalog.AvailableMaps);
         }
@@ -139,7 +139,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void LaunchRefreshRejectsDeletedOrReplacedScannedPak(bool replace) {
+        public async Task LaunchRefreshRejectsDeletedOrReplacedScannedPak(bool replace) {
             using var file = new ScannedPak();
             var scan = new ModScanTabVM();
             var catalog = new AvailableModsAndMapsService(Manager(), scan);
@@ -151,7 +151,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
                 File.SetLastWriteTimeUtc(file.Result.PakPath, modified);
             }
             else File.Delete(file.Result.PakPath);
-            catalog.RefreshCatalog();
+            await catalog.RefreshCatalog();
             Assert.Empty(catalog.AvailableServerModBlueprints);
             // Republishing a stale result must not make it usable again.
             PublishScan(scan, file.Scan);
@@ -159,7 +159,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         }
 
         [Fact]
-        public void MetadataRefreshReusesValidationButLaunchHashesUnchangedScanAgain() {
+        public async Task MetadataRefreshReusesValidationButLaunchHashesUnchangedScanAgain() {
             using var file = new ScannedPak();
             var registry = new Mock<IModRegistry>();
             registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult([], []));
@@ -169,28 +169,13 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             PublishScan(scan, file.Scan);
             Assert.Single(catalog.AvailableServerModBlueprints);
             using (var locked = File.Open(file.Result.PakPath, FileMode.Open, FileAccess.Read, FileShare.None)) {
-                manager.UpdateModsList().GetAwaiter().GetResult();
+                await manager.UpdateModsList();
                 Assert.Single(catalog.AvailableServerModBlueprints); // No redundant hash read on metadata events.
-                catalog.RefreshCatalog();
+                await catalog.RefreshCatalog();
                 Assert.Empty(catalog.AvailableServerModBlueprints); // Launch must validate, not trust the cache.
             }
-            catalog.RefreshCatalog();
+            await catalog.RefreshCatalog();
             Assert.Single(catalog.AvailableServerModBlueprints);
-        }
-
-        [Fact]
-        public void ManagedScanCannotReintroduceActorWhenRegistryMetadataIsMissing() {
-            using var file = new ScannedPak();
-            var pakDir = new Mock<IPakDir>();
-            pakDir.SetupGet(p => p.DirPath).Returns(Path.GetDirectoryName(file.Result.PakPath)!);
-            pakDir.SetupGet(p => p.ManagedPaks).Returns([new ManagedPak(new("Org", "Managed", "v1"), Path.GetFileName(file.Result.PakPath), 0)]);
-            var manager = new ModManager(Mock.Of<IModRegistry>(), pakDir.Object, []);
-            var scan = new ModScanTabVM();
-            var catalog = new AvailableModsAndMapsService(manager, scan);
-            PublishScan(scan, file.Scan);
-            Assert.Empty(catalog.AvailableServerModBlueprints);
-            var actor = ModManifestConverter.ProcessModScan(file.Scan).Paks.Single().Inventory.Blueprints.Single();
-            Assert.Empty(catalog.GetConfirmedInactiveSelections([actor])); // Still retain the unresolved saved preference.
         }
 
         [Theory]

@@ -25,8 +25,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
     /// Manages the pak directory for Chivalry 2 mods, handling installation, signing, and cleanup of pak files.
     /// </summary>
     public interface IPakDir {
-        /// <summary>The locally tracked managed pak inventory, including disabled releases.</summary>
-        IEnumerable<ManagedPak> ManagedPaks { get; }
+        /// <summary>Reloads and snapshots managed pak ownership under the shared directory lock.</summary>
+        Task<ManagedPak[]> GetManagedPaks();
 
         /// <summary>
         /// A delegate that creates a FileWriter for writing pak data to the specified file path.
@@ -40,7 +40,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// </summary>
         /// <param name="coords">The mod identifier specifying which mod to uninstall</param>
         /// <returns>Right(Unit) on success, Left(Error) on failure</returns>
-        Either<Error, Unit> Uninstall(ModIdentifier coords);
+        Task<Either<Error, Unit>> Uninstall(ModIdentifier coords);
 
         /// <summary>
         /// Installs a set of mods, handling file naming conflicts and progress reporting.
@@ -56,34 +56,34 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// This is required for the game to load modded pak files.
         /// </summary>
         /// <returns>Right(Unit) if all files were signed successfully, Left with errors otherwise</returns>
-        Either<IEnumerable<Error>, Unit> SignAll();
+        Task<Either<IEnumerable<Error>, Unit>> SignAll();
 
         /// <summary>
         /// Removes signature files for all managed pak files, effectively preventing them from loading.
         /// </summary>
         /// <returns>Right(Unit) if all signature files were removed successfully, Left with errors otherwise</returns>
-        Either<IEnumerable<Error>, Unit> UnSignAll();
+        Task<Either<IEnumerable<Error>, Unit>> UnSignAll();
 
         /// <summary>
         /// Deletes any .sig files that don't have a corresponding .pak file.
         /// Useful for cleaning up after manual pak file deletions.
         /// </summary>
         /// <returns>Right(Unit) if cleanup succeeded, Left with errors otherwise</returns>
-        Either<IEnumerable<Error>, Unit> DeleteOrphanedSigs();
+        Task<Either<IEnumerable<Error>, Unit>> DeleteOrphanedSigs();
 
         /// <summary>
         /// Removes all mod pak and sig files from the directory, restoring it to a clean state.
         /// Preserves the base game pak and sig files (pakchunk0-WindowsNoEditor).
         /// </summary>
         /// <returns>Right(Unit) if reset succeeded, Left with errors otherwise</returns>
-        Either<IEnumerable<Error>, Unit> Reset();
+        Task<Either<IEnumerable<Error>, Unit>> Reset();
 
         /// <summary>
         /// Gets the full file path for a managed pak file by its release coordinates.
         /// </summary>
         /// <param name="coords">The release coordinates to look up</param>
         /// <returns>Some(path) if the pak is managed, None otherwise</returns>
-        Option<string> GetManagedPakFilePath(ReleaseCoordinates coords);
+        Task<Option<string>> GetManagedPakFilePath(ReleaseCoordinates coords);
 
         /// <summary>
         /// Gets the directory path where pak files are stored.

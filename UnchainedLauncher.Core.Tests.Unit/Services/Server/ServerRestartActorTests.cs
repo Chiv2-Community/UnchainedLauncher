@@ -1,4 +1,5 @@
 using LanguageExt;
+using LanguageExt.Common;
 using Moq;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -18,12 +19,63 @@ using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
-using UnchainedLauncher.UnrealModScanner.ViewModels;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
     [Collection("Home launch UI")]
     public class ServerRestartActorTests(HomeLaunchUi ui) {
+        private static ModScanTabVM Scan(string path) {
+            var entry = new GenericAssetEntry {
+                AssetPath = "TBL/Content/Mods/Transient.uasset", AssetHash = "hash",
+                ClassPath = "/Game/Mods/Transient.Transient_C"
+            };
+            entry.Properties["ModName"] = "Transient";
+            entry.Properties["bShowInGUI"] = true;
+            var pak = new PakScanResult {
+                PakPath = path, PakHash = Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(path)))
+            };
+            pak.AddGenericEntry(entry, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
+            var result = new ModScanResult();
+            result.Paks[path] = pak;
+            var scan = new ModScanTabVM();
+            typeof(ModScanTabVM).GetProperty(nameof(scan.LastScanResult))!.SetValue(scan, result);
+            return scan;
+        }
+
+        [Fact]
+        public Task SiblingInstallCannotBecomeAnUnmanagedLaunchActorWithoutRegistryMetadata() => ui.RunAsync(async () => {
+            var directory = Path.Combine(Path.GetTempPath(), "actor-ownership-" + Guid.NewGuid());
+            Directory.CreateDirectory(directory);
+            try {
+                File.WriteAllText(Path.Combine(directory, "pakchunk0-WindowsNoEditor.sig"), "sig");
+                var reader = new Core.Services.Mods.PakDir(directory, []);
+                var writer = new Core.Services.Mods.PakDir(directory, []);
+                var coordinates = new ReleaseCoordinates("Org", "Managed", "v1");
+                await foreach (var result in writer.InstallModSet([new ModInstallRequest(coordinates,
+                    path => EitherAsync<Error, FileWriter>.Right(new FileWriter(path, new MemoryStream([1, 2, 3]), 3)))],
+                    Option<AccumulatedMemoryProgress>.None)) result.IfLeft(error => throw error);
+                Assert.Empty(reader.ManagedPaks);
+                var path = Path.Combine(directory, Assert.Single(writer.ManagedPaks).PakFileName);
+                var scan = Scan(path);
+                var manager = new ModManager(Mock.Of<IModRegistry>(), reader, []);
+                using var inventoryLock = await new PakInventory(directory).Lock();
+                var catalog = new AvailableModsAndMapsService(manager, scan);
+                var actor = UnchainedLauncher.UnrealModScanner.Services.ModManifestConverter
+                    .ProcessModScan(scan.LastScanResult!).Paks.Single().Inventory.Blueprints.Single();
+                var config = new ServerConfigurationVM(manager, scan, catalog, localIp: "127.0.0.1");
+                config.EnableServerBlueprintMod(actor);
+                var launch = config.PrepareServerBlueprintsForLaunch();
+                Assert.False(launch.IsCompleted);
+                await Dispatcher.Yield(DispatcherPriority.Background); // Contention must yield the UI thread.
+                inventoryLock.Dispose();
+                Assert.Empty(await launch.WaitAsync(TimeSpan.FromSeconds(5)));
+                Assert.Empty(catalog.AvailableServerModBlueprints);
+                Assert.Equal(actor, Assert.Single(config.EnabledServerModList));
+                Assert.Single(reader.ManagedPaks); // Reconciliation refreshed the real shared inventory.
+            }
+            finally { Directory.Delete(directory, true); }
+        });
+
         [Fact]
         public Task RestoredUnmanagedActorReturnsOnLaterRestartWithoutChangingRequestedSnapshot() => ui.RunAsync(async () => {
             var path = Path.GetTempFileName();
@@ -33,25 +85,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             ServersTabVM? tab = null;
             try {
                 File.WriteAllText(path, "original");
-                var entry = new GenericAssetEntry {
-                    AssetPath = "TBL/Content/Mods/Transient.uasset",
-                    AssetHash = "hash",
-                    ClassPath = "/Game/Mods/Transient.Transient_C"
-                };
-                entry.Properties["ModName"] = "Transient";
-                entry.Properties["bShowInGUI"] = true;
-                var pak = new PakScanResult {
-                    PakPath = path,
-                    PakHash = Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(path)))
-                };
-                pak.AddGenericEntry(entry, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
-                var result = new ModScanResult();
-                result.Paks[path] = pak;
-                var scan = new ModScanTabVM();
+                var scan = Scan(path);
                 var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), []);
                 var catalog = new AvailableModsAndMapsService(manager, scan);
-                typeof(ModScanTabVM).GetProperty(nameof(scan.LastScanResult))!.SetValue(scan, result);
-                scan.ResultsVisual = new PakScanResultVM();
+                await catalog.RefreshCatalog();
                 var actor = Assert.Single(catalog.AvailableServerModBlueprints);
                 Assert.False(string.IsNullOrWhiteSpace(actor.ClassPath));
                 var config = new ServerConfigurationVM(manager, scan, catalog, name: name, localIp: "127.0.0.1");

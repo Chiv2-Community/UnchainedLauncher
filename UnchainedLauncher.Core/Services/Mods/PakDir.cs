@@ -1,6 +1,7 @@
 using LanguageExt;
 using LanguageExt.Common;
 using log4net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.Extensions;
@@ -21,10 +22,15 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public IEnumerable<ManagedPak> ManagedPaks => _managedPaks;
         private readonly List<ManagedPak> _managedPaks;
+        private readonly PakInventory _inventory;
 
-        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks) {
+        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks)
+            : this(dirPath, managedPaks, TimeProvider.System) { }
+
+        internal PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks, TimeProvider timeProvider) {
             DirPath = dirPath;
             _managedPaks = managedPaks.ToList();
+            _inventory = new PakInventory(dirPath, timeProvider);
             SynchronizeWithDir();
         }
 
@@ -68,7 +74,23 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 );
         }
 
-        public Either<Error, Unit> Uninstall(ModIdentifier coords) =>
+        public async Task<Either<Error, Unit>> Uninstall(ModIdentifier coords) {
+            try {
+                using var inventoryLock = await _inventory.Lock();
+                ReloadInventory();
+                _inventory.Save(_managedPaks);
+                _inventory.BeginChange();
+                var result = UninstallCore(coords);
+                SynchronizeWithDir();
+                _inventory.Save(_managedPaks);
+                return result;
+            }
+            catch (Exception ex) {
+                return Error.New("Failed to update managed pak inventory", ex);
+            }
+        }
+
+        private Either<Error, Unit> UninstallCore(ModIdentifier coords) =>
             GetManagedPakFile(coords)
                 .Match(
                     Some: pak => Right<Error, ManagedPak>(pak)
@@ -93,18 +115,102 @@ namespace UnchainedLauncher.Core.Services.Mods {
             return fullActualName;
         }
 
-        private EitherAsync<Error, string> _writePak(IPakDir.MakeFileWriter mkFileWriter, Option<IProgress<double>> progress, string suggestedFileName) {
+        private async Task<Either<Error, string>> _writePak(IPakDir.MakeFileWriter mkFileWriter, Option<IProgress<double>> progress, string suggestedFileName) {
             var fullActualName = AvailablePakName(suggestedFileName);
             Logger.Info($"Downloading pak to {fullActualName}");
-            return mkFileWriter(PakNameToPakPath(fullActualName))
+            // Reserve a new file before invoking a writer that can overwrite its destination.
+            FileStream reservation;
+            try {
+                reservation = new FileStream(PakNameToPakPath(fullActualName), FileMode.CreateNew, FileAccess.Write);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException
+                || ex is IOException && (ex.HResult & 0xffff) is 80 or 183
+                || ex is IOException && !OperatingSystem.IsWindows() && (ex.HResult & 0xffff) == 17) {
+                // Creation was denied or the name exists: no pak changed. Other I/O failures remain uncertain.
+                return Error.New($"Failed to reserve pak file '{fullActualName}'", ex);
+            }
+            using (reservation) { }
+            var completed = false;
+            try {
+                var result = await mkFileWriter(PakNameToPakPath(fullActualName))
                 .Bind(fileWriter =>
                     // TODO: allow passing of a cancellation token here
                     fileWriter.WriteAsync(progress, CancellationToken.None)
                     .Map(_ => fullActualName)
                 );
+                completed = result.IsRight;
+                return result;
+            }
+            catch (Exception ex) {
+                return Error.New($"Failed to download pak '{fullActualName}'", ex);
+            }
+            finally {
+                if (!completed) {
+                    _deleteFile(PakNameToPakPath(fullActualName))
+                        .IfLeft(e => throw new IOException($"Failed to remove incomplete pak download: {e}"));
+                }
+            }
         }
 
-        public async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSet(
+        public IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSet(
+                IEnumerable<ModInstallRequest> installs,
+                Option<AccumulatedMemoryProgress> progress) => InstallModSetLocked(installs, progress);
+
+        private async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSetLocked(
+                IEnumerable<ModInstallRequest> installs,
+                Option<AccumulatedMemoryProgress> progress,
+                [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+            FileStream? inventoryLock = null;
+            Error? inventoryError = null;
+            try {
+                inventoryLock = await _inventory.Lock(cancellationToken);
+                ReloadInventory();
+                // Publish migration and check writability before changing any pak files.
+                _inventory.Save(_managedPaks);
+            }
+            catch (OperationCanceledException) {
+                inventoryLock?.Dispose();
+                throw;
+            }
+            catch (Exception ex) {
+                inventoryError = Error.New("Failed to load managed pak inventory", ex);
+            }
+            using (inventoryLock) {
+                if (inventoryError != null) {
+                    yield return inventoryError;
+                    yield break;
+                }
+                // Publish each result before yielding, including successful partial preparations.
+                await using var results = InstallModSetCore(installs, progress).GetAsyncEnumerator();
+                while (true) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    inventoryError = null;
+                    var hasResult = false;
+                    try {
+                        hasResult = await results.MoveNextAsync();
+                        _inventory.Save(_managedPaks);
+                    }
+                    catch (Exception ex) {
+                        inventoryError = Error.New("Failed to prepare managed paks", ex);
+                    }
+                    if (inventoryError != null) {
+                        yield return inventoryError;
+                        yield break;
+                    }
+                    if (!hasResult) yield break;
+                    yield return results.Current;
+                }
+            }
+        }
+
+        private void ReloadInventory() {
+            var latest = _inventory.Load(_managedPaks);
+            _managedPaks.Clear();
+            _managedPaks.AddRange(latest);
+            SynchronizeWithDir();
+        }
+
+        private async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSetCore(
                 IEnumerable<ModInstallRequest> installs,
                 Option<AccumulatedMemoryProgress> progress) {
 
@@ -203,7 +309,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
             // Process removes
             for (var i = 0; i < removeActions.Count; i++) {
+                _inventory.BeginChange();
                 var removed = ProcessRemove(removeActions[i]);
+                _inventory.Save(_managedPaks);
                 if (removed.IsLeft) yield return removed.Map(_ => removeActions[i].Existing);
                 removeProgress.IfSome(p => p.Report(100d * (i + 1) / removeActions.Count));
             }
@@ -250,6 +358,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         private Either<Error, ManagedPak> ProcessMove(InstallAction.Move move) {
+            _inventory.BeginChange();
             var sourcePath = PakNameToPakPath(move.Existing.PakFileName);
             var targetName = AvailablePakName(move.TargetPakName);
             var targetPath = PakNameToPakPath(targetName);
@@ -265,6 +374,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         private async Task<Either<Error, ManagedPak>> ProcessDownload(InstallAction.Download download, Option<MemoryProgress> taskProgress) {
+            _inventory.BeginChange();
             return (await _writePak(download.Install.Writer, taskProgress.Map(p => (IProgress<double>)p), download.FinalPakName))
                 .Map(pakFileName => {
                     var managedPak = new ManagedPak(download.Install.Coordinates, pakFileName, download.Index);
@@ -277,7 +387,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         private Either<Error, Unit> ProcessRemove(InstallAction.Remove remove) {
             Logger.Info($"Removing pak: {remove.Existing.PakFileName} ({remove.Existing.Coordinates.ModuleName} version {remove.Existing.Coordinates.Version})");
-            var uninstallResult = Uninstall(remove.Existing.Coordinates);
+            var uninstallResult = UninstallCore(remove.Existing.Coordinates);
             uninstallResult.IfRight(_ => _managedPaks.RemoveAll(p => p.Coordinates.Matches(remove.Existing.Coordinates)));
             uninstallResult.IfLeft(e => Logger.Error($"Failed to remove pak {remove.Existing.PakFileName}: {e}"));
             return uninstallResult;
@@ -291,9 +401,16 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var destSigPath = Path.ChangeExtension(destPakPath, ".sig");
 
             return _moveFile(sourcePakPath, destPakPath)
-                .Bind(_ => File.Exists(sourceSigPath)
-                    ? _moveFile(sourceSigPath, destSigPath)
-                    : Right(Unit.Default));
+                .Bind(_ => {
+                    var result = File.Exists(sourceSigPath)
+                        ? _moveFile(sourceSigPath, destSigPath)
+                        : Right<Error, Unit>(Unit.Default);
+                    if (result.IsLeft) {
+                        _moveFile(destPakPath, sourcePakPath).IfLeft(e =>
+                            throw new IOException($"Failed to roll back pak move: {e}"));
+                    }
+                    return result;
+                });
         }
 
         private static Either<Error, Unit> _moveFile(string source, string dest) {
@@ -353,9 +470,18 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .ToOption();
         }
 
-        public Option<string> GetManagedPakFilePath(ReleaseCoordinates coords) {
-            return GetManagedPakFile(coords)
-                .Map(pak => PakNameToPakPath(pak.PakFileName));
+        public async Task<Option<string>> GetManagedPakFilePath(ReleaseCoordinates coords) {
+            try {
+                using var inventoryLock = await _inventory.Lock();
+                ReloadInventory();
+                return GetManagedPakFile(coords)
+                    .Map(pak => PakNameToPakPath(pak.PakFileName));
+            }
+            catch (Exception ex) {
+                // Installation will surface the inventory error and cancel the launch.
+                Logger.Error("Failed to read managed pak inventory", ex);
+                return None;
+            }
         }
 
         private string PakNameToPakPath(string fileName) {
@@ -367,30 +493,48 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .Filter(p => !_managedPaks.Exists(pak => pak.PakFileName.Equals(Path.GetFileName(p), StringComparison.OrdinalIgnoreCase)));
         }
 
-        public Either<IEnumerable<Error>, Unit> SignAll() {
-            return GetModPakFiles()
+        public Task<Either<IEnumerable<Error>, Unit>> SignAll() {
+            return WithDirectoryLock(() => GetModPakFiles()
                 .Map(_signFile)
-                .BindLefts();
+                .BindLefts());
         }
 
-        public Either<IEnumerable<Error>, Unit> UnSignAll() {
-            return GetModPakFiles()
+        public Task<Either<IEnumerable<Error>, Unit>> UnSignAll() {
+            return WithDirectoryLock(() => GetModPakFiles()
                 .Map(_unsignFile)
-                .BindLefts();
+                .BindLefts());
         }
 
-        public Either<IEnumerable<Error>, Unit> Reset() {
-            return Directory.EnumerateFiles(DirPath)
-                .Filter(p => !(p.EndsWith(BasePakFileName) || p.EndsWith(BaseSigFileName)))
-                .Map(_deleteFile)
-                .BindLefts();
+        private async Task<Either<IEnumerable<Error>, Unit>> WithDirectoryLock(Func<Either<IEnumerable<Error>, Unit>> action, string errorMessage = "Failed to update pak signatures") {
+            try {
+                using var inventoryLock = await _inventory.Lock();
+                return action();
+            }
+            catch (Exception ex) {
+                return Left<IEnumerable<Error>, Unit>(new[] { Error.New(errorMessage, ex) });
+            }
         }
 
-        public Either<IEnumerable<Error>, Unit> DeleteOrphanedSigs() {
-            return GetSigFiles()
+        public Task<Either<IEnumerable<Error>, Unit>> Reset() {
+            return WithDirectoryLock(() => {
+                ReloadInventory();
+                _inventory.Save(_managedPaks);
+                _inventory.BeginChange();
+                var result = Directory.EnumerateFiles(DirPath)
+                    .Filter(p => !(p.EndsWith(BasePakFileName) || p.EndsWith(BaseSigFileName)))
+                    .Map(_deleteFile)
+                    .BindLefts();
+                SynchronizeWithDir();
+                _inventory.Save(_managedPaks);
+                return result;
+            }, "Failed to reset managed pak inventory");
+        }
+
+        public Task<Either<IEnumerable<Error>, Unit>> DeleteOrphanedSigs() {
+            return WithDirectoryLock(() => GetSigFiles()
                 .Filter(p => !File.Exists(Path.ChangeExtension(p, ".pak")))
                 .Map(_deleteFile)
-                .BindLefts();
+                .BindLefts());
         }
 
         /// <summary>

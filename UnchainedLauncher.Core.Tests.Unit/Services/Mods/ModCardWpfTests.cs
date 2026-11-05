@@ -44,7 +44,8 @@ public class ModCardWpfTests(HomeLaunchUi ui) {
             var card = Assert.IsType<UnchainedLauncher.GUI.Views.Controls.CollapsibleCard>(view.Content);
             var header = Assert.IsType<Grid>(card.Header);
             var details = Assert.IsType<StackPanel>(card.Body);
-            var cardSurface = Assert.IsType<Border>(card.Content);
+            var cardLayers = Assert.IsType<Grid>(card.Content);
+            var cardSurface = cardLayers.Children.OfType<Border>().Last();
             var surfaceGrid = Assert.IsType<Grid>(cardSurface.Child);
             var grid = Assert.Single(surfaceGrid.Children.OfType<Grid>());
             var toggle = Assert.Single(grid.Children.OfType<ToggleButton>());
@@ -60,7 +61,8 @@ public class ModCardWpfTests(HomeLaunchUi ui) {
             Assert.False(defaults.ShowHeaderSeparator);
             Assert.False(defaults.IsActive);
             Assert.Equal(Visibility.Collapsed, activeSurface.Visibility);
-            var defaultGrid = Assert.Single(Assert.IsType<Grid>(Assert.IsType<Border>(defaults.Content).Child).Children.OfType<Grid>());
+            var defaultSurface = Assert.IsType<Grid>(defaults.Content).Children.OfType<Border>().Last();
+            var defaultGrid = Assert.Single(Assert.IsType<Grid>(defaultSurface.Child).Children.OfType<Grid>());
             Assert.Equal(Cursors.Hand, Assert.Single(defaultGrid.Children.OfType<ToggleButton>()).Cursor);
             Assert.Equal(Visibility.Collapsed, indicator.Visibility);
             var enable = Assert.Single(header.Children.OfType<Button>().Where(button => button.Command == vm.EnableOrDisableCommand));

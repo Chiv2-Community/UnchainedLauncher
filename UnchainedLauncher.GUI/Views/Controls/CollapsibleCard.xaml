@@ -6,7 +6,11 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </UserControl.Resources>
 
-    <Border Style="{DynamicResource Card}" Padding="0">
+    <Grid>
+        <!-- Shadow only the card surface, not the text and nested controls. -->
+        <Border Style="{DynamicResource Card}" Padding="0" IsHitTestVisible="False" />
+        <Border Style="{DynamicResource Card}" Effect="{x:Null}"
+                Padding="0">
         <Grid>
             <Border x:Name="ActiveSurface" CornerRadius="6"
                     Background="{DynamicResource Brush.SuccessTint}" IsHitTestVisible="False"
@@ -152,5 +156,6 @@
             </ContentPresenter>
             </Grid>
         </Grid>
-    </Border>
+        </Border>
+    </Grid>
 </UserControl>

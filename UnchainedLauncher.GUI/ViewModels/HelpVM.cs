@@ -73,7 +73,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
 
         [RelayCommand]
-        private void UninstallLauncher() {
+        private async Task UninstallLauncher() {
             const string originalPath = FilePaths.OriginalLauncherPath;
             const string launcherPath = FilePaths.LauncherPath;
 
@@ -94,7 +94,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             if (choice == UserDialogueChoice.No) return;
 
-            CleanUpInstallation_actions();
+            await CleanUpInstallation_actions();
             const string replaceCommand = $@" 
                 while (Test-Path '{originalPath}' -PathType Leaf) {{
                     try {{
@@ -147,14 +147,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
             ExitProgram(0);
         }
 
-        private void CleanUpInstallation_actions() {
+        private async Task CleanUpInstallation_actions() {
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
             FileHelpers.DeleteDirectory(FilePaths.PluginDir);
-            PakDir.Reset();
+            await PakDir.Reset();
         }
 
         [RelayCommand]
-        private void CleanUpInstallation() {
+        private async Task CleanUpInstallation() {
             Logger.Info("CleanUpInstallation button clicked.");
             var message = new List<string>() {
                 "Are you sure? This will disable all mods and reset all settings to their defaults. This will delete the following:",
@@ -169,7 +169,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             Logger.Info($"Are you sure? User selects: {choice}");
 
             if (choice == UserDialogueChoice.No) return;
-            CleanUpInstallation_actions();
+            await CleanUpInstallation_actions();
             RestartLauncher();
         }
 

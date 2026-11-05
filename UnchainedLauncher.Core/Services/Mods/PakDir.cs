@@ -74,9 +74,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 );
         }
 
-        public Either<Error, Unit> Uninstall(ModIdentifier coords) {
+        public async Task<Either<Error, Unit>> Uninstall(ModIdentifier coords) {
             try {
-                using var inventoryLock = _inventory.Lock().GetAwaiter().GetResult();
+                using var inventoryLock = await _inventory.Lock();
                 ReloadInventory();
                 _inventory.Save(_managedPaks);
                 _inventory.BeginChange();
@@ -119,7 +119,17 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var fullActualName = AvailablePakName(suggestedFileName);
             Logger.Info($"Downloading pak to {fullActualName}");
             // Reserve a new file before invoking a writer that can overwrite its destination.
-            using (new FileStream(PakNameToPakPath(fullActualName), FileMode.CreateNew, FileAccess.Write)) { }
+            FileStream reservation;
+            try {
+                reservation = new FileStream(PakNameToPakPath(fullActualName), FileMode.CreateNew, FileAccess.Write);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException
+                || ex is IOException && (ex.HResult & 0xffff) is 80 or 183
+                || ex is IOException && !OperatingSystem.IsWindows() && (ex.HResult & 0xffff) == 17) {
+                // Creation was denied or the name exists: no pak changed. Other I/O failures remain uncertain.
+                return Error.New($"Failed to reserve pak file '{fullActualName}'", ex);
+            }
+            using (reservation) { }
             var completed = false;
             try {
                 var result = await mkFileWriter(PakNameToPakPath(fullActualName))
@@ -457,9 +467,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .ToOption();
         }
 
-        public Option<string> GetManagedPakFilePath(ReleaseCoordinates coords) {
+        public async Task<Option<string>> GetManagedPakFilePath(ReleaseCoordinates coords) {
             try {
-                using var inventoryLock = _inventory.Lock().GetAwaiter().GetResult();
+                using var inventoryLock = await _inventory.Lock();
                 ReloadInventory();
                 return GetManagedPakFile(coords)
                     .Map(pak => PakNameToPakPath(pak.PakFileName));
@@ -480,21 +490,21 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .Filter(p => !_managedPaks.Exists(pak => pak.PakFileName.Equals(Path.GetFileName(p), StringComparison.OrdinalIgnoreCase)));
         }
 
-        public Either<IEnumerable<Error>, Unit> SignAll() {
+        public Task<Either<IEnumerable<Error>, Unit>> SignAll() {
             return WithDirectoryLock(() => GetModPakFiles()
                 .Map(_signFile)
                 .BindLefts());
         }
 
-        public Either<IEnumerable<Error>, Unit> UnSignAll() {
+        public Task<Either<IEnumerable<Error>, Unit>> UnSignAll() {
             return WithDirectoryLock(() => GetModPakFiles()
                 .Map(_unsignFile)
                 .BindLefts());
         }
 
-        private Either<IEnumerable<Error>, Unit> WithDirectoryLock(Func<Either<IEnumerable<Error>, Unit>> action) {
+        private async Task<Either<IEnumerable<Error>, Unit>> WithDirectoryLock(Func<Either<IEnumerable<Error>, Unit>> action) {
             try {
-                using var inventoryLock = _inventory.Lock().GetAwaiter().GetResult();
+                using var inventoryLock = await _inventory.Lock();
                 return action();
             }
             catch (Exception ex) {
@@ -502,9 +512,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
             }
         }
 
-        public Either<IEnumerable<Error>, Unit> Reset() {
+        public async Task<Either<IEnumerable<Error>, Unit>> Reset() {
             try {
-                using var inventoryLock = _inventory.Lock().GetAwaiter().GetResult();
+                using var inventoryLock = await _inventory.Lock();
                 ReloadInventory();
                 _inventory.Save(_managedPaks);
                 _inventory.BeginChange();
@@ -521,7 +531,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             }
         }
 
-        public Either<IEnumerable<Error>, Unit> DeleteOrphanedSigs() {
+        public Task<Either<IEnumerable<Error>, Unit>> DeleteOrphanedSigs() {
             return WithDirectoryLock(() => GetSigFiles()
                 .Filter(p => !File.Exists(Path.ChangeExtension(p, ".pak")))
                 .Map(_deleteFile)

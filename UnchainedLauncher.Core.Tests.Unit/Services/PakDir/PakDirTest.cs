@@ -54,7 +54,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
-        public void DeleteOrphanedSigs() {
+        public async Task DeleteOrphanedSigs() {
             var thisTestPath = Path.Join(BaseTestDir, System.Reflection.MethodBase.GetCurrentMethod()?.Name);
             PrepareTestDirWithSig(thisTestPath);
 
@@ -63,7 +63,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             Assert.True(File.Exists(orphanedSigName));
-            pd.DeleteOrphanedSigs();
+            await pd.DeleteOrphanedSigs();
             Assert.False(File.Exists(orphanedSigName));
         }
 
@@ -89,7 +89,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
 
             var m1 = new ReleaseCoordinates("Unchained-Mods", "Mod1", "1.0.0");
             await InstallDummy(pd, m1);
-            pd.Reset().IfLeft(throwErrors);
+            (await pd.Reset()).IfLeft(throwErrors);
             Assert.Empty(
                 Directory.EnumerateFiles(thisTestPath)
                     .Map(Path.GetFileName)
@@ -197,7 +197,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.True(File.Exists(sigPath));
 
             // Uninstall
-            var result = pd.Uninstall(coords);
+            var result = await pd.Uninstall(coords);
             result.IfLeft(e => throw e);
 
             // Verify file and sig are deleted
@@ -219,7 +219,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var installedPak = pd.ManagedPaks.First();
 
             // Uninstall (deletes file but doesn't update in-memory list)
-            pd.Uninstall(coords);
+            await pd.Uninstall(coords);
 
             // Creating a new PakDir with the old managed paks should synchronize and remove missing entries
             var pdAfterSync = new Core.Services.Mods.PakDir(thisTestPath, pd.ManagedPaks);
@@ -227,7 +227,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
-        public void Uninstall_NonExistentMod_Succeeds() {
+        public async Task Uninstall_NonExistentMod_Succeeds() {
             var thisTestPath = Path.Join(BaseTestDir, nameof(Uninstall_NonExistentMod_Succeeds));
             PrepareTestDirWithSig(thisTestPath);
 
@@ -235,7 +235,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var coords = new ReleaseCoordinates("Unchained-Mods", "NonExistent", "1.0.0");
 
             // Uninstalling a mod that doesn't exist should succeed (no-op)
-            var result = pd.Uninstall(coords);
+            var result = await pd.Uninstall(coords);
             Assert.True(result.IsRight);
         }
 
@@ -264,7 +264,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             }
 
             // Sign all
-            var result = pd.SignAll();
+            var result = await pd.SignAll();
             result.IfLeft(throwErrors);
 
             // Verify all sig files now exist
@@ -293,7 +293,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             }
 
             // Unsign all
-            var result = pd.UnSignAll();
+            var result = await pd.UnSignAll();
             result.IfLeft(throwErrors);
 
             // Verify no sig files exist for mods
@@ -398,7 +398,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
-        public void DeleteOrphanedSigs_PreservesManagedSigs() {
+        public async Task DeleteOrphanedSigs_PreservesManagedSigs() {
             var thisTestPath = Path.Join(BaseTestDir, nameof(DeleteOrphanedSigs_PreservesManagedSigs));
             PrepareTestDirWithSig(thisTestPath);
 
@@ -418,7 +418,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             };
 
             var pd = new Core.Services.Mods.PakDir(thisTestPath, managedPaks);
-            pd.DeleteOrphanedSigs();
+            await pd.DeleteOrphanedSigs();
 
             // Managed sig should be preserved, orphaned sig should be deleted
             Assert.True(File.Exists(Path.Join(thisTestPath, sigName)));
@@ -426,7 +426,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
-        public void DeleteOrphanedSigs_PreservesBaseSig() {
+        public async Task DeleteOrphanedSigs_PreservesBaseSig() {
             var thisTestPath = Path.Join(BaseTestDir, nameof(DeleteOrphanedSigs_PreservesBaseSig));
             PrepareTestDirWithSig(thisTestPath);
 
@@ -438,7 +438,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             File.WriteAllText(Path.Join(thisTestPath, orphanedSigName), "orphaned sig");
 
             var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
-            pd.DeleteOrphanedSigs();
+            await pd.DeleteOrphanedSigs();
 
             // Base sig should be preserved (because base pak exists)
             Assert.True(File.Exists(Path.Join(thisTestPath, "pakchunk0-WindowsNoEditor.sig")));
@@ -496,7 +496,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             await Task.Delay(100);
 
             // Sign all again - should skip because sig already exists
-            var result = pd.SignAll();
+            var result = await pd.SignAll();
             result.IfLeft(throwErrors);
 
             // File should not have been modified
@@ -505,7 +505,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
-        public void SignAll_FailsGracefully_WhenBaseSigMissing() {
+        public async Task SignAll_FailsGracefully_WhenBaseSigMissing() {
             var thisTestPath = Path.Join(BaseTestDir, nameof(SignAll_FailsGracefully_WhenBaseSigMissing));
             PrepareTestDir(thisTestPath); // Note: no sig file created
 
@@ -523,7 +523,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             if (File.Exists(sigPath)) File.Delete(sigPath);
 
             // SignAll should return an error when base sig is missing
-            var result = pd.SignAll();
+            var result = await pd.SignAll();
             Assert.True(result.IsLeft);
         }
 
@@ -548,7 +548,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.Equal(2, pd.ManagedPaks.Count());
 
             // Reset
-            var result = pd.Reset();
+            var result = await pd.Reset();
             result.IfLeft(throwErrors);
 
             // All mod files should be deleted, only base files remain
@@ -631,7 +631,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
-        public void UnSignAll_UnsignsUnmanagedPaks() {
+        public async Task UnSignAll_UnsignsUnmanagedPaks() {
             var thisTestPath = Path.Join(BaseTestDir, nameof(UnSignAll_UnsignsUnmanagedPaks));
             PrepareTestDirWithSig(thisTestPath);
 
@@ -649,7 +649,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
 
             // Unsign all should unsign the unmanaged pak
-            var result = pd.UnSignAll();
+            var result = await pd.UnSignAll();
             result.IfLeft(throwErrors);
 
             // Verify sig file is now deleted for the unmanaged pak
@@ -659,7 +659,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
-        public void SignAll_SignsUnmanagedPaks() {
+        public async Task SignAll_SignsUnmanagedPaks() {
             var thisTestPath = Path.Join(BaseTestDir, nameof(SignAll_SignsUnmanagedPaks));
             PrepareTestDirWithSig(thisTestPath);
 
@@ -676,7 +676,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
 
             // Sign all should sign the unmanaged pak
-            var result = pd.SignAll();
+            var result = await pd.SignAll();
             result.IfLeft(throwErrors);
 
             // Verify sig file now exists for the unmanaged pak

@@ -27,14 +27,14 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 .Bind(o => o.Match(OptionAsync<string>.Some, OptionAsync<string>.None));
         }
 
-        private OptionAsync<string> GetLocalHash(ReleaseCoordinates coords) {
-            return _modManager.PakDir.GetManagedPakFilePath(coords)
+        private async Task<Option<string>> GetLocalHash(ReleaseCoordinates coords) {
+            return await (await _modManager.PakDir.GetManagedPakFilePath(coords))
                 .Match(
                     path => GetHashResult(FileHelpers.Sha512Async(path)),
-                    () => OptionAsync<string>.None);
+                    () => OptionAsync<string>.None).ToOption();
         }
 
-        private Unit IfHashInvalid((Release, string, string) validationResult) {
+        private async Task IfHashInvalid((Release, string, string) validationResult) {
             var coords = ReleaseCoordinates.FromRelease(validationResult.Item1);
             _logger.Warn($"Hash mismatch: actual hash '{validationResult.Item2}' does not " +
                          $"match release hash '{validationResult.Item3}' for '{coords}'.");
@@ -50,23 +50,20 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                 $"Would you like to re-download the pak? (recommended)", "Refresh pak file?");
 
             if (redownloadResponse == UserDialogueChoice.Yes) {
-                _modManager.PakDir.Uninstall(coords)
+                (await _modManager.PakDir.Uninstall(coords))
                     .IfLeft(e =>
                         _logger.Error($"Failed to uninstall release '{coords}' with invalid hash", e));
             }
-
-            return Unit.Default;
         }
 
         private async Task ValidateHashes(IEnumerable<Release> releases) {
             var hashValidationTasks = releases
-                .Map(m =>
-                    GetLocalHash(ReleaseCoordinates.FromRelease(m))
-                        .Map(h => (m, h, m.ReleaseHash))
-                        // select only those whose hashes do not match
-                        .Filter(o => !o.Item2.Equals(o.Item3))
-                        .IfSome(IfHashInvalid)
-                );
+                .Select(async m => {
+                    var hash = await GetLocalHash(ReleaseCoordinates.FromRelease(m));
+                    foreach (var h in hash) {
+                        if (!h.Equals(m.ReleaseHash)) await IfHashInvalid((m, h, m.ReleaseHash));
+                    }
+                });
 
             await Task.WhenAll(hashValidationTasks);
         }

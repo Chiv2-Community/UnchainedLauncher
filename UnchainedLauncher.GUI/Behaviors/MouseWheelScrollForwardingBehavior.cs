@@ -56,7 +56,10 @@ namespace UnchainedLauncher.GUI.Behaviors {
 
         private static bool IsOverNestedScrollableControl(DependencyObject? d, UIElement behaviorElement) {
             while (d != null && !ReferenceEquals(d, behaviorElement)) {
-                if (d is ScrollViewer or ComboBox or ListBox or ListView or DataGrid or TextBox { AcceptsReturn: true })
+                // A list's template ScrollViewer belongs to the forwarding control itself.
+                // Only independently nested controls should retain their wheel input.
+                if (d is ScrollViewer viewer && !ReferenceEquals(viewer.TemplatedParent, behaviorElement)
+                    || d is ComboBox or ListBox or ListView or DataGrid or TextBox { AcceptsReturn: true })
                     return true;
 
                 d = VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d);

@@ -263,7 +263,7 @@ public sealed class ProtonRuntimeTests : IDisposable {
     [Fact]
     public void YamlSupportsExplicitProtonPaths() {
         var path = YamlTestResources.Write(_root, "proton/absolute", ("GAME", Game));
-        var options = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
+        var options = YamlTestResources.Server(YamlConfiguration.Load(path, client: false));
         Assert.Equal(Path.GetFullPath("/tool/proton", Path.GetDirectoryName(path)!), options.Shared.ProtonConfiguration.Path);
         Assert.Equal(Path.GetFullPath("/library/compatdata/1824220", Path.GetDirectoryName(path)!), options.Shared.ProtonConfiguration.CompatDataPath);
     }
@@ -271,7 +271,7 @@ public sealed class ProtonRuntimeTests : IDisposable {
     [Fact]
     public void YamlProtonPathsResolveRelativeToTheYamlFile() {
         var path = YamlTestResources.Write(Path.Combine(_root, "configs"), "proton/relative", ("GAME", Game));
-        var options = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
+        var options = YamlTestResources.Server(YamlConfiguration.Load(path, client: false));
         Assert.Equal(Path.GetFullPath(Path.Combine(_root, "tool/proton")), options.Shared.ProtonConfiguration.Path);
         Assert.Equal(Path.Combine(_root, "compat"), options.Shared.ProtonConfiguration.CompatDataPath);
     }

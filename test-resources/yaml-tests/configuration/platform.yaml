@@ -2,3 +2,4 @@ chiv2-path: .
 platform: __PLATFORM__
 update-plugin: false
 allow-unstable-plugin: true
+servers: {server: {}}

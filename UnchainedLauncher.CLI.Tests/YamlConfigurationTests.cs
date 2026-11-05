@@ -22,7 +22,7 @@ public class YamlConfigurationTests : IDisposable {
         YamlTestResources.Write(_directory, "configuration/" + fixture, replacements);
 
     private CliLaunchOptions Load(string fixture, bool client = false, params (string Token, string Value)[] replacements) =>
-        CliLaunchOptions.Parse([client ? "client" : "server", "--config-path", Write(fixture, replacements)]);
+        YamlTestResources.ParseLaunch([client ? "client" : "server", "--config-path", Write(fixture, replacements)]);
 
     [Theory]
     [InlineData("a", "a")]
@@ -110,7 +110,7 @@ public class YamlConfigurationTests : IDisposable {
                     [command, .. ignored, "--config-path=" + path],
                     [command, .. ignored, "--config-path=" + path, "--help"]
                 }) {
-                    var options = CliLaunchOptions.Parse(args);
+                    var options = YamlTestResources.ParseLaunch(args);
                     Assert.False(options.Help);
                     Assert.True(options.Shared.UpdatePlugin);
                     Assert.Empty(options.GameArguments);
@@ -155,8 +155,10 @@ public class YamlConfigurationTests : IDisposable {
             return root.Parse(tokens, configuration);
         });
         Assert.Equal(1, calls);
-        Assert.Equal(command == "server", options is ServerOptions);
-        Assert.Equal(yaml ? [] : new[] { "@game-file", "--config-path", "not-config" }, Assert.IsAssignableFrom<CliLaunchOptions>(options).GameArguments);
+        Assert.Equal(command == "server" && yaml, options is ServerGroupOptions);
+        var launch = YamlTestResources.Launch(options);
+        Assert.Equal(command == "server", launch is ServerOptions);
+        Assert.Equal(yaml ? [] : new[] { "@game-file", "--config-path", "not-config" }, launch.GameArguments);
     }
 
     [Fact]
@@ -175,8 +177,8 @@ public class YamlConfigurationTests : IDisposable {
                 Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse([command, "--platform=Invalid", .. selectors, "--help"]));
             }
         }
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["--config-path", path]));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["--config-path", path, "--help"]));
+        Assert.Throws<ArgumentException>(() => YamlTestResources.ParseLaunch(["--config-path", path]));
+        Assert.Throws<ArgumentException>(() => YamlTestResources.ParseLaunch(["--config-path", path, "--help"]));
     }
 
     [Theory]
@@ -227,9 +229,7 @@ public class YamlConfigurationTests : IDisposable {
     [Theory]
     [MemberData(nameof(InactiveYamlNodes))]
     public void InactiveYamlNodeIsSkippedAtProductionLaunchBoundary(bool client, string node) {
-        var active = client ? "client" : "server";
-        var inactive = client ? "server" : "client";
-        var options = Load("inactive-node", client, ("INACTIVE", inactive), ("ACTIVE", active),
+        var options = Load(client ? "inactive-node-client" : "inactive-node-server", client,
             ("NODE", YamlTestResources.Read("configuration/nodes/" + node).TrimEnd('\r', '\n')));
         Assert.Equal(client, options is ClientOptions);
         var launch = options.ToLaunchOptions();
@@ -244,9 +244,7 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData(true)]
     [InlineData(false)]
     public void InactiveYamlAliasIsNotBoundToAnActiveObject(bool client) {
-        var active = client ? "client" : "server";
-        var inactive = client ? "server" : "client";
-        var options = Load("inactive-alias", client, ("ACTIVE", active), ("INACTIVE", inactive));
+        var options = Load(client ? "inactive-alias-client" : "inactive-alias-server", client);
         Assert.Equal(client, options is ClientOptions);
         Assert.Contains("-active", options.ToLaunchOptions().LaunchArgs);
     }
@@ -255,12 +253,10 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData(true)]
     [InlineData(false)]
     public void SkippingInactiveYamlRetainsRootSharedAndActiveDuplicateChecks(bool client) {
-        var active = client ? "client" : "server";
-        var inactive = client ? "server" : "client";
         foreach (var fixture in new[] {
             "duplicate-platform", "duplicate-shared-args", "duplicate-mods", "duplicate-active-args", "duplicate-active", "duplicate-inactive"
         }) {
-            var error = Assert.Throws<ArgumentException>(() => Load(fixture, client, ("ACTIVE", active), ("INACTIVE", inactive)));
+            var error = Assert.Throws<ArgumentException>(() => Load(fixture + (client ? "-client" : "-server"), client));
             Assert.Contains("Invalid YAML configuration or schema", error.Message);
         }
         if (!client) {
@@ -272,8 +268,7 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData(true)]
     [InlineData(false)]
     public void SkippedInactiveYamlStillRequiresValidSyntaxWithoutExposingSecrets(bool client) {
-        var inactive = client ? "server" : "client";
-        var error = Assert.Throws<ArgumentException>(() => Load("inactive-syntax-error", client, ("INACTIVE", inactive)));
+        var error = Assert.Throws<ArgumentException>(() => Load(client ? "inactive-syntax-error-client" : "inactive-syntax-error-server", client));
         Assert.Contains("Invalid YAML configuration or schema", error.Message);
         Assert.DoesNotContain("TOP-SECRET", error.Message);
     }
@@ -301,7 +296,7 @@ public class YamlConfigurationTests : IDisposable {
         var error = Assert.Throws<ArgumentException>(() => Load(fixture));
         Assert.Contains("headless", error.Message);
         Assert.Contains("--no-desync-patch", error.Message);
-        Assert.Contains("server.desync-patch: false", error.Message);
+        Assert.Contains("servers.<name>.desync-patch: false", error.Message);
         var client = Assert.IsType<ClientOptions>(Load(fixture, client: true)).ToLaunchOptions();
         Assert.True(client.ServerLaunchOptions.IsNone);
         Assert.Equal("TBL", client.LaunchArgs);
@@ -420,7 +415,7 @@ public class YamlConfigurationTests : IDisposable {
     [Fact]
     public void InvalidYamlMissingFilesAndDocumentsFailWithoutExposingSecrets() {
         var malformed = Write("malformed");
-        var error = Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--config-path", malformed]));
+        var error = Assert.Throws<ArgumentException>(() => YamlTestResources.ParseLaunch(["server", "--config-path", malformed]));
         Assert.DoesNotContain("TOP-SECRET", error.Message);
         Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Path.Combine(_directory, "missing.yaml"), false));
         Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Write("empty-document"), false));
@@ -444,7 +439,7 @@ public class YamlConfigurationTests : IDisposable {
     public void YamlUsesCoreInstallationTypeAndPreservesEgsAlias(string platform, InstallationType expected) {
         var path = Write("platform", ("PLATFORM", platform));
         foreach (var command in new[] { "server", "client" }) {
-            var options = CliLaunchOptions.Parse([command, "--config-path", path]);
+            var options = YamlTestResources.ParseLaunch([command, "--config-path", path]);
             Assert.Equal(expected, options.Shared.Platform);
             Assert.False(options.Shared.UpdatePlugin);
             Assert.True(options.Shared.AllowUnstablePlugin);
@@ -458,7 +453,7 @@ public class YamlConfigurationTests : IDisposable {
     public void PlaceholderAndNumericPlatformsAreNotLaunchable(string platform) {
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["client", "--chivalry2-path", ".", "--platform", platform]));
         var path = Write("platform", ("PLATFORM", platform));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--config-path", path]));
+        Assert.Throws<ArgumentException>(() => YamlTestResources.ParseLaunch(["server", "--config-path", path]));
     }
 
     [Fact]

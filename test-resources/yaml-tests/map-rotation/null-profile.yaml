@@ -1,3 +1,4 @@
 chiv2-path: .
 platform: Steam
 map-profiles: {unused: null}
+servers: {server: {}}

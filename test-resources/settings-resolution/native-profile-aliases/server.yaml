@@ -6,7 +6,8 @@ global-settings:
     foo: {map: FFA_Courtyard, ini: {Engine: {Demo: {Value: 1}}}}
     'foo.slot~': {map: FFA_Wardenglade, ini: {Engine: {Demo: {Value: 99}}}}
     foo-slot-1: {map: FFA_Bazaar, ini: {Engine: {Demo: {Value: 88}}}}
-server:
-  map-rotation:
-    - foo
-    - {preset: foo, name: Repeated foo}
+servers:
+  server:
+    map-rotation:
+      - foo
+      - {preset: foo, name: Repeated foo}

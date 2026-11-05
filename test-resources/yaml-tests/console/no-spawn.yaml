@@ -1,4 +1,5 @@
 chiv2-path: .
 platform: Steam
-server:
-  no-spawn-console: true
+servers:
+  server:
+    no-spawn-console: true

@@ -1,3 +1,4 @@
 chiv2-path: './game installation'
 platform: Steam
 no-tui: true
+servers: {server: {}}

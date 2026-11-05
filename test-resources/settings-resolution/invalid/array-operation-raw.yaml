@@ -5,3 +5,4 @@ global-settings:
     Engine:
       Demo:
         '-Names': {type: raw, value: A}
+servers: {server: {}}

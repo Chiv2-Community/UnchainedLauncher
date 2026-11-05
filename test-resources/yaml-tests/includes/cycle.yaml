@@ -1,1 +1,2 @@
-server: !load launch.yaml
+servers:
+  server: !load launch.yaml

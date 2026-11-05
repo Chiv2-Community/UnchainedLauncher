@@ -16,7 +16,7 @@ public sealed class IniOverrideTests : IDisposable {
 
     private ServerOptions Parse(string fixture, params (string Token, string Value)[] replacements) {
         var path = YamlTestResources.Write(_directory, "ini-overrides/" + fixture, replacements);
-        return Assert.IsType<ServerOptions>(CommandLineOptions.Parse(["server", "--config-path", path]));
+        return YamlTestResources.Server(CommandLineOptions.Parse(["server", "--config-path", path]));
     }
 
     [Fact]
@@ -93,7 +93,7 @@ public sealed class IniOverrideTests : IDisposable {
     [Fact]
     public void ExplicitStartupSettingsSuppressGeneratedDefaults() {
         var path = Path.Combine(AppContext.BaseDirectory, "test-resources", "server-configuration", "typed-values", "input", "server.yaml");
-        var options = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
+        var options = YamlTestResources.Server(YamlConfiguration.Load(path, client: false));
         Assert.DoesNotContain("bSavedHasAgreedToTOS=True", options.ToLaunchOptions().LaunchArgs);
     }
 }

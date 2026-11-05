@@ -1,3 +1,4 @@
 chiv2-path: .
 platform: Steam
 map-profiles: {one: {map-name: FFA_Courtyard}, one: {map-name: FFA_Bazaar}}
+servers: {server: {}}

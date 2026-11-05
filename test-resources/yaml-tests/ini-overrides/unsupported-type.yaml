@@ -1,7 +1,8 @@
 chiv2-path: .
 platform: Steam
-server:
-  ini:
-    Game:
-      /Script/TBL.TBLGameMode:
-        Unknown: {type: SecretType, value: secret}
+servers:
+  server:
+    ini:
+      Game:
+        /Script/TBL.TBLGameMode:
+          Unknown: {type: SecretType, value: secret}

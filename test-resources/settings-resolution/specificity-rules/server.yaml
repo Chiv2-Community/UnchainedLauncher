@@ -17,16 +17,17 @@ global-settings:
     '~':
       map: TDM_Wardenglade
       ini: {Engine: {Demo: {PresetValue: 1}}}
-server:
-  map-settings:
-    'FFA_~': {ini: {Engine: {Demo: {MapValue: 20}}}}
-    'A~': {ini: {Engine: {Demo: {MapValue: 50}}}}
-    AA: {ini: {Engine: {Demo: {MapValue: 60}}}}
-  match-presets:
-    'duel-n~':
-      map: FFA_Bazaar
-      ini: {Engine: {Demo: {PresetValue: 20}}}
-  map-rotation:
-    - duel-night
-    - duel-noon
-    - {map: AA}
+servers:
+  server:
+    map-settings:
+      'FFA_~': {ini: {Engine: {Demo: {MapValue: 20}}}}
+      'A~': {ini: {Engine: {Demo: {MapValue: 50}}}}
+      AA: {ini: {Engine: {Demo: {MapValue: 60}}}}
+    match-presets:
+      'duel-n~':
+        map: FFA_Bazaar
+        ini: {Engine: {Demo: {PresetValue: 20}}}
+    map-rotation:
+      - duel-night
+      - duel-noon
+      - {map: AA}

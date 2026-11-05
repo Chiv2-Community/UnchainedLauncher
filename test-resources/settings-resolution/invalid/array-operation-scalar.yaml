@@ -5,3 +5,4 @@ global-settings:
     Game:
       /Script/TBL.TBLGameMode:
         '-BotBackfillEnabled': false
+servers: {server: {}}

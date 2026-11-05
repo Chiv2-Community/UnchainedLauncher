@@ -1,0 +1,7 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  match-presets: {duel-night: {map: FFA_Courtyard}}
+servers:
+  server:
+    map-rotation: ['duel-~']

@@ -1,0 +1,8 @@
+chiv2-path: __INSTALL__
+platform: Steam
+servers:
+  server:
+    mod-setup:
+      registries: __REGISTRIES__
+      mods: __MODS__
+    mod-actors: __ACTORS__

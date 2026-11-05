@@ -1,0 +1,8 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  ini:
+    Game:
+      /Script/TBL.TBLGameMode:
+        '-BotBackfillEnabled': false
+servers: {server: {}}

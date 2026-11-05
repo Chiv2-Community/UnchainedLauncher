@@ -1,0 +1,20 @@
+chiv2-path: ./game
+platform: Steam
+no-tui: true
+servers:
+  courtyard:
+    name: Courtyard
+    saved-dir-suffix: __FIRST__
+    starting-map: FFA_Courtyard
+    game-port: 7000
+    ping-port: 7001
+    query-port: 7002
+    rcon-port: 7003
+  arena:
+    name: Arena
+    saved-dir-suffix: __SECOND__
+    starting-map: TO_Stronghold
+    game-port: 7004
+    ping-port: 7005
+    query-port: 7006
+    rcon-port: 7007

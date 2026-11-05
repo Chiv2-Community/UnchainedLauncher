@@ -1,0 +1,5 @@
+chiv2-path: .
+platform: Steam
+global-settings: !load ./parts/global.yaml
+proton: !load ./parts/proton.yaml
+servers: {server: {}}

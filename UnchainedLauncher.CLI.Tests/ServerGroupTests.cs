@@ -9,33 +9,13 @@ public sealed class ServerGroupTests : IDisposable {
     private readonly string _root = Path.Combine(System.Environment.GetEnvironmentVariable("TMPDIR") ?? Path.GetTempPath(),
         "server-group-" + Guid.NewGuid().ToString("N"));
 
-    private const string Servers = """
-        servers:
-          courtyard:
-            name: Courtyard
-            starting-map: FFA_Courtyard
-            game-port: 7000
-            ping-port: 7001
-            query-port: 7002
-            rcon-port: 7003
-          arena:
-            name: Arena
-            starting-map: TO_Stronghold
-            game-port: 7004
-            ping-port: 7005
-            query-port: 7006
-            rcon-port: 7007
-        """;
-
-    private CliCommandOptions Parse(string body, string command = "server", params string[] extra) {
-        Directory.CreateDirectory(_root);
-        var path = Path.Combine(_root, "servers.yaml");
-        File.WriteAllText(path, "chiv2-path: ./game\nplatform: Steam\nno-tui: true\n" + body);
+    private CliCommandOptions Parse(string fixture, string command = "server", params string[] extra) {
+        var path = YamlTestResources.Write(_root, "server-group/" + fixture);
         return CommandLineOptions.Parse([command, "--config-path", path, .. extra]);
     }
 
     private ServerGroupOptions Group() {
-        var group = Assert.IsType<ServerGroupOptions>(Parse(Servers));
+        var group = Assert.IsType<ServerGroupOptions>(Parse("servers"));
         foreach (var entry in group.Servers)
             entry.Options.Shared.Assets = new UnchainedLauncher.Core.Services.Mods.ProfileAssetPaths(entry.Options.Shared.SavedDirSuffix, _root);
         return group;
@@ -58,33 +38,70 @@ public sealed class ServerGroupTests : IDisposable {
 
     [Fact]
     public void PerServerProfilesAndArgumentsRemainIndependent() {
-        var group = Assert.IsType<ServerGroupOptions>(Parse(Servers.Replace("name: Arena", "name: Arena\n    saved-dir-suffix: ArenaProfile\n    game-args: [arena-only]")
-            + "\ngame-args: [common]"));
+        var group = Assert.IsType<ServerGroupOptions>(Parse("independent-arguments"));
         Assert.Equal("ArenaProfile", group.Servers[1].Options.Shared.SavedDirSuffix);
         Assert.Equal(["common"], group.Servers[0].Options.GameArguments);
         Assert.Equal(["common", "arena-only"], group.Servers[1].Options.GameArguments);
     }
 
     [Theory]
-    [InlineData("servers: {}")]
-    [InlineData("servers: {one: null}")]
-    [InlineData("server: {}\nservers: {one: {}}")]
-    [InlineData("servers: {'../one': {}}")]
-    [InlineData("servers: {one: {}, ONE: {}}")]
-    [InlineData("servers: {one: {}, two: {}}")]
-    [InlineData("servers: {one: {game-port: 0}}")]
-    [InlineData("servers: {one: {map: TO_Test}}")]
-    [InlineData("servers: {one: {saved-dir-suffix: '../outside'}}")]
-    [InlineData("servers: {one: {unsafe-very-dangerous-load-all-dlls: true}}")]
-    [InlineData("mod-setup: {mods: []}\nservers: {one: {}}")]
-    [InlineData("saved-dir-suffix: Host\nservers: {one: {}}")]
-    public void InvalidGroupsFailBeforeLaunch(string yaml) => Assert.Throws<ArgumentException>(() => Parse(yaml));
+    [InlineData("empty")]
+    [InlineData("null")]
+    [InlineData("singular")]
+    [InlineData("singular-with-servers")]
+    [InlineData("missing")]
+    [InlineData("global-only")]
+    [InlineData("null-servers")]
+    [InlineData("scalar-servers")]
+    [InlineData("list-servers")]
+    [InlineData("unsafe-id")]
+    [InlineData("case-folded-ids")]
+    [InlineData("default-port-collision")]
+    [InlineData("zero-port")]
+    [InlineData("wrong-map-key")]
+    [InlineData("unsafe-suffix")]
+    [InlineData("unsafe-dll-option")]
+    [InlineData("root-mods")]
+    [InlineData("root-suffix")]
+    public void InvalidGroupsFailBeforeLaunch(string fixture) => Assert.Throws<ArgumentException>(() => Parse(fixture));
+
+    [Theory]
+    [InlineData("singular")]
+    [InlineData("singular-with-servers")]
+    public void SingularServerIsNotRecognizedByTheServerSchema(string fixture) {
+        var error = Assert.Throws<ArgumentException>(() => Parse(fixture));
+        Assert.Contains("Invalid YAML configuration or schema", error.Message);
+        Assert.Null(typeof(ServerConfiguration).GetProperty("Server"));
+        Assert.IsType<ClientOptions>(Parse(fixture, "client"));
+        var path = YamlTestResources.Write(_root, "server-group/" + fixture);
+        Assert.IsType<ModQueryOptions>(CommandLineOptions.Parse(["mod-query", "list", "--config-path", path]));
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("global-only")]
+    [InlineData("empty")]
+    [InlineData("null-servers")]
+    public void NamedServersAreRequiredEvenWithGlobalSettings(string fixture) {
+        var error = Assert.Throws<ArgumentException>(() => Parse(fixture));
+        Assert.Contains("servers must contain at least one named server", error.Message);
+    }
+
+    [Fact]
+    public void OneNamedServerIsStillAGroupAndUsesItsKeyAsTheProfileDefault() {
+        var group = Assert.IsType<ServerGroupOptions>(Parse("single"));
+        var entry = Assert.Single(group.Servers);
+        Assert.Equal("server", entry.Id);
+        Assert.Equal("server", entry.Options.Shared.SavedDirSuffix);
+        Assert.Equal("FFA_Courtyard", entry.Options.Settings.StartingMap);
+        var cli = Assert.IsType<ServerOptions>(CommandLineOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam"]));
+        Assert.Equal("UnchainedCLI", cli.Shared.SavedDirSuffix);
+        Assert.Equal("FFA_Courtyard", cli.Settings.StartingMap);
+    }
 
     [Fact]
     public void PerServerModsDllsRegistriesAndIniDoNotLeakAcrossServers() {
-        var group = Assert.IsType<ServerGroupOptions>(Parse(Servers
-            .Replace("name: Courtyard", "name: Courtyard\n    mod-setup: {registries: ['local:one'], mods: ['org/one:v1'], dlls: ['org/plugin:v1']}\n    ini: {Game: {'/Script/TBL.TBLGameMode': {BotBackfillEnabled: true}}}")
-            .Replace("name: Arena", "name: Arena\n    mod-setup: {registries: ['local:two'], mods: ['org/two:v2'], dlls: []}")));
+        var group = Assert.IsType<ServerGroupOptions>(Parse("independent-packages"));
         var first = group.Servers[0].Options;
         var second = group.Servers[1].Options;
         Assert.Equal("one", Assert.Single(first.Shared.Mods).ModuleName);
@@ -99,15 +116,17 @@ public sealed class ServerGroupTests : IDisposable {
 
     [Fact]
     public void DuplicatePortsAndCaseInsensitiveProfilesAreRejected() {
-        Assert.Throws<ArgumentException>(() => Parse(Servers.Replace("7007", "7000")));
-        Assert.Throws<ArgumentException>(() => Parse(Servers.Replace("name: Courtyard", "name: Courtyard\n    saved-dir-suffix: SAME")
-            .Replace("name: Arena", "name: Arena\n    saved-dir-suffix: same")));
+        var path = YamlTestResources.Write(_root, "server-group/servers");
+        File.WriteAllText(path, File.ReadAllText(path).Replace("7007", "7000"));
+        Assert.Throws<ArgumentException>(() => CommandLineOptions.Parse(["server", "--config-path", path]));
+        var profiles = YamlTestResources.Write(_root, "server-group/profile-collision", ("FIRST", "SAME"), ("SECOND", "same"));
+        Assert.Throws<ArgumentException>(() => CommandLineOptions.Parse(["server", "--config-path", profiles]));
     }
 
     [Fact]
     public void ProfilesThatCollideAfterGameHyphenRemovalAreRejected() {
-        Assert.Throws<ArgumentException>(() => Parse(Servers.Replace("name: Courtyard", "name: Courtyard\n    saved-dir-suffix: Host-one")
-            .Replace("name: Arena", "name: Arena\n    saved-dir-suffix: Hostone")));
+        var path = YamlTestResources.Write(_root, "server-group/profile-collision", ("FIRST", "Host-one"), ("SECOND", "Hostone"));
+        Assert.Throws<ArgumentException>(() => CommandLineOptions.Parse(["server", "--config-path", path]));
     }
 
     [Fact]
@@ -125,7 +144,7 @@ public sealed class ServerGroupTests : IDisposable {
 
     [Fact]
     public void CliOverridesAreIgnoredAndUnsafeAuthorizationAppliesToEveryServer() {
-        var group = Assert.IsType<ServerGroupOptions>(Parse(Servers, "server", "--name", "ignored", "--platform", "invalid",
+        var group = Assert.IsType<ServerGroupOptions>(Parse("servers", "server", "--name", "ignored", "--platform", "invalid",
             "--unsafe-very-dangerous-load-all-dlls"));
         Assert.All(group.Servers, entry => Assert.True(entry.Options.Shared.UnsafeLoadAllDlls));
         Assert.Equal("Courtyard", group.Servers[0].Options.Settings.Name);
@@ -134,9 +153,7 @@ public sealed class ServerGroupTests : IDisposable {
 
     [Fact]
     public void ClientAndRegistryQueriesSkipInactiveServersSchema() {
-        Directory.CreateDirectory(_root);
-        var path = Path.Combine(_root, "query.yaml");
-        File.WriteAllText(path, "chiv2-path: .\nplatform: Steam\nservers: [invalid, server, schema]\nmod-setup: {registries: []}");
+        var path = YamlTestResources.Write(_root, "server-group/inactive");
         Assert.IsType<ClientOptions>(CommandLineOptions.Parse(["client", "--config-path", path]));
         Assert.IsType<ModQueryOptions>(CommandLineOptions.Parse(["mod-query", "list", "--config-path", path]));
     }

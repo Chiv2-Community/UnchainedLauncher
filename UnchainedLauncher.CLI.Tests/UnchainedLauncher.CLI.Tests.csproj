@@ -8,6 +8,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="../UnchainedLauncher.CLI/examples/*.yaml" Link="examples/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../test-resources/server-configuration/**/*" Link="test-resources/server-configuration/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../test-resources/settings-resolution/**/*" Link="test-resources/settings-resolution/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../test-resources/yaml-tests/**/*" Link="test-resources/yaml-tests/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Remove="ArgumentProbe\**\*.cs" />
     <None Remove="ArgumentProbe\**" />
     <ProjectReference Include="ArgumentProbe\ArgumentProbe.csproj" ReferenceOutputAssembly="false" />

@@ -1,0 +1,6 @@
+match-rotation:
+- profile: foo
+  name: Foo
+  map: FFA_Courtyard
+  mod-actors:
+  - /Game/Mods/AgMods/Common.Common_C

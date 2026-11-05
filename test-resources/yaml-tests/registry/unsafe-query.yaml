@@ -1,0 +1,2 @@
+mod-setup: {registries: ['local:.']}
+unsafe-very-dangerous-load-all-dlls: true

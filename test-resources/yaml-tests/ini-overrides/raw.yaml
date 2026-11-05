@@ -1,0 +1,8 @@
+chiv2-path: .
+platform: Steam
+servers:
+  server:
+    ini:
+      Game:
+        /Script/TBL.TBLGameMode:
+          Unknown: {type: raw, value: '  SomeStructuredThing(foo, bar, 10, baz, false)  '}

@@ -1,0 +1,5 @@
+chiv2-path: './game installation'
+platform: Steam
+servers:
+  server: not-a-mapping
+client: {}

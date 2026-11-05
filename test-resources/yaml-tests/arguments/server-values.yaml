@@ -1,0 +1,12 @@
+chiv2-path: __INSTALL__
+platform: Steam
+game-args: __SHARED_ARGS__
+servers:
+  server:
+    saved-dir-suffix: UnchainedCLI
+    local-ip: 127.0.0.1
+    name: __VALUE__
+    description: __VALUE__
+    starting-map: __VALUE__
+    password: __VALUE__
+    game-args: __COMMAND_ARGS__

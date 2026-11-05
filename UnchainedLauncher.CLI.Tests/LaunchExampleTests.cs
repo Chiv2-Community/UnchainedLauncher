@@ -28,8 +28,7 @@ public class LaunchExampleTests {
     [InlineData("servers.yaml")]
     public void YamlLaunchExamplesSelectPakDllAndActorDependencies(string file) {
         var command = CommandLineOptions.Parse(["server", "--config-path", Path.Combine(AppContext.BaseDirectory, "examples", file)]);
-        var servers = command is ServerGroupOptions group ? group.Servers.Select(entry => entry.Options)
-            : [Assert.IsType<ServerOptions>(command)];
+        var servers = Assert.IsType<ServerGroupOptions>(command).Servers.Select(entry => entry.Options);
         Assert.Equal(file == "servers.yaml" ? 2 : 1, servers.Count());
         Assert.All(servers, server => {
             AssertDependencies(server.Shared);

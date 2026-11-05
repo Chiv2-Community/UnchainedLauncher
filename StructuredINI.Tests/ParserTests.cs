@@ -32,7 +32,7 @@ MyConfigArray=7
         }
 
         [Fact]
-        public void TestScalars() {
+        public void ParsesScalarsAndSerializesModelFields() {
             var parser = new StructuredINIParser();
             var iniContent = @"
 [SomeINISectionName]
@@ -47,14 +47,9 @@ Quux=60.5
             Assert.Equal("Hello World", result.Bar);
             Assert.Equal(3.14, result.Baz);
             Assert.Equal(60.5f, result.Quux);
-        }
-
-        [Fact]
-        public void TestSerialization() {
-            var parser = new StructuredINIParser();
             var instance = new SomeINISection(42, "Hello", 3.14, 60.5f, new[] { 2, 3, 2 });
 
-            var ini = parser.Serialize(instance);
+            var ini = parser.Serialize(instance, isConfigRoot: false);
 
             // Normalize line endings
             var lines = ini.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries)
@@ -67,23 +62,8 @@ Quux=60.5
             Assert.Contains("Baz=3.14", lines);
             Assert.Contains("Quux=60.5", lines);
 
-            // Array verification
-            // Expected order:
-            // MyConfigArray=2
-            // +MyConfigArray=3
-            // .MyConfigArray=2
-
-            int idx1 = Array.IndexOf(lines, "MyConfigArray=2");
-            Assert.True(idx1 >= 0, "MyConfigArray=2 not found");
-
-            int idx2 = Array.IndexOf(lines, "MyConfigArray=3");
-            Assert.True(idx2 >= 0, "MyConfigArray=3 not found");
-
-            int idx3 = Array.LastIndexOf(lines, "MyConfigArray=2");
-            Assert.True(idx3 >= 0, "MyConfigArray=2 not found");
-
-            Assert.True(idx1 < idx2, "Order wrong: 2 before 3");
-            Assert.True(idx2 < idx3, "Order wrong: 3 before duplicate 2");
+            Assert.Equal(new[] { "!MyConfigArray=ClearArray", "+MyConfigArray=2", "+MyConfigArray=3", ".MyConfigArray=2" },
+                lines.Where(line => line.Contains("MyConfigArray=")));
         }
 
         [Fact]

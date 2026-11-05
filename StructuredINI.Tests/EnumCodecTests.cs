@@ -26,5 +26,14 @@
             Assert.Contains("nope", ex.Message);
             Assert.Contains(nameof(TestEnum), ex.Message);
         }
+
+        [Fact]
+        public void ConcurrentCodecRegistrationAndLookupRemainSafe() {
+            Parallel.For(0, 1000, _ => {
+                CodecRegistry.Register(new Codecs.StringCodec());
+                Assert.Equal("Foo", CodecRegistry.Get<TestEnum>().Encode(TestEnum.Foo));
+                Assert.Equal("value", CodecRegistry.Get<string>().Encode("value"));
+            });
+        }
     }
 }

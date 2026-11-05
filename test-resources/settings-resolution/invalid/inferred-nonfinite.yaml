@@ -1,0 +1,5 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  ini: {Engine: {Demo: {Invalid: .inf}}}
+servers: {server: {}}

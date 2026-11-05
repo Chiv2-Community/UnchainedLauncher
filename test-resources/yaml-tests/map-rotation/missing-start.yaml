@@ -1,0 +1,4 @@
+chiv2-path: .
+platform: Steam
+servers:
+  server: {starting-map: FFA_Bazaar, map-rotation: [{map-name: FFA_Courtyard}]}

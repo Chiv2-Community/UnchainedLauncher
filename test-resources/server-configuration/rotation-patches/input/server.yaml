@@ -1,0 +1,24 @@
+chiv2-path: .
+platform: Steam
+servers:
+  server:
+    local-ip: 127.0.0.1
+    ini:
+      game:
+        /script/tbl.tbltitlescreen:
+          bSavedHasAgreedToTOS: false
+        /Script/TBL.TBLGameInstance:
+          Custom: selected
+        /Script/TBL.TBLGameMode:
+          ServerName: selected name
+          Empty: []
+          Repeats: [A, A, B]
+          RawOnly: {type: raw, value: secret}
+      Engine:
+        Custom:
+          Selected: 7
+    starting-map: FFA_New
+    map-rotation:
+      - {map-name: FFA_New, name: First round}
+      - {map-name: FFA_New, name: Second round}
+      - {map-name: /Game/Maps/Custom.Custom}

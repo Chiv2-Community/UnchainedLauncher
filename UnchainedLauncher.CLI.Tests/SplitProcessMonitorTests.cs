@@ -44,15 +44,7 @@ public sealed class SplitProcessMonitorTests {
         var original = Console.Out;
         Console.SetOut(output);
         try {
-            var path = Path.Combine(root, "servers.yaml");
-            File.WriteAllText(path, """
-                chiv2-path: .
-                platform: Steam
-                no-tui: true
-                servers:
-                  crashed: { game-port: 7000, ping-port: 7001, query-port: 7002, rcon-port: 7003 }
-                  healthy: { game-port: 7004, ping-port: 7005, query-port: 7006, rcon-port: 7007 }
-                """);
+            var path = YamlTestResources.Write(root, "monitor/servers");
             var group = Assert.IsType<ServerGroupOptions>(CommandLineOptions.Parse(["server", "--config-path", path]));
             foreach (var entry in group.Servers) entry.Options.Shared.Assets = new ProfileAssetPaths(entry.Id, root);
             var launches = 0;

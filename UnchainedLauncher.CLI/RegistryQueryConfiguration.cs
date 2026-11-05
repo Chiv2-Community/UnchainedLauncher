@@ -5,6 +5,7 @@ namespace UnchainedLauncher.CLI;
 // A read-only projection of a launch YAML file. Querying requires only registry
 // specifications, not a valid installation, credentials, or launch settings.
 public sealed class RegistryQueryConfiguration {
+    [YamlConverter(typeof(IgnoredYamlNodeConverter))] public object? GlobalSettings { get; set; }
     public RegistryQueryModSetup? ModSetup { get; set; }
     [YamlConverter(typeof(IgnoredYamlNodeConverter))] public object? Chiv2Path { get; set; }
     [YamlConverter(typeof(IgnoredYamlNodeConverter))] public object? Platform { get; set; }

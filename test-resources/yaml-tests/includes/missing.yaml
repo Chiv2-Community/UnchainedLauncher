@@ -1,0 +1,2 @@
+servers:
+  server: !load missing.yaml

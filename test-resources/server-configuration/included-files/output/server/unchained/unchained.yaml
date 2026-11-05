@@ -1,0 +1,9 @@
+match-rotation:
+- profile: inline-0
+  name: FFA Wardenglade
+  map: FFA_Wardenglade
+  mod-actors: &o0 []
+- profile: night
+  name: Night
+  map: FFA_Courtyard
+  mod-actors: *o0

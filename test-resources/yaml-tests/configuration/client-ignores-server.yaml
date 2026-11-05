@@ -1,0 +1,15 @@
+chiv2-path: './game installation'
+platform: Steam
+client:
+  game-args: ['-client-only']
+game-args: ['-AUTH_PASSWORD=auth value']
+servers:
+  server:
+    game-port: not-a-port
+    headless: not-a-boolean
+    typo: whatever
+    mod-actors: not-a-list
+    discord:
+      bot-token: secret
+      general-channel-id: []
+    game-args: ['-server']

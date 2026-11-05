@@ -1,0 +1,4 @@
+chiv2-path: './game installation'
+platform: Steam
+saved-dir-suffix: OldRootValue
+servers: {server: {}}

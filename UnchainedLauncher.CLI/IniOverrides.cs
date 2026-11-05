@@ -4,14 +4,19 @@ using System.Collections;
 using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography;
+using System.Text;
+using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.Core.INIModels;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 
 namespace UnchainedLauncher.CLI;
 
 internal sealed class IniOverrides {
-    private sealed record Entry(string File, string Section, string Key, string[] Values, bool Array, bool Raw);
+    private sealed record Entry(string File, string Section, string Key, string[] Values, bool Array, bool Raw, KeyValuePair<string, string>[]? Lines = null);
+    private sealed record ImportedFile(byte[] Bytes, string Entries);
     private readonly List<Entry> _entries = [];
+    private readonly Dictionary<string, ImportedFile[]> _imported = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Type[] ScalarTypes = [typeof(string), typeof(bool), typeof(int), typeof(float), typeof(double), typeof(decimal)];
     private static readonly Type[] MappedTypes = ScalarTypes.Concat(typeof(ClassLimit).Assembly.GetTypes()
         .Where(type => type.IsDefined(typeof(DeriveCodecAttribute), false))).Append(typeof(CallbackList)).ToArray();
@@ -19,29 +24,91 @@ internal sealed class IniOverrides {
     internal IEnumerable<string> RawArguments => _entries.Where(entry => entry.Raw)
         .Select(entry => new UEINIParameter(entry.File, entry.Section, entry.Key, entry.Values[0]).Rendered);
 
+    internal bool IsEmpty => _entries.Count == 0 && _imported.Count == 0;
+    internal string Identity => System.Text.Json.JsonSerializer.Serialize(new { Entries = _entries, Files = _imported.Select(pair => new { pair.Key, Hashes = pair.Value.Select(snapshot => Convert.ToHexString(SHA256.HashData(snapshot.Bytes))) }) });
+
+    internal IniOverrides Merge(IniOverrides overrides) {
+        var result = new IniOverrides();
+        result._entries.AddRange(_entries);
+        foreach (var entry in overrides._entries) result.AddEntry(entry);
+        foreach (var pair in _imported) result._imported[pair.Key] = pair.Value;
+        foreach (var pair in overrides._imported)
+            result._imported[pair.Key] = result._imported.TryGetValue(pair.Key, out var previous) ? [.. previous, .. pair.Value] : pair.Value;
+        return result;
+    }
+
+    private static IEnumerable<KeyValuePair<string, string>> Commands(Entry entry) =>
+        entry.Lines ?? new StructuredINIParser().SerializeEntries(entry.Key, entry.Values, entry.Array, isConfigRoot: false);
+
+    private void AddEntry(Entry entry) {
+        if (entry.Lines is { Length: 0 }) return;
+        var index = _entries.FindIndex(previous => previous.File.Equals(entry.File, StringComparison.OrdinalIgnoreCase) &&
+            previous.Section.Equals(entry.Section, StringComparison.OrdinalIgnoreCase) && previous.Key.Equals(entry.Key, StringComparison.OrdinalIgnoreCase));
+        if (index >= 0) {
+            var previous = _entries[index];
+            // Deltas extend earlier commands; replacements and explicit clears discard them.
+            if (entry.Lines is not null && StructuredINIParser.IsArrayDelta(entry.Lines)) {
+                if (previous.Raw) throw new ArgumentException("INI array operations cannot modify a raw command-line override.");
+                entry = entry with { Lines = Commands(previous).Concat(entry.Lines).ToArray(), Array = true };
+            }
+            _entries.RemoveAt(index);
+        }
+        _entries.Add(entry);
+    }
+
+    internal void ValidateMapOverrides(IniOverrides overrides) {
+        foreach (var entry in overrides._entries) {
+            var baseline = _entries.FirstOrDefault(item => item.File.Equals(entry.File, StringComparison.OrdinalIgnoreCase) &&
+                item.Section.Equals(entry.Section, StringComparison.OrdinalIgnoreCase) && item.Key.Equals(entry.Key, StringComparison.OrdinalIgnoreCase));
+            if (baseline is null)
+                throw new ArgumentException($"Map-profile INI field {entry.File}.{entry.Section}.{entry.Key} requires a servers.<name>.ini default (or global-settings.ini default) so other maps can restore it.");
+            if (ReferenceEquals(baseline, entry) || Commands(baseline).SequenceEqual(Commands(entry))) continue;
+            var array = entry.Array || entry.Lines?.Any(line => "+.-!".Contains(line.Key[0])) == true;
+            if (array && baseline.Lines is not null && !baseline.Lines.Any(line => line.Key.StartsWith('!')))
+                throw new ArgumentException($"Imported INI array {entry.File}.{entry.Section}.{entry.Key} requires an explicit !{entry.Key}=ClearArray baseline for map restoration.");
+        }
+    }
+
     internal bool Contains(string file, string section, string key) => _entries.Any(entry =>
         string.Equals(entry.File, file, StringComparison.OrdinalIgnoreCase) &&
         string.Equals(entry.Section, section, StringComparison.OrdinalIgnoreCase) &&
         string.Equals(entry.Key, key, StringComparison.OrdinalIgnoreCase));
 
-    internal static IniOverrides Parse(Dictionary<string, Dictionary<string, Dictionary<string, object?>>>? files) {
+    internal static IniOverrides Parse(object? input) {
+        if (input is IniSource source) {
+            if (source.Parsed is not null) return source.Parsed;
+            var imported = new IniOverrides();
+            var sources = source.Files.ToList();
+            if (source.DirectoryPath is { } directory) {
+                if (!Directory.Exists(directory)) throw new ArgumentException($"INI directory does not exist: {directory}");
+                sources.AddRange(Directory.EnumerateFiles(directory).Where(path => Path.GetExtension(path).Equals(".ini", StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(path => path, StringComparer.Ordinal).Select(path => KeyValuePair.Create(Path.GetFileNameWithoutExtension(path), path)));
+                if (sources.Count == 0) throw new ArgumentException($"INI directory contains no INI files: {directory}");
+            }
+            foreach (var pair in sources) imported.Import(pair.Key, pair.Value);
+            source.Parsed = imported.Merge(Parse(source.Inline));
+            return source.Parsed;
+        }
+        var files = input as Dictionary<string, Dictionary<string, Dictionary<string, object?>>>;
+        if (input is not null && files is null) throw new ArgumentException("INI must be a directory or category mapping.");
         var result = new IniOverrides();
         if (files is null) return result;
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (file, sections) in files) {
-            if (!Regex.IsMatch(file, @"\A[A-Za-z][A-Za-z0-9_]*\z"))
-                throw new ArgumentException("INI file names must be bare categories such as Game, without .ini or a path.");
+            ValidateCategory(file);
             if (sections is null) throw new ArgumentException($"ini.{file} must contain a section mapping.");
             foreach (var (section, fields) in sections) {
                 ValidateName(section, "section");
                 if (fields is null) throw new ArgumentException($"ini.{file}.{section} must contain a field mapping.");
                 foreach (var (key, node) in fields) {
                     if (key.TrimStart('!', '+', '-', '.').Equals("MapList", StringComparison.OrdinalIgnoreCase))
-                        throw new ArgumentException("MapList cannot be set in ini; use server.map-rotation (or each servers entry's map-rotation) instead.");
-                    ValidateName(key, "key");
+                        throw new ArgumentException("MapList cannot be set in ini; use servers.<name>.map-rotation instead.");
+                    var operation = key.Length > 0 && "!+.-".Contains(key[0]) ? key[0] : '\0';
+                    var name = operation == '\0' ? key : key[1..];
+                    ValidateName(name, "key");
                     var path = $"ini.{file}.{section}.{key}";
                     if (!paths.Add($"{file}\0{section}\0{key}")) throw new ArgumentException($"Duplicate INI field: {path} (names are case-insensitive).");
-                    try { result._entries.Add(ParseEntry(file, section, key, node)); }
+                    try { result.AddEntry(ParseEntry(file, section, name, node, operation)); }
                     catch (Exception ex) when (ex is ArgumentException or FormatException or OverflowException or TargetInvocationException) {
                         // Do not echo values: INI overrides may contain credentials.
                         throw new ArgumentException($"Invalid {path}: {ex.Message}");
@@ -52,7 +119,7 @@ internal sealed class IniOverrides {
         return result;
     }
 
-    private static Entry ParseEntry(string file, string section, string key, object? node) {
+    private static Entry ParseEntry(string file, string section, string key, object? node, char operation) {
         var knownType = FindKnownType(file, section, key);
         var type = knownType;
         var value = node;
@@ -63,6 +130,7 @@ internal sealed class IniOverrides {
             if (map.Contains("type")) {
                 if (map["type"] is not string name) throw new ArgumentException("type must be a supported type name.");
                 if (name.Equals("raw", StringComparison.OrdinalIgnoreCase)) {
+                    if (operation != '\0') throw new ArgumentException("INI array operations cannot use raw command-line overrides.");
                     if (value is not string raw || raw.Contains('\0')) throw new ArgumentException("raw requires a string value without NUL characters.");
                     return new Entry(file, section, key, [raw], false, true);
                 }
@@ -71,12 +139,40 @@ internal sealed class IniOverrides {
                     throw new ArgumentException($"This known field requires type {knownType.Name}, or raw.");
             }
         }
-        if (type is null) throw new ArgumentException("Unknown field; supply { type: String, value: ... } (or type: raw for an exact INI string).");
+        type ??= InferType(value);
         if (type.IsArray) {
             if (value is not IList list) throw new ArgumentException("Array fields require a list of values.");
-            return new Entry(file, section, key, list.Cast<object?>().Select(item => Encode(type.GetElementType()!, item)).ToArray(), true, false);
+            var values = list.Cast<object?>().Select(item => Encode(type.GetElementType()!, item)).ToArray();
+            var lines = operation == '\0' ? null : new StructuredINIParser().SerializeEntries(key, values, collection: true, isConfigRoot: false, operation: operation).ToArray();
+            return new Entry(file, section, key, values, true, false, lines);
         }
+        if (operation != '\0') throw new ArgumentException("INI array operations require an array type and a list of values.");
         return new Entry(file, section, key, [Encode(type, value)], false, false);
+    }
+
+    private static Type InferType(object? value) {
+        if (value is IList list) {
+            var types = list.Cast<object?>().Select(InferType).Distinct().ToArray();
+            if (types.Any(type => type.IsArray)) throw new ArgumentException("Nested INI arrays are not supported; supply an explicit record-array type for structured values.");
+            Type element;
+            if (types.Length == 0) element = typeof(string); // Clearing an array needs no element codec.
+            else if (types.Length == 1) element = types[0];
+            else if (types.All(type => type == typeof(int) || type == typeof(decimal) || type == typeof(double)))
+                element = types.Contains(typeof(double)) ? typeof(double) : typeof(decimal);
+            else throw new ArgumentException("Cannot infer a common INI array type; quote string values or supply an explicit array type.");
+            return element.MakeArrayType();
+        }
+        return value switch {
+            null => throw new ArgumentException("INI values cannot be null."),
+            string => typeof(string),
+            bool => typeof(bool),
+            byte or sbyte or short or ushort or int => typeof(int),
+            uint or long or ulong or decimal => typeof(decimal),
+            float number when !float.IsFinite(number) => throw new ArgumentException("Numbers must be finite."),
+            double number when !double.IsFinite(number) => throw new ArgumentException("Numbers must be finite."),
+            float or double => typeof(double),
+            _ => throw new ArgumentException("Cannot infer an INI type from a mapping or structured value; supply an explicit type.")
+        };
     }
 
     private static Type? FindKnownType(string file, string section, string key) {
@@ -159,21 +255,111 @@ internal sealed class IniOverrides {
             throw new ArgumentException($"Invalid INI {kind} name.");
     }
 
-    internal void Apply(string directory) {
+    internal void Apply(string directory, string? cacheDirectory = null, Func<string, string, bool>? createLink = null) {
         var files = new Dictionary<string, StructuredINIWriter>(StringComparer.OrdinalIgnoreCase);
         BufferInto(files);
-        IniPatches.Write(directory, files);
+        Publish(directory, files, cacheDirectory, createLink, isConfigRoot: false);
+    }
+
+    internal void ApplyProfile(string directory, StructuredINIWriter gameDefaults, MapRotation? rotation, string cacheDirectory) {
+        var files = new Dictionary<string, StructuredINIWriter>(StringComparer.OrdinalIgnoreCase) { ["Game"] = gameDefaults };
+        BufferInto(files);
+        rotation?.BufferInto(gameDefaults);
+        Publish(directory, files, cacheDirectory, null, isConfigRoot: true, gamePatched: true);
+    }
+
+    private void Publish(string directory, Dictionary<string, StructuredINIWriter> files, string? cacheDirectory,
+        Func<string, string, bool>? createLink, bool isConfigRoot, bool gamePatched = false) {
+        Directory.CreateDirectory(directory);
+        foreach (var (category, snapshots) in _imported) {
+            var snapshot = snapshots[^1];
+            if (snapshots.Length > 1 || gamePatched && category.Equals("Game", StringComparison.OrdinalIgnoreCase) || EntriesIdentity(category) != snapshot.Entries) {
+                if (!files.TryGetValue(category, out var writer)) files[category] = writer = new StructuredINIWriter();
+                foreach (var contribution in snapshots) {
+                    using var reader = new StreamReader(new MemoryStream(contribution.Bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+                    writer.BufferDocumentTrivia(reader.ReadToEnd());
+                }
+                continue;
+            }
+            var imported = snapshot;
+            if (isConfigRoot) {
+                using var reader = new StreamReader(new MemoryStream(snapshot.Bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+                imported = snapshot with { Bytes = Encoding.UTF8.GetBytes(StructuredINIWriter.SerializeDocument(reader.ReadToEnd(), isConfigRoot: true)) };
+            }
+            files.Remove(category);
+            var destination = Path.Combine(directory, category + ".ini");
+            // Replace even identical roots to detach links created by earlier launcher versions.
+            if (!isConfigRoot && File.Exists(destination)) {
+                if (File.ReadAllBytes(destination).SequenceEqual(imported.Bytes)) continue;
+            }
+            // Cache immutable snapshots, never user-owned files that can change later.
+            cacheDirectory ??= Path.Combine(directory, ".ini-cache");
+            Directory.CreateDirectory(cacheDirectory);
+            var cached = Path.Combine(cacheDirectory, Convert.ToHexStringLower(SHA256.HashData(imported.Bytes)));
+            var staged = Path.Combine(cacheDirectory, "." + Guid.NewGuid().ToString("N") + ".tmp");
+            try {
+                File.WriteAllBytes(staged, imported.Bytes);
+                try { File.Move(staged, cached); }
+                catch (IOException) when (File.Exists(cached)) {
+                    if (!File.ReadAllBytes(cached).SequenceEqual(imported.Bytes)) throw new IOException("INI cache content mismatch.");
+                }
+            } finally {
+                if (File.Exists(staged)) File.Delete(staged);
+            }
+            var temporary = Path.Combine(directory, "." + Guid.NewGuid().ToString("N") + ".tmp");
+            try {
+                // Root configs can be saved in place; only immutable conditional layers may share the snapshot.
+                if (isConfigRoot || !(createLink ?? AssetCacheFiles.TryCreateHardLink)(temporary, cached)) File.WriteAllBytes(temporary, imported.Bytes);
+                File.Move(temporary, destination, overwrite: true);
+            } finally {
+                if (File.Exists(temporary)) File.Delete(temporary);
+            }
+        }
+        // Atomic replacement keeps any existing hard link from being edited in place.
+        IniPatches.Write(directory, files, isConfigRoot);
     }
 
     internal void BufferInto(Dictionary<string, StructuredINIWriter> files) {
         foreach (var file in _entries.Where(entry => !entry.Raw).GroupBy(entry => entry.File, StringComparer.OrdinalIgnoreCase)) {
             if (!files.TryGetValue(file.Key, out var writer)) files[file.Key] = writer = new StructuredINIWriter();
             foreach (var section in file.GroupBy(entry => entry.Section, StringComparer.OrdinalIgnoreCase)) {
-                var lines = section.SelectMany(entry => entry.Array
-                    ? IniPatches.Array(entry.Key, entry.Values)
-                    : [KeyValuePair.Create(entry.Key, entry.Values[0])]);
+                var lines = section.SelectMany(Commands);
                 writer.MergeSection(section.Key, lines);
             }
         }
+    }
+
+    private string EntriesIdentity(string category) => System.Text.Json.JsonSerializer.Serialize(_entries.Where(entry => entry.File.Equals(category, StringComparison.OrdinalIgnoreCase)));
+
+    private void Import(string category, string path) {
+        ValidateCategory(category);
+        if (_imported.ContainsKey(category))
+            throw new ArgumentException("INI categories must be unique bare names such as Engine or Game.");
+        byte[] bytes;
+        string text;
+        try {
+            bytes = File.ReadAllBytes(path);
+            using var reader = new StreamReader(new MemoryStream(bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            text = reader.ReadToEnd();
+        } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+            throw new ArgumentException($"Cannot read INI file: {path}");
+        }
+        IReadOnlyList<StructuredINIParser.Entry> lines;
+        try { lines = new StructuredINIParser().ReadEntries(text, strict: true); }
+        catch (FormatException) { throw new ArgumentException($"Invalid INI structure in {path}."); }
+        if (lines.Any(line => line.Name.Equals("MapList", StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("MapList cannot be set in ini; use map-rotation.");
+        foreach (var group in lines.GroupBy(line => line.Section + "\0" + line.Name, StringComparer.OrdinalIgnoreCase)) {
+            var first = group.First();
+            _entries.Add(new Entry(category, first.Section, first.Name, [], false, false,
+                group.Select(line => KeyValuePair.Create(line.Key, line.Value)).ToArray()));
+        }
+        _imported.Add(category, [new ImportedFile(bytes, EntriesIdentity(category))]);
+    }
+
+    private static void ValidateCategory(string category) {
+        if (!Regex.IsMatch(category, @"\A[A-Za-z][A-Za-z0-9_]*\z") ||
+            Regex.IsMatch(category, @"\A(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            throw new ArgumentException("INI file names must be bare categories such as Game, without .ini, a path, or reserved device names.");
     }
 }

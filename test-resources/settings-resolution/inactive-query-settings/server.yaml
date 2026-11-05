@@ -1,0 +1,2 @@
+global-settings: !load missing.yaml
+mod-setup: {registries: []}

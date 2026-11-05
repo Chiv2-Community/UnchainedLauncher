@@ -1,0 +1,45 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  mod-actors: [always]
+  ini:
+    Engine:
+      Demo:
+        Value: 1
+        Names: [base]
+  map-settings:
+    'ffa_~':
+      ini: {Engine: {Demo: {Value: 2}}}
+      mod-actors: [ffa]
+    'tdm_~':
+      ini: {Engine: {Demo: {Value: 3}}}
+      mod-actors: [tdm]
+  match-presets:
+    'duel-~':
+      map: FFA_Courtyard
+      ini:
+        Engine:
+          Demo:
+            Value: 4
+            Names: [duel, duel]
+      mod-actors: [duel]
+    duel-night:
+      map: FFA_Bazaar
+      mod-actors: [replaced-global-definition]
+servers:
+  server:
+    match-presets:
+      'duel-n~':
+        map: TDM_Wardenglade
+        ini: {Engine: {Demo: {Value: 6}}}
+        mod-actors: [local]
+      duel-night:
+        ini: {Engine: {Demo: {Names: [night]}}}
+        mod-actors: [night]
+    map-rotation:
+      - duel-night
+      - duel-day
+      - preset: duel-night
+        map: FFA_Bazaar
+        name: Night reprise
+        ini: {Engine: {Demo: {Value: 7}}}

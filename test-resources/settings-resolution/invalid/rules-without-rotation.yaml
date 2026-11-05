@@ -1,0 +1,4 @@
+chiv2-path: .
+platform: Steam
+global-settings: {map-settings: {'FFA_~': {mod-actors: [one]}}}
+servers: {server: {}}

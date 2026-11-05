@@ -70,9 +70,22 @@
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
-                <ToggleButton Grid.Column="4" Content="Details" Margin="8,0,0,0"
+                <ToggleButton Grid.Column="4" Margin="8,0,0,0" Padding="10,6"
+                              VerticalAlignment="Center"
+                              AutomationProperties.Name="{Binding Mod.LatestReleaseInfo.Name, StringFormat='Details for {0}'}"
                               ToolTip="Expand or collapse mod details"
-                              IsChecked="{Binding IsExpanded, Mode=TwoWay}" />
+                              IsChecked="{Binding IsExpanded, Mode=TwoWay}">
+                    <ToggleButton.Style>
+                        <Style TargetType="ToggleButton">
+                            <Setter Property="Content" Value="Show details" />
+                            <Style.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Content" Value="Hide details" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ToggleButton.Style>
+                </ToggleButton>
             </Grid>
 
             <StackPanel Grid.Row="1"

@@ -14,6 +14,7 @@
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/ModListVM.cs" Link="ModListVM.cs" />
     <Compile Include="../UnchainedLauncher.GUI/JsonModels/LauncherSettings.cs" Link="LauncherSettings.cs" />
     <None Include="../UnchainedLauncher.GUI/Views/Mods/Mod.xaml" Link="Views/Mod.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Views/Mods/ModList.xaml" Link="Views/ModList.xaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../UnchainedLauncher.GUI/Views/MainWindow.xaml" Link="Views/MainWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../UnchainedLauncher.GUI/Resources/Themes/Misc.xaml" Link="Views/Misc.xaml" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../UnchainedLauncher.Core/UnchainedLauncher.Core.csproj" />

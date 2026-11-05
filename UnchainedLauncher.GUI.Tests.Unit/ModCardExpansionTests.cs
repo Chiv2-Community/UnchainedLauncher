@@ -11,6 +11,15 @@ namespace UnchainedLauncher.GUI.Tests.Unit;
 
 public class ModCardExpansionTests {
     [Fact]
+    public void CardsHaveRightSpacingInsideTheScrollViewer() {
+        var document = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Views", "ModList.xaml"));
+        var cards = Assert.Single(document.Descendants().Where(element =>
+            (string?)element.Attribute("ItemsSource") == "{Binding DisplayMods}"));
+        Assert.Equal("ScrollViewer", cards.Parent!.Name.LocalName);
+        Assert.Equal("0,0,12,0", (string?)cards.Attribute("Margin"));
+    }
+
+    [Fact]
     public void IndividualExpansionNotifiesBindingsWithoutChangingOtherCardsOrEnabledRelease() {
         var (list, manager) = CreateList();
         var first = list.DisplayMods[0];
@@ -149,7 +158,7 @@ public class ModCardExpansionTests {
             element.Name.LocalName == "CollapsibleCard" &&
             (string?)element.Attribute("IsExpanded") == "{Binding IsExpanded, Mode=TwoWay}"));
         Assert.Equal("False", (string?)card.Attribute("ShowExpansionIndicator"));
-        Assert.Equal("True", (string?)card.Attribute("HighlightWhenCollapsed"));
+        Assert.Equal("True", (string?)card.Attribute("HighlightOnHover"));
         Assert.Equal("True", (string?)card.Attribute("ShowHeaderSeparator"));
         var body = Assert.Single(card.Elements().Where(element => element.Name.LocalName == "CollapsibleCard.Body"));
         var header = Assert.Single(card.Elements().Where(element => element.Name.LocalName == "CollapsibleCard.Header"));

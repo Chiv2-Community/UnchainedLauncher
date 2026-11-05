@@ -12,7 +12,7 @@
 
     <controls:CollapsibleCard IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
                               ShowExpansionIndicator="False"
-                              HighlightWhenCollapsed="True"
+                              HighlightOnHover="True"
                               ShowHeaderSeparator="True">
         <controls:CollapsibleCard.Header>
             <!-- Header: Icon, Name, Enable/Disable, Version selector -->
@@ -73,6 +73,7 @@
             <StackPanel>
             <!-- Description: Regular text box -->
             <TextBox
+                     controls:InputOptions.IsHoverHighlightEnabled="False"
                      Text="{Binding Description, Mode=OneWay}"
                      Margin="0,12,0,0"
                      MinHeight="100"

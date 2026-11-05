@@ -82,18 +82,21 @@ public class AvailableModsAndMapsService {
     // Called at the launch boundary too: external pak changes do not raise mod-manager events.
     public void RefreshCatalog() => ReconcileCatalog(verifyHashes: true);
 
-    public bool IsConfirmedInactive(BlueprintDto actor) {
-        if (AvailableServerModBlueprints.Any(current => ServerBlueprintIdentity.Same(current, actor))) return false;
-        var owners = _modManager.Mods.SelectMany(mod => mod.Releases)
-            .Where(release => release.Manifest.RelevantBlueprints().Any(known => ServerBlueprintIdentity.Same(known, actor))).ToList();
-        if (owners.Count == 0) return false; // Offline/unknown ownership is not evidence of a disabled preference.
+    public BlueprintDto[] GetConfirmedInactiveSelections(IEnumerable<BlueprintDto> selections) {
         // Missing roots or intermediate dependencies may conceal an actor provider.
-        if (_modManager.EnabledModReleaseCoordinates.Any(coordinates => _modManager.GetRelease(coordinates).IsNone)) return false;
         // Match the dependency helper's latest-release resolution, including its version-range policy.
-        return !_modManager.GetEnabledAndDependencyReleases()
-            .SelectMany(release => _modManager.GetLatestRelease(ReleaseCoordinates.FromRelease(release)).ToList())
-            .SelectMany(release => release.Info.EffectiveModDependencies)
-            .Any(dependency => _modManager.GetLatestRelease(ModIdentifier.FromDependency(dependency)).IsNone);
+        if (_modManager.EnabledModReleaseCoordinates.Any(coordinates => _modManager.GetRelease(coordinates).IsNone)
+            || _modManager.GetEnabledAndDependencyReleases()
+                .SelectMany(release => _modManager.GetLatestRelease(ReleaseCoordinates.FromRelease(release)).ToList())
+                .SelectMany(release => release.Info.EffectiveModDependencies)
+                .Any(dependency => _modManager.GetLatestRelease(ModIdentifier.FromDependency(dependency)).IsNone)) return [];
+
+        // Unknown ownership is not evidence of disablement; any available provider keeps the selection.
+        var inactivePaths = _modManager.Mods.SelectMany(mod => mod.Releases)
+            .SelectMany(release => release.Manifest.RelevantBlueprints())
+            .Select(ServerBlueprintIdentity.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        inactivePaths.ExceptWith(AvailableServerModBlueprints.Select(ServerBlueprintIdentity.Key));
+        return selections.Where(actor => inactivePaths.Contains(ServerBlueprintIdentity.Key(actor))).ToArray();
     }
 
     private bool IsCurrentScan(PakManifest pak, bool verifyHash) {

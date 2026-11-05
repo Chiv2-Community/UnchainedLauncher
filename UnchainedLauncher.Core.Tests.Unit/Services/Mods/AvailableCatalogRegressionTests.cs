@@ -214,7 +214,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             PublishScan(scan, result);
             Assert.Empty(catalog.AvailableServerModBlueprints);
             var actor = ModManifestConverter.ProcessModScan(result).Paks.Single().Inventory.Blueprints.Single();
-            Assert.False(catalog.IsConfirmedInactive(actor)); // Still retain the unresolved saved preference.
+            Assert.Empty(catalog.GetConfirmedInactiveSelections([actor])); // Still retain the unresolved saved preference.
         }
 
         [Theory]
@@ -233,7 +233,32 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             var catalog = new AvailableModsAndMapsService(manager, new ModScanTabVM());
             // Traversal uses latest metadata even for an older enabled parent and currently ignores version constraints.
             Assert.Equal(dependencyAvailable, manager.GetEnabledAndDependencyReleases().Contains(middle));
-            Assert.Equal(dependencyAvailable, catalog.IsConfirmedInactive(owner.Manifest.Blueprints.Single()));
+            Assert.Equal(dependencyAvailable, catalog.GetConfirmedInactiveSelections(owner.Manifest.Blueprints).Length == 1);
+        }
+
+        [Fact]
+        public void InactiveSelectionBatchReadsStateOnceAndPreservesSelectionOrder() {
+            var first = Release("First", Assets("First"));
+            var second = Release("Second", Assets("Second"));
+            var active = Release("Active", Assets("Active"));
+            var manager = new Mock<IModManager>();
+            manager.SetupGet(m => m.Mods).Returns(new[] { first, second, active }
+                .Select(release => new Mod(release.Info, [release])).ToArray());
+            manager.SetupGet(m => m.EnabledModReleaseCoordinates).Returns([ReleaseCoordinates.FromRelease(active)]);
+            var catalog = new AvailableModsAndMapsService(manager.Object, new ModScanTabVM());
+            var firstActor = first.Manifest.Blueprints.Single();
+            var secondActor = second.Manifest.Blueprints.Single();
+            manager.Invocations.Clear();
+            Assert.Equal(firstActor, Assert.Single(catalog.GetConfirmedInactiveSelections([firstActor])));
+            var singleStateReads = manager.Invocations.Count;
+
+            manager.Invocations.Clear();
+            var selections = new[] { secondActor, active.Manifest.Blueprints.Single(), Assets("Unknown").Blueprints.Single(), firstActor };
+            Assert.Equal(new[] { secondActor, firstActor }, catalog.GetConfirmedInactiveSelections(selections));
+            Assert.Equal(singleStateReads, manager.Invocations.Count);
+            // One root uncertainty check and one dependency closure, independent of selection count.
+            manager.VerifyGet(m => m.EnabledModReleaseCoordinates, Times.Exactly(2));
+            Assert.Equal(secondActor, selections[0]); // The service only returns removals; it never mutates selections.
         }
 
         private sealed class ScannedPak : IDisposable {

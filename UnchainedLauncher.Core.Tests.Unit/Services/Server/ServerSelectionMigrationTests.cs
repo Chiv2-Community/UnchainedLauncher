@@ -410,7 +410,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                 Assert.True(manager.NeedsMetadataRefresh);
                 Assert.True(manager.GetRelease(coordinates).IsSome);
                 Assert.Empty(catalog.AvailableServerModBlueprints);
-                Assert.False(catalog.IsConfirmedInactive(actor));
+                Assert.Empty(catalog.GetConfirmedInactiveSelections([actor]));
                 Assert.Empty(configs[0].PrepareServerBlueprintsForLaunch());
                 configs = Decode(codec, codec.Serialize(configs));
                 Assert.Equal(actor, Assert.Single(configs[0].EnabledServerModList));
@@ -423,7 +423,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                 Assert.Equal(actor, Assert.Single(configs[0].PrepareServerBlueprintsForLaunch()));
                 Assert.Equal(actor, Assert.Single(configs[0].EnabledServerModList));
                 Assert.True(manager.DisableModRelease(coordinates));
-                Assert.True(catalog.IsConfirmedInactive(actor));
+                Assert.Equal(actor, Assert.Single(catalog.GetConfirmedInactiveSelections([actor])));
                 Assert.Empty(configs[0].EnabledServerModList);
                 Assert.Empty(configs[0].PrepareServerBlueprintsForLaunch());
             });

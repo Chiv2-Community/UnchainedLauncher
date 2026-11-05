@@ -375,7 +375,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         private void ReconcileServerBlueprintSelections() {
-            foreach (var actor in EnabledServerModList.Where(_availableModsAndMaps.IsConfirmedInactive).ToArray())
+            foreach (var actor in _availableModsAndMaps.GetConfirmedInactiveSelections(EnabledServerModList))
                 _enabledServerModList.Remove(actor);
         }
 

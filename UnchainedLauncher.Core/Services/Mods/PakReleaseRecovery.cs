@@ -57,7 +57,11 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
                     .OrderBy(pak => Path.GetFileName(pak.Path) == names[i] ? 0 : 1).ToList();
             }).ToList();
 
-            // Validate duplicate signatures before changing any files or metadata.
+            // Validate final destinations and duplicate signatures before changing any files or metadata.
+            for (var i = 0; i < recovered.Count; i++) {
+                if (recovered[i].Count > 0)
+                    PakDir.ValidateMoveSignatures(recovered[i][0].Path, Path.Join(manager.PakDir.DirPath, names[i]));
+            }
             foreach (var matching in recovered.Where(paks => paks.Count > 1)) {
                 var referenceSig = Path.ChangeExtension(matching[0].Path, ".sig");
                 foreach (var duplicate in matching.Skip(1)) {

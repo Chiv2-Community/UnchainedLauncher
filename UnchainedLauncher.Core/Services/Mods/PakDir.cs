@@ -99,7 +99,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         public void TrackPak(ManagedPak pak) {
-            _managedPaks.RemoveAll(existing => existing.Coordinates.Matches(pak.Coordinates));
+            _managedPaks.RemoveAll(existing => existing.Coordinates.Matches(pak.Coordinates)
+                || existing.PakFileName.Equals(pak.PakFileName, StringComparison.OrdinalIgnoreCase));
             _managedPaks.Add(pak);
         }
 
@@ -269,10 +270,22 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var sourceSigPath = Path.ChangeExtension(sourcePakPath, ".sig");
             var destSigPath = Path.ChangeExtension(destPakPath, ".sig");
 
-            return _moveFile(sourcePakPath, destPakPath)
+            return PrimitiveExtensions.TryVoid(() => ValidateMoveSignatures(sourcePakPath, destPakPath)).Invoke()
+                .Match<Either<Error, Unit>>(
+                    _ => Right(Unit.Default),
+                    e => Error.New($"Failed to move pak: '{sourcePakPath}' -> '{destPakPath}'", (Exception)e))
+                .Bind(_ => _moveFile(sourcePakPath, destPakPath))
                 .Bind(_ => File.Exists(sourceSigPath)
-                    ? _moveFile(sourceSigPath, destSigPath)
+                    ? File.Exists(destSigPath) ? _deleteFile(sourceSigPath) : _moveFile(sourceSigPath, destSigPath)
                     : Right(Unit.Default));
+        }
+
+        internal static void ValidateMoveSignatures(string sourcePakPath, string destPakPath) {
+            var sourceSigPath = Path.ChangeExtension(sourcePakPath, ".sig");
+            var destSigPath = Path.ChangeExtension(destPakPath, ".sig");
+            if (File.Exists(sourceSigPath) && File.Exists(destSigPath)
+                && !File.ReadAllBytes(sourceSigPath).SequenceEqual(File.ReadAllBytes(destSigPath)))
+                throw new IOException($"Conflicting destination signature; files were preserved: {destSigPath}");
         }
 
         private static Either<Error, Unit> _moveFile(string source, string dest) {

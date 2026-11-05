@@ -62,6 +62,19 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
+        public void TrackPak_TransfersFilenameOwnership_CaseInsensitively() {
+            var dir = Path.Join(BaseTestDir, nameof(TrackPak_TransfersFilenameOwnership_CaseInsensitively));
+            PrepareTestDir(dir);
+            var pd = new Core.Services.Mods.PakDir(dir, []);
+            pd.TrackPak(new ManagedPak(DummyMods[0], "q__-__Mod1.pak", 0));
+            var wanted = new ManagedPak(DummyMods[2], "Q__-__MOD1.PAK", 0);
+
+            pd.TrackPak(wanted);
+
+            Assert.Equal(wanted, Assert.Single(pd.ManagedPaks));
+        }
+
+        [Fact]
         public async Task InstallModSet_FailedDownload_DoesNotLeavePartialPak() {
             var dir = Path.Join(BaseTestDir, nameof(InstallModSet_FailedDownload_DoesNotLeavePartialPak));
             PrepareTestDirWithSig(dir);

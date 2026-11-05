@@ -48,6 +48,104 @@ public class PakReleaseRecoveryTests : IDisposable {
     }
 
     [Theory]
+    [InlineData("q__-__Mod1.pak")]
+    [InlineData("q__-__Mod1 (9).pak")]
+    public async Task RequestedHash_TransfersDisabledModOwnership_BeforeInstallation(string name) {
+        var wanted = Release("v1.0.0");
+        var old = wanted with { Info = wanted.Info with { RepoUrl = "https://github.com/OldOrg/Mod1" } };
+        var path = Path.Join(_dir, name);
+        File.WriteAllText(path, wanted.Tag);
+        File.WriteAllText(Path.ChangeExtension(path, ".sig"), "verified signature");
+        var paks = new Core.Services.Mods.PakDir(_dir, [new ManagedPak(ReleaseCoordinates.FromRelease(old), name, 0)]);
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+        var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+        var manager = new ModManager(registry.Object, paks, [ReleaseCoordinates.FromRelease(wanted)],
+            [new Mod(wanted.Info, [wanted]), new Mod(old.Info, [old])]);
+
+        Assert.True(await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
+        Assert.Equal(ReleaseCoordinates.FromRelease(wanted), Assert.Single(paks.ManagedPaks).Coordinates);
+        var results = await manager.InstallMods(Option<AccumulatedMemoryProgress>.None).ToListAsync();
+
+        Assert.True(Assert.Single(results).IsRight);
+        Assert.Equal(wanted.Tag, File.ReadAllText(Path.Join(_dir, "q__-__Mod1.pak")));
+        Assert.Equal("verified signature", File.ReadAllText(Path.Join(_dir, "q__-__Mod1.sig")));
+        Assert.Equal("q__-__Mod1.pak", Assert.Single(paks.ManagedPaks).PakFileName);
+        Assert.Single(Directory.GetFiles(_dir, "*.pak"));
+        registry.VerifyNoOtherCalls();
+        dialogue.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OrphanDestinationSignature_IsCheckedBeforeRecovery_AndCoalescedIfIdentical(bool identical) {
+        var wanted = Release("v1.0.0");
+        var source = Path.Join(_dir, "q__-__Mod1 (9).pak");
+        var destination = Path.Join(_dir, "q__-__Mod1.pak");
+        var destinationSignature = identical ? "verified signature" : "unrelated signature";
+        File.WriteAllText(source, wanted.Tag);
+        File.WriteAllText(Path.ChangeExtension(source, ".sig"), "verified signature");
+        File.WriteAllText(Path.ChangeExtension(destination, ".sig"), destinationSignature);
+        var tracked = new ManagedPak(ReleaseCoordinates.FromRelease(wanted), Path.GetFileName(source), 7);
+        var paks = new Core.Services.Mods.PakDir(_dir, [tracked]);
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+        var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+        if (!identical) dialogue.Setup(d => d.DisplayMessage(It.IsAny<string>()));
+        var manager = Manager(paks, registry, wanted);
+
+        Assert.Equal(identical, await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
+        if (identical) {
+            var results = await manager.InstallMods(Option<AccumulatedMemoryProgress>.None).ToListAsync();
+            Assert.True(Assert.Single(results).IsRight);
+            Assert.Equal(wanted.Tag, File.ReadAllText(destination));
+            Assert.False(File.Exists(source));
+            Assert.False(File.Exists(Path.ChangeExtension(source, ".sig")));
+            Assert.Equal("q__-__Mod1.pak", Assert.Single(paks.ManagedPaks).PakFileName);
+        }
+        else {
+            Assert.Equal(wanted.Tag, File.ReadAllText(source));
+            Assert.Equal("verified signature", File.ReadAllText(Path.ChangeExtension(source, ".sig")));
+            Assert.False(File.Exists(destination));
+            Assert.Equal(tracked, Assert.Single(paks.ManagedPaks));
+        }
+        Assert.Equal(destinationSignature, File.ReadAllText(Path.ChangeExtension(destination, ".sig")));
+        Assert.Single(Directory.GetFiles(_dir, "*.pak"));
+        registry.VerifyNoOtherCalls();
+        dialogue.VerifyAll();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InstallRelocation_ChecksDestinationSignature_BeforeMovingPak(bool identical) {
+        var wanted = Release("v1.0.0");
+        var source = Path.Join(_dir, "q__-__Mod1 (9).pak");
+        var destination = Path.Join(_dir, "q__-__Mod1.pak");
+        var destinationSignature = identical ? "verified signature" : "unrelated signature";
+        File.WriteAllText(source, wanted.Tag);
+        File.WriteAllText(Path.ChangeExtension(source, ".sig"), "verified signature");
+        File.WriteAllText(Path.ChangeExtension(destination, ".sig"), destinationSignature);
+        var tracked = new ManagedPak(ReleaseCoordinates.FromRelease(wanted), Path.GetFileName(source), 7);
+        var paks = new Core.Services.Mods.PakDir(_dir, [tracked]);
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+
+        var results = await Manager(paks, registry, wanted).InstallMods(Option<AccumulatedMemoryProgress>.None).ToListAsync();
+
+        Assert.Equal(identical, Assert.Single(results).IsRight);
+        Assert.Equal(wanted.Tag, File.ReadAllText(identical ? destination : source));
+        Assert.Equal(!identical, File.Exists(source));
+        Assert.Equal(identical, File.Exists(destination));
+        Assert.Equal(!identical, File.Exists(Path.ChangeExtension(source, ".sig")));
+        Assert.Equal(destinationSignature, File.ReadAllText(Path.ChangeExtension(destination, ".sig")));
+        if (!identical) {
+            Assert.Equal("verified signature", File.ReadAllText(Path.ChangeExtension(source, ".sig")));
+            Assert.Equal(tracked, Assert.Single(paks.ManagedPaks));
+        }
+        else Assert.Equal("q__-__Mod1.pak", Assert.Single(paks.ManagedPaks).PakFileName);
+        registry.VerifyNoOtherCalls();
+    }
+
+    [Theory]
     [InlineData("v1.0.0", "v2.0.0", UserDialogueChoice.Yes, "Upgrade")]
     [InlineData("v2.0.0", "v1.0.0", UserDialogueChoice.Yes, "Downgrade")]
     [InlineData("v1.0.0", "v2.0.0", UserDialogueChoice.No, "Upgrade")]

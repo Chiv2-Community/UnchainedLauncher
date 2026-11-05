@@ -30,3 +30,7 @@ The V1 installation investigation found that a download completed but signing lo
 The implementation preserves the mod destination while sourcing the signature from the installation path; a missing installation signature remains an error. Text-only logging avoids the observed recursive exception rendering but does not preserve an exception object in that log event. The optional source parameter permits isolated tests.
 
 Run the complete patch through Windows tests and an end-to-end installation and game launch, including a separate mod directory and a missing base signature. Reconsider the source or logging approach if those tests reveal incorrect installation resolution, signing failures, or recurring rendering failures. The supplied history does not establish a full Windows test run, successful complete-patch launch, PR merge, or release. The original conversation and full decision discussion are unavailable; no prior annals were present to reconcile.
+
+## Subsequent developments (2026-11-05)
+
+The optional source parameter described in Evidence and choices and Consequences was removed, and the explicit conflicting-signature and logging-event tests described in Evidence and choices were removed. Those implementation and coverage claims are historical, not current. The installation-source and text-only logging decisions remain in force. See [the simplification follow-up](2026-11-05-v1-pak-signature-hotfix-simplification.md) for evidence and validation limits.

@@ -6,8 +6,7 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </UserControl.Resources>
 
-    <Border Style="{DynamicResource Card}"
-            Padding="0">
+    <Border Style="{DynamicResource Card}" Padding="0">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -30,14 +29,19 @@
                         Preserve the default stable header; collapsed hover highlighting is opt-in.
                     -->
                     <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="HeaderSurface" Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              Margin="{TemplateBinding Padding}"
-                                              RecognizesAccessKey="True" />
-                        </Border>
+                        <Grid>
+                            <Border x:Name="HeaderSurface" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  RecognizesAccessKey="True" />
+                            </Border>
+                            <Border x:Name="HoverOutline" BorderThickness="1" CornerRadius="6"
+                                    BorderBrush="{DynamicResource Brush.PrimaryHover}"
+                                    Visibility="Collapsed" IsHitTestVisible="False" />
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <MultiDataTrigger>
                                 <MultiDataTrigger.Conditions>
@@ -45,7 +49,7 @@
                                     <Condition Binding="{Binding IsExpanded, ElementName=Root}" Value="False" />
                                     <Condition Binding="{Binding IsMouseOver, ElementName=Root}" Value="True" />
                                 </MultiDataTrigger.Conditions>
-                                <Setter TargetName="HeaderSurface" Property="Background" Value="{DynamicResource Brush.PrimaryTransparent}" />
+                                <Setter TargetName="HoverOutline" Property="Visibility" Value="Visible" />
                                 <Setter Property="Cursor" Value="Hand" />
                             </MultiDataTrigger>
                         </ControlTemplate.Triggers>

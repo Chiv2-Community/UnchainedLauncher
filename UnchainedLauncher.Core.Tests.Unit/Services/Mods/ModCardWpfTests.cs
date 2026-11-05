@@ -44,12 +44,14 @@ public class ModCardWpfTests(HomeLaunchUi ui) {
             var card = Assert.IsType<UnchainedLauncher.GUI.Views.Controls.CollapsibleCard>(view.Content);
             var header = Assert.IsType<Grid>(card.Header);
             var details = Assert.IsType<StackPanel>(card.Body);
-            var grid = Assert.IsType<Grid>(Assert.IsType<Border>(card.Content).Child);
+            var cardSurface = Assert.IsType<Border>(card.Content);
+            var grid = Assert.IsType<Grid>(cardSurface.Child);
             var toggle = Assert.Single(grid.Children.OfType<ToggleButton>());
             var body = Assert.Single(grid.Children.OfType<ContentPresenter>());
             var separator = Assert.Single(grid.Children.OfType<Border>());
             var indicator = Assert.Single(Assert.IsType<Grid>(toggle.Content).Children.OfType<System.Windows.Shapes.Path>());
             var surface = Assert.IsType<Border>(toggle.Template.FindName("HeaderSurface", toggle));
+            var hoverOutline = Assert.IsType<Border>(toggle.Template.FindName("HoverOutline", toggle));
             var defaults = new UnchainedLauncher.GUI.Views.Controls.CollapsibleCard();
             Assert.True(defaults.ShowExpansionIndicator);
             Assert.False(defaults.HighlightWhenCollapsed);
@@ -82,15 +84,19 @@ public class ModCardWpfTests(HomeLaunchUi ui) {
             try {
                 hover.Invoke(Mouse.PrimaryDevice, new object?[] { toggle, 0 });
                 FlushBindings();
-                Assert.Same(view.FindResource("Brush.PrimaryTransparent"), surface.Background);
+                Assert.Same(view.FindResource("Brush.PrimaryHover"), hoverOutline.BorderBrush);
+                Assert.Equal(Visibility.Visible, hoverOutline.Visibility);
+                Assert.Same(normalBackground, surface.Background);
                 Assert.Equal(Cursors.Hand, toggle.Cursor);
                 card.HighlightWhenCollapsed = false;
                 FlushBindings();
                 Assert.Same(normalBackground, surface.Background);
+                Assert.Equal(Visibility.Collapsed, hoverOutline.Visibility);
                 card.HighlightWhenCollapsed = true;
                 vm.IsExpanded = true;
                 FlushBindings();
                 Assert.Same(normalBackground, surface.Background);
+                Assert.Equal(Visibility.Collapsed, hoverOutline.Visibility);
                 vm.IsExpanded = false;
                 FlushBindings();
             }

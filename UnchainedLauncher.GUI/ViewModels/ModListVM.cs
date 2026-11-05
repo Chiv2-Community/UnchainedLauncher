@@ -55,6 +55,16 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private void OnSelectedSortModeChanged() => RebuildDisplay();
 
         [RelayCommand]
+        private void ExpandAll() {
+            foreach (var mod in UnfilteredModView) mod.IsExpanded = true;
+        }
+
+        [RelayCommand]
+        private void CollapseAll() {
+            foreach (var mod in UnfilteredModView) mod.IsExpanded = false;
+        }
+
+        [RelayCommand]
         public async Task RefreshModList() {
             try {
                 _logger.Info("Refreshing mod list...");

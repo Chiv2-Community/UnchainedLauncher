@@ -15,8 +15,6 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <!-- Header: Icon, Name, Enable/Disable, Version selector -->
@@ -26,6 +24,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="220" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 
                 <!-- Mod Icon -->
@@ -71,10 +70,15 @@
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
+                <ToggleButton Grid.Column="4" Content="Details" Margin="8,0,0,0"
+                              ToolTip="Expand or collapse mod details"
+                              IsChecked="{Binding IsExpanded, Mode=TwoWay}" />
             </Grid>
 
+            <StackPanel Grid.Row="1"
+                        Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
             <!-- Description: Regular text box -->
-            <TextBox Grid.Row="1"
+            <TextBox
                      Text="{Binding Description, Mode=OneWay}"
                      Margin="0,12,0,0"
                      MinHeight="100"
@@ -84,7 +88,7 @@
                      VerticalScrollBarVisibility="Auto" />
 
             <!-- Details Card -->
-            <controls:CollapsibleCard Grid.Row="2"
+            <controls:CollapsibleCard
                                       Header="Contents"
                                       IsExpanded="False"
                                       Margin="0,12,0,0"
@@ -195,7 +199,7 @@
             </controls:CollapsibleCard>
 
             <!-- Dependencies Card -->
-            <StackPanel Grid.Row="3" Margin="0,12,0,0">
+            <StackPanel Margin="0,12,0,0">
                 <controls:CollapsibleCard Header="Dependencies"
                                           IsExpanded="False"
                                           Visibility="{Binding HasDependencies, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -233,6 +237,7 @@
                         </StackPanel>
                     </controls:CollapsibleCard.Body>
                 </controls:CollapsibleCard>
+            </StackPanel>
             </StackPanel>
         </Grid>
     </Border>

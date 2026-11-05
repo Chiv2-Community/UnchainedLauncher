@@ -13,6 +13,7 @@
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -65,8 +66,13 @@
                     Command="{Binding RefreshModListCommand}" Style="{StaticResource Button.Primary}" />
         </Grid>
 
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="Expand all" Command="{Binding ExpandAllCommand}" Margin="0,0,8,0" />
+            <Button Content="Collapse all" Command="{Binding CollapseAllCommand}" />
+        </StackPanel>
+
         <!-- Cards list -->
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="2">
             <ScrollViewer VerticalScrollBarVisibility="Auto"
                           behaviors:MouseWheelScrollForwardingBehavior.IsEnabled="True">
                 <ItemsControl ItemsSource="{Binding DisplayMods}">

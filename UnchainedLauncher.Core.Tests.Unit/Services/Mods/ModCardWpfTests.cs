@@ -18,7 +18,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods;
 [Collection("Home launch UI")]
 public class ModCardWpfTests(HomeLaunchUi ui) {
     [Fact]
-    public void DetailsToggleUpdatesBoundVisibilityAndLabelWhileCollapsedHeaderRemainsAccessible() => ui.Run(() => {
+    public void SharedCardToggleUpdatesBoundVisibilityWhileCollapsedHeaderRemainsAccessible() => ui.Run(() => {
         var resources = new List<ResourceDictionary>();
         Window? window = null;
         try {
@@ -42,10 +42,12 @@ public class ModCardWpfTests(HomeLaunchUi ui) {
             window.Show();
             FlushBindings();
 
-            var grid = Assert.IsType<Grid>(Assert.IsType<Border>(view.Content).Child);
-            var header = Assert.Single(grid.Children.OfType<Grid>());
-            var details = Assert.Single(grid.Children.OfType<StackPanel>());
-            var toggle = Assert.Single(header.Children.OfType<ToggleButton>());
+            var card = Assert.IsType<UnchainedLauncher.GUI.Views.Controls.CollapsibleCard>(view.Content);
+            var header = Assert.IsType<Grid>(card.Header);
+            var details = Assert.IsType<StackPanel>(card.Body);
+            var grid = Assert.IsType<Grid>(Assert.IsType<Border>(card.Content).Child);
+            var toggle = Assert.Single(grid.Children.OfType<ToggleButton>());
+            var body = Assert.Single(grid.Children.OfType<ContentPresenter>());
             var enable = Assert.Single(header.Children.OfType<Button>().Where(button => button.Command == vm.EnableOrDisableCommand));
             var version = Assert.Single(header.Children.OfType<ComboBox>());
             var togglePeer = new ToggleButtonAutomationPeer(toggle);
@@ -53,18 +55,17 @@ public class ModCardWpfTests(HomeLaunchUi ui) {
 
             Assert.True(vm.IsExpanded);
             Assert.True(toggle.IsChecked);
-            Assert.Equal("Hide details", toggle.Content);
-            Assert.Equal(Visibility.Visible, details.Visibility);
+            Assert.True(card.IsExpanded);
+            Assert.Equal(Visibility.Visible, body.Visibility);
             Assert.True(details.IsVisible);
-            Assert.Equal("Details for Example", togglePeer.GetName());
 
             provider.Toggle();
             FlushBindings();
 
             Assert.False(vm.IsExpanded);
             Assert.False(toggle.IsChecked);
-            Assert.Equal("Show details", toggle.Content);
-            Assert.Equal(Visibility.Collapsed, details.Visibility);
+            Assert.False(card.IsExpanded);
+            Assert.Equal(Visibility.Collapsed, body.Visibility);
             Assert.False(details.IsVisible);
             foreach (var control in new Control[] { enable, version, toggle }) {
                 Assert.True(control.IsVisible);
@@ -82,8 +83,8 @@ public class ModCardWpfTests(HomeLaunchUi ui) {
             vm.IsExpanded = true;
             FlushBindings();
             Assert.True(toggle.IsChecked);
-            Assert.Equal("Hide details", toggle.Content);
-            Assert.Equal(Visibility.Visible, details.Visibility);
+            Assert.True(card.IsExpanded);
+            Assert.Equal(Visibility.Visible, body.Visibility);
             Assert.True(details.IsVisible);
         }
         finally {

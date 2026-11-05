@@ -145,9 +145,11 @@ public class ModCardExpansionTests {
     [Fact]
     public void CollapsingDetailsKeepsEnableAndVersionControlsVisible() {
         var document = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Views", "Mod.xaml"));
-        var body = Assert.Single(document.Descendants().Where(element =>
-            (string?)element.Attribute("Visibility") == "{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}"));
-        var header = Assert.Single(body.Parent!.Elements().Where(element => (string?)element.Attribute("Grid.Row") == "0"));
+        var card = Assert.Single(document.Descendants().Where(element =>
+            element.Name.LocalName == "CollapsibleCard" &&
+            (string?)element.Attribute("IsExpanded") == "{Binding IsExpanded, Mode=TwoWay}"));
+        var body = Assert.Single(card.Elements().Where(element => element.Name.LocalName == "CollapsibleCard.Body"));
+        var header = Assert.Single(card.Elements().Where(element => element.Name.LocalName == "CollapsibleCard.Header"));
         Assert.Contains(header.Descendants(), element => (string?)element.Attribute("Source") == "{Binding IconUrl}");
         Assert.Contains(header.Descendants(), element => (string?)element.Attribute("Command") == "{Binding ViewOnGithubCommand}");
         Assert.Contains(header.Descendants(), element => (string?)element.Attribute("Command") == "{Binding EnableOrDisableCommand}");
@@ -157,9 +159,6 @@ public class ModCardExpansionTests {
         Assert.Contains(body.Descendants(), element => (string?)element.Attribute("Header") == "Dependencies");
         Assert.DoesNotContain(body.Descendants(), element => element.Attribute("Command")?.Value == "{Binding EnableOrDisableCommand}");
         Assert.DoesNotContain(body.Descendants(), element => element.Attribute("SelectedItem")?.Value == "{Binding EnabledRelease, Mode=TwoWay}");
-        var toggle = Assert.Single(header.Descendants().Where(element => element.Attribute("IsChecked")?.Value == "{Binding IsExpanded, Mode=TwoWay}"));
-        Assert.Equal("{Binding Mod.LatestReleaseInfo.Name, StringFormat='Details for {0}'}", toggle.Attribute("AutomationProperties.Name")?.Value);
-        Assert.Contains(toggle.Descendants(), element => (string?)element.Attribute("Value") == "Show details");
-        Assert.Contains(toggle.Descendants(), element => (string?)element.Attribute("Value") == "Hide details");
+        Assert.DoesNotContain(header.Descendants(), element => element.Name.LocalName == "ToggleButton");
     }
 }

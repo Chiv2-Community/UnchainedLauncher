@@ -28,7 +28,8 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
             var style = Assert.Single(theme.Descendants().Where(element => element.Attribute(x + "Key")?.Value == "Release.PrereleaseBadge"));
             Assert.Contains(style.Descendants(), element => element.Attribute("Text")?.Value == "Prerelease");
             Assert.DoesNotContain(mods.Descendants(), element => element.Name.LocalName == "ComboBox" && element.Attribute("DisplayMemberPath") != null);
-            Assert.Contains(mods.Descendants(), element => element.Attribute("Style")?.Value == "{StaticResource PluginCard}");
+            Assert.Contains(mods.Descendants(), element => element.Name.LocalName == "CollapsibleCard"
+                && element.Attribute("IsExpanded")?.Value == "{Binding IsExpanded, Mode=TwoWay}");
             Assert.Contains(dlls.Descendants(), element => element.Attribute("Style")?.Value == "{StaticResource PluginCard}");
             Assert.Contains(dlls.Descendants(), element => element.Name.LocalName == "ComboBox" && element.Attribute("ItemsSource")?.Value == "{Binding AvailableVersions}");
         }

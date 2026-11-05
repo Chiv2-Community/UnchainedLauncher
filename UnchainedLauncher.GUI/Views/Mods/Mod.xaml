@@ -10,21 +10,15 @@
              d:DesignHeight="300" d:DesignWidth="800"
              Focusable="True">
 
-    <Border Style="{StaticResource PluginCard}">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
+    <controls:CollapsibleCard IsExpanded="{Binding IsExpanded, Mode=TwoWay}">
+        <controls:CollapsibleCard.Header>
             <!-- Header: Icon, Name, Enable/Disable, Version selector -->
-            <Grid Grid.Row="0">
+            <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="220" />
-                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 
                 <!-- Mod Icon -->
@@ -70,26 +64,10 @@
                         </DataTemplate>
                     </ComboBox.ItemTemplate>
                 </ComboBox>
-                <ToggleButton Grid.Column="4" Margin="8,0,0,0" Padding="10,6"
-                              VerticalAlignment="Center"
-                              AutomationProperties.Name="{Binding Mod.LatestReleaseInfo.Name, StringFormat='Details for {0}'}"
-                              ToolTip="Expand or collapse mod details"
-                              IsChecked="{Binding IsExpanded, Mode=TwoWay}">
-                    <ToggleButton.Style>
-                        <Style TargetType="ToggleButton">
-                            <Setter Property="Content" Value="Show details" />
-                            <Style.Triggers>
-                                <Trigger Property="IsChecked" Value="True">
-                                    <Setter Property="Content" Value="Hide details" />
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ToggleButton.Style>
-                </ToggleButton>
             </Grid>
-
-            <StackPanel Grid.Row="1"
-                        Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibilityConverter}}">
+        </controls:CollapsibleCard.Header>
+        <controls:CollapsibleCard.Body>
+            <StackPanel>
             <!-- Description: Regular text box -->
             <TextBox
                      Text="{Binding Description, Mode=OneWay}"
@@ -252,6 +230,6 @@
                 </controls:CollapsibleCard>
             </StackPanel>
             </StackPanel>
-        </Grid>
-    </Border>
+        </controls:CollapsibleCard.Body>
+    </controls:CollapsibleCard>
 </UserControl>

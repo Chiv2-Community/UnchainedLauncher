@@ -367,6 +367,68 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             });
         }
 
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public void PartialDependencyRefreshPreservesActorAcrossLaunchSaveReloadAndRecovery(bool circular, bool emptyReleases) {
+            RunSta(() => {
+                var actor = Blueprint("LeafActor");
+                var leaf = Mod("Leaf", actor);
+                leaf = leaf with { Releases = [leaf.Releases.First()] };
+                var middle = Mod("Middle");
+                var middleRelease = middle.Releases.First() with {
+                    Info = middle.LatestReleaseInfo with {
+                        Dependencies = circular
+                            ? [new Dependency("Chiv2-Community/Leaf", "v1.0.0"), new Dependency("Chiv2-Community/Parent", "v1.0.0")]
+                            : [new Dependency("Chiv2-Community/Leaf", "v1.0.0")]
+                    }
+                };
+                middle = middle with { Releases = [middleRelease] };
+                var parent = Mod("Parent");
+                var parentRelease = parent.Releases.First() with {
+                    Info = parent.LatestReleaseInfo with {
+                        Dependencies = [new Dependency("Chiv2-Community/Middle", "v1.0.0")]
+                    }
+                };
+                parent = parent with { Releases = [parentRelease] };
+                var coordinates = ReleaseCoordinates.FromRelease(parentRelease);
+                var registry = new Mock<IModRegistry>();
+                var manager = new ModManager(registry.Object, Mock.Of<IPakDir>(), [coordinates], [parent, middle, leaf]);
+                var scan = new ModScanTabVM();
+                var catalog = new AvailableModsAndMapsService(manager, scan);
+                var codec = new ServerConfigurationCodec(manager, scan, catalog);
+                var configs = Decode(codec, "[{\"Name\":\"PartialDependencies\"}]");
+                configs[0].EnableServerBlueprintMod(actor);
+                Assert.Equal(actor, Assert.Single(configs[0].PrepareServerBlueprintsForLaunch()));
+
+                registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult(
+                    [RegistryMetadataException.PackageListRetrieval("middle-offline", LanguageExt.Prelude.None)],
+                    emptyReleases ? [parent, middle with { Releases = [] }, leaf] : [parent, leaf]));
+                Assert.True(manager.UpdateModsList().GetAwaiter().GetResult().HasErrors);
+                Assert.True(manager.NeedsMetadataRefresh);
+                Assert.True(manager.GetRelease(coordinates).IsSome);
+                Assert.Empty(catalog.AvailableServerModBlueprints);
+                Assert.False(catalog.IsConfirmedInactive(actor));
+                Assert.Empty(configs[0].PrepareServerBlueprintsForLaunch());
+                configs = Decode(codec, codec.Serialize(configs));
+                Assert.Equal(actor, Assert.Single(configs[0].EnabledServerModList));
+                Assert.Empty(configs[0].PrepareServerBlueprintsForLaunch());
+
+                registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult([], [parent, middle, leaf]));
+                Assert.False(manager.UpdateModsList().GetAwaiter().GetResult().HasErrors);
+                Assert.False(manager.NeedsMetadataRefresh);
+                Assert.Equal(actor, Assert.Single(catalog.AvailableServerModBlueprints));
+                Assert.Equal(actor, Assert.Single(configs[0].PrepareServerBlueprintsForLaunch()));
+                Assert.Equal(actor, Assert.Single(configs[0].EnabledServerModList));
+                Assert.True(manager.DisableModRelease(coordinates));
+                Assert.True(catalog.IsConfirmedInactive(actor));
+                Assert.Empty(configs[0].EnabledServerModList);
+                Assert.Empty(configs[0].PrepareServerBlueprintsForLaunch());
+            });
+        }
+
         private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject {
             for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++) {
                 var child = VisualTreeHelper.GetChild(root, i);

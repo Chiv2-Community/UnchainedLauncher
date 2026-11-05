@@ -11,6 +11,7 @@ using System.Security.Cryptography;
 using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -86,8 +87,13 @@ public class AvailableModsAndMapsService {
         var owners = _modManager.Mods.SelectMany(mod => mod.Releases)
             .Where(release => release.Manifest.RelevantBlueprints().Any(known => ServerBlueprintIdentity.Same(known, actor))).ToList();
         if (owners.Count == 0) return false; // Offline/unknown ownership is not evidence of a disabled preference.
-        // An unresolved enabled root may provide this actor directly or through unknown dependencies.
-        return !_modManager.EnabledModReleaseCoordinates.Any(coordinates => _modManager.GetRelease(coordinates).IsNone);
+        // Missing roots or intermediate dependencies may conceal an actor provider.
+        if (_modManager.EnabledModReleaseCoordinates.Any(coordinates => _modManager.GetRelease(coordinates).IsNone)) return false;
+        // Match the dependency helper's latest-release resolution, including its version-range policy.
+        return !_modManager.GetEnabledAndDependencyReleases()
+            .SelectMany(release => _modManager.GetLatestRelease(ReleaseCoordinates.FromRelease(release)).ToList())
+            .SelectMany(release => release.Info.EffectiveModDependencies)
+            .Any(dependency => _modManager.GetLatestRelease(ModIdentifier.FromDependency(dependency)).IsNone);
     }
 
     private bool IsCurrentScan(PakManifest pak, bool verifyHash) {

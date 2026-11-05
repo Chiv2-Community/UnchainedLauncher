@@ -217,6 +217,25 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             Assert.False(catalog.IsConfirmedInactive(actor)); // Still retain the unresolved saved preference.
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void InactiveDetectionUsesDependencyHelpersLatestReleaseAndVersionRangePolicy(bool dependencyAvailable) {
+            var owner = Release("InactiveOwner", Assets("InactiveActor"));
+            var parent = Release("Parent", Assets("Parent"));
+            var latestParent = parent with {
+                Tag = "v2.0.0",
+                Info = parent.Info with { Dependencies = [new Dependency("Org/Middle", "v9.0.0")] }
+            };
+            var middle = Release("Middle", Assets("Middle"));
+            var manager = dependencyAvailable ? Manager(owner, parent, latestParent, middle) : Manager(owner, parent, latestParent);
+            manager.EnableModRelease(ReleaseCoordinates.FromRelease(parent));
+            var catalog = new AvailableModsAndMapsService(manager, new ModScanTabVM());
+            // Traversal uses latest metadata even for an older enabled parent and currently ignores version constraints.
+            Assert.Equal(dependencyAvailable, manager.GetEnabledAndDependencyReleases().Contains(middle));
+            Assert.Equal(dependencyAvailable, catalog.IsConfirmedInactive(owner.Manifest.Blueprints.Single()));
+        }
+
         private sealed class ScannedPak : IDisposable {
             public PakScanResult Result { get; }
             public ScannedPak() {

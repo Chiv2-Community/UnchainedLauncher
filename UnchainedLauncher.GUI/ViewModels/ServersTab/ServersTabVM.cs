@@ -205,11 +205,10 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public async Task LaunchSelected(bool headless = false) {
             if (SelectedConfiguration == null) return;
 
+            var enabledServerBlueprintDtos = SelectedConfiguration.PrepareServerBlueprintsForLaunch();
             var formData = SelectedConfiguration.ToServerConfiguration();
 
             // Resolve selected releases from the template's EnabledServerModList
-            var enabledCoordinates = ModManager.EnabledModReleaseCoordinates.ToArray();
-            var enabledServerBlueprintDtos = formData.EnabledServerModList!.ToArray();
 
             SelectedConfiguration.SaveINI();
 

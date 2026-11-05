@@ -36,15 +36,17 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             foreach (var entry in document.RootElement.EnumerateArray()) {
                 if (entry.TryGetProperty("Org", out _) && entry.TryGetProperty("ModuleName", out _))
                     selections.LegacySelections.Add(entry.Clone());
-                else
-                    selections.Add(entry.Deserialize<BlueprintDto>(options)!);
+                else {
+                    var blueprint = entry.Deserialize<BlueprintDto>(options)!;
+                    if (!selections.Contains(blueprint)) selections.Add(blueprint);
+                }
             }
             return selections;
         }
 
         public override void Write(Utf8JsonWriter writer, ObservableCollection<BlueprintDto> value, JsonSerializerOptions options) {
             writer.WriteStartArray();
-            foreach (var blueprint in value)
+            foreach (var blueprint in value.Distinct())
                 JsonSerializer.Serialize(writer, blueprint, options);
             if (value is ServerBlueprintSelections selections)
                 foreach (var entry in selections.LegacySelections)

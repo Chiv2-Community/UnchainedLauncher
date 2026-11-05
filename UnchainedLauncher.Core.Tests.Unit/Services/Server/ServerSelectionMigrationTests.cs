@@ -245,7 +245,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                     Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
                     var checkbox = Descendants<CheckBox>(view).Single();
                     Assert.True(checkbox.IsChecked);
-                    Assert.Equal(savedCopies, config.EnabledServerModList.Count);
+                    Assert.Equal(i == 0 ? savedCopies : 1, config.EnabledServerModList.Count);
                     Assert.All(config.EnabledServerModList, selected => Assert.Equal(actor, selected));
                     if (i == 1) {
                         checkbox.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
@@ -253,8 +253,28 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                         Assert.False(checkbox.IsChecked);
                         Assert.Empty(config.EnabledServerModList);
                     }
+                    else {
+                        Assert.Equal(actor, Assert.Single(config.PrepareServerBlueprintsForLaunch()));
+                    }
                     view.DataContext = null;
                 }
+            });
+        }
+
+        [Fact]
+        public void LaunchOmitsUnavailableActorsWithoutErasingUnresolvedPreferences() {
+            RunSta(() => {
+                var codec = Codec(new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), []));
+                var config = Decode(codec, Fixture())[0];
+                var old = Blueprint("SelectedActor");
+                var current = old with { Hash = "updated", Version = "2.0.0" };
+                var removed = Blueprint("DisabledActor");
+                foreach (var actor in new[] { old, old with { }, removed })
+                    config.EnabledServerModList.Add(actor);
+                config.AvailableServerModBlueprints.Add(current);
+                Assert.Equal(current, Assert.Single(config.PrepareServerBlueprintsForLaunch()));
+                Assert.Equal(new[] { current, removed }, config.EnabledServerModList);
+                Assert.Equal(current, Assert.Single(config.PrepareServerBlueprintsForLaunch()));
             });
         }
 

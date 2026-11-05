@@ -353,6 +353,23 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             while (selections.Remove(blueprint)) { }
         }
 
+        public BlueprintDto[] PrepareServerBlueprintsForLaunch() {
+            var selections = EnabledServerModList;
+            var selectedPaths = selections.Select(actor => actor.ClassPath)
+                .Where(path => !string.IsNullOrWhiteSpace(path)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var active = AvailableServerModBlueprints
+                .Where(actor => actor.ClassPath != null && selectedPaths.Contains(actor.ClassPath))
+                .DistinctBy(actor => actor.ClassPath, StringComparer.OrdinalIgnoreCase).ToArray();
+            // Never erase unavailable selections merely because metadata or a local scan is missing.
+            // Only active actors are emitted; retain unresolved preferences for a later refresh.
+            var normalized = selections.DistinctBy(actor => actor.ClassPath ?? actor.Path, StringComparer.OrdinalIgnoreCase)
+                .Select(actor => active.FirstOrDefault(current => string.Equals(current.ClassPath, actor.ClassPath,
+                    StringComparison.OrdinalIgnoreCase)) ?? actor).ToArray();
+            selections.Clear();
+            foreach (var actor in normalized) selections.Add(actor);
+            return active;
+        }
+
         [RelayCommand]
         public void AutoFillIp() {
             LocalIp = DetermineLocalIp();

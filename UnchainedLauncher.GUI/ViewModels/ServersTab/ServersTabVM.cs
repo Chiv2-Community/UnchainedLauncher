@@ -405,7 +405,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 relaunched.IfSome(newProc => {
                     var newServer = CreateServer(newProc, formData, headless, restartActors);
                     UiDispatcher.Invoke(() => runningTuple.live.ReplaceServer(newServer, countAsRestart: true));
-                    _ = AttachServerExitWatcher(newProc, formData, restartActors, headless, runningTuple);
+                    // Availability is per launch; a temporarily unavailable requested actor may return later.
+                    _ = AttachServerExitWatcher(newProc, formData, enabledServerBlueprintDtos, headless, runningTuple);
                 });
             });
 

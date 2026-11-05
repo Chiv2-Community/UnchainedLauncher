@@ -344,6 +344,29 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             });
         }
 
+        [Fact]
+        public void UnresolvedEnabledParentPreservesSelectedDependencyActorAcrossLaunchAndSave() {
+            RunSta(() => {
+                var actor = Blueprint("DependencyActor");
+                var dependency = Mod("Dependency", actor);
+                var parent = Mod("Parent");
+                var oldParent = parent.Releases.First() with {
+                    Info = parent.LatestReleaseInfo with {
+                        Dependencies = [new Dependency("Chiv2-Community/Dependency", "v1.0.0")]
+                    }
+                };
+                parent = parent with { Releases = [oldParent] };
+                var unresolved = ReleaseCoordinates.FromRelease(oldParent) with { Version = "v9.0.0" };
+                var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), [unresolved], [parent, dependency]);
+                var codec = Codec(manager);
+                var configs = Decode(codec, "[{\"Name\":\"UnresolvedParent\"}]");
+                configs[0].EnabledServerModList.Add(actor);
+                Assert.Empty(configs[0].PrepareServerBlueprintsForLaunch());
+                Assert.Equal(actor, Assert.Single(configs[0].EnabledServerModList));
+                Assert.Equal(actor, Assert.Single(Decode(codec, codec.Serialize(configs))[0].EnabledServerModList));
+            });
+        }
+
         private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject {
             for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++) {
                 var child = VisualTreeHelper.GetChild(root, i);

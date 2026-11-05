@@ -11,7 +11,6 @@ using System.Security.Cryptography;
 using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods;
-using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -87,9 +86,8 @@ public class AvailableModsAndMapsService {
         var owners = _modManager.Mods.SelectMany(mod => mod.Releases)
             .Where(release => release.Manifest.RelevantBlueprints().Any(known => ServerBlueprintIdentity.Same(known, actor))).ToList();
         if (owners.Count == 0) return false; // Offline/unknown ownership is not evidence of a disabled preference.
-        // An enabled version missing from the registry may still provide this actor.
-        return !owners.Any(owner => _modManager.EnabledModReleaseCoordinates.Any(coordinates =>
-            coordinates.Matches(ModIdentifier.FromRelease(owner)) && _modManager.GetRelease(coordinates).IsNone));
+        // An unresolved enabled root may provide this actor directly or through unknown dependencies.
+        return !_modManager.EnabledModReleaseCoordinates.Any(coordinates => _modManager.GetRelease(coordinates).IsNone);
     }
 
     private bool IsCurrentScan(PakManifest pak, bool verifyHash) {

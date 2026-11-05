@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Threading.Channels;
 using LanguageExt;
 using LanguageExt.Common;
 using UnchainedLauncher.Core.Services.Mods;
@@ -52,9 +53,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
-        public async Task OverlappingPreparationsSerializeAndReuseTheCompletedDownload() {
+        public async Task SlowHealthyPreparationWaitsBeyondThirtySecondsAndReusesDownload() {
             var server = NewPakDir();
-            var client = NewPakDir();
+            var time = new RetryTimeProvider();
+            var client = new LauncherPakDir(_directory, Array.Empty<ManagedPak>(), time);
             var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             async Task<Either<Error, FileWriter>> DelayedWriter(string path) {
@@ -74,15 +76,91 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
             var second = Install(client, _a);
             try {
-                await Task.Delay(150);
-                Assert.False(second.IsCompleted);
+                // Cross the old timeout without waiting for real downloads or wall-clock time.
+                for (var i = 0; i < 3; i++) {
+                    await time.AdvanceRetry(TimeSpan.FromSeconds(31));
+                    Assert.False(second.IsCompleted);
+                }
             }
             finally {
                 release.SetResult();
             }
+            await first.WaitAsync(TimeSpan.FromSeconds(5));
+            await time.FireRetry(TimeSpan.Zero);
             await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(5));
             Assert.Equal(1, _downloads);
             Assert.Single(Directory.GetFiles(_directory, "*.pak"));
+        }
+
+        [Fact]
+        public async Task CancelledLockWaitLeavesTheOwnersPendingMarkerAndInventoryUntouched() {
+            var owner = new PakInventory(_directory);
+            using var cancellation = new CancellationTokenSource();
+            using (await owner.Lock()) {
+                owner.BeginChange();
+                async Task WaitForInstall() {
+                    await foreach (var result in NewPakDir().InstallModSet(
+                        new[] { new ModInstallRequest(_a, Write) }, Option<AccumulatedMemoryProgress>.None)
+                        .WithCancellation(cancellation.Token)) {
+                        result.IfLeft(e => throw e);
+                    }
+                }
+
+                var waiting = WaitForInstall();
+                Assert.False(waiting.IsCompleted);
+                cancellation.Cancel();
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waiting.WaitAsync(TimeSpan.FromSeconds(5)));
+                Assert.True(File.Exists(Path.Combine(_directory, ".unchained", "pending")));
+                Assert.False(File.Exists(Path.Combine(_directory, ".unchained", "inventory.json")));
+                Assert.Equal(0, _downloads);
+                owner.Save(Array.Empty<ManagedPak>());
+            }
+            await Install(NewPakDir(), _a);
+            Assert.Equal(1, _downloads);
+        }
+
+        [Fact]
+        public async Task InvalidLockPathFailsWithoutRetrying() {
+            Directory.CreateDirectory(Path.Combine(_directory, ".unchained", "inventory.lock"));
+            var inventory = new PakInventory(_directory, new RetryTimeProvider());
+            await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(async () => {
+                using var handle = await inventory.Lock().WaitAsync(TimeSpan.FromSeconds(5));
+            });
+        }
+
+        private sealed class RetryTimeProvider : TimeProvider {
+            private readonly Channel<RetryTimer> _retries = Channel.CreateUnbounded<RetryTimer>();
+            private long _elapsedTicks;
+
+            public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+            public override long GetTimestamp() => Interlocked.Read(ref _elapsedTicks);
+            public override DateTimeOffset GetUtcNow() => DateTimeOffset.UnixEpoch.AddTicks(GetTimestamp());
+
+            public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period) {
+                var timer = new RetryTimer(callback, state);
+                _retries.Writer.TryWrite(timer);
+                return timer;
+            }
+
+            public async Task AdvanceRetry(TimeSpan elapsed) {
+                await FireRetry(elapsed);
+                // The waiter must retry, not fail or acquire the still-held lock.
+                Assert.True(await _retries.Reader.WaitToReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5)));
+            }
+
+            public async Task FireRetry(TimeSpan elapsed) {
+                var timer = await _retries.Reader.ReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+                Interlocked.Add(ref _elapsedTicks, elapsed.Ticks);
+                timer.Fire();
+            }
+
+            private sealed class RetryTimer(TimerCallback callback, object? state) : ITimer {
+                private bool _disposed;
+                public void Fire() { if (!_disposed) callback(state); }
+                public bool Change(TimeSpan dueTime, TimeSpan period) => throw new NotSupportedException();
+                public void Dispose() => _disposed = true;
+                public ValueTask DisposeAsync() { Dispose(); return ValueTask.CompletedTask; }
+            }
         }
 
         [Fact]

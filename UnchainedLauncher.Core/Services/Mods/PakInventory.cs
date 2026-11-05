@@ -1,31 +1,38 @@
-using System.Diagnostics;
 using System.Text.Json;
 
 namespace UnchainedLauncher.Core.Services.Mods {
     // Shared file ownership only. Enabled mods and cached metadata remain launcher preferences.
     internal sealed class PakInventory {
         private readonly string _directory;
+        private readonly TimeProvider _timeProvider;
         private string InventoryPath => Path.Combine(_directory, "inventory.json");
         private string PendingPath => Path.Combine(_directory, "pending");
 
-        public PakInventory(string pakDirectory) {
+        public PakInventory(string pakDirectory, TimeProvider? timeProvider = null) {
             _directory = Path.Combine(pakDirectory, ".unchained");
+            _timeProvider = timeProvider ?? TimeProvider.System;
         }
 
-        public async Task<FileStream> Lock() {
+        public async Task<FileStream> Lock(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             Directory.CreateDirectory(_directory);
-            var timer = Stopwatch.StartNew();
             while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
                 try {
                     // Keep the lock file: deleting it could let two processes lock different files.
                     return new FileStream(Path.Combine(_directory, "inventory.lock"),
                         FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
                 }
-                catch (IOException) when (timer.Elapsed < TimeSpan.FromSeconds(30)) {
-                    await Task.Delay(50).ConfigureAwait(false);
+                catch (IOException ex) when (IsLockContention(ex)) {
+                    // Downloads can take arbitrarily long. Only cancellation ends a healthy wait.
+                    await Task.Delay(TimeSpan.FromMilliseconds(50), _timeProvider, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
+
+        private static bool IsLockContention(IOException exception) =>
+            (exception.HResult & 0xffff) is 32 or 33 // Windows sharing/lock violation
+            || (!OperatingSystem.IsWindows() && (exception.HResult & 0xffff) == 11); // Unix EAGAIN
 
         public List<ManagedPak> Load(IEnumerable<ManagedPak> legacyPaks) {
             if (File.Exists(PendingPath)) {

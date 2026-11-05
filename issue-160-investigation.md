@@ -1,6 +1,6 @@
 # Issue #160: duplicate server/client paks
 
-Status: implemented and tested on Linux; Windows/game validation remains. Do not close based on these tests alone.
+Status: implemented and tested on Linux and through Wine; native Windows/game validation remains. Do not close based on these tests alone.
 
 ## Findings on main (71609dc)
 
@@ -13,7 +13,7 @@ Status: implemented and tested on Linux; Windows/game validation remains. Do not
 ## Implementation
 
 - `PakInventory` stores ownership in `<PakDir>/.unchained/inventory.json`, separately from enabled-mod preferences and metadata caches.
-- A persistent lock file, opened with `FileShare.None`, serializes inventory reload, preparation, and publication across launcher instances. Lock contention waits up to 30 seconds before failing.
+- A persistent lock file, opened with `FileShare.None`, serializes inventory reload, preparation, and publication across launcher instances. Healthy contention waits without an arbitrary timeout; cancelling async enumeration cancels a pending wait. Non-contention filesystem errors fail immediately.
 - Each preparation reloads ownership under the lock. The legacy ModManager snapshot seeds ownership only when no shared inventory exists; later exit-time snapshots cannot overwrite the shared inventory.
 - Successful changes are flushed and atomically published before yielding results, including partial preparations. Uninstall and explicit reset publish their changes too. Hash-path lookup reloads current names.
 - Downloads reserve new filenames and remove failed partial output. Failed signature moves roll the pak rename back. Unknown paks are neither adopted nor removed during preparation.
@@ -26,6 +26,7 @@ Status: implemented and tested on Linux; Windows/game validation remains. Do not
 - Coverage: stale instances/restarts, alternating orders and subsets, overlapping preparations, unmanaged collision preservation, legacy migration, independent enabled choices, partial enumeration, download failure/cleanup, stale uninstall, signature-move rollback, invalid inventory, interrupted preparation/publication, and reset.
 - `dotnet build UnchainedLauncher.Core.Tests.Unit/UnchainedLauncher.Core.Tests.Unit.csproj -p:EnableWindowsTargeting=true -p:CopyLocalLockFileAssemblies=false -clp:ErrorsOnly`: **passed**, 0 errors. A normal cross-build initially hit the environment's disk quota copying dependencies; disabling copy-local allowed compilation to complete.
 - `dotnet build /tmp/opencode/issue-160-worker/Worker.csproj -clp:ErrorsOnly` and `python3 /tmp/opencode/issue-160-worker/check-processes.py`: **passed**. Two separate overlapping .NET processes prepared one directory; only one writer ran, leaving one pak and one inventory entry.
+- Follow-up: the Windows-targeted build passed with artifacts outside the full `/tmp` quota; all **17 shared-inventory tests passed under Wine/.NET 10.0.2**, including simulated long healthy contention, cancellation preserving the owner's pending state, and immediate invalid-lock-path failure.
 
 ## Remaining limitations
 

@@ -1,6 +1,7 @@
 using LanguageExt;
 using LanguageExt.Common;
 using log4net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.Extensions;
@@ -23,10 +24,13 @@ namespace UnchainedLauncher.Core.Services.Mods {
         private readonly List<ManagedPak> _managedPaks;
         private readonly PakInventory _inventory;
 
-        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks) {
+        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks)
+            : this(dirPath, managedPaks, TimeProvider.System) { }
+
+        internal PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks, TimeProvider timeProvider) {
             DirPath = dirPath;
             _managedPaks = managedPaks.ToList();
-            _inventory = new PakInventory(dirPath);
+            _inventory = new PakInventory(dirPath, timeProvider);
             SynchronizeWithDir();
         }
 
@@ -135,16 +139,25 @@ namespace UnchainedLauncher.Core.Services.Mods {
             }
         }
 
-        public async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSet(
+        public IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSet(
                 IEnumerable<ModInstallRequest> installs,
-                Option<AccumulatedMemoryProgress> progress) {
+                Option<AccumulatedMemoryProgress> progress) => InstallModSetLocked(installs, progress);
+
+        private async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSetLocked(
+                IEnumerable<ModInstallRequest> installs,
+                Option<AccumulatedMemoryProgress> progress,
+                [EnumeratorCancellation] CancellationToken cancellationToken = default) {
             FileStream? inventoryLock = null;
             Error? inventoryError = null;
             try {
-                inventoryLock = await _inventory.Lock();
+                inventoryLock = await _inventory.Lock(cancellationToken);
                 ReloadInventory();
                 // Publish migration and check writability before changing any pak files.
                 _inventory.Save(_managedPaks);
+            }
+            catch (OperationCanceledException) {
+                inventoryLock?.Dispose();
+                throw;
             }
             catch (Exception ex) {
                 inventoryError = Error.New("Failed to load managed pak inventory", ex);
@@ -157,6 +170,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 // Publish each result before yielding, including successful partial preparations.
                 await using var results = InstallModSetCore(installs, progress).GetAsyncEnumerator();
                 while (true) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     inventoryError = null;
                     var hasResult = false;
                     try {

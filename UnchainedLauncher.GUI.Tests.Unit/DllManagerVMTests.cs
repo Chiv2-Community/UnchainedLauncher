@@ -6,6 +6,43 @@ using Xunit;
 namespace UnchainedLauncher.GUI.Tests.Unit {
     public sealed class DllManagerVMTests {
         [Fact]
+        public async Task ExpansionSurvivesFilteringSortingRefreshAndSelectionChanges() {
+            var directory = Path.Combine(Path.GetTempPath(), "plugin-expansion-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            try {
+                var handler = new MutableIndexHandler { Json = JsonSerializer.Serialize(new[] { Release("Alpha"), Release("Beta") }) };
+                using var http = new HttpClient(handler);
+                var manager = new DllManager(Path.Combine(directory, "Plugins"), Path.Combine(directory, "state.json"), http);
+                var vm = new DllManagerVM(manager);
+                await vm.Refresh();
+                var alpha = vm.Plugins.Single(plugin => plugin.RepositoryName == "Alpha");
+                var changes = new List<string?>();
+                alpha.PropertyChanged += (_, args) => changes.Add(args.PropertyName);
+                alpha.IsExpanded = false;
+                alpha.IsExpanded = false;
+                Assert.Equal(new[] { nameof(DllPluginVM.IsExpanded) }, changes);
+                vm.SearchTerm = "Beta";
+                vm.CollapseAllCommand.Execute(null);
+                vm.SearchTerm = null;
+                Assert.All(vm.Plugins, plugin => Assert.False(plugin.IsExpanded));
+                vm.SearchTerm = "no matches";
+                vm.ExpandAllCommand.Execute(null);
+                vm.SearchTerm = null;
+                Assert.All(vm.Plugins, plugin => Assert.True(plugin.IsExpanded));
+                vm.Plugins.Single(plugin => plugin.RepositoryName == "Alpha").IsExpanded = false;
+                vm.SelectedSortMode = ModSortMode.Alphabetical;
+                handler.Json = JsonSerializer.Serialize(new[] { Release("Alpha", "2.0.0"), Release("Beta") });
+                await vm.Refresh();
+                Assert.False(vm.Plugins.Single(plugin => plugin.RepositoryName == "Alpha").IsExpanded);
+                Assert.True(vm.Plugins.Single(plugin => plugin.RepositoryName == "Beta").IsExpanded);
+                Assert.Empty(manager.EnabledSelections);
+                manager.SetEnabled(manager.Releases.Single(release => release.Name == "Alpha"), true);
+                Assert.False(vm.Plugins.Single(plugin => plugin.RepositoryName == "Alpha").IsExpanded);
+            }
+            finally { Directory.Delete(directory, true); }
+        }
+
+        [Fact]
         public async Task RemovedPinnedVersionShowsUnavailableEvenWhenOtherVersionsRemainRegistered() {
             var directory = Path.Combine(OperatingSystem.IsLinux() ? "/tmp/opencode" : Path.GetTempPath(), "removed-version-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
@@ -312,7 +349,7 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
             Assert.DoesNotContain("Show prereleases", tab.ToString());
             var footer = controls[0].Parent!;
             Assert.Same(footer, controls[1].Parent);
-            Assert.Equal("2", (string?)footer.Attribute("Grid.Row"));
+            Assert.Equal("3", (string?)footer.Attribute("Grid.Row"));
             Assert.Equal("1", (string?)controls[0].Attribute("Grid.Row"));
             Assert.Equal("1", (string?)controls[1].Attribute("Grid.Row"));
             Assert.Equal("0", (string?)controls[0].Attribute("Grid.Column"));

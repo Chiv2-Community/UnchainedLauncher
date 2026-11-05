@@ -13,6 +13,7 @@ using System.Windows;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.GUI.ViewModels {
@@ -53,6 +54,17 @@ namespace UnchainedLauncher.GUI.ViewModels {
         // Property change hooks (PropertyChanged.Fody will call these)
         private void OnSearchTermChanged() => RebuildDisplay();
         private void OnSelectedSortModeChanged() => RebuildDisplay();
+        private void OnShowEnabledOnlyChanged() => RebuildDisplay();
+
+        [RelayCommand]
+        private void ExpandAll() {
+            foreach (var mod in UnfilteredModView) mod.IsExpanded = true;
+        }
+
+        [RelayCommand]
+        private void CollapseAll() {
+            foreach (var mod in UnfilteredModView) mod.IsExpanded = false;
+        }
 
         [RelayCommand]
         public async Task RefreshModList() {
@@ -65,8 +77,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     errors.ToList().ForEach(error => _logger.Warn(error));
                     UserDialogueSpawner.DisplayMessage("Errors encountered while refreshing mod list. Check the logs for details.");
                 }
+                var expansionStates = UnfilteredModView.ToDictionary(mod => ModIdentifier.FromMod(mod.Mod), mod => mod.IsExpanded);
                 UnfilteredModView.Clear();
-                PopulateModsFromModManager();
+                PopulateModsFromModManager(expansionStates);
                 _logger.Info("Mod list refreshed.");
             }
             catch (Exception ex) {
@@ -187,14 +200,18 @@ namespace UnchainedLauncher.GUI.ViewModels {
             }
         }
 
-        public void PopulateModsFromModManager() {
+        public void PopulateModsFromModManager(IReadOnlyDictionary<ModIdentifier, bool>? expansionStates = null) {
             _modManager.Mods.ToList().ForEach(mod =>
                 UnfilteredModView.Add(
                     new ModVM(
                         mod,
                         _modManager.GetCurrentlyEnabledReleaseForMod(mod),
                         _modManager
-                    )
+                    ) {
+                        IsExpanded = expansionStates?.TryGetValue(ModIdentifier.FromMod(mod), out var expanded) == true
+                            ? expanded
+                            : true
+                    }
                 )
             );
 

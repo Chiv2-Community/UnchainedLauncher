@@ -28,6 +28,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public Release? EnabledRelease { get; set; }
 
+        public bool IsExpanded { get; set; } = true;
+
 
         public string Description {
             get {

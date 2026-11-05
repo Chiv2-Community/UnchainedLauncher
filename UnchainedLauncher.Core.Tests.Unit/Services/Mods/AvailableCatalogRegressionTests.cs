@@ -96,18 +96,13 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
         [Fact]
         public void ScanReplacementAndModDisablePreserveOtherSourcesAndVanillaMaps() {
-            using var file = new ScannedPak();
-            var scanResult = new ModScanResult();
+            using var file = new ScannedPak("Shared");
+            var scanResult = file.Scan;
             var pak = file.Result;
             pak._Maps.Add(JsonConvert.DeserializeObject<GameMapInfo>("""
                 {"asset_path":"TBL/Content/Maps/Shared.umap","asset_hash":"hash",
                  "settings":{"Map":{"MapName":"Shared","GamemodeType":"FFA"}}}
                 """)!);
-            var blueprint = new GenericAssetEntry { AssetPath = "Shared.uasset", AssetHash = "hash" };
-            blueprint.Properties["ModName"] = "Shared";
-            blueprint.Properties["bShowInGUI"] = true;
-            pak.AddGenericEntry(blueprint, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
-            scanResult.Paks["shared.pak"] = pak;
             var shared = ModManifestConverter.ProcessModScan(scanResult).Paks.Single().Inventory;
             var release = Release("Shared", shared);
             var manager = Manager(release);
@@ -148,15 +143,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         [InlineData(true)]
         public void LaunchRefreshRejectsDeletedOrReplacedScannedPak(bool replace) {
             using var file = new ScannedPak();
-            var blueprint = new GenericAssetEntry { AssetPath = "Scanned.uasset", AssetHash = "hash" };
-            blueprint.Properties["ModName"] = "Scanned";
-            blueprint.Properties["bShowInGUI"] = true;
-            file.Result.AddGenericEntry(blueprint, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
-            var result = new ModScanResult();
-            result.Paks[file.Result.PakPath] = file.Result;
             var scan = new ModScanTabVM();
             var catalog = new AvailableModsAndMapsService(Manager(), scan);
-            PublishScan(scan, result);
+            PublishScan(scan, file.Scan);
             Assert.Single(catalog.AvailableServerModBlueprints);
             if (replace) {
                 var modified = File.GetLastWriteTimeUtc(file.Result.PakPath);
@@ -167,24 +156,19 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             catalog.RefreshCatalog();
             Assert.Empty(catalog.AvailableServerModBlueprints);
             // Republishing a stale result must not make it usable again.
-            PublishScan(scan, result);
+            PublishScan(scan, file.Scan);
             Assert.Empty(catalog.AvailableServerModBlueprints);
         }
 
         [Fact]
         public void MetadataRefreshReusesValidationButLaunchHashesUnchangedScanAgain() {
             using var file = new ScannedPak();
-            var blueprint = new GenericAssetEntry { AssetPath = "Cached.uasset", AssetHash = "hash" };
-            blueprint.Properties["bShowInGUI"] = true;
-            file.Result.AddGenericEntry(blueprint, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
-            var result = new ModScanResult();
-            result.Paks[file.Result.PakPath] = file.Result;
             var registry = new Mock<IModRegistry>();
             registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult([], []));
             var manager = new ModManager(registry.Object, Mock.Of<IPakDir>(), []);
             var scan = new ModScanTabVM();
             var catalog = new AvailableModsAndMapsService(manager, scan);
-            PublishScan(scan, result);
+            PublishScan(scan, file.Scan);
             Assert.Single(catalog.AvailableServerModBlueprints);
             using (var locked = File.Open(file.Result.PakPath, FileMode.Open, FileAccess.Read, FileShare.None)) {
                 manager.UpdateModsList().GetAwaiter().GetResult();
@@ -199,21 +183,15 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         [Fact]
         public void ManagedScanCannotReintroduceActorWhenRegistryMetadataIsMissing() {
             using var file = new ScannedPak();
-            var blueprint = new GenericAssetEntry { AssetPath = "Managed.uasset", AssetHash = "hash" };
-            blueprint.Properties["ModName"] = "Managed";
-            blueprint.Properties["bShowInGUI"] = true;
-            file.Result.AddGenericEntry(blueprint, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
-            var result = new ModScanResult();
-            result.Paks[file.Result.PakPath] = file.Result;
             var pakDir = new Mock<IPakDir>();
             pakDir.SetupGet(p => p.DirPath).Returns(Path.GetDirectoryName(file.Result.PakPath)!);
             pakDir.SetupGet(p => p.ManagedPaks).Returns([new ManagedPak(new("Org", "Managed", "v1"), Path.GetFileName(file.Result.PakPath), 0)]);
             var manager = new ModManager(Mock.Of<IModRegistry>(), pakDir.Object, []);
             var scan = new ModScanTabVM();
             var catalog = new AvailableModsAndMapsService(manager, scan);
-            PublishScan(scan, result);
+            PublishScan(scan, file.Scan);
             Assert.Empty(catalog.AvailableServerModBlueprints);
-            var actor = ModManifestConverter.ProcessModScan(result).Paks.Single().Inventory.Blueprints.Single();
+            var actor = ModManifestConverter.ProcessModScan(file.Scan).Paks.Single().Inventory.Blueprints.Single();
             Assert.Empty(catalog.GetConfirmedInactiveSelections([actor])); // Still retain the unresolved saved preference.
         }
 
@@ -263,13 +241,19 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
         private sealed class ScannedPak : IDisposable {
             public PakScanResult Result { get; }
-            public ScannedPak() {
+            public ModScanResult Scan { get; } = new();
+            public ScannedPak(string name = "Scanned") {
                 var path = Path.GetTempFileName();
                 File.WriteAllText(path, "scanned");
                 Result = new PakScanResult {
                     PakPath = path,
                     PakHash = Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(path)))
                 };
+                var blueprint = new GenericAssetEntry { AssetPath = $"{name}.uasset", AssetHash = "hash" };
+                blueprint.Properties["ModName"] = name;
+                blueprint.Properties["bShowInGUI"] = true;
+                Result.AddGenericEntry(blueprint, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
+                Scan.Paks[path] = Result;
             }
             public void Dispose() => File.Delete(Result.PakPath);
         }

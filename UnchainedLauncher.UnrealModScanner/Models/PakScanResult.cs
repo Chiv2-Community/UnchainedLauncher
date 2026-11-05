@@ -60,6 +60,8 @@ public sealed class PakScanResult {
     public ConcurrentBag<GameMapInfo> _Maps { get; } = new();
 
     private ConcurrentBag<GenericAssetEntry> _arbitraryAssets = new();
+    private readonly ConcurrentDictionary<string, byte> _specializedAssetPaths = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> _removedArbitraryAssetPaths = new(StringComparer.Ordinal);
     /// <summary>
     /// Uncategorized assets in pak (Not in official directories)
     /// </summary>
@@ -81,51 +83,26 @@ public sealed class PakScanResult {
         bag.Add(entryBase);
     }
 
-    public static bool RemoveByAssetPath<T>(
-        ref ConcurrentBag<T> bag,
-        string assetPath)
-        where T : BaseAsset {
-        var oldBag = bag;
-
-        if (!oldBag.Any(e => e.AssetPath == assetPath))
-            return false;
-
-        var filtered = oldBag.Where(e => e.AssetPath != assetPath).ToList();
-
-        if (filtered.Count == oldBag.Count)
-            return false;
-
-        var newBag = new ConcurrentBag<T>(filtered);
-
-        return Interlocked.CompareExchange(ref bag, newBag, oldBag) == oldBag;
-    }
-
     public void RemoveEntryGlobal(string assetPath) {
-        Parallel.ForEach(GenericEntries, kvp => {
-            string baseName = kvp.Key;
-
-            while (true) {
-                if (!GenericEntries.TryGetValue(baseName, out var oldBag))
-                    break;
-
-                var bagCopy = oldBag;
-
-                // Attempt removal using the generic helper
-                if (!RemoveByAssetPath(ref bagCopy, assetPath))
-                    break;
-
-                // Swap the updated bag into the dictionary
-                if (GenericEntries.TryUpdate(baseName, bagCopy, oldBag))
-                    break;
-            }
-        });
+        _specializedAssetPaths.TryAdd(assetPath, 0);
     }
     public void RemoveSpecializedAsset(BaseAsset baseAsset) {
         RemoveEntryGlobal(baseAsset.AssetPath);
-        RemoveByAssetPath(ref _arbitraryAssets, baseAsset.AssetPath);
+        RemoveArbitraryAsset(baseAsset);
     }
     public void RemoveArbitraryAsset(BaseAsset baseAsset) {
-        RemoveByAssetPath(ref _arbitraryAssets, baseAsset.AssetPath);
+        _removedArbitraryAssetPaths.TryAdd(baseAsset.AssetPath, 0);
+    }
+
+    /// <summary>Apply exclusions after both scan passes have finished writing.</summary>
+    public void FinalizeClassification() {
+        // Never replace a bag while workers may still be adding to it.
+        foreach (var (classPath, entries) in GenericEntries) {
+            GenericEntries[classPath] = new ConcurrentBag<GenericAssetEntry>(
+                entries.Where(entry => !_specializedAssetPaths.ContainsKey(entry.AssetPath)));
+        }
+        _arbitraryAssets = new ConcurrentBag<GenericAssetEntry>(
+            _arbitraryAssets.Where(entry => !_removedArbitraryAssetPaths.ContainsKey(entry.AssetPath)));
     }
 
     public void AddGenericMarker(GenericMarkerEntry entry, string base_name) {
@@ -146,7 +123,9 @@ public sealed class PakScanResult {
     // Chivalry 2 specific
 
     [JsonProperty("markers")]
+#pragma warning disable CS0618 // Preserve the legacy marker serialization contract.
     public ConcurrentBag<ModMarkerInfo> _Markers { get; } = new();
+#pragma warning restore CS0618
 
     // UI 
 
@@ -162,7 +141,7 @@ public sealed class PakScanResult {
     /// Whether this category is expanded
     /// </summary>
     [JsonIgnore]
-    public string PakPathExpanded { get; set; }
+    public string PakPathExpanded { get; set; } = string.Empty;
 
     [JsonIgnore]
     public bool IsExpanded {
@@ -189,8 +168,8 @@ public sealed class PakScanResult {
         }
     }
 
-    public event PropertyChangedEventHandler PropertyChanged;
-    protected void OnPropertyChanged([CallerMemberName] string name = null)
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
     // Serialization filters

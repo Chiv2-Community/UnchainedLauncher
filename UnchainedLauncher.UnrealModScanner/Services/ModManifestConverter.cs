@@ -9,7 +9,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
         public static PakDirManifest ProcessModScan(ModScanResult scanResult) {
             var paks = new List<PakManifest>();
 
-            foreach (var entry in scanResult.Paks) {
+            foreach (var entry in scanResult.Paks.OrderBy(entry => entry.Key, StringComparer.Ordinal)) {
                 var pakInventory = new PakManifest(
                     PakName: entry.Key,
                     PakPath: entry.Value.PakPath,
@@ -51,7 +51,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                         Hash: marker.AssetHash,
                         ClassPath: marker.ClassPath,
                         ObjectClass: marker.ClassName,
-                        AssociatedBlueprints: marker.Children.Select(c => c.AssetPath).ToList()
+                        AssociatedBlueprints: marker.Children.Select(c => c.AssetPath).OrderBy(path => path, StringComparer.Ordinal).ToList()
                     );
 
                     markers.Add(markerDto);
@@ -121,11 +121,11 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
             }
 
             return new AssetCollections(
-                Markers: markers,
-                Blueprints: blueprints,
-                Maps: maps,
-                Replacements: replacements,
-                Arbitrary: arbitrary
+                Markers: markers.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList(),
+                Blueprints: blueprints.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList(),
+                Maps: maps.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList(),
+                Replacements: replacements.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList(),
+                Arbitrary: arbitrary.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList()
             );
         }
 
@@ -165,7 +165,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                 // Handle cases where numbers might be boxed as different types
                 if (value is T typedValue) return typedValue;
 
-                try { return (T)Convert.ChangeType(value, typeof(T)); }
+                try { return (T?)Convert.ChangeType(value, typeof(T)); }
                 catch { return default; }
             }
             return default;

@@ -32,7 +32,7 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
         provider.LoadVirtualPaths();
     }
 
-    public async Task<ModScanResult> RunScanAsync(FilteredFileProvider provider, ScanOptions options, IProgress<double> progress = null) {
+    public async Task<ModScanResult> RunScanAsync(FilteredFileProvider provider, ScanOptions options, IProgress<double>? progress = null) {
         var discoveryProcessor = modProcessors.OfType<ReferenceDiscoveryProcessor>().FirstOrDefault();
         int processed = 0;
 
@@ -55,7 +55,6 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                     if (file.Value is not FPakEntry pakEntry)
                         return;
                     IPackage? pkg = null;
-                    bool packageLoaded;
                     try {
                         pkg = await provider.LoadPackageAsync(file.Key);
                         // Log.Error($"Failed to load package: {e.Message}");
@@ -99,6 +98,9 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                 var secondPass = new SecondPassOrchestrator(provider, options); // options statt _options
                 await secondPass.ResolveReferencesAsync(discoveryProcessor.DiscoveredReferences, mainResult);
             }
+
+            foreach (var result in mainResult.Paks.Values)
+                result.FinalizeClassification();
 
             //if (discoveryProcessor.DiscoveredReferences.Any()) {
             //    var secondPass = new SecondPassOrchestrator(provider, _options);

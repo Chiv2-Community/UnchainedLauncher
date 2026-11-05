@@ -208,8 +208,6 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var enabledServerBlueprintDtos = SelectedConfiguration.PrepareServerBlueprintsForLaunch();
             var formData = SelectedConfiguration.ToServerConfiguration();
 
-            // Resolve selected releases from the template's EnabledServerModList
-
             SelectedConfiguration.SaveINI();
 
 
@@ -233,7 +231,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 return;
             }
 
-            var serverModArray = conf.EnabledServerModList.ToArray();
+            var serverModArray = conf.EnabledServerModList
+                .DistinctBy(ServerBlueprintIdentity.Key, StringComparer.OrdinalIgnoreCase).ToArray();
 
             var formData = conf.ToServerConfiguration();
             var server = CreateServer(proc, formData, false, serverModArray);
@@ -395,11 +394,18 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 await Task.Delay(2000);
 
 
-                var relaunched = await LaunchServerWithOptions(formData, headless, enabledServerBlueprintDtos);
+                var restartActors = await UiDispatcher.InvokeAsync(() => {
+                    _availableModsAndMaps.RefreshCatalog();
+                    return _availableModsAndMaps.AvailableServerModBlueprints
+                        .Where(actor => enabledServerBlueprintDtos.Any(selected => ServerBlueprintIdentity.Same(selected, actor)))
+                        .Where(actor => !string.IsNullOrWhiteSpace(actor.ClassPath))
+                        .DistinctBy(ServerBlueprintIdentity.Key, StringComparer.OrdinalIgnoreCase).ToArray();
+                });
+                var relaunched = await LaunchServerWithOptions(formData, headless, restartActors);
                 relaunched.IfSome(newProc => {
-                    var newServer = CreateServer(newProc, formData, headless, enabledServerBlueprintDtos);
+                    var newServer = CreateServer(newProc, formData, headless, restartActors);
                     UiDispatcher.Invoke(() => runningTuple.live.ReplaceServer(newServer, countAsRestart: true));
-                    _ = AttachServerExitWatcher(newProc, formData, enabledServerBlueprintDtos, headless, runningTuple);
+                    _ = AttachServerExitWatcher(newProc, formData, restartActors, headless, runningTuple);
                 });
             });
 

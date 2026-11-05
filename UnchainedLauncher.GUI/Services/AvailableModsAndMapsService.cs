@@ -7,9 +7,11 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -23,6 +25,7 @@ public class AvailableModsAndMapsService {
 
     public ObservableCollection<MapDto> AvailableMaps { get; }
     public ObservableCollection<BlueprintDto> AvailableServerModBlueprints { get; }
+    public event EventHandler? ModStateChanged;
 
     private PakDirManifest? _cachedScanManifest = null;
     private readonly IModManager _modManager;
@@ -34,8 +37,8 @@ public class AvailableModsAndMapsService {
         AvailableMaps = new ObservableCollection<MapDto>();
         AvailableServerModBlueprints = new ObservableCollection<BlueprintDto>();
 
-        modManager.ModDisabled += _ => ReconcileCatalog();
-        modManager.ModEnabled += (_, _) => ReconcileCatalog();
+        modManager.ModDisabled += _ => OnModStateChanged();
+        modManager.ModEnabled += (_, _) => OnModStateChanged();
         WeakEventManager<IModManager, EventArgs>.AddHandler(modManager, nameof(IModManager.MetadataRefreshed), OnMetadataRefreshed);
 
         HandleLatestScanUpdate(modScanTab.LastScanResult);
@@ -48,11 +51,54 @@ public class AvailableModsAndMapsService {
     // UpdateModsList resumes on its caller's UI context, just like enable/disable and scan updates.
     private void OnMetadataRefreshed(object? sender, EventArgs args) => ReconcileCatalog();
 
+    private void OnModStateChanged() {
+        ReconcileCatalog();
+        ModStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private void ReconcileCatalog() {
-        var manifests = _modManager.GetEnabledAndDependencyReleases().Select(release => release.Manifest)
-            .Concat(_cachedScanManifest?.Paks.Select(pak => pak.Inventory) ?? []).ToList();
+        var releases = _modManager.GetEnabledAndDependencyReleases().ToList();
+        var known = _modManager.Mods.SelectMany(mod => mod.Releases).ToList();
+        var inactivePaths = known.Except(releases).SelectMany(release => release.Manifest.RelevantBlueprints())
+            .Select(ServerBlueprintIdentity.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var activePaths = releases.SelectMany(release => release.Manifest.RelevantBlueprints())
+            .Select(ServerBlueprintIdentity.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        inactivePaths.ExceptWith(activePaths);
+        var managedPaths = _modManager.PakDir.ManagedPaks.Select(pak =>
+            Path.GetFullPath(Path.Combine(_modManager.PakDir.DirPath, pak.PakFileName)))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Managed paks are installed/removed by the launcher. A scan must not resurrect their disabled actors.
+        var manifests = releases.Select(release => release.Manifest)
+            .Concat(_cachedScanManifest?.Paks.Where(pak => !string.IsNullOrWhiteSpace(pak.PakPath)
+                && !managedPaths.Contains(Path.GetFullPath(pak.PakPath)) && IsCurrentScan(pak)).Select(pak => pak.Inventory with {
+                Blueprints = pak.Inventory.Blueprints.Where(actor => !inactivePaths.Contains(ServerBlueprintIdentity.Key(actor))).ToList()
+            }) ?? []).ToList();
         Reconcile(AvailableMaps, _defaultMaps.Concat(manifests.SelectMany(manifest => manifest.RelevantMaps())));
         Reconcile(AvailableServerModBlueprints, manifests.SelectMany(manifest => manifest.RelevantBlueprints()));
+    }
+
+    // Called at the launch boundary too: external pak changes do not raise mod-manager events.
+    public void RefreshCatalog() => ReconcileCatalog();
+
+    public bool IsConfirmedInactive(BlueprintDto actor) {
+        if (AvailableServerModBlueprints.Any(current => ServerBlueprintIdentity.Same(current, actor))) return false;
+        var owners = _modManager.Mods.SelectMany(mod => mod.Releases)
+            .Where(release => release.Manifest.RelevantBlueprints().Any(known => ServerBlueprintIdentity.Same(known, actor))).ToList();
+        if (owners.Count == 0) return false; // Offline/unknown ownership is not evidence of a disabled preference.
+        // An enabled version missing from the registry may still provide this actor.
+        return !owners.Any(owner => _modManager.EnabledModReleaseCoordinates.Any(coordinates =>
+            coordinates.Matches(ModIdentifier.FromRelease(owner)) && _modManager.GetRelease(coordinates).IsNone));
+    }
+
+    private static bool IsCurrentScan(PakManifest pak) {
+        if (string.IsNullOrWhiteSpace(pak.PakHash)) return false;
+        try {
+            using var stream = File.OpenRead(pak.PakPath);
+            return string.Equals(Convert.ToHexString(SHA512.HashData(stream)), pak.PakHash, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
+        catch (ArgumentException) { return false; }
     }
 
     private static void Reconcile<T>(ObservableCollection<T> catalog, IEnumerable<T> assets) {

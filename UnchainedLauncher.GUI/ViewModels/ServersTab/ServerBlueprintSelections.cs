@@ -8,6 +8,7 @@ using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
@@ -23,7 +24,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                     .SelectMany(release => release.Manifest.RelevantBlueprints()).Distinct().ToList();
                 if (blueprints.Count == 0) continue;
                 LegacySelections.Remove(entry);
-                foreach (var blueprint in blueprints.Where(blueprint => !Contains(blueprint)))
+                foreach (var blueprint in blueprints.Where(blueprint => !this.Any(selected => ServerBlueprintIdentity.Same(selected, blueprint))))
                     Add(blueprint);
             }
         }
@@ -38,7 +39,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                     selections.LegacySelections.Add(entry.Clone());
                 else {
                     var blueprint = entry.Deserialize<BlueprintDto>(options)!;
-                    if (!selections.Contains(blueprint)) selections.Add(blueprint);
+                    if (!selections.Any(selected => ServerBlueprintIdentity.Same(selected, blueprint))) selections.Add(blueprint);
                 }
             }
             return selections;
@@ -46,7 +47,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public override void Write(Utf8JsonWriter writer, ObservableCollection<BlueprintDto> value, JsonSerializerOptions options) {
             writer.WriteStartArray();
-            foreach (var blueprint in value.Distinct())
+            foreach (var blueprint in value.DistinctBy(ServerBlueprintIdentity.Key, StringComparer.OrdinalIgnoreCase))
                 JsonSerializer.Serialize(writer, blueprint, options);
             if (value is ServerBlueprintSelections selections)
                 foreach (var entry in selections.LegacySelections)

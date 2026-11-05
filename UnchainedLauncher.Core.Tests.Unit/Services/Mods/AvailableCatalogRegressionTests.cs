@@ -1,5 +1,6 @@
 using Moq;
 using Newtonsoft.Json;
+using System.Security.Cryptography;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -95,8 +96,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
         [Fact]
         public void ScanReplacementAndModDisablePreserveOtherSourcesAndVanillaMaps() {
+            using var file = new ScannedPak();
             var scanResult = new ModScanResult();
-            var pak = new PakScanResult();
+            var pak = file.Result;
             pak._Maps.Add(JsonConvert.DeserializeObject<GameMapInfo>("""
                 {"asset_path":"TBL/Content/Maps/Shared.umap","asset_hash":"hash",
                  "settings":{"Map":{"MapName":"Shared","GamemodeType":"FFA"}}}
@@ -118,7 +120,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             Assert.Single(catalog.AvailableMaps.Where(map => shared.Maps.Contains(map)));
             Assert.Single(catalog.AvailableServerModBlueprints);
             manager.DisableModRelease(ReleaseCoordinates.FromRelease(release));
-            AssertAssets(catalog, shared, true);
+            Assert.All(shared.Maps, map => Assert.Contains(map, catalog.AvailableMaps));
+            Assert.Empty(catalog.AvailableServerModBlueprints);
             manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
             PublishScan(scan, new ModScanResult());
             AssertAssets(catalog, shared, true);
@@ -128,6 +131,64 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             PublishScan(scan, null);
             AssertAssets(catalog, shared, false);
             Assert.Equal(vanilla, catalog.AvailableMaps);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void LaunchRefreshRejectsDeletedOrReplacedScannedPak(bool replace) {
+            using var file = new ScannedPak();
+            var blueprint = new GenericAssetEntry { AssetPath = "Scanned.uasset", AssetHash = "hash" };
+            blueprint.Properties["ModName"] = "Scanned";
+            blueprint.Properties["bShowInGUI"] = true;
+            file.Result.AddGenericEntry(blueprint, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
+            var result = new ModScanResult();
+            result.Paks[file.Result.PakPath] = file.Result;
+            var scan = new ModScanTabVM();
+            var catalog = new AvailableModsAndMapsService(Manager(), scan);
+            PublishScan(scan, result);
+            Assert.Single(catalog.AvailableServerModBlueprints);
+            if (replace) File.WriteAllText(file.Result.PakPath, "replacement");
+            else File.Delete(file.Result.PakPath);
+            catalog.RefreshCatalog();
+            Assert.Empty(catalog.AvailableServerModBlueprints);
+            // Republishing a stale result must not make it usable again.
+            PublishScan(scan, result);
+            Assert.Empty(catalog.AvailableServerModBlueprints);
+        }
+
+        [Fact]
+        public void ManagedScanCannotReintroduceActorWhenRegistryMetadataIsMissing() {
+            using var file = new ScannedPak();
+            var blueprint = new GenericAssetEntry { AssetPath = "Managed.uasset", AssetHash = "hash" };
+            blueprint.Properties["ModName"] = "Managed";
+            blueprint.Properties["bShowInGUI"] = true;
+            file.Result.AddGenericEntry(blueprint, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
+            var result = new ModScanResult();
+            result.Paks[file.Result.PakPath] = file.Result;
+            var pakDir = new Mock<IPakDir>();
+            pakDir.SetupGet(p => p.DirPath).Returns(Path.GetDirectoryName(file.Result.PakPath)!);
+            pakDir.SetupGet(p => p.ManagedPaks).Returns([new ManagedPak(new("Org", "Managed", "v1"), Path.GetFileName(file.Result.PakPath), 0)]);
+            var manager = new ModManager(Mock.Of<IModRegistry>(), pakDir.Object, []);
+            var scan = new ModScanTabVM();
+            var catalog = new AvailableModsAndMapsService(manager, scan);
+            PublishScan(scan, result);
+            Assert.Empty(catalog.AvailableServerModBlueprints);
+            var actor = ModManifestConverter.ProcessModScan(result).Paks.Single().Inventory.Blueprints.Single();
+            Assert.False(catalog.IsConfirmedInactive(actor)); // Still retain the unresolved saved preference.
+        }
+
+        private sealed class ScannedPak : IDisposable {
+            public PakScanResult Result { get; }
+            public ScannedPak() {
+                var path = Path.GetTempFileName();
+                File.WriteAllText(path, "scanned");
+                Result = new PakScanResult {
+                    PakPath = path,
+                    PakHash = Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(path)))
+                };
+            }
+            public void Dispose() => File.Delete(Result.PakPath);
         }
 
         private static void PublishScan(ModScanTabVM scan, ModScanResult? result) {

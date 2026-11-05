@@ -249,6 +249,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         private void OnModMetadataRefreshed(object? sender, EventArgs args) => ResolveLegacyServerSelections();
+        private void OnModStateChanged(object? sender, EventArgs args) => ReconcileServerBlueprintSelections();
         public ObservableCollection<BlueprintDto> AvailableServerModBlueprints => _availableModsAndMaps.AvailableServerModBlueprints;
 
         private ModScanTabVM _modScanTab;
@@ -300,6 +301,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             _enabledServerModList = enabledServerModList ?? new ObservableCollection<BlueprintDto>();
             ResolveLegacyServerSelections();
             WeakEventManager<IModManager, EventArgs>.AddHandler(modManager, nameof(IModManager.MetadataRefreshed), OnModMetadataRefreshed);
+            WeakEventManager<AvailableModsAndMapsService, EventArgs>.AddHandler(availableModsAndMaps,
+                nameof(AvailableModsAndMapsService.ModStateChanged), OnModStateChanged);
 
             // We set the Name after loading INI, because there may be some existing config that we want to load first
             // And setting the name overwrites it.
@@ -345,29 +348,35 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public void EnableServerBlueprintMod(BlueprintDto blueprint) {
             var selections = EnabledServerModList;
-            if (!selections.Contains(blueprint)) selections.Add(blueprint);
+            if (!selections.Any(selected => ServerBlueprintIdentity.Same(selected, blueprint))) selections.Add(blueprint);
         }
 
         public void DisableServerBlueprintMod(BlueprintDto blueprint) {
             var selections = EnabledServerModList;
-            while (selections.Remove(blueprint)) { }
+            foreach (var selected in selections.Where(selected => ServerBlueprintIdentity.Same(selected, blueprint)).ToArray())
+                selections.Remove(selected);
         }
 
         public BlueprintDto[] PrepareServerBlueprintsForLaunch() {
+            _availableModsAndMaps.RefreshCatalog();
+            ReconcileServerBlueprintSelections();
             var selections = EnabledServerModList;
             var selectedPaths = selections.Select(actor => actor.ClassPath)
                 .Where(path => !string.IsNullOrWhiteSpace(path)).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var active = AvailableServerModBlueprints
                 .Where(actor => actor.ClassPath != null && selectedPaths.Contains(actor.ClassPath))
                 .DistinctBy(actor => actor.ClassPath, StringComparer.OrdinalIgnoreCase).ToArray();
-            // Never erase unavailable selections merely because metadata or a local scan is missing.
-            // Only active actors are emitted; retain unresolved preferences for a later refresh.
-            var normalized = selections.DistinctBy(actor => actor.ClassPath ?? actor.Path, StringComparer.OrdinalIgnoreCase)
+            var normalized = selections.DistinctBy(ServerBlueprintIdentity.Key, StringComparer.OrdinalIgnoreCase)
                 .Select(actor => active.FirstOrDefault(current => string.Equals(current.ClassPath, actor.ClassPath,
                     StringComparison.OrdinalIgnoreCase)) ?? actor).ToArray();
             selections.Clear();
             foreach (var actor in normalized) selections.Add(actor);
             return active;
+        }
+
+        private void ReconcileServerBlueprintSelections() {
+            foreach (var actor in EnabledServerModList.Where(_availableModsAndMaps.IsConfirmedInactive).ToArray())
+                _enabledServerModList.Remove(actor);
         }
 
         [RelayCommand]

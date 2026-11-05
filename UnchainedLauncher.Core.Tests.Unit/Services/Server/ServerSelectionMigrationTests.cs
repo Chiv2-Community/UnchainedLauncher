@@ -245,16 +245,13 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                     Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
                     var checkbox = Descendants<CheckBox>(view).Single();
                     Assert.True(checkbox.IsChecked);
-                    Assert.Equal(i == 0 ? savedCopies : 1, config.EnabledServerModList.Count);
+                    Assert.Equal(savedCopies, config.EnabledServerModList.Count);
                     Assert.All(config.EnabledServerModList, selected => Assert.Equal(actor, selected));
                     if (i == 1) {
                         checkbox.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
                         Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
                         Assert.False(checkbox.IsChecked);
                         Assert.Empty(config.EnabledServerModList);
-                    }
-                    else {
-                        Assert.Equal(actor, Assert.Single(config.PrepareServerBlueprintsForLaunch()));
                     }
                     view.DataContext = null;
                 }
@@ -264,17 +261,86 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
         [Fact]
         public void LaunchOmitsUnavailableActorsWithoutErasingUnresolvedPreferences() {
             RunSta(() => {
-                var codec = Codec(new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), []));
-                var config = Decode(codec, Fixture())[0];
                 var old = Blueprint("SelectedActor");
                 var current = old with { Hash = "updated", Version = "2.0.0" };
                 var removed = Blueprint("DisabledActor");
+                var mod = Mod("ActiveMod", current);
+                var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(),
+                    [ReleaseCoordinates.FromRelease(mod.Releases.First())], [mod]);
+                var codec = Codec(manager);
+                var config = Decode(codec, Fixture())[0];
                 foreach (var actor in new[] { old, old with { }, removed })
                     config.EnabledServerModList.Add(actor);
-                config.AvailableServerModBlueprints.Add(current);
                 Assert.Equal(current, Assert.Single(config.PrepareServerBlueprintsForLaunch()));
                 Assert.Equal(new[] { current, removed }, config.EnabledServerModList);
                 Assert.Equal(current, Assert.Single(config.PrepareServerBlueprintsForLaunch()));
+            });
+        }
+
+        [Fact]
+        public void ClassPathIdentityDeduplicatesJsonCheckboxesAndLaunchDespiteMetadataChanges() {
+            RunSta(() => {
+                var old = Blueprint("IdentityActor");
+                var current = old with { Version = "2", Hash = "new", ModName = "Renamed", ClassPath = old.ClassPath!.ToUpperInvariant() };
+                var mod = Mod("IdentityMod", current);
+                var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(),
+                    [ReleaseCoordinates.FromRelease(mod.Releases.First())], [mod]);
+                var codec = Codec(manager);
+                var configs = Decode(codec, "[{\"Name\":\"Identity\"}]");
+                var config = configs[0];
+                config.EnabledServerModList.Add(old);
+                config.EnableServerBlueprintMod(current);
+                Assert.Single(config.EnabledServerModList);
+                config.EnabledServerModList.Add(current);
+                Assert.Single(SavedEntries(codec.Serialize(configs)));
+                Assert.Single(Decode(codec, codec.Serialize(configs))[0].EnabledServerModList);
+                var converter = new UnchainedLauncher.GUI.Converters.ReleaseEnabledConverter();
+                Assert.Equal(true, converter.Convert([current, config.EnabledServerModList], typeof(bool), null!, System.Globalization.CultureInfo.InvariantCulture));
+                Assert.Equal(current, Assert.Single(config.PrepareServerBlueprintsForLaunch()));
+                Assert.Equal(current, Assert.Single(config.EnabledServerModList));
+                config.DisableServerBlueprintMod(old);
+                Assert.Empty(config.EnabledServerModList);
+            });
+        }
+
+        [Fact]
+        public void DisablingReleaseCleansOwnedPreferencesButRetainsUnknownActorsAndSharedProviders() {
+            RunSta(() => {
+                var actor = Blueprint("OwnedActor");
+                var unknown = Blueprint("UnknownActor");
+                var first = Mod("FirstProvider", actor);
+                var second = Mod("SecondProvider", actor with { Hash = "other" });
+                var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(),
+                    [ReleaseCoordinates.FromRelease(first.Releases.First()), ReleaseCoordinates.FromRelease(second.Releases.First())], [first, second]);
+                var codec = Codec(manager);
+                var configs = Decode(codec, "[{\"Name\":\"Owned\"}]");
+                var config = configs[0];
+                config.EnabledServerModList.Add(actor);
+                config.EnabledServerModList.Add(unknown);
+                manager.DisableModRelease(ReleaseCoordinates.FromRelease(first.Releases.First()));
+                Assert.Equal(2, config.EnabledServerModList.Count);
+                Assert.Single(config.PrepareServerBlueprintsForLaunch());
+                manager.DisableModRelease(ReleaseCoordinates.FromRelease(second.Releases.First()));
+                Assert.Equal(unknown, Assert.Single(config.EnabledServerModList));
+                Assert.Empty(config.PrepareServerBlueprintsForLaunch());
+                Assert.Equal(unknown, Assert.Single(Decode(codec, codec.Serialize(configs))[0].EnabledServerModList));
+            });
+        }
+
+        [Fact]
+        public void LaunchPrunesSavedDisabledActorsButPreservesMissingEnabledVersionPreferences() {
+            RunSta(() => {
+                var actor = Blueprint("SavedActor");
+                var mod = Mod("SavedMod", actor);
+                var missing = ReleaseCoordinates.FromRelease(mod.Releases.First()) with { Version = "v9.0.0" };
+                foreach (var enabled in new[] { Array.Empty<ReleaseCoordinates>(), new[] { missing } }) {
+                    var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), enabled, [mod]);
+                    var codec = Codec(manager);
+                    var config = Decode(codec, "[{\"Name\":\"Saved\"}]")[0];
+                    config.EnabledServerModList.Add(actor);
+                    Assert.Empty(config.PrepareServerBlueprintsForLaunch());
+                    Assert.Equal(enabled.Length, config.EnabledServerModList.Count);
+                }
             });
         }
 

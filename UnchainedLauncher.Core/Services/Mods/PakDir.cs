@@ -256,7 +256,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     var managedPak = new ManagedPak(download.Install.Coordinates, pakFileName, download.Index);
                     _managedPaks.Add(managedPak);
                     _signFile(PakNameToPakPath(managedPak.PakFileName))
-                        .IfLeft(e => Logger.Error($"Failed to sign {managedPak.PakFileName}", e));
+                        .IfLeft(e => Logger.Error($"Failed to sign {managedPak.PakFileName}: {e.Message}"));
                     return managedPak;
                 });
         }
@@ -301,7 +301,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             if (File.Exists(signedName)) {
                 return Right(Unit.Default);
             }
-            var sigPath = Path.Join(DirPath, BaseSigFileName);
+            var sigPath = Path.Join(FilePaths.PakDir, BaseSigFileName);
             return (File.Exists(sigPath)
                 ? Either<Error, string>.Right(sigPath)
                 : Error.New($"Default sig file '{sigPath}' not found"))

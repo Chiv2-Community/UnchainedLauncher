@@ -29,7 +29,7 @@ public sealed class ForwardedConsoleTests {
 
     [Fact]
     public void ConsoleSuppressionPreservesStandardCapture() {
-        var options = Assert.IsType<ServerOptions>(CliLaunchOptions.Parse([
+        var options = YamlTestResources.Server(CliLaunchOptions.Parse([
             "server", "--chivalry2-path", ".", "--platform", "Steam", "--no-spawn-console"]));
         Assert.True(options.Settings.NoSpawnConsole);
         Assert.Contains("--attach-stdio", options.ToLaunchOptions().LaunchArgs);
@@ -41,7 +41,7 @@ public sealed class ForwardedConsoleTests {
         var path = Path.Combine(Path.GetTempPath(), "no-spawn-console-" + Guid.NewGuid().ToString("N") + ".yaml");
         try {
             File.WriteAllText(path, YamlTestResources.Read("console/no-spawn"));
-            var options = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
+            var options = YamlTestResources.Server(YamlConfiguration.Load(path, client: false));
             Assert.True(options.Settings.NoSpawnConsole);
             Assert.Contains("--attach-stdio", options.ToLaunchOptions().LaunchArgs);
         }

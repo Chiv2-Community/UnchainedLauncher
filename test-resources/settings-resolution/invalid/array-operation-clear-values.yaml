@@ -5,3 +5,4 @@ global-settings:
     Engine:
       Demo:
         '!Names': [A]
+servers: {server: {}}

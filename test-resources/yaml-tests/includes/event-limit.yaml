@@ -1,1 +1,2 @@
-server: {mod-actors: [__ACTORS__]}
+servers:
+  server: {mod-actors: [__ACTORS__]}

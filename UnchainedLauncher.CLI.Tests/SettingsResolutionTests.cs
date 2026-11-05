@@ -22,7 +22,7 @@ public sealed class SettingsResolutionTests : IDisposable {
     }
     private CliCommandOptions Parse(string testCase, string file = "server.yaml") => YamlConfiguration.Load(Fixture(testCase, file), client: false);
     private ServerOptions LoadServer(string path) {
-        var server = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
+        var server = YamlTestResources.Server(YamlConfiguration.Load(path, client: false));
         server.Shared.Assets = new ProfileAssetPaths("Test", _root);
         return server;
     }
@@ -172,7 +172,7 @@ public sealed class SettingsResolutionTests : IDisposable {
     [InlineData("conflicting-mods", "Conflicting versions")]
     [InlineData("conflicting-plugins", "Conflicting versions")]
     [InlineData("duplicate-names", "names must be unique")]
-    [InlineData("missing-baseline", "requires a server.ini default")]
+    [InlineData("missing-baseline", "requires a servers.<name>.ini default")]
     [InlineData("mixed-schemas", "instead of")]
     [InlineData("root-mods", "schema")]
     [InlineData("rules-without-rotation", "requires an explicit map-rotation")]

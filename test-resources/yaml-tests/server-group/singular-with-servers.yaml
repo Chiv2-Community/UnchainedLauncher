@@ -1,0 +1,4 @@
+chiv2-path: ./game
+platform: Steam
+server: {}
+servers: {one: {}}

@@ -1,8 +1,9 @@
 chiv2-path: .
 platform: Steam
-server:
-  ini: {Engine: {Mod: {Value: 1}}}
-  map-rotation:
-    - map-name: FFA_Courtyard
-      ini: {Engine: {Mod: {Value: 2}}}
-  game-args: ['--unchained-profile-location', '/manual']
+servers:
+  server:
+    ini: {Engine: {Mod: {Value: 1}}}
+    map-rotation:
+      - map-name: FFA_Courtyard
+        ini: {Engine: {Mod: {Value: 2}}}
+    game-args: ['--unchained-profile-location', '/manual']

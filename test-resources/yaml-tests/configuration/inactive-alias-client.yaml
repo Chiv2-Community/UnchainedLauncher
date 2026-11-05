@@ -1,0 +1,4 @@
+chiv2-path: './game installation'
+platform: Steam
+client: &active {game-args: ['-active']}
+servers: *active

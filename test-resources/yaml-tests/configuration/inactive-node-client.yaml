@@ -1,0 +1,5 @@
+chiv2-path: './game installation'
+platform: Steam
+servers: __NODE__
+client: {game-args: ['-active']}
+game-args: ['-shared']

@@ -1,3 +1,4 @@
 chiv2-path: .
 platform: Steam
-server: {map-rotation: [[]]}
+servers:
+  server: {map-rotation: [[]]}

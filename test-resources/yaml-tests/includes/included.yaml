@@ -1,1 +1,2 @@
-server: !load included.yaml
+servers:
+  server: !load included.yaml

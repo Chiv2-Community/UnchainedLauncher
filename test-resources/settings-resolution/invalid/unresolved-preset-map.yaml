@@ -3,9 +3,10 @@ platform: Steam
 global-settings:
   match-presets:
     'duel-~': {mod-actors: [duel]}
-server:
-  match-presets:
-    duel-night: {mod-actors: [night]}
-  map-rotation:
-    - {map: FFA_Courtyard}
-    - duel-night
+servers:
+  server:
+    match-presets:
+      duel-night: {mod-actors: [night]}
+    map-rotation:
+      - {map: FFA_Courtyard}
+      - duel-night

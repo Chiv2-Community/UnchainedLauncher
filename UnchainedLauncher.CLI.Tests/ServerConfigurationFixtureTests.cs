@@ -27,8 +27,7 @@ public sealed class ServerConfigurationFixtureTests {
             var originalInput = Directory.GetFiles(input, "*", SearchOption.AllDirectories)
                 .ToDictionary(path => Path.GetRelativePath(input, path), File.ReadAllBytes);
             var command = YamlConfiguration.Load(Path.Combine(input, "server.yaml"), client: false);
-            var servers = command is ServerGroupOptions group ? group.Servers
-                : new[] { new NamedServerOptions("server", Assert.IsType<ServerOptions>(command)) };
+            var servers = Assert.IsType<ServerGroupOptions>(command).Servers;
             foreach (var (id, server) in servers) {
                 server.Shared.Assets = new ProfileAssetPaths(id, Path.Combine(temporary, "assets"));
                 var existingProfile = Path.Combine(input, id);

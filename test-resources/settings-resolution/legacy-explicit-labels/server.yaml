@@ -4,7 +4,8 @@ map-profiles:
   wardenglade-giantslayers:
     map-name: FFA_Wardenglade
     name: Wardenglade / GiantSlayers
-server:
-  map-rotation:
-    - wardenglade-giantslayers
-    - {name: Later FFA, map-name: FFA_Wardenglade}
+servers:
+  server:
+    map-rotation:
+      - wardenglade-giantslayers
+      - {name: Later FFA, map-name: FFA_Wardenglade}

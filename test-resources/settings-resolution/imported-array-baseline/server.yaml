@@ -2,7 +2,8 @@ chiv2-path: .
 platform: Steam
 global-settings:
   ini: {Engine: ./Engine.ini}
-server:
-  map-rotation:
-    - map: FFA_Courtyard
-      ini: {Engine: {Mod: {Names: [B]}}}
+servers:
+  server:
+    map-rotation:
+      - map: FFA_Courtyard
+        ini: {Engine: {Mod: {Names: [B]}}}

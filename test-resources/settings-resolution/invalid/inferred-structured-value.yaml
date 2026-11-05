@@ -2,3 +2,4 @@ chiv2-path: .
 platform: Steam
 global-settings:
   ini: {Engine: {Demo: {Record: {Field: 1}}}}
+servers: {server: {}}

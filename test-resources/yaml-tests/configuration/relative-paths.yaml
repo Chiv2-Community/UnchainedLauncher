@@ -3,9 +3,10 @@ platform: Steam
 update-plugin: false
 allow-unstable-plugin: true
 no-tui: true
-server:
-  saved-dir-suffix: Test_1
-  mod-setup:
-    registries: ['local:local registry', 'config:registries.json', 'github:owner/repo']
-    mods: ['org/one:v1.2.3', 'org/two:v2.0.0']
-    dlls: ['org/plugin:v1.0.0']
+servers:
+  server:
+    saved-dir-suffix: Test_1
+    mod-setup:
+      registries: ['local:local registry', 'config:registries.json', 'github:owner/repo']
+      mods: ['org/one:v1.2.3', 'org/two:v2.0.0']
+      dlls: ['org/plugin:v1.0.0']

@@ -1,28 +1,29 @@
 chiv2-path: .
 platform: Steam
-server:
-  saved-dir-suffix: My-Server
-  ini:
-    Game:
-      /Script/TBL.TBLGameMode:
-        CustomMaps: [FFA_Courtyard, FFA_Wardenglade]
-        BotBackfillEnabled: false
-        ClassLimits:
-          - {Class: Poleman, ClassLimitPercent: 10}
-          - {Class: Archer, ClassLimitPercent: 0}
-        '-ClassLimits': [{Class: Poleman, ClassLimitPercent: 10}]
-        '.ClassLimits': [[Archer, 0]]
-        PositionalLimits: {type: 'ClassLimit[]', value: [[Archer, 0.25]]}
-        EmptyMaps: []
-        CustomValue: example
-        Balance: {type: AutoBalance, value: [0, 64, 32]}
-        Callbacks: {type: CallbackList, value: [first, second]}
-      /Script/TBL.TBLTitleScreen:
-        bSavedHasAgreedToTOS: false
-    Engine:
-      /Script/OnlineSubsystemUtils.IpNetDriver:
-        NetServerMaxTickRate: 30
-        ConnectionTimeout: 12.5
-    GameUserSettings:
-      CustomSection:
-        PluginOption: true
+servers:
+  server:
+    saved-dir-suffix: My-Server
+    ini:
+      Game:
+        /Script/TBL.TBLGameMode:
+          CustomMaps: [FFA_Courtyard, FFA_Wardenglade]
+          BotBackfillEnabled: false
+          ClassLimits:
+            - {Class: Poleman, ClassLimitPercent: 10}
+            - {Class: Archer, ClassLimitPercent: 0}
+          '-ClassLimits': [{Class: Poleman, ClassLimitPercent: 10}]
+          '.ClassLimits': [[Archer, 0]]
+          PositionalLimits: {type: 'ClassLimit[]', value: [[Archer, 0.25]]}
+          EmptyMaps: []
+          CustomValue: example
+          Balance: {type: AutoBalance, value: [0, 64, 32]}
+          Callbacks: {type: CallbackList, value: [first, second]}
+        /Script/TBL.TBLTitleScreen:
+          bSavedHasAgreedToTOS: false
+      Engine:
+        /Script/OnlineSubsystemUtils.IpNetDriver:
+          NetServerMaxTickRate: 30
+          ConnectionTimeout: 12.5
+      GameUserSettings:
+        CustomSection:
+          PluginOption: true

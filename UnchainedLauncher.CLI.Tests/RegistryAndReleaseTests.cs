@@ -222,7 +222,7 @@ public class RegistryAndReleaseTests : IDisposable {
                 ("REGISTRIES", System.Text.Json.JsonSerializer.Serialize(options.Shared.Registries.Select(r => r.Kind + ":" + r.Location))),
                 ("MODS", System.Text.Json.JsonSerializer.Serialize(options.Shared.Mods.Select(m => $"{m.Org}/{m.ModuleName}:{m.Version}"))),
                 ("ACTORS", System.Text.Json.JsonSerializer.Serialize(actors)));
-            options = CliLaunchOptions.Parse(["server", "--config-path", config]);
+            options = YamlTestResources.ParseLaunch(["server", "--config-path", config]);
         }
         var aggregate = ServerLauncher.CreateRegistry(options);
         var official = Assert.Single(aggregate.ModRegistries.OfType<GithubModRegistry>());

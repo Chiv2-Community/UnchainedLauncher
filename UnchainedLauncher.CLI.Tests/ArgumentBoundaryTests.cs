@@ -81,7 +81,7 @@ public sealed class ArgumentBoundaryTests : IDisposable {
     public async Task RawIniOverridesPreserveExactContentsAsOneArgument(string value) {
         var path = YamlTestResources.Write(_directory, "arguments/raw", ("INSTALL", JsonSerializer.Serialize(_directory)),
             ("VALUE", JsonSerializer.Serialize(value)));
-        var options = CliLaunchOptions.Parse(["server", "--config-path", path]);
+        var options = YamlTestResources.ParseLaunch(["server", "--config-path", path]);
         var expected = new List<string> { "TBL", "-server", "--attach-stdio", "--log4rs-yaml", options.InstancePaths.Logging };
         expected.AddRange(FirstRunArguments);
         expected.Add("-ini:Game:[/Script/TBL.TBLGameMode]:Custom=" + value);
@@ -101,7 +101,7 @@ public sealed class ArgumentBoundaryTests : IDisposable {
         var path = YamlTestResources.Write(_directory, "arguments/" + (serverValue is null ? command : "server-values"),
             ("INSTALL", JsonSerializer.Serialize(_directory)), ("SHARED_ARGS", JsonSerializer.Serialize(arguments.Take(1))),
             ("COMMAND_ARGS", JsonSerializer.Serialize(arguments.Skip(1))), ("VALUE", JsonSerializer.Serialize(serverValue)));
-        return CliLaunchOptions.Parse([command, "--config-path", path]);
+        return YamlTestResources.ParseLaunch([command, "--config-path", path]);
     }
 
     private static readonly string[] FirstRunArguments = [

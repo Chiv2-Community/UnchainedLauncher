@@ -1,1 +1,2 @@
-server: !load missing.yaml
+servers:
+  server: !load missing.yaml

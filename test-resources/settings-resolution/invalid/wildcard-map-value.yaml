@@ -1,5 +1,6 @@
 chiv2-path: .
 platform: Steam
 global-settings: {}
-server:
-  map-rotation: [{map: FFA_~}]
+servers:
+  server:
+    map-rotation: [{map: FFA_~}]

@@ -61,7 +61,7 @@ internal sealed class IniOverrides {
             var baseline = _entries.FirstOrDefault(item => item.File.Equals(entry.File, StringComparison.OrdinalIgnoreCase) &&
                 item.Section.Equals(entry.Section, StringComparison.OrdinalIgnoreCase) && item.Key.Equals(entry.Key, StringComparison.OrdinalIgnoreCase));
             if (baseline is null)
-                throw new ArgumentException($"Map-profile INI field {entry.File}.{entry.Section}.{entry.Key} requires a server.ini default (or global-settings.ini default) so other maps can restore it.");
+                throw new ArgumentException($"Map-profile INI field {entry.File}.{entry.Section}.{entry.Key} requires a servers.<name>.ini default (or global-settings.ini default) so other maps can restore it.");
             if (ReferenceEquals(baseline, entry) || Commands(baseline).SequenceEqual(Commands(entry))) continue;
             var array = entry.Array || entry.Lines?.Any(line => "+.-!".Contains(line.Key[0])) == true;
             if (array && baseline.Lines is not null && !baseline.Lines.Any(line => line.Key.StartsWith('!')))
@@ -102,7 +102,7 @@ internal sealed class IniOverrides {
                 if (fields is null) throw new ArgumentException($"ini.{file}.{section} must contain a field mapping.");
                 foreach (var (key, node) in fields) {
                     if (key.TrimStart('!', '+', '-', '.').Equals("MapList", StringComparison.OrdinalIgnoreCase))
-                        throw new ArgumentException("MapList cannot be set in ini; use server.map-rotation (or each servers entry's map-rotation) instead.");
+                        throw new ArgumentException("MapList cannot be set in ini; use servers.<name>.map-rotation instead.");
                     var operation = key.Length > 0 && "!+.-".Contains(key[0]) ? key[0] : '\0';
                     var name = operation == '\0' ? key : key[1..];
                     ValidateName(name, "key");

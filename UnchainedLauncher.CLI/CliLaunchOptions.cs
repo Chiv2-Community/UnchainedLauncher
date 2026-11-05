@@ -89,9 +89,6 @@ public abstract class CliLaunchOptions : CliCommandOptions {
 
     internal static CliLaunchOptions FromConfiguration(LaunchConfiguration configuration, string directory) {
         return configuration switch {
-            ServerConfiguration server => new ServerOptions(
-                new SharedLaunchOptions(configuration, directory, server: server.Server),
-                server.Server ?? new ServerSettings(), server.NoTui),
             ClientConfiguration client => new ClientOptions(new SharedLaunchOptions(configuration, directory), SharedLaunchOptions.Entries(client.Client?.GameArgs, allowEmpty: true)),
             _ => throw new ArgumentException("Expected client or server configuration.")
         };
@@ -137,7 +134,7 @@ public sealed class ServerOptions : CliLaunchOptions {
         if (settings.Rotation is not null && Ini.Contains("Game", "/Script/TBL.TBLGameMode", "MapListIndex"))
             throw new ArgumentException("MapListIndex is managed by map-rotation; use starting-map to choose the first map.");
         if (settings.Rotation is { } rotation && (rotation.HasOverrides || rotation.Actors is not null)) {
-            if (Ini.RawArguments.Any()) throw new ArgumentException("server.ini cannot use raw alongside map-profile INI; use typed values for the default layer.");
+            if (Ini.RawArguments.Any()) throw new ArgumentException("Server ini cannot use raw alongside map-profile INI; use typed values for the default layer.");
             if (GameArguments.Any(argument => argument.TrimStart('-').Split('=', 2)[0] == "unchained-profile-location"))
                 throw new ArgumentException("unchained-profile-location is managed by map-profile INI; remove the conflicting game argument.");
             if (settings.Resolved is null)
@@ -145,7 +142,7 @@ public sealed class ServerOptions : CliLaunchOptions {
         }
         NoTui = noTui;
         if (!settings.Headless && settings.DesyncPatch)
-            throw new ArgumentException("Desync patch requires a headless server. To enable rendering, pass --no-desync-patch or set server.desync-patch: false in YAML.");
+            throw new ArgumentException("Desync patch requires a headless server. To enable rendering, pass --no-desync-patch or set servers.<name>.desync-patch: false in YAML.");
         if (new[] { settings.GamePort, settings.PingPort, settings.QueryPort, settings.RconPort }.Distinct().Count() != 4)
             throw new ArgumentException("Game, ping, query, and RCON ports must be distinct.");
         settings.LocalIp = string.IsNullOrWhiteSpace(settings.LocalIp) ? LocalAddressDetector.Detect().ToString() : settings.LocalIp.Trim();

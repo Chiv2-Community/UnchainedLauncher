@@ -1,4 +1,5 @@
 chiv2-path: .
 platform: Steam
 map-profiles: {one: {map-name: FFA_Courtyard}}
-server: {map-rotation: [one, one]}
+servers:
+  server: {map-rotation: [one, one]}

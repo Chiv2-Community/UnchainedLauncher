@@ -1,7 +1,8 @@
 chiv2-path: .
 platform: Steam
-server:
-  ini:
-    Game:
-      /Script/TBL.TBLGameMode:
-        Unknown: {type: String, value: x, typo: y}
+servers:
+  server:
+    ini:
+      Game:
+        /Script/TBL.TBLGameMode:
+          Unknown: {type: String, value: x, typo: y}

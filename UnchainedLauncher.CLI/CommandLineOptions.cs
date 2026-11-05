@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Help;
+using System.ComponentModel.DataAnnotations;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Processes;
 
@@ -85,12 +86,15 @@ internal static class CommandLineOptions {
     private sealed class Definition {
         public Command Command { get; }
         private readonly LaunchConfiguration _configuration;
+        private readonly ServerSettings? _serverSettings;
+        private bool _noTui;
         private readonly List<Action<ParseResult>> _bindings = [];
         private readonly Argument<string[]> _gameArgs = new("game-args") { Arity = ArgumentArity.ZeroOrMore };
 
         public Definition(bool client) {
             Command = new Command(client ? "client" : "server", client ? "Launch an Unchained client." : "Launch and monitor an Unchained server.");
-            _configuration = client ? new ClientConfiguration() : new ServerConfiguration { Server = new ServerSettings() };
+            _configuration = client ? new ClientConfiguration() : new CommandLineServerConfiguration();
+            _serverSettings = client ? null : new ServerSettings();
             Add<string?>("--chivalry2-path", "Game installation directory.", null, value => _configuration.Chiv2Path = value, required: true);
             var platform = new Option<InstallationType?>("--platform") {
                 Description = "Steam or EGS (EpicGamesStore); EGS auth must be forwarded after --.",
@@ -105,7 +109,7 @@ internal static class CommandLineOptions {
             Command.Options.Add(platform);
             _bindings.Add(result => _configuration.Platform = result.GetValue(platform));
             var clientConfig = _configuration as ClientConfiguration;
-            var serverSettings = (_configuration as ServerConfiguration)?.Server;
+            var serverSettings = _serverSettings;
             Add("--saved-dir-suffix", "Saved profile suffix.", clientConfig?.SavedDirSuffix ?? "UnchainedCLI", value => {
                 if (clientConfig is not null) clientConfig.SavedDirSuffix = value;
                 else serverSettings!.SavedDirSuffix = value;
@@ -126,8 +130,7 @@ internal static class CommandLineOptions {
             _bindings.Add(result => setup.Registries = [.. result.GetValue(registries) ?? []]);
             Many("--mod", "Install organization/id:version (exact release tag).", value => setup.Mods = value);
             Many("--dll", "Select a registry DLL release: organization/id:version (exact release tag).", value => setup.Dlls = value);
-            if (_configuration is ServerConfiguration serverConfig) {
-                var settings = serverConfig.Server!;
+            if (serverSettings is { } settings) {
                 Flag("--no-spawn-console", "Prevent plugin console creation without attaching stdout/stderr.", value => settings.NoSpawnConsole = value);
                 Add("--name", "Server name.", settings.Name, value => settings.Name = value);
                 Add("--description", "Description / MOTD.", settings.Description, value => settings.Description = value);
@@ -141,7 +144,7 @@ internal static class CommandLineOptions {
                 Add("--headless", "Run without rendering (true/false). Rendering requires --no-desync-patch.", settings.Headless, value => settings.Headless = value);
                 Add("--censor-mode", "none, standard, sex, or zealous.", settings.CensorMode, value => settings.CensorMode = value);
                 Flag("--register", "List in the server browser.", value => settings.Register = value);
-                Flag("--no-tui", "Periodic plain-text status instead of dashboard.", value => serverConfig.NoTui = value);
+                Flag("--no-tui", "Periodic plain-text status instead of dashboard.", value => _noTui = value);
                 Flag("--no-desync-patch", "Disable the default-enabled desync patch.", value => settings.DesyncPatch = !value);
                 Flag("--no-backend-banlist", "Disable the default-enabled backend banlist.", value => settings.UseBackendBanlist = !value);
                 Many("--server-mod", "Activate a blueprint class (separate from pak installation).", value => settings.ModActors = value);
@@ -196,9 +199,18 @@ internal static class CommandLineOptions {
         public CliLaunchOptions ToOptions(ParseResult parsed, string[] gameArgs) {
             foreach (var bind in _bindings) bind(parsed);
             _configuration.GameArgs = [.. gameArgs];
-            try { _configuration.Validate(); }
-            catch (System.ComponentModel.DataAnnotations.ValidationException ex) { throw new ArgumentException(ex.Message); }
+            try {
+                _configuration.Validate();
+                if (_serverSettings is not null)
+                    Validator.ValidateObject(_serverSettings, new ValidationContext(_serverSettings), validateAllProperties: true);
+            }
+            catch (ValidationException ex) { throw new ArgumentException(ex.Message); }
+            if (_serverSettings is { } settings) {
+                return new ServerOptions(new SharedLaunchOptions(_configuration, Directory.GetCurrentDirectory(), server: settings), settings, _noTui);
+            }
             return CliLaunchOptions.FromConfiguration(_configuration, Directory.GetCurrentDirectory());
         }
     }
+
+    private sealed class CommandLineServerConfiguration : LaunchConfiguration { }
 }

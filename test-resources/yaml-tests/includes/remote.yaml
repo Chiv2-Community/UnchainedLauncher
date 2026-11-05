@@ -1,1 +1,2 @@
-server: !load https://example.com/config.yaml
+servers:
+  server: !load https://example.com/config.yaml

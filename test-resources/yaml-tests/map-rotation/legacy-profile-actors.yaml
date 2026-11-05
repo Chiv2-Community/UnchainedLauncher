@@ -1,3 +1,4 @@
 chiv2-path: .
 platform: Steam
 map-profiles: {one: {map-name: FFA_Courtyard, mod-actors: []}}
+servers: {server: {}}

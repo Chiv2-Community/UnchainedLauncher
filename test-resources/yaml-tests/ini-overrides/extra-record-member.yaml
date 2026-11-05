@@ -1,7 +1,8 @@
 chiv2-path: .
 platform: Steam
-server:
-  ini:
-    Game:
-      /Script/TBL.TBLGameMode:
-        ClassLimits: [{Class: Archer, ClassLimitPercent: 0, Typo: 1}]
+servers:
+  server:
+    ini:
+      Game:
+        /Script/TBL.TBLGameMode:
+          ClassLimits: [{Class: Archer, ClassLimitPercent: 0, Typo: 1}]

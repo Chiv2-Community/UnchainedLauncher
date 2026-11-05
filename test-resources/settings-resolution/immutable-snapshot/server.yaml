@@ -1,4 +1,5 @@
 chiv2-path: .
 platform: Steam
 global-settings: {}
-server: !load ./parts/server.yaml
+servers:
+  server: !load ./parts/server.yaml

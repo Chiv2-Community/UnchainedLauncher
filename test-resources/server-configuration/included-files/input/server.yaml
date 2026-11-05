@@ -3,4 +3,5 @@ platform: Steam
 global-settings:
   ini: !load ./common/ini.yaml
   match-presets: !load ./common/presets.yaml
-server: !load ./servers/primary.yaml
+servers:
+  server: !load ./servers/primary.yaml

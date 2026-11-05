@@ -29,7 +29,6 @@ public sealed class ServerConfiguration : LaunchConfiguration {
     public ScopedSettings? GlobalSettings { get; set; }
     public Dictionary<string, MapProfile?>? MapProfiles { get; set; }
     public bool NoTui { get; set; }
-    public ServerSettings? Server { get; set; }
     public Dictionary<string, ServerSettings?>? Servers { get; set; }
     // Recognized but skipped: do not deserialize or validate the inactive schema.
     [YamlConverter(typeof(IgnoredYamlNodeConverter))]
@@ -37,19 +36,15 @@ public sealed class ServerConfiguration : LaunchConfiguration {
 
     public override void Validate() {
         base.Validate();
-        if (GlobalSettings is not null && Server is null && Servers is null) Server = new ServerSettings();
+        if (Servers is null || Servers.Count == 0)
+            throw new ValidationException("servers must contain at least one named server.");
         foreach (var (name, profile) in MapProfiles ?? []) {
             if (string.IsNullOrWhiteSpace(name) || name != name.Trim()) throw new ValidationException("map-profiles keys must not be blank or have surrounding whitespace.");
             MapRotation.ValidateMap(profile, $"map-profiles.{name}");
         }
-        if (Server is not null) ValidateServer(Server);
-        if (Servers is not null) {
-            if (Server is not null) throw new ValidationException("Use either server or servers, not both.");
-            if (Servers.Count == 0) throw new ValidationException("servers must contain at least one named server.");
-            foreach (var settings in Servers.Values) {
-                if (settings is null) throw new ValidationException("Each servers entry must contain server settings.");
-                ValidateServer(settings);
-            }
+        foreach (var settings in Servers.Values) {
+            if (settings is null) throw new ValidationException("Each servers entry must contain server settings.");
+            ValidateServer(settings);
         }
     }
 

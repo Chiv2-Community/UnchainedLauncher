@@ -1,7 +1,7 @@
-using System.Text.Json;
-using System.Threading.Channels;
 using LanguageExt;
 using LanguageExt.Common;
+using System.Text.Json;
+using System.Threading.Channels;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;

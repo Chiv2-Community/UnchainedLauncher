@@ -451,8 +451,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             PrepareTestDirWithSig(thisTestPath);
 
             // Create an unmanaged pak file with a conflicting name
-            // The lexicographic prefix will make the actual name qa__-__TestMod.pak
-            File.WriteAllText(Path.Join(thisTestPath, "qa__-__TestMod.pak"), "unmanaged pak contents");
+            File.WriteAllText(Path.Join(thisTestPath, "TestMod_0_P.pak"), "unmanaged pak contents");
 
             var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var coords = new ReleaseCoordinates("Org", "TestMod", "1.0.0");
@@ -468,10 +467,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.Single(pd.ManagedPaks);
             var installedPakName = pd.ManagedPaks.First().PakFileName;
 
-            // Should not be exactly the same as the conflicting file
-            Assert.NotEqual("qa__-__TestMod.pak", installedPakName);
-            // But should still contain the module name
-            Assert.Contains("TestMod", installedPakName);
+            Assert.Equal("TestMod (1)_0_P.pak", installedPakName);
+            Assert.Equal("unmanaged pak contents", File.ReadAllText(Path.Join(thisTestPath, "TestMod_0_P.pak")));
         }
 
         [Fact]

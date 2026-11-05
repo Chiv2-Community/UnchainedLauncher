@@ -25,6 +25,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnchainedLauncher.UnrealMod
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnchainedLauncher.PakScannerApp.Tests", "UnchainedLauncher.PakScannerApp.Tests\UnchainedLauncher.PakScannerApp.Tests.csproj", "{6F9E5F8B-AB88-4A12-AAB8-ABAF5E4BBABA}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncher.CLI", "UnchainedLauncher.CLI\UnchainedLauncher.CLI.csproj", "{08148C0B-891C-4573-B825-9682EC76B8D9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncher.CLI.Tests", "UnchainedLauncher.CLI.Tests\UnchainedLauncher.CLI.Tests.csproj", "{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +42,42 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Debug|x64.Build.0 = Debug|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Debug|x86.Build.0 = Debug|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Debug-FakeChivalryLaunch|Any CPU.ActiveCfg = Debug|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Debug-FakeChivalryLaunch|Any CPU.Build.0 = Debug|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Debug-FakeChivalryLaunch|x64.ActiveCfg = Debug|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Debug-FakeChivalryLaunch|x64.Build.0 = Debug|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Debug-FakeChivalryLaunch|x86.ActiveCfg = Debug|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Debug-FakeChivalryLaunch|x86.Build.0 = Debug|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Release|x64.ActiveCfg = Release|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Release|x64.Build.0 = Release|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Release|x86.ActiveCfg = Release|Any CPU
+		{08148C0B-891C-4573-B825-9682EC76B8D9}.Release|x86.Build.0 = Release|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Debug|x64.Build.0 = Debug|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Debug|x86.Build.0 = Debug|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Debug-FakeChivalryLaunch|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Debug-FakeChivalryLaunch|Any CPU.Build.0 = Debug|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Debug-FakeChivalryLaunch|x64.ActiveCfg = Debug|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Debug-FakeChivalryLaunch|x64.Build.0 = Debug|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Debug-FakeChivalryLaunch|x86.ActiveCfg = Debug|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Debug-FakeChivalryLaunch|x86.Build.0 = Debug|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Release|x64.ActiveCfg = Release|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Release|x64.Build.0 = Release|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Release|x86.ActiveCfg = Release|Any CPU
+		{B3A5C9DE-6A90-49F1-95EC-908973A1A21F}.Release|x86.Build.0 = Release|Any CPU
 		{0C235765-7B68-48BB-A3E5-87E12C512540}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0C235765-7B68-48BB-A3E5-87E12C512540}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0C235765-7B68-48BB-A3E5-87E12C512540}.Debug|x64.ActiveCfg = Debug|Any CPU

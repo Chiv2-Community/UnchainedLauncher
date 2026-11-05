@@ -9,6 +9,7 @@ using static LanguageExt.Prelude;
 namespace UnchainedLauncher.Core.Services.Mods.Registry {
     public class GithubModRegistry : JsonRegistry, IModRegistry {
         private static new readonly ILog Logger = LogManager.GetLogger(typeof(GithubModRegistry));
+        private static readonly HttpClient SizeClient = new() { Timeout = TimeSpan.FromSeconds(15) };
 
         public override string Name => $"Github mod registry at {Organization}/{RepoName}";
         public string Organization { get; set; }
@@ -86,5 +87,15 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
 
         private string GetGithubPakDownloadUrl(Release release) =>
             $"https://github.com/{release.Info.Organization}/{release.Info.RepoName}/releases/download/{release.Tag}/{release.PakFileName}";
+
+        public override async Task<long?> GetPakSize(Release release, CancellationToken cancellationToken = default) {
+            try {
+                using var request = new HttpRequestMessage(HttpMethod.Head, GetGithubPakDownloadUrl(release));
+                using var response = await SizeClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                return response.IsSuccessStatusCode ? response.Content.Headers.ContentLength : null;
+            }
+            catch (HttpRequestException) { return null; }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { return null; }
+        }
     }
 }

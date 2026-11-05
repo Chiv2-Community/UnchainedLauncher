@@ -1,6 +1,7 @@
 ﻿using LanguageExt;
 using log4net;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
 namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
@@ -18,6 +19,9 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
         public static IChivalry2LaunchPreparer<Unit> Create(IPakDir pakDir, IUserDialogueSpawner userDialogueSpawner) =>
             new NoSigPreparer(pakDir, userDialogueSpawner);
+
+        public static IChivalry2LaunchPreparer<Unit> CreateForInstallation(string installation, IUserDialogueSpawner userDialogueSpawner) =>
+            Create(new PakDir(Path.Combine(installation, FilePaths.PakDir), []), userDialogueSpawner);
 
         private NoSigPreparer(IPakDir pakDir, IUserDialogueSpawner userDialogueSpawner) {
             PakDir = pakDir;

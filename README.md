@@ -49,6 +49,12 @@ Join the [Chivalry 2 Unchained community on Discord](https://discord.gg/chiv2unc
 4. Put the downloaded Unchained `Chivalry2Launcher.exe` in place of the old one.
 5. Launch the game normally (either from your steam library or from Epic Games Store).
 
+## Launcher CLI
+
+`UnchainedLauncher.CLI` launches clients or servers and depends on Core, not WPF.
+See [the CLI guide](UnchainedLauncher.CLI/README.md) for building, launch options,
+registry formats, YAML configuration, and the live server dashboard.
+
 ## License
 
 This project is licensed under the terms of the [LICENSE](LICENSE) file.

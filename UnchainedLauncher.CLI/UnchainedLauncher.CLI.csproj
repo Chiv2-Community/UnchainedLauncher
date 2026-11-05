@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+    <PublishSingleFile Condition="'$(PublishSingleFile)' == ''">true</PublishSingleFile>
+    <SelfContained Condition="'$(SelfContained)' == ''">true</SelfContained>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(PublishSingleFile)' == 'true'">
+    <!-- AppContext.BaseDirectory must contain the extracted Windows helper. -->
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.CommandLine" Version="2.0.12" />
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
+    <InternalsVisibleTo Include="UnchainedLauncher.CLI.Tests" />
+    <ProjectReference Include="..\UnchainedLauncher.Core\UnchainedLauncher.Core.csproj" />
+  </ItemGroup>
+  <Target Name="BuildProtonHelper" BeforeTargets="AssignTargetPaths"
+          Condition="'$(DesignTimeBuild)' != 'true' And ('$(RuntimeIdentifier)' == 'linux-x64' Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Linux'))))">
+    <PropertyGroup>
+      <_ProtonHelperTargetDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'proton-helper', 'cargo'))</_ProtonHelperTargetDir>
+    </PropertyGroup>
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)/../UnchainedLauncher.ProtonHelper"
+          Command="uvx cargo-xwin build --locked --release --target x86_64-pc-windows-msvc --target-dir &quot;$(_ProtonHelperTargetDir)&quot;"
+          Condition="!$([MSBuild]::IsOSPlatform('Windows'))" />
+    <Exec WorkingDirectory="$(MSBuildProjectDirectory)/../UnchainedLauncher.ProtonHelper"
+          Command="cargo build --locked --release --target x86_64-pc-windows-msvc --target-dir &quot;$(_ProtonHelperTargetDir)&quot;"
+          Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+    <ItemGroup>
+      <Content Include="$(_ProtonHelperTargetDir)x86_64-pc-windows-msvc/release/unchained-proton-helper.exe"
+               Link="proton-helper/UnchainedLauncher.ProtonHelper.exe"
+               CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+  <Target Name="ExcludeSingleFileSymbolSidecars" BeforeTargets="_ComputeFilesToBundle" Condition="'$(PublishSingleFile)' == 'true'">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb'" />
+    </ItemGroup>
+  </Target>
+</Project>

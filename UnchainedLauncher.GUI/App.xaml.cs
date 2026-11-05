@@ -37,10 +37,13 @@ namespace UnchainedLauncher.GUI {
     /// </summary>
     public partial class App : Application {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
+        private bool _unsafeLoadAllDlls;
+        private string[] _launchArguments = [];
 
         protected override async void OnStartup(StartupEventArgs e) {
             try {
                 base.OnStartup(e);
+                (_unsafeLoadAllDlls, _launchArguments) = UnsafeDllLoading.ParseGuiArguments(e.Args);
 
                 AppDomain.CurrentDomain.UnhandledException +=
                     (sender, args) => {
@@ -140,11 +143,12 @@ namespace UnchainedLauncher.GUI {
 
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+            var assets = new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix);
             var dllManager = new DllManager(
-                Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir),
+                assets.Plugins,
                 FilePaths.DllManagerConfigPath, new HttpClient(), () => modManager.GetEnabledAndDependencyReleases().ToArray(),
                 () => modRegistry.ModRegistries.OfType<GithubModRegistry>()
-                    .Select(registry => registry.DllDatabaseUrl).ToArray());
+                    .Select(registry => registry.DllDatabaseUrl).ToArray(), assets.DllCache);
 
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
 
@@ -169,13 +173,12 @@ namespace UnchainedLauncher.GUI {
                 new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 #endif
 
-            var noSigLaunchPreparer = NoSigPreparer.Create(modManager.PakDir, userDialogueSpawner);
-            var sigLaunchPreparer = SigPreparer.Create(modManager.PakDir, userDialogueSpawner);
+            var noSigLaunchPreparer = NoSigPreparer.CreateForInstallation(Directory.GetCurrentDirectory(), userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
-            IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
-                modManager, userDialogueSpawner
+            IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new ProfileModsLaunchPreparer(
+                modManager, userDialogueSpawner, Directory.GetCurrentDirectory(), precedingDllPreparer: pluginInstaller
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
@@ -185,16 +188,14 @@ namespace UnchainedLauncher.GUI {
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                pluginInstaller
-                    .AndThen(modInstaller)
-                    .Sub(sigLaunchPreparer),
+                modInstaller,
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
 #if DEBUG_FAKECHIVALRYLAUNCH
                 // don't shove dlls into processes that don't need them and cause crashes
                 new NullInjector(true)
 #else
-                new DllInjector(dllManager)
+                new DllInjector(dllManager, assets.Plugins, _unsafeLoadAllDlls)
 #endif
             );
 
@@ -263,8 +264,7 @@ namespace UnchainedLauncher.GUI {
             RegistryWindowVM registryWindowViewModel, RegistryWindowService registryWindowService, ModManager modManager,
             MessageBoxSpawner userDialogueSpawner) {
             var cliArgs = string.Join(" ",
-                Environment.GetCommandLineArgs()
-                    .Skip(1)
+                _launchArguments
                     .ToList()
                     .Select(ArgumentEscaper.Escape)
             );
@@ -312,15 +312,17 @@ namespace UnchainedLauncher.GUI {
         }
 
         private ModManager InitializeModManager(string jsonPath, IModRegistry registry) {
+            var assets = new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix);
             Func<ModManager> initializeDefaultModManager = () =>
                 new ModManager(
                     registry,
-                    new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>()),
+                    assets.CreatePakDir(Directory.GetCurrentDirectory()),
                     Enumerable.Empty<ReleaseCoordinates>()
                 );
 
             var codec = new ModManagerCodec(registry);
             var modManager = InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
+            modManager = assets.Rebind(modManager, Directory.GetCurrentDirectory());
 
             RegisterSaveToFileOnExit(modManager, codec, jsonPath);
             return modManager;

@@ -46,6 +46,36 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
 
             var updatedLaunchOpts = maybeUpdatedLaunchOpts.ValueUnsafe();
 
+            var launchOptString = BuildArguments(updatedLaunchOpts);
+            var workingDir = Path.Combine(InstallationRootDir, FilePaths.BinDir);
+            var injectionFailed = false;
+            var launchResult = Launcher.Launch(workingDir, launchOptString, process => {
+                Logger.Info($"Injecting DLLs into {process.Id} before resuming the game.");
+                try {
+                    injectionFailed = !ProcessInjector.Inject(process, server: updatedLaunchOpts.ServerLaunchOptions.IsSome);
+                    return !injectionFailed;
+                }
+                catch {
+                    injectionFailed = true;
+                    throw;
+                }
+            });
+
+            return launchResult.Match<Either<UnchainedLaunchFailure, Process>>(
+                Left: error => {
+                    Logger.Error(error);
+                    if (injectionFailed) return Left(UnchainedLaunchFailure.InjectionFailed());
+                    return Left(UnchainedLaunchFailure.LaunchFailed(error));
+                },
+                Right: proc => {
+                    Logger.Info("Successfully launched Chivalry 2 process.");
+                    return Right(proc);
+                }
+            );
+        }
+
+        public static string BuildArguments(LaunchOptions updatedLaunchOpts) {
+
             var allArgs = updatedLaunchOpts.ToCLIArgs();
             var rawArgs = allArgs.Filter(x => x is RawArgs);
             var mapUriArgs = allArgs.Filter(x => x is UEMapUrlParameter);
@@ -67,38 +97,11 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry {
                 }
             }
 
-            Logger.Info($"Launch args:");
-            Logger.Info($"    {mapString}");
             var cliArgs = launchOpts as CLIArg[] ?? launchOpts.ToArray();
-            foreach (var launchOpt in cliArgs) {
-                Logger.Info($"    {launchOpt.Rendered}");
-            }
-
-            var workingDir = Path.Combine(InstallationRootDir, FilePaths.BinDir);
-            var launchOptString = string.Join(" ", new[] { mapString }
+            return string.Join(" ", new[] { mapString }
                 .Concat(cliArgs.Select(x => x.Rendered))
                 .Where(x => !string.IsNullOrWhiteSpace(x)));
-
-            var launchResult = Launcher.Launch(workingDir, launchOptString);
-
-            return launchResult.Match(
-                Left: error => {
-                    Logger.Error(error);
-                    return Left(UnchainedLaunchFailure.LaunchFailed(error));
-                },
-                Right: proc => {
-                    Logger.Info("Successfully launched Chivalry 2 process.");
-                    return InjectDLLs(proc, server: updatedLaunchOpts.ServerLaunchOptions.IsSome);
-                }
-            );
         }
 
-        private Either<UnchainedLaunchFailure, Process> InjectDLLs(Process process, bool server) {
-            Logger.Info($"Injecting DLLs into {process.Id}");
-            if (ProcessInjector.Inject(process, server)) return Right(process);
-
-            process.Kill();
-            return Left(UnchainedLaunchFailure.InjectionFailed());
-        }
     }
 }

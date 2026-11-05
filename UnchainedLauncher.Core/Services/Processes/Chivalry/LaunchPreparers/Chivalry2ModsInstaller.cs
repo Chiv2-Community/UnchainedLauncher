@@ -72,6 +72,38 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
+            ManagedPakInventory? inventory;
+            try {
+                inventory = ManagedPakInventory.Reconcile(_modManager);
+            }
+            catch (Exception e) when (e is InvalidDataException or IOException or UnauthorizedAccessException) {
+                ReportInventoryFailure(e);
+                return None;
+            }
+            var saved = true;
+            Option<LaunchOptions> result;
+            try {
+                result = await PrepareMods(options);
+            }
+            finally {
+                // Persist physical ownership even when preparation fails partway through.
+                try { inventory?.Save(); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+                    saved = false;
+                    ReportInventoryFailure(e);
+                }
+            }
+            return saved ? result : None;
+        }
+
+        private void ReportInventoryFailure(Exception e) {
+            _logger.Error($"Failed to reconcile managed pak inventory: {e.Message}");
+            _userDialogueSpawner.DisplayMessage(
+                $"Could not reconcile managed pak inventory: {e.Message}\n" +
+                "Launch cancelled. Resolve the pak setup errors before launching.");
+        }
+
+        private async Task<Option<LaunchOptions>> PrepareMods(LaunchOptions options) {
             // Get all releases that will be installed (enabled mods + dependencies)
             var releasesToInstall = _modManager.GetEnabledAndDependencyReleases().ToList();
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());

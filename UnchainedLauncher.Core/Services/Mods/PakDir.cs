@@ -1,7 +1,6 @@
 using LanguageExt;
 using LanguageExt.Common;
 using log4net;
-using System.Text;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -12,19 +11,44 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
     public class PakDir : IPakDir {
         public string DirPath { get; }
+        public string? DefaultSigPath { get; }
+        public string? CachePath { get; }
+        private readonly CancellationToken _cancellationToken;
 
         private const string BasePakFileName = "pakchunk0-WindowsNoEditor.pak";
         private const string BaseSigFileName = "pakchunk0-WindowsNoEditor.sig";
-        private const string ForcedSortDivider = "__-__";
 
         private static readonly ILog Logger = LogManager.GetLogger(nameof(PakDir));
 
         public IEnumerable<ManagedPak> ManagedPaks => _managedPaks;
         private readonly List<ManagedPak> _managedPaks;
 
-        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks) {
+        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks, string? defaultSigPath = null, string? cachePath = null,
+            CancellationToken cancellationToken = default) {
             DirPath = dirPath;
+            DefaultSigPath = defaultSigPath;
+            CachePath = cachePath;
+            _cancellationToken = cancellationToken;
             _managedPaks = managedPaks.ToList();
+            SynchronizeWithDir();
+        }
+
+        internal void ReconcileManagedPaks(IEnumerable<ManagedPak> managedPaks) {
+            var owned = managedPaks?.ToList();
+            if (owned is null || owned.Any(p => p is null || p.PakFileName is null
+                || p.Coordinates is null || string.IsNullOrWhiteSpace(p.Coordinates.Org)
+                || string.IsNullOrWhiteSpace(p.Coordinates.ModuleName)
+                || string.IsNullOrWhiteSpace(p.Coordinates.Version)))
+                throw new InvalidDataException("Invalid managed pak inventory.");
+            // Inventory authorizes deletion only inside this directory, never base/user paks.
+            if (owned.Any(p => string.IsNullOrWhiteSpace(p.PakFileName)
+                || Path.GetFileName(p.PakFileName) != p.PakFileName
+                || p.PakFileName.Contains('\\') || p.PakFileName.Contains('/')
+                || !p.PakFileName.EndsWith(".pak", StringComparison.OrdinalIgnoreCase)
+                || p.PakFileName.Equals(BasePakFileName, StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidDataException("Invalid managed pak filename in inventory.");
+            _managedPaks.Clear();
+            _managedPaks.AddRange(owned.DistinctBy(p => p.PakFileName, StringComparer.OrdinalIgnoreCase));
             SynchronizeWithDir();
         }
 
@@ -80,26 +104,38 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     }
                 );
 
+        private static string PakSuffix(string fileName) {
+            var patch = Regex.Match(fileName, @"_[0-9]+_P\.pak\z", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return patch.Success ? patch.Value : Path.GetExtension(fileName);
+        }
+
+        private static bool IsCollisionName(string fileName, string targetName) {
+            var suffix = PakSuffix(targetName);
+            return Regex.IsMatch(fileName,
+                @"\A" + Regex.Escape(targetName[..^suffix.Length]) + @" \([0-9]+\)" + Regex.Escape(suffix) + @"\z",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+
         private string AvailablePakName(string suggestedFileName) {
             var unManagedPaks = GetUnmanagedPaks().ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var actualName = Path.GetFileNameWithoutExtension(suggestedFileName);
-            var extension = Path.GetExtension(suggestedFileName);
+            var signatures = GetSigFiles().ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var extension = PakSuffix(suggestedFileName);
+            var actualName = suggestedFileName[..^extension.Length];
             var fullActualName = actualName + extension;
             while (_managedPaks.Exists(x => x.PakFileName.Equals(fullActualName, StringComparison.OrdinalIgnoreCase))
-                   || unManagedPaks.Contains(PakNameToPakPath(fullActualName))) {
+                   || unManagedPaks.Contains(PakNameToPakPath(fullActualName))
+                   || signatures.Contains(Path.ChangeExtension(PakNameToPakPath(fullActualName), ".sig"))) {
                 actualName = Successors.TextualSuccessor(actualName);
                 fullActualName = actualName + extension;
             }
             return fullActualName;
         }
 
-        private EitherAsync<Error, string> _writePak(IPakDir.MakeFileWriter mkFileWriter, Option<IProgress<double>> progress, string suggestedFileName) {
-            var fullActualName = AvailablePakName(suggestedFileName);
+        private EitherAsync<Error, string> _writePak(IPakDir.MakeFileWriter mkFileWriter, Option<IProgress<double>> progress, string fullActualName) {
             Logger.Info($"Downloading pak to {fullActualName}");
             return mkFileWriter(PakNameToPakPath(fullActualName))
                 .Bind(fileWriter =>
-                    // TODO: allow passing of a cancellation token here
-                    fileWriter.WriteAsync(progress, CancellationToken.None)
+                    fileWriter.WriteAsync(progress, _cancellationToken)
                     .Map(_ => fullActualName)
                 );
         }
@@ -120,37 +156,36 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .ToHashSet();
 
             var pakFileNames = installsList
-                .Select(install => {
+                .Select((install, order) => {
                     var moduleName = install.Coordinates.ModuleName;
                     var needsOrgPrefix = moduleNameCounts.Contains(moduleName);
                     var baseName = needsOrgPrefix
                         ? $"{install.Coordinates.Org}_{moduleName}"
                         : moduleName;
-                    return baseName + ".pak";
+                    // Unreal gives higher patch numbers priority over dependencies and vanilla.
+                    return FormattableString.Invariant($"{baseName}_{order}_P.pak");
                 })
                 .ToList();
-
-            // Apply sorted lexicographically to get the final names
-            var sortedPakNames = ApplySortedLexicographically(pakFileNames).ToList();
 
             // Build map of existing managed paks by coordinates (for mods in install set)
             var existingByCoords = _managedPaks
                 .Filter(p => installCoordinatesSet.Contains(p.Coordinates))
-                .ToDictionary(p => p.Coordinates, p => p);
+                .GroupBy(p => p.Coordinates)
+                .ToDictionary(g => g.Key, g => g.First());
             var unmanagedPaths = GetUnmanagedPaks().ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var signaturePaths = GetSigFiles().ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             // Categorize each install: Skip (already correct), Move (relocate), or Download (new)
             var installActions = installsList
-                .Zip(sortedPakNames, (install, finalPakName) => (Install: install, FinalPakName: finalPakName))
+                .Zip(pakFileNames, (install, finalPakName) => (Install: install, FinalPakName: finalPakName))
                 .Select((item, index) => {
                     var existing = existingByCoords.TryGetValue(item.Install.Coordinates, out var e) ? Some(e) : None;
                     return existing.Match(
-                        // A collision-safe name is reusable only while its load-order prefix is correct.
+                        // Reuse collision-safe names only while their module and numeric order match.
                         Some: pak => pak.PakFileName.Equals(item.FinalPakName, StringComparison.OrdinalIgnoreCase)
-                            || (unmanagedPaths.Contains(PakNameToPakPath(item.FinalPakName))
-                                && pak.PakFileName.StartsWith(
-                                    item.FinalPakName.Substring(0, item.FinalPakName.IndexOf(ForcedSortDivider, StringComparison.Ordinal) + ForcedSortDivider.Length),
-                                    StringComparison.OrdinalIgnoreCase))
+                            || ((unmanagedPaths.Contains(PakNameToPakPath(item.FinalPakName))
+                                    || signaturePaths.Contains(Path.ChangeExtension(PakNameToPakPath(item.FinalPakName), ".sig")))
+                                && IsCollisionName(pak.PakFileName, item.FinalPakName))
                             ? new InstallAction.Skip(item.Install, index, pak)
                             : new InstallAction.Move(item.Install, index, pak, item.FinalPakName) as InstallAction,
                         None: () => new InstallAction.Download(item.Install, index, item.FinalPakName)
@@ -161,7 +196,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
             // Categorize managed paks not in install set as Remove actions
             installActions.AddRange(
                 _managedPaks
-                    .Filter(p => !installCoordinatesSet.Any(c => c.Matches(p.Coordinates)))
+                    .Filter(p => !installCoordinatesSet.Any(c => c.Matches(p.Coordinates))
+                        || (existingByCoords.TryGetValue(p.Coordinates, out var kept) && kept != p))
                     .Select(p => new InstallAction.Remove(p))
                     .ToList()
             );
@@ -204,7 +240,11 @@ namespace UnchainedLauncher.Core.Services.Mods {
             // Process removes
             for (var i = 0; i < removeActions.Count; i++) {
                 var removed = ProcessRemove(removeActions[i]);
-                if (removed.IsLeft) yield return removed.Map(_ => removeActions[i].Existing);
+                if (removed.IsLeft) {
+                    // Do not reorder and lose ownership of an undeleted duplicate.
+                    yield return removed.Map(_ => removeActions[i].Existing);
+                    yield break;
+                }
                 removeProgress.IfSome(p => p.Report(100d * (i + 1) / removeActions.Count));
             }
 
@@ -254,18 +294,23 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var targetName = AvailablePakName(move.TargetPakName);
             var targetPath = PakNameToPakPath(targetName);
 
-            return _moveManagedPak(sourcePath, targetPath)
-                .Map(_ => {
-                    var managedPak = new ManagedPak(move.Install.Coordinates, targetName, move.Index);
-                    _managedPaks.RemoveAll(p => p.Coordinates.Matches(move.Install.Coordinates));
-                    _managedPaks.Add(managedPak);
-                    Logger.Info($"Relocated {move.Install.Coordinates.ModuleName} to {targetName}");
-                    return managedPak;
-                });
+            var managedPak = new ManagedPak(move.Install.Coordinates, targetName, move.Index);
+            return _moveManagedPak(sourcePath, targetPath, () => {
+                // Ownership follows the payload even if removing the old signature fails.
+                _managedPaks.RemoveAll(p => p.Coordinates.Matches(move.Install.Coordinates));
+                _managedPaks.Add(managedPak);
+                Logger.Info($"Relocated {move.Install.Coordinates.ModuleName} to {targetName}");
+            })
+                .Map(_ => managedPak);
         }
 
         private async Task<Either<Error, ManagedPak>> ProcessDownload(InstallAction.Download download, Option<MemoryProgress> taskProgress) {
-            return (await _writePak(download.Install.Writer, taskProgress.Map(p => (IProgress<double>)p), download.FinalPakName))
+            var name = AvailablePakName(download.FinalPakName);
+            var progress = taskProgress.Map(p => (IProgress<double>)p);
+            var written = CachePath is null
+                ? await _writePak(download.Install.Writer, progress, name)
+                : (await new PakCache(CachePath).Install(download.Install, PakNameToPakPath(name), progress, _cancellationToken)).Map(_ => name);
+            return written
                 .Map(pakFileName => {
                     var managedPak = new ManagedPak(download.Install.Coordinates, pakFileName, download.Index);
                     _managedPaks.Add(managedPak);
@@ -277,8 +322,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         private Either<Error, Unit> ProcessRemove(InstallAction.Remove remove) {
             Logger.Info($"Removing pak: {remove.Existing.PakFileName} ({remove.Existing.Coordinates.ModuleName} version {remove.Existing.Coordinates.Version})");
-            var uninstallResult = Uninstall(remove.Existing.Coordinates);
-            uninstallResult.IfRight(_ => _managedPaks.RemoveAll(p => p.Coordinates.Matches(remove.Existing.Coordinates)));
+            var path = PakNameToPakPath(remove.Existing.PakFileName);
+            var uninstallResult = _unsignFile(path).Bind(_ => _deleteFile(path));
+            uninstallResult.IfRight(_ => _managedPaks.RemoveAll(p => p.PakFileName.Equals(remove.Existing.PakFileName, StringComparison.OrdinalIgnoreCase)));
             uninstallResult.IfLeft(e => Logger.Error($"Failed to remove pak {remove.Existing.PakFileName}: {e}"));
             return uninstallResult;
         }
@@ -286,14 +332,24 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <summary>
         /// Moves a managed pak (and its .sig if present) from source to destination.
         /// </summary>
-        private static Either<Error, Unit> _moveManagedPak(string sourcePakPath, string destPakPath) {
+        private static Either<Error, Unit> _moveManagedPak(string sourcePakPath, string destPakPath, Action payloadMoved) {
             var sourceSigPath = Path.ChangeExtension(sourcePakPath, ".sig");
             var destSigPath = Path.ChangeExtension(destPakPath, ".sig");
 
-            return _moveFile(sourcePakPath, destPakPath)
-                .Bind(_ => File.Exists(sourceSigPath)
-                    ? _moveFile(sourceSigPath, destSigPath)
-                    : Right(Unit.Default));
+            // Copy first: a failed payload move never requires rolling back its ownership
+            // or restoring the only signature. Never overwrite cache-linked file contents.
+            var hasSignature = File.Exists(sourceSigPath);
+            return (hasSignature ? _copyFile(sourceSigPath, destSigPath) : Right<Error, Unit>(Unit.Default))
+                .Bind(_ => _moveFile(sourcePakPath, destPakPath).Match<Either<Error, Unit>>(
+                    Right: _ => {
+                        payloadMoved();
+                        return hasSignature ? _deleteFile(sourceSigPath) : Right(Unit.Default);
+                    },
+                    Left: error => hasSignature
+                        ? _deleteFile(destSigPath).Match<Either<Error, Unit>>(
+                            Right: _ => Left(error),
+                            Left: cleanupError => Left(Error.New($"{error}; signature cleanup also failed: {cleanupError}")))
+                        : Left(error)));
         }
 
         private static Either<Error, Unit> _moveFile(string source, string dest) {
@@ -316,7 +372,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             if (File.Exists(signedName)) {
                 return Right(Unit.Default);
             }
-            var sigPath = Path.Join(DirPath, BaseSigFileName);
+            var sigPath = DefaultSigPath ?? Path.Join(DirPath, BaseSigFileName);
             return (File.Exists(sigPath)
                 ? Either<Error, string>.Right(sigPath)
                 : Error.New($"Default sig file '{sigPath}' not found"))
@@ -393,41 +449,5 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .BindLefts();
         }
 
-        /// <summary>
-        /// represents i using characters from alphabet
-        /// </summary>
-        /// <param name="alphabet"></param>
-        /// <param name="i">must be positive</param>
-        /// <returns></returns>
-        private static string RepUsingAlphabet(string alphabet, int i) {
-            var systemBase = alphabet.Length;
-            var sb = new StringBuilder();
-            while (i > 0) {
-                sb.Append(alphabet[i % systemBase]);
-                i /= systemBase;
-            }
-
-            return string.Join("", sb.ToString().Reverse());
-        }
-
-        /// <summary>
-        /// Given a sequence of strings, modify those strings such
-        /// that they are sorted lexicographically and return it
-        /// </summary>
-        /// <param name="inputs"></param>
-        /// <returns></returns>
-        private static IEnumerable<string> ApplySortedLexicographically(IEnumerable<string> inputs) {
-            var inputsList = inputs.ToList();
-
-            // We reverse the alphabet because we actually want to load dependencies backwards
-            var alphabet = new string("abcdefghijklmnopqrstuvwxyz".Reverse().ToArray());
-
-            var requiredSymbols = (int)Math.Ceiling(Math.Log(inputsList.Count, alphabet.Length));
-            return inputsList.Map((i, n) =>
-                $"q{RepUsingAlphabet(alphabet, i).PadLeft(requiredSymbols, alphabet[0])}" +
-                ForcedSortDivider +
-                $"{Regex.Replace(n, $".*{ForcedSortDivider}", "")}"
-            );
-        }
     }
 }

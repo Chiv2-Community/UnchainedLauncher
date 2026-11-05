@@ -1,16 +1,7 @@
 ﻿namespace UnchainedLauncher.Core.Utilities {
     public static class ArgumentEscaper {
-        public static string Escape(string argument) {
-            var escaped = argument
-                .Replace("\"", "\\\"")
-                .ReplaceLineEndings("\\r\\n");
-
-            // Quote if contains spaces or is empty
-            if (string.IsNullOrEmpty(argument) || argument.Contains(' ')) {
-                return $"\"{escaped}\"";
-            }
-
-            return escaped;
-        }
+        // Keep the raw command-line contracts used by Core and GUI, but delegate argv quoting
+        // to CliWrap's .NET-derived implementation (including backslashes, quotes and whitespace).
+        public static string Escape(string argument) => CliWrap.Builders.ArgumentsBuilder.Escape(argument);
     }
 }

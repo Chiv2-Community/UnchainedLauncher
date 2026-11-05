@@ -9,14 +9,14 @@ namespace UnchainedLauncher.Core.Services.Mods {
     /// </summary>
     /// <param name="Coordinates">The coordinates identifying the specific release to install</param>
     /// <param name="Writer">A factory function that creates a FileWriter for the given output path</param>
-    public record ModInstallRequest(ReleaseCoordinates Coordinates, IPakDir.MakeFileWriter Writer);
+    public record ModInstallRequest(ReleaseCoordinates Coordinates, IPakDir.MakeFileWriter Writer, string? Hash = null);
 
     /// <summary>
     /// Represents a pak file that is managed by the PakDir system.
     /// </summary>
     /// <param name="Coordinates">The release coordinates identifying this pak</param>
     /// <param name="PakFileName">The filename of the pak file within the pak directory</param>
-    /// <param name="Priority">The load priority of this pak (lower values load first)</param>
+    /// <param name="Priority">The patch priority of this pak (higher values override lower values)</param>
     public record ManagedPak(ReleaseCoordinates Coordinates, string PakFileName, int Priority) {
         public override string ToString() => $"{Coordinates} @ {PakFileName} (priority {Priority})";
     }

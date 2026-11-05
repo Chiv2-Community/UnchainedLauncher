@@ -59,7 +59,11 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         [property: JsonPropertyName("target")] string Target = "shared",
         [property: JsonPropertyName("$schema"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Schema = null) {
         [JsonIgnore]
-        public IReadOnlyList<Dependency> RequiredMods => ModDependencies ?? [];
+        public IReadOnlyList<Dependency> RequiredMods => ModDependencies ?? Dependencies ?? [];
+
+        // A modern list, including an empty list, overrides deprecated dependencies.
+        [JsonPropertyName("dependencies"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public IReadOnlyList<Dependency>? Dependencies { get; init; }
         [JsonIgnore]
         public IReadOnlyList<Dependency> RequiredPlugins => PluginDependencies ?? [];
         public void Validate() {
@@ -88,7 +92,8 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         public static bool MatchesVersion(string version, string requirement) {
             var candidate = SemVersion.Parse(version, SemVersionStyles.Strict);
             if (string.IsNullOrEmpty(requirement)) throw new InvalidDataException("Missing dependency version.");
-            if (requirement.StartsWith('v')) requirement = requirement[1..];
+            requirement = string.Join(",", requirement.Split(',').Select(part =>
+                Regex.Replace(part.Trim(), @"^(\^|>=|<=|==|!=|>|<)?v", "$1")));
             if (requirement.StartsWith('^')) {
                 var lower = SemVersion.Parse(requirement[1..], SemVersionStyles.Strict);
                 var upper = lower.Major != 0 ? new SemVersion(checked(lower.Major + 1), 0, 0)

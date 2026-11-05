@@ -28,6 +28,7 @@ public class AvailableModsAndMapsService {
     public event EventHandler? ModStateChanged;
 
     private PakDirManifest? _cachedScanManifest = null;
+    private readonly Dictionary<string, (string Hash, long Length, DateTime Modified)> _validatedScanFiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly IModManager _modManager;
     private readonly List<MapDto> _defaultMaps;
 
@@ -56,7 +57,7 @@ public class AvailableModsAndMapsService {
         ModStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void ReconcileCatalog() {
+    private void ReconcileCatalog(bool verifyHashes = false) {
         var releases = _modManager.GetEnabledAndDependencyReleases().ToList();
         var known = _modManager.Mods.SelectMany(mod => mod.Releases).ToList();
         var inactivePaths = known.Except(releases).SelectMany(release => release.Manifest.RelevantBlueprints())
@@ -64,13 +65,14 @@ public class AvailableModsAndMapsService {
         var activePaths = releases.SelectMany(release => release.Manifest.RelevantBlueprints())
             .Select(ServerBlueprintIdentity.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         inactivePaths.ExceptWith(activePaths);
-        var managedPaths = _modManager.PakDir.ManagedPaks.Select(pak =>
+        // Without scan contributions, registry catalogs do not need the local pak inventory.
+        var managedPaths = _cachedScanManifest?.Paks.Count > 0 ? _modManager.PakDir.ManagedPaks.Select(pak =>
             Path.GetFullPath(Path.Combine(_modManager.PakDir.DirPath, pak.PakFileName)))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            .ToHashSet(StringComparer.OrdinalIgnoreCase) : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         // Managed paks are installed/removed by the launcher. A scan must not resurrect their disabled actors.
         var manifests = releases.Select(release => release.Manifest)
             .Concat(_cachedScanManifest?.Paks.Where(pak => !string.IsNullOrWhiteSpace(pak.PakPath)
-                && !managedPaths.Contains(Path.GetFullPath(pak.PakPath)) && IsCurrentScan(pak)).Select(pak => pak.Inventory with {
+                && !managedPaths.Contains(Path.GetFullPath(pak.PakPath)) && IsCurrentScan(pak, verifyHashes)).Select(pak => pak.Inventory with {
                 Blueprints = pak.Inventory.Blueprints.Where(actor => !inactivePaths.Contains(ServerBlueprintIdentity.Key(actor))).ToList()
             }) ?? []).ToList();
         Reconcile(AvailableMaps, _defaultMaps.Concat(manifests.SelectMany(manifest => manifest.RelevantMaps())));
@@ -78,7 +80,7 @@ public class AvailableModsAndMapsService {
     }
 
     // Called at the launch boundary too: external pak changes do not raise mod-manager events.
-    public void RefreshCatalog() => ReconcileCatalog();
+    public void RefreshCatalog() => ReconcileCatalog(verifyHashes: true);
 
     public bool IsConfirmedInactive(BlueprintDto actor) {
         if (AvailableServerModBlueprints.Any(current => ServerBlueprintIdentity.Same(current, actor))) return false;
@@ -90,11 +92,26 @@ public class AvailableModsAndMapsService {
             coordinates.Matches(ModIdentifier.FromRelease(owner)) && _modManager.GetRelease(coordinates).IsNone));
     }
 
-    private static bool IsCurrentScan(PakManifest pak) {
+    private bool IsCurrentScan(PakManifest pak, bool verifyHash) {
         if (string.IsNullOrWhiteSpace(pak.PakHash)) return false;
         try {
+            var file = new FileInfo(pak.PakPath);
+            if (!file.Exists) {
+                _validatedScanFiles.Remove(pak.PakPath);
+                return false;
+            }
+            var stamp = (pak.PakHash, file.Length, file.LastWriteTimeUtc);
+            // Ordinary metadata/toggle events reuse successful validation of unchanged files.
+            // Launch always hashes again, including replacements that preserve size and timestamp.
+            if (!verifyHash && _validatedScanFiles.TryGetValue(pak.PakPath, out var validated) && validated == stamp)
+                return true;
+            _validatedScanFiles.Remove(pak.PakPath);
             using var stream = File.OpenRead(pak.PakPath);
-            return string.Equals(Convert.ToHexString(SHA512.HashData(stream)), pak.PakHash, StringComparison.OrdinalIgnoreCase);
+            if (!string.Equals(Convert.ToHexString(SHA512.HashData(stream)), pak.PakHash, StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+            _validatedScanFiles[pak.PakPath] = stamp;
+            return true;
         }
         catch (IOException) { return false; }
         catch (UnauthorizedAccessException) { return false; }
@@ -136,6 +153,7 @@ public class AvailableModsAndMapsService {
         Logger.Debug("Processing latest scan...");
 
         _cachedScanManifest = scanResult == null ? null : ModManifestConverter.ProcessModScan(scanResult);
+        _validatedScanFiles.Clear();
         ReconcileCatalog();
     }
 }

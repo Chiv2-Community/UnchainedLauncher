@@ -133,6 +133,16 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             Assert.Equal(vanilla, catalog.AvailableMaps);
         }
 
+        [Fact]
+        public void CatalogWithoutScanDoesNotReadPakInventory() {
+            var manager = new Mock<IModManager>();
+            manager.SetupGet(m => m.PakDir).Throws(new InvalidOperationException("No scan needs a pak inventory"));
+            var catalog = new AvailableModsAndMapsService(manager.Object, new ModScanTabVM());
+            catalog.RefreshCatalog();
+            Assert.Empty(catalog.AvailableServerModBlueprints);
+            Assert.NotEmpty(catalog.AvailableMaps);
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
@@ -148,13 +158,42 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             var catalog = new AvailableModsAndMapsService(Manager(), scan);
             PublishScan(scan, result);
             Assert.Single(catalog.AvailableServerModBlueprints);
-            if (replace) File.WriteAllText(file.Result.PakPath, "replacement");
+            if (replace) {
+                var modified = File.GetLastWriteTimeUtc(file.Result.PakPath);
+                File.WriteAllText(file.Result.PakPath, "altered"); // Same length and timestamp as the validated file.
+                File.SetLastWriteTimeUtc(file.Result.PakPath, modified);
+            }
             else File.Delete(file.Result.PakPath);
             catalog.RefreshCatalog();
             Assert.Empty(catalog.AvailableServerModBlueprints);
             // Republishing a stale result must not make it usable again.
             PublishScan(scan, result);
             Assert.Empty(catalog.AvailableServerModBlueprints);
+        }
+
+        [Fact]
+        public void MetadataRefreshReusesValidationButLaunchHashesUnchangedScanAgain() {
+            using var file = new ScannedPak();
+            var blueprint = new GenericAssetEntry { AssetPath = "Cached.uasset", AssetHash = "hash" };
+            blueprint.Properties["bShowInGUI"] = true;
+            file.Result.AddGenericEntry(blueprint, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
+            var result = new ModScanResult();
+            result.Paks[file.Result.PakPath] = file.Result;
+            var registry = new Mock<IModRegistry>();
+            registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult([], []));
+            var manager = new ModManager(registry.Object, Mock.Of<IPakDir>(), []);
+            var scan = new ModScanTabVM();
+            var catalog = new AvailableModsAndMapsService(manager, scan);
+            PublishScan(scan, result);
+            Assert.Single(catalog.AvailableServerModBlueprints);
+            using (var locked = File.Open(file.Result.PakPath, FileMode.Open, FileAccess.Read, FileShare.None)) {
+                manager.UpdateModsList().GetAwaiter().GetResult();
+                Assert.Single(catalog.AvailableServerModBlueprints); // No redundant hash read on metadata events.
+                catalog.RefreshCatalog();
+                Assert.Empty(catalog.AvailableServerModBlueprints); // Launch must validate, not trust the cache.
+            }
+            catalog.RefreshCatalog();
+            Assert.Single(catalog.AvailableServerModBlueprints);
         }
 
         [Fact]

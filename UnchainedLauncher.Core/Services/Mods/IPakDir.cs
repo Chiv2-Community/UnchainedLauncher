@@ -86,5 +86,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// Gets the directory path where pak files are stored.
         /// </summary>
         string DirPath { get; }
+
+        /// <summary>Records an existing pak after its release hash has been verified.</summary>
+        void TrackPak(ManagedPak pak);
     }
 }

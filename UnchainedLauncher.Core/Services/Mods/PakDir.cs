@@ -79,53 +79,47 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     }
                 );
 
-        private EitherAsync<Error, string> _writePak(IPakDir.MakeFileWriter mkFileWriter, Option<IProgress<double>> progress, string suggestedFileName) {
-            var unManagedPaks = GetUnmanagedPaks().ToHashSet();
-            var actualName = Path.GetFileNameWithoutExtension(suggestedFileName);
-            var extension = Path.GetExtension(suggestedFileName);
-            var fullActualName = actualName + extension;
-            while (_managedPaks.Exists(x => PakNameToPakPath(x.PakFileName) == fullActualName) || unManagedPaks.Contains(PakNameToPakPath(fullActualName))) {
-                actualName = Successors.TextualSuccessor(actualName);
-                fullActualName = actualName + extension;
+        private async Task<Either<Error, string>> _writePak(IPakDir.MakeFileWriter mkFileWriter, Option<IProgress<double>> progress, string suggestedFileName) {
+            var stagingPath = PakNameToPakPath(suggestedFileName + ".partial");
+            try {
+                Logger.Info($"Downloading pak to {stagingPath}");
+                var written = await mkFileWriter(stagingPath)
+                    .Bind(writer => writer.WriteAsync(progress, CancellationToken.None));
+                return written.Map(_ => {
+                    File.Move(stagingPath, PakNameToPakPath(suggestedFileName));
+                    return suggestedFileName;
+                });
             }
+            catch (Exception error) {
+                return Error.New($"Failed to install pak '{suggestedFileName}'", error);
+            }
+            finally {
+                _deleteFile(stagingPath).IfLeft(e => Logger.Warn($"Failed to remove partial download: {e.Message}"));
+            }
+        }
 
-            Logger.Info($"Downloading pak to {fullActualName}");
-            return mkFileWriter(PakNameToPakPath(fullActualName))
-                .Bind(fileWriter =>
-                    // TODO: allow passing of a cancellation token here
-                    fileWriter.WriteAsync(progress, CancellationToken.None)
-                    .Map(_ => fullActualName)
-                );
+        public void TrackPak(ManagedPak pak) {
+            _managedPaks.RemoveAll(existing => existing.Coordinates.Matches(pak.Coordinates));
+            _managedPaks.Add(pak);
+        }
+
+        internal static IEnumerable<string> GetInstallFileNames(IEnumerable<ReleaseCoordinates> releases) {
+            var coordinates = releases.ToList();
+            var duplicates = coordinates.GroupBy(c => c.ModuleName).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
+            return ApplySortedLexicographically(coordinates.Select(c =>
+                (duplicates.Contains(c.ModuleName) ? $"{c.Org}_{c.ModuleName}" : c.ModuleName) + ".pak"));
         }
 
         public async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSet(
                 IEnumerable<ModInstallRequest> installs,
                 Option<AccumulatedMemoryProgress> progress) {
 
+            SynchronizeWithDir();
             // Input is trusted to be pre-sorted by dependency order
             var installsList = installs.ToList();
             var installCoordinatesSet = installsList.Select(i => i.Coordinates).ToHashSet();
 
-            // Collect all pak file names, adding org prefix for duplicate module names
-            var moduleNameCounts = installsList
-                .GroupBy(i => i.Coordinates.ModuleName)
-                .Where(g => g.Count() > 1)
-                .Select(g => g.Key)
-                .ToHashSet();
-
-            var pakFileNames = installsList
-                .Select(install => {
-                    var moduleName = install.Coordinates.ModuleName;
-                    var needsOrgPrefix = moduleNameCounts.Contains(moduleName);
-                    var baseName = needsOrgPrefix
-                        ? $"{install.Coordinates.Org}_{moduleName}"
-                        : moduleName;
-                    return baseName + ".pak";
-                })
-                .ToList();
-
-            // Apply sorted lexicographically to get the final names
-            var sortedPakNames = ApplySortedLexicographically(pakFileNames).ToList();
+            var sortedPakNames = GetInstallFileNames(installsList.Select(i => i.Coordinates)).ToList();
 
             // Build map of existing managed paks by coordinates (for mods in install set)
             var existingByCoords = _managedPaks
@@ -345,11 +339,6 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         private string PakNameToPakPath(string fileName) {
             return Path.Join(DirPath, fileName);
-        }
-
-        private IEnumerable<string> GetUnmanagedPaks() {
-            return GetModPakFiles()
-                .Filter(p => !_managedPaks.Exists(pak => pak.PakFileName.EndsWith(Path.GetFileName(p))));
         }
 
         public Either<IEnumerable<Error>, Unit> SignAll() {

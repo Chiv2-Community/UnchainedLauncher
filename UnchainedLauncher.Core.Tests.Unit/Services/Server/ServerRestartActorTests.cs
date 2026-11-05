@@ -26,13 +26,15 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
     public class ServerRestartActorTests(HomeLaunchUi ui) {
         private static ModScanTabVM Scan(string path) {
             var entry = new GenericAssetEntry {
-                AssetPath = "TBL/Content/Mods/Transient.uasset", AssetHash = "hash",
+                AssetPath = "TBL/Content/Mods/Transient.uasset",
+                AssetHash = "hash",
                 ClassPath = "/Game/Mods/Transient.Transient_C"
             };
             entry.Properties["ModName"] = "Transient";
             entry.Properties["bShowInGUI"] = true;
             var pak = new PakScanResult {
-                PakPath = path, PakHash = Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(path)))
+                PakPath = path,
+                PakHash = Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(path)))
             };
             pak.AddGenericEntry(entry, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
             var result = new ModScanResult();

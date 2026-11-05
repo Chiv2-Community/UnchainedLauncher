@@ -17,7 +17,6 @@ using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
-using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.ViewModels;
 using UnrealModScanner.Models;
@@ -35,13 +34,15 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             try {
                 File.WriteAllText(path, "original");
                 var entry = new GenericAssetEntry {
-                    AssetPath = "TBL/Content/Mods/Transient.uasset", AssetHash = "hash",
+                    AssetPath = "TBL/Content/Mods/Transient.uasset",
+                    AssetHash = "hash",
                     ClassPath = "/Game/Mods/Transient.Transient_C"
                 };
                 entry.Properties["ModName"] = "Transient";
                 entry.Properties["bShowInGUI"] = true;
                 var pak = new PakScanResult {
-                    PakPath = path, PakHash = Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(path)))
+                    PakPath = path,
+                    PakHash = Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(path)))
                 };
                 pak.AddGenericEntry(entry, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
                 var result = new ModScanResult();

@@ -6,6 +6,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../UnchainedLauncher.GUI/Views/Controls/CollapsibleCard.xaml" Link="Views/CollapsibleCard.xaml" CopyToOutputDirectory="PreserveNewest" />
     <!-- Exercise the platform-independent view model without loading WPF. -->
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/DllManagerVM.cs" Link="DllManagerVM.cs" />
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/Registry/RegistryReleaseFormVM.cs" Link="RegistryReleaseFormVM.cs" />

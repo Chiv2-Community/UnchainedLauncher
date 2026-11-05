@@ -6,7 +6,10 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </UserControl.Resources>
 
-    <Border Style="{DynamicResource Card}"
+    <Grid>
+        <!-- Keep the shadow off the content subtree so text is not rasterized. -->
+        <Border Style="{DynamicResource Card}" IsHitTestVisible="False" />
+    <Border Style="{DynamicResource Card}" Effect="{x:Null}"
             Padding="0">
         <Grid>
             <Grid.RowDefinitions>
@@ -96,4 +99,5 @@
                               Visibility="{Binding IsExpanded, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}" />
         </Grid>
     </Border>
+    </Grid>
 </UserControl>

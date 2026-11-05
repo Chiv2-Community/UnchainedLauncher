@@ -75,6 +75,24 @@ public class PakReleaseRecoveryTests : IDisposable {
         dialogue.VerifyNoOtherCalls();
     }
 
+    [Fact]
+    public async Task UnrelatedLockedPak_DoesNotBlockRecovery() {
+        var wanted = Release("v1.0.0");
+        File.WriteAllText(Path.Join(_dir, "q__-__Mod1.pak"), wanted.Tag);
+        var unrelated = Path.Join(_dir, "q__-__Other.pak");
+        File.WriteAllText(unrelated, "unrelated content");
+        using var exclusive = new FileStream(unrelated, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+        var paks = new Core.Services.Mods.PakDir(_dir, []);
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+        var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+
+        Assert.True(await new PakReleaseRecovery(Manager(paks, registry, wanted), dialogue.Object).Recover([wanted]));
+        Assert.Equal(ReleaseCoordinates.FromRelease(wanted), Assert.Single(paks.ManagedPaks).Coordinates);
+        Assert.Equal(2, Directory.GetFiles(_dir, "*.pak").Length);
+        registry.VerifyNoOtherCalls();
+        dialogue.VerifyNoOtherCalls();
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -327,6 +345,40 @@ public class PakReleaseRecoveryTests : IDisposable {
         Assert.False(await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
         Assert.Equal("changed during confirmation", File.ReadAllText(path));
         Assert.Empty(paks.ManagedPaks);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LaterCandidateChangedWhileConfirming_PreservesEarlierReplacementAndMetadata(bool retained) {
+        var wanted = Release("v2.0.0");
+        var current = Release("v1.0.0");
+        var second = wanted with { Info = wanted.Info with { RepoUrl = "https://github.com/Org/Mod2", Name = "Mod2" } };
+        var firstPath = Path.Join(_dir, "qz__-__Mod1.pak");
+        var secondPath = Path.Join(_dir, "qy__-__Mod2.pak");
+        File.WriteAllText(firstPath, current.Tag);
+        File.WriteAllText(secondPath, retained ? wanted.Tag : current.Tag);
+        File.WriteAllText(Path.ChangeExtension(firstPath, ".sig"), "first signature");
+        File.WriteAllText(Path.ChangeExtension(secondPath, ".sig"), "second signature");
+        var tracked = new ManagedPak(ReleaseCoordinates.FromRelease(current), Path.GetFileName(firstPath), 7);
+        var paks = new Core.Services.Mods.PakDir(_dir, [tracked]);
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+        var manager = new ModManager(registry.Object, paks,
+            [ReleaseCoordinates.FromRelease(wanted), ReleaseCoordinates.FromRelease(second)],
+            [new Mod(wanted.Info, [wanted, current]), new Mod(second.Info, [second])]);
+        var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+            .Callback(() => File.WriteAllText(secondPath, "changed during confirmation")).Returns(UserDialogueChoice.Yes);
+        dialogue.Setup(d => d.DisplayMessage(It.Is<string>(message => message.Contains("Pak changed during release confirmation"))));
+
+        Assert.False(await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted, second]));
+        Assert.Equal(current.Tag, File.ReadAllText(firstPath));
+        Assert.Equal("changed during confirmation", File.ReadAllText(secondPath));
+        Assert.Equal("first signature", File.ReadAllText(Path.ChangeExtension(firstPath, ".sig")));
+        Assert.Equal("second signature", File.ReadAllText(Path.ChangeExtension(secondPath, ".sig")));
+        Assert.Equal(tracked, Assert.Single(paks.ManagedPaks));
+        registry.VerifyNoOtherCalls();
+        dialogue.VerifyAll();
     }
 
     [Fact]

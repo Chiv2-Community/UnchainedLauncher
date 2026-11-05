@@ -21,10 +21,8 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
                 .SelectMany(path => path.ToList()).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var local = new List<LocalPak>();
             foreach (var path in Directory.EnumerateFiles(manager.PakDir.DirPath, "*.pak")) {
-                // Ignore vanilla game paks and manually installed files outside the launcher's naming scheme.
-                if (!tracked.Contains(path) && !Regex.IsMatch(Path.GetFileName(path), @"^q[a-z]*__-__")) continue;
-                using var stream = File.OpenRead(path);
-                var hash = Convert.ToHexString(await SHA512.HashDataAsync(stream));
+                if (!tracked.Contains(path) && !names.Any(name => MatchesDestination(path, name))) continue;
+                var hash = await HashFile(path);
                 local.Add(new LocalPak(path, hash, available.FirstOrDefault(release => HashMatches(release.ReleaseHash, hash))));
             }
 
@@ -72,15 +70,19 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
                 }
             }
 
-            // No files or metadata change until all replacements have been approved.
-            foreach (var pak in replacements.Distinct()) await DeletePak(pak);
+            // Revalidate retained and deleted candidates before changing any files or metadata.
+            foreach (var pak in local) {
+                if (!HashMatches(pak.Hash, await HashFile(pak.Path)))
+                    throw new IOException($"Pak changed during release confirmation: {pak.Path}");
+            }
+            foreach (var pak in replacements.Distinct()) DeletePak(pak);
             for (var i = 0; i < requested.Count; i++) {
                 var wanted = requested[i];
                 var matching = recovered[i];
                 if (matching.Count == 0) continue;
                 var installed = matching[0];
                 manager.PakDir.TrackPak(new ManagedPak(ReleaseCoordinates.FromRelease(wanted), Path.GetFileName(installed.Path), i));
-                foreach (var duplicate in matching.Skip(1)) await DeletePak(duplicate);
+                foreach (var duplicate in matching.Skip(1)) DeletePak(duplicate);
             }
             return true;
         }
@@ -99,11 +101,12 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
         return Regex.IsMatch(Path.GetFileName(path), $@"^q[a-z]*__-__{stem}( \([0-9]+\))?\.pak$", RegexOptions.IgnoreCase);
     }
 
-    private static async Task DeletePak(LocalPak pak) {
-        using (var stream = File.OpenRead(pak.Path)) {
-            if (!HashMatches(pak.Hash, Convert.ToHexString(await SHA512.HashDataAsync(stream))))
-                throw new IOException($"Pak changed during release confirmation: {pak.Path}");
-        }
+    private static async Task<string> HashFile(string path) {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(await SHA512.HashDataAsync(stream));
+    }
+
+    private static void DeletePak(LocalPak pak) {
         File.Delete(Path.ChangeExtension(pak.Path, ".sig"));
         File.Delete(pak.Path);
     }

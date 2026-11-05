@@ -97,13 +97,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         [Fact]
         public void ScanReplacementAndModDisablePreserveOtherSourcesAndVanillaMaps() {
             using var file = new ScannedPak("Shared");
-            var scanResult = file.Scan;
-            var pak = file.Result;
-            pak._Maps.Add(JsonConvert.DeserializeObject<GameMapInfo>("""
+            file.Result._Maps.Add(JsonConvert.DeserializeObject<GameMapInfo>("""
                 {"asset_path":"TBL/Content/Maps/Shared.umap","asset_hash":"hash",
                  "settings":{"Map":{"MapName":"Shared","GamemodeType":"FFA"}}}
                 """)!);
-            var shared = ModManifestConverter.ProcessModScan(scanResult).Paks.Single().Inventory;
+            var shared = ModManifestConverter.ProcessModScan(file.Scan).Paks.Single().Inventory;
             var release = Release("Shared", shared);
             var manager = Manager(release);
             var scan = new ModScanTabVM();
@@ -111,7 +109,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             var vanilla = catalog.AvailableMaps.ToArray();
             Assert.NotEmpty(vanilla);
             manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
-            PublishScan(scan, scanResult);
+            PublishScan(scan, file.Scan);
             Assert.Single(catalog.AvailableMaps.Where(map => shared.Maps.Contains(map)));
             Assert.Single(catalog.AvailableServerModBlueprints);
             manager.DisableModRelease(ReleaseCoordinates.FromRelease(release));
@@ -122,7 +120,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             AssertAssets(catalog, shared, true);
             manager.DisableModRelease(ReleaseCoordinates.FromRelease(release));
             AssertAssets(catalog, shared, false);
-            PublishScan(scan, scanResult);
+            PublishScan(scan, file.Scan);
             PublishScan(scan, null);
             AssertAssets(catalog, shared, false);
             Assert.Equal(vanilla, catalog.AvailableMaps);

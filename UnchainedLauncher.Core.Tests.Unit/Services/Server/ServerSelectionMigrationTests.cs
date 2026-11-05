@@ -363,9 +363,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                 var coordinates = ReleaseCoordinates.FromRelease(parentRelease);
                 var registry = new Mock<IModRegistry>();
                 var manager = new ModManager(registry.Object, Mock.Of<IPakDir>(), [coordinates], [parent, middle, leaf]);
-                var scan = new ModScanTabVM();
-                var catalog = new AvailableModsAndMapsService(manager, scan);
-                var codec = new ServerConfigurationCodec(manager, scan, catalog);
+                var codec = Codec(manager);
                 var configs = Decode(codec, "[{\"Name\":\"PartialDependencies\"}]");
                 configs[0].EnableServerBlueprintMod(actor);
                 Assert.Equal(actor, Assert.Single(configs[0].PrepareServerBlueprintsForLaunch()));

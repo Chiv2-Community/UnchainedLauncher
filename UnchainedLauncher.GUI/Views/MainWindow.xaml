@@ -170,6 +170,7 @@
                        Background="{DynamicResource Brush.Background}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -201,7 +202,7 @@
                     <Button x:Name="RefreshPluginListButton" Grid.Column="7" Content="Refresh Plugin List" Command="{Binding RefreshCommand}"
                             Style="{StaticResource Button.Primary}" />
                 </Grid>
-                <Grid Grid.Row="2" Margin="0,12,0,0">
+                <Grid Grid.Row="3" Margin="0,12,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -220,12 +221,20 @@
                               IsEnabled="{Binding EnablePluginAutomaticUpdates}"
                               Margin="0,5" />
                 </Grid>
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" behaviors:MouseWheelScrollForwardingBehavior.IsEnabled="True">
-                    <ItemsControl ItemsSource="{Binding Plugins}">
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button Content="Expand all" Command="{Binding ExpandAllCommand}" Margin="0,0,8,0"
+                            ToolTip="Show details for all plugins, including filtered plugins" />
+                    <Button Content="Collapse all" Command="{Binding CollapseAllCommand}"
+                            ToolTip="Hide details for all plugins, including filtered plugins" />
+                </StackPanel>
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" behaviors:MouseWheelScrollForwardingBehavior.IsEnabled="True">
+                    <ItemsControl ItemsSource="{Binding Plugins}" Margin="0,0,12,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Style="{StaticResource PluginCard}">
-                                    <StackPanel>
+                                <controls:CollapsibleCard IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+                                                          IsActive="{Binding IsEnabled}"
+                                                          ShowExpansionIndicator="False" HighlightOnHover="True" ShowHeaderSeparator="True">
+                                    <controls:CollapsibleCard.Header>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
@@ -260,10 +269,15 @@
                                                 </ComboBox.ItemTemplate>
                                             </ComboBox>
                                         </Grid>
+                                    </controls:CollapsibleCard.Header>
+                                    <controls:CollapsibleCard.Body>
+                                    <StackPanel>
                                         <TextBlock Text="An enabled prerelease is hidden. Check Enable Unstable Plugin Releases to view it."
                                                    Visibility="{Binding HasHiddenEnabledVersion, Converter={StaticResource BoolToVisibilityConverter}}"
                                                    TextWrapping="Wrap" Margin="0,8,0,0" />
-                                        <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Margin="0,12,0,0" />
+                                        <TextBox Text="{Binding Description, Mode=OneWay}" TextWrapping="Wrap" Margin="0,12,0,0"
+                                                 MinHeight="100" MaxHeight="300" IsReadOnly="True" VerticalScrollBarVisibility="Auto"
+                                                 controls:InputOptions.IsHoverHighlightEnabled="False" />
                                         <ItemsControl ItemsSource="{Binding ImageUrls}">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
@@ -297,7 +311,8 @@
                                         <TextBlock Text="{Binding SelectedVersion.Sha256, StringFormat='SHA-256: {0}'}" TextWrapping="Wrap"
                                                    Foreground="{DynamicResource Brush.Muted}" FontSize="11" />
                                     </StackPanel>
-                                </Border>
+                                    </controls:CollapsibleCard.Body>
+                                </controls:CollapsibleCard>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

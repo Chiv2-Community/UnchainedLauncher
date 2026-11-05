@@ -28,7 +28,10 @@ public class CardTextRenderingTests {
         Assert.Equal("{Binding IsExpanded, ElementName=Root, Mode=TwoWay}", (string?)toggle.Attribute("IsChecked"));
         var body = Assert.Single(content.Descendants(wpf + "ContentPresenter")
             .Where(element => (string?)element.Attribute("Content") == "{Binding Body, ElementName=Root}"));
-        Assert.Equal("12,0,12,12", (string?)body.Attribute("Margin"));
+        var bodyStyle = body.Element(wpf + "ContentPresenter.Style")!.Element(wpf + "Style")!;
+        var margin = Assert.Single(bodyStyle.Elements(wpf + "Setter")
+            .Where(element => (string?)element.Attribute("Property") == "Margin"));
+        Assert.Equal("12,0,12,12", (string?)margin.Attribute("Value"));
         Assert.Equal("{Binding IsExpanded, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}",
             (string?)body.Attribute("Visibility"));
     }

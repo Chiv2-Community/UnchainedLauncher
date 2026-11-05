@@ -24,13 +24,17 @@
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/DllManagerVM.cs" Link="DllManagerVM.cs" />
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/Registry/RegistryReleaseFormVM.cs" Link="RegistryReleaseFormVM.cs" />
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/ModSortMode.cs" Link="ModSortMode.cs" />
+    <Compile Include="../UnchainedLauncher.GUI/ViewModels/ModVM.cs" Link="ModVM.cs" />
+    <Compile Include="../UnchainedLauncher.GUI/ViewModels/ModListVM.cs" Link="ModListVM.cs" />
     <Compile Include="../UnchainedLauncher.GUI/JsonModels/LauncherSettings.cs" Link="LauncherSettings.cs" />
     <None Include="../UnchainedLauncher.GUI/Views/Mods/Mod.xaml" Link="Views/Mod.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Views/Mods/ModList.xaml" Link="Views/ModList.xaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../UnchainedLauncher.GUI/Views/MainWindow.xaml" Link="Views/MainWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../UnchainedLauncher.GUI/Resources/Themes/Misc.xaml" Link="Views/Misc.xaml" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../UnchainedLauncher.Core/UnchainedLauncher.Core.csproj" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
-    <PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All" ExcludeAssets="build;buildTransitive" />
+    <PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All" />
+    <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3" />

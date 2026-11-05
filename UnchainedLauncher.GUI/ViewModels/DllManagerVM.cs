@@ -22,6 +22,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private readonly DllManager manager;
         private readonly IPluginSettings? _settings;
         private readonly IUserDialogueSpawner? _dialogue;
+        private readonly Dictionary<string, bool> _expansionStates = new(StringComparer.OrdinalIgnoreCase);
         public ObservableCollection<DllPluginVM> Plugins { get; } = [];
         private string? _searchTerm;
         public string? SearchTerm {
@@ -76,11 +77,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         private void Populate() {
+            foreach (var plugin in Plugins) _expansionStates[plugin.Organization + "/" + plugin.RepositoryName] = plugin.IsExpanded;
             var selections = manager.EnabledSelections;
             var ids = manager.Releases.Select(release => release.Id).Concat(selections.Keys).Distinct(StringComparer.OrdinalIgnoreCase);
             IEnumerable<DllPluginVM> query = ids
                 .Select(id => new DllPluginVM(manager, manager.Releases.Where(release => release.Id.Equals(id, StringComparison.OrdinalIgnoreCase)).ToArray(),
-                    AllowUnstablePluginReleases, ReportError, id: id))
+                    AllowUnstablePluginReleases, ReportError, id: id) { IsExpanded = _expansionStates.GetValueOrDefault(id, true) })
                 .Where(plugin => plugin.AvailableVersions.Count != 0 || plugin.IsEnabled);
             var term = (SearchTerm ?? "").Trim();
             if (term.Length != 0)
@@ -96,6 +98,18 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 StringComparer.OrdinalIgnoreCase).ToArray();
             Plugins.Clear();
             foreach (var plugin in displayed) Plugins.Add(plugin);
+        }
+
+        [RelayCommand]
+        private void ExpandAll() => SetAllExpanded(true);
+
+        [RelayCommand]
+        private void CollapseAll() => SetAllExpanded(false);
+
+        private void SetAllExpanded(bool expanded) {
+            foreach (var id in manager.Releases.Select(release => release.Id).Concat(manager.EnabledSelections.Keys))
+                _expansionStates[id] = expanded;
+            foreach (var plugin in Plugins) plugin.IsExpanded = expanded;
         }
 
         [RelayCommand]
@@ -144,6 +158,15 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private readonly Action<string> _error;
         private readonly Action<string> _openUrl;
         private DllRow? _selectedVersion;
+        private bool _isExpanded = true;
+        public bool IsExpanded {
+            get => _isExpanded;
+            set {
+                if (_isExpanded == value) return;
+                _isExpanded = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsExpanded)));
+            }
+        }
         public string Organization { get; }
         public string RepositoryName { get; }
         private PluginInfo? Info => DisplayRelease?.Info;

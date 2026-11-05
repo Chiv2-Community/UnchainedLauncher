@@ -141,6 +141,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 completed = result.IsRight;
                 return result;
             }
+            catch (Exception ex) {
+                return Error.New($"Failed to download pak '{fullActualName}'", ex);
+            }
             finally {
                 if (!completed) {
                     _deleteFile(PakNameToPakPath(fullActualName))

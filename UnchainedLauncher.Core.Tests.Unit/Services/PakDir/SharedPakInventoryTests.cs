@@ -334,18 +334,29 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.Equal(1, _downloads);
         }
 
-        [Fact]
-        public async Task FailedStreamDoesNotLeaveAnUnmanagedPartialDownload() {
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        public async Task FailedDownloadDoesNotLeaveAnUnmanagedPartialDownload(int failure) {
             var results = await NewPakDir().InstallModSet(new[] {
-                new ModInstallRequest(_a, path => new FileWriter(path, new FailedStream(), 3))
+                new ModInstallRequest(_a, path => failure switch {
+                    1 => throw new IOException("writer acquisition failed"),
+                    2 => Task.FromException<Either<Error, FileWriter>>(new IOException("writer acquisition failed")).ToAsync(),
+                    _ => new FileWriter(path, new FailedStream(), 3)
+                })
             }, Option<AccumulatedMemoryProgress>.None).ToListAsync();
 
             Assert.True(Assert.Single(results).IsLeft);
             Assert.Empty(Directory.GetFiles(_directory, "*.pak"));
             Assert.Empty(ReadInventory());
+            Assert.False(File.Exists(Path.Combine(_directory, ".unchained", "pending")));
             await Install(NewPakDir(), _a);
             Assert.Equal(1, _downloads);
             Assert.Equal("q__-__A.pak", Assert.Single(ReadInventory()).PakFileName);
+            (await NewPakDir().Reset()).IfLeft(errors => throw Error.Many(errors.ToSeq()));
+            Assert.Empty(ReadInventory());
+            Assert.Empty(Directory.GetFiles(_directory, "*.pak"));
         }
 
         [Fact]

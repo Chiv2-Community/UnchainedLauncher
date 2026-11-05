@@ -11,6 +11,7 @@
              Focusable="True">
 
     <controls:CollapsibleCard IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+                              IsActive="{Binding IsEnabled}"
                               ShowExpansionIndicator="False"
                               HighlightOnHover="True"
                               ShowHeaderSeparator="True">

@@ -8,13 +8,20 @@
 
     <Border Style="{DynamicResource Card}" Padding="0">
         <Grid>
+            <Border x:Name="ActiveSurface" CornerRadius="6"
+                    Background="{DynamicResource Brush.SuccessTint}" IsHitTestVisible="False"
+                    Visibility="{Binding IsActive, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}" />
             <Border x:Name="HoverOutline" Panel.ZIndex="1"
                     BorderThickness="1" CornerRadius="6"
-                    BorderBrush="{DynamicResource Brush.PrimaryHover}" IsHitTestVisible="False">
+                    IsHitTestVisible="False">
                 <Border.Style>
                     <Style TargetType="Border">
                         <Setter Property="Visibility" Value="Collapsed" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource Brush.PrimaryHover}" />
                         <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsActive, ElementName=Root}" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success}" />
+                            </DataTrigger>
                             <MultiDataTrigger>
                                 <MultiDataTrigger.Conditions>
                                     <Condition Binding="{Binding HighlightOnHover, ElementName=Root}" Value="True" />

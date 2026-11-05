@@ -26,6 +26,9 @@ namespace UnchainedLauncher.GUI.Views.Controls {
         public static readonly DependencyProperty ShowHeaderSeparatorProperty = DependencyProperty.Register(
             nameof(ShowHeaderSeparator), typeof(bool), typeof(CollapsibleCard), new PropertyMetadata(false));
 
+        public static readonly DependencyProperty IsActiveProperty = DependencyProperty.Register(
+            nameof(IsActive), typeof(bool), typeof(CollapsibleCard), new PropertyMetadata(false));
+
         public CollapsibleCard() {
             InitializeComponent();
         }
@@ -63,6 +66,11 @@ namespace UnchainedLauncher.GUI.Views.Controls {
         public bool ShowHeaderSeparator {
             get => (bool)GetValue(ShowHeaderSeparatorProperty);
             set => SetValue(ShowHeaderSeparatorProperty, value);
+        }
+
+        public bool IsActive {
+            get => (bool)GetValue(IsActiveProperty);
+            set => SetValue(IsActiveProperty, value);
         }
     }
 }

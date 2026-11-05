@@ -505,19 +505,18 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .BindLefts());
         }
 
-        private async Task<Either<IEnumerable<Error>, Unit>> WithDirectoryLock(Func<Either<IEnumerable<Error>, Unit>> action) {
+        private async Task<Either<IEnumerable<Error>, Unit>> WithDirectoryLock(Func<Either<IEnumerable<Error>, Unit>> action, string errorMessage = "Failed to update pak signatures") {
             try {
                 using var inventoryLock = await _inventory.Lock();
                 return action();
             }
             catch (Exception ex) {
-                return Left<IEnumerable<Error>, Unit>(new[] { Error.New("Failed to update pak signatures", ex) });
+                return Left<IEnumerable<Error>, Unit>(new[] { Error.New(errorMessage, ex) });
             }
         }
 
-        public async Task<Either<IEnumerable<Error>, Unit>> Reset() {
-            try {
-                using var inventoryLock = await _inventory.Lock();
+        public Task<Either<IEnumerable<Error>, Unit>> Reset() {
+            return WithDirectoryLock(() => {
                 ReloadInventory();
                 _inventory.Save(_managedPaks);
                 _inventory.BeginChange();
@@ -528,10 +527,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 SynchronizeWithDir();
                 _inventory.Save(_managedPaks);
                 return result;
-            }
-            catch (Exception ex) {
-                return Left<IEnumerable<Error>, Unit>(new[] { Error.New("Failed to reset managed pak inventory", ex) });
-            }
+            }, "Failed to reset managed pak inventory");
         }
 
         public Task<Either<IEnumerable<Error>, Unit>> DeleteOrphanedSigs() {

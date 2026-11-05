@@ -6,15 +6,43 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </UserControl.Resources>
 
-    <Border Style="{DynamicResource Card}"
-            Padding="0">
+    <Border Style="{DynamicResource Card}" Padding="0">
         <Grid>
+            <Border x:Name="ActiveSurface" CornerRadius="6"
+                    Background="{DynamicResource Brush.SuccessTint}" IsHitTestVisible="False"
+                    Visibility="{Binding IsActive, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}" />
+            <Border x:Name="HoverOutline" Panel.ZIndex="1"
+                    BorderThickness="1" CornerRadius="6"
+                    IsHitTestVisible="False">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Setter Property="BorderBrush" Value="{DynamicResource Brush.PrimaryHover}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsActive, ElementName=Root}" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success}" />
+                            </DataTrigger>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding HighlightOnHover, ElementName=Root}" Value="True" />
+                                    <Condition Binding="{Binding IsMouseOver, ElementName=Root}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+            </Border>
+
+            <Grid>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <ToggleButton Grid.Row="0"
+                          Cursor="Hand"
                           Background="Transparent"
                           BorderThickness="0"
                           BorderBrush="Transparent"
@@ -26,18 +54,19 @@
                           IsChecked="{Binding IsExpanded, ElementName=Root, Mode=TwoWay}">
                 <ToggleButton.Template>
                     <!--
-                        Keep the header area visually stable: no hover/pressed/checked color changes.
-                        We supply our own minimal template without state triggers.
+                        Preserve a stable header; card hover highlighting is opt-in.
                     -->
                     <ControlTemplate TargetType="ToggleButton">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}">
-                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                              Margin="{TemplateBinding Padding}"
-                                              RecognizesAccessKey="True" />
-                        </Border>
+                        <Grid>
+                            <Border x:Name="HeaderSurface" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  RecognizesAccessKey="True" />
+                            </Border>
+                        </Grid>
                     </ControlTemplate>
                 </ToggleButton.Template>
                 <Grid>
@@ -51,7 +80,6 @@
                                       ContentTemplate="{Binding HeaderTemplate, ElementName=Root}"
                                       RecognizesAccessKey="True"
                                       VerticalAlignment="Center"
-                                      Margin="0,0,8,0"
                                       TextElement.Foreground="{DynamicResource Brush.TextPrimary}"
                                       TextElement.FontWeight="SemiBold" />
 
@@ -66,6 +94,8 @@
                           StrokeStartLineCap="Round"
                           StrokeEndLineCap="Round"
                           IsHitTestVisible="False"
+                          Visibility="{Binding ShowExpansionIndicator, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}"
+                          Margin="8,0,0,0"
                           RenderTransformOrigin="0.5,0.5">
                         <Path.Style>
                             <Style TargetType="Path">
@@ -90,10 +120,37 @@
             </ToggleButton>
 
             <!-- Body -->
-            <ContentPresenter Grid.Row="1"
-                              Margin="12,0,12,12"
+            <Border Grid.Row="1" Height="1" Background="{DynamicResource Brush.Border}" IsHitTestVisible="False">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding ShowHeaderSeparator, ElementName=Root}" Value="True" />
+                                    <Condition Binding="{Binding IsExpanded, ElementName=Root}" Value="True" />
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible" />
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+            </Border>
+            <ContentPresenter Grid.Row="2"
                               Content="{Binding Body, ElementName=Root}"
-                              Visibility="{Binding IsExpanded, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}" />
+                              Visibility="{Binding IsExpanded, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}">
+                <ContentPresenter.Style>
+                    <Style TargetType="ContentPresenter">
+                        <Setter Property="Margin" Value="12,0,12,12" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ShowHeaderSeparator, ElementName=Root}" Value="True">
+                                <Setter Property="Margin" Value="12" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentPresenter.Style>
+            </ContentPresenter>
+            </Grid>
         </Grid>
     </Border>
 </UserControl>

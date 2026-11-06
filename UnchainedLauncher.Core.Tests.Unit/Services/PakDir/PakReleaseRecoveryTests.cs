@@ -32,6 +32,16 @@ public class PakReleaseRecoveryTests : IDisposable {
         return dialogue;
     }
 
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("https://example.test/release", true)]
+    public void ReleaseInformationIsAvailableOnlyForKnownReleases(string url, bool available) {
+        var row = new UnchainedLauncher.GUI.ViewModels.DependencyUpdateViewModel(
+            new DependencyUpdate("mod.pak", null, "Unknown", url, "Unrecognized pak"));
+        Assert.Equal(available, row.HasReleaseInformation);
+        Assert.Equal(available, row.HyperlinkCommand.CanExecute(null));
+    }
+
     [Fact]
     public async Task Keep_RecoversMissingMetadataAndLatestMatchingVersionWithoutListingDuplicates() {
         var wanted = Release("v1.0.0");
@@ -108,6 +118,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), "Unmanaged paks detected. Keep them or remove them?", "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
             .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, _, _, _, _, changes) => {
                 Assert.Equal(2, changes.Count());
+                Assert.Contains(changes, change => change.Reason == detected.Info.Name);
                 Assert.DoesNotContain(changes, change => change.Reason!.Contains("duplicate"));
             }).Returns(choice);
         dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => { });

@@ -53,6 +53,15 @@
                             <TextBlock Text="{Binding VersionString}" />
                             <TextBlock Text=" " />
                             <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasReleaseInformation}" Value="False">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
                                 <Hyperlink NavigateUri="{Binding Update.ReleaseUrl}"
                                            Command="{Binding HyperlinkCommand}">
                                     View Release Information

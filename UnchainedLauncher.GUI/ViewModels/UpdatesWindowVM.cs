@@ -60,9 +60,11 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string CurrentVersionString => Update.CurrentVersion ?? "None";
         public string VersionString => Update.CurrentVersion == null ? Update.LatestVersion : $"{CurrentVersionString} -> {Update.LatestVersion}";
 
-        private bool CanHyperlink() => !string.IsNullOrWhiteSpace(Update.ReleaseUrl);
+        public bool HasReleaseInformation => !string.IsNullOrWhiteSpace(Update.ReleaseUrl);
 
-        [RelayCommand(CanExecute = nameof(CanHyperlink))]
+        private IRelayCommand? _hyperlinkCommand;
+        public IRelayCommand HyperlinkCommand => _hyperlinkCommand ??= new RelayCommand(Hyperlink, () => HasReleaseInformation);
+
         public void Hyperlink() {
             Process.Start(new ProcessStartInfo { FileName = Update.ReleaseUrl, UseShellExecute = true });
         }

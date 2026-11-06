@@ -24,10 +24,17 @@ public class UpdatesWindowTests(HomeLaunchUi ui) {
         Assert.Equal(enabled, codec.Deserialize(json).Result!.AlwaysKeepUnmanagedPaks);
     });
 
-    [Fact]
-    public void ResizedDialogScrollsRowsKeepsActionsVisibleAndHidesUnknownReleaseLinks() => ui.Run(() => {
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(8)]
+    public void ResizedDialogScrollsRowsKeepsActionsVisibleAndHidesUnknownReleaseLinks(int cardCount) => ui.Run(() => {
         var resources = new List<ResourceDictionary>();
         UpdatesWindow? window = null;
+        var renderMode = RenderOptions.ProcessRenderMode;
+        RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
         try {
             foreach (var theme in new[] { "Constants", "DarkConstants", "Buttons", "Misc", "Inputs", "Typography" }) {
                 var dictionary = new ResourceDictionary { Source = new Uri($"/UnchainedLauncher;component/Resources/Themes/{theme}.xaml", UriKind.Relative) };
@@ -64,7 +71,7 @@ public class UpdatesWindowTests(HomeLaunchUi ui) {
             }
             window.Close();
             window = new UpdatesWindow("Unmanaged paks detected", "Unmanaged paks detected. Keep them or remove them?",
-                "Keep", "Remove", "Cancel", Enumerable.Range(0, 8).Select(_ => new DependencyUpdateViewModel(known))) {
+                "Keep", "Remove", "Cancel", Enumerable.Range(0, cardCount).Select(_ => new DependencyUpdateViewModel(known))) {
                 ShowActivated = false,
                 ShowInTaskbar = false
             };
@@ -74,10 +81,13 @@ public class UpdatesWindowTests(HomeLaunchUi ui) {
             window.UpdateLayout();
             var viewport = Assert.Single(Descendants<ScrollViewer>(window));
             Assert.Equal(640, window.Width);
-            Assert.InRange(viewport.ViewportHeight, 391, 393);
+            var expectedHeight = Math.Min(cardCount, 3.5) * 112 + (cardCount < 4 ? 1 : 0);
+            Assert.InRange(viewport.ViewportHeight, expectedHeight - 1, expectedHeight + 1);
+            Assert.Equal(cardCount >= 4, viewport.ScrollableHeight > 0);
         }
         finally {
             window?.Close();
+            RenderOptions.ProcessRenderMode = renderMode;
             foreach (var resource in resources) Application.Current.Resources.MergedDictionaries.Remove(resource);
         }
     });

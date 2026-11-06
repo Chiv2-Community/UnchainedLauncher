@@ -35,7 +35,7 @@ namespace UnchainedLauncher.GUI.Behaviors {
             if (!element.IsMouseOver) return;
 
             // Don't forward if we're over a nested scrollable control (e.g., ComboBox, nested ScrollViewer).
-            // But if 'element' itself is a scrollable control (like a ListBox), we still want to forward 
+            // But if 'element' itself is a scrollable control (like a ListBox), we still want to forward
             // from its contents to the parent ScrollViewer.
             if (IsOverNestedScrollableControl(e.OriginalSource as DependencyObject, element)) return;
 

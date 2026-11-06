@@ -1,5 +1,4 @@
 using log4net;
-using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -13,8 +12,9 @@ internal static class PakReleaseRecovery {
     internal static async Task<bool> Recover(PakDir paks, IReadOnlyList<Release> requested,
         IEnumerable<Release> known, IUserDialogueSpawner dialogue, Action beginChange, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks) {
         try {
+            using var cache = new PakReadCache(paks.DirPath);
             known = known.ToList();
-            if (!await UnmanagedPakRecovery.Recover(paks, requested, known.Concat(requested), dialogue, beginChange, adopted, alwaysKeepUnmanagedPaks)) return false;
+            if (!await UnmanagedPakRecovery.Recover(paks, requested, known.Concat(requested), dialogue, beginChange, adopted, alwaysKeepUnmanagedPaks, cache)) return false;
             requested = requested.Select(release => adopted.FirstOrDefault(detected => ModIdentifier.FromRelease(detected) == ModIdentifier.FromRelease(release)) ?? release)
                 .Concat(adopted.Where(detected => !requested.Any(release => ModIdentifier.FromRelease(detected) == ModIdentifier.FromRelease(release)))).ToList();
             if (requested.Count == 0) return true;
@@ -29,7 +29,7 @@ internal static class PakReleaseRecovery {
             foreach (var path in Directory.EnumerateFiles(paks.DirPath, "*.pak")) {
                 if (!tracked.Any(pak => pak.PakFileName.Equals(Path.GetFileName(path), StringComparison.OrdinalIgnoreCase))) continue;
                 if (!trackedPaths.Contains(path) && !names.Any(name => MatchesDestination(path, name))) continue;
-                var hash = await HashFile(path);
+                var hash = await cache.Hash(path);
                 local.Add(new LocalPak(path, hash, available.FirstOrDefault(release => HashMatches(release.ReleaseHash, hash))));
             }
 
@@ -82,8 +82,7 @@ internal static class PakReleaseRecovery {
                 }
             }
             foreach (var pak in local) {
-                if (!HashMatches(pak.Hash, await HashFile(pak.Path)))
-                    throw new IOException($"Pak changed during release confirmation: {pak.Path}");
+                cache.Validate(pak.Path, pak.Hash);
             }
             if (replacements.Count == 0 && recovered.All(paks => paks.Count == 0)) return true;
             beginChange();
@@ -113,11 +112,6 @@ internal static class PakReleaseRecovery {
     private static bool MatchesDestination(string path, string name) {
         var stem = Regex.Escape(Path.GetFileNameWithoutExtension(name.Split("__-__", 2)[1]));
         return Regex.IsMatch(Path.GetFileName(path), $@"^q[a-z]*__-__{stem}( \([0-9]+\))?\.pak$", RegexOptions.IgnoreCase);
-    }
-
-    private static async Task<string> HashFile(string path) {
-        using var stream = File.OpenRead(path);
-        return Convert.ToHexString(await SHA512.HashDataAsync(stream));
     }
 
     private static void DeletePak(LocalPak pak) {

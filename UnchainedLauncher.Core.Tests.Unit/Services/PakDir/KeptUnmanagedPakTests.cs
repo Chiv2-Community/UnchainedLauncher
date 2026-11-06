@@ -27,11 +27,44 @@ public class KeptUnmanagedPakTests : IDisposable {
         return dialogue;
     }
 
-    private Task<bool> Recover(Mock<IUserDialogueSpawner> dialogue, bool alwaysKeep = false, params Release[] known) =>
-        UnmanagedPakRecovery.Recover(new Core.Services.Mods.PakDir(_dir, []), [], known, dialogue.Object, () => { }, [], alwaysKeep);
+    private async Task<bool> Recover(Mock<IUserDialogueSpawner> dialogue, bool alwaysKeep = false, params Release[] known) {
+        using var cache = new PakReadCache(_dir);
+        return await UnmanagedPakRecovery.Recover(new Core.Services.Mods.PakDir(_dir, []), [], known, dialogue.Object, () => { }, [], alwaysKeep, cache);
+    }
 
     private Dictionary<string, string> Choices() => JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(ChoicesPath))!;
     private static string Hash(string content) => Convert.ToHexString(SHA512.HashData(Encoding.UTF8.GetBytes(content)));
+
+    [Fact]
+    public async Task CancelPersistsReadResultsButRegistryTagWinsWithoutScanning() {
+        var path = Write("manual.pak", "original");
+        var scans = 0;
+        var hashes = 0;
+        var expected = "1.2.3";
+        var dialogue = Dialogue(UserDialogueChoice.Cancel);
+        dialogue.Setup(value => value.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+            .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, _, _, _, _, updates) =>
+                Assert.Equal(expected, Assert.Single(updates).LatestVersion)).Returns(UserDialogueChoice.Cancel);
+        var release = new Release("v9.0.0", Hash("original"), "Mod1.pak", DateTime.UtcNow,
+            new ModInfo("https://github.com/Org/Mod1", "Mod1", "", null, null, [], [], []), null!, null);
+        for (var run = 0; run < 4; run++) {
+            if (run == 2) expected = release.Tag;
+            if (run == 3) File.SetLastWriteTimeUtc(path, File.GetLastWriteTimeUtc(path).AddMinutes(1));
+            using var cache = new PakReadCache(_dir, _ => {
+                scans++;
+                return Task.FromResult<string?>("1.2.3");
+            }, async stream => {
+                hashes++;
+                return await SHA512.HashDataAsync(stream);
+            });
+            Assert.False(await UnmanagedPakRecovery.Recover(new Core.Services.Mods.PakDir(_dir, []), [],
+                run < 2 ? [] : [release], dialogue.Object, () => { }, [], false, cache));
+        }
+        Assert.Equal(1, scans);
+        Assert.Equal(2, hashes);
+        Assert.False(File.Exists(ChoicesPath));
+        Assert.Empty(new Core.Services.Mods.PakDir(_dir, []).ManagedPaks);
+    }
 
     [Theory]
     [InlineData(false, false)]

@@ -38,6 +38,27 @@ public class PakReleaseRecoveryTests : IDisposable {
         return dialogue;
     }
 
+    [Fact]
+    public async Task ConfirmationAndManagedRecoveryReuseHashWithoutReopeningPak() {
+        var wanted = Release("v1.0.0");
+        var path = Write("q__-__Mod1.pak", wanted.Tag);
+        FileStream? exclusive = null;
+        var dialogue = Dialogue(UserDialogueChoice.Yes);
+        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+            .Callback(() => exclusive = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
+            .Returns(UserDialogueChoice.Yes);
+        var paks = new Core.Services.Mods.PakDir(_dir, []);
+        try {
+            Assert.True(await paks.RecoverReleases([wanted], [wanted], dialogue.Object));
+            Assert.NotNull(exclusive);
+            Assert.True(await paks.RecoverReleases([wanted], [wanted], new Mock<IUserDialogueSpawner>(MockBehavior.Strict).Object));
+            Assert.Equal(ReleaseCoordinates.FromRelease(wanted), Assert.Single(paks.ManagedPaks).Coordinates);
+        }
+        finally {
+            exclusive?.Dispose();
+        }
+    }
+
     [Theory]
     [InlineData("", false)]
     [InlineData("https://example.test/release", true)]

@@ -4,6 +4,7 @@ using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -26,10 +27,12 @@ public class AvailableModsAndMapsService {
 
     private PakDirManifest? _cachedScanManifest = null;
     private readonly IModManager _modManager;
+    private readonly IUnmanagedPakSettings? _settings;
     private readonly List<MapDto> _defaultMaps;
 
-    public AvailableModsAndMapsService(IModManager modManager, ModScanTabVM modScanTab) {
+    public AvailableModsAndMapsService(IModManager modManager, ModScanTabVM modScanTab, IUnmanagedPakSettings? settings = null) {
         _modManager = modManager;
+        _settings = settings;
         _defaultMaps = GetDefaultMaps().ToList();
         AvailableMaps = new ObservableCollection<MapDto>();
         AvailableServerModBlueprints = new ObservableCollection<BlueprintDto>();
@@ -37,6 +40,8 @@ public class AvailableModsAndMapsService {
         modManager.ModDisabled += _ => ReconcileCatalog();
         modManager.ModEnabled += (_, _) => ReconcileCatalog();
         WeakEventManager<IModManager, EventArgs>.AddHandler(modManager, nameof(IModManager.MetadataRefreshed), OnMetadataRefreshed);
+        if (settings is INotifyPropertyChanged notifyingSettings)
+            PropertyChangedEventManager.AddHandler(notifyingSettings, (_, _) => ReconcileCatalog(), nameof(IUnmanagedPakSettings.AutomaticallyDownloadPakDependencies));
 
         HandleLatestScanUpdate(modScanTab.LastScanResult);
         modScanTab.PropertyChanged += (_, args) => {
@@ -49,7 +54,7 @@ public class AvailableModsAndMapsService {
     private void OnMetadataRefreshed(object? sender, EventArgs args) => ReconcileCatalog();
 
     private void ReconcileCatalog() {
-        var manifests = _modManager.GetEnabledAndDependencyReleases().Select(release => release.Manifest)
+        var manifests = _modManager.GetEnabledAndDependencyReleases(includeDependencies: _settings?.AutomaticallyDownloadPakDependencies ?? true).Select(release => release.Manifest)
             .Concat(_cachedScanManifest?.Paks.Select(pak => pak.Inventory) ?? []).ToList();
         Reconcile(AvailableMaps, _defaultMaps.Concat(manifests.SelectMany(manifest => manifest.RelevantMaps())));
         Reconcile(AvailableServerModBlueprints, manifests.SelectMany(manifest => manifest.RelevantBlueprints()));

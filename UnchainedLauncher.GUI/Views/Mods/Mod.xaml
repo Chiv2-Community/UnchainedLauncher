@@ -14,7 +14,9 @@
         <!-- Success tinted background using theme color -->
         <SolidColorBrush x:Key="Brush.SuccessTint"
                          Color="{StaticResource Color.Success}"
-                         Opacity="0.05" />
+                          Opacity="0.05" />
+        <SolidColorBrush x:Key="Brush.Dependency" Color="#D09128" />
+        <SolidColorBrush x:Key="Brush.DependencyTint" Color="#D09128" Opacity="0.05" />
 
         <!-- Card style that reacts to IsEnabled and focus -->
         <Style x:Key="ModCard" TargetType="Border" BasedOn="{StaticResource Card}">
@@ -23,6 +25,10 @@
                     <Setter Property="BorderBrush" Value="{StaticResource Brush.Success}" />
                     <Setter Property="BorderThickness" Value="2" />
                     <Setter Property="Background" Value="{StaticResource Brush.SuccessTint}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsDependency}" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource Brush.Dependency}" />
+                    <Setter Property="Background" Value="{StaticResource Brush.DependencyTint}" />
                 </DataTrigger>
                 <!-- Slightly emphasize on focus -->
                 <DataTrigger Value="True">
@@ -82,6 +88,7 @@
                 <!-- Enable/Disable Button -->
                 <Button Grid.Column="2"
                         Content="{Binding ButtonText}"
+                        ToolTip="{Binding ButtonToolTip}"
                         Command="{Binding EnableOrDisableCommand}"
                         Margin="0,0,8,0">
                     <Button.Style>
@@ -93,6 +100,9 @@
                                 <DataTrigger Binding="{Binding IsEnabled}" Value="True">
                                     <Setter Property="Background" Value="{StaticResource Brush.Danger}" />
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding IsDependency}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource Brush.Dependency}" />
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
@@ -101,7 +111,7 @@
                 <!-- Version Dropdown -->
                 <ComboBox Grid.Column="3"
                           ItemsSource="{Binding Mod.Releases}"
-                          SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
+                          SelectedItem="{Binding SelectedRelease, Mode=TwoWay}"
                           DisplayMemberPath="Tag"
                           ToolTip="Select version"
                           VerticalAlignment="Stretch" />

@@ -167,6 +167,7 @@ public class PakReleaseRecoveryTests : IDisposable {
 
         var settings = new Mock<IUnmanagedPakSettings>();
         settings.SetupGet(value => value.AlwaysKeepUnmanagedPaks).Returns(alwaysKeep);
+        settings.SetupGet(value => value.AutomaticallyDownloadPakDependencies).Returns(true);
         Assert.Equal(choice != UserDialogueChoice.Cancel,
             (await new Chivalry2ModsInstaller(manager, dialogue.Object, settings.Object).PrepareLaunch(options)).IsSome);
         dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), alwaysKeep ? Times.Never : Times.Once);

@@ -232,7 +232,7 @@ namespace UnchainedLauncher.GUI {
 
             var modScanTab = new ModScanTabVM();
             var helpVM = new HelpVM(settingsViewModel, installer, launcherReleaseLocator, modManager.PakDir, userDialogueSpawner, Shutdown);
-            var availableModsAndMaps = new AvailableModsAndMapsService(modManager, modScanTab);
+            var availableModsAndMaps = new AvailableModsAndMapsService(modManager, modScanTab, settingsViewModel);
 
             var serverConfigurationVMs =
                 InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager, modScanTab, availableModsAndMaps);

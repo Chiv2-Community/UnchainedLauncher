@@ -12,6 +12,7 @@ namespace UnchainedLauncher.GUI.JsonModels {
         [property: JsonPropertyName("use_light_theme")] bool? UseLightTheme,
         [property: JsonPropertyName("allow_unstable_plugin_releases")] bool? AllowUnstablePluginReleases,
         [property: JsonPropertyName("last_launch_version")] SemVersion? LastLaunchVersion,
-        [property: JsonPropertyName("always_keep_unmanaged_paks")] bool AlwaysKeepUnmanagedPaks = false
+        [property: JsonPropertyName("always_keep_unmanaged_paks")] bool AlwaysKeepUnmanagedPaks = false,
+        [property: JsonPropertyName("automatically_download_pak_dependencies")] bool AutomaticallyDownloadPakDependencies = true
     );
 }

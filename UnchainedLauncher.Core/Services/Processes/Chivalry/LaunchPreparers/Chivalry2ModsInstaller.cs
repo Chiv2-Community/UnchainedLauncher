@@ -21,7 +21,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
-            var recovered = await new PakReleaseRecovery(_modManager, _userDialogueSpawner, _settings?.AlwaysKeepUnmanagedPaks == true).RecoverPlan();
+            var recovered = await new PakReleaseRecovery(_modManager, _userDialogueSpawner,
+                _settings?.AlwaysKeepUnmanagedPaks == true, _settings?.AutomaticallyDownloadPakDependencies ?? true).RecoverPlan();
             if (recovered.IsNone) return None;
             var releasesToInstall = recovered.IfNone([]);
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());

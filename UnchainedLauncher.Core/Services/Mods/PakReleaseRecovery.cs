@@ -8,7 +8,7 @@ namespace UnchainedLauncher.Core.Services.Mods;
 
 using static LanguageExt.Prelude;
 
-public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialogue, bool alwaysKeepUnmanagedPaks = false) {
+public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialogue, bool alwaysKeepUnmanagedPaks = false, bool includeDependencies = true) {
     private static readonly ILog Logger = LogManager.GetLogger(nameof(PakReleaseRecovery));
     private record LocalPak(string Path, string Hash, Release? Release);
 
@@ -23,7 +23,7 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
                 dialogue, adopted, alwaysKeepUnmanagedPaks, cache)) return None;
             foreach (var release in adopted) manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
             var seeds = requested?.ExceptBy(adopted.Select(ModIdentifier.FromRelease), ModIdentifier.FromRelease).Concat(adopted);
-            requested = manager.SortByDependencies(manager.GetEnabledAndDependencyReleases(seeds)).ToList();
+            requested = manager.SortByDependencies(manager.GetEnabledAndDependencyReleases(seeds, includeDependencies)).ToList();
             if (requested.Count == 0) return Some(requested);
             var names = PakDir.GetInstallFileNames(requested.Select(ReleaseCoordinates.FromRelease)).ToList();
             var available = requested.Concat(manager.Mods.SelectMany(mod => mod.Releases))

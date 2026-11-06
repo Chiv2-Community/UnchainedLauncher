@@ -27,17 +27,25 @@ namespace UnchainedLauncher.GUI.ViewModels {
         );
 
         public Release? EnabledRelease { get; set; }
+        public Release? DependencyRelease { get; set; }
+        public bool IsDependency => EnabledRelease == null && DependencyRelease != null;
+        public Release? SelectedRelease {
+            get => EnabledRelease ?? DependencyRelease;
+            set {
+                if (value != SelectedRelease) EnabledRelease = value;
+            }
+        }
 
 
         public string Description {
             get {
-                var description = Optional(EnabledRelease).Match(
+                var description = Optional(SelectedRelease).Match(
                     None: Mod.LatestReleaseInfo.Description,
                     Some: x => x.Info.Description
                 );
 
                 var depenencies =
-                    (EnabledRelease ?? Mod.LatestRelease)
+                    (SelectedRelease ?? Mod.LatestRelease)
                         .ToList()
                         .Bind(r => ModManager.GetAllDependenciesForRelease(r));
 
@@ -45,7 +53,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     !depenencies.Any()
                         ? ""
                         : depenencies.Fold(
-                            "You must also enable the dependencies below:\n",
+                            "Declared pak dependencies (automatic downloads are controlled in the footer):\n",
                             (aggMessage, dep) => aggMessage + $"- {dep.Info.Name} {dep.Version}\n"
                         );
 
@@ -54,11 +62,11 @@ namespace UnchainedLauncher.GUI.ViewModels {
         }
 
         public string IconUrl =>
-            EnabledRelease?.Info.NonEmptyIconUrl
+            SelectedRelease?.Info.NonEmptyIconUrl
             ?? Mod.LatestReleaseInfo.NonEmptyIconUrl
             ?? "pack://application:,,,/UnchainedLauncher;component/assets/chiv2-unchained-logo.png";
 
-        public AssetCollections? Manifest => EnabledRelease?.Manifest ?? Mod.LatestRelease.FirstOrDefault()?.Manifest;
+        public AssetCollections? Manifest => SelectedRelease?.Manifest ?? Mod.LatestRelease.FirstOrDefault()?.Manifest;
 
         public bool HasMarkers => Manifest?.Markers?.Any() ?? false;
         public bool HasBlueprints => Manifest?.Blueprints?.Any() ?? false;
@@ -69,35 +77,34 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public bool HasContents => HasMarkers || HasBlueprints || HasMaps || HasReplacements || HasArbitrary;
 
         public bool HasDependencies =>
-            (EnabledRelease ?? Mod.LatestRelease)
+            (SelectedRelease ?? Mod.LatestRelease)
                 .ToList()
                 .Bind(r => ModManager.GetAllDependenciesForRelease(r))
                 .Any();
 
         public List<Release> Dependencies =>
-            (EnabledRelease ?? Mod.LatestRelease)
+            (SelectedRelease ?? Mod.LatestRelease)
                 .ToList()
                 .Bind(r => ModManager.GetAllDependenciesForRelease(r))
                 .ToList();
 
-        public string ButtonText =>
-            Optional(EnabledRelease).Match(
-                None: () => "Enable",
-                Some: _ => "Disable"
-            );
+        public string ButtonText => IsDependency ? "Dependency" : EnabledRelease != null ? "Enabled" : "Enable";
+        public string ButtonToolTip => IsDependency ? "Required automatically. Click to enable explicitly."
+            : EnabledRelease != null ? "Click to remove the explicit selection. Required dependencies remain automatic."
+            : "Click to enable explicitly.";
 
 
-        public bool IsEnabled => EnabledRelease != null;
+        public bool IsEnabled => SelectedRelease != null;
 
         public string EnabledVersion =>
-                Optional(EnabledRelease).Match(
+                Optional(SelectedRelease).Match(
                     None: () => "none",
                     Some: x => x.Tag
                 );
 
         public List<string> AvailableVersions => Mod.Releases.Select(x => x.Tag).ToList();
 
-        public string GithubReleaseUrl => (EnabledRelease?.ReleaseUrl) ?? Mod.LatestReleaseInfo.RepoUrl;
+        public string GithubReleaseUrl => (SelectedRelease?.ReleaseUrl) ?? Mod.LatestReleaseInfo.RepoUrl;
 
         public ModVM(Mod mod, Option<Release> enabledRelease, IModManager modManager) {
             EnabledRelease = enabledRelease.ValueUnsafe();
@@ -124,7 +131,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         [RelayCommand]
         private void EnableOrDisable() {
             if (EnabledRelease == null)
-                EnabledRelease = Mod.Releases.First();
+                EnabledRelease = DependencyRelease ?? Mod.Releases.First();
             else
                 EnabledRelease = null;
         }

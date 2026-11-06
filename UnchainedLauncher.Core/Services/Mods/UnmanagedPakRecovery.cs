@@ -18,13 +18,10 @@ internal static class UnmanagedPakRecovery {
         var files = new List<Candidate>();
         foreach (var path in Directory.EnumerateFiles(paks.DirPath, "*.pak")) {
             if (Path.GetFileName(path).Equals("pakchunk0-WindowsNoEditor.pak", StringComparison.OrdinalIgnoreCase)) continue;
-            var owned = managed.FirstOrDefault(pak => pak.PakFileName.Equals(Path.GetFileName(path), StringComparison.OrdinalIgnoreCase));
+            var owned = managed.Any(pak => pak.PakFileName.Equals(Path.GetFileName(path), StringComparison.OrdinalIgnoreCase));
             var hash = await cache.Hash(path);
-            var matching = releases.Where(release => hash.Equals(release.ReleaseHash, StringComparison.OrdinalIgnoreCase)).ToList();
-            // A hash verifies bytes; the recorded coordinates disambiguate shared release payloads.
-            var release = matching.FirstOrDefault(release => owned?.Coordinates == ReleaseCoordinates.FromRelease(release))
-                ?? matching.FirstOrDefault();
-            files.Add(new Candidate(path, hash, release, owned != null));
+            var release = owned ? null : releases.FirstOrDefault(release => hash.Equals(release.ReleaseHash, StringComparison.OrdinalIgnoreCase));
+            files.Add(new Candidate(path, hash, release, owned));
         }
 
         var duplicates = new List<(Candidate Duplicate, Candidate Retained)>();

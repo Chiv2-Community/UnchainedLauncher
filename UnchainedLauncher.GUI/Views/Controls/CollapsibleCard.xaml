@@ -6,8 +6,10 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
     </UserControl.Resources>
 
-    <Border Style="{DynamicResource Card}"
-            Padding="0">
+    <Grid>
+        <Border Style="{DynamicResource Card}" Padding="0" IsHitTestVisible="False" />
+        <Border Style="{DynamicResource Card}" Padding="0"
+                Effect="{x:Null}" Background="{x:Null}" BorderBrush="{x:Null}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -95,5 +97,6 @@
                               Content="{Binding Body, ElementName=Root}"
                               Visibility="{Binding IsExpanded, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}" />
         </Grid>
-    </Border>
+        </Border>
+    </Grid>
 </UserControl>

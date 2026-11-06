@@ -46,7 +46,10 @@
         </Style>
     </UserControl.Resources>
 
-    <Border Style="{StaticResource ModCard}">
+    <Grid>
+        <Border Style="{StaticResource ModCard}" IsHitTestVisible="False" />
+        <Border Style="{StaticResource ModCard}"
+                Effect="{x:Null}" Background="{x:Null}" BorderBrush="{x:Null}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -141,12 +144,16 @@
                                 <ItemsControl ItemsSource="{Binding Manifest.Markers}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8">
+                                            <Grid>
+                                                <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8" IsHitTestVisible="False" />
+                                                <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8"
+                                                        Effect="{x:Null}" Background="{x:Null}" BorderBrush="{x:Null}">
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding Path}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                                     <TextBlock Text="{Binding Hash, StringFormat='Hash: {0}'}" Foreground="{StaticResource Brush.Muted}" FontSize="11" />
                                                 </StackPanel>
-                                            </Border>
+                                                </Border>
+                                            </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -159,13 +166,17 @@
                                 <ItemsControl ItemsSource="{Binding Manifest.Blueprints}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8">
+                                            <Grid>
+                                                <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8" IsHitTestVisible="False" />
+                                                <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8"
+                                                        Effect="{x:Null}" Background="{x:Null}" BorderBrush="{x:Null}">
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding Path}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                                     <TextBlock Text="{Binding ModName, StringFormat='Mod: {0}'}" Foreground="{StaticResource Brush.Muted}" FontSize="11" />
                                                     <TextBlock Text="{Binding Version, StringFormat='Version: {0}'}" Foreground="{StaticResource Brush.Muted}" FontSize="11" />
                                                 </StackPanel>
-                                            </Border>
+                                                </Border>
+                                            </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -178,13 +189,17 @@
                                 <ItemsControl ItemsSource="{Binding Manifest.Maps}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8">
+                                            <Grid>
+                                                <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8" IsHitTestVisible="False" />
+                                                <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8"
+                                                        Effect="{x:Null}" Background="{x:Null}" BorderBrush="{x:Null}">
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding Path}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                                     <TextBlock Text="{Binding MapName, StringFormat='Name: {0}'}" Foreground="{StaticResource Brush.Muted}" FontSize="11" />
                                                     <TextBlock Text="{Binding GameMode, StringFormat='Game Mode: {0}'}" Foreground="{StaticResource Brush.Muted}" FontSize="11" />
                                                 </StackPanel>
-                                            </Border>
+                                                </Border>
+                                            </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -202,11 +217,15 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Style="{StaticResource Card}" Margin="0,0,4,4" Padding="8">
+                                            <Grid>
+                                                <Border Style="{StaticResource Card}" Margin="0,0,4,4" Padding="8" IsHitTestVisible="False" />
+                                                <Border Style="{StaticResource Card}" Margin="0,0,4,4" Padding="8"
+                                                        Effect="{x:Null}" Background="{x:Null}" BorderBrush="{x:Null}">
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding Path}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                                 </StackPanel>
-                                            </Border>
+                                                </Border>
+                                            </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -224,11 +243,15 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Style="{StaticResource Card}" Margin="0,0,4,4" Padding="8">
+                                            <Grid>
+                                                <Border Style="{StaticResource Card}" Margin="0,0,4,4" Padding="8" IsHitTestVisible="False" />
+                                                <Border Style="{StaticResource Card}" Margin="0,0,4,4" Padding="8"
+                                                        Effect="{x:Null}" Background="{x:Null}" BorderBrush="{x:Null}">
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding Path}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                                 </StackPanel>
-                                            </Border>
+                                                </Border>
+                                            </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -247,12 +270,16 @@
                         <ItemsControl ItemsSource="{Binding Dependencies}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8">
+                                    <Grid>
+                                        <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8" IsHitTestVisible="False" />
+                                        <Border Style="{StaticResource Card}" Margin="0,0,0,4" Padding="8"
+                                                Effect="{x:Null}" Background="{x:Null}" BorderBrush="{x:Null}">
                                         <StackPanel>
                                             <TextBlock Text="{Binding Info.Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                             <TextBlock Text="{Binding Version, StringFormat='Version: {0}'}" Foreground="{StaticResource Brush.Muted}" FontSize="11" />
                                         </StackPanel>
-                                    </Border>
+                                        </Border>
+                                    </Grid>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
@@ -260,5 +287,6 @@
                 </controls:CollapsibleCard>
             </StackPanel>
         </Grid>
-    </Border>
+        </Border>
+    </Grid>
 </UserControl>

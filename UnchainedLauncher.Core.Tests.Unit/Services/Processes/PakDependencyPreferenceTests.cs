@@ -4,7 +4,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services;
@@ -59,6 +62,52 @@ public class PakDependencyPreferenceTests(HomeLaunchUi ui) {
             Flush();
             UnchainedLauncher.GUI.Views.Mods.Mod LibraryView() => Descendants<UnchainedLauncher.GUI.Views.Mods.Mod>(view).Single(control => ReferenceEquals(control.DataContext, card));
             var originalCard = LibraryView();
+            var cardStyle = originalCard.FindResource("Card");
+            var modCardStyle = originalCard.FindResource("ModCard");
+            void AssertIsolatedShadows() {
+                var borders = Descendants<Border>(originalCard).Where(border => ReferenceEquals(border.Style, cardStyle)
+                    || ReferenceEquals(border.Style, modCardStyle)).ToList();
+                Assert.NotEmpty(borders);
+                foreach (var border in borders) {
+                    var layers = Assert.IsType<Grid>(VisualTreeHelper.GetParent(border));
+                    Assert.Equal(2, layers.Children.Count);
+                    var shadow = Assert.IsType<Border>(layers.Children[0]);
+                    var foreground = Assert.IsType<Border>(layers.Children[1]);
+                    Assert.Null(shadow.Child);
+                    Assert.False(shadow.IsHitTestVisible);
+                    Assert.IsType<DropShadowEffect>(shadow.Effect);
+                    Assert.Null(foreground.Effect);
+                    Assert.Null(foreground.Background);
+                    Assert.Null(foreground.BorderBrush);
+                    Assert.NotNull(foreground.Child);
+                    Assert.Equal(shadow.Margin, foreground.Margin);
+                    Assert.Equal(shadow.Padding, foreground.Padding);
+                    Assert.Equal(shadow.BorderThickness, foreground.BorderThickness);
+                    if (foreground.IsVisible && foreground.ActualWidth > 0) {
+                        Assert.Equal(shadow.RenderSize, foreground.RenderSize);
+                        Assert.Equal(shadow.TranslatePoint(new Point(), layers), foreground.TranslatePoint(new Point(), layers));
+                        var contentOrigin = foreground.Child.TranslatePoint(new Point(), foreground);
+                        Assert.Equal(foreground.Padding.Left + foreground.BorderThickness.Left, contentOrigin.X, 1);
+                        Assert.Equal(foreground.Padding.Top + foreground.BorderThickness.Top, contentOrigin.Y, 1);
+                    }
+                }
+            }
+            AssertIsolatedShadows();
+            var contents = Descendants<UnchainedLauncher.GUI.Views.Controls.CollapsibleCard>(originalCard).Single(control => Equals(control.Header, "Contents"));
+            var header = Descendants<ToggleButton>(contents).First();
+            Assert.False(contents.IsExpanded);
+            header.SetCurrentValue(ToggleButton.IsCheckedProperty, true);
+            Flush();
+            Assert.True(contents.IsExpanded);
+            var maps = Descendants<UnchainedLauncher.GUI.Views.Controls.CollapsibleCard>(contents).Single(control => Equals(control.Header, "Maps"));
+            Descendants<ToggleButton>(maps).First().SetCurrentValue(ToggleButton.IsCheckedProperty, true);
+            Flush();
+            Assert.True(maps.IsExpanded);
+            Assert.Contains(Descendants<TextBlock>(maps), text => text.Text == library.Manifest.Maps.Single().Path);
+            AssertIsolatedShadows();
+            header.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
+            Flush();
+            Assert.False(contents.IsExpanded);
             var automatic = Descendants<CheckBox>(view).Single(control => Equals(control.Content, "Automatically download pak dependencies"));
             var keep = Descendants<CheckBox>(view).Single(control => Equals(control.Content, "Always keep unmanaged paks"));
             var divider = Assert.IsType<Border>(view.FindName("OptionsDivider"));
@@ -80,9 +129,22 @@ public class PakDependencyPreferenceTests(HomeLaunchUi ui) {
             Assert.Equal(Color.FromRgb(0xD0, 0x91, 0x28), Assert.IsType<SolidColorBrush>(button.Background).Color);
             Assert.Contains(Descendants<Border>(view), border => border.Background is SolidColorBrush brush
                 && brush.Color == Color.FromRgb(0xD0, 0x91, 0x28) && brush.Opacity == 0.05);
+            Assert.Single(Descendants<Border>(originalCard).Where(border => border.Background is SolidColorBrush brush
+                && brush.Color == Color.FromRgb(0xD0, 0x91, 0x28) && brush.Opacity == 0.05));
+            AssertIsolatedShadows();
+            window.Activate();
+            Keyboard.Focus(button);
+            Flush();
+            Assert.True(originalCard.IsKeyboardFocusWithin);
+            var modLayers = Assert.IsType<Grid>(originalCard.Content);
+            Assert.Equal(8, Assert.IsType<DropShadowEffect>(Assert.IsType<Border>(modLayers.Children[0]).Effect).BlurRadius);
+            AssertIsolatedShadows();
             button.Command.Execute(null);
             Flush();
             Assert.Equal("Disable", button.Content);
+            Assert.Single(Descendants<Border>(originalCard).Where(border => border.Background is SolidColorBrush brush
+                && brush.Color == (Color)originalCard.FindResource("Color.Success") && brush.Opacity == 0.05));
+            AssertIsolatedShadows();
             button.Command.Execute(null);
             Flush();
             Assert.Equal("Dependency", button.Content);

@@ -172,6 +172,72 @@ public class PakReleaseRecoveryTests : IDisposable {
     }
 
     [Theory]
+    [InlineData(true, UserDialogueChoice.Yes)]
+    [InlineData(true, UserDialogueChoice.No)]
+    [InlineData(true, UserDialogueChoice.Cancel)]
+    [InlineData(false, UserDialogueChoice.Yes)]
+    public async Task ExactManagedVersionIsValidatedBeforeReusingItsCustomPath(bool corrupt, UserDialogueChoice choice) {
+        var older = Release("v1.0.0");
+        var wanted = Release("v2.0.0");
+        var olderPath = Write("older-custom.pak", older.Tag);
+        var wantedPath = Write("wanted-custom.pak", corrupt ? "CORRUPT" : wanted.Tag);
+        Write("older-custom.sig", "older signature");
+        Write("wanted-custom.sig", "wanted signature");
+        Write("pakchunk0-WindowsNoEditor.sig", "base signature");
+        var original = new[] {
+            new ManagedPak(ReleaseCoordinates.FromRelease(older), Path.GetFileName(olderPath), 0),
+            new ManagedPak(ReleaseCoordinates.FromRelease(wanted), Path.GetFileName(wantedPath), 1)
+        };
+        var paks = new Core.Services.Mods.PakDir(_dir, original);
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+        registry.Setup(r => r.DownloadPak(ReleaseCoordinates.FromRelease(wanted), It.IsAny<string>()))
+            .Returns((ReleaseCoordinates _, string output) => {
+                Assert.False(File.Exists(wantedPath));
+                var bytes = Encoding.UTF8.GetBytes(wanted.Tag);
+                return Prelude.RightAsync<ModPakStreamAcquisitionFailure, FileWriter>(new FileWriter(output, new MemoryStream(bytes), bytes.Length));
+            });
+        var manager = new ModManager(registry.Object, paks, [ReleaseCoordinates.FromRelease(wanted)], [new Mod(wanted.Info, [older, wanted])]);
+        var dialogue = Dialogue(choice);
+        dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => { });
+        var replacements = new List<DependencyUpdate>();
+        dialogue.Setup(d => d.DisplayUpdateMessage("Change installed mod files?", It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+            .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, _, _, _, _, changes) => replacements.AddRange(changes))
+            .Returns(choice);
+        var options = new LaunchOptions([], "", "", false, false, Prelude.None, Prelude.None);
+
+        var previousContext = SynchronizationContext.Current;
+        Option<LaunchOptions> prepared;
+        SynchronizationContext.SetSynchronizationContext(new ImmediateContext());
+        try {
+            prepared = await new Chivalry2ModsInstaller(manager, dialogue.Object).PrepareLaunch(options);
+        }
+        finally {
+            SynchronizationContext.SetSynchronizationContext(previousContext);
+        }
+
+        if (corrupt) Assert.Contains("wanted-custom.pak", Assert.Single(replacements).Name);
+        else Assert.Empty(replacements);
+        Assert.Equal(!corrupt || choice == UserDialogueChoice.Yes, prepared.IsSome);
+        dialogue.Verify(d => d.DisplayUpdateMessage("Change installed mod files?", It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()),
+            corrupt ? Times.Once : Times.Never);
+        registry.Verify(r => r.DownloadPak(It.IsAny<ReleaseCoordinates>(), It.IsAny<string>()), corrupt && choice == UserDialogueChoice.Yes ? Times.Once : Times.Never);
+        if (prepared.IsSome) {
+            var installed = Assert.Single(await paks.GetManagedPaks());
+            Assert.Equal(ReleaseCoordinates.FromRelease(wanted), installed.Coordinates);
+            Assert.Equal(wanted.Tag, File.ReadAllText(Path.Join(_dir, installed.PakFileName)));
+        }
+        else {
+            Assert.Equal(original, await new Core.Services.Mods.PakDir(_dir, []).GetManagedPaks());
+            Assert.Equal(older.Tag, File.ReadAllText(olderPath));
+            Assert.Equal("CORRUPT", File.ReadAllText(wantedPath));
+            Assert.Equal("older signature", File.ReadAllText(Path.ChangeExtension(olderPath, ".sig")));
+            Assert.Equal("wanted signature", File.ReadAllText(Path.ChangeExtension(wantedPath, ".sig")));
+        }
+        Assert.Empty(Directory.GetFiles(_dir, "*.partial"));
+        Assert.False(File.Exists(Path.Join(_dir, ".unchained", "pending")));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task SharedHashIdentifiesLatestMatchingVersionRegardlessOfRegistryOrder(bool newestFirst) {
@@ -211,11 +277,21 @@ public class PakReleaseRecoveryTests : IDisposable {
         var registry = new Mock<IModRegistry>(MockBehavior.Strict);
         var manager = new ModManager(registry.Object, paks, previouslyManaged ? [ReleaseCoordinates.FromRelease(otherVersion)] : [], [new Mod(detected.Info, [otherVersion, detected])]);
         var dialogue = Dialogue(choice);
+        var messages = new List<string>();
+        dialogue.Setup(d => d.DisplayMessage(It.IsAny<string>())).Callback<string>(messages.Add);
         dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => { });
         var options = new LaunchOptions([], "", "", false, false, Prelude.None, Prelude.None);
 
-        Assert.Equal(choice != UserDialogueChoice.Cancel,
-            (await new Chivalry2ModsInstaller(manager, dialogue.Object).PrepareLaunch(options)).IsSome);
+        var previousContext = SynchronizationContext.Current;
+        Option<LaunchOptions> prepared;
+        SynchronizationContext.SetSynchronizationContext(new ImmediateContext());
+        try {
+            prepared = await new Chivalry2ModsInstaller(manager, dialogue.Object).PrepareLaunch(options);
+        }
+        finally {
+            SynchronizationContext.SetSynchronizationContext(previousContext);
+        }
+        Assert.True((choice != UserDialogueChoice.Cancel) == prepared.IsSome, string.Join("\n", messages));
 
         if (choice == UserDialogueChoice.Yes) {
             Assert.Equal(ReleaseCoordinates.FromRelease(detected), Assert.Single(manager.EnabledModReleaseCoordinates));
@@ -371,13 +447,14 @@ public class PakReleaseRecoveryTests : IDisposable {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ChangedCandidatesOrConflictingSignaturesPreventAllMutations(bool changeDuringPrompt) {
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task ChangedCandidatesOrConflictingSignaturesPreventAllMutations(bool changeDuringPrompt, bool referenceSignatureExists) {
         var wanted = Release("v1.0.0");
         var path = Write("q__-__Mod1.pak", wanted.Tag);
         var duplicate = Write("q__-__Mod1 (9).pak", wanted.Tag);
-        Write("q__-__Mod1.sig", "signature");
+        if (referenceSignatureExists) Write("q__-__Mod1.sig", "signature");
         Write("q__-__Mod1 (9).sig", changeDuringPrompt ? "signature" : "conflict");
         var paks = new Core.Services.Mods.PakDir(_dir, []);
         var dialogue = Dialogue(UserDialogueChoice.Yes);
@@ -391,6 +468,9 @@ public class PakReleaseRecoveryTests : IDisposable {
         Assert.Equal(wanted.Tag, File.ReadAllText(path));
         Assert.True(File.Exists(duplicate));
         Assert.False(File.Exists(Path.Join(_dir, ".unchained", "pending")));
+        var reason = changeDuringPrompt ? "Pak changed during release confirmation" : "Conflicting duplicate signature";
+        dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), Times.Once);
+        dialogue.Verify(d => d.DisplayMessage(It.Is<string>(message => message.Contains(reason))), Times.Once);
     }
 
     [Theory]

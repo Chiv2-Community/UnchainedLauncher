@@ -34,13 +34,19 @@ internal static class PakReleaseRecovery {
                 .ThenByDescending(release => release.ReleaseDate).ToList();
             var tracked = paks.ManagedPaks.Where(pak => !adoptedPaks.Any(adoptedPak => adoptedPak.Coordinates == pak.Coordinates
                 || adoptedPak.PakFileName.Equals(pak.PakFileName, StringComparison.OrdinalIgnoreCase))).Concat(adoptedPaks).ToList();
-            string TrackedPath(Release release) => tracked.Where(pak => pak.Coordinates.Matches(ReleaseCoordinates.FromRelease(release)))
-                .Select(pak => Path.Join(paks.DirPath, pak.PakFileName)).FirstOrDefault() ?? "";
-            var trackedPaths = requested.Select(TrackedPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            string TrackedPath(Release release) {
+                var coordinates = ReleaseCoordinates.FromRelease(release);
+                var pak = tracked.FirstOrDefault(pak => pak.Coordinates == coordinates)
+                    ?? tracked.FirstOrDefault(pak => pak.Coordinates.Matches(coordinates));
+                return pak == null ? "" : Path.Join(paks.DirPath, pak.PakFileName);
+            }
+            var trackedPaths = requested.Select(TrackedPath).ToList();
+            var trackedPathSet = trackedPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var managedNames = tracked.Select(pak => pak.PakFileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var local = new List<LocalPak>();
             foreach (var path in Directory.EnumerateFiles(paks.DirPath, "*.pak")) {
-                if (!tracked.Any(pak => pak.PakFileName.Equals(Path.GetFileName(path), StringComparison.OrdinalIgnoreCase))) continue;
-                if (!trackedPaths.Contains(path) && !names.Any(name => MatchesDestination(path, name))) continue;
+                if (!managedNames.Contains(Path.GetFileName(path))) continue;
+                if (!trackedPathSet.Contains(path) && !names.Any(name => MatchesDestination(path, name))) continue;
                 var hash = await cache.Hash(path);
                 local.Add(new LocalPak(path, hash, available.FirstOrDefault(release => HashMatches(release.ReleaseHash, hash))));
             }
@@ -50,11 +56,12 @@ internal static class PakReleaseRecovery {
             for (var i = 0; i < requested.Count; i++) {
                 var wanted = requested[i];
                 var coordinates = ReleaseCoordinates.FromRelease(wanted);
-                var verifiedTracked = local.Any(pak => pak.Path.Equals(TrackedPath(wanted), StringComparison.OrdinalIgnoreCase)
+                var trackedPath = trackedPaths[i];
+                var verifiedTracked = local.Any(pak => pak.Path.Equals(trackedPath, StringComparison.OrdinalIgnoreCase)
                     && HashMatches(pak.Hash, wanted.ReleaseHash));
-                var candidates = local.Where(pak => pak.Path.Equals(TrackedPath(wanted), StringComparison.OrdinalIgnoreCase)
+                var candidates = local.Where(pak => pak.Path.Equals(trackedPath, StringComparison.OrdinalIgnoreCase)
                     || MatchesDestination(pak.Path, names[i]))
-                    .Where(pak => !verifiedTracked || pak.Path.Equals(TrackedPath(wanted), StringComparison.OrdinalIgnoreCase));
+                    .Where(pak => !verifiedTracked || pak.Path.Equals(trackedPath, StringComparison.OrdinalIgnoreCase));
                 foreach (var pak in candidates.Where(pak => !HashMatches(pak.Hash, wanted.ReleaseHash))) {
                     replacements.Add(pak);
                     var reason = pak.Release == null ? $"Unrecognized file hash: {pak.Hash}. Replace with the registry-approved release."
@@ -67,7 +74,7 @@ internal static class PakReleaseRecovery {
 
             var recovered = requested.Select((wanted, i) => local
                 .Where(pak => !replacements.Contains(pak) && HashMatches(pak.Hash, wanted.ReleaseHash))
-                .Where(pak => MatchesDestination(pak.Path, names[i]) || pak.Path.Equals(TrackedPath(wanted), StringComparison.OrdinalIgnoreCase))
+                .Where(pak => MatchesDestination(pak.Path, names[i]) || pak.Path.Equals(trackedPaths[i], StringComparison.OrdinalIgnoreCase))
                 .Where(pak => !names.Where((_, index) => index != i).Any(name => MatchesDestination(pak.Path, name)))
                 .OrderBy(pak => Path.GetFileName(pak.Path) == names[i] ? 0 : 1).ToList()).ToList();
 

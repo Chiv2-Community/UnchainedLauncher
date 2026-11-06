@@ -36,8 +36,19 @@ namespace UnchainedLauncher.GUI.Tests.Unit {
             foreach (var name in new[] { "Mod.xaml", "MainWindow.xaml" }) {
                 var button = Assert.Single(Load(name).Descendants().Where(element => element.Name.LocalName == "Button"
                     && element.Attribute("Command")?.Value == "{Binding EnableOrDisableCommand}"));
-                Assert.Equal("{StaticResource Button.EnableOrDisable}", button.Attribute("Style")?.Value);
-                Assert.Empty(button.Elements());
+                if (name == "Mod.xaml") {
+                    var localStyle = Assert.Single(button.Descendants().Where(element => element.Name.LocalName == "Style"));
+                    Assert.Equal("{StaticResource Button.EnableOrDisable}", localStyle.Attribute("BasedOn")?.Value);
+                    var trigger = Assert.Single(localStyle.Descendants().Where(element => element.Name.LocalName == "DataTrigger"));
+                    Assert.Equal("{Binding IsDependency}", trigger.Attribute("Binding")?.Value);
+                    Assert.Equal("True", trigger.Attribute("Value")?.Value);
+                    var setter = Assert.Single(trigger.Elements());
+                    Assert.Equal("Background", setter.Attribute("Property")?.Value);
+                    Assert.Equal("{StaticResource Brush.Dependency}", setter.Attribute("Value")?.Value);
+                } else {
+                    Assert.Equal("{StaticResource Button.EnableOrDisable}", button.Attribute("Style")?.Value);
+                    Assert.Empty(button.Elements());
+                }
             }
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
             var style = Assert.Single(Load("Misc.xaml").Descendants().Where(element => element.Attribute(x + "Key")?.Value == "Button.EnableOrDisable"));

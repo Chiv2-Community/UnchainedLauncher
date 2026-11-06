@@ -205,12 +205,12 @@ public class ModCardExpansionTests {
         Assert.Contains(header.Descendants(), element => (string?)element.Attribute("Source") == "{Binding IconUrl}");
         Assert.Contains(header.Descendants(), element => (string?)element.Attribute("Command") == "{Binding ViewOnGithubCommand}");
         Assert.Contains(header.Descendants(), element => (string?)element.Attribute("Command") == "{Binding EnableOrDisableCommand}");
-        Assert.Contains(header.Descendants(), element => (string?)element.Attribute("SelectedItem") == "{Binding EnabledRelease, Mode=TwoWay}");
+        Assert.Contains(header.Descendants(), element => (string?)element.Attribute("SelectedItem") == "{Binding SelectedRelease, Mode=TwoWay}");
         Assert.Contains(body.Descendants(), element => (string?)element.Attribute("Text") == "{Binding Description, Mode=OneWay}");
         Assert.Contains(body.Descendants(), element => (string?)element.Attribute("Header") == "Contents");
         Assert.Contains(body.Descendants(), element => (string?)element.Attribute("Header") == "Dependencies");
         Assert.DoesNotContain(body.Descendants(), element => element.Attribute("Command")?.Value == "{Binding EnableOrDisableCommand}");
-        Assert.DoesNotContain(body.Descendants(), element => element.Attribute("SelectedItem")?.Value == "{Binding EnabledRelease, Mode=TwoWay}");
+        Assert.DoesNotContain(body.Descendants(), element => element.Attribute("SelectedItem")?.Value == "{Binding SelectedRelease, Mode=TwoWay}");
         Assert.DoesNotContain(header.Descendants(), element => element.Name.LocalName == "ToggleButton");
     }
 }

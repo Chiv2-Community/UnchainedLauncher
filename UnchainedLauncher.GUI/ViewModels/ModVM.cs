@@ -88,7 +88,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 .Bind(r => ModManager.GetAllDependenciesForRelease(r))
                 .ToList();
 
-        public string ButtonText => IsDependency ? "Dependency" : EnabledRelease != null ? "Enabled" : "Enable";
+        public string ButtonText => IsDependency ? "Dependency" : EnabledRelease != null ? "Disable" : "Enable";
         public string ButtonToolTip => IsDependency ? "Required automatically. Click to enable explicitly."
             : EnabledRelease != null ? "Click to remove the explicit selection. Required dependencies remain automatic."
             : "Click to enable explicitly.";

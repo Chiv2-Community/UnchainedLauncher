@@ -16,7 +16,7 @@ public class ModListUpdateTests(HomeLaunchUi ui) {
     }
 
     [Fact]
-    public Task UpdateCommandUpdatesEveryCardDespiteSynchronousDisplayRebuild() => ui.RunAsync(async () => {
+    public Task UpdateCommandUpdatesEveryCardWithoutResettingDisplay() => ui.RunAsync(async () => {
         var mods = new[] { Mod("First"), Mod("Second") };
         var registry = new Mock<IModRegistry>();
         registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult([], mods));
@@ -34,7 +34,7 @@ public class ModListUpdateTests(HomeLaunchUi ui) {
 
         await view.UpdateModsCommand.ExecuteAsync(null);
 
-        Assert.True(rebuilds >= 2);
+        Assert.Equal(0, rebuilds);
         Assert.Equal(2, view.DisplayMods.Count);
         Assert.All(view.DisplayMods, card => Assert.Equal("v2.0.0", card.EnabledVersion));
         Assert.All(manager.EnabledModReleaseCoordinates, release => Assert.Equal("v2.0.0", release.Version));

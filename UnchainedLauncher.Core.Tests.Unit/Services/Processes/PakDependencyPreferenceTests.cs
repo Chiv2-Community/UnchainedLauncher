@@ -42,37 +42,56 @@ public class PakDependencyPreferenceTests(HomeLaunchUi ui) {
                 resources.Add(dictionary);
                 Application.Current.Resources.MergedDictionaries.Add(dictionary);
             }
+            var converters = new ResourceDictionary { ["ModSortModeToStringConverter"] = new UnchainedLauncher.GUI.Converters.ModSortModeToStringConverter() };
+            resources.Add(converters);
+            Application.Current.Resources.MergedDictionaries.Add(converters);
             var library = Release("Library");
             var parent = Release("Parent", new Dependency(library.Info.RepoUrl, library.Tag));
             var manager = Manager(Mock.Of<IPakDir>(), parent, library);
             var settings = new SettingsCodec(null!, null!, null!, "").Deserialize("{\"installation_type\":0}").Result!;
             var list = new ModListVM(manager, Mock.Of<IUserDialogueSpawner>(), settings);
             var card = list.DisplayMods.Single(mod => mod.Mod.LatestReleaseInfo.Name == "Library");
-            var view = new UnchainedLauncher.GUI.Views.Mods.Mod { DataContext = card, FontFamily = SystemFonts.MessageFontFamily };
+            var view = new UnchainedLauncher.GUI.Views.Mods.ModList { DataContext = list, FontFamily = SystemFonts.MessageFontFamily };
             view.Resources["Font.Default"] = SystemFonts.MessageFontFamily;
             window = new Window { Content = view, Width = 850, Height = 500, ShowActivated = false, ShowInTaskbar = false };
             window.Show();
             void Flush() => window.Dispatcher.Invoke(() => window.UpdateLayout(), DispatcherPriority.ApplicationIdle);
             Flush();
+            UnchainedLauncher.GUI.Views.Mods.Mod LibraryView() => Descendants<UnchainedLauncher.GUI.Views.Mods.Mod>(view).Single(control => ReferenceEquals(control.DataContext, card));
+            var originalCard = LibraryView();
+            var automatic = Descendants<CheckBox>(view).Single(control => Equals(control.Content, "Automatically download pak dependencies"));
+            var keep = Descendants<CheckBox>(view).Single(control => Equals(control.Content, "Always keep unmanaged paks"));
+            Assert.Equal(automatic.TranslatePoint(new Point(), view).Y, keep.TranslatePoint(new Point(), view).Y, 1);
+            Assert.True(keep.TranslatePoint(new Point(), view).X >= automatic.TranslatePoint(new Point(), view).X + automatic.ActualWidth);
+            var resets = 0;
+            list.DisplayMods.CollectionChanged += (_, args) => {
+                if (args.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Reset) resets++;
+            };
             manager.EnableModRelease(ReleaseCoordinates.FromRelease(parent));
             Flush();
             Assert.True(card.IsDependency);
             Assert.Single(manager.EnabledModReleaseCoordinates);
-            Assert.Equal(library, Assert.Single(Descendants<ComboBox>(view)).SelectedItem);
-            var button = Descendants<Button>(view).Single(control => Equals(control.Content, "Dependency"));
+            Assert.Equal(library, Assert.Single(Descendants<ComboBox>(LibraryView())).SelectedItem);
+            var button = Descendants<Button>(LibraryView()).Single(control => Equals(control.Content, "Dependency"));
             Assert.Equal(Color.FromRgb(0xD0, 0x91, 0x28), Assert.IsType<SolidColorBrush>(button.Background).Color);
             Assert.Contains(Descendants<Border>(view), border => border.Background is SolidColorBrush brush
                 && brush.Color == Color.FromRgb(0xD0, 0x91, 0x28) && brush.Opacity == 0.05);
             button.Command.Execute(null);
             Flush();
-            Assert.Equal("Enabled", button.Content);
+            Assert.Equal("Disable", button.Content);
             button.Command.Execute(null);
             Flush();
             Assert.Equal("Dependency", button.Content);
-            settings.AutomaticallyDownloadPakDependencies = false;
+            automatic.SetCurrentValue(CheckBox.IsCheckedProperty, false);
             Flush();
+            Assert.False(settings.AutomaticallyDownloadPakDependencies);
             Assert.Equal("Enable", button.Content);
-            Assert.Null(Assert.Single(Descendants<ComboBox>(view)).SelectedItem);
+            Assert.Null(Assert.Single(Descendants<ComboBox>(LibraryView())).SelectedItem);
+            automatic.SetCurrentValue(CheckBox.IsCheckedProperty, true);
+            Flush();
+            Assert.Equal("Dependency", button.Content);
+            Assert.Same(originalCard, LibraryView());
+            Assert.Equal(0, resets);
             Assert.Single(manager.EnabledModReleaseCoordinates);
         }
         finally {
@@ -95,7 +114,8 @@ public class PakDependencyPreferenceTests(HomeLaunchUi ui) {
         var leaf = Release("Leaf");
         var library = Release("Library", new Dependency(leaf.Info.RepoUrl, leaf.Tag));
         var parent = Release("Parent", new Dependency(library.Info.RepoUrl, library.Tag));
-        var manager = Manager(Mock.Of<IPakDir>(), parent, library, leaf);
+        var disabled = Release("A Disabled");
+        var manager = Manager(Mock.Of<IPakDir>(), parent, library, leaf, disabled);
         var settings = new SettingsCodec(null!, null!, null!, "").Deserialize("{\"installation_type\":0}").Result!;
         var list = new ModListVM(manager, Mock.Of<IUserDialogueSpawner>(), settings);
         var catalog = new AvailableModsAndMapsService(manager, new ModScanTabVM(), settings);
@@ -105,17 +125,19 @@ public class PakDependencyPreferenceTests(HomeLaunchUi ui) {
 
         Assert.False(libraryCard.IsEnabled);
         parentCard.EnableOrDisableCommand.Execute(null);
-        Assert.Equal("Enabled", parentCard.ButtonText);
+        Assert.Equal("Disable", parentCard.ButtonText);
         Assert.Equal("Dependency", libraryCard.ButtonText);
         Assert.True(leafCard.IsDependency);
+        Assert.Equal(new[] { "Parent", "Leaf", "Library", "A Disabled" }, list.DisplayMods.Select(card => card.Mod.LatestReleaseInfo.Name));
         Assert.Equal(library, libraryCard.SelectedRelease);
         Assert.Single(manager.EnabledModReleaseCoordinates);
         Assert.Contains(leaf.Manifest.Maps.Single(), catalog.AvailableMaps);
 
         libraryCard.EnableOrDisableCommand.Execute(null);
         Assert.False(libraryCard.IsDependency);
-        Assert.Equal("Enabled", libraryCard.ButtonText);
+        Assert.Equal("Disable", libraryCard.ButtonText);
         Assert.Equal(2, manager.EnabledModReleaseCoordinates.Count());
+        Assert.Equal(new[] { "Library", "Parent", "Leaf", "A Disabled" }, list.DisplayMods.Select(card => card.Mod.LatestReleaseInfo.Name));
         libraryCard.EnableOrDisableCommand.Execute(null);
         Assert.True(libraryCard.IsDependency);
         Assert.Single(manager.EnabledModReleaseCoordinates);
@@ -128,7 +150,7 @@ public class PakDependencyPreferenceTests(HomeLaunchUi ui) {
         Assert.Equal([ReleaseCoordinates.FromRelease(parent)], manager.GetEnabledAndDependencies(false));
 
         libraryCard.EnableOrDisableCommand.Execute(null);
-        Assert.Equal("Enabled", libraryCard.ButtonText);
+        Assert.Equal("Disable", libraryCard.ButtonText);
         settings.AutomaticallyDownloadPakDependencies = true;
         Assert.False(libraryCard.IsDependency);
         Assert.True(leafCard.IsDependency);

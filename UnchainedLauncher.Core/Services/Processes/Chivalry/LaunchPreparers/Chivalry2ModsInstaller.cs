@@ -1,6 +1,7 @@
 using LanguageExt;
 using log4net;
 using UnchainedLauncher.Core.Extensions;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
@@ -23,8 +24,11 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             var releasesToInstall = _modManager.SortByDependencies(_modManager.GetEnabledAndDependencyReleases()).ToList();
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
 
-            if (releasesToInstall.Count > 0 && !await _modManager.PakDir.RecoverReleases(releasesToInstall,
-                _modManager.Mods.SelectMany(mod => mod.Releases), _userDialogueSpawner)) return None;
+            var adopted = new List<Release>();
+            if (!await _modManager.PakDir.RecoverReleases(releasesToInstall,
+                _modManager.Mods.SelectMany(mod => mod.Releases), _userDialogueSpawner, adopted)) return None;
+            foreach (var release in adopted) _modManager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
+            releasesToInstall = _modManager.SortByDependencies(_modManager.GetEnabledAndDependencyReleases()).ToList();
 
             // Install mods via ModManager
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");

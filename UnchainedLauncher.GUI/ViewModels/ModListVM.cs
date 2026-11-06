@@ -8,6 +8,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Data;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
@@ -22,6 +23,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public partial class ModListVM {
         private readonly ILog _logger = LogManager.GetLogger(nameof(ModListVM));
+        private readonly SynchronizationContext? _context = SynchronizationContext.Current;
         public readonly IModManager _modManager;
         private ObservableCollection<ModVM> UnfilteredModView { get; }
 
@@ -49,6 +51,18 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             // Watch the unfiltered mod view and mod filters for changes, and update our view accordingly
             this.UnfilteredModView.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
+            _modManager.ModEnabled += (_, _) => SynchronizeEnabledReleases();
+            _modManager.ModDisabled += _ => SynchronizeEnabledReleases();
+        }
+
+        private void SynchronizeEnabledReleases() {
+            void Update() {
+                foreach (var mod in UnfilteredModView)
+                    mod.EnabledRelease = _modManager.GetCurrentlyEnabledReleaseForMod(mod.Mod).FirstOrDefault();
+                RebuildDisplay();
+            }
+            if (_context != null && _context != SynchronizationContext.Current) _context.Post(_ => Update(), null);
+            else Update();
         }
 
         // Property change hooks (PropertyChanged.Fody will call these)

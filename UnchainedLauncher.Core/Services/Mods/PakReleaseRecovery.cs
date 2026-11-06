@@ -11,9 +11,13 @@ internal static class PakReleaseRecovery {
     private record LocalPak(string Path, string Hash, Release? Release);
 
     internal static async Task<bool> Recover(PakDir paks, IReadOnlyList<Release> requested,
-        IEnumerable<Release> known, IUserDialogueSpawner dialogue, Action beginChange) {
-        if (requested.Count == 0) return true;
+        IEnumerable<Release> known, IUserDialogueSpawner dialogue, Action beginChange, ICollection<Release> adopted) {
         try {
+            known = known.ToList();
+            if (!await UnmanagedPakRecovery.Recover(paks, requested, known.Concat(requested), dialogue, beginChange, adopted)) return false;
+            requested = requested.Select(release => adopted.FirstOrDefault(detected => ModIdentifier.FromRelease(detected) == ModIdentifier.FromRelease(release)) ?? release)
+                .Concat(adopted.Where(detected => !requested.Any(release => ModIdentifier.FromRelease(detected) == ModIdentifier.FromRelease(release)))).ToList();
+            if (requested.Count == 0) return true;
             var names = PakDir.GetInstallFileNames(requested.Select(ReleaseCoordinates.FromRelease)).ToList();
             var available = requested.Concat(known).OrderByDescending(release => release.Version)
                 .ThenByDescending(release => release.ReleaseDate).ToList();
@@ -23,6 +27,7 @@ internal static class PakReleaseRecovery {
             var trackedPaths = requested.Select(TrackedPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var local = new List<LocalPak>();
             foreach (var path in Directory.EnumerateFiles(paks.DirPath, "*.pak")) {
+                if (!tracked.Any(pak => pak.PakFileName.Equals(Path.GetFileName(path), StringComparison.OrdinalIgnoreCase))) continue;
                 if (!trackedPaths.Contains(path) && !names.Any(name => MatchesDestination(path, name))) continue;
                 var hash = await HashFile(path);
                 local.Add(new LocalPak(path, hash, available.FirstOrDefault(release => HashMatches(release.ReleaseHash, hash))));
@@ -37,7 +42,7 @@ internal static class PakReleaseRecovery {
                     && HashMatches(pak.Hash, wanted.ReleaseHash));
                 var candidates = local.Where(pak => pak.Path.Equals(TrackedPath(wanted), StringComparison.OrdinalIgnoreCase)
                     || MatchesDestination(pak.Path, names[i]))
-                    .Where(pak => !verifiedTracked || tracked.Any(owned => owned.PakFileName.Equals(Path.GetFileName(pak.Path), StringComparison.OrdinalIgnoreCase)));
+                    .Where(pak => !verifiedTracked || pak.Path.Equals(TrackedPath(wanted), StringComparison.OrdinalIgnoreCase));
                 foreach (var pak in candidates.Where(pak => !HashMatches(pak.Hash, wanted.ReleaseHash))) {
                     replacements.Add(pak);
                     var reason = pak.Release == null ? $"Unrecognized file hash: {pak.Hash}. Replace with the registry-approved release."
@@ -54,20 +59,8 @@ internal static class PakReleaseRecovery {
                 .Where(pak => !names.Where((_, index) => index != i).Any(name => MatchesDestination(pak.Path, name)))
                 .OrderBy(pak => Path.GetFileName(pak.Path) == names[i] ? 0 : 1).ToList()).ToList();
 
-            for (var i = 0; i < recovered.Count; i++) {
-                var wanted = requested[i];
-                if (recovered[i].Count == 0) continue;
-                var installed = recovered[i][0];
-                if (!tracked.Any(pak => pak.Coordinates == ReleaseCoordinates.FromRelease(wanted)
-                    && pak.PakFileName.Equals(Path.GetFileName(installed.Path), StringComparison.OrdinalIgnoreCase)))
-                    updates.Add(new DependencyUpdate(Path.GetFileName(installed.Path), installed.Release?.Tag, wanted.Tag,
-                        wanted.ReleaseUrl, "Adopt verified pak: the launcher may rename, update, or remove it in future preparations"));
-                foreach (var duplicate in recovered[i].Skip(1))
-                    updates.Add(new DependencyUpdate(Path.GetFileName(duplicate.Path), duplicate.Release?.Tag, wanted.Tag,
-                        wanted.ReleaseUrl, "Remove duplicate pak and its signature"));
-            }
             if (updates.Count > 0 && dialogue.DisplayUpdateMessage("Change installed mod files?",
-                $"Directory: {paks.DirPath}\nOnly approve if the listed files should be managed or removed by the launcher. No/Cancel preserves them and cancels launch.",
+                "Replace the listed managed paks with the selected releases?",
                 "Yes", "No", "Cancel", updates.Distinct()) != UserDialogueChoice.Yes)
                 return false;
 
@@ -99,7 +92,11 @@ internal static class PakReleaseRecovery {
                 var matching = recovered[i];
                 if (matching.Count == 0) continue;
                 paks.TrackPak(new ManagedPak(ReleaseCoordinates.FromRelease(requested[i]), Path.GetFileName(matching[0].Path), i));
-                foreach (var duplicate in matching.Skip(1)) DeletePak(duplicate);
+                foreach (var duplicate in matching.Skip(1)) {
+                    Logger.Info($"Detected duplicate pak: {duplicate.Path}; SHA-512: {duplicate.Hash}");
+                    DeletePak(duplicate);
+                    Logger.Info($"Removed duplicate pak: {duplicate.Path}; SHA-512: {duplicate.Hash}");
+                }
             }
             return true;
         }

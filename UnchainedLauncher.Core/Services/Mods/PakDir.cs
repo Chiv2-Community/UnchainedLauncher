@@ -215,12 +215,13 @@ namespace UnchainedLauncher.Core.Services.Mods {
             SynchronizeWithDir();
         }
 
-        public async Task<bool> RecoverReleases(IReadOnlyList<Release> requested, IEnumerable<Release> known, IUserDialogueSpawner dialogue) {
+        public async Task<bool> RecoverReleases(IReadOnlyList<Release> requested, IEnumerable<Release> known, IUserDialogueSpawner dialogue,
+            ICollection<Release>? adopted = null) {
             try {
                 using var inventoryLock = await _inventory.Lock();
                 ReloadInventory();
                 _inventory.Save(_managedPaks);
-                var recovered = await PakReleaseRecovery.Recover(this, requested, known, dialogue, _inventory.BeginChange);
+                var recovered = await PakReleaseRecovery.Recover(this, requested, known, dialogue, _inventory.BeginChange, adopted ?? new List<Release>());
                 if (recovered) {
                     SynchronizeWithDir();
                     _inventory.Save(_managedPaks);
@@ -236,7 +237,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         internal void TrackPak(ManagedPak pak) {
-            _managedPaks.RemoveAll(existing => existing.Coordinates.Matches(pak.Coordinates)
+            _managedPaks.RemoveAll(existing => existing.Coordinates == pak.Coordinates
                 || existing.PakFileName.Equals(pak.PakFileName, StringComparison.OrdinalIgnoreCase));
             _managedPaks.Add(pak);
         }

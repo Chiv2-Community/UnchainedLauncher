@@ -173,6 +173,24 @@ public class ModCardExpansionTests {
     }
 
     [Fact]
+    public void ExternalEnableUpdatesExistingCardToDetectedVersion() {
+        var mod = CreateMod("Alpha", "Alpha", 1);
+        var detected = mod.Releases[0];
+        mod = mod with { Releases = [detected with { Tag = "v2.0.0" }, detected] };
+        var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), [], [mod]);
+        var list = new ModListVM(manager, new RecordingDialogue());
+        var card = Assert.Single(list.DisplayMods);
+
+        Assert.False(card.IsEnabled);
+        manager.EnableModRelease(ReleaseCoordinates.FromRelease(detected));
+
+        Assert.Same(card, Assert.Single(list.DisplayMods));
+        Assert.True(card.IsEnabled);
+        Assert.Equal(detected.Tag, card.EnabledVersion);
+        Assert.Same(detected, card.EnabledRelease);
+    }
+
+    [Fact]
     public void CollapsingDetailsKeepsEnableAndVersionControlsVisible() {
         var document = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Views", "Mod.xaml"));
         var card = Assert.Single(document.Descendants().Where(element =>

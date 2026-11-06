@@ -67,6 +67,7 @@ public sealed class PakLaunchPreparationTests : IDisposable {
         File.WriteAllText(Path.ChangeExtension(Path.Combine(_dir, Preferred), ".sig"), "user signature");
         var pakDir = new ManagedPakDirectory(_dir, [new ManagedPak(_coords, Installed, 0)]);
         var dialogue = new Mock<IUserDialogueSpawner>();
+        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>())).Returns(UserDialogueChoice.Yes);
         dialogue.Setup(d => d.DisplayProgress(It.IsAny<UnchainedLauncher.Core.Utilities.MemoryProgress>())).Returns(() => { });
         IChivalry2LaunchPreparer<LaunchOptions> installer = new Chivalry2ModsInstaller(Manager(pakDir), dialogue.Object);
         var preparer = installer.Sub(SigPreparer.Create(pakDir, dialogue.Object));
@@ -91,6 +92,7 @@ public sealed class PakLaunchPreparationTests : IDisposable {
         var pakDir = new ManagedPakDirectory(_dir, [new ManagedPak(_coords, Installed, 0)]);
         var closed = false;
         var dialogue = new Mock<IUserDialogueSpawner>();
+        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>())).Returns(UserDialogueChoice.Yes);
         dialogue.Setup(d => d.DisplayProgress(It.IsAny<UnchainedLauncher.Core.Utilities.MemoryProgress>())).Returns(() => closed = true);
         IChivalry2LaunchPreparer<LaunchOptions> preparer = new Chivalry2ModsInstaller(Manager(pakDir), dialogue.Object);
         var capture = new Capture();
@@ -115,6 +117,7 @@ public sealed class PakLaunchPreparationTests : IDisposable {
         var pakDir = new ManagedPakDirectory(_dir, [new ManagedPak(_coords, stale, 0)]);
         var closed = false;
         var dialogue = new Mock<IUserDialogueSpawner>();
+        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>())).Returns(UserDialogueChoice.Yes);
         dialogue.Setup(d => d.DisplayProgress(It.IsAny<UnchainedLauncher.Core.Utilities.MemoryProgress>())).Returns(() => closed = true);
         var capture = new Capture();
         var launcher = new UnchainedChivalry2Launcher(new Chivalry2ModsInstaller(Manager(pakDir, stale), dialogue.Object), capture, _dir, new NullInjector());
@@ -138,6 +141,7 @@ public sealed class PakLaunchPreparationTests : IDisposable {
         Directory.CreateDirectory(Path.Combine(_dir, "stale.sig"));
         var pakDir = new ManagedPakDirectory(_dir, [new ManagedPak(_coords, Installed, 0), new ManagedPak(stale, "stale.pak", 1)]);
         var dialogue = new Mock<IUserDialogueSpawner>();
+        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>())).Returns(UserDialogueChoice.Yes);
         dialogue.Setup(d => d.DisplayProgress(It.IsAny<UnchainedLauncher.Core.Utilities.MemoryProgress>())).Returns(() => { });
         var capture = new Capture();
         var launcher = new UnchainedChivalry2Launcher(new Chivalry2ModsInstaller(Manager(pakDir), dialogue.Object), capture, _dir, new NullInjector());
@@ -180,6 +184,7 @@ public sealed class PakLaunchPreparationTests : IDisposable {
             foreach (var error in errors) yield return Prelude.Left(error);
         }
         var pakDir = new Mock<IPakDir>();
+        pakDir.Setup(p => p.RecoverReleases(It.IsAny<IReadOnlyList<Release>>(), It.IsAny<IEnumerable<Release>>(), It.IsAny<IUserDialogueSpawner>(), It.IsAny<ICollection<Release>>())).ReturnsAsync(true);
         pakDir.Setup(p => p.InstallModSet(It.IsAny<IEnumerable<ModInstallRequest>>(),
             It.IsAny<Option<UnchainedLauncher.Core.Utilities.AccumulatedMemoryProgress>>())).Returns(Results);
         var manager = new ModManager(Mock.Of<IModRegistry>(), pakDir.Object, [], []);

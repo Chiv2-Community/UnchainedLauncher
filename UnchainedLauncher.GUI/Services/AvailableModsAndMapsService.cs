@@ -4,6 +4,7 @@ using PropertyChanged;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -32,11 +33,13 @@ public class AvailableModsAndMapsService {
     private PakDirManifest? _cachedScanManifest = null;
     private readonly Dictionary<string, (string Hash, long Length, DateTime Modified)> _validatedScanFiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly IModManager _modManager;
+    private readonly IUnmanagedPakSettings? _settings;
     private readonly SemaphoreSlim _catalogLock = new(1, 1);
     private readonly List<MapDto> _defaultMaps;
 
-    public AvailableModsAndMapsService(IModManager modManager, ModScanTabVM modScanTab) {
+    public AvailableModsAndMapsService(IModManager modManager, ModScanTabVM modScanTab, IUnmanagedPakSettings? settings = null) {
         _modManager = modManager;
+        _settings = settings;
         _defaultMaps = GetDefaultMaps().ToList();
         AvailableMaps = new ObservableCollection<MapDto>();
         AvailableServerModBlueprints = new ObservableCollection<BlueprintDto>();
@@ -44,6 +47,8 @@ public class AvailableModsAndMapsService {
         modManager.ModDisabled += _ => OnModStateChanged();
         modManager.ModEnabled += (_, _) => OnModStateChanged();
         WeakEventManager<IModManager, EventArgs>.AddHandler(modManager, nameof(IModManager.MetadataRefreshed), OnMetadataRefreshed);
+        if (settings is INotifyPropertyChanged notifyingSettings)
+            PropertyChangedEventManager.AddHandler(notifyingSettings, (_, _) => OnModStateChanged(), nameof(IUnmanagedPakSettings.AutomaticallyDownloadPakDependencies));
 
         _ = HandleLatestScanUpdate(modScanTab.LastScanResult);
         modScanTab.PropertyChanged += async (_, args) => {
@@ -77,7 +82,7 @@ public class AvailableModsAndMapsService {
                     includeScan = false;
                 }
             }
-            var releases = _modManager.GetEnabledAndDependencyReleases().ToList();
+            var releases = _modManager.GetEnabledAndDependencyReleases(includeDependencies: _settings?.AutomaticallyDownloadPakDependencies ?? true).ToList();
             var inactivePaths = _modManager.Mods.SelectMany(mod => mod.Releases)
                 .SelectMany(release => release.Manifest.RelevantBlueprints())
                 .Select(ServerBlueprintIdentity.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -102,7 +107,7 @@ public class AvailableModsAndMapsService {
         // Missing roots or intermediate dependencies may conceal an actor provider.
         // Match the dependency helper's latest-release resolution, including its version-range policy.
         if (_modManager.EnabledModReleaseCoordinates.Any(coordinates => _modManager.GetRelease(coordinates).IsNone)
-            || _modManager.GetEnabledAndDependencyReleases()
+            || _modManager.GetEnabledAndDependencyReleases(includeDependencies: _settings?.AutomaticallyDownloadPakDependencies ?? true)
                 .SelectMany(release => _modManager.GetLatestRelease(ReleaseCoordinates.FromRelease(release)).ToList())
                 .SelectMany(release => release.Info.EffectiveModDependencies)
                 .Any(dependency => _modManager.GetLatestRelease(ModIdentifier.FromDependency(dependency)).IsNone)) return [];

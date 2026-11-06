@@ -18,10 +18,13 @@ public class UpdatesWindowTests(HomeLaunchUi ui) {
         var codec = new SettingsCodec(null!, null!, null!, "");
         var settings = codec.Deserialize("{\"installation_type\":0}").Result!;
         Assert.False(settings.AlwaysKeepUnmanagedPaks);
+        Assert.True(settings.AutomaticallyDownloadPakDependencies);
         settings.AlwaysKeepUnmanagedPaks = enabled;
+        settings.AutomaticallyDownloadPakDependencies = enabled;
         var json = codec.Serialize(settings);
         Assert.Contains("\"always_keep_unmanaged_paks\": " + enabled.ToString().ToLowerInvariant(), json);
         Assert.Equal(enabled, codec.Deserialize(json).Result!.AlwaysKeepUnmanagedPaks);
+        Assert.Equal(enabled, codec.Deserialize(json).Result!.AutomaticallyDownloadPakDependencies);
     });
 
     [Theory]

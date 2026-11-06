@@ -37,7 +37,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 vm.UseLightTheme,
                 vm.AllowUnstablePluginReleases,
                 SettingsVM.Version,
-                vm.AlwaysKeepUnmanagedPaks
+                vm.AlwaysKeepUnmanagedPaks,
+                vm.AutomaticallyDownloadPakDependencies
             );
         }
 
@@ -59,7 +60,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 settings?.UseLightTheme ?? false,
                 settings?.ShouldAllowUnstablePluginReleases(SettingsVM.Version) ?? SettingsVM.Version.IsPrerelease,
                 cliArgs
-            ) { AlwaysKeepUnmanagedPaks = settings?.AlwaysKeepUnmanagedPaks ?? false };
+            ) {
+                AlwaysKeepUnmanagedPaks = settings?.AlwaysKeepUnmanagedPaks ?? false,
+                AutomaticallyDownloadPakDependencies = settings?.AutomaticallyDownloadPakDependencies ?? true
+            };
         }
     }
 
@@ -76,6 +80,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public bool UseLightTheme { get; set; }
         public bool AllowUnstablePluginReleases { get; set; }
         public bool AlwaysKeepUnmanagedPaks { get; set; }
+        public bool AutomaticallyDownloadPakDependencies { get; set; } = true;
 
         public bool HasLaunched { get; set; }
 

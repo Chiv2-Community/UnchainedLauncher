@@ -10,8 +10,13 @@
              d:DesignHeight="300" d:DesignWidth="800"
              Focusable="True">
 
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="Brush.Dependency" Color="#D09128" />
+    </UserControl.Resources>
+
     <controls:CollapsibleCard IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
-                              IsActive="{Binding IsEnabled}"
+                               IsActive="{Binding IsEnabled}"
+                               IsDependency="{Binding IsDependency}"
                               ShowExpansionIndicator="False"
                               HighlightOnHover="True"
                               ShowHeaderSeparator="True">
@@ -49,13 +54,24 @@
                 <!-- Enable/Disable Button -->
                 <Button Grid.Column="2"
                         Content="{Binding ButtonText}"
+                        ToolTip="{Binding ButtonToolTip}"
                         Command="{Binding EnableOrDisableCommand}"
-                        Margin="0,0,8,0" Style="{StaticResource Button.EnableOrDisable}" />
+                        Margin="0,0,8,0">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource Button.EnableOrDisable}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsDependency}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource Brush.Dependency}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
                 
                 <!-- Version Dropdown -->
                 <ComboBox Grid.Column="3"
                           ItemsSource="{Binding Mod.Releases}"
-                          SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
+                          SelectedItem="{Binding SelectedRelease, Mode=TwoWay}"
                            ToolTip="Select version"
                            VerticalAlignment="Stretch">
                     <ComboBox.ItemTemplate>

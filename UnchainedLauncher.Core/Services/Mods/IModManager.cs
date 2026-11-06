@@ -212,10 +212,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
             return modManager.EnsureUnchainedModsIncluded(allUnique, coordinates);
         }
 
-        public static IEnumerable<ReleaseCoordinates> GetEnabledAndDependencies(this IModManager modManager) {
+        public static IEnumerable<ReleaseCoordinates> GetEnabledAndDependencies(this IModManager modManager, bool includeDependencies = true) {
             var enabled =
                 modManager
-                    .GetEnabledAndDependencyReleases()
+                    .GetEnabledAndDependencyReleases(includeDependencies)
                     .Map(ReleaseCoordinates.FromRelease)
                     .ToList();
 
@@ -230,11 +230,13 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 );
         }
 
-        public static IEnumerable<Release> GetEnabledAndDependencyReleases(this IModManager modManager) {
+        public static IEnumerable<Release> GetEnabledAndDependencyReleases(this IModManager modManager, bool includeDependencies = true) {
             var enabledModsWithDependencies =
                 modManager
                     .GetEnabledModReleases()
                     .ToImmutableHashSet();
+
+            if (!includeDependencies) return enabledModsWithDependencies;
 
             var enabledModsWithAllDependencies = enabledModsWithDependencies.Fold(
                 enabledModsWithDependencies,

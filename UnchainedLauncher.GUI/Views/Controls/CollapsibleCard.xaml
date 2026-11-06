@@ -4,6 +4,8 @@
              x:Name="Root">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <SolidColorBrush x:Key="Brush.Dependency" Color="#D09128" />
+        <SolidColorBrush x:Key="Brush.DependencyTint" Color="#D09128" Opacity="0.05" />
     </UserControl.Resources>
 
     <Grid>
@@ -13,8 +15,19 @@
                 Padding="0">
         <Grid>
             <Border x:Name="ActiveSurface" CornerRadius="6"
-                    Background="{DynamicResource Brush.SuccessTint}" IsHitTestVisible="False"
-                    Visibility="{Binding IsActive, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}" />
+                    IsHitTestVisible="False"
+                    Visibility="{Binding IsActive, ElementName=Root, Converter={StaticResource BoolToVisibilityConverter}}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="{DynamicResource Brush.SuccessTint}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsDependency, ElementName=Root}" Value="True">
+                                <Setter Property="Background" Value="{StaticResource Brush.DependencyTint}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+            </Border>
             <Border x:Name="HoverOutline" Panel.ZIndex="1"
                     BorderThickness="1" CornerRadius="6"
                     IsHitTestVisible="False">
@@ -25,6 +38,9 @@
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsActive, ElementName=Root}" Value="True">
                                 <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsDependency, ElementName=Root}" Value="True">
+                                <Setter Property="BorderBrush" Value="{StaticResource Brush.Dependency}" />
                             </DataTrigger>
                             <MultiDataTrigger>
                                 <MultiDataTrigger.Conditions>

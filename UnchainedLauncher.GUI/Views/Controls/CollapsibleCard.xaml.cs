@@ -28,6 +28,8 @@ namespace UnchainedLauncher.GUI.Views.Controls {
 
         public static readonly DependencyProperty IsActiveProperty = DependencyProperty.Register(
             nameof(IsActive), typeof(bool), typeof(CollapsibleCard), new PropertyMetadata(false));
+        public static readonly DependencyProperty IsDependencyProperty = DependencyProperty.Register(
+            nameof(IsDependency), typeof(bool), typeof(CollapsibleCard), new PropertyMetadata(false));
 
         public CollapsibleCard() {
             InitializeComponent();
@@ -71,6 +73,11 @@ namespace UnchainedLauncher.GUI.Views.Controls {
         public bool IsActive {
             get => (bool)GetValue(IsActiveProperty);
             set => SetValue(IsActiveProperty, value);
+        }
+
+        public bool IsDependency {
+            get => (bool)GetValue(IsDependencyProperty);
+            set => SetValue(IsDependencyProperty, value);
         }
     }
 }

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Data;
 using System.Linq;
 using System.Threading;
@@ -14,6 +15,7 @@ using System.Windows;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
@@ -56,12 +58,18 @@ namespace UnchainedLauncher.GUI.ViewModels {
             this.UnfilteredModView.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
             _modManager.ModEnabled += (_, _) => SynchronizeEnabledReleases();
             _modManager.ModDisabled += _ => SynchronizeEnabledReleases();
+            _modManager.MetadataRefreshed += (_, _) => SynchronizeEnabledReleases();
+            if (settings is INotifyPropertyChanged notifyingSettings)
+                PropertyChangedEventManager.AddHandler(notifyingSettings, (_, _) => SynchronizeEnabledReleases(), nameof(IUnmanagedPakSettings.AutomaticallyDownloadPakDependencies));
         }
 
         private void SynchronizeEnabledReleases() {
             void Update() {
-                foreach (var mod in UnfilteredModView)
+                var effective = _modManager.GetEnabledAndDependencyReleases(includeDependencies: Settings?.AutomaticallyDownloadPakDependencies ?? true).ToList();
+                foreach (var mod in UnfilteredModView) {
                     mod.EnabledRelease = _modManager.GetCurrentlyEnabledReleaseForMod(mod.Mod).FirstOrDefault();
+                    mod.DependencyRelease = effective.FirstOrDefault(release => ModIdentifier.FromMod(mod.Mod) == ModIdentifier.FromRelease(release));
+                }
                 RebuildDisplay();
             }
             if (_context != null && _context != SynchronizationContext.Current) _context.Post(_ => Update(), null);
@@ -232,7 +240,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 )
             );
 
-            RebuildDisplay();
+            SynchronizeEnabledReleases();
         }
     }
 

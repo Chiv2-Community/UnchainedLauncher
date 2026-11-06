@@ -186,7 +186,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
             // Sorting
             query = SelectedSortMode switch {
                 ModSortMode.EnabledFirst => query
-                    .OrderByDescending(m => m.IsEnabled)
+                    .OrderByDescending(m => m.EnabledRelease != null)
+                    .ThenByDescending(m => m.IsDependency)
                     .ThenBy(m => m.Mod.LatestReleaseInfo.Name, StringComparer.OrdinalIgnoreCase),
                 ModSortMode.LatestReleaseDateFirst =>
                     query.OrderByDescending(m => m.Mod.LatestRelease.Map(r => r.ReleaseDate).IfNone(DateTime.MinValue)),
@@ -196,9 +197,15 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     query.OrderBy(m => m.Mod.LatestReleaseInfo.Name, StringComparer.OrdinalIgnoreCase),
             };
 
-            this.DisplayMods.Clear();
-            foreach (var mod in query)
-                this.DisplayMods.Add(mod);
+            var desired = query.ToList();
+            // Preserve existing card controls when dependency state or sort order changes.
+            foreach (var stale in DisplayMods.Where(mod => !desired.Contains(mod)).ToList())
+                DisplayMods.Remove(stale);
+            for (var index = 0; index < desired.Count; index++) {
+                var current = DisplayMods.IndexOf(desired[index]);
+                if (current < 0) DisplayMods.Insert(index, desired[index]);
+                else if (current != index) DisplayMods.Move(current, index);
+            }
         }
 
         private void ModManager_ModList_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {

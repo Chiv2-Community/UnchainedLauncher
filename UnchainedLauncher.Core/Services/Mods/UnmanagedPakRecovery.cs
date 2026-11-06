@@ -1,5 +1,5 @@
-using System.Security.Cryptography;
 using log4net;
+using System.Security.Cryptography;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 

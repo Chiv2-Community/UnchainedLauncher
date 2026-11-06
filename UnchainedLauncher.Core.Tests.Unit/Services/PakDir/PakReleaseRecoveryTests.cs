@@ -39,6 +39,16 @@ public class PakReleaseRecoveryTests : IDisposable {
     }
 
     [Theory]
+    [InlineData("", false)]
+    [InlineData("https://example.test/release", true)]
+    public void ReleaseInformationIsAvailableOnlyForKnownReleases(string url, bool available) {
+        var row = new UnchainedLauncher.GUI.ViewModels.DependencyUpdateViewModel(
+            new DependencyUpdate("mod.pak", null, "Unknown", url, "Unrecognized pak"));
+        Assert.Equal(available, row.HasReleaseInformation);
+        Assert.Equal(available, row.HyperlinkCommand.CanExecute(null));
+    }
+
+    [Theory]
     [InlineData(UserDialogueChoice.Yes)]
     [InlineData(UserDialogueChoice.No)]
     [InlineData(UserDialogueChoice.Cancel)]
@@ -56,7 +66,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, message, _, _, _, changes) => {
                 Assert.Equal(2, changes.Count());
                 Assert.DoesNotContain("Directory:", message);
-                Assert.Contains(changes, change => change.Name == Path.GetFileName(path));
+                Assert.Contains(changes, change => change.Name == Path.GetFileName(path) && change.Reason == wanted.Info.Name);
                 Assert.DoesNotContain(changes, change => change.Name == Path.GetFileName(duplicate));
                 Assert.Empty(paks.ManagedPaks);
                 Assert.True(File.Exists(duplicate));

@@ -43,7 +43,7 @@ internal static class UnmanagedPakRecovery {
         var choice = unmanaged.Count == 0 ? UserDialogueChoice.Yes : dialogue.DisplayUpdateMessage(
             "Unmanaged paks detected", "Unmanaged paks detected. Keep them or remove them?", "Keep", "Remove", "Cancel",
             unmanaged.Select(file => new DependencyUpdate(Path.GetFileName(file.Path), null,
-                file.Release?.Tag ?? "Unknown", file.Release?.ReleaseUrl ?? "", file.Release == null ? "Unrecognized pak" : $"Detected mod: {file.Release.Info.Name}")));
+                file.Release?.Tag ?? "Unknown", file.Release?.ReleaseUrl ?? "", file.Release?.Info.Name ?? "Unrecognized pak")));
         if (choice != UserDialogueChoice.Yes && choice != UserDialogueChoice.No) return false;
 
         // Validate all inputs before deleting anything or changing ownership.

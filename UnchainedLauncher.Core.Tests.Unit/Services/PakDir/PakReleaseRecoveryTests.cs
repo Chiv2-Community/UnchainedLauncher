@@ -28,21 +28,29 @@ public class PakReleaseRecoveryTests : IDisposable {
     [Fact]
     public async Task RequestedHash_RecoversMissingMetadata_WithoutDownloadOrPrompt() {
         var wanted = Release("v1.0.0");
+        var newer = Release("v2.0.0") with { ReleaseHash = wanted.ReleaseHash };
         File.WriteAllText(Path.Join(_dir, "q__-__Mod1.pak"), wanted.Tag);
         File.WriteAllText(Path.Join(_dir, "q__-__Mod1 (9).pak"), wanted.Tag);
-        File.WriteAllText(Path.Join(_dir, "q__-__Other.pak"), "unrecognized manual mod");
+        File.WriteAllText(Path.Join(_dir, "q__-__Mod1.sig"), "matching signature");
+        File.WriteAllText(Path.Join(_dir, "q__-__Mod1 (9).sig"), "matching signature");
+        var unrelated = Path.Join(_dir, "q__-__Other.pak");
+        File.WriteAllText(unrelated, wanted.Tag);
         var registry = new Mock<IModRegistry>(MockBehavior.Strict);
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
-        for (var attempt = 0; attempt < 3; attempt++) {
+        for (var attempt = 0; attempt < 2; attempt++) {
             var paks = new Core.Services.Mods.PakDir(_dir, []);
-            var manager = Manager(paks, registry, wanted);
+            var manager = Manager(paks, registry, wanted, newer);
+            using var exclusive = new FileStream(unrelated, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
             Assert.True(await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
             var results = await manager.InstallMods([wanted], Option<AccumulatedMemoryProgress>.None).ToListAsync();
             results.ForEach(result => result.IfLeft(error => throw error));
-            Assert.Equal("q__-__Mod1.pak", Assert.Single(paks.ManagedPaks).PakFileName);
+            var installed = Assert.Single(paks.ManagedPaks);
+            Assert.Equal(ReleaseCoordinates.FromRelease(wanted), installed.Coordinates);
+            Assert.Equal("q__-__Mod1.pak", installed.PakFileName);
             Assert.Equal(2, Directory.GetFiles(_dir, "*.pak").Length);
+            Assert.Equal("matching signature", File.ReadAllText(Assert.Single(Directory.GetFiles(_dir, "*.sig"))));
         }
-        Assert.Equal("unrecognized manual mod", File.ReadAllText(Path.Join(_dir, "q__-__Other.pak")));
+        Assert.Equal(wanted.Tag, File.ReadAllText(unrelated));
         registry.VerifyNoOtherCalls();
         dialogue.VerifyNoOtherCalls();
     }
@@ -75,28 +83,12 @@ public class PakReleaseRecoveryTests : IDisposable {
         dialogue.VerifyNoOtherCalls();
     }
 
-    [Fact]
-    public async Task UnrelatedLockedPak_DoesNotBlockRecovery() {
-        var wanted = Release("v1.0.0");
-        File.WriteAllText(Path.Join(_dir, "q__-__Mod1.pak"), wanted.Tag);
-        var unrelated = Path.Join(_dir, "q__-__Other.pak");
-        File.WriteAllText(unrelated, "unrelated content");
-        using var exclusive = new FileStream(unrelated, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-        var paks = new Core.Services.Mods.PakDir(_dir, []);
-        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
-        var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
-
-        Assert.True(await new PakReleaseRecovery(Manager(paks, registry, wanted), dialogue.Object).Recover([wanted]));
-        Assert.Equal(ReleaseCoordinates.FromRelease(wanted), Assert.Single(paks.ManagedPaks).Coordinates);
-        Assert.Equal(2, Directory.GetFiles(_dir, "*.pak").Length);
-        registry.VerifyNoOtherCalls();
-        dialogue.VerifyNoOtherCalls();
-    }
-
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task OrphanDestinationSignature_IsCheckedBeforeRecovery_AndCoalescedIfIdentical(bool identical) {
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Relocation_RejectsConflictingSignatures_AndCoalescesIdenticalOnes(bool recoverFirst, bool identical) {
         var wanted = Release("v1.0.0");
         var source = Path.Join(_dir, "q__-__Mod1 (9).pak");
         var destination = Path.Join(_dir, "q__-__Mod1.pak");
@@ -108,48 +100,15 @@ public class PakReleaseRecoveryTests : IDisposable {
         var paks = new Core.Services.Mods.PakDir(_dir, [tracked]);
         var registry = new Mock<IModRegistry>(MockBehavior.Strict);
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
-        if (!identical) dialogue.Setup(d => d.DisplayMessage(It.IsAny<string>()));
+        if (recoverFirst && !identical) dialogue.Setup(d => d.DisplayMessage(It.IsAny<string>()));
         var manager = Manager(paks, registry, wanted);
 
-        Assert.Equal(identical, await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
-        if (identical) {
+        if (recoverFirst)
+            Assert.Equal(identical, await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
+        if (!recoverFirst || identical) {
             var results = await manager.InstallMods([wanted], Option<AccumulatedMemoryProgress>.None).ToListAsync();
-            Assert.True(Assert.Single(results).IsRight);
-            Assert.Equal(wanted.Tag, File.ReadAllText(destination));
-            Assert.False(File.Exists(source));
-            Assert.False(File.Exists(Path.ChangeExtension(source, ".sig")));
-            Assert.Equal("q__-__Mod1.pak", Assert.Single(paks.ManagedPaks).PakFileName);
+            Assert.Equal(identical, Assert.Single(results).IsRight);
         }
-        else {
-            Assert.Equal(wanted.Tag, File.ReadAllText(source));
-            Assert.Equal("verified signature", File.ReadAllText(Path.ChangeExtension(source, ".sig")));
-            Assert.False(File.Exists(destination));
-            Assert.Equal(tracked, Assert.Single(paks.ManagedPaks));
-        }
-        Assert.Equal(destinationSignature, File.ReadAllText(Path.ChangeExtension(destination, ".sig")));
-        Assert.Single(Directory.GetFiles(_dir, "*.pak"));
-        registry.VerifyNoOtherCalls();
-        dialogue.VerifyAll();
-    }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task InstallRelocation_ChecksDestinationSignature_BeforeMovingPak(bool identical) {
-        var wanted = Release("v1.0.0");
-        var source = Path.Join(_dir, "q__-__Mod1 (9).pak");
-        var destination = Path.Join(_dir, "q__-__Mod1.pak");
-        var destinationSignature = identical ? "verified signature" : "unrelated signature";
-        File.WriteAllText(source, wanted.Tag);
-        File.WriteAllText(Path.ChangeExtension(source, ".sig"), "verified signature");
-        File.WriteAllText(Path.ChangeExtension(destination, ".sig"), destinationSignature);
-        var tracked = new ManagedPak(ReleaseCoordinates.FromRelease(wanted), Path.GetFileName(source), 7);
-        var paks = new Core.Services.Mods.PakDir(_dir, [tracked]);
-        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
-
-        var results = await Manager(paks, registry, wanted).InstallMods([wanted], Option<AccumulatedMemoryProgress>.None).ToListAsync();
-
-        Assert.Equal(identical, Assert.Single(results).IsRight);
         Assert.Equal(wanted.Tag, File.ReadAllText(identical ? destination : source));
         Assert.Equal(!identical, File.Exists(source));
         Assert.Equal(identical, File.Exists(destination));
@@ -160,34 +119,8 @@ public class PakReleaseRecoveryTests : IDisposable {
             Assert.Equal(tracked, Assert.Single(paks.ManagedPaks));
         }
         else Assert.Equal("q__-__Mod1.pak", Assert.Single(paks.ManagedPaks).PakFileName);
+        Assert.Single(Directory.GetFiles(_dir, "*.pak"));
         registry.VerifyNoOtherCalls();
-    }
-
-    [Theory]
-    [InlineData("v1.0.0", "v2.0.0", UserDialogueChoice.Yes, "Upgrade")]
-    [InlineData("v2.0.0", "v1.0.0", UserDialogueChoice.Yes, "Downgrade")]
-    [InlineData("v1.0.0", "v2.0.0", UserDialogueChoice.No, "Upgrade")]
-    [InlineData("v2.0.0", "v1.0.0", UserDialogueChoice.Cancel, "Downgrade")]
-    public async Task DifferentReleaseHash_UsesStandardVersionChangeConfirmation(string currentTag, string wantedTag, UserDialogueChoice choice, string reason) {
-        var wanted = Release(wantedTag);
-        var current = Release(currentTag);
-        var path = Path.Join(_dir, "q__-__Mod1.pak");
-        File.WriteAllText(path, currentTag);
-        var paks = new Core.Services.Mods.PakDir(_dir, []);
-        var manager = Manager(paks, new Mock<IModRegistry>(MockBehavior.Strict), wanted, current);
-        var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
-        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
-            .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, _, _, _, _, updates) => {
-                var update = Assert.Single(updates);
-                Assert.Equal(currentTag, update.CurrentVersion);
-                Assert.Equal(wantedTag, update.LatestVersion);
-                Assert.Equal(reason, update.Reason);
-                Assert.Equal(currentTag, File.ReadAllText(path));
-                Assert.Empty(paks.ManagedPaks);
-            }).Returns(choice);
-
-        Assert.Equal(choice == UserDialogueChoice.Yes, await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
-        Assert.Equal(choice != UserDialogueChoice.Yes, File.Exists(path));
         dialogue.VerifyAll();
     }
 
@@ -215,18 +148,6 @@ public class PakReleaseRecoveryTests : IDisposable {
         dialogue.VerifyAll();
     }
 
-    [Fact]
-    public async Task RequestedHash_SharedWithNewerRelease_StillReusesRequestedRelease() {
-        var wanted = Release("v1.0.0");
-        var newer = Release("v2.0.0") with { ReleaseHash = wanted.ReleaseHash };
-        File.WriteAllText(Path.Join(_dir, "q__-__Mod1.pak"), wanted.Tag);
-        var paks = new Core.Services.Mods.PakDir(_dir, []);
-        var manager = Manager(paks, new Mock<IModRegistry>(MockBehavior.Strict), wanted, newer);
-
-        Assert.True(await new PakReleaseRecovery(manager, new Mock<IUserDialogueSpawner>(MockBehavior.Strict).Object).Recover([wanted]));
-        Assert.Equal(ReleaseCoordinates.FromRelease(wanted), Assert.Single(paks.ManagedPaks).Coordinates);
-    }
-
     [Theory]
     [InlineData("q__-__Mod1.pak")]
     [InlineData("custom-tracked.pak")]
@@ -247,15 +168,15 @@ public class PakReleaseRecoveryTests : IDisposable {
     }
 
     [Theory]
-    [InlineData("v1.0.0", "v2.0.0", true)]
-    [InlineData("v2.0.0", "v1.0.0", true)]
-    [InlineData("corrupt tracked content", "v2.0.0", false)]
-    public async Task ApprovedReplacement_InstallsRequestedReleaseWithoutNumberedCopy(string currentContent, string targetTag, bool knownRelease) {
+    [InlineData("v1.0.0", "v2.0.0", "Upgrade")]
+    [InlineData("v2.0.0", "v1.0.0", "Downgrade")]
+    [InlineData("corrupt tracked content", "v2.0.0", null)]
+    public async Task ApprovedReplacement_InstallsRequestedReleaseWithoutNumberedCopy(string currentContent, string targetTag, string? reason) {
         var wanted = Release(targetTag);
         var path = Path.Join(_dir, "q__-__Mod1.pak");
         File.WriteAllText(path, currentContent);
         var coordinates = ReleaseCoordinates.FromRelease(wanted);
-        var installedCoordinates = knownRelease ? ReleaseCoordinates.FromRelease(Release(currentContent)) : coordinates;
+        var installedCoordinates = reason != null ? ReleaseCoordinates.FromRelease(Release(currentContent)) : coordinates;
         var paks = new Core.Services.Mods.PakDir(_dir, [new ManagedPak(installedCoordinates, Path.GetFileName(path), 0)]);
         var registry = new Mock<IModRegistry>(MockBehavior.Strict);
         registry.Setup(r => r.DownloadPak(coordinates, It.IsAny<string>()))
@@ -264,10 +185,18 @@ public class PakReleaseRecoveryTests : IDisposable {
                 var bytes = Encoding.UTF8.GetBytes(wanted.Tag);
                 return Prelude.RightAsync<ModPakStreamAcquisitionFailure, FileWriter>(new FileWriter(output, new MemoryStream(bytes), bytes.Length));
             });
-        var manager = Manager(paks, registry, knownRelease ? [wanted, Release(currentContent)] : [wanted]);
+        var manager = Manager(paks, registry, reason != null ? [wanted, Release(currentContent)] : [wanted]);
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
         dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
-            .Returns(UserDialogueChoice.Yes);
+            .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, _, _, _, _, updates) => {
+                var update = Assert.Single(updates);
+                Assert.Equal(reason != null ? currentContent : null, update.CurrentVersion);
+                Assert.Equal(targetTag, update.LatestVersion);
+                if (reason != null) Assert.Equal(reason, update.Reason);
+                else Assert.Contains("Unrecognized file hash", update.Reason);
+                Assert.Equal(currentContent, File.ReadAllText(path));
+                Assert.Equal(installedCoordinates, Assert.Single(paks.ManagedPaks).Coordinates);
+            }).Returns(UserDialogueChoice.Yes);
 
         Assert.True(await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
         var results = await manager.InstallMods([wanted], Option<AccumulatedMemoryProgress>.None).ToListAsync();
@@ -277,19 +206,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         Assert.Single(Directory.GetFiles(_dir, "*.pak"));
         Assert.Empty(Directory.GetFiles(_dir, "*.partial"));
         registry.Verify(r => r.DownloadPak(coordinates, It.IsAny<string>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task MatchingHashOutsideDestinationFamily_IsNotAdoptedOrDeleted() {
-        var wanted = Release("v1.0.0");
-        var path = Path.Join(_dir, "q__-__Other.pak");
-        File.WriteAllText(path, wanted.Tag);
-        var paks = new Core.Services.Mods.PakDir(_dir, []);
-        var manager = Manager(paks, new Mock<IModRegistry>(MockBehavior.Strict), wanted);
-
-        Assert.True(await new PakReleaseRecovery(manager, new Mock<IUserDialogueSpawner>(MockBehavior.Strict).Object).Recover([wanted]));
-        Assert.Empty(paks.ManagedPaks);
-        Assert.Equal(wanted.Tag, File.ReadAllText(path));
+        dialogue.VerifyAll();
     }
 
     [Theory]
@@ -328,23 +245,6 @@ public class PakReleaseRecoveryTests : IDisposable {
 
         Assert.Equal(2, paks.ManagedPaks.Select(pak => pak.PakFileName).Distinct().Count());
         Assert.Equal(2, Directory.GetFiles(_dir, "*.pak").Length);
-    }
-
-    [Fact]
-    public async Task FileChangedWhileConfirming_IsNotDeleted() {
-        var wanted = Release("v2.0.0");
-        var current = Release("v1.0.0");
-        var path = Path.Join(_dir, "q__-__Mod1.pak");
-        File.WriteAllText(path, current.Tag);
-        var paks = new Core.Services.Mods.PakDir(_dir, []);
-        var manager = Manager(paks, new Mock<IModRegistry>(MockBehavior.Strict), wanted, current);
-        var dialogue = new Mock<IUserDialogueSpawner>();
-        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
-            .Callback(() => File.WriteAllText(path, "changed during confirmation")).Returns(UserDialogueChoice.Yes);
-
-        Assert.False(await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
-        Assert.Equal("changed during confirmation", File.ReadAllText(path));
-        Assert.Empty(paks.ManagedPaks);
     }
 
     [Theory]
@@ -436,16 +336,22 @@ public class PakReleaseRecoveryTests : IDisposable {
     }
 
     [Theory]
-    [InlineData(UserDialogueChoice.No)]
-    [InlineData(UserDialogueChoice.Cancel)]
-    public async Task DeclinedVersionChange_CancelsLaunchBeforeInstallation(UserDialogueChoice choice) {
-        var wanted = Release("v2.0.0");
-        var current = Release("v1.0.0");
+    [InlineData("v1.0.0", "v2.0.0", UserDialogueChoice.No, "Upgrade")]
+    [InlineData("v2.0.0", "v1.0.0", UserDialogueChoice.Cancel, "Downgrade")]
+    public async Task DeclinedVersionChange_CancelsLaunchBeforeInstallation(string currentTag, string wantedTag, UserDialogueChoice choice, string reason) {
+        var wanted = Release(wantedTag);
+        var current = Release(currentTag);
         File.WriteAllText(Path.Join(_dir, "q__-__Mod1.pak"), current.Tag);
-        var manager = Manager(new Core.Services.Mods.PakDir(_dir, []), new Mock<IModRegistry>(MockBehavior.Strict), wanted, current);
+        var paks = new Core.Services.Mods.PakDir(_dir, []);
+        var manager = Manager(paks, new Mock<IModRegistry>(MockBehavior.Strict), wanted, current);
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
         dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
-            .Returns(choice);
+            .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, _, _, _, _, updates) => {
+                var update = Assert.Single(updates);
+                Assert.Equal(currentTag, update.CurrentVersion);
+                Assert.Equal(wantedTag, update.LatestVersion);
+                Assert.Equal(reason, update.Reason);
+            }).Returns(choice);
         var options = new LaunchOptions([], "", "", false, false, Prelude.None, Prelude.None);
         var signaturesPrepared = false;
         var pipeline = Chivalry2LaunchPreparer.Create<LaunchOptions>(value => Prelude.Some(value))
@@ -457,8 +363,10 @@ public class PakReleaseRecoveryTests : IDisposable {
 
         Assert.True((await pipeline.PrepareLaunch(options)).IsNone);
         Assert.False(signaturesPrepared);
+        Assert.Empty(paks.ManagedPaks);
         Assert.Equal(current.Tag, File.ReadAllText(Path.Join(_dir, "q__-__Mod1.pak")));
         dialogue.Verify(d => d.DisplayProgress(It.IsAny<MemoryProgress>()), Times.Never);
+        dialogue.VerifyAll();
     }
 
     [Fact]

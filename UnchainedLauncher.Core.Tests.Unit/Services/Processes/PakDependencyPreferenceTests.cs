@@ -61,6 +61,10 @@ public class PakDependencyPreferenceTests(HomeLaunchUi ui) {
             var originalCard = LibraryView();
             var automatic = Descendants<CheckBox>(view).Single(control => Equals(control.Content, "Automatically download pak dependencies"));
             var keep = Descendants<CheckBox>(view).Single(control => Equals(control.Content, "Always keep unmanaged paks"));
+            var divider = Assert.IsType<Border>(view.FindName("OptionsDivider"));
+            Assert.Equal(1, divider.ActualHeight);
+            Assert.Equal(view.ActualWidth - 20, divider.ActualWidth, 1);
+            Assert.True(divider.TranslatePoint(new Point(), view).Y + divider.ActualHeight < automatic.TranslatePoint(new Point(), view).Y);
             Assert.Equal(automatic.TranslatePoint(new Point(), view).Y, keep.TranslatePoint(new Point(), view).Y, 1);
             Assert.True(keep.TranslatePoint(new Point(), view).X >= automatic.TranslatePoint(new Point(), view).X + automatic.ActualWidth);
             var resets = 0;

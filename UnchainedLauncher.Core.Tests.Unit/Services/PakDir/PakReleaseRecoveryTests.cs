@@ -93,7 +93,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             Assert.False(File.Exists(duplicate));
             Assert.False(File.Exists(Path.ChangeExtension(duplicate, ".sig")));
             Assert.Equal(ReleaseCoordinates.FromRelease(wanted), Assert.Single(await sibling.GetManagedPaks()).Coordinates);
-            Assert.True(await sibling.RecoverReleases([wanted], [wanted], Dialogue(UserDialogueChoice.Yes).Object));
+            Assert.True(await sibling.RecoverReleases([wanted], [wanted], new Mock<IUserDialogueSpawner>(MockBehavior.Strict).Object));
         }
         else if (choice == UserDialogueChoice.Cancel) {
             Assert.True(File.Exists(duplicate));

@@ -11,6 +11,8 @@ internal static class UnmanagedPakRecovery {
 
     internal static async Task<bool> Recover(PakDir paks, IReadOnlyList<Release> requested, IEnumerable<Release> known,
         IUserDialogueSpawner dialogue, Action beginChange, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks) {
+        var kept = new KeptUnmanagedPaks(paks.DirPath);
+        kept.Load();
         var releases = known.OrderByDescending(release => release.Version)
             .ThenByDescending(release => release.ReleaseDate).ToList();
         var managed = paks.ManagedPaks.ToList();
@@ -40,13 +42,14 @@ internal static class UnmanagedPakRecovery {
             if (!retained.Managed) unmanaged.Add(retained);
         }
 
+        var unconfirmed = unmanaged.Where(file => file.Release != null || !kept.Contains(Path.GetFileName(file.Path), file.Hash)).ToList();
         var updates = new List<DependencyUpdate>();
-        foreach (var file in unmanaged.Where(_ => !alwaysKeepUnmanagedPaks)) {
+        foreach (var file in unconfirmed.Where(_ => !alwaysKeepUnmanagedPaks)) {
             var version = file.Release?.Tag ?? await PakBlueprintVersion.Read(file.Path) ?? "Unknown";
             updates.Add(new DependencyUpdate(Path.GetFileName(file.Path), null, version,
                 file.Release?.ReleaseUrl ?? "", file.Release?.Info.Name ?? "Unrecognized pak"));
         }
-        var choice = alwaysKeepUnmanagedPaks || unmanaged.Count == 0 ? UserDialogueChoice.Yes : dialogue.DisplayUpdateMessage(
+        var choice = alwaysKeepUnmanagedPaks || unconfirmed.Count == 0 ? UserDialogueChoice.Yes : dialogue.DisplayUpdateMessage(
             "Unmanaged paks detected", "Unmanaged paks detected. Keep them or remove them?", "Keep", "Remove", "Cancel",
             updates);
         if (choice != UserDialogueChoice.Yes && choice != UserDialogueChoice.No) return false;
@@ -78,9 +81,8 @@ internal static class UnmanagedPakRecovery {
                     PakDir.ValidateMoveSignatures(source.Path, destination);
             }
         }
-        if (duplicates.Count == 0 && unmanaged.Count == 0) return true;
-        beginChange();
-        foreach (var file in duplicates.Concat(choice == UserDialogueChoice.No ? unmanaged : [])) {
+        if (duplicates.Count > 0 || unconfirmed.Count > 0) beginChange();
+        foreach (var file in duplicates.Concat(choice == UserDialogueChoice.No ? unconfirmed : [])) {
             File.Delete(Path.ChangeExtension(file.Path, ".sig"));
             File.Delete(file.Path);
             Logger.Info($"Removed {(duplicates.Contains(file) ? "duplicate" : "unmanaged")} pak: {file.Path}; SHA-512: {file.Hash}");
@@ -93,6 +95,8 @@ internal static class UnmanagedPakRecovery {
                 if (!adopted.Any(existing => ModIdentifier.FromRelease(existing) == ModIdentifier.FromRelease(release))) adopted.Add(release);
             }
         }
+        kept.Save(unmanaged.Where(file => file.Release == null && (choice == UserDialogueChoice.Yes || !unconfirmed.Contains(file)))
+            .ToDictionary(file => Path.GetFileName(file.Path), file => file.Hash, StringComparer.OrdinalIgnoreCase));
         return true;
     }
 }

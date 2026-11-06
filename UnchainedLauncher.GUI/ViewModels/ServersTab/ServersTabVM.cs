@@ -207,6 +207,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             if (configuration == null) return;
 
             var enabledServerBlueprintDtos = configuration.PrepareServerBlueprintsForLaunch();
+            var requestedServerBlueprintDtos = configuration.EnabledServerModList.ToArray();
             var formData = configuration.ToServerConfiguration();
 
             configuration.SaveINI();
@@ -220,7 +221,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 var runningTuple = (configuration, serverVm);
                 UiDispatcher.Invoke(() => RunningServers.Add(runningTuple));
 
-                _ = AttachServerExitWatcher(process, formData, enabledServerBlueprintDtos, headless, runningTuple);
+                _ = AttachServerExitWatcher(process, formData, requestedServerBlueprintDtos, headless, runningTuple);
             });
         }
 

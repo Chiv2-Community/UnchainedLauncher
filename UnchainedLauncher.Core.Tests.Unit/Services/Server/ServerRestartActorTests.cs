@@ -24,8 +24,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server;
 
 [Collection("Home launch UI")]
 public class ServerRestartActorTests(HomeLaunchUi ui) {
-    [Fact]
-    public Task RestoredUnmanagedActorReturnsOnLaterRestartWithoutChangingRequestedSnapshot() => ui.RunAsync(async () => {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task RestoredUnmanagedActorReturnsOnLaterRestartWithoutChangingRequestedSnapshot(bool unavailableInitially) => ui.RunAsync(async () => {
         var path = Path.GetTempFileName();
         var name = "RestartActor_" + Guid.NewGuid().ToString("N");
         var profile = FilePaths.Chiv2ConfigPath(ServerConfigurationVM.SavedDirSuffix(name));
@@ -69,8 +71,10 @@ public class ServerRestartActorTests(HomeLaunchUi ui) {
             var settings = new SettingsVM(null!, null!, InstallationType.Steam, true, false, "", "https://example.test", false, false, "");
             tab = new ServersTabVM(settings, manager, scan, Mock.Of<IUserDialogueSpawner>(), launcher.Object,
                 new ObservableCollection<ServerConfigurationVM>([config]), watcher.Object, catalog);
+            if (unavailableInitially) File.WriteAllText(path, "unavailable");
             await tab.LaunchSelected();
-            Assert.Equal([actor.ClassPath], launches[0].ServerLaunchOptions.ToSeq().Single().ServerMods);
+            Assert.Equal(unavailableInitially ? [] : new[] { actor.ClassPath }, launches[0].ServerLaunchOptions.ToSeq().Single().ServerMods);
+            Assert.Equal(actor, Assert.Single(config.EnabledServerModList));
 
             async Task Restart(int generation) {
                 attached = new(TaskCreationOptions.RunContinuationsAsynchronously);

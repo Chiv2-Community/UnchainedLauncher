@@ -1,6 +1,6 @@
+using log4net;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
-using log4net;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 

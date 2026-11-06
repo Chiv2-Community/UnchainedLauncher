@@ -4,8 +4,8 @@ using log4net;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
-using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Extensions;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 

@@ -1,7 +1,7 @@
-using System.Security.Cryptography;
-using System.Text;
 using LanguageExt;
 using Moq;
+using System.Security.Cryptography;
+using System.Text;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;

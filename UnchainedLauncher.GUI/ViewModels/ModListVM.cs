@@ -30,7 +30,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         // UI state: filtering and sorting
         public string? SearchTerm { get; set; }
         public bool ShowEnabledOnly { get; set; }
-        public ModSortMode SelectedSortMode { get; set; } = ModSortMode.EnabledFirst;
+        public ModSortMode SelectedSortMode { get; set; } = ModSortMode.Alphabetical;
         public IReadOnlyList<ModSortMode> SortModes { get; } = [ModSortMode.EnabledFirst, ModSortMode.Alphabetical, ModSortMode.LatestReleaseDateFirst, ModSortMode.NewestModsFirst];
 
         public ModVM? SelectedMod { get; set; }

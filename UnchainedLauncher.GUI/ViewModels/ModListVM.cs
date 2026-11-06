@@ -10,7 +10,6 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
@@ -98,10 +97,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                 _logger.Info("Checking for Mod updates...");
 
-                IEnumerable<(ModVM, UpdateCandidate)> pendingUpdates =
+                var pendingUpdates =
                     DisplayMods
                         .Map(displayMod => displayMod.CheckForUpdate().Map(update => (displayMod, update)))
-                        .Collect(x => x.AsEnumerable());
+                        .Collect(x => x.AsEnumerable()).ToList();
 
                 var res =
                     UserDialogueSpawner.DisplayUpdateMessage(
@@ -113,10 +112,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
                 if (res != UserDialogueChoice.Yes) {
                     if (res == null) {
-                        MessageBox.Show("No updates available.");
+                        UserDialogueSpawner.DisplayMessage("No updates available.");
                     }
                     else {
-                        MessageBox.Show("Mods not updated");
+                        UserDialogueSpawner.DisplayMessage("Mods not updated");
                     }
                 }
                 else {
@@ -124,23 +123,23 @@ namespace UnchainedLauncher.GUI.ViewModels {
                         pendingUpdates.Select(x =>
                                 (x.Item1, x.Item1.UpdateCurrentlyEnabledVersion(x.Item2.AvailableUpdate))
                             ).Filter(x => !x.Item2)
-                            .Select(x => x.Item1);
+                             .Select(x => x.Item1).ToList();
 
 
 
                     if (failedUpdates.Any()) {
                         var failureNames =
                             string.Join(", ", failedUpdates.Select(vm => vm.Mod.LatestReleaseInfo.Name));
-                        MessageBox.Show($"Failed to enable mods: {failureNames}\n\nCheck the logs for more details.");
+                        UserDialogueSpawner.DisplayMessage($"Failed to enable mods: {failureNames}\n\nCheck the logs for more details.");
                     }
 
                     _logger.Info("Mods updated successfully");
-                    MessageBox.Show("Mods updated successfully");
+                    UserDialogueSpawner.DisplayMessage("Mods updated successfully");
                 }
             }
             catch (Exception ex) {
                 _logger.Error(ex.ToString());
-                MessageBox.Show("Failed to check for updates. Check the logs for details.");
+                UserDialogueSpawner.DisplayMessage("Failed to check for updates. Check the logs for details.");
             }
         }
 

@@ -1,3 +1,4 @@
+using LanguageExt;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using log4net;
@@ -6,19 +7,24 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.Core.Services.Mods;
 
+using static LanguageExt.Prelude;
+
 public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialogue, bool alwaysKeepUnmanagedPaks = false) {
     private static readonly ILog Logger = LogManager.GetLogger(nameof(PakReleaseRecovery));
     private record LocalPak(string Path, string Hash, Release? Release);
 
-    public async Task<bool> Recover(IReadOnlyList<Release> requested) {
+    public async Task<bool> Recover(IReadOnlyList<Release> requested) => (await RecoverPlan(requested)).IsSome;
+
+    // An explicit request replaces enabled roots; adoption can replace those roots before dependency expansion.
+    public async Task<Option<IReadOnlyList<Release>>> RecoverPlan(IReadOnlyList<Release>? requested = null) {
         try {
             var adopted = new List<Release>();
-            if (!await UnmanagedPakRecovery.Recover(manager.PakDir, requested, requested.Concat(manager.Mods.SelectMany(mod => mod.Releases)),
-                dialogue, () => { }, adopted, alwaysKeepUnmanagedPaks)) return false;
+            if (!await UnmanagedPakRecovery.Recover(manager.PakDir, requested ?? [], (requested ?? []).Concat(manager.Mods.SelectMany(mod => mod.Releases)),
+                dialogue, adopted, alwaysKeepUnmanagedPaks)) return None;
             foreach (var release in adopted) manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
-            requested = requested.Select(release => adopted.FirstOrDefault(detected => ModIdentifier.FromRelease(detected) == ModIdentifier.FromRelease(release)) ?? release)
-                .Concat(adopted.Where(detected => !requested.Any(release => ModIdentifier.FromRelease(detected) == ModIdentifier.FromRelease(release)))).ToList();
-            if (requested.Count == 0) return true;
+            var seeds = requested?.ExceptBy(adopted.Select(ModIdentifier.FromRelease), ModIdentifier.FromRelease).Concat(adopted);
+            requested = manager.SortByDependencies(manager.GetEnabledAndDependencyReleases(seeds)).ToList();
+            if (requested.Count == 0) return Some(requested);
             var names = PakDir.GetInstallFileNames(requested.Select(ReleaseCoordinates.FromRelease)).ToList();
             var available = requested.Concat(manager.Mods.SelectMany(mod => mod.Releases))
                 .OrderByDescending(release => release.Version)
@@ -65,7 +71,7 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
             if (updates.Count > 0 && dialogue.DisplayUpdateMessage("Change installed mod files?",
                 "Replace the listed managed paks with the selected releases?",
                 "Yes", "No", "Cancel", updates.Distinct()) != UserDialogueChoice.Yes)
-                return false;
+                return None;
 
             // Validate final destinations and duplicate signatures before changing any files or metadata.
             for (var i = 0; i < recovered.Count; i++) {
@@ -103,12 +109,12 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
                     Logger.Info($"Removed duplicate pak: {duplicate.Path}; SHA-512: {duplicate.Hash}");
                 }
             }
-            return true;
+            return Some(requested);
         }
         catch (Exception error) {
             Logger.Error($"Failed to identify installed mod releases: {error.Message}");
             dialogue.DisplayMessage($"Failed to identify installed mod releases: {error.Message}");
-            return false;
+            return None;
         }
     }
 

@@ -10,7 +10,7 @@ internal static class UnmanagedPakRecovery {
     private record Candidate(string Path, string Hash, Release? Release, bool Managed);
 
     internal static async Task<bool> Recover(IPakDir paks, IReadOnlyList<Release> requested, IEnumerable<Release> known,
-        IUserDialogueSpawner dialogue, Action beginChange, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks) {
+        IUserDialogueSpawner dialogue, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks) {
         var kept = new KeptUnmanagedPaks(paks.DirPath);
         kept.Load();
         var releases = known.OrderByDescending(release => release.Version)
@@ -81,7 +81,6 @@ internal static class UnmanagedPakRecovery {
                     PakDir.ValidateMoveSignatures(source.Path, destination);
             }
         }
-        if (duplicates.Count > 0 || unconfirmed.Count > 0) beginChange();
         foreach (var file in duplicates.Concat(choice == UserDialogueChoice.No ? unconfirmed : [])) {
             File.Delete(Path.ChangeExtension(file.Path, ".sig"));
             File.Delete(file.Path);

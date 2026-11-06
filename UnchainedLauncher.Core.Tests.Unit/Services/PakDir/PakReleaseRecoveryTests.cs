@@ -457,6 +457,97 @@ public class PakReleaseRecoveryTests : IDisposable {
     }
 
     [Theory]
+    [InlineData(UserDialogueChoice.Yes)]
+    [InlineData(UserDialogueChoice.No)]
+    public Task AdoptedReleaseValidatesNewManagedDependencyBeforeInstallation(UserDialogueChoice replace) => ui.RunAsync(async () => {
+        var parent = Release("v2.0.0");
+        var dependency = Release("v1.0.0") with { Info = parent.Info with { RepoUrl = "https://github.com/Org/Dependency", Name = "Dependency" } };
+        parent = parent with { Info = parent.Info with { Dependencies = [new Dependency(dependency.Info.RepoUrl, "*")] } };
+        File.WriteAllText(Path.Join(_dir, "manual.pak"), parent.Tag);
+        var corrupt = Path.Join(_dir, "qz__-__Dependency.pak");
+        File.WriteAllText(corrupt, "corrupt dependency");
+        var paks = new Core.Services.Mods.PakDir(_dir, [new ManagedPak(ReleaseCoordinates.FromRelease(dependency), Path.GetFileName(corrupt), 0)]);
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+        var manager = new ModManager(registry.Object, paks, [], [new Mod(parent.Info, [parent]), new Mod(dependency.Info, [dependency])]);
+        registry.Setup(r => r.DownloadPak(ReleaseCoordinates.FromRelease(dependency), It.IsAny<string>()))
+            .Returns((ReleaseCoordinates _, string output) => {
+                var bytes = Encoding.UTF8.GetBytes(dependency.Tag);
+                return Prelude.RightAsync<ModPakStreamAcquisitionFailure, FileWriter>(new FileWriter(output, new MemoryStream(bytes), bytes.Length));
+            });
+        var dialogue = ConfirmFileChanges();
+        dialogue.Setup(d => d.DisplayUpdateMessage("Change installed mod files?", It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+            .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, _, _, _, _, updates) => {
+                var update = Assert.Single(updates);
+                Assert.Contains("Dependency", update.Name);
+                Assert.Contains("Unrecognized file hash", update.Reason);
+            }).Returns(replace);
+        dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Callback(() => {
+            Assert.False(File.Exists(corrupt));
+        }).Returns(() => { });
+        var options = new LaunchOptions([], "", "", false, false, Prelude.None, Prelude.None);
+
+        Assert.Equal(replace == UserDialogueChoice.Yes, (await new Chivalry2ModsInstaller(manager, dialogue.Object).PrepareLaunch(options)).IsSome);
+
+        Assert.Equal(replace == UserDialogueChoice.Yes ? dependency.Tag : "corrupt dependency", File.ReadAllText(corrupt));
+        dialogue.Verify(d => d.DisplayUpdateMessage("Change installed mod files?", It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), Times.Once);
+        dialogue.Verify(d => d.DisplayProgress(It.IsAny<MemoryProgress>()), replace == UserDialogueChoice.Yes ? Times.Once : Times.Never);
+        registry.Verify(r => r.DownloadPak(ReleaseCoordinates.FromRelease(dependency), It.IsAny<string>()), replace == UserDialogueChoice.Yes ? Times.Once : Times.Never);
+        registry.VerifyNoOtherCalls();
+    });
+
+    [Fact]
+    public async Task DirectRecoveryPreservesExplicitRequestsAndExpandsTheirDependencies() {
+        var parent = Release("v2.0.0");
+        var dependency = Release("v1.0.0") with { Info = parent.Info with { RepoUrl = "https://github.com/Org/Dependency", Name = "Dependency" } };
+        parent = parent with { Info = parent.Info with { Dependencies = [new Dependency(dependency.Info.RepoUrl, "*")] } };
+        var unrelated = Release("v3.0.0") with { Info = parent.Info with { RepoUrl = "https://github.com/Org/Other", Name = "Other", Dependencies = [] } };
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+        var manager = new ModManager(registry.Object, new Core.Services.Mods.PakDir(_dir, []), [ReleaseCoordinates.FromRelease(unrelated)],
+            [new Mod(parent.Info, [parent]), new Mod(dependency.Info, [dependency]), new Mod(unrelated.Info, [unrelated])]);
+
+        var plan = await new PakReleaseRecovery(manager, new Mock<IUserDialogueSpawner>(MockBehavior.Strict).Object).RecoverPlan([parent]);
+
+        Assert.Equal(new[] { dependency, parent }, plan.IfNone([]));
+        Assert.Equal(ReleaseCoordinates.FromRelease(unrelated), Assert.Single(manager.EnabledModReleaseCoordinates));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AdoptedPakUsesFreeNameWithRequiredDependencyPrefixWhenUnknownOccupiesDestination(bool hasDependency) {
+        var parent = Release("v2.0.0");
+        var dependency = Release("v1.0.0") with { Info = parent.Info with { RepoUrl = "https://github.com/Org/Dependency", Name = "Dependency" } };
+        if (hasDependency) parent = parent with { Info = parent.Info with { Dependencies = [new Dependency(dependency.Info.RepoUrl, "*")] } };
+        var canonical = hasDependency ? "qy__-__Mod1" : "q__-__Mod1";
+        File.WriteAllText(Path.Join(_dir, "manual.pak"), parent.Tag);
+        File.WriteAllText(Path.Join(_dir, "manual.sig"), "parent signature");
+        File.WriteAllText(Path.Join(_dir, canonical + ".pak"), "unknown pak");
+        File.WriteAllText(Path.Join(_dir, canonical + ".sig"), "unknown signature");
+        File.WriteAllText(Path.Join(_dir, canonical + " (1).sig"), "orphan signature");
+        if (hasDependency) File.WriteAllText(Path.Join(_dir, "dependency.pak"), dependency.Tag);
+        var paks = new Core.Services.Mods.PakDir(_dir, []);
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+        var manager = new ModManager(registry.Object, paks, [], [new Mod(parent.Info, [parent]), new Mod(dependency.Info, [dependency])]);
+        var dialogue = ConfirmFileChanges();
+        var plan = (await new PakReleaseRecovery(manager, dialogue.Object).RecoverPlan()).IfNone([]);
+
+        for (var attempt = 0; attempt < 2; attempt++) {
+            var results = await manager.InstallMods(plan, Option<AccumulatedMemoryProgress>.None).ToListAsync();
+            Assert.All(results, result => result.IfLeft(error => throw error));
+        }
+
+        var installed = paks.ManagedPaks.Single(pak => pak.Coordinates == ReleaseCoordinates.FromRelease(parent));
+        Assert.Equal(canonical + " (2).pak", installed.PakFileName);
+        Assert.Equal(parent.Tag, File.ReadAllText(Path.Join(_dir, installed.PakFileName)));
+        Assert.Equal("parent signature", File.ReadAllText(Path.ChangeExtension(Path.Join(_dir, installed.PakFileName), ".sig")));
+        Assert.Equal("unknown pak", File.ReadAllText(Path.Join(_dir, canonical + ".pak")));
+        Assert.Equal("unknown signature", File.ReadAllText(Path.Join(_dir, canonical + ".sig")));
+        Assert.Equal("orphan signature", File.ReadAllText(Path.Join(_dir, canonical + " (1).sig")));
+        if (hasDependency) Assert.Equal("qz__-__Dependency.pak", paks.ManagedPaks.Single(pak => pak.Priority == 0).PakFileName);
+        registry.VerifyNoOtherCalls();
+    }
+
+    [Theory]
     [InlineData(false, UserDialogueChoice.No)]
     [InlineData(false, UserDialogueChoice.Cancel)]
     [InlineData(true, UserDialogueChoice.No)]

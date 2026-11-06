@@ -66,7 +66,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <summary>
         /// Enables the given release for the given mod. This may update some local metadata that the mod manager uses to
         /// keep track of what is enabled, but will not actually download the mod.
-        /// 
+        ///
         /// Enabling an already enabled mod results in a noop
         /// Enabling a different version for an already enabled mod will disable the currently enabled version
         /// </summary>
@@ -77,7 +77,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <summary>
         /// Enables the latest version of a given mod if it is disabled. This may update some local metadata that the
         /// mod manager uses to keep track of what is enabled, but will not actually download the mod files.
-        /// 
+        ///
         /// Enabling an already enabled mod results in a noop
         /// </summary>
         /// <param name="identifier"></param>
@@ -88,7 +88,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <summary>
         /// Disables the given mod if it is enabled. This may update some local metadata that the mod manager uses to
         /// keep track of what is enabled, but will not actually delete the mod files.
-        /// 
+        ///
         /// Disabling an already disabled mod results in a noop
         /// </summary>
         /// <param name="identifier"></param>
@@ -98,8 +98,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         /// <summary>
         /// Fetches all mod metadata from all registries, returning a list of successfully fetched
-        /// mod metadata, as well as a list of failures containing any potential errors.  If this 
-        /// IModManager implementation has a cached internal state, this method may update that 
+        /// mod metadata, as well as a list of failures containing any potential errors.  If this
+        /// IModManager implementation has a cached internal state, this method may update that
         /// internal state.
         /// </summary>
         /// <returns>A Task containing a GetAllModsResult which has the aggregate list of errors and mods from all registries this ModManager instance has</returns>
@@ -230,10 +230,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 );
         }
 
-        public static IEnumerable<Release> GetEnabledAndDependencyReleases(this IModManager modManager) {
+        public static IEnumerable<Release> GetEnabledAndDependencyReleases(this IModManager modManager, IEnumerable<Release>? requested = null) {
             var enabledModsWithDependencies =
-                modManager
-                    .GetEnabledModReleases()
+                (requested ?? modManager.GetEnabledModReleases())
                     .ToImmutableHashSet();
 
             var enabledModsWithAllDependencies = enabledModsWithDependencies.Fold(

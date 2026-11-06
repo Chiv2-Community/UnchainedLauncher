@@ -132,14 +132,21 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .Zip(sortedPakNames, (install, finalPakName) => (Install: install, FinalPakName: finalPakName))
                 .Select((item, index) => {
                     var existing = existingByCoords.TryGetValue(item.Install.Coordinates, out var e) ? Some(e) : None;
+                    var finalPakName = item.FinalPakName;
+                    if (e != null && File.Exists(PakNameToPakPath(finalPakName))
+                        && !_managedPaks.Any(owned => owned.PakFileName.Equals(finalPakName, StringComparison.OrdinalIgnoreCase))) {
+                        if (e.PakFileName.StartsWith(finalPakName.Split("__-__", 2)[0] + "__-__", StringComparison.OrdinalIgnoreCase))
+                            finalPakName = e.PakFileName;
+                        else {
+                            for (var suffix = 1; File.Exists(PakNameToPakPath(finalPakName)) || File.Exists(Path.ChangeExtension(PakNameToPakPath(finalPakName), ".sig")); suffix++)
+                                finalPakName = $"{Path.GetFileNameWithoutExtension(item.FinalPakName)} ({suffix}).pak";
+                        }
+                    }
                     return existing.Match(
-                        Some: pak => pak.PakFileName.Equals(item.FinalPakName, StringComparison.OrdinalIgnoreCase)
-                            || (File.Exists(PakNameToPakPath(item.FinalPakName))
-                                && !_managedPaks.Any(owned => owned.PakFileName.Equals(item.FinalPakName, StringComparison.OrdinalIgnoreCase))
-                                && pak.PakFileName.StartsWith(item.FinalPakName.Split("__-__", 2)[0] + "__-__", StringComparison.OrdinalIgnoreCase))
+                        Some: pak => pak.PakFileName.Equals(finalPakName, StringComparison.OrdinalIgnoreCase)
                             ? new InstallAction.Skip(item.Install, index, pak)
-                            : new InstallAction.Move(item.Install, index, pak, item.FinalPakName) as InstallAction,
-                        None: () => new InstallAction.Download(item.Install, index, item.FinalPakName)
+                            : new InstallAction.Move(item.Install, index, pak, finalPakName) as InstallAction,
+                        None: () => new InstallAction.Download(item.Install, index, finalPakName)
                     );
                 })
                 .ToList();

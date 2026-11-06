@@ -28,7 +28,7 @@ public class KeptUnmanagedPakTests : IDisposable {
     }
 
     private Task<bool> Recover(Mock<IUserDialogueSpawner> dialogue, bool alwaysKeep = false, params Release[] known) =>
-        UnmanagedPakRecovery.Recover(new Core.Services.Mods.PakDir(_dir, []), [], known, dialogue.Object, () => { }, [], alwaysKeep);
+        UnmanagedPakRecovery.Recover(new Core.Services.Mods.PakDir(_dir, []), [], known, dialogue.Object, [], alwaysKeep);
 
     private Dictionary<string, string> Choices() => JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(ChoicesPath))!;
     private static string Hash(string content) => Convert.ToHexString(SHA512.HashData(Encoding.UTF8.GetBytes(content)));

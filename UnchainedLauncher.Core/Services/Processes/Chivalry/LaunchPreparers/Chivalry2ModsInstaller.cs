@@ -22,12 +22,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
-            // Get all releases that will be installed (enabled mods + dependencies)
-            var releasesToInstall = _modManager.SortByDependencies(_modManager.GetEnabledAndDependencyReleases()).ToList();
+            var recovered = await new PakReleaseRecovery(_modManager, _userDialogueSpawner, _settings?.AlwaysKeepUnmanagedPaks == true).RecoverPlan();
+            if (recovered.IsNone) return None;
+            var releasesToInstall = recovered.IfNone([]);
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
-
-            if (!await new PakReleaseRecovery(_modManager, _userDialogueSpawner, _settings?.AlwaysKeepUnmanagedPaks == true).Recover(releasesToInstall)) return None;
-            releasesToInstall = _modManager.SortByDependencies(_modManager.GetEnabledAndDependencyReleases()).ToList();
 
             // Install mods via ModManager
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");

@@ -453,7 +453,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         Assert.Equal("user signature", File.ReadAllText(Path.ChangeExtension(unmanaged, ".sig")));
         Assert.Equal(Path.GetFileName(path), Assert.Single(paks.ManagedPaks).PakFileName);
         registry.VerifyNoOtherCalls();
-        dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), Times.Exactly(2));
+        dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), Times.Once);
     }
 
     [Theory]

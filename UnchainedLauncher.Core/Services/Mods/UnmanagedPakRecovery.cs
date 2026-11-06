@@ -15,13 +15,11 @@ internal static class UnmanagedPakRecovery {
         var releases = known.OrderByDescending(release => release.Version)
             .ThenByDescending(release => release.ReleaseDate).ToList();
         var managed = paks.ManagedPaks.ToList();
+        var managedNames = managed.Select(pak => pak.PakFileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var files = new List<Candidate>();
         foreach (var path in Directory.EnumerateFiles(paks.DirPath, "*.pak")) {
             if (Path.GetFileName(path).Equals("pakchunk0-WindowsNoEditor.pak", StringComparison.OrdinalIgnoreCase)) continue;
-            var owned = managed.Any(pak => pak.PakFileName.Equals(Path.GetFileName(path), StringComparison.OrdinalIgnoreCase));
-            var hash = await cache.Hash(path);
-            var release = owned ? null : releases.FirstOrDefault(release => hash.Equals(release.ReleaseHash, StringComparison.OrdinalIgnoreCase));
-            files.Add(new Candidate(path, hash, release, owned));
+            files.Add(new Candidate(path, await cache.Hash(path), null, managedNames.Contains(Path.GetFileName(path))));
         }
 
         var duplicates = new List<(Candidate Duplicate, Candidate Retained)>();
@@ -34,15 +32,19 @@ internal static class UnmanagedPakRecovery {
                 Logger.Info($"Detected duplicate pak: {duplicate.Path}; retained: {retained.Path}; SHA-512: {duplicate.Hash}");
                 duplicates.Add((duplicate, retained));
             }
-            if (!retained.Managed) unmanaged.Add(retained);
+            if (!retained.Managed) unmanaged.Add(retained with {
+                Release = releases.FirstOrDefault(release => retained.Hash.Equals(release.ReleaseHash, StringComparison.OrdinalIgnoreCase))
+            });
         }
 
         var unconfirmed = unmanaged.Where(file => file.Release != null || !kept.Contains(Path.GetFileName(file.Path), file.Hash)).ToList();
         var updates = new List<DependencyUpdate>();
-        foreach (var file in unconfirmed.Where(_ => !alwaysKeepUnmanagedPaks)) {
-            var version = file.Release?.Tag ?? await cache.Version(file.Path, file.Hash) ?? "Unknown";
-            updates.Add(new DependencyUpdate(Path.GetFileName(file.Path), null, version,
-                file.Release?.ReleaseUrl ?? "", file.Release?.Info.Name ?? "Unrecognized pak"));
+        if (!alwaysKeepUnmanagedPaks) {
+            foreach (var file in unconfirmed) {
+                var version = file.Release?.Tag ?? await cache.Version(file.Path, file.Hash) ?? "Unknown";
+                updates.Add(new DependencyUpdate(Path.GetFileName(file.Path), null, version,
+                    file.Release?.ReleaseUrl ?? "", file.Release?.Info.Name ?? "Unrecognized pak"));
+            }
         }
         var choice = alwaysKeepUnmanagedPaks || unconfirmed.Count == 0 ? UserDialogueChoice.Yes : dialogue.DisplayUpdateMessage(
             "Unmanaged paks detected", "Unmanaged paks detected. Keep them or remove them?", "Keep", "Remove", "Cancel",

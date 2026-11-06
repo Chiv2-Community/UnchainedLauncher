@@ -29,11 +29,12 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
             var available = requested.Concat(manager.Mods.SelectMany(mod => mod.Releases))
                 .OrderByDescending(release => release.Version)
                 .ThenByDescending(release => release.ReleaseDate).ToList();
-            var tracked = requested.Select(release => manager.PakDir.GetManagedPakFilePath(ReleaseCoordinates.FromRelease(release)))
-                .SelectMany(path => path.ToList()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var trackedPaths = requested.Select(release => manager.PakDir.GetManagedPakFilePath(ReleaseCoordinates.FromRelease(release)).IfNone("")).ToList();
+            var tracked = trackedPaths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var managedNames = manager.PakDir.ManagedPaks.Select(pak => pak.PakFileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var local = new List<LocalPak>();
             foreach (var path in Directory.EnumerateFiles(manager.PakDir.DirPath, "*.pak")) {
-                if (!manager.PakDir.ManagedPaks.Any(pak => pak.PakFileName.Equals(Path.GetFileName(path), StringComparison.OrdinalIgnoreCase))) continue;
+                if (!managedNames.Contains(Path.GetFileName(path))) continue;
                 if (!tracked.Contains(path) && !names.Any(name => MatchesDestination(path, name))) continue;
                 var hash = await cache.Hash(path);
                 local.Add(new LocalPak(path, hash, available.FirstOrDefault(release => HashMatches(release.ReleaseHash, hash))));
@@ -44,7 +45,7 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
             for (var i = 0; i < requested.Count; i++) {
                 var wanted = requested[i];
                 var coordinates = ReleaseCoordinates.FromRelease(wanted);
-                var trackedPath = manager.PakDir.GetManagedPakFilePath(coordinates).IfNone("");
+                var trackedPath = trackedPaths[i];
                 var verifiedTracked = local.Any(pak => pak.Path.Equals(trackedPath, StringComparison.OrdinalIgnoreCase)
                     && HashMatches(pak.Hash, wanted.ReleaseHash));
                 var candidates = local.Where(pak => pak.Path.Equals(trackedPath, StringComparison.OrdinalIgnoreCase)
@@ -61,7 +62,7 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
             }
 
             var recovered = requested.Select((wanted, i) => {
-                var trackedPath = manager.PakDir.GetManagedPakFilePath(ReleaseCoordinates.FromRelease(wanted)).IfNone("");
+                var trackedPath = trackedPaths[i];
                 return local.Where(pak => !replacements.Contains(pak) && HashMatches(pak.Hash, wanted.ReleaseHash))
                     .Where(pak => MatchesDestination(pak.Path, names[i]) || pak.Path.Equals(trackedPath, StringComparison.OrdinalIgnoreCase))
                     .Where(pak => !names.Where((_, index) => index != i).Any(name => MatchesDestination(pak.Path, name)))

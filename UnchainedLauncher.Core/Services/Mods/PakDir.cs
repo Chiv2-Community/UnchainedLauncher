@@ -470,6 +470,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .ToOption();
         }
 
+        public async Task<ManagedPak[]> GetManagedPaks() {
+            using var inventoryLock = await _inventory.Lock();
+            ReloadInventory();
+            return _managedPaks.ToArray();
+        }
+
         public async Task<Option<string>> GetManagedPakFilePath(ReleaseCoordinates coords) {
             try {
                 using var inventoryLock = await _inventory.Lock();

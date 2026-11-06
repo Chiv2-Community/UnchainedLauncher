@@ -25,6 +25,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
     /// Manages the pak directory for Chivalry 2 mods, handling installation, signing, and cleanup of pak files.
     /// </summary>
     public interface IPakDir {
+        /// <summary>Reloads and snapshots managed pak ownership under the shared directory lock.</summary>
+        Task<ManagedPak[]> GetManagedPaks();
+
         /// <summary>
         /// A delegate that creates a FileWriter for writing pak data to the specified file path.
         /// </summary>

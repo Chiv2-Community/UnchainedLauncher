@@ -54,14 +54,20 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
                     new ModInstallRequest(_a, path => DelayedWriter(path).ToAsync())
                 }, Option<AccumulatedMemoryProgress>.None).ToListAsync().AsTask();
                 var lookup = directory.GetManagedPakFilePath(_a);
+                var reader = NewPakDir();
+                var snapshot = reader.GetManagedPaks();
                 Assert.False(install.IsCompleted);
                 Assert.False(lookup.IsCompleted);
+                Assert.False(snapshot.IsCompleted);
                 release.SetResult();
-                var completed = Task.WhenAll(install, lookup);
+                var completed = Task.WhenAll(install, lookup, snapshot);
                 while (!completed.IsCompleted) context.Pump();
                 Assert.True(Assert.Single(install.GetAwaiter().GetResult()).IsRight);
                 Assert.Equal(Path.Combine(_directory, "q__-__A.pak"), lookup.GetAwaiter().GetResult().IfNone(""));
                 Assert.Single(ReadInventory());
+                Assert.Equal(_a, Assert.Single(snapshot.GetAwaiter().GetResult()).Coordinates);
+                reader.Reset().GetAwaiter().GetResult();
+                Assert.Single(snapshot.GetAwaiter().GetResult()); // The returned snapshot is detached from later mutations.
             }
             finally {
                 SynchronizationContext.SetSynchronizationContext(previous);

@@ -29,7 +29,7 @@ internal static class UnmanagedPakRecovery {
             files.Add(new Candidate(path, hash, release, owned != null));
         }
 
-        var duplicates = new List<Candidate>();
+        var duplicates = new List<(Candidate Duplicate, Candidate Retained)>();
         var unmanaged = new List<Candidate>();
         foreach (var group in files.GroupBy(file => file.Hash)) {
             var ordered = group.OrderByDescending(file => file.Managed).ThenBy(file => file.Path.Length)
@@ -37,7 +37,7 @@ internal static class UnmanagedPakRecovery {
             var retained = ordered[0];
             foreach (var duplicate in ordered.Skip(1).Where(file => !file.Managed)) {
                 Logger.Info($"Detected duplicate pak: {duplicate.Path}; retained: {retained.Path}; SHA-512: {duplicate.Hash}");
-                duplicates.Add(duplicate);
+                duplicates.Add((duplicate, retained));
             }
             if (!retained.Managed) unmanaged.Add(retained);
         }
@@ -60,18 +60,19 @@ internal static class UnmanagedPakRecovery {
             if (!file.Hash.Equals(Convert.ToHexString(await SHA512.HashDataAsync(stream)), StringComparison.OrdinalIgnoreCase))
                 throw new IOException($"Pak changed during release confirmation: {file.Path}");
         }
-        foreach (var duplicate in duplicates) {
-            var retained = files.First(file => file.Hash == duplicate.Hash && !duplicates.Contains(file));
+        foreach (var (duplicate, retained) in duplicates) {
             var signature = Path.ChangeExtension(duplicate.Path, ".sig");
             var retainedSignature = Path.ChangeExtension(retained.Path, ".sig");
             if (File.Exists(signature) && (!File.Exists(retainedSignature)
                 || !File.ReadAllBytes(signature).SequenceEqual(File.ReadAllBytes(retainedSignature))))
                 throw new IOException($"Conflicting duplicate signature; files were preserved: {signature}");
         }
-        foreach (var file in duplicates.Concat(choice == UserDialogueChoice.No ? unconfirmed : [])) {
+        var removals = duplicates.Select(pair => (File: pair.Duplicate, Reason: "duplicate"))
+            .Concat((choice == UserDialogueChoice.No ? unconfirmed : []).Select(file => (File: file, Reason: "unmanaged")));
+        foreach (var (file, reason) in removals) {
             File.Delete(Path.ChangeExtension(file.Path, ".sig"));
             File.Delete(file.Path);
-            Logger.Info($"Removed {(duplicates.Contains(file) ? "duplicate" : "unmanaged")} pak: {file.Path}; SHA-512: {file.Hash}");
+            Logger.Info($"Removed {reason} pak: {file.Path}; SHA-512: {file.Hash}");
         }
         if (choice == UserDialogueChoice.Yes) {
             foreach (var file in unmanaged.Where(file => file.Release != null).OrderByDescending(file => file.Release!.Version)) {

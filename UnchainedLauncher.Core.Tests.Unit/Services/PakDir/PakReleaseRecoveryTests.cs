@@ -325,6 +325,55 @@ public class PakReleaseRecoveryTests : IDisposable {
         if (referenceSignatureExists) Assert.Equal("reference signature", File.ReadAllText(Path.ChangeExtension(canonical, ".sig")));
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task DuplicateSignatureUsesSelectedManagedCandidate(bool retainedSortsFirst, bool conflicting) {
+        var wanted = Release("v1.0.0");
+        var releases = Enumerable.Range(1, 3).Select(index => wanted with {
+            Info = wanted.Info with { RepoUrl = $"https://github.com/Org/Mod{index}", Name = $"Mod{index}" }
+        }).ToList();
+        var signatures = new Dictionary<string, string> {
+            [retainedSortsFirst ? "z-managed.pak" : "a-managed.pak"] = "first signature",
+            ["n-managed.pak"] = "second signature",
+            [retainedSortsFirst ? "a.pak" : "z.pak"] = "retained signature",
+            ["long-unmanaged.pak"] = conflicting ? "first signature" : "retained signature"
+        };
+        foreach (var (name, signature) in signatures) {
+            File.WriteAllText(Path.Join(_dir, name), wanted.Tag);
+            File.WriteAllText(Path.ChangeExtension(Path.Join(_dir, name), ".sig"), signature);
+        }
+        var managed = signatures.Keys.Take(3).Select((name, index) =>
+            new ManagedPak(ReleaseCoordinates.FromRelease(releases[index]), name, index)).ToList();
+        var paks = new Core.Services.Mods.PakDir(_dir, managed);
+        var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+        var adopted = new List<Release>();
+
+        Task<bool> Recover() => UnmanagedPakRecovery.Recover(paks, releases, dialogue.Object, adopted, false);
+        if (conflicting) {
+            var error = await Assert.ThrowsAsync<IOException>(Recover);
+            Assert.Contains("Conflicting duplicate signature", error.Message);
+        }
+        else Assert.True(await Recover());
+
+        Assert.Equal(managed, paks.ManagedPaks);
+        Assert.Empty(adopted);
+        foreach (var (name, signature) in signatures) {
+            var path = Path.Join(_dir, name);
+            if (!conflicting && name == "long-unmanaged.pak") {
+                Assert.False(File.Exists(path));
+                Assert.False(File.Exists(Path.ChangeExtension(path, ".sig")));
+            }
+            else {
+                Assert.Equal(wanted.Tag, File.ReadAllText(path));
+                Assert.Equal(signature, File.ReadAllText(Path.ChangeExtension(path, ".sig")));
+            }
+        }
+        dialogue.VerifyNoOtherCalls();
+    }
+
     [Fact]
     public async Task IdenticalUnmanagedPayloadsAreDeduplicatedAcrossFileNames() {
         var first = Release("v1.0.0");

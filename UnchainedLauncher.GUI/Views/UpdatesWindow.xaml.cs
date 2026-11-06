@@ -27,8 +27,8 @@ namespace UnchainedLauncher.GUI.Views {
             var heights = Enumerable.Range(0, Cards.Items.Count).Take(4)
                 .Select(index => (Cards.ItemContainerGenerator.ContainerFromIndex(index) as FrameworkElement)?.ActualHeight ?? 112)
                 .ToArray();
-            var viewportHeight = Enumerable.Range(0, 4)
-                .Sum(index => (index < heights.Length ? heights[index] : 112) * (index == 3 ? 0.5 : 1));
+            var viewportHeight = heights.Select((height, index) => height * (index == 3 ? 0.5 : 1)).Sum();
+            if (Cards.Items.Count < 4) viewportHeight += 1; // Avoid a scrollbar from fractional-pixel rounding.
             Height = System.Math.Min(ActualHeight - CardsViewport.ActualHeight + viewportHeight, SystemParameters.WorkArea.Height);
         }
 

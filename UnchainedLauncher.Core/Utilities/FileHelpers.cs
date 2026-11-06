@@ -81,26 +81,6 @@ namespace UnchainedLauncher.Core.Utilities {
         }
 
 
-        /// <summary>
-        /// Asynchronously computes the SHA-512 hash of a file.
-        /// </summary>
-        /// <param name="filePath"></param>
-        /// <returns>An Either representing a failure on the left, or a hash on the right.  If Right(None), then the file does not exist.</returns>
-        public static EitherAsync<HashFailure, Option<string>> Sha512Async(string filePath) {
-
-            if (!File.Exists(filePath))
-                return Prelude.RightAsync<HashFailure, Option<string>>(Prelude.None);
-
-            return
-                Prelude
-                    .TryAsync(() => File.ReadAllBytesAsync(filePath))
-                    .ToEither()
-                    .Map(bytes => {
-                        using var sha512 = System.Security.Cryptography.SHA512.Create();
-                        return Prelude.Some(BitConverter.ToString(sha512.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant());
-                    })
-                    .MapLeft(error => new HashFailure(filePath, error));
-        }
     }
 
     public record HashFailure(string FilePath, Error Error) : Expected($"Failed to hash file at {FilePath}. Reason: {Error.Message}", Error.Code, Some(Error));

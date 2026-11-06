@@ -7,6 +7,7 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
     [TestSubject(typeof(Core.Services.Mods.PakDir))]
+    [Collection("Pak installation files")]
     public class PakDirTest {
         public const string BaseTestDir = "TestDirectories";
 
@@ -51,6 +52,26 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             PrepareTestDir(dir);
             Directory.CreateDirectory(dir);
             File.WriteAllText(Path.Combine(dir, "pakchunk0-WindowsNoEditor.sig"), "test sig file");
+            Directory.CreateDirectory(FilePaths.PakDir);
+            File.WriteAllText(Path.Join(FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig"), "test sig file");
+        }
+
+        [Fact]
+        public async Task InstallModSet_UsesInstallationSignature_ForSeparateModDirectory() {
+            var modPaks = Path.Join(BaseTestDir, nameof(InstallModSet_UsesInstallationSignature_ForSeparateModDirectory));
+            PrepareTestDirWithSig(modPaks);
+            File.Delete(Path.Join(modPaks, "pakchunk0-WindowsNoEditor.sig"));
+            var pd = new Core.Services.Mods.PakDir(modPaks, Enumerable.Empty<ManagedPak>());
+
+            await InstallDummy(pd, DummyMods[0]);
+
+            var pak = Assert.Single(pd.ManagedPaks);
+            var signature = Path.ChangeExtension(Path.Join(modPaks, pak.PakFileName), ".sig");
+            Assert.Equal("test sig file", File.ReadAllText(signature));
+            Assert.False(File.Exists(Path.Join(modPaks, "pakchunk0-WindowsNoEditor.sig")));
+            File.Delete(signature);
+            (await pd.SignAll()).IfLeft(throwErrors);
+            Assert.Equal("test sig file", File.ReadAllText(signature));
         }
 
         [Fact]
@@ -508,6 +529,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         public async Task SignAll_FailsGracefully_WhenBaseSigMissing() {
             var thisTestPath = Path.Join(BaseTestDir, nameof(SignAll_FailsGracefully_WhenBaseSigMissing));
             PrepareTestDir(thisTestPath); // Note: no sig file created
+            File.Delete(Path.Join(FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig"));
 
             var pakName = "qa__-__TestMod.pak";
             File.WriteAllText(Path.Join(thisTestPath, pakName), "mod contents");

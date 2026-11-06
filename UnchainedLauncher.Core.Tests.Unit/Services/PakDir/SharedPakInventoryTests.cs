@@ -1,13 +1,19 @@
 using LanguageExt;
 using LanguageExt.Common;
+using Moq;
 using System.Text.Json;
 using System.Threading.Channels;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 using LauncherPakDir = UnchainedLauncher.Core.Services.Mods.PakDir;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
+    [CollectionDefinition("Pak installation files", DisableParallelization = true)]
+    public class PakInstallationFiles { }
+
+    [Collection("Pak installation files")]
     public class SharedPakInventoryTests : IDisposable {
         private readonly string _directory = Path.Combine(Path.GetTempPath(), "unchained-inventory-" + Guid.NewGuid());
         private readonly ReleaseCoordinates _a = new("test", "A", "1");
@@ -17,6 +23,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         public SharedPakInventoryTests() {
             Directory.CreateDirectory(_directory);
             File.WriteAllText(Path.Combine(_directory, "pakchunk0-WindowsNoEditor.sig"), "signature");
+            Directory.CreateDirectory(FilePaths.PakDir);
+            File.WriteAllText(Path.Join(FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig"), "signature");
         }
 
         private LauncherPakDir NewPakDir(IEnumerable<ManagedPak>? legacy = null) =>
@@ -56,16 +64,19 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
                 var lookup = directory.GetManagedPakFilePath(_a);
                 var reader = NewPakDir();
                 var snapshot = reader.GetManagedPaks();
+                var recovery = reader.RecoverReleases([], [], Mock.Of<IUserDialogueSpawner>());
                 Assert.False(install.IsCompleted);
                 Assert.False(lookup.IsCompleted);
                 Assert.False(snapshot.IsCompleted);
+                Assert.False(recovery.IsCompleted);
                 release.SetResult();
-                var completed = Task.WhenAll(install, lookup, snapshot);
+                var completed = Task.WhenAll(install, lookup, snapshot, recovery);
                 while (!completed.IsCompleted) context.Pump();
                 Assert.True(Assert.Single(install.GetAwaiter().GetResult()).IsRight);
                 Assert.Equal(Path.Combine(_directory, "q__-__A.pak"), lookup.GetAwaiter().GetResult().IfNone(""));
                 Assert.Single(ReadInventory());
                 Assert.Equal(_a, Assert.Single(snapshot.GetAwaiter().GetResult()).Coordinates);
+                Assert.True(recovery.GetAwaiter().GetResult());
                 reader.Reset().GetAwaiter().GetResult();
                 Assert.Single(snapshot.GetAwaiter().GetResult()); // The returned snapshot is detached from later mutations.
             }
@@ -85,7 +96,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         [Fact]
         public async Task DeniedReservationPublishesUnchangedOwnershipAndAllowsRetryAndReset() {
             // A directory at the destination deterministically denies CreateNew without changing any pak.
-            var destination = Path.Combine(_directory, "q__-__A.pak");
+            var destination = Path.Combine(_directory, "q__-__A.pak.partial");
             Directory.CreateDirectory(destination);
             var directory = NewPakDir();
             var results = await directory.InstallModSet(new[] { new ModInstallRequest(_a, Write) },
@@ -115,6 +126,21 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.Equal(2, _downloads);
             Assert.Equal(2, Directory.GetFiles(_directory, "*.pak").Length);
             Assert.Equal(new[] { _b, _a }, ReadInventory().OrderBy(p => p.Priority).Select(p => p.Coordinates));
+        }
+
+        [Fact]
+        public async Task AlternatingReleaseVersionsReplaceOwnershipInsteadOfCreatingDuplicates() {
+            var newer = _a with { Version = "2" };
+            File.WriteAllText(Path.Combine(_directory, "q__-__A.pak"), "requested");
+            File.WriteAllText(Path.Combine(_directory, "old-version.pak"), "obsolete");
+            var first = NewPakDir([new(_a, "q__-__A.pak", 0), new(newer, "old-version.pak", 0)]);
+            var sibling = NewPakDir();
+            foreach (var (directory, release) in new[] { (first, _a), (sibling, newer), (first, _a) }) {
+                await Install(directory, release);
+                Assert.Equal(release, Assert.Single(ReadInventory()).Coordinates);
+                Assert.Single(Directory.GetFiles(_directory, "*.pak"));
+            }
+            Assert.Equal(2, _downloads);
         }
 
         [Fact]
@@ -357,6 +383,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.Empty(Directory.GetFiles(_directory, "*.pak"));
             Assert.Empty(ReadInventory());
             Assert.False(File.Exists(Path.Combine(_directory, ".unchained", "pending")));
+            Assert.Empty(Directory.GetFiles(_directory, "*.partial"));
             await Install(NewPakDir(), _a);
             Assert.Equal(1, _downloads);
             Assert.Equal("q__-__A.pak", Assert.Single(ReadInventory()).PakFileName);

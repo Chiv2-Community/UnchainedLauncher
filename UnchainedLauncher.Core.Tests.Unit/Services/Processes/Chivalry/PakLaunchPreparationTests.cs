@@ -15,6 +15,7 @@ using ManagedPakDirectory = UnchainedLauncher.Core.Services.Mods.PakDir;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Processes.Chivalry;
 
+[Collection("Pak installation files")]
 public sealed class PakLaunchPreparationTests : IDisposable {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "pak-launch-" + Guid.NewGuid().ToString("N"));
     private readonly ReleaseCoordinates _coords = new("Chiv2-Community", "Unchained-Mods", "v0.1.0");
@@ -32,6 +33,8 @@ public sealed class PakLaunchPreparationTests : IDisposable {
     public PakLaunchPreparationTests() {
         Directory.CreateDirectory(_dir);
         File.WriteAllText(Path.Combine(_dir, "pakchunk0-WindowsNoEditor.sig"), "signature");
+        Directory.CreateDirectory(UnchainedLauncher.Core.Utilities.FilePaths.PakDir);
+        File.WriteAllText(Path.Combine(UnchainedLauncher.Core.Utilities.FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig"), "signature");
     }
 
     private ModManager Manager(ManagedPakDirectory pakDir, string installedName = Installed) {
@@ -61,6 +64,7 @@ public sealed class PakLaunchPreparationTests : IDisposable {
         SynchronizationContext.SetSynchronizationContext(new ImmediateContext());
         File.WriteAllText(Path.Combine(_dir, Preferred), "unmanaged bytes");
         File.WriteAllText(Path.Combine(_dir, Installed), "registered bytes");
+        File.WriteAllText(Path.ChangeExtension(Path.Combine(_dir, Preferred), ".sig"), "user signature");
         var pakDir = new ManagedPakDirectory(_dir, [new ManagedPak(_coords, Installed, 0)]);
         var dialogue = new Mock<IUserDialogueSpawner>();
         dialogue.Setup(d => d.DisplayProgress(It.IsAny<UnchainedLauncher.Core.Utilities.MemoryProgress>())).Returns(() => { });
@@ -72,6 +76,7 @@ public sealed class PakLaunchPreparationTests : IDisposable {
         await launcher.Launch(Options());
         Assert.Equal(2, capture.Calls);
         Assert.Equal("unmanaged bytes", File.ReadAllText(Path.Combine(_dir, Preferred)));
+        Assert.Equal("user signature", File.ReadAllText(Path.ChangeExtension(Path.Combine(_dir, Preferred), ".sig")));
         Assert.Equal("registered bytes", File.ReadAllText(Path.Combine(_dir, Installed)));
         dialogue.Verify(d => d.DisplayMessage(It.IsAny<string>()), Times.Never);
     }

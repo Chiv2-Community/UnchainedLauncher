@@ -4,6 +4,7 @@ using log4net;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
@@ -117,11 +118,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         private async Task<Either<Error, string>> _writePak(IPakDir.MakeFileWriter mkFileWriter, Option<IProgress<double>> progress, string suggestedFileName) {
             var fullActualName = AvailablePakName(suggestedFileName);
+            var stagingPath = PakNameToPakPath(fullActualName + ".partial");
             Logger.Info($"Downloading pak to {fullActualName}");
             // Reserve a new file before invoking a writer that can overwrite its destination.
             FileStream reservation;
             try {
-                reservation = new FileStream(PakNameToPakPath(fullActualName), FileMode.CreateNew, FileAccess.Write);
+                reservation = new FileStream(stagingPath, FileMode.CreateNew, FileAccess.Write);
             }
             catch (Exception ex) when (ex is UnauthorizedAccessException
                 || ex is IOException && (ex.HResult & 0xffff) is 80 or 183
@@ -132,11 +134,14 @@ namespace UnchainedLauncher.Core.Services.Mods {
             using (reservation) { }
             var completed = false;
             try {
-                var result = await mkFileWriter(PakNameToPakPath(fullActualName))
+                var result = await mkFileWriter(stagingPath)
                 .Bind(fileWriter =>
                     // TODO: allow passing of a cancellation token here
                     fileWriter.WriteAsync(progress, CancellationToken.None)
-                    .Map(_ => fullActualName)
+                    .Map(_ => {
+                        File.Move(stagingPath, PakNameToPakPath(fullActualName));
+                        return fullActualName;
+                    })
                 );
                 completed = result.IsRight;
                 return result;
@@ -146,7 +151,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             }
             finally {
                 if (!completed) {
-                    _deleteFile(PakNameToPakPath(fullActualName))
+                    _deleteFile(stagingPath)
                         .IfLeft(e => throw new IOException($"Failed to remove incomplete pak download: {e}"));
                 }
             }
@@ -210,6 +215,39 @@ namespace UnchainedLauncher.Core.Services.Mods {
             SynchronizeWithDir();
         }
 
+        public async Task<bool> RecoverReleases(IReadOnlyList<Release> requested, IEnumerable<Release> known, IUserDialogueSpawner dialogue) {
+            try {
+                using var inventoryLock = await _inventory.Lock();
+                ReloadInventory();
+                _inventory.Save(_managedPaks);
+                var recovered = await PakReleaseRecovery.Recover(this, requested, known, dialogue, _inventory.BeginChange);
+                if (recovered) {
+                    SynchronizeWithDir();
+                    _inventory.Save(_managedPaks);
+                }
+                // Leave pending intact if a mutation failed after it began.
+                return recovered;
+            }
+            catch (Exception ex) {
+                Logger.Error("Failed to recover managed pak inventory", ex);
+                dialogue.DisplayMessage($"Failed to recover managed pak inventory: {ex.Message}");
+                return false;
+            }
+        }
+
+        internal void TrackPak(ManagedPak pak) {
+            _managedPaks.RemoveAll(existing => existing.Coordinates.Matches(pak.Coordinates)
+                || existing.PakFileName.Equals(pak.PakFileName, StringComparison.OrdinalIgnoreCase));
+            _managedPaks.Add(pak);
+        }
+
+        internal static IEnumerable<string> GetInstallFileNames(IEnumerable<ReleaseCoordinates> releases) {
+            var coordinates = releases.ToList();
+            var duplicates = coordinates.GroupBy(c => c.ModuleName).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
+            return ApplySortedLexicographically(coordinates.Select(c =>
+                (duplicates.Contains(c.ModuleName) ? $"{c.Org}_{c.ModuleName}" : c.ModuleName) + ".pak"));
+        }
+
         private async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSetCore(
                 IEnumerable<ModInstallRequest> installs,
                 Option<AccumulatedMemoryProgress> progress) {
@@ -218,26 +256,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var installsList = installs.ToList();
             var installCoordinatesSet = installsList.Select(i => i.Coordinates).ToHashSet();
 
-            // Collect all pak file names, adding org prefix for duplicate module names
-            var moduleNameCounts = installsList
-                .GroupBy(i => i.Coordinates.ModuleName)
-                .Where(g => g.Count() > 1)
-                .Select(g => g.Key)
-                .ToHashSet();
-
-            var pakFileNames = installsList
-                .Select(install => {
-                    var moduleName = install.Coordinates.ModuleName;
-                    var needsOrgPrefix = moduleNameCounts.Contains(moduleName);
-                    var baseName = needsOrgPrefix
-                        ? $"{install.Coordinates.Org}_{moduleName}"
-                        : moduleName;
-                    return baseName + ".pak";
-                })
-                .ToList();
-
-            // Apply sorted lexicographically to get the final names
-            var sortedPakNames = ApplySortedLexicographically(pakFileNames).ToList();
+            var sortedPakNames = GetInstallFileNames(installsList.Select(i => i.Coordinates)).ToList();
 
             // Build map of existing managed paks by coordinates (for mods in install set)
             var existingByCoords = _managedPaks
@@ -267,7 +286,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             // Categorize managed paks not in install set as Remove actions
             installActions.AddRange(
                 _managedPaks
-                    .Filter(p => !installCoordinatesSet.Any(c => c.Matches(p.Coordinates)))
+                    .Filter(p => !installCoordinatesSet.Contains(p.Coordinates))
                     .Select(p => new InstallAction.Remove(p))
                     .ToList()
             );
@@ -380,7 +399,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     var managedPak = new ManagedPak(download.Install.Coordinates, pakFileName, download.Index);
                     _managedPaks.Add(managedPak);
                     _signFile(PakNameToPakPath(managedPak.PakFileName))
-                        .IfLeft(e => Logger.Error($"Failed to sign {managedPak.PakFileName}", e));
+                        .IfLeft(e => Logger.Error($"Failed to sign {managedPak.PakFileName}: {e.Message}"));
                     return managedPak;
                 });
         }
@@ -388,7 +407,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         private Either<Error, Unit> ProcessRemove(InstallAction.Remove remove) {
             Logger.Info($"Removing pak: {remove.Existing.PakFileName} ({remove.Existing.Coordinates.ModuleName} version {remove.Existing.Coordinates.Version})");
             var uninstallResult = UninstallCore(remove.Existing.Coordinates);
-            uninstallResult.IfRight(_ => _managedPaks.RemoveAll(p => p.Coordinates.Matches(remove.Existing.Coordinates)));
+            uninstallResult.IfRight(_ => _managedPaks.RemoveAll(p => p.Coordinates == remove.Existing.Coordinates));
             uninstallResult.IfLeft(e => Logger.Error($"Failed to remove pak {remove.Existing.PakFileName}: {e}"));
             return uninstallResult;
         }
@@ -400,10 +419,14 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var sourceSigPath = Path.ChangeExtension(sourcePakPath, ".sig");
             var destSigPath = Path.ChangeExtension(destPakPath, ".sig");
 
-            return _moveFile(sourcePakPath, destPakPath)
+            return PrimitiveExtensions.TryVoid(() => ValidateMoveSignatures(sourcePakPath, destPakPath)).Invoke()
+                .Match<Either<Error, Unit>>(
+                    _ => Right(Unit.Default),
+                    e => Error.New($"Failed to move pak: '{sourcePakPath}' -> '{destPakPath}'", (Exception)e))
+                .Bind(_ => _moveFile(sourcePakPath, destPakPath))
                 .Bind(_ => {
                     var result = File.Exists(sourceSigPath)
-                        ? _moveFile(sourceSigPath, destSigPath)
+                        ? File.Exists(destSigPath) ? _deleteFile(sourceSigPath) : _moveFile(sourceSigPath, destSigPath)
                         : Right<Error, Unit>(Unit.Default);
                     if (result.IsLeft) {
                         _moveFile(destPakPath, sourcePakPath).IfLeft(e =>
@@ -411,6 +434,14 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     }
                     return result;
                 });
+        }
+
+        internal static void ValidateMoveSignatures(string sourcePakPath, string destPakPath) {
+            var sourceSigPath = Path.ChangeExtension(sourcePakPath, ".sig");
+            var destSigPath = Path.ChangeExtension(destPakPath, ".sig");
+            if (File.Exists(sourceSigPath) && File.Exists(destSigPath)
+                && !File.ReadAllBytes(sourceSigPath).SequenceEqual(File.ReadAllBytes(destSigPath)))
+                throw new IOException($"Conflicting destination signature; files were preserved: {destSigPath}");
         }
 
         private static Either<Error, Unit> _moveFile(string source, string dest) {
@@ -433,7 +464,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             if (File.Exists(signedName)) {
                 return Right(Unit.Default);
             }
-            var sigPath = Path.Join(DirPath, BaseSigFileName);
+            var sigPath = Path.Join(FilePaths.PakDir, BaseSigFileName);
             return (File.Exists(sigPath)
                 ? Either<Error, string>.Right(sigPath)
                 : Error.New($"Default sig file '{sigPath}' not found"))
@@ -466,7 +497,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         private Option<ManagedPak> GetManagedPakFile(ModIdentifier coords) {
             return _managedPaks
-                .Filter(p => p.Coordinates.Matches(coords))
+                .Filter(p => coords is ReleaseCoordinates release ? p.Coordinates == release : p.Coordinates.Matches(coords))
                 .ToOption();
         }
 

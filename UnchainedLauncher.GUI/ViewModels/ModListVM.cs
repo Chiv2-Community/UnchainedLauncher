@@ -37,7 +37,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private IUserDialogueSpawner UserDialogueSpawner { get; }
 
-        public ModListVM(IModManager modManager, IUserDialogueSpawner userDialogueSpawner) {
+        public IUnmanagedPakSettings? Settings { get; }
+
+        public ModListVM(IModManager modManager, IUserDialogueSpawner userDialogueSpawner, IUnmanagedPakSettings? settings = null) {
+            Settings = settings;
             this._modManager = modManager;
 
             UserDialogueSpawner = userDialogueSpawner;

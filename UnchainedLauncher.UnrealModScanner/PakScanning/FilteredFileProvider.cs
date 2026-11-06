@@ -77,5 +77,10 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
 
             SubmitKey(new FGuid(), new FAesKey(aesKey));
         }
+
+        internal void InitializePak(string path, Stream stream) {
+            RegisterVfs(path, [stream], null);
+            SubmitKey(new FGuid(), new FAesKey(aesKey));
+        }
     }
 }

@@ -172,7 +172,7 @@ namespace UnchainedLauncher.GUI {
                 userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
-                modManager, userDialogueSpawner
+                modManager, userDialogueSpawner, settingsViewModel
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
@@ -211,7 +211,7 @@ namespace UnchainedLauncher.GUI {
                 unchainedLauncher,
                 userDialogueSpawner,
                 chivProcessMonitor);
-            var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
+            var modListViewModel = new ModListVM(modManager, userDialogueSpawner, settingsViewModel);
 
             if (modManager.NeedsMetadataRefresh || !modManager.Mods.Any())
                 await modListViewModel.RefreshModListCommand.ExecuteAsync(null);
@@ -306,7 +306,7 @@ namespace UnchainedLauncher.GUI {
 
             var loadedResult =
                 InitializeFromFileWithCodec(ModRegistryCodec.Instance, jsonPath, CreateDefaultModRegistry);
-            // Ensure that we've got an AggregateModRegistry. The constructor will handle it if we're wrapping 
+            // Ensure that we've got an AggregateModRegistry. The constructor will handle it if we're wrapping
             // another AggregateModRegistry, so no worries there.
             var registry = new AggregateModRegistry(loadedResult);
 

@@ -6,7 +6,7 @@ using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.Core.Services.Mods;
 
-public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialogue) {
+public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialogue, bool alwaysKeepUnmanagedPaks = false) {
     private static readonly ILog Logger = LogManager.GetLogger(nameof(PakReleaseRecovery));
     private record LocalPak(string Path, string Hash, Release? Release);
 
@@ -14,7 +14,7 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
         try {
             var adopted = new List<Release>();
             if (!await UnmanagedPakRecovery.Recover(manager.PakDir, requested, requested.Concat(manager.Mods.SelectMany(mod => mod.Releases)),
-                dialogue, () => { }, adopted)) return false;
+                dialogue, () => { }, adopted, alwaysKeepUnmanagedPaks)) return false;
             foreach (var release in adopted) manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
             requested = requested.Select(release => adopted.FirstOrDefault(detected => ModIdentifier.FromRelease(detected) == ModIdentifier.FromRelease(release)) ?? release)
                 .Concat(adopted.Where(detected => !requested.Any(release => ModIdentifier.FromRelease(detected) == ModIdentifier.FromRelease(release)))).ToList();

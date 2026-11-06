@@ -1,7 +1,7 @@
-using System.Security.Cryptography;
-using System.Text;
 using LanguageExt;
 using Moq;
+using System.Security.Cryptography;
+using System.Text;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
@@ -12,10 +12,15 @@ using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir;
 
+[Collection("Home launch UI")]
 public class PakReleaseRecoveryTests : IDisposable {
+    private readonly Processes.HomeLaunchUi ui;
     private readonly string _dir = Path.Join("TestDirectories", nameof(PakReleaseRecoveryTests), Guid.NewGuid().ToString());
 
-    public PakReleaseRecoveryTests() => Directory.CreateDirectory(_dir);
+    public PakReleaseRecoveryTests(Processes.HomeLaunchUi ui) {
+        this.ui = ui;
+        Directory.CreateDirectory(_dir);
+    }
     public void Dispose() => Directory.Delete(_dir, true);
 
     private static Release Release(string tag) => new(tag,
@@ -41,6 +46,17 @@ public class PakReleaseRecoveryTests : IDisposable {
         Assert.Equal(available, row.HasReleaseInformation);
         Assert.Equal(available, row.HyperlinkCommand.CanExecute(null));
     }
+
+    [Theory]
+    [InlineData("1.9.0|1.10.0|invalid", "1.10.0")]
+    [InlineData("2.0.0-beta.2|2.0.0-beta.10|1.0.0", "2.0.0-beta.10")]
+    [InlineData("2.0.0-beta.10|2.0.0|9.0", "2.0.0")]
+    [InlineData("1.0.0+build.7|1.0.0-rc.1", "1.0.0+build.7")]
+    [InlineData("v0.0.0|v0.0.1|0.0.1-alpha", "0.0.1")]
+    [InlineData("unknown|1.2|01.2.3|1.2.3 notes", null)]
+    [InlineData("", null)]
+    public void BlueprintVersionUsesHighestStrictSemverPrecedence(string fields, string? expected) =>
+        Assert.Equal(expected, PakBlueprintVersion.Latest(fields.Split('|')));
 
     [Fact]
     public async Task Keep_RecoversMissingMetadataAndLatestMatchingVersionWithoutListingDuplicates() {
@@ -99,11 +115,12 @@ public class PakReleaseRecoveryTests : IDisposable {
     }
 
     [Theory]
-    [InlineData(UserDialogueChoice.Yes, false)]
-    [InlineData(UserDialogueChoice.Yes, true)]
-    [InlineData(UserDialogueChoice.No, false)]
-    [InlineData(UserDialogueChoice.Cancel, false)]
-    public async Task UnmanagedDecisionEnablesDetectedVersionAndOnlyCancelStopsLaunch(UserDialogueChoice choice, bool previouslyManaged) {
+    [InlineData(UserDialogueChoice.Yes, false, false)]
+    [InlineData(UserDialogueChoice.Yes, true, false)]
+    [InlineData(UserDialogueChoice.Yes, false, true)]
+    [InlineData(UserDialogueChoice.No, false, false)]
+    [InlineData(UserDialogueChoice.Cancel, false, false)]
+    public Task UnmanagedDecisionEnablesDetectedVersionAndOnlyCancelStopsLaunch(UserDialogueChoice choice, bool previouslyManaged, bool alwaysKeep) => ui.RunAsync(async () => {
         var detected = Release("v1.0.0");
         var otherVersion = Release("v2.0.0");
         File.WriteAllText(Path.Join(_dir, "manual-name.pak"), detected.Tag);
@@ -119,13 +136,17 @@ public class PakReleaseRecoveryTests : IDisposable {
             .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, _, _, _, _, changes) => {
                 Assert.Equal(2, changes.Count());
                 Assert.Contains(changes, change => change.Reason == detected.Info.Name);
+                Assert.Contains(changes, change => change.Name == "unknown.pak" && change.LatestVersion == "Unknown");
                 Assert.DoesNotContain(changes, change => change.Reason!.Contains("duplicate"));
             }).Returns(choice);
         dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => { });
         var options = new LaunchOptions([], "", "", false, false, Prelude.None, Prelude.None);
 
+        var settings = new Mock<IUnmanagedPakSettings>();
+        settings.SetupGet(value => value.AlwaysKeepUnmanagedPaks).Returns(alwaysKeep);
         Assert.Equal(choice != UserDialogueChoice.Cancel,
-            (await new Chivalry2ModsInstaller(manager, dialogue.Object).PrepareLaunch(options)).IsSome);
+            (await new Chivalry2ModsInstaller(manager, dialogue.Object, settings.Object).PrepareLaunch(options)).IsSome);
+        dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), alwaysKeep ? Times.Never : Times.Once);
 
         if (choice == UserDialogueChoice.Yes) {
             Assert.Equal(ReleaseCoordinates.FromRelease(detected), Assert.Single(manager.EnabledModReleaseCoordinates));
@@ -138,7 +159,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             Assert.Equal(choice == UserDialogueChoice.Cancel ? 3 : 0, Directory.GetFiles(_dir, "*.pak").Length);
         }
         registry.VerifyNoOtherCalls();
-    }
+    });
 
     [Theory]
     [InlineData(false, false)]

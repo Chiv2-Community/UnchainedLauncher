@@ -12,11 +12,13 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     public class Chivalry2ModsInstaller : IChivalry2LaunchPreparer<LaunchOptions> {
         private readonly ILog _logger = LogManager.GetLogger(typeof(Chivalry2ModsInstaller));
         private readonly IUserDialogueSpawner _userDialogueSpawner;
+        private readonly IUnmanagedPakSettings? _settings;
         private IModManager _modManager { get; }
 
-        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner) {
+        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner, IUnmanagedPakSettings? settings = null) {
             _modManager = modManager;
             _userDialogueSpawner = dialogueSpawner;
+            _settings = settings;
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
@@ -24,7 +26,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             var releasesToInstall = _modManager.SortByDependencies(_modManager.GetEnabledAndDependencyReleases()).ToList();
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
 
-            if (!await new PakReleaseRecovery(_modManager, _userDialogueSpawner).Recover(releasesToInstall)) return None;
+            if (!await new PakReleaseRecovery(_modManager, _userDialogueSpawner, _settings?.AlwaysKeepUnmanagedPaks == true).Recover(releasesToInstall)) return None;
             releasesToInstall = _modManager.SortByDependencies(_modManager.GetEnabledAndDependencyReleases()).ToList();
 
             // Install mods via ModManager

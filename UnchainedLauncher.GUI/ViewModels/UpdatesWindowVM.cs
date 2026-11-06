@@ -14,8 +14,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string NoButtonText { get; }
         public string? CancelButtonText { get; }
         public bool ShowCancelButton => CancelButtonText != null;
-        public string CancelColumnWidth => ShowCancelButton ? "40*" : "0";
-        public string NoButtonMargin => ShowCancelButton ? "5,10,0,10" : "5,10,10,10";
 
         public IEnumerable<DependencyUpdateViewModel> Updates { get; }
 

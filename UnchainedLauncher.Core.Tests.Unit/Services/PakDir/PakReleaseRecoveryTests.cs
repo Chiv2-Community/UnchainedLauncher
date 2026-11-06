@@ -381,19 +381,42 @@ public class PakReleaseRecoveryTests : IDisposable {
         dialogue.VerifyAll();
     }
 
-    [Fact]
-    public async Task DeclinedVersionChange_CancelsLaunchBeforeInstallation() {
+    [Theory]
+    [InlineData(UserDialogueChoice.No)]
+    [InlineData(UserDialogueChoice.Cancel)]
+    public async Task DeclinedVersionChange_CancelsLaunchBeforeInstallation(UserDialogueChoice choice) {
         var wanted = Release("v2.0.0");
         var current = Release("v1.0.0");
         File.WriteAllText(Path.Join(_dir, "q__-__Mod1.pak"), current.Tag);
         var manager = Manager(new Core.Services.Mods.PakDir(_dir, []), new Mock<IModRegistry>(MockBehavior.Strict), wanted, current);
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
         dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
-            .Returns(UserDialogueChoice.No);
+            .Returns(choice);
         var options = new LaunchOptions([], "", "", false, false, Prelude.None, Prelude.None);
+        var signaturesPrepared = false;
+        var pipeline = Chivalry2LaunchPreparer.Create<LaunchOptions>(value => Prelude.Some(value))
+            .AndThen(new Chivalry2ModsInstaller(manager, dialogue.Object))
+            .Sub(Chivalry2LaunchPreparer.Create<LanguageExt.Unit>(value => {
+                signaturesPrepared = true;
+                return Prelude.Some(value);
+            }));
 
-        Assert.True((await new Chivalry2ModsInstaller(manager, dialogue.Object).PrepareLaunch(options)).IsNone);
+        Assert.True((await pipeline.PrepareLaunch(options)).IsNone);
+        Assert.False(signaturesPrepared);
         Assert.Equal(current.Tag, File.ReadAllText(Path.Join(_dir, "q__-__Mod1.pak")));
         dialogue.Verify(d => d.DisplayProgress(It.IsAny<MemoryProgress>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task LaunchPreparerChain_PassesModifiedOptionsToNextStage() {
+        var received = 0;
+        var pipeline = Chivalry2LaunchPreparer.Create<int>(value => Prelude.Some(value + 1))
+            .AndThen(Chivalry2LaunchPreparer.Create<int>(value => {
+                received = value;
+                return Prelude.Some(value * 2);
+            }));
+
+        Assert.Equal(Prelude.Some(6), await pipeline.PrepareLaunch(2));
+        Assert.Equal(3, received);
     }
 }

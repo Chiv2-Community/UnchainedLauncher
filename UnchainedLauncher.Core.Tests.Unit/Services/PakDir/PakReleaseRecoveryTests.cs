@@ -49,10 +49,22 @@ public class PakReleaseRecoveryTests : IDisposable {
     }
 
     [Theory]
-    [InlineData(UserDialogueChoice.Yes)]
-    [InlineData(UserDialogueChoice.No)]
-    [InlineData(UserDialogueChoice.Cancel)]
-    public async Task KeepRemoveAndCancelApplyToUnmanagedPaksWithoutListingDuplicates(UserDialogueChoice choice) {
+    [InlineData("1.9.0|1.10.0|invalid", "1.10.0")]
+    [InlineData("2.0.0-beta.2|2.0.0-beta.10|1.0.0", "2.0.0-beta.10")]
+    [InlineData("2.0.0-beta.10|2.0.0|9.0", "2.0.0")]
+    [InlineData("1.0.0+build.7|1.0.0-rc.1", "1.0.0+build.7")]
+    [InlineData("v0.0.0|v0.0.1|0.0.1-alpha", "0.0.1")]
+    [InlineData("unknown|1.2|01.2.3|1.2.3 notes", null)]
+    [InlineData("", null)]
+    public void BlueprintVersionUsesHighestStrictSemverPrecedence(string fields, string? expected) =>
+        Assert.Equal(expected, PakBlueprintVersion.Latest(fields.Split('|')));
+
+    [Theory]
+    [InlineData(UserDialogueChoice.Yes, false)]
+    [InlineData(UserDialogueChoice.Yes, true)]
+    [InlineData(UserDialogueChoice.No, false)]
+    [InlineData(UserDialogueChoice.Cancel, false)]
+    public async Task KeepRemoveAndCancelApplyToUnmanagedPaksWithoutListingDuplicates(UserDialogueChoice choice, bool alwaysKeep) {
         var wanted = Release("v1.0.0");
         var path = Write("q__-__Mod1.pak", wanted.Tag);
         var duplicate = Write("q__-__Mod1 (9).pak", wanted.Tag);
@@ -67,12 +79,13 @@ public class PakReleaseRecoveryTests : IDisposable {
                 Assert.Equal(2, changes.Count());
                 Assert.DoesNotContain("Directory:", message);
                 Assert.Contains(changes, change => change.Name == Path.GetFileName(path) && change.Reason == wanted.Info.Name);
+                Assert.Contains(changes, change => change.Name == Path.GetFileName(unrelated) && change.LatestVersion == "Unknown");
                 Assert.DoesNotContain(changes, change => change.Name == Path.GetFileName(duplicate));
                 Assert.Empty(paks.ManagedPaks);
                 Assert.True(File.Exists(duplicate));
             }).Returns(choice);
 
-        Assert.Equal(choice != UserDialogueChoice.Cancel, await paks.RecoverReleases([wanted], [wanted], dialogue.Object));
+        Assert.Equal(choice != UserDialogueChoice.Cancel, await paks.RecoverReleases([wanted], [wanted], dialogue.Object, alwaysKeepUnmanagedPaks: alwaysKeep));
 
         Assert.Equal(choice != UserDialogueChoice.No, File.Exists(path));
         Assert.Equal(choice != UserDialogueChoice.No, File.Exists(unrelated));
@@ -91,7 +104,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             Assert.False(File.Exists(duplicate));
             Assert.Empty(await sibling.GetManagedPaks());
         }
-        dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), Times.Once);
+        dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), alwaysKeep ? Times.Never : Times.Once);
     }
 
     [Theory]

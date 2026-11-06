@@ -175,7 +175,7 @@ namespace UnchainedLauncher.GUI {
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
-                modManager, userDialogueSpawner
+                modManager, userDialogueSpawner, settingsViewModel
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
@@ -207,7 +207,7 @@ namespace UnchainedLauncher.GUI {
                 unchainedLauncher,
                 userDialogueSpawner,
                 chivProcessMonitor);
-            var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
+            var modListViewModel = new ModListVM(modManager, userDialogueSpawner, settingsViewModel);
 
             if (modManager.NeedsMetadataRefresh || !modManager.Mods.Any())
                 await modListViewModel.RefreshModListCommand.ExecuteAsync(null);

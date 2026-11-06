@@ -31,7 +31,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         /// <summary>Verifies existing release files and confirms ownership or file changes before installation.</summary>
         Task<bool> RecoverReleases(IReadOnlyList<Release> requested, IEnumerable<Release> known, IUserDialogueSpawner dialogue,
-            ICollection<Release>? adopted = null);
+            ICollection<Release>? adopted = null, bool alwaysKeepUnmanagedPaks = false);
 
         /// <summary>
         /// A delegate that creates a FileWriter for writing pak data to the specified file path.

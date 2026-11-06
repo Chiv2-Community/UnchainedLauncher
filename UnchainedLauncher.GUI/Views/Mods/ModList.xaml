@@ -15,6 +15,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Top actions: title, search, sort, filters, actions -->
@@ -91,5 +92,8 @@
                 </ItemsControl>
             </ScrollViewer>
         </Grid>
+        <CheckBox Grid.Row="3" Content="Always keep unmanaged paks" Margin="0,12,0,0"
+                  IsChecked="{Binding Settings.AlwaysKeepUnmanagedPaks, Mode=TwoWay}"
+                  ToolTip="Keep unmanaged paks without asking. Recognized releases are still adopted; duplicate and safety checks still apply." />
     </Grid>
 </UserControl>

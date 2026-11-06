@@ -10,7 +10,7 @@ internal static class UnmanagedPakRecovery {
     private record Candidate(string Path, string Hash, Release? Release, bool Managed);
 
     internal static async Task<bool> Recover(PakDir paks, IReadOnlyList<Release> requested, IEnumerable<Release> known,
-        IUserDialogueSpawner dialogue, Action beginChange, ICollection<Release> adopted) {
+        IUserDialogueSpawner dialogue, Action beginChange, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks) {
         var releases = known.OrderByDescending(release => release.Version)
             .ThenByDescending(release => release.ReleaseDate).ToList();
         var managed = paks.ManagedPaks.ToList();
@@ -40,10 +40,15 @@ internal static class UnmanagedPakRecovery {
             if (!retained.Managed) unmanaged.Add(retained);
         }
 
-        var choice = unmanaged.Count == 0 ? UserDialogueChoice.Yes : dialogue.DisplayUpdateMessage(
+        var updates = new List<DependencyUpdate>();
+        foreach (var file in unmanaged.Where(_ => !alwaysKeepUnmanagedPaks)) {
+            var version = file.Release?.Tag ?? await PakBlueprintVersion.Read(file.Path) ?? "Unknown";
+            updates.Add(new DependencyUpdate(Path.GetFileName(file.Path), null, version,
+                file.Release?.ReleaseUrl ?? "", file.Release?.Info.Name ?? "Unrecognized pak"));
+        }
+        var choice = alwaysKeepUnmanagedPaks || unmanaged.Count == 0 ? UserDialogueChoice.Yes : dialogue.DisplayUpdateMessage(
             "Unmanaged paks detected", "Unmanaged paks detected. Keep them or remove them?", "Keep", "Remove", "Cancel",
-            unmanaged.Select(file => new DependencyUpdate(Path.GetFileName(file.Path), null,
-                file.Release?.Tag ?? "Unknown", file.Release?.ReleaseUrl ?? "", file.Release?.Info.Name ?? "Unrecognized pak")));
+            updates);
         if (choice != UserDialogueChoice.Yes && choice != UserDialogueChoice.No) return false;
 
         // Validate all inputs before deleting anything or changing ownership.

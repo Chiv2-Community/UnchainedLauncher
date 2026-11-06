@@ -11,10 +11,10 @@ internal static class PakReleaseRecovery {
     private record LocalPak(string Path, string Hash, Release? Release);
 
     internal static async Task<bool> Recover(PakDir paks, IReadOnlyList<Release> requested,
-        IEnumerable<Release> known, IUserDialogueSpawner dialogue, Action beginChange, ICollection<Release> adopted) {
+        IEnumerable<Release> known, IUserDialogueSpawner dialogue, Action beginChange, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks) {
         try {
             known = known.ToList();
-            if (!await UnmanagedPakRecovery.Recover(paks, requested, known.Concat(requested), dialogue, beginChange, adopted)) return false;
+            if (!await UnmanagedPakRecovery.Recover(paks, requested, known.Concat(requested), dialogue, beginChange, adopted, alwaysKeepUnmanagedPaks)) return false;
             requested = requested.Select(release => adopted.FirstOrDefault(detected => ModIdentifier.FromRelease(detected) == ModIdentifier.FromRelease(release)) ?? release)
                 .Concat(adopted.Where(detected => !requested.Any(release => ModIdentifier.FromRelease(detected) == ModIdentifier.FromRelease(release)))).ToList();
             if (requested.Count == 0) return true;

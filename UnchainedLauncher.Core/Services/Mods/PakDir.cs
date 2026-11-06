@@ -216,12 +216,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         public async Task<bool> RecoverReleases(IReadOnlyList<Release> requested, IEnumerable<Release> known, IUserDialogueSpawner dialogue,
-            ICollection<Release>? adopted = null) {
+            ICollection<Release>? adopted = null, bool alwaysKeepUnmanagedPaks = false) {
             try {
                 using var inventoryLock = await _inventory.Lock();
                 ReloadInventory();
                 _inventory.Save(_managedPaks);
-                var recovered = await PakReleaseRecovery.Recover(this, requested, known, dialogue, _inventory.BeginChange, adopted ?? new List<Release>());
+                var recovered = await PakReleaseRecovery.Recover(this, requested, known, dialogue, _inventory.BeginChange, adopted ?? new List<Release>(), alwaysKeepUnmanagedPaks);
                 if (recovered) {
                     SynchronizeWithDir();
                     _inventory.Save(_managedPaks);

@@ -344,7 +344,8 @@ public class PakReleaseRecoveryTests : IDisposable {
         File.WriteAllText(Path.ChangeExtension(duplicate, ".sig"), "conflicting signature");
         var paks = new Core.Services.Mods.PakDir(_dir, []);
         var manager = Manager(paks, new Mock<IModRegistry>(MockBehavior.Strict), wanted);
-        var dialogue = new Mock<IUserDialogueSpawner>();
+        var dialogue = ConfirmFileChanges();
+        dialogue.Setup(d => d.DisplayMessage(It.Is<string>(message => message.Contains("Conflicting duplicate signature"))));
 
         Assert.False(await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
         Assert.Empty(paks.ManagedPaks);
@@ -352,6 +353,9 @@ public class PakReleaseRecoveryTests : IDisposable {
         Assert.Equal(wanted.Tag, File.ReadAllText(duplicate));
         Assert.Equal("conflicting signature", File.ReadAllText(Path.ChangeExtension(duplicate, ".sig")));
         if (referenceSignatureExists) Assert.Equal("reference signature", File.ReadAllText(Path.ChangeExtension(canonical, ".sig")));
+        dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), Times.Once);
+        dialogue.Verify(d => d.DisplayMessage(It.Is<string>(message => message.Contains("Conflicting duplicate signature"))), Times.Once);
+        dialogue.VerifyNoOtherCalls();
     }
 
     [Theory]

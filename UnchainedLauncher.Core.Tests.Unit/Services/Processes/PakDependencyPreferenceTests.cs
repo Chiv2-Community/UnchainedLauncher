@@ -119,6 +119,9 @@ public class PakDependencyPreferenceTests(HomeLaunchUi ui) {
         var settings = new SettingsCodec(null!, null!, null!, "").Deserialize("{\"installation_type\":0}").Result!;
         var list = new ModListVM(manager, Mock.Of<IUserDialogueSpawner>(), settings);
         var catalog = new AvailableModsAndMapsService(manager, new ModScanTabVM(), settings);
+        Assert.Equal(ModSortMode.Alphabetical, list.SelectedSortMode);
+        Assert.Equal(new[] { "A Disabled", "Leaf", "Library", "Parent" }, list.DisplayMods.Select(card => card.Mod.LatestReleaseInfo.Name));
+        list.SelectedSortMode = ModSortMode.EnabledFirst;
         var parentCard = list.DisplayMods.Single(card => card.Mod.LatestReleaseInfo.Name == "Parent");
         var libraryCard = list.DisplayMods.Single(card => card.Mod.LatestReleaseInfo.Name == "Library");
         var leafCard = list.DisplayMods.Single(card => card.Mod.LatestReleaseInfo.Name == "Leaf");

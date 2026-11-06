@@ -85,15 +85,21 @@
             </ScrollViewer>
         </Grid>
         <Grid Grid.Row="2" Margin="0,12,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <CheckBox Content="Automatically download pak dependencies"
+            <Border x:Name="OptionsDivider" Grid.ColumnSpan="2" Height="1"
+                    Background="{DynamicResource Brush.Border}" Margin="0,0,0,12" />
+            <CheckBox Grid.Row="1" Content="Automatically download pak dependencies"
                       HorizontalAlignment="Left" Margin="0,0,16,0"
                       IsChecked="{Binding Settings.AutomaticallyDownloadPakDependencies, Mode=TwoWay}"
                       ToolTip="Gold Dependency cards are included automatically. Turn off to disable them and remove their managed paks at launch. Green explicitly enabled cards and kept unmanaged development paks are unaffected." />
-            <CheckBox Grid.Column="1" Content="Always keep unmanaged paks" HorizontalAlignment="Right"
+            <CheckBox Grid.Row="1" Grid.Column="1" Content="Always keep unmanaged paks" HorizontalAlignment="Right"
                       IsChecked="{Binding Settings.AlwaysKeepUnmanagedPaks, Mode=TwoWay}"
                       ToolTip="Keep unmanaged paks without asking. Recognized releases are still adopted; duplicate and safety checks still apply." />
         </Grid>

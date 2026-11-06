@@ -133,7 +133,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .Select((item, index) => {
                     var existing = existingByCoords.TryGetValue(item.Install.Coordinates, out var e) ? Some(e) : None;
                     return existing.Match(
-                        Some: pak => pak.PakFileName == item.FinalPakName
+                        Some: pak => pak.PakFileName.Equals(item.FinalPakName, StringComparison.OrdinalIgnoreCase)
+                            || (File.Exists(PakNameToPakPath(item.FinalPakName))
+                                && !_managedPaks.Any(owned => owned.PakFileName.Equals(item.FinalPakName, StringComparison.OrdinalIgnoreCase))
+                                && pak.PakFileName.StartsWith(item.FinalPakName.Split("__-__", 2)[0] + "__-__", StringComparison.OrdinalIgnoreCase))
                             ? new InstallAction.Skip(item.Install, index, pak)
                             : new InstallAction.Move(item.Install, index, pak, item.FinalPakName) as InstallAction,
                         None: () => new InstallAction.Download(item.Install, index, item.FinalPakName)

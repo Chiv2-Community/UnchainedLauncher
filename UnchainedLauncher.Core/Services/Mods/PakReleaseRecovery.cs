@@ -32,20 +32,20 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
                 var wanted = requested[i];
                 var coordinates = ReleaseCoordinates.FromRelease(wanted);
                 var trackedPath = manager.PakDir.GetManagedPakFilePath(coordinates).IfNone("");
+                var verifiedTracked = local.Any(pak => pak.Path.Equals(trackedPath, StringComparison.OrdinalIgnoreCase)
+                    && HashMatches(pak.Hash, wanted.ReleaseHash));
                 var candidates = local.Where(pak => pak.Path.Equals(trackedPath, StringComparison.OrdinalIgnoreCase)
-                    || MatchesDestination(pak.Path, names[i]));
+                    || MatchesDestination(pak.Path, names[i]))
+                    .Where(pak => !verifiedTracked || manager.PakDir.ManagedPaks.Any(owned => owned.PakFileName.Equals(Path.GetFileName(pak.Path), StringComparison.OrdinalIgnoreCase)));
                 foreach (var pak in candidates.Where(pak => !HashMatches(pak.Hash, wanted.ReleaseHash))) {
                     replacements.Add(pak);
                     var reason = pak.Release == null ? $"Unrecognized file hash: {pak.Hash}. Replace with the registry-approved release."
                         : !coordinates.Matches(ModIdentifier.FromRelease(pak.Release)) ? "Replace a different mod occupying this destination"
                         : coordinates.CompareTo(ReleaseCoordinates.FromRelease(pak.Release)) < 0 ? "Downgrade" : "Upgrade";
-                    updates.Add(new DependencyUpdate(wanted.Info.Name, pak.Release?.Tag, wanted.Tag, wanted.ReleaseUrl, reason));
+                    updates.Add(new DependencyUpdate($"{wanted.Info.Name} ({Path.GetFileName(pak.Path)})",
+                        pak.Release?.Tag, wanted.Tag, wanted.ReleaseUrl, reason));
                 }
             }
-
-            if (updates.Count > 0 && dialogue.DisplayUpdateMessage("Change installed mod releases?",
-                "Existing pak files differ from the requested releases.", "Yes", "No", "Cancel", updates.Distinct()) != UserDialogueChoice.Yes)
-                return false;
 
             var recovered = requested.Select((wanted, i) => {
                 var trackedPath = manager.PakDir.GetManagedPakFilePath(ReleaseCoordinates.FromRelease(wanted)).IfNone("");
@@ -55,10 +55,30 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
                     .OrderBy(pak => Path.GetFileName(pak.Path) == names[i] ? 0 : 1).ToList();
             }).ToList();
 
+            for (var i = 0; i < recovered.Count; i++) {
+                var wanted = requested[i];
+                if (recovered[i].Count == 0) continue;
+                var installed = recovered[i][0];
+                if (!manager.PakDir.ManagedPaks.Any(pak => pak.Coordinates == ReleaseCoordinates.FromRelease(wanted)
+                    && pak.PakFileName.Equals(Path.GetFileName(installed.Path), StringComparison.OrdinalIgnoreCase)))
+                    updates.Add(new DependencyUpdate(Path.GetFileName(installed.Path), installed.Release?.Tag, wanted.Tag,
+                        wanted.ReleaseUrl, "Adopt verified pak: the launcher may rename, update, or remove it in future preparations"));
+                foreach (var duplicate in recovered[i].Skip(1))
+                    updates.Add(new DependencyUpdate(Path.GetFileName(duplicate.Path), duplicate.Release?.Tag, wanted.Tag,
+                        wanted.ReleaseUrl, "Remove duplicate pak and its signature"));
+            }
+            if (updates.Count > 0 && dialogue.DisplayUpdateMessage("Change installed mod files?",
+                $"Directory: {manager.PakDir.DirPath}\nOnly approve if the listed files should be managed or removed by the launcher. No/Cancel preserves them and cancels launch.",
+                "Yes", "No", "Cancel", updates.Distinct()) != UserDialogueChoice.Yes)
+                return false;
+
             // Validate final destinations and duplicate signatures before changing any files or metadata.
             for (var i = 0; i < recovered.Count; i++) {
-                if (recovered[i].Count > 0)
-                    PakDir.ValidateMoveSignatures(recovered[i][0].Path, Path.Join(manager.PakDir.DirPath, names[i]));
+                var destination = Path.Join(manager.PakDir.DirPath, names[i]);
+                if (recovered[i].Count > 0 && (!File.Exists(destination)
+                    || recovered[i][0].Path.Equals(destination, StringComparison.OrdinalIgnoreCase)
+                    || replacements.Any(pak => pak.Path.Equals(destination, StringComparison.OrdinalIgnoreCase))))
+                    PakDir.ValidateMoveSignatures(recovered[i][0].Path, destination);
             }
             foreach (var matching in recovered.Where(paks => paks.Count > 1)) {
                 var referenceSig = Path.ChangeExtension(matching[0].Path, ".sig");

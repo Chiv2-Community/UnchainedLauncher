@@ -19,71 +19,18 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             _userDialogueSpawner = dialogueSpawner;
         }
 
-        private OptionAsync<string> GetHashResult(EitherAsync<HashFailure, Option<string>> result) {
-            return result.TapLeft<HashFailure, Option<string>, object>(e =>
-                _logger.Error($"Failed to hash file", e)
-                )
-                .ToOption()
-                .Bind(o => o.Match(OptionAsync<string>.Some, OptionAsync<string>.None));
-        }
-
-        private OptionAsync<string> GetLocalHash(ReleaseCoordinates coords) {
-            return _modManager.PakDir.GetManagedPakFilePath(coords)
-                .Match(
-                    path => GetHashResult(FileHelpers.Sha512Async(path)),
-                    () => OptionAsync<string>.None);
-        }
-
-        private Unit IfHashInvalid((Release, string, string) validationResult) {
-            var coords = ReleaseCoordinates.FromRelease(validationResult.Item1);
-            _logger.Warn($"Hash mismatch: actual hash '{validationResult.Item2}' does not " +
-                         $"match release hash '{validationResult.Item3}' for '{coords}'.");
-
-            var redownloadResponse = _userDialogueSpawner.DisplayYesNoMessage(
-                $"The hash for release {coords} is not correct. " +
-                $"This indicates that the file on disk does not match " +
-                $"what is approved by the mod registry. This could be due to " +
-                $"simple file corruption, but could also indicate that the version " +
-                $"you have is malicious.\n\n" +
-                $"Expected: {validationResult.Item3}\n" +
-                $"Actual: {validationResult.Item2}\n\n" +
-                $"Would you like to re-download the pak? (recommended)", "Refresh pak file?");
-
-            if (redownloadResponse == UserDialogueChoice.Yes) {
-                _modManager.PakDir.Uninstall(coords)
-                    .IfLeft(e =>
-                        _logger.Error($"Failed to uninstall release '{coords}' with invalid hash", e));
-            }
-
-            return Unit.Default;
-        }
-
-        private async Task ValidateHashes(IEnumerable<Release> releases) {
-            var hashValidationTasks = releases
-                .Map(m =>
-                    GetLocalHash(ReleaseCoordinates.FromRelease(m))
-                        .Map(h => (m, h, m.ReleaseHash))
-                        // select only those whose hashes do not match
-                        .Filter(o => !o.Item2.Equals(o.Item3))
-                        .IfSome(IfHashInvalid)
-                );
-
-            await Task.WhenAll(hashValidationTasks);
-        }
-
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
             // Get all releases that will be installed (enabled mods + dependencies)
-            var releasesToInstall = _modManager.GetEnabledAndDependencyReleases().ToList();
+            var releasesToInstall = _modManager.SortByDependencies(_modManager.GetEnabledAndDependencyReleases()).ToList();
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
 
-            // Validate hashes before installation
-            await ValidateHashes(releasesToInstall);
+            if (!await new PakReleaseRecovery(_modManager, _userDialogueSpawner).Recover(releasesToInstall)) return None;
 
             // Install mods via ModManager
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");
             var closeProgressWindow = _userDialogueSpawner.DisplayProgress(progresses);
 
-            var installResults = await _modManager.InstallMods(progresses).ToListAsync();
+            var installResults = await _modManager.InstallMods(releasesToInstall, progresses).ToListAsync();
 
             var (errors, successes) =
                 installResults.Partition()

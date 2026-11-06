@@ -55,6 +55,42 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             File.WriteAllText(Path.Join(FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig"), "test sig file");
         }
 
+        private sealed class FailingReadStream : MemoryStream {
+            public FailingReadStream() : base(new byte[] { 1, 2, 3 }) { }
+            public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+                Position > 0 ? ValueTask.FromException<int>(new IOException("Interrupted download")) : base.ReadAsync(buffer, cancellationToken);
+        }
+
+        [Fact]
+        public void TrackPak_TransfersFilenameOwnership_CaseInsensitively() {
+            var dir = Path.Join(BaseTestDir, nameof(TrackPak_TransfersFilenameOwnership_CaseInsensitively));
+            PrepareTestDir(dir);
+            var pd = new Core.Services.Mods.PakDir(dir, []);
+            pd.TrackPak(new ManagedPak(DummyMods[0], "q__-__Mod1.pak", 0));
+            var wanted = new ManagedPak(DummyMods[2], "Q__-__MOD1.PAK", 0);
+
+            pd.TrackPak(wanted);
+
+            Assert.Equal(wanted, Assert.Single(pd.ManagedPaks));
+        }
+
+        [Fact]
+        public async Task InstallModSet_FailedDownload_DoesNotLeavePartialPak() {
+            var dir = Path.Join(BaseTestDir, nameof(InstallModSet_FailedDownload_DoesNotLeavePartialPak));
+            PrepareTestDirWithSig(dir);
+            var pd = new Core.Services.Mods.PakDir(dir, Enumerable.Empty<ManagedPak>());
+            var request = new ModInstallRequest(DummyMods[0], path => new FileWriter(path, new FailingReadStream(), 3));
+
+            var results = await pd.InstallModSet(new[] { request }, Option<AccumulatedMemoryProgress>.None).ToListAsync();
+
+            Assert.True(Assert.Single(results).IsLeft);
+            Assert.Empty(pd.ManagedPaks);
+            Assert.Empty(Directory.GetFiles(dir, "*.pak"));
+            Assert.Empty(Directory.GetFiles(dir, "*.partial"));
+            await InstallDummy(pd, DummyMods[0]);
+            Assert.DoesNotContain(" (", Assert.Single(pd.ManagedPaks).PakFileName);
+        }
+
         [Fact]
         public async Task InstallModSet_UsesInstallationSignature_ForSeparateModDirectory() {
             var modPaks = Path.Join(BaseTestDir, nameof(InstallModSet_UsesInstallationSignature_ForSeparateModDirectory));
@@ -467,13 +503,12 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
-        public async Task InstallModSet_PakNameCollision_UsesTextualSuccessor() {
-            var thisTestPath = Path.Join(BaseTestDir, nameof(InstallModSet_PakNameCollision_UsesTextualSuccessor));
+        public async Task InstallModSet_UnresolvedCollision_DoesNotOverwriteOrCreateNumberedCopy() {
+            var thisTestPath = Path.Join(BaseTestDir, nameof(InstallModSet_UnresolvedCollision_DoesNotOverwriteOrCreateNumberedCopy));
             PrepareTestDirWithSig(thisTestPath);
 
             // Create an unmanaged pak file with a conflicting name
-            // The lexicographic prefix will make the actual name qa__-__TestMod.pak
-            File.WriteAllText(Path.Join(thisTestPath, "qa__-__TestMod.pak"), "unmanaged pak contents");
+            File.WriteAllText(Path.Join(thisTestPath, "q__-__TestMod.pak"), "unmanaged pak contents");
 
             var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var coords = new ReleaseCoordinates("Org", "TestMod", "1.0.0");
@@ -483,16 +518,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
                 Option<AccumulatedMemoryProgress>.None
             ).ToListAsync();
 
-            results.ForEach(r => r.IfLeft(e => throw e));
-
-            // The installed pak should have a different name due to collision avoidance
-            Assert.Single(pd.ManagedPaks);
-            var installedPakName = pd.ManagedPaks.First().PakFileName;
-
-            // Should not be exactly the same as the conflicting file
-            Assert.NotEqual("qa__-__TestMod.pak", installedPakName);
-            // But should still contain the module name
-            Assert.Contains("TestMod", installedPakName);
+            Assert.True(Assert.Single(results).IsLeft);
+            Assert.Empty(pd.ManagedPaks);
+            Assert.Single(Directory.GetFiles(thisTestPath, "*.pak"));
+            Assert.Equal("unmanaged pak contents", File.ReadAllText(Path.Join(thisTestPath, "q__-__TestMod.pak")));
         }
 
         [Fact]

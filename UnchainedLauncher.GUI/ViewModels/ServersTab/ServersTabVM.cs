@@ -203,26 +203,25 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         public async Task LaunchSelected(bool headless = false) {
-            if (SelectedConfiguration == null) return;
+            var configuration = SelectedConfiguration;
+            if (configuration == null) return;
 
-            var formData = SelectedConfiguration.ToServerConfiguration();
+            var enabledServerBlueprintDtos = configuration.PrepareServerBlueprintsForLaunch();
+            var requestedServerBlueprintDtos = configuration.EnabledServerModList.ToArray();
+            var formData = configuration.ToServerConfiguration();
 
-            // Resolve selected releases from the template's EnabledServerModList
-            var enabledCoordinates = ModManager.EnabledModReleaseCoordinates.ToArray();
-            var enabledServerBlueprintDtos = formData.EnabledServerModList!.ToArray();
-
-            SelectedConfiguration.SaveINI();
+            configuration.SaveINI();
 
 
             var maybeProcess = await LaunchServerWithOptions(formData, headless, enabledServerBlueprintDtos);
             maybeProcess.IfSome(process => {
                 var server = CreateServer(process, formData, headless, enabledServerBlueprintDtos);
-                var serverVm = new ServerVM(server, formData.Name, SelectedConfiguration.AvailableMaps);
+                var serverVm = new ServerVM(server, formData.Name, configuration.AvailableMaps);
                 serverVm.StartUpdateLoop();
-                var runningTuple = (SelectedConfiguration, serverVm);
+                var runningTuple = (configuration, serverVm);
                 UiDispatcher.Invoke(() => RunningServers.Add(runningTuple));
 
-                _ = AttachServerExitWatcher(process, formData, enabledServerBlueprintDtos, headless, runningTuple);
+                _ = AttachServerExitWatcher(process, formData, requestedServerBlueprintDtos, headless, runningTuple);
             });
         }
 
@@ -234,7 +233,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 return;
             }
 
-            var serverModArray = conf.EnabledServerModList.ToArray();
+            var serverModArray = conf.EnabledServerModList
+                .DistinctBy(ServerBlueprintIdentity.Key, StringComparer.OrdinalIgnoreCase).ToArray();
 
             var formData = conf.ToServerConfiguration();
             var server = CreateServer(proc, formData, false, serverModArray);
@@ -396,10 +396,18 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 await Task.Delay(2000);
 
 
-                var relaunched = await LaunchServerWithOptions(formData, headless, enabledServerBlueprintDtos);
+                var restartActors = await UiDispatcher.InvokeAsync(() => {
+                    _availableModsAndMaps.RefreshCatalog();
+                    return _availableModsAndMaps.AvailableServerModBlueprints
+                        .Where(actor => enabledServerBlueprintDtos.Any(selected => ServerBlueprintIdentity.Same(selected, actor)))
+                        .Where(actor => !string.IsNullOrWhiteSpace(actor.ClassPath))
+                        .DistinctBy(ServerBlueprintIdentity.Key, StringComparer.OrdinalIgnoreCase).ToArray();
+                });
+                var relaunched = await LaunchServerWithOptions(formData, headless, restartActors);
                 relaunched.IfSome(newProc => {
-                    var newServer = CreateServer(newProc, formData, headless, enabledServerBlueprintDtos);
+                    var newServer = CreateServer(newProc, formData, headless, restartActors);
                     UiDispatcher.Invoke(() => runningTuple.live.ReplaceServer(newServer, countAsRestart: true));
+                    // Keep requests across restarts so temporarily unavailable actors can return.
                     _ = AttachServerExitWatcher(newProc, formData, enabledServerBlueprintDtos, headless, runningTuple);
                 });
             });

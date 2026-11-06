@@ -1,5 +1,4 @@
 using log4net;
-using System.Security.Cryptography;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 
@@ -10,7 +9,7 @@ internal static class UnmanagedPakRecovery {
     private record Candidate(string Path, string Hash, Release? Release, bool Managed);
 
     internal static async Task<bool> Recover(IPakDir paks, IEnumerable<Release> known,
-        IUserDialogueSpawner dialogue, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks) {
+        IUserDialogueSpawner dialogue, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks, PakReadCache cache) {
         var kept = new KeptUnmanagedPaks(paks.DirPath);
         kept.Load();
         var releases = known.OrderByDescending(release => release.Version)
@@ -20,8 +19,7 @@ internal static class UnmanagedPakRecovery {
         foreach (var path in Directory.EnumerateFiles(paks.DirPath, "*.pak")) {
             if (Path.GetFileName(path).Equals("pakchunk0-WindowsNoEditor.pak", StringComparison.OrdinalIgnoreCase)) continue;
             var owned = managed.FirstOrDefault(pak => pak.PakFileName.Equals(Path.GetFileName(path), StringComparison.OrdinalIgnoreCase));
-            using var stream = File.OpenRead(path);
-            var hash = Convert.ToHexString(await SHA512.HashDataAsync(stream));
+            var hash = await cache.Hash(path);
             var matching = releases.Where(release => hash.Equals(release.ReleaseHash, StringComparison.OrdinalIgnoreCase)).ToList();
             // A hash verifies bytes; the recorded coordinates disambiguate shared release payloads.
             var release = matching.FirstOrDefault(release => owned?.Coordinates == ReleaseCoordinates.FromRelease(release))
@@ -45,7 +43,7 @@ internal static class UnmanagedPakRecovery {
         var unconfirmed = unmanaged.Where(file => file.Release != null || !kept.Contains(Path.GetFileName(file.Path), file.Hash)).ToList();
         var updates = new List<DependencyUpdate>();
         foreach (var file in unconfirmed.Where(_ => !alwaysKeepUnmanagedPaks)) {
-            var version = file.Release?.Tag ?? await PakBlueprintVersion.Read(file.Path) ?? "Unknown";
+            var version = file.Release?.Tag ?? await cache.Version(file.Path, file.Hash) ?? "Unknown";
             updates.Add(new DependencyUpdate(Path.GetFileName(file.Path), null, version,
                 file.Release?.ReleaseUrl ?? "", file.Release?.Info.Name ?? "Unrecognized pak"));
         }
@@ -56,9 +54,7 @@ internal static class UnmanagedPakRecovery {
 
         // Validate all inputs before deleting anything or changing ownership.
         foreach (var file in files) {
-            using var stream = File.OpenRead(file.Path);
-            if (!file.Hash.Equals(Convert.ToHexString(await SHA512.HashDataAsync(stream)), StringComparison.OrdinalIgnoreCase))
-                throw new IOException($"Pak changed during release confirmation: {file.Path}");
+            cache.Validate(file.Path, file.Hash);
         }
         foreach (var (duplicate, retained) in duplicates) {
             var signature = Path.ChangeExtension(duplicate.Path, ".sig");

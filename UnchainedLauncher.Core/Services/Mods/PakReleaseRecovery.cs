@@ -1,6 +1,5 @@
 using LanguageExt;
 using log4net;
-using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -18,9 +17,10 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
     // An explicit request replaces enabled roots; adoption can replace those roots before dependency expansion.
     public async Task<Option<IReadOnlyList<Release>>> RecoverPlan(IReadOnlyList<Release>? requested = null) {
         try {
+            using var cache = new PakReadCache(manager.PakDir.DirPath);
             var adopted = new List<Release>();
             if (!await UnmanagedPakRecovery.Recover(manager.PakDir, (requested ?? []).Concat(manager.Mods.SelectMany(mod => mod.Releases)),
-                dialogue, adopted, alwaysKeepUnmanagedPaks)) return None;
+                dialogue, adopted, alwaysKeepUnmanagedPaks, cache)) return None;
             foreach (var release in adopted) manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
             var seeds = requested?.ExceptBy(adopted.Select(ModIdentifier.FromRelease), ModIdentifier.FromRelease).Concat(adopted);
             requested = manager.SortByDependencies(manager.GetEnabledAndDependencyReleases(seeds)).ToList();
@@ -35,7 +35,7 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
             foreach (var path in Directory.EnumerateFiles(manager.PakDir.DirPath, "*.pak")) {
                 if (!manager.PakDir.ManagedPaks.Any(pak => pak.PakFileName.Equals(Path.GetFileName(path), StringComparison.OrdinalIgnoreCase))) continue;
                 if (!tracked.Contains(path) && !names.Any(name => MatchesDestination(path, name))) continue;
-                var hash = await HashFile(path);
+                var hash = await cache.Hash(path);
                 local.Add(new LocalPak(path, hash, available.FirstOrDefault(release => HashMatches(release.ReleaseHash, hash))));
             }
 
@@ -95,8 +95,7 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
 
             // Revalidate retained and deleted candidates before changing any files or metadata.
             foreach (var pak in local) {
-                if (!HashMatches(pak.Hash, await HashFile(pak.Path)))
-                    throw new IOException($"Pak changed during release confirmation: {pak.Path}");
+                cache.Validate(pak.Path, pak.Hash);
             }
             foreach (var pak in replacements.Distinct()) DeletePak(pak);
             for (var i = 0; i < requested.Count; i++) {
@@ -126,11 +125,6 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
     private static bool MatchesDestination(string path, string name) {
         var stem = Regex.Escape(Path.GetFileNameWithoutExtension(name.Split("__-__", 2)[1]));
         return Regex.IsMatch(Path.GetFileName(path), $@"^q[a-z]*__-__{stem}( \([0-9]+\))?\.pak$", RegexOptions.IgnoreCase);
-    }
-
-    private static async Task<string> HashFile(string path) {
-        using var stream = File.OpenRead(path);
-        return Convert.ToHexString(await SHA512.HashDataAsync(stream));
     }
 
     private static void DeletePak(LocalPak pak) {

@@ -19,6 +19,7 @@ public static class BlueprintVersionScanner {
         provider.InitializePak(path, stream);
         ModScanOrchestrator.InitializeCompression(provider);
         var versions = new List<string>();
+        Exception? failure = null;
         foreach (var file in provider.FilteredFiles) {
             try {
                 var package = provider.LoadPackage(file.Key);
@@ -30,9 +31,12 @@ public static class BlueprintVersionScanner {
                 }
             }
             catch (Exception error) {
+                failure = error;
                 Logger.Warn($"Could not read Blueprint versions from {file.Key}: {error.Message}");
             }
         }
+        // Incomplete scans must be retried, not cached as a successful no-version result.
+        if (failure != null) throw new IOException("Incomplete Blueprint version scan", failure);
         return versions;
     });
 }

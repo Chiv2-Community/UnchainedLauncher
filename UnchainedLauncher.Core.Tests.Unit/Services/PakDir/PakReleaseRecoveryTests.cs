@@ -37,6 +37,29 @@ public class PakReleaseRecoveryTests : IDisposable {
         return dialogue;
     }
 
+    [Fact]
+    public async Task ConfirmationAndManagedRecoveryReuseHashWithoutReopeningPak() {
+        var wanted = Release("v1.0.0");
+        var path = Path.Join(_dir, "q__-__Mod1.pak");
+        File.WriteAllText(path, wanted.Tag);
+        FileStream? exclusive = null;
+        var dialogue = ConfirmFileChanges();
+        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+            .Callback(() => exclusive = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.None))
+            .Returns(UserDialogueChoice.Yes);
+        var paks = new Core.Services.Mods.PakDir(_dir, []);
+        var manager = Manager(paks, new Mock<IModRegistry>(MockBehavior.Strict), wanted);
+        try {
+            Assert.True(await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
+            Assert.NotNull(exclusive);
+            Assert.True(await new PakReleaseRecovery(manager, new Mock<IUserDialogueSpawner>(MockBehavior.Strict).Object).Recover([wanted]));
+            Assert.Equal(ReleaseCoordinates.FromRelease(wanted), Assert.Single(paks.ManagedPaks).Coordinates);
+        }
+        finally {
+            exclusive?.Dispose();
+        }
+    }
+
     [Theory]
     [InlineData("", false)]
     [InlineData("https://example.test/release", true)]
@@ -351,7 +374,10 @@ public class PakReleaseRecoveryTests : IDisposable {
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
         var adopted = new List<Release>();
 
-        Task<bool> Recover() => UnmanagedPakRecovery.Recover(paks, releases, dialogue.Object, adopted, false);
+        async Task<bool> Recover() {
+            using var cache = new PakReadCache(_dir);
+            return await UnmanagedPakRecovery.Recover(paks, releases, dialogue.Object, adopted, false, cache);
+        }
         if (conflicting) {
             var error = await Assert.ThrowsAsync<IOException>(Recover);
             Assert.Contains("Conflicting duplicate signature", error.Message);

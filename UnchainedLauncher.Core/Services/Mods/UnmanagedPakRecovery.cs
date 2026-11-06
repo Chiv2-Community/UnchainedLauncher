@@ -9,7 +9,7 @@ internal static class UnmanagedPakRecovery {
     private static readonly ILog Logger = LogManager.GetLogger(nameof(UnmanagedPakRecovery));
     private record Candidate(string Path, string Hash, Release? Release, bool Managed);
 
-    internal static async Task<bool> Recover(IPakDir paks, IReadOnlyList<Release> requested, IEnumerable<Release> known,
+    internal static async Task<bool> Recover(IPakDir paks, IEnumerable<Release> known,
         IUserDialogueSpawner dialogue, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks) {
         var kept = new KeptUnmanagedPaks(paks.DirPath);
         kept.Load();
@@ -67,19 +67,6 @@ internal static class UnmanagedPakRecovery {
             if (File.Exists(signature) && (!File.Exists(retainedSignature)
                 || !File.ReadAllBytes(signature).SequenceEqual(File.ReadAllBytes(retainedSignature))))
                 throw new IOException($"Conflicting duplicate signature; files were preserved: {signature}");
-        }
-        if (choice == UserDialogueChoice.Yes) {
-            var detected = unmanaged.Where(file => file.Release != null).Select(file => file.Release!)
-                .OrderByDescending(release => release.Version).DistinctBy(ModIdentifier.FromRelease).ToList();
-            var planned = requested.Select(release => detected.FirstOrDefault(found => ModIdentifier.FromRelease(found) == ModIdentifier.FromRelease(release)) ?? release)
-                .Concat(detected.Where(found => !requested.Any(release => ModIdentifier.FromRelease(found) == ModIdentifier.FromRelease(release)))).ToList();
-            var destinations = PakDir.GetInstallFileNames(planned.Select(ReleaseCoordinates.FromRelease)).ToList();
-            for (var i = 0; i < planned.Count; i++) {
-                var source = unmanaged.FirstOrDefault(file => file.Release == planned[i]);
-                var destination = Path.Join(paks.DirPath, destinations[i]);
-                if (source != null && (!File.Exists(destination) || source.Path.Equals(destination, StringComparison.OrdinalIgnoreCase)))
-                    PakDir.ValidateMoveSignatures(source.Path, destination);
-            }
         }
         foreach (var file in duplicates.Concat(choice == UserDialogueChoice.No ? unconfirmed : [])) {
             File.Delete(Path.ChangeExtension(file.Path, ".sig"));

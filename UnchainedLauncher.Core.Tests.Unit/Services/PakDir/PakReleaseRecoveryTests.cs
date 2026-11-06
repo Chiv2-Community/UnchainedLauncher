@@ -514,6 +514,82 @@ public class PakReleaseRecoveryTests : IDisposable {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public Task FreshDownloadKeepsUnknownDestinationAndSkipsOccupiedAlternates(bool alwaysKeep) => ui.RunAsync(async () => {
+        var wanted = Release("v1.0.0");
+        var preserved = new Dictionary<string, string> {
+            ["q__-__Mod1.pak"] = "kept canonical pak",
+            ["q__-__Mod1.sig"] = "kept canonical signature",
+            ["q__-__Mod1 (1).pak"] = "kept alternate pak",
+            ["q__-__Mod1 (1).sig"] = "kept alternate signature",
+            ["q__-__Mod1 (2).sig"] = "orphan signature"
+        };
+        foreach (var (name, contents) in preserved) File.WriteAllText(Path.Join(_dir, name), contents);
+        var paks = new Core.Services.Mods.PakDir(_dir, []);
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+        registry.Setup(r => r.DownloadPak(ReleaseCoordinates.FromRelease(wanted), It.IsAny<string>()))
+            .Returns((ReleaseCoordinates _, string output) => {
+                var bytes = Encoding.UTF8.GetBytes(wanted.Tag);
+                return Prelude.RightAsync<ModPakStreamAcquisitionFailure, FileWriter>(new FileWriter(output, new MemoryStream(bytes), bytes.Length));
+            });
+        var manager = Manager(paks, registry, wanted);
+        var dialogue = ConfirmFileChanges();
+        var plan = await new PakReleaseRecovery(manager, dialogue.Object, alwaysKeep).RecoverPlan();
+        Assert.True(plan.IsSome);
+        for (var attempt = 0; attempt < 2; attempt++) {
+            var results = await manager.InstallMods(plan.IfNone([]), Option<AccumulatedMemoryProgress>.None).ToListAsync();
+            Assert.True(Assert.Single(results).IsRight);
+        }
+        var installed = Assert.Single(paks.ManagedPaks);
+        Assert.Equal("q__-__Mod1 (3).pak", installed.PakFileName);
+        Assert.Equal(wanted.Tag, File.ReadAllText(Path.Join(_dir, installed.PakFileName)));
+        foreach (var (name, contents) in preserved) Assert.Equal(contents, File.ReadAllText(Path.Join(_dir, name)));
+        Assert.Equal(3, Directory.GetFiles(_dir, "*.pak").Length);
+        registry.Verify(r => r.DownloadPak(ReleaseCoordinates.FromRelease(wanted), It.IsAny<string>()), Times.Once);
+        registry.VerifyNoOtherCalls();
+        dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), alwaysKeep ? Times.Never : Times.Once);
+    });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AdoptedDependencyPlanValidatesOnlyActualFinalDestination(bool conflictAtFinalDestination) {
+        var parent = Release("v2.0.0");
+        var dependency = Release("v1.0.0") with { Info = parent.Info with { RepoUrl = "https://github.com/Org/Dependency", Name = "Dependency" } };
+        parent = parent with { Info = parent.Info with { Dependencies = [new Dependency(dependency.Info.RepoUrl, "*")] } };
+        File.WriteAllText(Path.Join(_dir, "manual.pak"), parent.Tag);
+        File.WriteAllText(Path.Join(_dir, "manual.sig"), "parent signature");
+        File.WriteAllText(Path.Join(_dir, "dependency.pak"), dependency.Tag);
+        var orphan = conflictAtFinalDestination ? "qy__-__Mod1.sig" : "q__-__Mod1.sig";
+        File.WriteAllText(Path.Join(_dir, orphan), "unrelated orphan signature");
+        var paks = new Core.Services.Mods.PakDir(_dir, []);
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+        var manager = new ModManager(registry.Object, paks, [], [new Mod(parent.Info, [parent]), new Mod(dependency.Info, [dependency])]);
+        var dialogue = ConfirmFileChanges();
+        if (conflictAtFinalDestination) dialogue.Setup(d => d.DisplayMessage(It.IsAny<string>()));
+
+        var plan = await new PakReleaseRecovery(manager, dialogue.Object).RecoverPlan();
+
+        Assert.Equal(!conflictAtFinalDestination, plan.IsSome);
+        if (conflictAtFinalDestination) {
+            Assert.Equal(parent.Tag, File.ReadAllText(Path.Join(_dir, "manual.pak")));
+            Assert.Equal("parent signature", File.ReadAllText(Path.Join(_dir, "manual.sig")));
+            Assert.Equal(dependency.Tag, File.ReadAllText(Path.Join(_dir, "dependency.pak")));
+        }
+        else {
+            Assert.Equal(new[] { dependency, parent }, plan.IfNone([]));
+            var results = await manager.InstallMods(plan.IfNone([]), Option<AccumulatedMemoryProgress>.None).ToListAsync();
+            Assert.Equal(2, results.Count);
+            Assert.All(results, result => result.IfLeft(error => throw error));
+            Assert.Equal(parent.Tag, File.ReadAllText(Path.Join(_dir, "qy__-__Mod1.pak")));
+            Assert.Equal("parent signature", File.ReadAllText(Path.Join(_dir, "qy__-__Mod1.sig")));
+        }
+        Assert.Equal("unrelated orphan signature", File.ReadAllText(Path.Join(_dir, orphan)));
+        registry.VerifyNoOtherCalls();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task AdoptedPakUsesFreeNameWithRequiredDependencyPrefixWhenUnknownOccupiesDestination(bool hasDependency) {
         var parent = Release("v2.0.0");
         var dependency = Release("v1.0.0") with { Info = parent.Info with { RepoUrl = "https://github.com/Org/Dependency", Name = "Dependency" } };

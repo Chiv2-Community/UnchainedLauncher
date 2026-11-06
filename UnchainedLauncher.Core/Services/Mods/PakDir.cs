@@ -111,6 +111,19 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 (duplicates.Contains(c.ModuleName) ? $"{c.Org}_{c.ModuleName}" : c.ModuleName) + ".pak"));
         }
 
+        internal static string GetAvailableInstallFileName(string dirPath, string suggestedName,
+            IEnumerable<ManagedPak> managed, string? existingName) {
+            var finalName = suggestedName;
+            if (File.Exists(Path.Join(dirPath, finalName))
+                && !managed.Any(pak => pak.PakFileName.Equals(finalName, StringComparison.OrdinalIgnoreCase))) {
+                if (existingName != null && existingName.StartsWith(suggestedName.Split("__-__", 2)[0] + "__-__", StringComparison.OrdinalIgnoreCase))
+                    return existingName;
+                for (var suffix = 1; File.Exists(Path.Join(dirPath, finalName)) || File.Exists(Path.ChangeExtension(Path.Join(dirPath, finalName), ".sig")); suffix++)
+                    finalName = $"{Path.GetFileNameWithoutExtension(suggestedName)} ({suffix}).pak";
+            }
+            return finalName;
+        }
+
         public async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSet(
                 IEnumerable<ModInstallRequest> installs,
                 Option<AccumulatedMemoryProgress> progress) {
@@ -132,16 +145,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .Zip(sortedPakNames, (install, finalPakName) => (Install: install, FinalPakName: finalPakName))
                 .Select((item, index) => {
                     var existing = existingByCoords.TryGetValue(item.Install.Coordinates, out var e) ? Some(e) : None;
-                    var finalPakName = item.FinalPakName;
-                    if (e != null && File.Exists(PakNameToPakPath(finalPakName))
-                        && !_managedPaks.Any(owned => owned.PakFileName.Equals(finalPakName, StringComparison.OrdinalIgnoreCase))) {
-                        if (e.PakFileName.StartsWith(finalPakName.Split("__-__", 2)[0] + "__-__", StringComparison.OrdinalIgnoreCase))
-                            finalPakName = e.PakFileName;
-                        else {
-                            for (var suffix = 1; File.Exists(PakNameToPakPath(finalPakName)) || File.Exists(Path.ChangeExtension(PakNameToPakPath(finalPakName), ".sig")); suffix++)
-                                finalPakName = $"{Path.GetFileNameWithoutExtension(item.FinalPakName)} ({suffix}).pak";
-                        }
-                    }
+                    var finalPakName = GetAvailableInstallFileName(DirPath, item.FinalPakName, _managedPaks, e?.PakFileName);
                     return existing.Match(
                         Some: pak => pak.PakFileName.Equals(finalPakName, StringComparison.OrdinalIgnoreCase)
                             ? new InstallAction.Skip(item.Install, index, pak)

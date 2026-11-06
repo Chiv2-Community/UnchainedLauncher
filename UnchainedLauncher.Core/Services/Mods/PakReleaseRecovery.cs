@@ -19,7 +19,7 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
     public async Task<Option<IReadOnlyList<Release>>> RecoverPlan(IReadOnlyList<Release>? requested = null) {
         try {
             var adopted = new List<Release>();
-            if (!await UnmanagedPakRecovery.Recover(manager.PakDir, requested ?? [], (requested ?? []).Concat(manager.Mods.SelectMany(mod => mod.Releases)),
+            if (!await UnmanagedPakRecovery.Recover(manager.PakDir, (requested ?? []).Concat(manager.Mods.SelectMany(mod => mod.Releases)),
                 dialogue, adopted, alwaysKeepUnmanagedPaks)) return None;
             foreach (var release in adopted) manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
             var seeds = requested?.ExceptBy(adopted.Select(ModIdentifier.FromRelease), ModIdentifier.FromRelease).Concat(adopted);
@@ -75,7 +75,9 @@ public class PakReleaseRecovery(IModManager manager, IUserDialogueSpawner dialog
 
             // Validate final destinations and duplicate signatures before changing any files or metadata.
             for (var i = 0; i < recovered.Count; i++) {
-                var destination = Path.Join(manager.PakDir.DirPath, names[i]);
+                var destinationName = PakDir.GetAvailableInstallFileName(manager.PakDir.DirPath, names[i],
+                    manager.PakDir.ManagedPaks, recovered[i].FirstOrDefault() is { } source ? Path.GetFileName(source.Path) : null);
+                var destination = Path.Join(manager.PakDir.DirPath, destinationName);
                 if (recovered[i].Count > 0 && (!File.Exists(destination)
                     || recovered[i][0].Path.Equals(destination, StringComparison.OrdinalIgnoreCase)
                     || replacements.Any(pak => pak.Path.Equals(destination, StringComparison.OrdinalIgnoreCase))))

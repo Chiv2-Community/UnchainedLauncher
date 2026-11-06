@@ -87,6 +87,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// </summary>
         string DirPath { get; }
 
+        IEnumerable<ManagedPak> ManagedPaks { get; }
+
         /// <summary>Records an existing pak after its release hash has been verified.</summary>
         void TrackPak(ManagedPak pak);
     }

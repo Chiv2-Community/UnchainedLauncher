@@ -502,26 +502,37 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.False(File.Exists(Path.Join(thisTestPath, orphanedSigName)));
         }
 
-        [Fact]
-        public async Task InstallModSet_UnresolvedCollision_DoesNotOverwriteOrCreateNumberedCopy() {
-            var thisTestPath = Path.Join(BaseTestDir, nameof(InstallModSet_UnresolvedCollision_DoesNotOverwriteOrCreateNumberedCopy));
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task InstallModSet_CollisionDuringDownload_DoesNotOverwriteOrRetry(bool preexistingCollision) {
+            var thisTestPath = Path.Join(BaseTestDir, nameof(InstallModSet_CollisionDuringDownload_DoesNotOverwriteOrRetry), preexistingCollision.ToString());
             PrepareTestDirWithSig(thisTestPath);
 
-            // Create an unmanaged pak file with a conflicting name
-            File.WriteAllText(Path.Join(thisTestPath, "q__-__TestMod.pak"), "unmanaged pak contents");
+            if (preexistingCollision)
+                File.WriteAllText(Path.Join(thisTestPath, "q__-__TestMod.pak"), "kept pak contents");
+            var target = Path.Join(thisTestPath, preexistingCollision ? "q__-__TestMod (1).pak" : "q__-__TestMod.pak");
 
             var pd = new Core.Services.Mods.PakDir(thisTestPath, Enumerable.Empty<ManagedPak>());
             var coords = new ReleaseCoordinates("Org", "TestMod", "1.0.0");
 
             var results = await pd.InstallModSet(
-                new[] { new ModInstallRequest(coords, StaticMkWriter) },
+                new[] { new ModInstallRequest(coords, path => {
+                    File.WriteAllText(target, "concurrent pak contents");
+                    File.WriteAllText(Path.ChangeExtension(target, ".sig"), "concurrent signature");
+                    return StaticMkWriter(path);
+                }) },
                 Option<AccumulatedMemoryProgress>.None
             ).ToListAsync();
 
             Assert.True(Assert.Single(results).IsLeft);
             Assert.Empty(pd.ManagedPaks);
-            Assert.Single(Directory.GetFiles(thisTestPath, "*.pak"));
-            Assert.Equal("unmanaged pak contents", File.ReadAllText(Path.Join(thisTestPath, "q__-__TestMod.pak")));
+            Assert.Equal(preexistingCollision ? 2 : 1, Directory.GetFiles(thisTestPath, "*.pak").Length);
+            Assert.Empty(Directory.GetFiles(thisTestPath, "*.partial"));
+            Assert.Equal("concurrent pak contents", File.ReadAllText(target));
+            Assert.Equal("concurrent signature", File.ReadAllText(Path.ChangeExtension(target, ".sig")));
+            if (preexistingCollision)
+                Assert.Equal("kept pak contents", File.ReadAllText(Path.Join(thisTestPath, "q__-__TestMod.pak")));
         }
 
         [Fact]

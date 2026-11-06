@@ -1,7 +1,6 @@
 using LanguageExt;
 using log4net;
 using UnchainedLauncher.Core.Extensions;
-using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
@@ -12,19 +11,21 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     public class Chivalry2ModsInstaller : IChivalry2LaunchPreparer<LaunchOptions> {
         private readonly ILog _logger = LogManager.GetLogger(typeof(Chivalry2ModsInstaller));
         private readonly IUserDialogueSpawner _userDialogueSpawner;
+        private readonly IUnmanagedPakSettings? _settings;
         private IModManager _modManager { get; }
 
-        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner) {
+        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner, IUnmanagedPakSettings? settings = null) {
             _modManager = modManager;
             _userDialogueSpawner = dialogueSpawner;
+            _settings = settings;
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
-            // Get all releases that will be installed (enabled mods + dependencies)
-            var releasesToInstall = _modManager.SortByDependencies(_modManager.GetEnabledAndDependencyReleases()).ToList();
+            var recovered = await new PakReleaseRecovery(_modManager, _userDialogueSpawner,
+                _settings?.AlwaysKeepUnmanagedPaks == true, _settings?.AutomaticallyDownloadPakDependencies ?? true).RecoverPlan();
+            if (recovered.IsNone) return None;
+            var releasesToInstall = recovered.IfNone([]);
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
-
-            if (!await new PakReleaseRecovery(_modManager, _userDialogueSpawner).Recover(releasesToInstall)) return None;
 
             // Install mods via ModManager
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");

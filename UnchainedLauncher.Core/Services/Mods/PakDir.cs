@@ -99,7 +99,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         public void TrackPak(ManagedPak pak) {
-            _managedPaks.RemoveAll(existing => existing.Coordinates.Matches(pak.Coordinates)
+            _managedPaks.RemoveAll(existing => existing.Coordinates == pak.Coordinates
                 || existing.PakFileName.Equals(pak.PakFileName, StringComparison.OrdinalIgnoreCase));
             _managedPaks.Add(pak);
         }
@@ -109,6 +109,19 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var duplicates = coordinates.GroupBy(c => c.ModuleName).Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet();
             return ApplySortedLexicographically(coordinates.Select(c =>
                 (duplicates.Contains(c.ModuleName) ? $"{c.Org}_{c.ModuleName}" : c.ModuleName) + ".pak"));
+        }
+
+        internal static string GetAvailableInstallFileName(string dirPath, string suggestedName,
+            IEnumerable<ManagedPak> managed, string? existingName) {
+            var finalName = suggestedName;
+            if (File.Exists(Path.Join(dirPath, finalName))
+                && !managed.Any(pak => pak.PakFileName.Equals(finalName, StringComparison.OrdinalIgnoreCase))) {
+                if (existingName != null && existingName.StartsWith(suggestedName.Split("__-__", 2)[0] + "__-__", StringComparison.OrdinalIgnoreCase))
+                    return existingName;
+                for (var suffix = 1; File.Exists(Path.Join(dirPath, finalName)) || File.Exists(Path.ChangeExtension(Path.Join(dirPath, finalName), ".sig")); suffix++)
+                    finalName = $"{Path.GetFileNameWithoutExtension(suggestedName)} ({suffix}).pak";
+            }
+            return finalName;
         }
 
         public async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSet(
@@ -132,11 +145,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .Zip(sortedPakNames, (install, finalPakName) => (Install: install, FinalPakName: finalPakName))
                 .Select((item, index) => {
                     var existing = existingByCoords.TryGetValue(item.Install.Coordinates, out var e) ? Some(e) : None;
+                    var finalPakName = GetAvailableInstallFileName(DirPath, item.FinalPakName, _managedPaks, e?.PakFileName);
                     return existing.Match(
-                        Some: pak => pak.PakFileName == item.FinalPakName
+                        Some: pak => pak.PakFileName.Equals(finalPakName, StringComparison.OrdinalIgnoreCase)
                             ? new InstallAction.Skip(item.Install, index, pak)
-                            : new InstallAction.Move(item.Install, index, pak, item.FinalPakName) as InstallAction,
-                        None: () => new InstallAction.Download(item.Install, index, item.FinalPakName)
+                            : new InstallAction.Move(item.Install, index, pak, finalPakName) as InstallAction,
+                        None: () => new InstallAction.Download(item.Install, index, finalPakName)
                     );
                 })
                 .ToList();
@@ -144,7 +158,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             // Categorize managed paks not in install set as Remove actions
             installActions.AddRange(
                 _managedPaks
-                    .Filter(p => !installCoordinatesSet.Any(c => c.Matches(p.Coordinates)))
+                    .Filter(p => !installCoordinatesSet.Contains(p.Coordinates))
                     .Select(p => new InstallAction.Remove(p))
                     .ToList()
             );
@@ -259,7 +273,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         private void ProcessRemove(InstallAction.Remove remove) {
             Logger.Info($"Removing pak: {remove.Existing.PakFileName} ({remove.Existing.Coordinates.ModuleName} version {remove.Existing.Coordinates.Version})");
             var uninstallResult = Uninstall(remove.Existing.Coordinates);
-            uninstallResult.IfRight(_ => _managedPaks.RemoveAll(p => p.Coordinates.Matches(remove.Existing.Coordinates)));
+            uninstallResult.IfRight(_ => _managedPaks.RemoveAll(p => p.Coordinates == remove.Existing.Coordinates));
             uninstallResult.IfLeft(e => Logger.Error($"Failed to remove pak {remove.Existing.PakFileName}: {e}"));
         }
 
@@ -341,7 +355,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         private Option<ManagedPak> GetManagedPakFile(ModIdentifier coords) {
             return _managedPaks
-                .Filter(p => p.Coordinates.Matches(coords))
+                .Filter(p => coords is ReleaseCoordinates release ? p.Coordinates == release : p.Coordinates.Matches(coords))
                 .ToOption();
         }
 

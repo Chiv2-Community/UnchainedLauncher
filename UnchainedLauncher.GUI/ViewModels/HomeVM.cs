@@ -150,7 +150,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         [RelayCommand]
         public async Task<Option<Process>> LaunchUnchained() {
             var options = new LaunchOptions(
-                ModManager.GetEnabledAndDependencies(),
+                ModManager.GetEnabledAndDependencies(Settings.AutomaticallyDownloadPakDependencies),
                 Settings.ServerBrowserBackend,
                 Settings.CLIArgs,
                 Settings.EnablePluginAutomaticUpdates,

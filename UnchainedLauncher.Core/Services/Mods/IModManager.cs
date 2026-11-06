@@ -313,30 +313,16 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         /// <summary>
-        /// Installs all enabled mods and their dependencies to the pak directory.
-        /// Performs topological sorting to ensure dependencies are installed in correct order.
+        /// Installs the supplied release snapshot in dependency order.
         /// </summary>
         /// <param name="modManager">The mod manager containing enabled mods and pak directory</param>
+        /// <param name="sortedReleases">All requested releases and dependencies, dependencies first</param>
         /// <param name="progress">Optional progress tracker for reporting installation progress</param>
         /// <returns>An async enumerable of installation results</returns>
-        public static async IAsyncEnumerable<Either<Error, ManagedPak>> InstallMods(
+        public static IAsyncEnumerable<Either<Error, ManagedPak>> InstallMods(
             this IModManager modManager,
+            IReadOnlyList<Release> sortedReleases,
             Option<AccumulatedMemoryProgress> progress) {
-
-            var dependencyProgress = new MemoryProgress("Resolving dependencies");
-            var sortProgress = new MemoryProgress("Sorting by dependencies");
-            progress.IfSome(p => {
-                p.AlsoTrack(dependencyProgress);
-                p.AlsoTrack(sortProgress);
-            });
-
-            // Get all enabled mods with their dependencies
-            var releasesToInstall = modManager.GetEnabledAndDependencyReleases().ToList();
-            dependencyProgress.Report(100);
-
-            // Sort by dependencies
-            var sortedReleases = modManager.SortByDependencies(releasesToInstall).ToList();
-            sortProgress.Report(100);
 
             // Create install requests with download writers
             var installRequests = sortedReleases
@@ -348,13 +334,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
                             .DownloadPak(coords, outputPath)
                             .MapLeft(e => Error.New(e))
                     );
-                })
-                .ToList();
+                });
 
-            // Install via PakDir
-            await foreach (var result in modManager.PakDir.InstallModSet(installRequests, progress)) {
-                yield return result;
-            }
+            return modManager.PakDir.InstallModSet(installRequests, progress);
         }
 
         /// <summary>

@@ -37,7 +37,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             var paks = new Core.Services.Mods.PakDir(_dir, []);
             var manager = Manager(paks, registry, wanted);
             Assert.True(await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
-            var results = await manager.InstallMods(Option<AccumulatedMemoryProgress>.None).ToListAsync();
+            var results = await manager.InstallMods([wanted], Option<AccumulatedMemoryProgress>.None).ToListAsync();
             results.ForEach(result => result.IfLeft(error => throw error));
             Assert.Equal("q__-__Mod1.pak", Assert.Single(paks.ManagedPaks).PakFileName);
             Assert.Equal(2, Directory.GetFiles(_dir, "*.pak").Length);
@@ -64,7 +64,7 @@ public class PakReleaseRecoveryTests : IDisposable {
 
         Assert.True(await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
         Assert.Equal(ReleaseCoordinates.FromRelease(wanted), Assert.Single(paks.ManagedPaks).Coordinates);
-        var results = await manager.InstallMods(Option<AccumulatedMemoryProgress>.None).ToListAsync();
+        var results = await manager.InstallMods([wanted], Option<AccumulatedMemoryProgress>.None).ToListAsync();
 
         Assert.True(Assert.Single(results).IsRight);
         Assert.Equal(wanted.Tag, File.ReadAllText(Path.Join(_dir, "q__-__Mod1.pak")));
@@ -113,7 +113,7 @@ public class PakReleaseRecoveryTests : IDisposable {
 
         Assert.Equal(identical, await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
         if (identical) {
-            var results = await manager.InstallMods(Option<AccumulatedMemoryProgress>.None).ToListAsync();
+            var results = await manager.InstallMods([wanted], Option<AccumulatedMemoryProgress>.None).ToListAsync();
             Assert.True(Assert.Single(results).IsRight);
             Assert.Equal(wanted.Tag, File.ReadAllText(destination));
             Assert.False(File.Exists(source));
@@ -147,7 +147,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         var paks = new Core.Services.Mods.PakDir(_dir, [tracked]);
         var registry = new Mock<IModRegistry>(MockBehavior.Strict);
 
-        var results = await Manager(paks, registry, wanted).InstallMods(Option<AccumulatedMemoryProgress>.None).ToListAsync();
+        var results = await Manager(paks, registry, wanted).InstallMods([wanted], Option<AccumulatedMemoryProgress>.None).ToListAsync();
 
         Assert.Equal(identical, Assert.Single(results).IsRight);
         Assert.Equal(wanted.Tag, File.ReadAllText(identical ? destination : source));
@@ -270,7 +270,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             .Returns(UserDialogueChoice.Yes);
 
         Assert.True(await new PakReleaseRecovery(manager, dialogue.Object).Recover([wanted]));
-        var results = await manager.InstallMods(Option<AccumulatedMemoryProgress>.None).ToListAsync();
+        var results = await manager.InstallMods([wanted], Option<AccumulatedMemoryProgress>.None).ToListAsync();
 
         results.ForEach(result => result.IfLeft(error => throw error));
         Assert.Equal(wanted.Tag, File.ReadAllText(path));
@@ -377,6 +377,60 @@ public class PakReleaseRecoveryTests : IDisposable {
         Assert.Equal("first signature", File.ReadAllText(Path.ChangeExtension(firstPath, ".sig")));
         Assert.Equal("second signature", File.ReadAllText(Path.ChangeExtension(secondPath, ".sig")));
         Assert.Equal(tracked, Assert.Single(paks.ManagedPaks));
+        registry.VerifyNoOtherCalls();
+        dialogue.VerifyAll();
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task LaunchInstallation_ReusesRecoveryDependencyOrderAndNames_WithoutDownload(bool sameModuleName, bool reorder) {
+        var dependent = Release("v2.0.0");
+        var dependency = Release("v1.0.0") with {
+            Info = dependent.Info with {
+                RepoUrl = sameModuleName ? "https://github.com/OtherOrg/Mod1" : "https://github.com/Org/Mod2",
+                Name = sameModuleName ? "Mod1" : "Mod2"
+            }
+        };
+        dependent = dependent with { Info = dependent.Info with { Dependencies = [new Dependency(dependency.Info.RepoUrl, "*")] } };
+        var releases = new[] { dependency, dependent };
+        var stems = sameModuleName ? new[] { "OtherOrg_Mod1", "Org_Mod1" } : new[] { "Mod2", "Mod1" };
+        var names = new[] { $"qz__-__{stems[0]}.pak", $"qy__-__{stems[1]}.pak" };
+        var sourceNames = reorder ? new[] { $"qy__-__{stems[0]}.pak", $"qz__-__{stems[1]}.pak" } : names;
+        for (var i = 0; i < releases.Length; i++) {
+            File.WriteAllText(Path.Join(_dir, sourceNames[i]), releases[i].Tag);
+            File.WriteAllText(Path.Join(_dir, Path.ChangeExtension(sourceNames[i], ".sig")), releases[i].Tag + " signature");
+        }
+        var paks = new Core.Services.Mods.PakDir(_dir, []);
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+        var manager = new ModManager(registry.Object, paks, [ReleaseCoordinates.FromRelease(dependent)],
+            [new Mod(dependent.Info, [dependent]), new Mod(dependency.Info, [dependency])]);
+        var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+        ManagedPak[] recovered = [];
+        var progressClosed = false;
+        dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>()))
+            .Callback(() => {
+                recovered = paks.ManagedPaks.OrderBy(pak => pak.Priority).ToArray();
+                Assert.Equal(releases.Select(ReleaseCoordinates.FromRelease), recovered.Select(pak => pak.Coordinates));
+                Assert.Equal(new[] { 0, 1 }, recovered.Select(pak => pak.Priority));
+                Assert.Equal(sourceNames, recovered.Select(pak => pak.PakFileName));
+            }).Returns(() => progressClosed = true);
+        var options = new LaunchOptions([], "", "", false, false, Prelude.None, Prelude.None);
+
+        Assert.Equal(Prelude.Some(options), await new Chivalry2ModsInstaller(manager, dialogue.Object).PrepareLaunch(options));
+
+        var installed = paks.ManagedPaks.OrderBy(pak => pak.Priority).ToArray();
+        Assert.Equal(recovered.Select(pak => (pak.Coordinates, pak.Priority)), installed.Select(pak => (pak.Coordinates, pak.Priority)));
+        Assert.Equal(names, installed.Select(pak => pak.PakFileName));
+        for (var i = 0; i < releases.Length; i++) {
+            Assert.Equal(releases[i].Tag, File.ReadAllText(Path.Join(_dir, names[i])));
+            Assert.Equal(releases[i].Tag + " signature", File.ReadAllText(Path.Join(_dir, Path.ChangeExtension(names[i], ".sig"))));
+        }
+        Assert.Equal(2, Directory.GetFiles(_dir, "*.pak").Length);
+        Assert.Equal(2, Directory.GetFiles(_dir, "*.sig").Length);
+        Assert.True(progressClosed);
         registry.VerifyNoOtherCalls();
         dialogue.VerifyAll();
     }

@@ -30,7 +30,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");
             var closeProgressWindow = _userDialogueSpawner.DisplayProgress(progresses);
 
-            var installResults = await _modManager.InstallMods(progresses).ToListAsync();
+            var installResults = await _modManager.InstallMods(releasesToInstall, progresses).ToListAsync();
 
             var (errors, successes) =
                 installResults.Partition()

@@ -560,10 +560,8 @@ public class PakReleaseRecoveryTests : IDisposable {
         Assert.Equal(ReleaseCoordinates.FromRelease(unrelated), Assert.Single(manager.EnabledModReleaseCoordinates));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public Task FreshDownloadKeepsUnknownDestinationAndSkipsOccupiedAlternates(bool alwaysKeep) => ui.RunAsync(async () => {
+    [Fact]
+    public Task FreshDownloadKeepsUnknownDestinationAndSkipsOccupiedAlternates() => ui.RunAsync(async () => {
         var wanted = Release("v1.0.0");
         var preserved = new Dictionary<string, string> {
             ["q__-__Mod1.pak"] = "kept canonical pak",
@@ -582,7 +580,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             });
         var manager = Manager(paks, registry, wanted);
         var dialogue = ConfirmFileChanges();
-        var plan = await new PakReleaseRecovery(manager, dialogue.Object, alwaysKeep).RecoverPlan();
+        var plan = await new PakReleaseRecovery(manager, dialogue.Object).RecoverPlan();
         Assert.True(plan.IsSome);
         for (var attempt = 0; attempt < 2; attempt++) {
             var results = await manager.InstallMods(plan.IfNone([]), Option<AccumulatedMemoryProgress>.None).ToListAsync();
@@ -595,7 +593,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         Assert.Equal(3, Directory.GetFiles(_dir, "*.pak").Length);
         registry.Verify(r => r.DownloadPak(ReleaseCoordinates.FromRelease(wanted), It.IsAny<string>()), Times.Once);
         registry.VerifyNoOtherCalls();
-        dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), alwaysKeep ? Times.Never : Times.Once);
+        dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), Times.Once);
     });
 
     [Theory]

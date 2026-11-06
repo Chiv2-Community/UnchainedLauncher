@@ -34,14 +34,11 @@ public class KeptUnmanagedPakTests : IDisposable {
     private static string Hash(string content) => Convert.ToHexString(SHA512.HashData(Encoding.UTF8.GetBytes(content)));
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task KeepSurvivesRestartButChangedNameOrHashRequiresNewConsent(bool rename, bool alwaysKeep) {
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task KeepSurvivesRestartButChangedNameOrHashRequiresNewConsent(bool rename) {
         var path = Write("manual.pak", "original");
-        var initial = alwaysKeep ? new Mock<IUserDialogueSpawner>(MockBehavior.Strict) : Dialogue(UserDialogueChoice.Yes);
-        Assert.True(await Recover(initial, alwaysKeep));
+        Assert.True(await Recover(Dialogue(UserDialogueChoice.Yes)));
         Assert.Equal(Hash("original"), Choices()["manual.pak"]);
         Assert.Empty(new Core.Services.Mods.PakDir(_dir, []).ManagedPaks);
         Assert.True(await Recover(new Mock<IUserDialogueSpawner>(MockBehavior.Strict)));
@@ -52,10 +49,11 @@ public class KeptUnmanagedPakTests : IDisposable {
         Assert.False(await Recover(cancel));
         cancel.VerifyAll();
         Assert.Equal(Hash("original"), Choices()["manual.pak"]);
-        Assert.True(await Recover(Dialogue(UserDialogueChoice.Yes)));
+        Assert.True(await Recover(new Mock<IUserDialogueSpawner>(MockBehavior.Strict), true));
         var entry = Assert.Single(Choices());
         Assert.Equal(rename ? "renamed.pak" : "manual.pak", entry.Key);
         Assert.Equal(Hash(rename ? "original" : "changed"), entry.Value);
+        Assert.Empty(new Core.Services.Mods.PakDir(_dir, []).ManagedPaks);
         Assert.True(await Recover(new Mock<IUserDialogueSpawner>(MockBehavior.Strict)));
     }
 

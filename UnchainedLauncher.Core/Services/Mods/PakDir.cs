@@ -216,12 +216,13 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         public async Task<bool> RecoverReleases(IReadOnlyList<Release> requested, IEnumerable<Release> known, IUserDialogueSpawner dialogue,
-            ICollection<Release>? adopted = null, bool alwaysKeepUnmanagedPaks = false) {
+            ICollection<Release>? adopted = null, bool alwaysKeepUnmanagedPaks = false,
+            Func<IReadOnlyList<Release>, IReadOnlyList<Release>>? resolvePlan = null) {
             try {
                 using var inventoryLock = await _inventory.Lock();
                 ReloadInventory();
                 _inventory.Save(_managedPaks);
-                var recovered = await PakReleaseRecovery.Recover(this, requested, known, dialogue, _inventory.BeginChange, adopted ?? new List<Release>(), alwaysKeepUnmanagedPaks);
+                var recovered = await PakReleaseRecovery.Recover(this, requested, known, dialogue, _inventory.BeginChange, adopted ?? new List<Release>(), alwaysKeepUnmanagedPaks, resolvePlan);
                 if (recovered) {
                     SynchronizeWithDir();
                     _inventory.Save(_managedPaks);
@@ -465,7 +466,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
             if (File.Exists(signedName)) {
                 return Right(Unit.Default);
             }
-            var sigPath = Path.Join(FilePaths.PakDir, BaseSigFileName);
+            var sigPath = Path.Join(DirPath, BaseSigFileName);
+            if (!File.Exists(sigPath)) sigPath = Path.Join(FilePaths.PakDir, BaseSigFileName);
             return (File.Exists(sigPath)
                 ? Either<Error, string>.Right(sigPath)
                 : Error.New($"Default sig file '{sigPath}' not found"))

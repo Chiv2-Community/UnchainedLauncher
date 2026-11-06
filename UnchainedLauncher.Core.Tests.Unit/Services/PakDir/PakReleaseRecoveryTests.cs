@@ -14,6 +14,14 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir;
 
 [Collection("Pak installation files")]
 public class PakReleaseRecoveryTests : IDisposable {
+    private sealed class ImmediateContext : SynchronizationContext {
+        public override void Post(SendOrPostCallback callback, object? state) {
+            var previous = Current;
+            SetSynchronizationContext(this);
+            try { callback(state); }
+            finally { SetSynchronizationContext(previous); }
+        }
+    }
     private readonly string _dir = Path.Join("TestDirectories", nameof(PakReleaseRecoveryTests), Guid.NewGuid().ToString());
     public PakReleaseRecoveryTests() => Directory.CreateDirectory(_dir);
     public void Dispose() => Directory.Delete(_dir, true);
@@ -231,6 +239,89 @@ public class PakReleaseRecoveryTests : IDisposable {
         Assert.True(File.Exists(path));
         Assert.False(File.Exists(duplicate));
         Assert.Single(await paks.GetManagedPaks());
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public async Task AdoptedRootValidatesNewManagedDependenciesBeforeInstallation(bool acceptReplacement, bool includeDependencies) {
+        var dependency = Release("v1.0.0");
+        var parent = Release("v2.0.0") with {
+            Info = dependency.Info with { RepoUrl = "https://github.com/Org/Parent", Name = "Parent",
+                Dependencies = [new Dependency(dependency.Info.RepoUrl, "*")] }
+        };
+        var parentPath = Write("parent.pak", parent.Tag);
+        var dependencyPath = Write("qz__-__Mod1.pak", "CORRUPT");
+        Write("parent.sig", "parent signature");
+        Write("qz__-__Mod1.sig", "dependency signature");
+        Write("pakchunk0-WindowsNoEditor.sig", "base signature");
+        var paks = new Core.Services.Mods.PakDir(_dir,
+            [new ManagedPak(ReleaseCoordinates.FromRelease(dependency), Path.GetFileName(dependencyPath), 0)]);
+        var registry = new Mock<IModRegistry>(MockBehavior.Strict);
+        registry.Setup(r => r.DownloadPak(ReleaseCoordinates.FromRelease(dependency), It.IsAny<string>()))
+            .Returns((ReleaseCoordinates _, string output) => {
+                var bytes = Encoding.UTF8.GetBytes(dependency.Tag);
+                return Prelude.RightAsync<ModPakStreamAcquisitionFailure, FileWriter>(new FileWriter(output, new MemoryStream(bytes), bytes.Length));
+            });
+        var manager = new ModManager(registry.Object, paks, [], [new Mod(parent.Info, [parent]), new Mod(dependency.Info, [dependency])]);
+        var settings = new Mock<IUnmanagedPakSettings>();
+        settings.SetupGet(s => s.AutomaticallyDownloadPakDependencies).Returns(includeDependencies);
+        var dialogue = Dialogue(UserDialogueChoice.Yes);
+        var messages = new List<string>();
+        dialogue.Setup(d => d.DisplayMessage(It.IsAny<string>())).Callback<string>(messages.Add);
+        dialogue.Setup(d => d.DisplayUpdateMessage("Change installed mod files?", It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+            .Returns(acceptReplacement ? UserDialogueChoice.Yes : UserDialogueChoice.No);
+        dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => { });
+        var options = new LaunchOptions([], "", "", false, false, Prelude.None, Prelude.None);
+
+        var previousContext = SynchronizationContext.Current;
+        Option<LaunchOptions> prepared;
+        SynchronizationContext.SetSynchronizationContext(new ImmediateContext());
+        try {
+            prepared = await new Chivalry2ModsInstaller(manager, dialogue.Object, settings.Object).PrepareLaunch(options);
+        }
+        finally {
+            SynchronizationContext.SetSynchronizationContext(previousContext);
+        }
+        Assert.True(prepared.IsSome == (acceptReplacement || !includeDependencies), string.Join("\n", messages));
+        dialogue.Verify(d => d.DisplayUpdateMessage("Change installed mod files?", It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()),
+            includeDependencies ? Times.Once : Times.Never);
+        registry.Verify(r => r.DownloadPak(It.IsAny<ReleaseCoordinates>(), It.IsAny<string>()), acceptReplacement ? Times.Once : Times.Never);
+        if (includeDependencies && !acceptReplacement) {
+            Assert.Equal("CORRUPT", File.ReadAllText(dependencyPath));
+            Assert.Equal(parent.Tag, File.ReadAllText(parentPath));
+            Assert.Equal("parent signature", File.ReadAllText(Path.ChangeExtension(parentPath, ".sig")));
+            Assert.Equal("dependency signature", File.ReadAllText(Path.ChangeExtension(dependencyPath, ".sig")));
+            Assert.Empty(manager.EnabledModReleaseCoordinates);
+            Assert.False(File.Exists(Path.Join(_dir, ".unchained", "pending")));
+            Assert.Single(await new Core.Services.Mods.PakDir(_dir, []).GetManagedPaks());
+        }
+        if (acceptReplacement) Assert.Equal(dependency.Tag, File.ReadAllText(dependencyPath));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task SharedManagedHashValidatesTheDeterministicallyRetainedSignature(bool reverseCreation, bool conflict) {
+        var first = Release("v1.0.0");
+        var second = first with { Info = first.Info with { RepoUrl = "https://github.com/Other/Mod1" } };
+        var names = new[] { "a.pak", "long-managed.pak", "duplicate.pak" };
+        foreach (var name in reverseCreation ? names.Reverse() : names) {
+            Write(name, first.Tag);
+            Write(Path.ChangeExtension(name, ".sig"), name == "long-managed.pak" || (conflict && name == "duplicate.pak") ? "other" : "retained");
+        }
+        var paks = new Core.Services.Mods.PakDir(_dir, [
+            new ManagedPak(ReleaseCoordinates.FromRelease(first), names[0], 0),
+            new ManagedPak(ReleaseCoordinates.FromRelease(second), names[1], 1)]);
+
+        Assert.Equal(!conflict, await paks.RecoverReleases([], [first, second], Dialogue(UserDialogueChoice.Yes).Object));
+        Assert.Equal(conflict, File.Exists(Path.Join(_dir, names[2])));
+        Assert.Equal("retained", File.ReadAllText(Path.Join(_dir, "a.sig")));
+        Assert.Equal("other", File.ReadAllText(Path.Join(_dir, "long-managed.sig")));
+        Assert.Equal(2, (await paks.GetManagedPaks()).Length);
     }
 
     [Fact]

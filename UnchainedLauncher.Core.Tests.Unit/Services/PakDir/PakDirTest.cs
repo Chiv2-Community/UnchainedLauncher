@@ -75,6 +75,23 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
+        public async Task InstallAndSignAllPreferTheManagedDirectoryBaseSignature() {
+            var modPaks = Path.Join(BaseTestDir, nameof(InstallAndSignAllPreferTheManagedDirectoryBaseSignature));
+            PrepareTestDirWithSig(modPaks);
+            File.WriteAllText(Path.Join(modPaks, "pakchunk0-WindowsNoEditor.sig"), "local signature");
+            var pd = new Core.Services.Mods.PakDir(modPaks, []);
+
+            await InstallDummy(pd, DummyMods[0]);
+
+            var signature = Path.ChangeExtension(Path.Join(modPaks, Assert.Single(pd.ManagedPaks).PakFileName), ".sig");
+            Assert.Equal("local signature", File.ReadAllText(signature));
+            File.Delete(signature);
+            (await pd.SignAll()).IfLeft(throwErrors);
+            Assert.Equal("local signature", File.ReadAllText(signature));
+            Assert.Equal("test sig file", File.ReadAllText(Path.Join(FilePaths.PakDir, "pakchunk0-WindowsNoEditor.sig")));
+        }
+
+        [Fact]
         public async Task DeleteOrphanedSigs() {
             var thisTestPath = Path.Join(BaseTestDir, System.Reflection.MethodBase.GetCurrentMethod()?.Name);
             PrepareTestDirWithSig(thisTestPath);

@@ -184,7 +184,8 @@ public sealed class PakLaunchPreparationTests : IDisposable {
             foreach (var error in errors) yield return Prelude.Left(error);
         }
         var pakDir = new Mock<IPakDir>();
-        pakDir.Setup(p => p.RecoverReleases(It.IsAny<IReadOnlyList<Release>>(), It.IsAny<IEnumerable<Release>>(), It.IsAny<IUserDialogueSpawner>(), It.IsAny<ICollection<Release>>())).ReturnsAsync(true);
+        pakDir.Setup(p => p.RecoverReleases(It.IsAny<IReadOnlyList<Release>>(), It.IsAny<IEnumerable<Release>>(), It.IsAny<IUserDialogueSpawner>(),
+            It.IsAny<ICollection<Release>>(), It.IsAny<bool>(), It.IsAny<Func<IReadOnlyList<Release>, IReadOnlyList<Release>>>())).ReturnsAsync(true);
         pakDir.Setup(p => p.InstallModSet(It.IsAny<IEnumerable<ModInstallRequest>>(),
             It.IsAny<Option<UnchainedLauncher.Core.Utilities.AccumulatedMemoryProgress>>())).Returns(Results);
         var manager = new ModManager(Mock.Of<IModRegistry>(), pakDir.Object, [], []);

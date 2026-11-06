@@ -230,10 +230,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 );
         }
 
-        public static IEnumerable<Release> GetEnabledAndDependencyReleases(this IModManager modManager, bool includeDependencies = true) {
+        public static IEnumerable<Release> GetEnabledAndDependencyReleases(this IModManager modManager, bool includeDependencies = true,
+            IEnumerable<Release>? roots = null) {
             var enabledModsWithDependencies =
-                modManager
-                    .GetEnabledModReleases()
+                (roots ?? modManager.GetEnabledModReleases())
                     .ToImmutableHashSet();
 
             if (!includeDependencies) return enabledModsWithDependencies;

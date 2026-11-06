@@ -10,18 +10,30 @@ internal static class PakReleaseRecovery {
     private record LocalPak(string Path, string Hash, Release? Release);
 
     internal static async Task<bool> Recover(PakDir paks, IReadOnlyList<Release> requested,
-        IEnumerable<Release> known, IUserDialogueSpawner dialogue, Action beginChange, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks) {
+        IEnumerable<Release> known, IUserDialogueSpawner dialogue, Action beginChange, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks,
+        Func<IReadOnlyList<Release>, IReadOnlyList<Release>>? resolvePlan) {
         try {
             using var cache = new PakReadCache(paks.DirPath);
             known = known.ToList();
-            if (!await UnmanagedPakRecovery.Recover(paks, requested, known.Concat(requested), dialogue, beginChange, adopted, alwaysKeepUnmanagedPaks, cache)) return false;
-            requested = requested.Select(release => adopted.FirstOrDefault(detected => ModIdentifier.FromRelease(detected) == ModIdentifier.FromRelease(release)) ?? release)
-                .Concat(adopted.Where(detected => !requested.Any(release => ModIdentifier.FromRelease(detected) == ModIdentifier.FromRelease(release)))).ToList();
-            if (requested.Count == 0) return true;
+            void PreparePlan(IReadOnlyList<Release> detected) {
+                var roots = requested.Select(release => detected.FirstOrDefault(found => ModIdentifier.FromRelease(found) == ModIdentifier.FromRelease(release)) ?? release)
+                    .Concat(detected.Where(found => !requested.Any(release => ModIdentifier.FromRelease(found) == ModIdentifier.FromRelease(release)))).ToList();
+                requested = resolvePlan?.Invoke(roots) ?? roots;
+            }
+            // Stage ownership and deletions until the complete plan has passed validation and confirmation.
+            Action applyUnmanaged = () => { };
+            IReadOnlyList<ManagedPak> adoptedPaks = [];
+            if (!await UnmanagedPakRecovery.Recover(paks, known.Concat(requested), dialogue, beginChange, adopted,
+                alwaysKeepUnmanagedPaks, cache, PreparePlan, (apply, proposed) => { applyUnmanaged = apply; adoptedPaks = proposed; })) return false;
+            if (requested.Count == 0) {
+                applyUnmanaged();
+                return true;
+            }
             var names = PakDir.GetInstallFileNames(requested.Select(ReleaseCoordinates.FromRelease)).ToList();
             var available = requested.Concat(known).OrderByDescending(release => release.Version)
                 .ThenByDescending(release => release.ReleaseDate).ToList();
-            var tracked = paks.ManagedPaks.ToList();
+            var tracked = paks.ManagedPaks.Where(pak => !adoptedPaks.Any(adoptedPak => adoptedPak.Coordinates == pak.Coordinates
+                || adoptedPak.PakFileName.Equals(pak.PakFileName, StringComparison.OrdinalIgnoreCase))).Concat(adoptedPaks).ToList();
             string TrackedPath(Release release) => tracked.Where(pak => pak.Coordinates.Matches(ReleaseCoordinates.FromRelease(release)))
                 .Select(pak => Path.Join(paks.DirPath, pak.PakFileName)).FirstOrDefault() ?? "";
             var trackedPaths = requested.Select(TrackedPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -84,6 +96,7 @@ internal static class PakReleaseRecovery {
             foreach (var pak in local) {
                 cache.Validate(pak.Path, pak.Hash);
             }
+            applyUnmanaged();
             if (replacements.Count == 0 && recovered.All(paks => paks.Count == 0)) return true;
             beginChange();
             foreach (var pak in replacements.Distinct()) DeletePak(pak);

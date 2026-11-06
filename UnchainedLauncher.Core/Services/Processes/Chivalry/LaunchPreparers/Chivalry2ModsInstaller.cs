@@ -22,16 +22,15 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
-            // Get all releases that will be installed (enabled mods + dependencies)
             var includeDependencies = _settings?.AutomaticallyDownloadPakDependencies ?? true;
-            var releasesToInstall = _modManager.SortByDependencies(_modManager.GetEnabledAndDependencyReleases(includeDependencies)).ToList();
-            _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
-
+            IReadOnlyList<Release> releasesToInstall = [];
             var adopted = new List<Release>();
-            if (!await _modManager.PakDir.RecoverReleases(releasesToInstall,
-                _modManager.Mods.SelectMany(mod => mod.Releases), _userDialogueSpawner, adopted, _settings?.AlwaysKeepUnmanagedPaks == true)) return None;
+            if (!await _modManager.PakDir.RecoverReleases(_modManager.GetEnabledModReleases().ToList(),
+                _modManager.Mods.SelectMany(mod => mod.Releases), _userDialogueSpawner, adopted, _settings?.AlwaysKeepUnmanagedPaks == true,
+                roots => releasesToInstall = _modManager.SortByDependencies(
+                    _modManager.GetEnabledAndDependencyReleases(includeDependencies, roots)).ToList())) return None;
             foreach (var release in adopted) _modManager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
-            releasesToInstall = _modManager.SortByDependencies(_modManager.GetEnabledAndDependencyReleases(includeDependencies)).ToList();
+            _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
 
             // Install mods via ModManager
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");

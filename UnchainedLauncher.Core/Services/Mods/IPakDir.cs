@@ -30,8 +30,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
         Task<ManagedPak[]> GetManagedPaks();
 
         /// <summary>Verifies existing release files and confirms ownership or file changes before installation.</summary>
+        /// <param name="resolvePlan">Resolves merged explicit and adopted roots under the inventory lock, before validation.</param>
         Task<bool> RecoverReleases(IReadOnlyList<Release> requested, IEnumerable<Release> known, IUserDialogueSpawner dialogue,
-            ICollection<Release>? adopted = null, bool alwaysKeepUnmanagedPaks = false);
+            ICollection<Release>? adopted = null, bool alwaysKeepUnmanagedPaks = false,
+            Func<IReadOnlyList<Release>, IReadOnlyList<Release>>? resolvePlan = null);
 
         /// <summary>
         /// A delegate that creates a FileWriter for writing pak data to the specified file path.

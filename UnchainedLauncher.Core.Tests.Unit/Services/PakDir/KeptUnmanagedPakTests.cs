@@ -29,7 +29,7 @@ public class KeptUnmanagedPakTests : IDisposable {
 
     private async Task<bool> Recover(Mock<IUserDialogueSpawner> dialogue, bool alwaysKeep = false, params Release[] known) {
         using var cache = new PakReadCache(_dir);
-        return await UnmanagedPakRecovery.Recover(new Core.Services.Mods.PakDir(_dir, []), [], known, dialogue.Object, () => { }, [], alwaysKeep, cache);
+        return await UnmanagedPakRecovery.Recover(new Core.Services.Mods.PakDir(_dir, []), known, dialogue.Object, () => { }, [], alwaysKeep, cache, _ => { });
     }
 
     private Dictionary<string, string> Choices() => JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(ChoicesPath))!;
@@ -57,8 +57,8 @@ public class KeptUnmanagedPakTests : IDisposable {
                 hashes++;
                 return await SHA512.HashDataAsync(stream);
             });
-            Assert.False(await UnmanagedPakRecovery.Recover(new Core.Services.Mods.PakDir(_dir, []), [],
-                run < 2 ? [] : [release], dialogue.Object, () => { }, [], false, cache));
+            Assert.False(await UnmanagedPakRecovery.Recover(new Core.Services.Mods.PakDir(_dir, []),
+                run < 2 ? [] : [release], dialogue.Object, () => { }, [], false, cache, _ => { }));
         }
         Assert.Equal(1, scans);
         Assert.Equal(2, hashes);

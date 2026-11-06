@@ -248,8 +248,11 @@ public class PakReleaseRecoveryTests : IDisposable {
     public async Task AdoptedRootValidatesNewManagedDependenciesBeforeInstallation(bool acceptReplacement, bool includeDependencies) {
         var dependency = Release("v1.0.0");
         var parent = Release("v2.0.0") with {
-            Info = dependency.Info with { RepoUrl = "https://github.com/Org/Parent", Name = "Parent",
-                Dependencies = [new Dependency(dependency.Info.RepoUrl, "*")] }
+            Info = dependency.Info with {
+                RepoUrl = "https://github.com/Org/Parent",
+                Name = "Parent",
+                Dependencies = [new Dependency(dependency.Info.RepoUrl, "*")]
+            }
         };
         var parentPath = Write("parent.pak", parent.Tag);
         var dependencyPath = Write("qz__-__Mod1.pak", "CORRUPT");

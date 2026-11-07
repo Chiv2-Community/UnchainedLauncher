@@ -4,8 +4,8 @@ using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.GUI.ViewModels;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 using PakDirectory = UnchainedLauncher.Core.Services.Mods.PakDir;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods;

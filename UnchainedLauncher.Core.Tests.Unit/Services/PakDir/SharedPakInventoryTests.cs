@@ -263,18 +263,27 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
             Assert.Equal(2, Directory.GetFiles(_directory, "*.pak").Length);
         }
 
-        [Fact]
-        public async Task SuccessfulInstallsArePublishedBeforeEnumeratorDisposal() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task SuccessfulInstallsArePublishedAtBatchEnd(bool completeBatch) {
             var server = NewPakDir();
             await using (var results = server.InstallModSet(
                 new[] { new ModInstallRequest(_a, Write), new ModInstallRequest(_b, Write) },
                 Option<AccumulatedMemoryProgress>.None).GetAsyncEnumerator()) {
                 Assert.True(await results.MoveNextAsync());
                 results.Current.IfLeft(e => throw e);
-                Assert.Single(ReadInventory());
+                Assert.Empty(ReadInventory());
+                if (completeBatch) {
+                    Assert.True(await results.MoveNextAsync());
+                    results.Current.IfLeft(e => throw e);
+                    Assert.Empty(ReadInventory());
+                    Assert.False(await results.MoveNextAsync());
+                }
             }
+            Assert.Equal(completeBatch ? 2 : 1, ReadInventory().Count);
             await Install(NewPakDir(), _a);
-            Assert.Equal(1, _downloads);
+            Assert.Equal(completeBatch ? 2 : 1, _downloads);
         }
 
         [Fact]
@@ -357,7 +366,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
                 })
             }, Option<AccumulatedMemoryProgress>.None).ToListAsync();
 
-            Assert.True(Assert.Single(results).IsLeft);
+            Assert.True(results[0].IsRight);
+            Assert.True(results[1].IsLeft);
             Assert.Empty(ReadInventory());
             Assert.True(File.Exists(Path.Combine(_directory, ".unchained", "pending")));
             var retry = await NewPakDir().InstallModSet(new[] { new ModInstallRequest(_a, Write) },

@@ -61,6 +61,28 @@ public sealed class ModManagerPersistenceTests : IDisposable {
     }
 
     [Fact]
+    public async Task OwnershipIsSavedOnceAfterTheDownloadBatch() {
+        var giant = Release("GiantSlayers");
+        var other = Release("Other");
+        var manager = Manager(giant, other);
+        new ModManagerPersistence(manager, Config).Save();
+        var paks = (PakDirectory)manager.PakDir;
+        var checkpoints = 0;
+        paks.OwnershipChanged += (_, _) => checkpoints++;
+        await using (var results = paks.InstallModSet([Install(giant), Install(other)], Option<AccumulatedMemoryProgress>.None).GetAsyncEnumerator()) {
+            for (var i = 0; i < 2; i++) {
+                Assert.True(await results.MoveNextAsync());
+                Assert.True(results.Current.IsRight);
+                Assert.Equal(0, checkpoints);
+                Assert.Empty(Reload().PakDir.ManagedPaks);
+            }
+            Assert.False(await results.MoveNextAsync());
+        }
+        Assert.Equal(1, checkpoints);
+        Assert.Equal(2, Reload().PakDir.ManagedPaks.Count());
+    }
+
+    [Fact]
     public async Task SuccessfulDownloadSurvivesALaterFailedDownload() {
         var giant = Release("GiantSlayers");
         var other = Release("Other");

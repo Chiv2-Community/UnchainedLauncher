@@ -1,10 +1,10 @@
 using LanguageExt;
 using log4net;
 using System;
+using System.Threading.Tasks;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
-using System.Threading.Tasks;
 
 namespace UnchainedLauncher.GUI.Services;
 

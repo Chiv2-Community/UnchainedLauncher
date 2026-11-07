@@ -13,7 +13,6 @@ using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
-using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Processes;

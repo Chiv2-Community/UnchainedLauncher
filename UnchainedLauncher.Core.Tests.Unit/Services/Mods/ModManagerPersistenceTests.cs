@@ -1,14 +1,14 @@
 using LanguageExt;
 using Moq;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Utilities;
-using UnchainedLauncher.UnrealModScanner.JsonModels;
-using UnchainedLauncher.GUI.ViewModels;
-using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
+using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.ViewModels;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 using PakDirectory = UnchainedLauncher.Core.Services.Mods.PakDir;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods;

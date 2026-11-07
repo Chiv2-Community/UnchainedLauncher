@@ -5,17 +5,26 @@ using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
+using UnchainedLauncher.GUI.ViewModels;
+using UnchainedLauncher.Core.Services;
+using UnchainedLauncher.Core.Services.Processes.Chivalry;
+using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using PakDirectory = UnchainedLauncher.Core.Services.Mods.PakDir;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods;
 
+[Collection("Home launch UI")]
 public sealed class ModManagerPersistenceTests : IDisposable {
+    private readonly Processes.HomeLaunchUi ui;
     private readonly string _root = Path.Combine(Path.GetTempPath(), "ModPersistence_" + Guid.NewGuid().ToString("N"));
     private readonly IModRegistry _registry = Mock.Of<IModRegistry>();
     private string Config => Path.Combine(_root, "cache", "mods.json");
     private string Paks => Path.Combine(_root, "Paks");
 
-    public ModManagerPersistenceTests() => Directory.CreateDirectory(Paks);
+    public ModManagerPersistenceTests(Processes.HomeLaunchUi ui) {
+        this.ui = ui;
+        Directory.CreateDirectory(Paks);
+    }
 
     private static Release Release(string name) => new("v1.0.0", "hash", name + ".pak", DateTime.UtcNow,
         new($"https://github.com/Org/{name}", name, "", null, null, [], [], []),
@@ -112,22 +121,70 @@ public sealed class ModManagerPersistenceTests : IDisposable {
         Assert.Equal(adopted, Assert.Single(Reload().PakDir.ManagedPaks));
     }
 
-    [Fact]
-    public void FailedPublicationPreservesPreviousSnapshotAndReportsFailure() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FailedSelectionSaveReportsWithoutInterruptingTheRealCommand(bool disable) => ui.Run(() => {
         var release = Release("GiantSlayers");
         var manager = Manager(release);
+        var failures = new List<Exception>();
+        var persistence = new ModManagerPersistence(manager, Config, failures.Add);
+        if (disable) manager.EnableModRelease(release);
+        persistence.Save();
+        var previous = File.ReadAllBytes(Config);
+        var notified = false;
+        manager.ModEnabled += (_, _) => notified = true;
+        manager.ModDisabled += _ => notified = true;
+        var vm = new ModVM(manager.Mods.Single(), disable ? Option<Release>.Some(release) : Option<Release>.None, manager);
+        using (var locked = new FileStream(Config, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+            Assert.Null(Record.Exception(() => vm.EnableOrDisableCommand.Execute(null)));
+            var error = Assert.Single(failures);
+            Assert.True(error is IOException or UnauthorizedAccessException, error?.ToString());
+            Assert.True(notified);
+            Assert.Equal(!disable, vm.IsEnabled);
+            Assert.Equal(disable ? [] : new[] { ReleaseCoordinates.FromRelease(release) }, manager.EnabledModReleaseCoordinates);
+            Assert.Equal(previous, File.ReadAllBytes(Config));
+            Assert.True(Record.Exception(persistence.Save) is IOException or UnauthorizedAccessException);
+            Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(Config)!, "*.tmp"));
+        }
+        persistence.Save();
+        Assert.Equal(manager.EnabledModReleaseCoordinates, Reload().EnabledModReleaseCoordinates);
+    });
+
+    [Fact]
+    public Task InstallerCancelsAndClosesProgressWhenTheBatchCheckpointFails() => ui.RunAsync(async () => {
+        var release = Release("GiantSlayers");
+        var registry = new Mock<IModRegistry>();
+        var manager = new ModManager(registry.Object, new PakDirectory(Paks, []), [ReleaseCoordinates.FromRelease(release)],
+            [new Mod(release.Info, [release])]);
         var persistence = new ModManagerPersistence(manager, Config);
         persistence.Save();
         var previous = File.ReadAllBytes(Config);
-        using (var locked = new FileStream(Config, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-            var error = Record.Exception(() => manager.EnableModRelease(release));
-            Assert.True(error is IOException or UnauthorizedAccessException, error?.ToString());
+        FileStream? locked = null;
+        registry.Setup(r => r.DownloadPak(It.IsAny<ReleaseCoordinates>(), It.IsAny<string>()))
+            .Returns((ReleaseCoordinates _, string path) => {
+                locked = new FileStream(Config, FileMode.Open, FileAccess.Read, FileShare.Read);
+                return Prelude.RightAsync<ModPakStreamAcquisitionFailure, FileWriter>(new FileWriter(path, new MemoryStream([1, 2, 3]), 3));
+            });
+        var closed = false;
+        var dialogue = new Mock<IUserDialogueSpawner>();
+        dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => closed = true);
+        var settings = Mock.Of<IUnmanagedPakSettings>(s => s.AutomaticallyDownloadPakDependencies == false);
+        try {
+            var result = await new Chivalry2ModsInstaller(manager, dialogue.Object, settings).PrepareLaunch(
+                new LaunchOptions([], "", "", false, false, Prelude.None, Prelude.None));
+            Assert.True(result.IsNone);
+            Assert.True(closed);
+            Assert.Single(manager.PakDir.ManagedPaks);
             Assert.Equal(previous, File.ReadAllBytes(Config));
+            Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(Config)!, "*.tmp"));
+            dialogue.Verify(d => d.DisplayMessage(It.Is<string>(s => s.Contains("ownership") && s.Contains("cancelled"))), Times.Once);
+            dialogue.Verify(d => d.DisplayYesNoMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
-        Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(Config)!, "*.tmp"));
+        finally { locked?.Dispose(); }
         persistence.Save();
-        Assert.Single(Reload().EnabledModReleaseCoordinates);
-    }
+        Assert.Single(Reload().PakDir.ManagedPaks);
+    });
 
     public void Dispose() => Directory.Delete(_root, recursive: true);
 }

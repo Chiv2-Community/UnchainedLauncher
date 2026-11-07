@@ -5,17 +5,23 @@ using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
+using UnchainedLauncher.GUI.ViewModels;
 using PakDirectory = UnchainedLauncher.Core.Services.Mods.PakDir;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods;
 
+[Collection("Home launch UI")]
 public sealed class ModManagerPersistenceTests : IDisposable {
+    private readonly Processes.HomeLaunchUi ui;
     private readonly string _root = Path.Combine(Path.GetTempPath(), "ModPersistence_" + Guid.NewGuid().ToString("N"));
     private readonly IModRegistry _registry = Mock.Of<IModRegistry>();
     private string Config => Path.Combine(_root, "cache", "mods.json");
     private string Paks => Path.Combine(_root, "Paks");
 
-    public ModManagerPersistenceTests() => Directory.CreateDirectory(Paks);
+    public ModManagerPersistenceTests(Processes.HomeLaunchUi ui) {
+        this.ui = ui;
+        Directory.CreateDirectory(Paks);
+    }
 
     private static Release Release(string name) => new("v1.0.0", "hash", name + ".pak", DateTime.UtcNow,
         new($"https://github.com/Org/{name}", name, "", null, null, [], [], []),
@@ -76,22 +82,35 @@ public sealed class ModManagerPersistenceTests : IDisposable {
         Assert.Equal(ReleaseCoordinates.FromRelease(giant), Assert.Single(await Reload().PakDir.GetManagedPaks()).Coordinates);
     }
 
-    [Fact]
-    public void FailedPublicationPreservesPreviousSnapshotAndReportsFailure() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FailedSelectionSaveReportsWithoutInterruptingTheRealCommand(bool disable) => ui.Run(() => {
         var release = Release("GiantSlayers");
         var manager = Manager(release);
-        var persistence = new ModManagerPersistence(manager, Config);
+        var failures = new List<Exception>();
+        var persistence = new ModManagerPersistence(manager, Config, failures.Add);
+        if (disable) manager.EnableModRelease(release);
         persistence.Save();
         var previous = File.ReadAllBytes(Config);
+        var notified = false;
+        manager.ModEnabled += (_, _) => notified = true;
+        manager.ModDisabled += _ => notified = true;
+        var vm = new ModVM(manager.Mods.Single(), disable ? Option<Release>.Some(release) : Option<Release>.None, manager);
         using (var locked = new FileStream(Config, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-            var error = Record.Exception(() => manager.EnableModRelease(release));
+            Assert.Null(Record.Exception(() => vm.EnableOrDisableCommand.Execute(null)));
+            var error = Assert.Single(failures);
             Assert.True(error is IOException or UnauthorizedAccessException, error?.ToString());
+            Assert.True(notified);
+            Assert.Equal(!disable, vm.IsEnabled);
+            Assert.Equal(disable ? [] : new[] { ReleaseCoordinates.FromRelease(release) }, manager.EnabledModReleaseCoordinates);
             Assert.Equal(previous, File.ReadAllBytes(Config));
+            Assert.True(Record.Exception(persistence.Save) is IOException or UnauthorizedAccessException);
+            Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(Config)!, "*.tmp"));
         }
-        Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(Config)!, "*.tmp"));
         persistence.Save();
-        Assert.Single(Reload().EnabledModReleaseCoordinates);
-    }
+        Assert.Equal(manager.EnabledModReleaseCoordinates, Reload().EnabledModReleaseCoordinates);
+    });
 
     public void Dispose() => Directory.Delete(_root, recursive: true);
 }

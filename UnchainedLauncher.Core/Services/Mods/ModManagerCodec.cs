@@ -65,11 +65,17 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         private static PakDir CreatePakDir(PakDirMetadata? metadata, string? pakDirectory) {
             var path = pakDirectory ?? metadata?.DirPath ?? FilePaths.PakDir;
-            // Ownership is directory-specific: never apply another directory's filenames to this installation.
-            // Leave its files untouched and let normal hash-based recovery identify installation-local paks.
-            var sameDirectory = metadata != null && Path.GetFullPath(metadata.DirPath).TrimEnd(Path.DirectorySeparatorChar)
-                .Equals(Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase);
-            return new PakDir(path, sameDirectory ? metadata!.ManagedPaks : []);
+            var sameDirectory = metadata != null && SavedPakMigration.SameDirectory(metadata.DirPath, path);
+            // An incoming unknown pak must not revive a stale same-name ownership entry.
+            var existing = sameDirectory ? metadata!.ManagedPaks.Where(p => File.Exists(Path.Combine(path, p.PakFileName))).ToArray() : [];
+            var migrated = pakDirectory == null ? [] : SavedPakMigration.Migrate(path, SavedPakMigration.StartupSources(metadata), metadata);
+            return new PakDir(path, sameDirectory ? existing : migrated);
+        }
+
+        public static PakDir CreateInstallationPakDir() {
+            var path = Path.GetFullPath(FilePaths.PakDir);
+            SavedPakMigration.Migrate(path, SavedPakMigration.SourceDirectories());
+            return new PakDir(path, []);
         }
 
         public static ModManagerMetadata ToJsonType(IModManager manager) =>

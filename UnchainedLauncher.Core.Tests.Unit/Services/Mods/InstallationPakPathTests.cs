@@ -11,12 +11,14 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods;
 public sealed class InstallationPakPathTests : IDisposable {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "InstallationPakPath_" + Guid.NewGuid().ToString("N"));
     private readonly string _cwd = Directory.GetCurrentDirectory();
+    private readonly string? _localAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA");
     private readonly IModRegistry _registry = Mock.Of<IModRegistry>();
     private readonly ReleaseCoordinates _coordinates = new("Org", "GiantSlayers", "v1");
 
     public InstallationPakPathTests() {
         Directory.CreateDirectory(_root);
         Directory.SetCurrentDirectory(_root);
+        Environment.SetEnvironmentVariable("LOCALAPPDATA", Path.Combine(_root, "LocalAppData"));
         Directory.CreateDirectory(FilePaths.PakDir);
     }
 
@@ -60,6 +62,20 @@ public sealed class InstallationPakPathTests : IDisposable {
     }
 
     [Fact]
+    public void ProductionCodecMovesKnownSavedFilesBeforeBindingAndRetainsVerifiedOwnership() {
+        var oldPath = Path.Combine(Environment.GetEnvironmentVariable("LOCALAPPDATA")!, "Chivalry 2", "Saved_Unchained", "Paks");
+        Directory.CreateDirectory(oldPath);
+        File.WriteAllText(Path.Combine(oldPath, "managed.pak"), "managed bytes");
+        File.WriteAllText(Path.Combine(oldPath, "managed.sig"), "signature bytes");
+        var original = new ModManager(_registry, new PakDirectory(oldPath, [new(_coordinates, "managed.pak", 0)]), [_coordinates]);
+        var manager = ModManagerCodec.ForInstallation(_registry).Deserialize(new ModManagerCodec(_registry).Serialize(original)).Result!;
+        Assert.True(File.Exists(Path.Combine(FilePaths.PakDir, "managed.pak")));
+        Assert.False(File.Exists(Path.Combine(oldPath, "managed.pak")));
+        Assert.Equal("signature bytes", File.ReadAllText(Path.Combine(FilePaths.PakDir, "managed.sig")));
+        Assert.Single(manager.PakDir.ManagedPaks);
+    }
+
+    [Fact]
     public void CachedInstallationPathPreservesOwnershipAndUsesItsBaseSignature() {
         var name = "q__-__GiantSlayers.pak";
         File.WriteAllText(Path.Combine(FilePaths.PakDir, name), "managed pak");
@@ -72,6 +88,7 @@ public sealed class InstallationPakPathTests : IDisposable {
     }
 
     public void Dispose() {
+        Environment.SetEnvironmentVariable("LOCALAPPDATA", _localAppData);
         Directory.SetCurrentDirectory(_cwd);
         Directory.Delete(_root, true);
     }

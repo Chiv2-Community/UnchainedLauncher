@@ -2,7 +2,6 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
-using System.Windows.Input;
 using UnchainedLauncher.GUI.Behaviors;
 using static UnchainedLauncher.Core.Tests.Unit.Services.Server.MouseWheelTestSupport;
 

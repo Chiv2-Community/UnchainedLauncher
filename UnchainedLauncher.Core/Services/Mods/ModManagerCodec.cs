@@ -8,11 +8,13 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.Core.Services.Mods {
 
     public class ModManagerCodec : Codec<ModManager> {
-        public ModManagerCodec(IModRegistry registry) : base(
-            new Serializer<ModManager>(manager => JsonHelpers.Serialize(ToJsonType(manager))),
-            new Deserializer<ModManager>(json => Decode(json, registry))) { }
+        public static ModManagerCodec ForInstallation(IModRegistry registry) => new(registry, Path.GetFullPath(FilePaths.PakDir));
 
-        private static DeserializationResult<ModManager> Decode(string json, IModRegistry registry) {
+        public ModManagerCodec(IModRegistry registry, string? pakDirectory = null) : base(
+            new Serializer<ModManager>(manager => JsonHelpers.Serialize(ToJsonType(manager))),
+            new Deserializer<ModManager>(json => Decode(json, registry, pakDirectory))) { }
+
+        private static DeserializationResult<ModManager> Decode(string json, IModRegistry registry, string? pakDirectory) {
             try {
                 var document = JsonNode.Parse(json);
                 var invalidated = false;
@@ -28,7 +30,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 }
                 return JsonHelpers.Deserialize<ModManagerMetadata>(document?.ToJsonString() ?? json)
                     .Map(metadata => {
-                        var manager = ToClassType(metadata, registry);
+                        var manager = ToClassType(metadata, registry, pakDirectory);
                         manager.NeedsMetadataRefresh |= invalidated;
                         return manager;
                     });
@@ -39,11 +41,11 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
 
-        public static ModManager ToClassType(ModManagerMetadata metadata, IModRegistry registry) =>
+        public static ModManager ToClassType(ModManagerMetadata metadata, IModRegistry registry, string? pakDirectory = null) =>
             metadata switch {
                 StandardModManagerMetadata m => new ModManager(
                     registry,
-                    CreatePakDir(m.PakDir),
+                    CreatePakDir(m.PakDir, pakDirectory),
                     m.EnabledModReleases,
                     // Cached V3 metadata has no V4 release info or asset inventory. Keep
                     // enabled coordinates and managed paks, but refetch unusable metadata.
@@ -61,10 +63,20 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 r?.Info is { RepoUrl: not null, Authors: not null, Dependencies: not null, ImageUrls: not null }
                 && r.Manifest is { Maps: not null, Blueprints: not null, Markers: not null, Replacements: not null, Arbitrary: not null });
 
-        private static PakDir CreatePakDir(PakDirMetadata? metadata) =>
-            metadata != null
-                ? new PakDir(metadata.DirPath, metadata.ManagedPaks)
-                : new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>());
+        private static PakDir CreatePakDir(PakDirMetadata? metadata, string? pakDirectory) {
+            var path = pakDirectory ?? metadata?.DirPath ?? FilePaths.PakDir;
+            var sameDirectory = metadata != null && SavedPakMigration.SameDirectory(metadata.DirPath, path);
+            // An incoming unknown pak must not revive a stale same-name ownership entry.
+            var existing = sameDirectory ? metadata!.ManagedPaks.Where(p => File.Exists(Path.Combine(path, p.PakFileName))).ToArray() : [];
+            var migrated = pakDirectory == null ? [] : SavedPakMigration.Migrate(path, SavedPakMigration.StartupSources(metadata), metadata);
+            return new PakDir(path, sameDirectory ? existing : migrated);
+        }
+
+        public static PakDir CreateInstallationPakDir() {
+            var path = Path.GetFullPath(FilePaths.PakDir);
+            SavedPakMigration.Migrate(path, SavedPakMigration.SourceDirectories());
+            return new PakDir(path, []);
+        }
 
         public static ModManagerMetadata ToJsonType(IModManager manager) =>
             manager switch {

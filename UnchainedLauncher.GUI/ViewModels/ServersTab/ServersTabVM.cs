@@ -70,12 +70,12 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
 
         public static ServersTabMetadata ToJsonType(ServersTabVM serversTabVM) {
             var selectedConfig =
-                serversTabVM.SelectedConfiguration ?? serversTabVM.ServerConfigs.First();
+                serversTabVM.SelectedConfiguration ?? serversTabVM.ServerConfigs.FirstOrDefault();
 
             var procMap =
                 serversTabVM.RunningServers.Select(conf => (conf.configuration.Name, conf.live.Server.ServerProcess.Id));
 
-            return new ServersTabMetadata(selectedConfig.Name, procMap.ToDictionary());
+            return new ServersTabMetadata(selectedConfig?.Name ?? "", procMap.ToDictionary());
         }
 
     }

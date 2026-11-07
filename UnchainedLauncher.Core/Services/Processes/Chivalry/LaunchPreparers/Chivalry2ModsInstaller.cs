@@ -21,6 +21,17 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
+            try {
+                return await PrepareLaunchCore(options);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+                _logger.Error("Failed to prepare or persist installed mod ownership.", ex);
+                _userDialogueSpawner.DisplayMessage($"Could not prepare or save installed mod ownership. Launch cancelled.\n{ex.Message}\nCheck file permissions and available disk space, then try again.");
+                return None;
+            }
+        }
+
+        private async Task<Option<LaunchOptions>> PrepareLaunchCore(LaunchOptions options) {
             var recovered = await new PakReleaseRecovery(_modManager, _userDialogueSpawner,
                 _settings?.AlwaysKeepUnmanagedPaks == true, _settings?.AutomaticallyDownloadPakDependencies ?? true).RecoverPlan();
             if (recovered.IsNone) return None;
@@ -31,7 +42,13 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");
             var closeProgressWindow = _userDialogueSpawner.DisplayProgress(progresses);
 
-            var installResults = await _modManager.InstallMods(releasesToInstall, progresses).ToListAsync();
+            List<Either<LanguageExt.Common.Error, ManagedPak>> installResults;
+            try {
+                installResults = await _modManager.InstallMods(releasesToInstall, progresses).ToListAsync();
+            }
+            finally {
+                closeProgressWindow();
+            }
 
             var (errors, successes) =
                 installResults.Partition()
@@ -49,8 +66,6 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                     );
                 if (shouldContinue == UserDialogueChoice.No) return None;
             }
-
-            closeProgressWindow();
 
             return Some(options);
         }

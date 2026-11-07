@@ -42,6 +42,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <summary>
         /// Installs a set of mods, handling file naming conflicts and progress reporting.
         /// The input order is trusted and determines load priority - callers must sort by dependencies first.
+        /// Ownership notifications are batched until enumeration completes or is disposed.
         /// </summary>
         /// <param name="installs">The collection of mod install requests to process, pre-sorted by dependency order</param>
         /// <param name="progress">Optional progress tracker for reporting installation progress</param>

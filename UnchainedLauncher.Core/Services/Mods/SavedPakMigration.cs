@@ -109,7 +109,8 @@ public static class SavedPakMigration {
     }
 
     private static void RejectLinks(string path) {
-        for (var current = Path.GetFullPath(path); current != null; current = Path.GetDirectoryName(current)) {
+        // The volume root is the path's boundary, not a traversed directory link (e.g. Proton's Z: mapping).
+        for (var current = Path.GetFullPath(path); Path.GetDirectoryName(current) != null; current = Path.GetDirectoryName(current)!) {
             try {
                 if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
                     throw new IOException($"Refusing Saved pak migration through a link: {current}");

@@ -1,4 +1,7 @@
 using LanguageExt;
+using log4net;
+using log4net.Appender;
+using log4net.Core;
 using Moq;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
@@ -40,6 +43,106 @@ public sealed class SavedPakMigrationTests : IDisposable {
         Assert.Equal(Target, dir.DirPath);
         Assert.Empty(dir.ManagedPaks);
         Assert.False(Directory.Exists(Target));
+    }
+
+    [Fact]
+    public void VolumeRootsAreBoundariesNotDirectoryLinks() {
+        // Includes Wine/Proton drive mappings, whose roots can report ReparsePoint.
+        foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady))
+            Assert.Empty(SavedPakMigration.Migrate(drive.RootDirectory.FullName, []));
+    }
+
+    [Theory]
+    [InlineData("source-ancestor")]
+    [InlineData("destination")]
+    [InlineData("destination-ancestor")]
+    [InlineData("source-file")]
+    [InlineData("destination-file")]
+    public void LinksBelowTheVolumeBoundaryAreRejected(string kind) {
+        Write(Source, "unknown.pak", "preserved");
+        var external = Path.Combine(_root, "external");
+        Write(external, "unknown.pak", "preserved");
+        var source = Source;
+        var target = Target;
+        var link = Path.Combine(_root, "link");
+        var fileLink = kind.EndsWith("file");
+        if (fileLink) File.CreateSymbolicLink(link, Path.Combine(external, "unknown.pak"));
+        else Directory.CreateSymbolicLink(link, external);
+        try {
+            switch (kind) {
+                case "source-ancestor": source = Path.Combine(link, "missing", "Paks"); break;
+                case "destination": target = link; break;
+                case "destination-ancestor": target = Path.Combine(link, "missing", "Paks"); break;
+                case "source-file": File.Move(link, Path.Combine(Source, "linked.pak")); link = Path.Combine(Source, "linked.pak"); break;
+                case "destination-file": Directory.CreateDirectory(Target); File.Move(link, Path.Combine(Target, "unknown.pak")); link = Path.Combine(Target, "unknown.pak"); break;
+            }
+            var ex = Assert.Throws<IOException>(() => SavedPakMigration.Migrate(target, [source]));
+            Assert.Contains("link", ex.Message);
+            Assert.Equal("preserved", File.ReadAllText(Path.Combine(Source, "unknown.pak")));
+            Assert.Equal("preserved", File.ReadAllText(Path.Combine(external, "unknown.pak")));
+        }
+        finally {
+            if (fileLink) File.Delete(link);
+            else Directory.Delete(link);
+        }
+    }
+
+    [Fact]
+    public void JunctionAncestorIsRejectedWithoutFollowingIt() {
+        var external = Path.Combine(_root, "external");
+        Write(external, "unknown.pak", "preserved");
+        var link = Path.Combine(_root, "junction");
+        var start = new System.Diagnostics.ProcessStartInfo("cmd.exe") { UseShellExecute = false, CreateNoWindow = true };
+        foreach (var arg in new[] { "/c", "mklink", "/J", link, external }) start.ArgumentList.Add(arg);
+        using var process = System.Diagnostics.Process.Start(start)!;
+        process.WaitForExit();
+        Assert.Equal(0, process.ExitCode);
+        try {
+            Assert.True((File.GetAttributes(link) & FileAttributes.ReparsePoint) != 0);
+            Assert.Throws<IOException>(() => SavedPakMigration.Migrate(Target, [Path.Combine(link, "missing", "Paks")]));
+            Assert.Equal("preserved", File.ReadAllText(Path.Combine(external, "unknown.pak")));
+            Assert.False(Directory.Exists(Target));
+        }
+        finally { Directory.Delete(link); }
+    }
+
+    [Fact]
+    public async Task LaunchMigrationFailureLogsExceptionAndPathsBeforeShowingDialogue() {
+        Write(Source, "unknown.pak", "source bytes");
+        Write(Target, "unknown.pak", "different target bytes");
+        var logger = (log4net.Repository.Hierarchy.Logger)LogManager.GetLogger(typeof(SavedPaksPreparer)).Logger;
+        var repository = logger.Repository!;
+        var appender = new MemoryAppender();
+        var level = logger.Level;
+        var configured = repository.Configured;
+        logger.Level = Level.Error;
+        repository.Configured = true;
+        logger.AddAppender(appender);
+        try {
+            var dialogue = new Mock<IUserDialogueSpawner>();
+            dialogue.Setup(d => d.DisplayMessage(It.IsAny<string>())).Callback(() => {
+                var logged = Assert.Single(appender.GetEvents());
+                Assert.Equal(typeof(SavedPaksPreparer).FullName, logged.LoggerName);
+                Assert.Equal(Level.Error, logged.Level);
+                var exception = Assert.IsType<IOException>(logged.ExceptionObject);
+                Assert.Contains("Launch cancelled", logged.RenderedMessage);
+                Assert.Contains(Target, logged.RenderedMessage);
+                Assert.Contains(Path.Combine(Source, "unknown.pak"), exception.Message);
+                Assert.Contains(Path.Combine(Target, "unknown.pak"), exception.Message);
+            });
+            var preparer = new SavedPaksPreparer(new Core.Services.Mods.PakDir(Target, []), dialogue.Object);
+            Assert.True((await preparer.PrepareLaunch(new([], Prelude.None, "", false, false, Prelude.None, Prelude.None))).IsNone);
+            dialogue.Verify(d => d.DisplayMessage(It.IsAny<string>()), Times.Once);
+            Assert.Equal("source bytes", File.ReadAllText(Path.Combine(Source, "unknown.pak")));
+            Assert.Equal("different target bytes", File.ReadAllText(Path.Combine(Target, "unknown.pak")));
+            Assert.Empty(Directory.GetFiles(Target, "*.partial"));
+        }
+        finally {
+            logger.RemoveAppender(appender);
+            logger.Level = level;
+            repository.Configured = configured;
+            appender.Close();
+        }
     }
 
     [Theory]

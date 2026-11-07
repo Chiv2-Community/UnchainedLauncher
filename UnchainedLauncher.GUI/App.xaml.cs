@@ -147,6 +147,7 @@ namespace UnchainedLauncher.GUI {
                 modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry, userDialogueSpawner);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+                _log.Error($"Could not move Saved paks to Content/Paks '{Path.GetFullPath(FilePaths.PakDir)}'. Startup cancelled.", ex);
                 userDialogueSpawner.DisplayMessage($"Could not move Saved paks to Content/Paks. Startup cancelled; files were not overwritten. Resolve the conflict or file permissions, then restart.\n{ex.Message}");
                 Shutdown();
                 return null;

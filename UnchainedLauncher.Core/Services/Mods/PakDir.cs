@@ -20,6 +20,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public IEnumerable<ManagedPak> ManagedPaks => _managedPaks;
         private readonly List<ManagedPak> _managedPaks;
+        public event EventHandler? OwnershipChanged;
 
         public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks) {
             DirPath = dirPath;
@@ -102,6 +103,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             _managedPaks.RemoveAll(existing => existing.Coordinates == pak.Coordinates
                 || existing.PakFileName.Equals(pak.PakFileName, StringComparison.OrdinalIgnoreCase));
             _managedPaks.Add(pak);
+            OwnershipChanged?.Invoke(this, EventArgs.Empty);
         }
 
         internal static IEnumerable<string> GetInstallFileNames(IEnumerable<ReleaseCoordinates> releases) {
@@ -125,6 +127,18 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         public async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSet(
+                IEnumerable<ModInstallRequest> installs,
+                Option<AccumulatedMemoryProgress> progress) {
+            var previous = _managedPaks.ToArray();
+            try {
+                await foreach (var result in InstallModSetCore(installs, progress)) yield return result;
+            }
+            finally {
+                if (!previous.SequenceEqual(_managedPaks)) OwnershipChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        private async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSetCore(
                 IEnumerable<ModInstallRequest> installs,
                 Option<AccumulatedMemoryProgress> progress) {
 

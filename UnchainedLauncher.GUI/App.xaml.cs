@@ -140,15 +140,14 @@ namespace UnchainedLauncher.GUI {
 
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+            var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
+            var settingsViewModel = InitializeSettingsViewModel(installationFinder, installer, launcherReleaseLocator, registryWindowViewModel, registryWindowService, modManager, userDialogueSpawner);
             var dllManager = new DllManager(
                 Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir),
-                FilePaths.DllManagerConfigPath, new HttpClient(), () => modManager.GetEnabledAndDependencyReleases().ToArray(),
+                FilePaths.DllManagerConfigPath, new HttpClient(), () => modManager.GetEnabledAndDependencyReleases(settingsViewModel.AutomaticallyDownloadPakDependencies).ToArray(),
                 () => modRegistry.ModRegistries.OfType<GithubModRegistry>()
                     .Select(registry => registry.DllDatabaseUrl).ToArray());
 
-            var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
-
-            var settingsViewModel = InitializeSettingsViewModel(installationFinder, installer, launcherReleaseLocator, registryWindowViewModel, registryWindowService, modManager, userDialogueSpawner);
             var dllManagerViewModel = new DllManagerVM(dllManager, settingsViewModel, userDialogueSpawner);
             await dllManagerViewModel.RefreshCommand.ExecuteAsync(null);
 
@@ -175,7 +174,7 @@ namespace UnchainedLauncher.GUI {
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
-                modManager, userDialogueSpawner
+                modManager, userDialogueSpawner, settingsViewModel
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
@@ -207,7 +206,7 @@ namespace UnchainedLauncher.GUI {
                 unchainedLauncher,
                 userDialogueSpawner,
                 chivProcessMonitor);
-            var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
+            var modListViewModel = new ModListVM(modManager, userDialogueSpawner, settingsViewModel);
 
             if (modManager.NeedsMetadataRefresh || !modManager.Mods.Any())
                 await modListViewModel.RefreshModListCommand.ExecuteAsync(null);
@@ -228,7 +227,7 @@ namespace UnchainedLauncher.GUI {
 
             var modScanTab = new ModScanTabVM();
             var helpVM = new HelpVM(settingsViewModel, installer, launcherReleaseLocator, modManager.PakDir, userDialogueSpawner, Shutdown);
-            var availableModsAndMaps = new AvailableModsAndMapsService(modManager, modScanTab);
+            var availableModsAndMaps = new AvailableModsAndMapsService(modManager, modScanTab, settingsViewModel);
 
             var serverConfigurationVMs =
                 InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager, modScanTab, availableModsAndMaps);

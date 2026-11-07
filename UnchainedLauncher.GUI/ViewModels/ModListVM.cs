@@ -6,8 +6,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Data;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
@@ -22,13 +24,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
     [AddINotifyPropertyChangedInterface]
     public partial class ModListVM {
         private readonly ILog _logger = LogManager.GetLogger(nameof(ModListVM));
+        private readonly SynchronizationContext? _context = SynchronizationContext.Current;
         public readonly IModManager _modManager;
         private ObservableCollection<ModVM> UnfilteredModView { get; }
 
         // UI state: filtering and sorting
         public string? SearchTerm { get; set; }
         public bool ShowEnabledOnly { get; set; }
-        public ModSortMode SelectedSortMode { get; set; } = ModSortMode.EnabledFirst;
+        public ModSortMode SelectedSortMode { get; set; } = ModSortMode.Alphabetical;
         public IReadOnlyList<ModSortMode> SortModes { get; } = [ModSortMode.EnabledFirst, ModSortMode.Alphabetical, ModSortMode.LatestReleaseDateFirst, ModSortMode.NewestModsFirst];
 
         public ModVM? SelectedMod { get; set; }
@@ -36,7 +39,10 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private IUserDialogueSpawner UserDialogueSpawner { get; }
 
-        public ModListVM(IModManager modManager, IUserDialogueSpawner userDialogueSpawner) {
+        public IUnmanagedPakSettings? Settings { get; }
+
+        public ModListVM(IModManager modManager, IUserDialogueSpawner userDialogueSpawner, IUnmanagedPakSettings? settings = null) {
+            Settings = settings;
             this._modManager = modManager;
 
             UserDialogueSpawner = userDialogueSpawner;
@@ -49,6 +55,24 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             // Watch the unfiltered mod view and mod filters for changes, and update our view accordingly
             this.UnfilteredModView.CollectionChanged += UnfilteredModViewOrModFilters_CollectionChanged;
+            _modManager.ModEnabled += (_, _) => SynchronizeEnabledReleases();
+            _modManager.ModDisabled += _ => SynchronizeEnabledReleases();
+            _modManager.MetadataRefreshed += (_, _) => SynchronizeEnabledReleases();
+            if (settings is INotifyPropertyChanged notifyingSettings)
+                PropertyChangedEventManager.AddHandler(notifyingSettings, (_, _) => SynchronizeEnabledReleases(), nameof(IUnmanagedPakSettings.AutomaticallyDownloadPakDependencies));
+        }
+
+        private void SynchronizeEnabledReleases() {
+            void Update() {
+                var effective = _modManager.GetEnabledAndDependencyReleases(includeDependencies: Settings?.AutomaticallyDownloadPakDependencies ?? true).ToList();
+                foreach (var mod in UnfilteredModView) {
+                    mod.EnabledRelease = _modManager.GetCurrentlyEnabledReleaseForMod(mod.Mod).FirstOrDefault();
+                    mod.DependencyRelease = effective.FirstOrDefault(release => ModIdentifier.FromMod(mod.Mod) == ModIdentifier.FromRelease(release));
+                }
+                RebuildDisplay();
+            }
+            if (_context != null && _context != SynchronizationContext.Current) _context.Post(_ => Update(), null);
+            else Update();
         }
 
         // Property change hooks (PropertyChanged.Fody will call these)
@@ -162,7 +186,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
             // Sorting
             query = SelectedSortMode switch {
                 ModSortMode.EnabledFirst => query
-                    .OrderByDescending(m => m.IsEnabled)
+                    .OrderByDescending(m => m.EnabledRelease != null)
+                    .ThenByDescending(m => m.IsDependency)
                     .ThenBy(m => m.Mod.LatestReleaseInfo.Name, StringComparer.OrdinalIgnoreCase),
                 ModSortMode.LatestReleaseDateFirst =>
                     query.OrderByDescending(m => m.Mod.LatestRelease.Map(r => r.ReleaseDate).IfNone(DateTime.MinValue)),
@@ -172,9 +197,15 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     query.OrderBy(m => m.Mod.LatestReleaseInfo.Name, StringComparer.OrdinalIgnoreCase),
             };
 
-            this.DisplayMods.Clear();
-            foreach (var mod in query)
-                this.DisplayMods.Add(mod);
+            var desired = query.ToList();
+            // Preserve existing card controls when dependency state or sort order changes.
+            foreach (var stale in DisplayMods.Where(mod => !desired.Contains(mod)).ToList())
+                DisplayMods.Remove(stale);
+            for (var index = 0; index < desired.Count; index++) {
+                var current = DisplayMods.IndexOf(desired[index]);
+                if (current < 0) DisplayMods.Insert(index, desired[index]);
+                else if (current != index) DisplayMods.Move(current, index);
+            }
         }
 
         private void ModManager_ModList_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
@@ -215,7 +246,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 )
             );
 
-            RebuildDisplay();
+            SynchronizeEnabledReleases();
         }
     }
 

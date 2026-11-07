@@ -241,9 +241,64 @@
     </Style>
 
     <Style TargetType="CheckBox">
-        <Setter Property="FontFamily" Value="{StaticResource Font.Default}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.Default}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
-        <Setter Property="Padding" Value="4,0,0,0" />
+        <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.TextSecondary}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="6,0,0,0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Background="Transparent">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid Width="22" Height="22" VerticalAlignment="Center">
+                            <Border x:Name="FocusRing" BorderBrush="{DynamicResource Brush.Primary}"
+                                    BorderThickness="1" CornerRadius="4" Visibility="Collapsed" />
+                            <Border x:Name="CheckSurface" Width="18" Height="18" CornerRadius="3"
+                                    Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <Grid>
+                                    <Path x:Name="CheckMark" Data="M 3 8 L 6 11 L 12 4" Stroke="{DynamicResource Brush.White}"
+                                          StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="Collapsed" />
+                                    <Rectangle x:Name="MixedMark" Width="8" Height="2" Fill="{DynamicResource Brush.White}" Visibility="Collapsed" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                        <ContentPresenter Grid.Column="1" Margin="{TemplateBinding Padding}" RecognizesAccessKey="True"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="CheckSurface" Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="CheckSurface" Property="Background" Value="{DynamicResource Brush.PrimaryTransparent}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="CheckSurface" Property="Background" Value="{DynamicResource Brush.Primary}" />
+                            <Setter TargetName="CheckSurface" Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+                            <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="{x:Null}">
+                            <Setter TargetName="CheckSurface" Property="Background" Value="{DynamicResource Brush.Primary}" />
+                            <Setter TargetName="CheckSurface" Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+                            <Setter TargetName="MixedMark" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
         <Style.Triggers>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Opacity" Value="0.6" />

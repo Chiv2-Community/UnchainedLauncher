@@ -14,8 +14,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string NoButtonText { get; }
         public string? CancelButtonText { get; }
         public bool ShowCancelButton => CancelButtonText != null;
-        public string CancelColumnWidth => ShowCancelButton ? "40*" : "0";
-        public string NoButtonMargin => ShowCancelButton ? "5,10,0,10" : "5,10,10,10";
 
         public IEnumerable<DependencyUpdateViewModel> Updates { get; }
 
@@ -60,7 +58,11 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string CurrentVersionString => Update.CurrentVersion ?? "None";
         public string VersionString => Update.CurrentVersion == null ? Update.LatestVersion : $"{CurrentVersionString} -> {Update.LatestVersion}";
 
-        [RelayCommand]
+        public bool HasReleaseInformation => !string.IsNullOrWhiteSpace(Update.ReleaseUrl);
+
+        private IRelayCommand? _hyperlinkCommand;
+        public IRelayCommand HyperlinkCommand => _hyperlinkCommand ??= new RelayCommand(Hyperlink, () => HasReleaseInformation);
+
         public void Hyperlink() {
             Process.Start(new ProcessStartInfo { FileName = Update.ReleaseUrl, UseShellExecute = true });
         }

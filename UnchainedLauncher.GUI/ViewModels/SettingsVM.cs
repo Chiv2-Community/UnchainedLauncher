@@ -36,7 +36,9 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 vm.ServerBrowserBackend,
                 vm.UseLightTheme,
                 vm.AllowUnstablePluginReleases,
-                SettingsVM.Version
+                SettingsVM.Version,
+                vm.AlwaysKeepUnmanagedPaks,
+                vm.AutomaticallyDownloadPakDependencies
             );
         }
 
@@ -58,12 +60,15 @@ namespace UnchainedLauncher.GUI.ViewModels {
                 settings?.UseLightTheme ?? false,
                 settings?.ShouldAllowUnstablePluginReleases(SettingsVM.Version) ?? SettingsVM.Version.IsPrerelease,
                 cliArgs
-            );
+            ) {
+                AlwaysKeepUnmanagedPaks = settings?.AlwaysKeepUnmanagedPaks ?? false,
+                AutomaticallyDownloadPakDependencies = settings?.AutomaticallyDownloadPakDependencies ?? true
+            };
         }
     }
 
     [AddINotifyPropertyChangedInterface]
-    public partial class SettingsVM : IPluginSettings {
+    public partial class SettingsVM : IPluginSettings, UnchainedLauncher.Core.Services.Mods.IUnmanagedPakSettings {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(SettingsVM));
         public static readonly SemVersion Version = SemVersion.Parse(Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion, SemVersionStyles.Any);
 
@@ -74,6 +79,8 @@ namespace UnchainedLauncher.GUI.ViewModels {
         public string ServerBrowserBackend { get; set; }
         public bool UseLightTheme { get; set; }
         public bool AllowUnstablePluginReleases { get; set; }
+        public bool AlwaysKeepUnmanagedPaks { get; set; }
+        public bool AutomaticallyDownloadPakDependencies { get; set; } = true;
 
         public bool HasLaunched { get; set; }
 

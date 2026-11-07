@@ -18,7 +18,10 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
 
     private void InitializeProvider(FilteredFileProvider provider) {
         provider.Initialize();
+        InitializeCompression(provider);
+    }
 
+    internal static void InitializeCompression(FilteredFileProvider provider) {
         // Empty/filtered-out directories need neither decompression nor a native DLL download.
         if (!provider.FilteredFiles.Any()) return;
 

@@ -12,69 +12,25 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
     public class Chivalry2ModsInstaller : IChivalry2LaunchPreparer<LaunchOptions> {
         private readonly ILog _logger = LogManager.GetLogger(typeof(Chivalry2ModsInstaller));
         private readonly IUserDialogueSpawner _userDialogueSpawner;
+        private readonly IUnmanagedPakSettings? _settings;
         private IModManager _modManager { get; }
 
-        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner) {
+        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner, IUnmanagedPakSettings? settings = null) {
             _modManager = modManager;
             _userDialogueSpawner = dialogueSpawner;
-        }
-
-        private OptionAsync<string> GetHashResult(EitherAsync<HashFailure, Option<string>> result) {
-            return result.TapLeft<HashFailure, Option<string>, object>(e =>
-                _logger.Error($"Failed to hash file", e)
-                )
-                .ToOption()
-                .Bind(o => o.Match(OptionAsync<string>.Some, OptionAsync<string>.None));
-        }
-
-        private async Task<Option<string>> GetLocalHash(ReleaseCoordinates coords) {
-            return await (await _modManager.PakDir.GetManagedPakFilePath(coords))
-                .Match(
-                    path => GetHashResult(FileHelpers.Sha512Async(path)),
-                    () => OptionAsync<string>.None).ToOption();
-        }
-
-        private async Task IfHashInvalid((Release, string, string) validationResult) {
-            var coords = ReleaseCoordinates.FromRelease(validationResult.Item1);
-            _logger.Warn($"Hash mismatch: actual hash '{validationResult.Item2}' does not " +
-                         $"match release hash '{validationResult.Item3}' for '{coords}'.");
-
-            var redownloadResponse = _userDialogueSpawner.DisplayYesNoMessage(
-                $"The hash for release {coords} is not correct. " +
-                $"This indicates that the file on disk does not match " +
-                $"what is approved by the mod registry. This could be due to " +
-                $"simple file corruption, but could also indicate that the version " +
-                $"you have is malicious.\n\n" +
-                $"Expected: {validationResult.Item3}\n" +
-                $"Actual: {validationResult.Item2}\n\n" +
-                $"Would you like to re-download the pak? (recommended)", "Refresh pak file?");
-
-            if (redownloadResponse == UserDialogueChoice.Yes) {
-                (await _modManager.PakDir.Uninstall(coords))
-                    .IfLeft(e =>
-                        _logger.Error($"Failed to uninstall release '{coords}' with invalid hash", e));
-            }
-        }
-
-        private async Task ValidateHashes(IEnumerable<Release> releases) {
-            var hashValidationTasks = releases
-                .Select(async m => {
-                    var hash = await GetLocalHash(ReleaseCoordinates.FromRelease(m));
-                    foreach (var h in hash) {
-                        if (!h.Equals(m.ReleaseHash)) await IfHashInvalid((m, h, m.ReleaseHash));
-                    }
-                });
-
-            await Task.WhenAll(hashValidationTasks);
+            _settings = settings;
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
-            // Get all releases that will be installed (enabled mods + dependencies)
-            var releasesToInstall = _modManager.GetEnabledAndDependencyReleases().ToList();
+            var includeDependencies = _settings?.AutomaticallyDownloadPakDependencies ?? true;
+            IReadOnlyList<Release> releasesToInstall = [];
+            var adopted = new List<Release>();
+            if (!await _modManager.PakDir.RecoverReleases(_modManager.GetEnabledModReleases().ToList(),
+                _modManager.Mods.SelectMany(mod => mod.Releases), _userDialogueSpawner, adopted, _settings?.AlwaysKeepUnmanagedPaks == true,
+                roots => releasesToInstall = _modManager.SortByDependencies(
+                    _modManager.GetEnabledAndDependencyReleases(includeDependencies, roots)).ToList())) return None;
+            foreach (var release in adopted) _modManager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
-
-            // Validate hashes before installation
-            await ValidateHashes(releasesToInstall);
 
             // Install mods via ModManager
             var progresses = new AccumulatedMemoryProgress(taskName: "Installing releases");
@@ -82,7 +38,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
 
             List<Either<LanguageExt.Common.Error, ManagedPak>> installResults;
             try {
-                installResults = await _modManager.InstallMods(progresses).ToListAsync();
+                installResults = await _modManager.InstallMods(releasesToInstall, progresses).ToListAsync();
             }
             finally {
                 closeProgressWindow();

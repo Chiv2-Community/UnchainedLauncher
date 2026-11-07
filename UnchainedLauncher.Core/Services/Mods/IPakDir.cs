@@ -1,5 +1,6 @@
 using LanguageExt;
 using LanguageExt.Common;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
@@ -27,6 +28,12 @@ namespace UnchainedLauncher.Core.Services.Mods {
     public interface IPakDir {
         /// <summary>Reloads and snapshots managed pak ownership under the shared directory lock.</summary>
         Task<ManagedPak[]> GetManagedPaks();
+
+        /// <summary>Verifies existing release files and confirms ownership or file changes before installation.</summary>
+        /// <param name="resolvePlan">Resolves merged explicit and adopted roots under the inventory lock, before validation.</param>
+        Task<bool> RecoverReleases(IReadOnlyList<Release> requested, IEnumerable<Release> known, IUserDialogueSpawner dialogue,
+            ICollection<Release>? adopted = null, bool alwaysKeepUnmanagedPaks = false,
+            Func<IReadOnlyList<Release>, IReadOnlyList<Release>>? resolvePlan = null);
 
         /// <summary>
         /// A delegate that creates a FileWriter for writing pak data to the specified file path.

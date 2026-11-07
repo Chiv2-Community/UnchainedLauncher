@@ -11,7 +11,9 @@ namespace UnchainedLauncher.GUI.JsonModels {
         [property: JsonPropertyName("server_browser_backend")] string? ServerBrowserBackend,
         [property: JsonPropertyName("use_light_theme")] bool? UseLightTheme,
         [property: JsonPropertyName("allow_unstable_plugin_releases")] bool? AllowUnstablePluginReleases,
-        [property: JsonPropertyName("last_launch_version")] SemVersion? LastLaunchVersion
+        [property: JsonPropertyName("last_launch_version")] SemVersion? LastLaunchVersion,
+        [property: JsonPropertyName("always_keep_unmanaged_paks")] bool AlwaysKeepUnmanagedPaks = false,
+        [property: JsonPropertyName("automatically_download_pak_dependencies")] bool AutomaticallyDownloadPakDependencies = true
     ) {
         public bool ShouldAllowUnstablePluginReleases(SemVersion runningVersion) => runningVersion.IsPrerelease
             || (LastLaunchVersion?.WithoutMetadata() == runningVersion.WithoutMetadata() && AllowUnstablePluginReleases == true);

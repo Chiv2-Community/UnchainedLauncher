@@ -52,10 +52,11 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// <summary>
         /// Installs a set of mods, handling file naming conflicts and progress reporting.
         /// The input order is trusted and determines load priority - callers must sort by dependencies first.
+        /// Ownership is published when enumeration completes or is disposed. Consume the batch to observe publication errors.
         /// </summary>
         /// <param name="installs">The collection of mod install requests to process, pre-sorted by dependency order</param>
         /// <param name="progress">Optional progress tracker for reporting installation progress</param>
-        /// <returns>An async enumerable of results, one per install request</returns>
+        /// <returns>Installation results, followed by an error if the batch ownership checkpoint fails</returns>
         IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSet(IEnumerable<ModInstallRequest> installs, Option<AccumulatedMemoryProgress> progress);
 
         /// <summary>

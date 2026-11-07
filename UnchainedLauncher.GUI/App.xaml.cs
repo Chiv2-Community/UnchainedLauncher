@@ -1,6 +1,7 @@
 using LanguageExt;
 using log4net;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -37,6 +38,7 @@ namespace UnchainedLauncher.GUI {
     /// </summary>
     public partial class App : Application {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
+        private readonly List<Action> _preferenceSaves = new();
 
         protected override async void OnStartup(StartupEventArgs e) {
             try {
@@ -139,7 +141,7 @@ namespace UnchainedLauncher.GUI {
             var registryWindowService = new RegistryWindowService();
 
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
-            var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+            var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry, userDialogueSpawner);
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
             var settingsViewModel = InitializeSettingsViewModel(installationFinder, installer, launcherReleaseLocator, registryWindowViewModel, registryWindowService, modManager, userDialogueSpawner);
             var dllManager = new DllManager(
@@ -170,6 +172,8 @@ namespace UnchainedLauncher.GUI {
 
             var noSigLaunchPreparer = NoSigPreparer.Create(modManager.PakDir, userDialogueSpawner);
             var sigLaunchPreparer = SigPreparer.Create(modManager.PakDir, userDialogueSpawner);
+            IChivalry2LaunchPreparer<LaunchOptions> savePreferences = new SavePreferencesPreparer(
+                () => _preferenceSaves.ForEach(save => save()), userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
@@ -178,13 +182,13 @@ namespace UnchainedLauncher.GUI {
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
-                noSigLaunchPreparer.IgnoreOptions<LaunchOptions>(),
+                savePreferences.AndThen(noSigLaunchPreparer.IgnoreOptions<LaunchOptions>()),
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                pluginInstaller
+                savePreferences.AndThen(pluginInstaller)
                     .AndThen(modInstaller)
                     .Sub(sigLaunchPreparer),
                 unchainedProcessLauncher,
@@ -292,7 +296,7 @@ namespace UnchainedLauncher.GUI {
                 )
             );
 
-            RegisterSaveToFileOnExit(settingsViewModel, settingsCodec, FilePaths.LauncherSettingsFilePath);
+            RegisterSaveToFileOnLaunchAndExit(settingsViewModel, settingsCodec, FilePaths.LauncherSettingsFilePath);
             return settingsViewModel;
         }
 
@@ -306,11 +310,11 @@ namespace UnchainedLauncher.GUI {
             // another AggregateModRegistry, so no worries there.
             var registry = new AggregateModRegistry(loadedResult);
 
-            RegisterSaveToFileOnExit(registry, ModRegistryCodec.Instance, jsonPath);
+            RegisterSaveToFileOnLaunchAndExit(registry, ModRegistryCodec.Instance, jsonPath);
             return registry;
         }
 
-        private ModManager InitializeModManager(string jsonPath, IModRegistry registry) {
+        private ModManager InitializeModManager(string jsonPath, IModRegistry registry, IUserDialogueSpawner dialogue) {
             Func<ModManager> initializeDefaultModManager = () =>
                 new ModManager(
                     registry,
@@ -321,7 +325,9 @@ namespace UnchainedLauncher.GUI {
             var codec = new ModManagerCodec(registry);
             var modManager = InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
 
-            RegisterSaveToFileOnExit(modManager, codec, jsonPath);
+            var persistence = new ModManagerPersistence(modManager, jsonPath, ex => dialogue.DisplayMessage(
+                $"Could not save mod selection. Your selection is still active in this session but has not been saved.\n{ex.Message}\nCheck file permissions and available disk space. Saving will be retried on launch or exit."));
+            RegisterPreferenceSave(persistence.Save);
             return modManager;
         }
 
@@ -333,8 +339,10 @@ namespace UnchainedLauncher.GUI {
             var codec = new ServerConfigurationCodec(modManager, modScanTab, availableModsAndMapsVM);
             var serverConfigurations = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
 
-            RegisterSaveToFileOnExit(serverConfigurations, codec, jsonPath);
-            Exit += (_, _) => serverConfigurations.ForEach(x => x.SaveINI());
+            RegisterSaveToFileOnLaunchAndExit(serverConfigurations, codec, jsonPath);
+            RegisterPreferenceSave(() => serverConfigurations.ForEach(x => {
+                if (!x.SaveINI()) throw new IOException($"Could not save INI settings for server {x.Name}.");
+            }));
 
             return serverConfigurations;
         }
@@ -362,7 +370,7 @@ namespace UnchainedLauncher.GUI {
 
             var codec = new ServerTabCodec(settings, modManager, modScanTab, dialogueSpawner, launcher, serverConfigurations, processWatcher, availableModsAndMaps);
             var serversTab = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
-            RegisterSaveToFileOnExit(serversTab, codec, jsonPath);
+            RegisterSaveToFileOnLaunchAndExit(serversTab, codec, jsonPath);
             return serversTab;
         }
 
@@ -379,18 +387,16 @@ namespace UnchainedLauncher.GUI {
                 ));
         }
 
-        private void RegisterSaveToFileOnExit<T>(T t, ICodec<T> codec, string filePath) {
-            RegisterExitHandler(() => {
-                try {
-                    _log.Info($"Saving {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec})...");
-                    codec.SerializeFile(filePath, t);
-                }
-                catch (Exception ex) {
-                    _log.Error(
-                        $"Failed to save configuration for {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec}).",
-                        ex);
-                }
+        private void RegisterSaveToFileOnLaunchAndExit<T>(T t, ICodec<T> codec, string filePath) {
+            RegisterPreferenceSave(() => {
+                _log.Info($"Saving {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec})...");
+                codec.SerializeFile(filePath, t);
             });
+        }
+
+        private void RegisterPreferenceSave(Action save) {
+            _preferenceSaves.Add(save);
+            RegisterExitHandler(save);
         }
 
         /// <summary>

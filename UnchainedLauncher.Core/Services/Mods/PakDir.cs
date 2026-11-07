@@ -185,26 +185,35 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     yield return inventoryError;
                     yield break;
                 }
-                // Publish each result before yielding, including successful partial preparations.
+                // Publish successful changes together when enumeration completes or is disposed.
                 await using var results = InstallModSetCore(installs, progress).GetAsyncEnumerator();
-                while (true) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    inventoryError = null;
-                    var hasResult = false;
-                    try {
-                        hasResult = await results.MoveNextAsync();
-                        _inventory.Save(_managedPaks);
+                var completed = false;
+                try {
+                    while (true) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var hasResult = false;
+                        try {
+                            hasResult = await results.MoveNextAsync();
+                        }
+                        catch (Exception ex) {
+                            inventoryError = Error.New("Failed to prepare managed paks", ex);
+                        }
+                        if (inventoryError != null || !hasResult) break;
+                        yield return results.Current;
                     }
-                    catch (Exception ex) {
-                        inventoryError = Error.New("Failed to prepare managed paks", ex);
-                    }
-                    if (inventoryError != null) {
-                        yield return inventoryError;
-                        yield break;
-                    }
-                    if (!hasResult) yield break;
-                    yield return results.Current;
+                    completed = true;
                 }
+                finally {
+                    if (inventoryError == null) {
+                        try {
+                            _inventory.Save(_managedPaks);
+                        }
+                        catch (Exception ex) when (completed) {
+                            inventoryError = Error.New("Failed to publish managed paks", ex);
+                        }
+                    }
+                }
+                if (inventoryError != null) yield return inventoryError;
             }
         }
 
@@ -332,7 +341,6 @@ namespace UnchainedLauncher.Core.Services.Mods {
             for (var i = 0; i < removeActions.Count; i++) {
                 _inventory.BeginChange();
                 var removed = ProcessRemove(removeActions[i]);
-                _inventory.Save(_managedPaks);
                 if (removed.IsLeft) yield return removed.Map(_ => removeActions[i].Existing);
                 removeProgress.IfSome(p => p.Report(100d * (i + 1) / removeActions.Count));
             }

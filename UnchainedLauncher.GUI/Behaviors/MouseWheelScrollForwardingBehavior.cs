@@ -35,7 +35,7 @@ namespace UnchainedLauncher.GUI.Behaviors {
             if (!element.IsMouseOver) return;
 
             // Don't forward if we're over a nested scrollable control (e.g., ComboBox, nested ScrollViewer).
-            // But if 'element' itself is a scrollable control (like a ListBox), we still want to forward 
+            // But if 'element' itself is a scrollable control (like a ListBox), we still want to forward
             // from its contents to the parent ScrollViewer.
             if (IsOverNestedScrollableControl(e.OriginalSource as DependencyObject, element)) return;
 
@@ -56,27 +56,34 @@ namespace UnchainedLauncher.GUI.Behaviors {
 
         private static bool IsOverNestedScrollableControl(DependencyObject? d, UIElement behaviorElement) {
             while (d != null && !ReferenceEquals(d, behaviorElement)) {
-                if (d is ScrollViewer or ComboBox or ListBox or ListView or DataGrid or TextBox { AcceptsReturn: true })
+                // A list's template ScrollViewer belongs to the forwarding control itself.
+                // Only independently nested controls should retain their wheel input.
+                if (d is ScrollViewer viewer && !ReferenceEquals(viewer.TemplatedParent, behaviorElement)
+                    || d is ComboBox or ListBox or ListView or DataGrid or TextBox { AcceptsReturn: true })
                     return true;
 
-                d = VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d);
+                d = GetParent(d);
             }
             return false;
         }
 
         private static ScrollViewer? FindAncestorScrollViewer(DependencyObject d) {
             // Start searching from the parent, otherwise we'll just find ourselves if 'd' is a ScrollViewer.
-            DependencyObject? current = VisualTreeHelper.GetParent(d) ?? LogicalTreeHelper.GetParent(d);
+            DependencyObject? current = GetParent(d);
             while (current != null) {
                 if (current is ScrollViewer sv) return sv;
 
-                current = current switch {
-                    Visual or Visual3D => VisualTreeHelper.GetParent(current),
-                    _ => LogicalTreeHelper.GetParent(current)
-                };
+                current = GetParent(current);
             }
 
             return null;
         }
+
+        private static DependencyObject? GetParent(DependencyObject element) => element switch {
+            Visual or Visual3D => VisualTreeHelper.GetParent(element) ?? LogicalTreeHelper.GetParent(element),
+            ContentElement content => ContentOperations.GetParent(content)
+                ?? LogicalTreeHelper.GetParent(content),
+            _ => LogicalTreeHelper.GetParent(element)
+        };
     }
 }

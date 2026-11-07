@@ -82,7 +82,6 @@ namespace UnchainedLauncher.GUI.Behaviors {
         private static DependencyObject? GetParent(DependencyObject element) => element switch {
             Visual or Visual3D => VisualTreeHelper.GetParent(element) ?? LogicalTreeHelper.GetParent(element),
             ContentElement content => ContentOperations.GetParent(content)
-                ?? (content as FrameworkContentElement)?.Parent
                 ?? LogicalTreeHelper.GetParent(content),
             _ => LogicalTreeHelper.GetParent(element)
         };

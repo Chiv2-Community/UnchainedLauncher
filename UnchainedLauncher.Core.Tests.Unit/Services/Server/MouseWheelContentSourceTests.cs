@@ -1,11 +1,10 @@
 using System.Reflection;
-using System.Runtime.ExceptionServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Threading;
 using UnchainedLauncher.GUI.Behaviors;
+using static UnchainedLauncher.Core.Tests.Unit.Services.Server.MouseWheelTestSupport;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Server;
 
@@ -51,47 +50,9 @@ public class MouseWheelContentSourceTests {
             "GetParent", BindingFlags.NonPublic | BindingFlags.Static)!;
         Assert.Null(method.Invoke(null, [new Run("detached")]));
         Assert.Null(method.Invoke(null, [new DependencyObject()]));
+        var content = new FrameworkContentElement();
+        var host = new ContentControl { Content = content };
+        Assert.Null(ContentOperations.GetParent(content));
+        Assert.Same(host, method.Invoke(null, [content]));
     });
-
-    private static ScrollViewer CreateViewer(UIElement content) {
-        var viewer = new ScrollViewer {
-            Content = new StackPanel { Children = { content, new Border { Height = 1000 } } },
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-        };
-        viewer.Measure(new Size(400, 300));
-        viewer.Arrange(new Rect(0, 0, 400, 300));
-        viewer.UpdateLayout();
-        Assert.True(viewer.ScrollableHeight > 60);
-        return viewer;
-    }
-
-    private static MouseWheelEventArgs Wheel(IInputElement source) {
-        // Set WPF's hover state without moving the desktop cursor; routing remains real.
-        var hover = typeof(MouseDevice).GetMethod("ChangeMouseOver", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        hover.Invoke(Mouse.PrimaryDevice, [source, 0]);
-        try {
-            var args = new MouseWheelEventArgs(Mouse.PrimaryDevice, 0, -120) {
-                RoutedEvent = Mouse.PreviewMouseWheelEvent
-            };
-            if (source is ContentElement content) content.RaiseEvent(args);
-            else ((UIElement)source).RaiseEvent(args);
-            return args;
-        }
-        finally {
-            hover.Invoke(Mouse.PrimaryDevice, [null, 0]);
-        }
-    }
-
-    private static void OnSta(Action action) {
-        Exception? failure = null;
-        var thread = new Thread(() => {
-            try { action(); }
-            catch (Exception ex) { failure = ex; }
-            finally { Dispatcher.CurrentDispatcher.InvokeShutdown(); }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        thread.Join();
-        if (failure != null) ExceptionDispatchInfo.Capture(failure).Throw();
-    }
 }

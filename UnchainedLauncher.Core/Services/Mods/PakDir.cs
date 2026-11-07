@@ -20,6 +20,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public IEnumerable<ManagedPak> ManagedPaks => _managedPaks;
         private readonly List<ManagedPak> _managedPaks;
+        public event EventHandler? OwnershipChanged;
 
         public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks) {
             DirPath = dirPath;
@@ -102,6 +103,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             _managedPaks.RemoveAll(existing => existing.Coordinates == pak.Coordinates
                 || existing.PakFileName.Equals(pak.PakFileName, StringComparison.OrdinalIgnoreCase));
             _managedPaks.Add(pak);
+            OwnershipChanged?.Invoke(this, EventArgs.Empty);
         }
 
         internal static IEnumerable<string> GetInstallFileNames(IEnumerable<ReleaseCoordinates> releases) {
@@ -238,7 +240,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
             // Update priority in _managedPaks if changed
             if (skip.Existing.Priority != skip.Index) {
                 var idx = _managedPaks.FindIndex(p => p.Coordinates.Matches(skip.Install.Coordinates));
-                if (idx >= 0) _managedPaks[idx] = desired;
+                if (idx >= 0) {
+                    _managedPaks[idx] = desired;
+                    OwnershipChanged?.Invoke(this, EventArgs.Empty);
+                }
             }
 
             Logger.Debug($"Skipping {skip.Install.Coordinates.ModuleName} - already at {skip.Existing.PakFileName}");
@@ -254,6 +259,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     var managedPak = new ManagedPak(move.Install.Coordinates, move.TargetPakName, move.Index);
                     _managedPaks.RemoveAll(p => p.Coordinates.Matches(move.Install.Coordinates));
                     _managedPaks.Add(managedPak);
+                    OwnershipChanged?.Invoke(this, EventArgs.Empty);
                     Logger.Info($"Relocated {move.Install.Coordinates.ModuleName} to {move.TargetPakName}");
                     return managedPak;
                 });
@@ -264,6 +270,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .Map(pakFileName => {
                     var managedPak = new ManagedPak(download.Install.Coordinates, pakFileName, download.Index);
                     _managedPaks.Add(managedPak);
+                    OwnershipChanged?.Invoke(this, EventArgs.Empty);
                     _signFile(PakNameToPakPath(managedPak.PakFileName))
                         .IfLeft(e => Logger.Error($"Failed to sign {managedPak.PakFileName}: {e.Message}"));
                     return managedPak;
@@ -273,7 +280,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
         private void ProcessRemove(InstallAction.Remove remove) {
             Logger.Info($"Removing pak: {remove.Existing.PakFileName} ({remove.Existing.Coordinates.ModuleName} version {remove.Existing.Coordinates.Version})");
             var uninstallResult = Uninstall(remove.Existing.Coordinates);
-            uninstallResult.IfRight(_ => _managedPaks.RemoveAll(p => p.Coordinates == remove.Existing.Coordinates));
+            uninstallResult.IfRight(_ => {
+                _managedPaks.RemoveAll(p => p.Coordinates == remove.Existing.Coordinates);
+                OwnershipChanged?.Invoke(this, EventArgs.Empty);
+            });
             uninstallResult.IfLeft(e => Logger.Error($"Failed to remove pak {remove.Existing.PakFileName}: {e}"));
         }
 

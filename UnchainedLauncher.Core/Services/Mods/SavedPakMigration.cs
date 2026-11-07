@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods;
 

@@ -321,7 +321,8 @@ namespace UnchainedLauncher.GUI {
             var codec = new ModManagerCodec(registry);
             var modManager = InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
 
-            RegisterSaveToFileOnExit(modManager, codec, jsonPath);
+            var persistence = new ModManagerPersistence(modManager, jsonPath);
+            RegisterExitHandler(persistence.Save);
             return modManager;
         }
 

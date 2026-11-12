@@ -11,7 +11,6 @@ namespace UnchainedLauncher.Core.Services.Dlls {
     /// <summary>Only explicitly enabled, registry-backed releases may reach the injector.</summary>
     public sealed class DllManager {
         public const string DefaultDatabaseUrl = "https://raw.githubusercontent.com/Chiv2-Community/C2ModRegistry/refs/heads/main/dll_db";
-        public const string DefaultIndexUrl = DefaultDatabaseUrl + "/index.json";
         public const string DefaultPackageListUrl = DefaultDatabaseUrl + "/plugin_list_index.txt";
         public const string DefaultPluginId = "Chiv2-Community/UnchainedPlugin";
         private readonly HttpClient _http;
@@ -52,14 +51,14 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             if (File.Exists(_indexPath) && File.Exists(_indexPath + ".sources") &&
                 File.ReadAllText(_indexPath + ".sources") == SourceSignature()) {
                 _approvedSources = SourceSignature();
-                Releases = ParseIndex(File.ReadAllText(_indexPath));
+                Releases = ParseCachedReleases(File.ReadAllText(_indexPath));
                 EnableDefault();
             }
         }
 
-        public static IReadOnlyList<DllRelease> ParseIndex(string json) {
+        public static IReadOnlyList<DllRelease> ParseCachedReleases(string json) {
             var entries = JsonSerializer.Deserialize<List<DllRelease>>(json)
-                          ?? throw new InvalidDataException("Missing DLL index.");
+                          ?? throw new InvalidDataException("Missing cached DLL releases.");
             return ValidateReleases(entries);
         }
 
@@ -108,14 +107,9 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         private string SourceSignature() => JsonSerializer.Serialize(RegistryUrls());
 
         private async Task<IReadOnlyList<DllRelease>> ReadRegistryAsync(string databaseUrl) {
-            // The package list is authoritative. A stale legacy index must not
-            // re-approve removed releases or block metadata/target updates.
             using var listResponse = await _http.GetAsync(databaseUrl + "/plugin_list_index.txt");
-            if (listResponse.StatusCode == HttpStatusCode.NotFound) {
-                using var legacyResponse = await _http.GetAsync(databaseUrl + "/index.json");
-                // Mod-only registries have neither format.
-                return legacyResponse.StatusCode == HttpStatusCode.NotFound ? [] : ParseIndex(await ReadResponse(legacyResponse));
-            }
+            // A missing package list denotes a mod-only registry.
+            if (listResponse.StatusCode == HttpStatusCode.NotFound) return [];
             var packages = (await ReadResponse(listResponse)).Split('\n').Select(line => line.Trim()).Where(line => line.Length != 0);
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var merged = new Dictionary<string, DllRelease>(StringComparer.OrdinalIgnoreCase);

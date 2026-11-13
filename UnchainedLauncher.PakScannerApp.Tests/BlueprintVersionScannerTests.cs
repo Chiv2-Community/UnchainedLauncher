@@ -129,7 +129,8 @@ public class BlueprintVersionScannerTests {
             ("ConcreteMod_C", "", true, () => Version("2.0.0")));
         child.ExportMap[1].ClassIndex = new FPackageIndex(child, 1);
         var imports = child.ImportMap.Append(new FObjectImport {
-            ObjectName = new FName("/Game/SharedModBase"), OuterIndex = new FPackageIndex()
+            ObjectName = new FName("/Game/SharedModBase"),
+            OuterIndex = new FPackageIndex()
         }).ToArray();
         imports[1].OuterIndex = new FPackageIndex(child, -imports.Length);
         SetField(child, nameof(CUE4Parse.UE4.Assets.Package.ImportMap), imports);
@@ -152,7 +153,8 @@ public class BlueprintVersionScannerTests {
             package.ExportMap[0].ObjectName = new FName(name + "_C");
             package.ExportMap[1].ClassIndex = new FPackageIndex(package, 1);
             var imports = package.ImportMap.Append(new FObjectImport {
-                ObjectName = new FName("/Game/" + parent), OuterIndex = new FPackageIndex()
+                ObjectName = new FName("/Game/" + parent),
+                OuterIndex = new FPackageIndex()
             }).ToArray();
             imports[1].OuterIndex = new FPackageIndex(package, -imports.Length);
             SetField(package, nameof(CUE4Parse.UE4.Assets.Package.ImportMap), imports);

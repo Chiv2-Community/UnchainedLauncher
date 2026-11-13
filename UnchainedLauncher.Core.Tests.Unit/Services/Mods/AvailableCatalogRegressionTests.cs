@@ -1,5 +1,5 @@
-using Moq;
 using CUE4Parse.UE4.VirtualFileSystem;
+using Moq;
 using Newtonsoft.Json;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;

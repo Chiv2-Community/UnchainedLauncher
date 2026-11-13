@@ -34,6 +34,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
         private IUserDialogueSpawner UserDialogueSpawner { get; }
         private IModManager ModManager { get; }
         private IChivalryProcessWatcher ProcessWatcher { get; }
+        private readonly Action Shutdown;
 
         public Visibility MainWindowVisibility {
             get;
@@ -42,13 +43,14 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         public bool IsReusable() => Settings.InstallationType == InstallationType.Steam;
 
-        public HomeVM(SettingsVM settings, IModManager modManager, IChivalry2Launcher vanillaLauncher, IChivalry2Launcher moddedLauncher, IUserDialogueSpawner dialogueSpawner, IChivalryProcessWatcher processWatcher) {
+        public HomeVM(SettingsVM settings, IModManager modManager, IChivalry2Launcher vanillaLauncher, IChivalry2Launcher moddedLauncher, IUserDialogueSpawner dialogueSpawner, IChivalryProcessWatcher processWatcher, Action? shutdown = null) {
             Settings = settings;
             ModManager = modManager;
             VanillaLauncher = vanillaLauncher;
             UnchainedLauncher = moddedLauncher;
             UserDialogueSpawner = dialogueSpawner;
             ProcessWatcher = processWatcher;
+            Shutdown = shutdown ?? (() => Application.Current.Shutdown(0));
             _ = LoadWhatsNew();
             MainWindowVisibility = Visibility.Visible;
         }
@@ -134,12 +136,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     return None;
                 },
                 Right: process => {
-                    if (!IsReusable()) {
-                        Logger.Debug("Launcher is not reusable. Exiting.");
-                        Application.Current.Shutdown(0);
-                        return None;
-                    }
-
                     MainWindowVisibility = Visibility.Hidden;
                     _ = CreateChivalryProcessWatcher(process, options, allowRetry: false);
                     return Some(process);
@@ -179,12 +175,6 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     return None;
                 },
                 Right: process => {
-                    if (!IsReusable()) {
-                        Logger.Debug("Launcher is not reusable. Exiting.");
-                        Application.Current.Shutdown(0);
-                        return None;
-                    }
-
                     MainWindowVisibility = Visibility.Hidden;
                     _ = CreateChivalryProcessWatcher(process, options, allowRetry: !hasRetried);
                     return Some(process);
@@ -194,6 +184,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private async Task CreateChivalryProcessWatcher(Process process, LaunchOptions options, bool allowRetry) {
             var attached = await ProcessWatcher.OnExit(process, async (exitCode, acceptable) => {
+                if (!IsReusable()) {
+                    Logger.Debug("Game exited. Launcher is not reusable. Exiting.");
+                    Application.Current.Dispatcher.Invoke(Shutdown);
+                    return;
+                }
+
                 if (exitCode == -67 && allowRetry) {
                     Logger.Warn("Chivalry 2 exited with -67. Attempting a single re-launch.");
                     try {
@@ -217,7 +213,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
             if (!attached) {
                 Logger.Warn($"Failed to locate actual vanilla game process '{ProcessWatcher.TargetProcessNameNoExt}'. Launcher exiting. User can open a new one later.");
-                Application.Current.Shutdown(0);
+                Application.Current.Dispatcher.Invoke(Shutdown);
             }
         }
     }

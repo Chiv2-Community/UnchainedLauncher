@@ -58,7 +58,7 @@
                                   Content="Enable Unreal Mod Scanner Tab" 
                                   Margin="0,5" VerticalAlignment="Center" />
 
-                        <Separator Grid.Row="1" Margin="0,10" Background="{DynamicResource Brush.Border}" />
+                        <Border Grid.Row="1" Margin="0,10" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1" />
 
                         <Grid Grid.Row="2" Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>

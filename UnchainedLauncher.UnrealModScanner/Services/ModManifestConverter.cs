@@ -9,7 +9,8 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
         public static PakDirManifest ProcessModScan(ModScanResult scanResult) {
             var paks = new List<PakManifest>();
 
-            foreach (var entry in scanResult.Paks) {
+            foreach (var entry in scanResult.Paks.OrderBy(p => p.Value.PakPath, StringComparer.Ordinal)
+                         .ThenBy(p => p.Key, StringComparer.Ordinal)) {
                 var pakInventory = new PakManifest(
                     PakName: entry.Key,
                     PakPath: entry.Value.PakPath,
@@ -51,7 +52,8 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                         Hash: marker.AssetHash,
                         ClassPath: marker.ClassPath,
                         ObjectClass: marker.ClassName,
-                        AssociatedBlueprints: marker.Children.Select(c => c.AssetPath).ToList()
+                        AssociatedBlueprints: marker.Children.Select(c => c.AssetPath)
+                            .OrderBy(path => path, StringComparer.Ordinal).ToList()
                     );
 
                     markers.Add(markerDto);
@@ -117,11 +119,11 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
             }
 
             return new AssetCollections(
-                Markers: markers,
-                Blueprints: blueprints,
-                Maps: maps,
-                Replacements: replacements,
-                Arbitrary: arbitrary
+                Markers: markers.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList(),
+                Blueprints: blueprints.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList(),
+                Maps: maps.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList(),
+                Replacements: replacements.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList(),
+                Arbitrary: arbitrary.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList()
             );
         }
 

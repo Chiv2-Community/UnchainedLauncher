@@ -53,7 +53,8 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.Views {
             var dlg = new OpenFolderDialog {
                 Title = "Select Pak Directory",
                 InitialDirectory = ModScannerVM.DefaultPakDirectory ?? "",
-                DefaultDirectory = ModScannerVM.DefaultPakDirectory ?? ""
+                DefaultDirectory = ModScannerVM.DefaultPakDirectory ?? "",
+                FolderName = ModScannerVM.DefaultPakDirectory ?? ""
             };
             if (dlg.ShowDialog() == true) {
                 await ModScannerVM.ScanAsync(dlg.FolderName);

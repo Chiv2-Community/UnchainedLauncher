@@ -18,3 +18,7 @@ The assistant chose the border pattern to avoid the suspected template edge whil
 The change in `UnchainedLauncher.GUI/Views/Settings.xaml` is uncommitted at recording; HEAD does not contain it. The supplied transcript reports that the GUI Debug cross-build succeeded with warnings using `-p:EnableWindowsTargeting=true`; the first attempt without that property failed on a referenced Windows project. This review verified the working-tree diff but did not rerun the build or inspect the GUI. A successful cross-build does not prove visual correctness.
 
 Verify the divider in both themes and during theme switching on Windows. Reconsider the approach if visual appearance, spacing, accessibility, or theme updates differ from other dividers. No issue, PR, implementation commit, release, or further design discussion is established by the source.
+
+## Subsequent developments - 2026-11-13
+
+The uncommitted and PR-not-established implementation status above is historical: the change was subsequently committed and submitted for review. See [Settings divider submitted for review](2026-11-13-settings-divider-pr.md). Visual validation remains pending.

@@ -10,8 +10,10 @@ namespace UnchainedLauncher.Core.Services.Mods;
 // This is read-result caching, not ownership or permission to keep a pak.
 internal sealed class PakReadCache : IDisposable {
     private static readonly ILog Logger = LogManager.GetLogger(nameof(PakReadCache));
+    private const int VersionScanRevision = 1;
     private sealed record Entry([property: JsonRequired] long Length, [property: JsonRequired] long LastWriteTicks,
-        [property: JsonRequired] string Hash, [property: JsonRequired] bool VersionRead, [property: JsonRequired] string? Version);
+        [property: JsonRequired] string Hash, [property: JsonRequired] bool VersionRead, [property: JsonRequired] string? Version,
+        int VersionScanRevision = 0);
     private readonly string directory;
     private readonly string cachePath;
     private readonly Func<string, Task<string?>> readVersion;
@@ -103,7 +105,7 @@ internal sealed class PakReadCache : IDisposable {
         Validate(path, hash);
         var name = Path.GetFileName(path);
         var entry = entries[name];
-        if (entry.VersionRead) return entry.Version;
+        if (entry.VersionRead && entry.VersionScanRevision == VersionScanRevision) return entry.Version;
         string? version;
         try {
             version = await readVersion(path);
@@ -114,7 +116,7 @@ internal sealed class PakReadCache : IDisposable {
             return null;
         }
         Validate(path, hash);
-        entries[name] = entry with { VersionRead = true, Version = version };
+        entries[name] = entry with { VersionRead = true, Version = version, VersionScanRevision = VersionScanRevision };
         dirty = true;
         return version;
     }

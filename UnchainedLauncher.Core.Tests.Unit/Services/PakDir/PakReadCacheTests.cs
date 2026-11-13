@@ -212,6 +212,26 @@ public class PakReadCacheTests : IDisposable {
     }
 
     [Fact]
+    public async Task LegacyVersionResultIsRescannedWithoutRehashing() {
+        using (var cache = new PakReadCache(directory, _ => Task.FromResult<string?>("99.0.0")))
+            await cache.Version(Pak, await cache.Hash(Pak));
+        var json = JsonNode.Parse(File.ReadAllText(Cache))!;
+        json["manual.pak"]!.AsObject().Remove("VersionScanRevision");
+        File.WriteAllText(Cache, json.ToJsonString());
+        var reads = 0;
+        using (var restarted = new PakReadCache(directory, _ => {
+            reads++;
+            return Task.FromResult<string?>("1.2.3");
+        }, readHash: _ => throw new Exception("Hash must remain cached"))) {
+            Assert.Equal("1.2.3", await restarted.Version(Pak, await restarted.Hash(Pak)));
+            Assert.Equal("1.2.3", await restarted.Version(Pak, await restarted.Hash(Pak)));
+        }
+        Assert.Equal(1, reads);
+        using var next = new PakReadCache(directory, _ => throw new Exception("New version must remain cached"));
+        Assert.Equal("1.2.3", await next.Version(Pak, await next.Hash(Pak)));
+    }
+
+    [Fact]
     public async Task FailedVersionReadIsRetriedAfterRestart() {
         using (var cache = new PakReadCache(directory, _ => throw new IOException("transient")))
             Assert.Null(await cache.Version(Pak, await cache.Hash(Pak)));

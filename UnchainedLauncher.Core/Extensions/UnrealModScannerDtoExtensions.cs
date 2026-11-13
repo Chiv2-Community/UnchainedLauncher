@@ -20,9 +20,9 @@ public static class UnrealModScannerDtoExtensions {
             var shouldBeHidden = blueprintDto.IsHidden ?? false;
             var isClientSideOnly = blueprintDto.bClientside ?? false;
             var isShownOnFrontend = blueprintDto.bAllowOnFrontend ?? false;
-            var hasShowInGUI = blueprintDto.bShowInGUI != null;
+            var showInGUI = blueprintDto.bShowInGUI == true;
 
-            return !shouldBeHidden && !isClientSideOnly && !isShownOnFrontend && hasShowInGUI;
+            return !shouldBeHidden && !isClientSideOnly && !isShownOnFrontend && showInGUI;
         }
     }
 

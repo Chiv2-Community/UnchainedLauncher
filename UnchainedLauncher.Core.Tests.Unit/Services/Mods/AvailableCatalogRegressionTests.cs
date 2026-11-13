@@ -31,6 +31,22 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             Assert.All(assets.Blueprints, blueprint => Assert.Equal(present, catalog.AvailableServerModBlueprints.Contains(blueprint)));
         }
 
+        [Theory]
+        [InlineData(true, true)]
+        [InlineData(false, false)]
+        [InlineData(null, false)]
+        public void ServerActorCatalogRequiresExplicitShowInGui(bool? showInGui, bool expected) {
+            var assets = Assets("Visibility");
+            assets.Blueprints[0] = assets.Blueprints[0] with { bShowInGUI = showInGui };
+            var release = Release("Visibility", assets);
+            var manager = Manager(release);
+            manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
+
+            var catalog = new AvailableModsAndMapsService(manager, new ModScanTabVM());
+
+            Assert.Equal(expected, catalog.AvailableServerModBlueprints.Contains(assets.Blueprints[0]));
+        }
+
         [Fact]
         public void LiveEnableAndDisableMatchStartupDependencyCatalog() {
             var dependency = Release("Dependency", Assets("Dependency"));

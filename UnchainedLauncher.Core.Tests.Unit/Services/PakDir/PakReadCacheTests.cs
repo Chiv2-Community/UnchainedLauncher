@@ -1,6 +1,7 @@
 using log4net;
 using log4net.Appender;
 using log4net.Core;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using UnchainedLauncher.Core.Services.Mods;
@@ -20,13 +21,13 @@ public class PakReadCacheTests : IDisposable {
 
     public void Dispose() => Directory.Delete(directory, true);
 
-    private static async Task WithHashLogs(Func<MemoryAppender, Task> test) {
+    private static async Task WithHashLogs(Func<MemoryAppender, Task> test, Level? logLevel = null) {
         var logger = (log4net.Repository.Hierarchy.Logger)LogManager.GetLogger(nameof(PakReadCache)).Logger;
         var repository = logger.Repository!;
         var appender = new MemoryAppender();
         var level = logger.Level;
         var configured = repository.Configured;
-        logger.Level = Level.Info;
+        logger.Level = logLevel ?? Level.Debug;
         repository.Configured = true;
         logger.AddAppender(appender);
         try {
@@ -46,14 +47,14 @@ public class PakReadCacheTests : IDisposable {
             using var cache = new PakReadCache(directory, readHash: async stream => {
                 var started = Assert.Single(appender.GetEvents());
                 Assert.Equal(Level.Info, started.Level);
-                Assert.Contains($"Hashing pak '{Pak}' (8 bytes) using SHA-512.", started.RenderedMessage);
+                Assert.Equal("Hashing pak 'manual.pak' (8 bytes).", started.RenderedMessage);
                 return await SHA512.HashDataAsync(stream);
             });
             var hash = await cache.Hash(Pak);
             var logs = appender.GetEvents();
             Assert.Equal(2, logs.Length);
-            Assert.Equal(Level.Info, logs[1].Level);
-            Assert.Contains($"Finished hashing pak '{Pak}' (8 bytes) in ", logs[1].RenderedMessage);
+            Assert.Equal(Level.Debug, logs[1].Level);
+            Assert.Contains("Finished hashing pak 'manual.pak' (8 bytes) in ", logs[1].RenderedMessage);
             Assert.Contains($" ms; SHA-512: {hash}", logs[1].RenderedMessage);
             Assert.Equal(Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(Pak))), hash);
         });
@@ -69,7 +70,81 @@ public class PakReadCacheTests : IDisposable {
             await restarted.Hash(Pak);
             var reused = Assert.Single(appender.GetEvents());
             Assert.Equal(Level.Info, reused.Level);
-            Assert.Equal($"Using cached SHA-512 hash for pak '{Pak}' (8 bytes).", reused.RenderedMessage);
+            Assert.Equal("Using cached SHA-512 hash for pak 'manual.pak'.", reused.RenderedMessage);
+        });
+    }
+
+    [Theory]
+    [InlineData(0L, "0 bytes")]
+    [InlineData(1023L, "1023 bytes")]
+    [InlineData(1024L, "1 KB")]
+    [InlineData(1536L, "1.5 KB")]
+    [InlineData(1048576L, "1 MB")]
+    [InlineData(1572864L, "1.5 MB")]
+    [InlineData(1073741824L, "1 GB")]
+    [InlineData(1610612736L, "1.5 GB")]
+    public void HashLogSizesUseReadableUnits(long bytes, string expected) =>
+        Assert.Equal(expected, PakReadCache.FormatSize(bytes));
+
+    [Fact]
+    public async Task HashSummaryAccumulatesReadsButNotCacheHits() {
+        await WithHashLogs(async appender => {
+            var other = Path.Combine(directory, "other.pak");
+            File.WriteAllText(other, "other");
+            using (var cache = new PakReadCache(directory, readHash: async stream => {
+                await Task.Delay(25);
+                return await SHA512.HashDataAsync(stream);
+            })) {
+                await cache.Hash(Pak);
+                await cache.Hash(other);
+                await cache.Hash(Pak);
+                Assert.DoesNotContain(appender.GetEvents(), log => log.RenderedMessage.StartsWith("Hashed all new paks"));
+            }
+            var logs = appender.GetEvents();
+            var completed = logs.Where(log => log.RenderedMessage.StartsWith("Finished hashing")).ToArray();
+            Assert.Equal(2, completed.Length);
+            var milliseconds = completed.Sum(log => double.Parse(log.RenderedMessage.Split(" in ")[1].Split(" ms;")[0], CultureInfo.CurrentCulture));
+            var summary = Assert.Single(logs.Where(log => log.RenderedMessage.StartsWith("Hashed all new paks")));
+            Assert.Same(summary, logs[^1]);
+            Assert.Equal(Level.Info, summary.Level);
+            var seconds = double.Parse(summary.RenderedMessage["Hashed all new paks in ".Length..^2], CultureInfo.InvariantCulture);
+            Assert.InRange(seconds, milliseconds / 1000 - 0.002, milliseconds / 1000 + 0.002);
+        });
+    }
+
+    [Fact]
+    public async Task InfoLogsContainStartAndFinalSummaryWithoutPerPakCompletion() {
+        await WithHashLogs(async appender => {
+            using (var cache = new PakReadCache(directory)) await cache.Hash(Pak);
+            var logs = appender.GetEvents();
+            Assert.Equal(2, logs.Length);
+            Assert.Equal("Hashing pak 'manual.pak' (8 bytes).", logs[0].RenderedMessage);
+            Assert.StartsWith("Hashed all new paks in ", logs[1].RenderedMessage);
+        }, Level.Info);
+    }
+
+    [Fact]
+    public async Task CachedOnlyPassReportsZeroHashingTime() {
+        using (var cache = new PakReadCache(directory)) await cache.Hash(Pak);
+        await WithHashLogs(async appender => {
+            using (var restarted = new PakReadCache(directory)) await restarted.Hash(Pak);
+            var logs = appender.GetEvents();
+            Assert.Equal(2, logs.Length);
+            Assert.StartsWith("Using cached SHA-512 hash", logs[0].RenderedMessage);
+            Assert.Equal("Hashed all new paks in 0.000 s", logs[1].RenderedMessage);
+        });
+    }
+
+    [Fact]
+    public async Task MissingPakLogsFailureWithoutSuccessSummary() {
+        await WithHashLogs(async appender => {
+            File.Delete(Pak);
+            using (var cache = new PakReadCache(directory))
+                await Assert.ThrowsAsync<FileNotFoundException>(() => cache.Hash(Pak));
+            var failure = Assert.Single(appender.GetEvents());
+            Assert.Equal(Level.Error, failure.Level);
+            Assert.IsType<FileNotFoundException>(failure.ExceptionObject);
+            Assert.Contains($"Failed to hash pak '{Pak}' (size unavailable)", failure.RenderedMessage);
         });
     }
 

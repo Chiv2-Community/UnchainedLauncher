@@ -18,6 +18,8 @@ internal sealed class PakReadCache : IDisposable {
     private readonly Func<Stream, Task<byte[]>> readHash;
     private readonly Dictionary<string, Entry> entries = new(StringComparer.OrdinalIgnoreCase);
     private bool dirty;
+    private TimeSpan hashingTime;
+    private bool hashFailed;
 
     internal PakReadCache(string directory, Func<string, Task<string?>>? readVersion = null,
         Func<Stream, Task<byte[]>>? readHash = null) {
@@ -50,27 +52,40 @@ internal sealed class PakReadCache : IDisposable {
     private static bool Matches(Entry entry, (long Length, long Ticks) metadata) =>
         entry.Length == metadata.Length && entry.LastWriteTicks == metadata.Ticks;
 
+    internal static string FormatSize(long bytes) => bytes switch {
+        >= 1L << 30 => FormattableString.Invariant($"{bytes / (double)(1L << 30):0.##} GB"),
+        >= 1L << 20 => FormattableString.Invariant($"{bytes / (double)(1L << 20):0.##} MB"),
+        >= 1L << 10 => FormattableString.Invariant($"{bytes / (double)(1L << 10):0.##} KB"),
+        _ => $"{bytes} bytes"
+    };
+
     internal async Task<string> Hash(string path) {
-        var before = Metadata(path);
-        var name = Path.GetFileName(path);
-        if (entries.TryGetValue(name, out var cached) && Matches(cached, before)) {
-            Logger.Info($"Using cached SHA-512 hash for pak '{path}' ({before.Length} bytes).");
-            return cached.Hash;
-        }
-        entries.Remove(name);
-        dirty = true;
-        var timer = Stopwatch.StartNew();
-        Logger.Info($"Hashing pak '{path}' ({before.Length} bytes) using SHA-512.");
+        var timer = new Stopwatch();
+        var size = "size unavailable";
         try {
+            var before = Metadata(path);
+            var name = Path.GetFileName(path);
+            if (entries.TryGetValue(name, out var cached) && Matches(cached, before)) {
+                Logger.Info($"Using cached SHA-512 hash for pak '{name}'.");
+                return cached.Hash;
+            }
+            size = FormatSize(before.Length);
+            entries.Remove(name);
+            dirty = true;
+            Logger.Info($"Hashing pak '{name}' ({size}).");
+            timer.Start();
             using var stream = File.OpenRead(path);
             var hash = Convert.ToHexString(await readHash(stream));
             if (before != Metadata(path)) throw new IOException($"Pak changed while hashing: {path}");
             entries[name] = new Entry(before.Length, before.Ticks, hash, false, null);
-            Logger.Info($"Finished hashing pak '{path}' ({before.Length} bytes) in {timer.ElapsedMilliseconds} ms; SHA-512: {hash}");
+            var elapsed = timer.Elapsed;
+            hashingTime += elapsed;
+            Logger.Debug($"Finished hashing pak '{name}' ({size}) in {elapsed.TotalMilliseconds:0} ms; SHA-512: {hash}");
             return hash;
         }
         catch (Exception error) {
-            Logger.Error($"Failed to hash pak '{path}' ({before.Length} bytes) after {timer.ElapsedMilliseconds} ms.", error);
+            hashFailed = true;
+            Logger.Error($"Failed to hash pak '{path}' ({size}) after {timer.ElapsedMilliseconds} ms.", error);
             throw;
         }
     }
@@ -105,6 +120,8 @@ internal sealed class PakReadCache : IDisposable {
     }
 
     public void Dispose() {
+        if (!hashFailed)
+            Logger.Info(FormattableString.Invariant($"Hashed all new paks in {hashingTime.TotalSeconds:0.000} s"));
         foreach (var name in entries.Keys.Where(name => !File.Exists(Path.Combine(directory, name))).ToList()) {
             entries.Remove(name);
             dirty = true;

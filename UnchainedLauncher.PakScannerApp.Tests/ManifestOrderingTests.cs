@@ -1,5 +1,5 @@
-using System.Globalization;
 using Newtonsoft.Json;
+using System.Globalization;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Orchestrators;

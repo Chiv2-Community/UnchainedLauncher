@@ -111,7 +111,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
             PublishScan(scan, file.Scan);
             Assert.Single(catalog.AvailableMaps.Where(map => shared.Maps.Contains(map)));
-            Assert.Single(catalog.AvailableServerModBlueprints);
+            // Registry and scan fixtures refer to different physical pak paths.
+            Assert.Equal(2, catalog.AvailableServerModBlueprints.Count);
             manager.DisableModRelease(ReleaseCoordinates.FromRelease(release));
             Assert.All(shared.Maps, map => Assert.Contains(map, catalog.AvailableMaps));
             Assert.Empty(catalog.AvailableServerModBlueprints);
@@ -149,6 +150,52 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             Assert.Equal("Scanned", Assert.Single(catalog.AvailableServerModBlueprints).ModName);
             catalog.RefreshCatalog();
             Assert.Single(catalog.AvailableServerModBlueprints);
+        }
+
+        [Fact]
+        public void SameActorAndPakPathDeduplicateDespiteDifferentMetadataAndCasing() {
+            using var file = new ScannedPak();
+            var duplicate = new GenericAssetEntry { AssetPath = "SCANNED.uasset", AssetHash = "different hash" };
+            duplicate.Properties["ModName"] = "Different display name";
+            duplicate.Properties["bShowInGUI"] = true;
+            file.Result.AddGenericEntry(duplicate, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
+            var scan = new ModScanTabVM();
+            var catalog = new AvailableModsAndMapsService(Manager(), scan);
+            PublishScan(scan, file.Scan);
+            var actor = Assert.Single(catalog.AvailableServerModBlueprints);
+            PublishScan(scan, file.Scan);
+            catalog.RefreshCatalog();
+            Assert.Same(actor, Assert.Single(catalog.AvailableServerModBlueprints));
+        }
+
+        [Fact]
+        public void SameActorInDifferentPaksRemainsDistinctAndSurvivorIsPreserved() {
+            using var first = new ScannedPak();
+            using var second = new ScannedPak();
+            var scan = new ModScanTabVM();
+            var catalog = new AvailableModsAndMapsService(Manager(), scan);
+            PublishScan(scan, first.Scan);
+            var survivor = Assert.Single(catalog.AvailableServerModBlueprints);
+            first.Scan.Paks[second.Result.PakPath] = second.Result;
+            PublishScan(scan, first.Scan);
+            Assert.Equal(2, catalog.AvailableServerModBlueprints.Count);
+            Assert.Contains(catalog.AvailableServerModBlueprints, actor => ReferenceEquals(actor, survivor));
+            File.Delete(second.Result.PakPath);
+            catalog.RefreshCatalog();
+            Assert.Same(survivor, Assert.Single(catalog.AvailableServerModBlueprints));
+        }
+
+        [Fact]
+        public void DifferentActorPathsInSamePakRemainDistinct() {
+            using var file = new ScannedPak();
+            var other = new GenericAssetEntry { AssetPath = "Other.uasset", AssetHash = "hash" };
+            other.Properties["ModName"] = "Scanned";
+            other.Properties["bShowInGUI"] = true;
+            file.Result.AddGenericEntry(other, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
+            var scan = new ModScanTabVM();
+            var catalog = new AvailableModsAndMapsService(Manager(), scan);
+            PublishScan(scan, file.Scan);
+            Assert.Equal(2, catalog.AvailableServerModBlueprints.Count);
         }
 
         [Theory]
@@ -229,6 +276,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             var second = Release("Second", Assets("Second"));
             var active = Release("Active", Assets("Active"));
             var manager = new Mock<IModManager>();
+            manager.SetupGet(m => m.PakDir).Returns(Mock.Of<IPakDir>());
             manager.SetupGet(m => m.Mods).Returns(new[] { first, second, active }
                 .Select(release => new Mod(release.Info, [release])).ToArray());
             manager.SetupGet(m => m.EnabledModReleaseCoordinates).Returns([ReleaseCoordinates.FromRelease(active)]);
@@ -257,7 +305,6 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
                 blueprint.Properties["ModName"] = name;
                 blueprint.Properties["bShowInGUI"] = true;
                 Result.AddGenericEntry(blueprint, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
-                Scan.Paks[path] = Result;
             }
             public void Dispose() => File.Delete(Result.PakPath);
         }

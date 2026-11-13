@@ -33,6 +33,7 @@ public class AvailableModsAndMapsService {
     private readonly IModManager _modManager;
     private readonly IUnmanagedPakSettings? _settings;
     private readonly List<MapDto> _defaultMaps;
+    private readonly Dictionary<string, BlueprintDto> _serverBlueprintsBySource = new(StringComparer.OrdinalIgnoreCase);
 
     public AvailableModsAndMapsService(IModManager modManager, ModScanTabVM modScanTab, IUnmanagedPakSettings? settings = null) {
         _modManager = modManager;
@@ -74,13 +75,26 @@ public class AvailableModsAndMapsService {
             Path.GetFullPath(Path.Combine(_modManager.PakDir.DirPath, pak.PakFileName)))
             .ToHashSet(StringComparer.OrdinalIgnoreCase) : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         // Scans must not resurrect disabled managed actors.
-        var manifests = releases.Select(release => release.Manifest)
+        var manifests = releases.Select(release => (PakPath: _modManager.PakDir.GetManagedPakFilePath(ReleaseCoordinates.FromRelease(release))
+                .IfNone(() => Path.GetFullPath(Path.Combine(_modManager.PakDir.DirPath ?? "", release.PakFileName))), Inventory: release.Manifest))
             .Concat(_cachedScanManifest?.Paks.Where(pak => !string.IsNullOrWhiteSpace(pak.PakPath)
-                && !managedPaths.Contains(Path.GetFullPath(pak.PakPath)) && IsCurrentScan(pak, verifyHashes)).Select(pak => pak.Inventory with {
+                && !managedPaths.Contains(Path.GetFullPath(pak.PakPath)) && IsCurrentScan(pak, verifyHashes)).Select(pak => (pak.PakPath, Inventory: pak.Inventory with {
                     Blueprints = pak.Inventory.Blueprints.Where(actor => !inactivePaths.Contains(ServerBlueprintIdentity.Key(actor))).ToList()
-                }) ?? []).ToList();
-        Reconcile(AvailableMaps, _defaultMaps.Concat(manifests.SelectMany(manifest => manifest.RelevantMaps())));
-        Reconcile(AvailableServerModBlueprints, manifests.SelectMany(manifest => manifest.RelevantBlueprints()));
+                })) ?? []).ToList();
+        Reconcile(AvailableMaps, _defaultMaps.Concat(manifests.SelectMany(pak => pak.Inventory.RelevantMaps())));
+        // Catalog identity is actor path plus physical pak path, not blueprint metadata.
+        var actors = manifests.SelectMany(pak => pak.Inventory.RelevantBlueprints().Select(actor => (
+            Key: Path.GetFullPath(pak.PakPath) + "\0" + actor.Path.Replace('\\', '/'), Actor: actor)))
+            .DistinctBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase).ToDictionary(entry => entry.Key, entry => entry.Actor, StringComparer.OrdinalIgnoreCase);
+        foreach (var stale in _serverBlueprintsBySource.Where(entry => !actors.TryGetValue(entry.Key, out var actor) || actor != entry.Value).ToList()) {
+            var index = AvailableServerModBlueprints.ToList().FindIndex(actor => ReferenceEquals(actor, stale.Value));
+            if (index >= 0) AvailableServerModBlueprints.RemoveAt(index);
+            _serverBlueprintsBySource.Remove(stale.Key);
+        }
+        foreach (var entry in actors.Where(entry => !_serverBlueprintsBySource.ContainsKey(entry.Key))) {
+            _serverBlueprintsBySource.Add(entry.Key, entry.Value);
+            AvailableServerModBlueprints.Add(entry.Value);
+        }
     }
 
     // External pak changes do not raise mod-manager events.

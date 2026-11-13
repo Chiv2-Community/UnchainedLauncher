@@ -102,6 +102,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         public ObservableCollection<ServerConfigurationVM> ServerConfigs { get; }
         public ObservableCollection<(ServerConfigurationVM configuration, ServerVM live)> RunningServers { get; } = new();
         private IChivalryProcessWatcher ProcessWatcher { get; }
+        private readonly Action Shutdown;
 
         [DependsOn(nameof(SelectedConfiguration), "SelectedConfiguration.IsDesyncPatchEnabled", "Settings.CanLaunch")]
         public bool CanLaunchNonHeadless => Settings.CanLaunch && !(SelectedConfiguration?.IsDesyncPatchEnabled ?? false);
@@ -134,7 +135,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                             IChivalry2Launcher launcher,
                             ObservableCollection<ServerConfigurationVM> serverConfigs,
                             IChivalryProcessWatcher processWatcher,
-                            AvailableModsAndMapsService availableModsAndMaps) {
+                            AvailableModsAndMapsService availableModsAndMaps,
+                            Action? shutdown = null) {
             ServerConfigs = serverConfigs;
             _availableModsAndMaps = availableModsAndMaps;
             _modScanTab = modScanTab;
@@ -149,6 +151,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             DialogueSpawner = dialogueSpawner;
             ModManager = modManager;
             ProcessWatcher = processWatcher;
+            Shutdown = shutdown ?? (() => Application.Current.Shutdown(0));
 
             if (ServerConfigs?.Count == 0) {
                 CreateNewConfig();
@@ -372,10 +375,14 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             bool headless,
             (ServerConfigurationVM configuration, ServerVM live) runningTuple) {
             var attached = await ProcessWatcher.OnExit(process, async (exitCode, acceptable) => {
-                if (acceptable) {
+                if (acceptable || !Settings.IsLauncherReusable()) {
                     await UiInvokeAsync(() => {
                         RunningServers.Remove(runningTuple);
                         runningTuple.live.DisposeServer();
+                        if (!Settings.IsLauncherReusable()) {
+                            Logger.Debug("Server exited. Launcher is not reusable. Exiting.");
+                            Shutdown();
+                        }
                     });
                     return;
                 }

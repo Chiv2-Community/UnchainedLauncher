@@ -1,4 +1,5 @@
 using log4net;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -52,14 +53,26 @@ internal sealed class PakReadCache : IDisposable {
     internal async Task<string> Hash(string path) {
         var before = Metadata(path);
         var name = Path.GetFileName(path);
-        if (entries.TryGetValue(name, out var cached) && Matches(cached, before)) return cached.Hash;
+        if (entries.TryGetValue(name, out var cached) && Matches(cached, before)) {
+            Logger.Info($"Using cached SHA-512 hash for pak '{path}' ({before.Length} bytes).");
+            return cached.Hash;
+        }
         entries.Remove(name);
         dirty = true;
-        using var stream = File.OpenRead(path);
-        var hash = Convert.ToHexString(await readHash(stream));
-        if (before != Metadata(path)) throw new IOException($"Pak changed while hashing: {path}");
-        entries[name] = new Entry(before.Length, before.Ticks, hash, false, null);
-        return hash;
+        var timer = Stopwatch.StartNew();
+        Logger.Info($"Hashing pak '{path}' ({before.Length} bytes) using SHA-512.");
+        try {
+            using var stream = File.OpenRead(path);
+            var hash = Convert.ToHexString(await readHash(stream));
+            if (before != Metadata(path)) throw new IOException($"Pak changed while hashing: {path}");
+            entries[name] = new Entry(before.Length, before.Ticks, hash, false, null);
+            Logger.Info($"Finished hashing pak '{path}' ({before.Length} bytes) in {timer.ElapsedMilliseconds} ms; SHA-512: {hash}");
+            return hash;
+        }
+        catch (Exception error) {
+            Logger.Error($"Failed to hash pak '{path}' ({before.Length} bytes) after {timer.ElapsedMilliseconds} ms.", error);
+            throw;
+        }
     }
 
     internal void Validate(string path, string hash) {

@@ -2,7 +2,9 @@
 
 - **Actor selections and restart requests**: [Separate v1 scroll-fix backport](2026-11-06-v1-scroll-backport.md)
 - **AvailableModsAndMapsService and server catalog**: [Preserve scanned pak identity for server actors](2026-11-13-scanned-pak-identity.md), [Scanned pak identity fix submitted for review](2026-11-13-scanned-pak-pr.md), [Actor catalog identity and scan folder default](2026-11-13-actor-catalog-source-identity.md)
+- **Brush.Border and theme switching**: [Theme-aware settings divider](2026-11-13-settings-theme-divider.md)
 - **Composite actor and pak identity**: [Actor catalog identity and scan folder default](2026-11-13-actor-catalog-source-identity.md)
+- **Dark mode and settings divider**: [Theme-aware settings divider](2026-11-13-settings-theme-divider.md)
 - **Folder picker and scan directory**: [Actor catalog identity and scan folder default](2026-11-13-actor-catalog-source-identity.md)
 - **Inline content and hyperlinks**: [Separate v1 scroll-fix backport](2026-11-06-v1-scroll-backport.md)
 - **Mod scanner and pak identity**: [Preserve scanned pak identity for server actors](2026-11-13-scanned-pak-identity.md), [Scanned pak identity fix submitted for review](2026-11-13-scanned-pak-pr.md)
@@ -14,4 +16,4 @@
 - **SHA-512 and scan validation**: [Preserve scanned pak identity for server actors](2026-11-13-scanned-pak-identity.md)
 - **v1 hotfix backport**: [Separate v1 scroll-fix backport](2026-11-06-v1-scroll-backport.md)
 - **Wine test validation**: [Actor catalog identity and scan folder default](2026-11-13-actor-catalog-source-identity.md)
-- **WPF**: [Separate v1 scroll-fix backport](2026-11-06-v1-scroll-backport.md)
+- **WPF**: [Separate v1 scroll-fix backport](2026-11-06-v1-scroll-backport.md), [Theme-aware settings divider](2026-11-13-settings-theme-divider.md)

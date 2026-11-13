@@ -20,3 +20,7 @@ The working tree also contains uncommitted client and server lifetime tests. The
 ## Consequences and follow-up
 
 Non-reusable sessions no longer attempt client or server retry after a watched exit; Steam retains its existing retry paths. Validate real EGS client and headless/non-headless server lifetimes, watcher resolution and attachment failures, and shutdown behavior on native Windows before release. Reconsider the policy if EGS becomes reusable or actual process monitoring cannot reliably identify the launched instance. The desired server failure fallback and behavior for other non-Steam installation types remain unspecified.
+
+## Subsequent developments (2026-11-13)
+
+The implementation and tests were committed and a PR opened. The uncommitted and no-PR statements above describe the original recording only; they are superseded as current status, not refuted historically. See [EGS lifetime implementation and PR](2026-11-13-egs-lifetime-pr.md).

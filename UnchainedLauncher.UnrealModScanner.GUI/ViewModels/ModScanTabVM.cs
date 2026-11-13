@@ -19,6 +19,7 @@ public partial class ModScanTabVM : ObservableObject {
     public ModScanResult? LastScanResult { get; private set; }
 
     public ScanOptions? LoadedConfig { get; set; }
+    public string? DefaultPakDirectory { get; set; }
 
     [ObservableProperty]
     private double _scanProgress;

@@ -102,8 +102,22 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
             //    );
             //}
 
+            // Replacing bags while parallel workers add/remove assets loses updates.
+            // Resolve overlaps only after both passes have finished.
+            RemoveSpecializedAssets(mainResult);
             return mainResult;
         });
+    }
+
+    internal static void RemoveSpecializedAssets(ModScanResult result) {
+        foreach (var pak in result.Paks.Values) {
+            foreach (var marker in pak.GenericMarkers.Values.SelectMany(markers => markers.Values)) {
+                pak.RemoveSpecializedAsset(marker);
+                foreach (var child in marker.Children) {
+                    pak.RemoveSpecializedAsset(child);
+                }
+            }
+        }
     }
 
     //public async Task<ModScanResult> RunScanAsync(string directory, ScanMode mode, IProgress<double> progress = null) {

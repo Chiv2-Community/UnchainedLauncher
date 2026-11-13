@@ -138,7 +138,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                 Author: GetProp<string>(bp.Properties, "Author") ?? "",
                 bEnableByDefault: GetProp<bool>(bp.Properties, "bEnableByDefault"),
                 bSilentLoad: GetProp<bool>(bp.Properties, "bSilentLoad"),
-                bShowInGUI: GetProp<bool>(bp.Properties, "bShowInGUI"),
+                bShowInGUI: GetProp<bool?>(bp.Properties, "bShowInGUI"),
                 bClientside: GetProp<bool>(bp.Properties, "bClientside"),
                 bOnlineOnly: GetProp<bool>(bp.Properties, "bOnlineOnly"),
                 bHostOnly: GetProp<bool>(bp.Properties, "bHostOnly"),
@@ -160,7 +160,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                 // Handle cases where numbers might be boxed as different types
                 if (value is T typedValue) return typedValue;
 
-                try { return (T)Convert.ChangeType(value, typeof(T)); }
+                try { return (T)Convert.ChangeType(value, Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T)); }
                 catch { return default; }
             }
             return default;

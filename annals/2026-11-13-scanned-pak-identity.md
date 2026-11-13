@@ -21,3 +21,7 @@ The uncommitted `ModScanResult.GetOrAddPak` retains filename keys but stores an 
 The source transcript reports 19 scanner tests passing and a Windows-targeted test project cross-build succeeding; the new GUI catalog tests were not executed on Windows. A real `Unchained-Mods.pak` scan produced four blueprint entries, an existing absolute path and matching SHA-512. An earlier scan processed zero paks and is not evidence of success. The working tree contains scanner and catalog regression tests as well as the implementation; this review verified the diff but did not rerun tests or exercise the GUI.
 
 Reconsider if real Windows scans or checkbox tests fail, if physical paths are unsuitable for manifest consumers, or if same-name containers or second-pass references lose assets. Windows GUI execution, end-to-end checkbox verification, review and any eventual commit or release remain open. The prior [scroll backport record](2026-11-06-v1-scroll-backport.md) describes the existing per-server selection design; this fix does not supersede it.
+
+## Subsequent developments - 2026-11-13
+
+The statements that implementation was uncommitted and a commit or PR remained open describe the earlier recording point. They are superseded by the committed implementation and open PR documented in [Scanned pak identity fix submitted for review](2026-11-13-scanned-pak-pr.md). Windows runtime validation remains pending.

@@ -16,7 +16,7 @@ using UnrealModScanner.Models;
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
     public class AvailableCatalogRegressionTests {
         private static AssetCollections Assets(string name) => new([], [new($"{name}.uasset", "hash", null, null,
-            name, "1", "", "", "", true, false, true, false, false, true, false, false)],
+            name, "1", "", "", "", true, false, true, false, false, true, false)],
             [new($"TBL/Content/Maps/{name}.umap", "hash", null, null, null, name, null, null, null, "FFA", null)], [], []);
 
         private static Release Release(string name, AssetCollections assets, params Dependency[] dependencies) =>
@@ -29,6 +29,31 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         private static void AssertAssets(AvailableModsAndMapsService catalog, AssetCollections assets, bool present) {
             Assert.All(assets.Maps, map => Assert.Equal(present, catalog.AvailableMaps.Contains(map)));
             Assert.All(assets.Blueprints, blueprint => Assert.Equal(present, catalog.AvailableServerModBlueprints.Contains(blueprint)));
+        }
+
+        [Theory]
+        [InlineData(true, false, false, true)]
+        [InlineData(false, false, false, false)]
+        [InlineData(null, false, false, true)]
+        [InlineData(true, true, false, false)]
+        [InlineData(true, false, true, false)]
+        [InlineData(null, true, false, false)]
+        [InlineData(null, false, true, false)]
+        public void ServerActorCatalogHonorsExplicitShowInGuiFalseAndExistingExclusions(
+            bool? showInGui, bool clientSide, bool frontend, bool expected) {
+            var assets = Assets("Visibility");
+            assets.Blueprints[0] = assets.Blueprints[0] with {
+                bShowInGUI = showInGui,
+                bClientside = clientSide,
+                bAllowOnFrontend = frontend
+            };
+            var release = Release("Visibility", assets);
+            var manager = Manager(release);
+            manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
+
+            var catalog = new AvailableModsAndMapsService(manager, new ModScanTabVM());
+
+            Assert.Equal(expected, catalog.AvailableServerModBlueprints.Contains(assets.Blueprints[0]));
         }
 
         [Fact]

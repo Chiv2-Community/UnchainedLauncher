@@ -25,7 +25,7 @@ namespace UnchainedLauncher.UnrealModScanner.Config.Games {
                         new("Author", EExtractionMode.String),
                         new("bEnableByDefault", EExtractionMode.Raw),
                         new("bSilentLoad", EExtractionMode.Raw),
-                        new("bShowInGUI ", EExtractionMode.Raw),
+                        new("bShowInGUI", EExtractionMode.Raw),
                         new("bClientside", EExtractionMode.Raw),
                         new("bOnlineOnly", EExtractionMode.Raw),
                         new("bHostOnly", EExtractionMode.Raw),

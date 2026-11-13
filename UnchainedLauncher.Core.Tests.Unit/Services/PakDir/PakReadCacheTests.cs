@@ -7,6 +7,7 @@ using UnchainedLauncher.Core.Services.Mods;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir;
 
+[Collection("Home launch UI")]
 public class PakReadCacheTests : IDisposable {
     private readonly string directory = Path.Combine("TestDirectories", nameof(PakReadCacheTests), Guid.NewGuid().ToString());
     private string Pak => Path.Combine(directory, "manual.pak");

@@ -8,8 +8,6 @@ using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Processors;
-using UnchainedLauncher.UnrealModScanner.Utility;
-using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Orchestrators;
 
@@ -66,17 +64,7 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                         if (pkg == null) return;
 
                         var context = new ScanContext(provider, pkg, file.Key, pakEntry);
-                        var pakName = pakEntry.PakFileReader.Name;
-
-                        // ConcurrentDictionary handles the thread-safety here
-                        //var result = scanResult.Paks.GetOrAdd(pakName, name => new PakScanResult {
-                        //    PakPath = name,
-                        //    PakHash = HashUtility.CalculatePakHash(pakEntry.PakFileReader.Path)
-                        //});
-                        var currentPakResult = mainResult.Paks.GetOrAdd(pakName, (name) => new PakScanResult {
-                            PakPath = name,
-                            PakHash = HashUtility.CalculatePakHash(pakEntry.PakFileReader.Path)
-                        });
+                        var currentPakResult = mainResult.GetOrAddPak(pakEntry.PakFileReader);
 
                         foreach (var processor in modProcessors) {
                             try {

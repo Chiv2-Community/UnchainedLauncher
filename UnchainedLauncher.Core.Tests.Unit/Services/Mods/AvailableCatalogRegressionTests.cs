@@ -43,7 +43,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             bool? showInGui, bool clientSide, bool frontend, bool expected) {
             var assets = Assets("Visibility");
             assets.Blueprints[0] = assets.Blueprints[0] with {
-                bShowInGUI = showInGui, bClientside = clientSide, bAllowOnFrontend = frontend
+                bShowInGUI = showInGui,
+                bClientside = clientSide,
+                bAllowOnFrontend = frontend
             };
             var release = Release("Visibility", assets);
             var manager = Manager(release);

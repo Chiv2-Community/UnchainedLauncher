@@ -32,12 +32,19 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         }
 
         [Theory]
-        [InlineData(true, true)]
-        [InlineData(false, false)]
-        [InlineData(null, false)]
-        public void ServerActorCatalogRequiresExplicitShowInGui(bool? showInGui, bool expected) {
+        [InlineData(true, false, false, true)]
+        [InlineData(false, false, false, false)]
+        [InlineData(null, false, false, true)]
+        [InlineData(true, true, false, false)]
+        [InlineData(true, false, true, false)]
+        [InlineData(null, true, false, false)]
+        [InlineData(null, false, true, false)]
+        public void ServerActorCatalogHonorsExplicitShowInGuiFalseAndExistingExclusions(
+            bool? showInGui, bool clientSide, bool frontend, bool expected) {
             var assets = Assets("Visibility");
-            assets.Blueprints[0] = assets.Blueprints[0] with { bShowInGUI = showInGui };
+            assets.Blueprints[0] = assets.Blueprints[0] with {
+                bShowInGUI = showInGui, bClientside = clientSide, bAllowOnFrontend = frontend
+            };
             var release = Release("Visibility", assets);
             var manager = Manager(release);
             manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));

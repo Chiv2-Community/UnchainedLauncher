@@ -30,13 +30,27 @@ public class BlueprintVisibilityTests {
     [Theory]
     [InlineData(true, true)]
     [InlineData(false, false)]
-    [InlineData(null, false)]
-    public void RequiresExplicitShowInGui(bool? showInGui, bool expected) {
+    [InlineData(null, true)]
+    public void OnlyExplicitFalseShowInGuiHidesActor(bool? showInGui, bool expected) {
         var actor = new BlueprintDto("/Game/Mods/Test.Test_C", "hash", null, null,
             "Test", "1.0.0", null, null, null, null, null, showInGui, null, null, null, null);
 
         Assert.Equal(expected, actor.IsRelevant());
         var manifest = new AssetCollections([], [actor], [], [], []);
         Assert.Equal(expected ? new[] { actor } : [], manifest.RelevantBlueprints());
+    }
+
+    [Theory]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    [InlineData(null, true, false)]
+    [InlineData(null, false, true)]
+    public void ShowInGuiDoesNotOverrideClientSideOrFrontendExclusions(bool? showInGui, bool clientSide, bool frontend) {
+        var actor = new BlueprintDto("/Game/Mods/Test.Test_C", "hash", null, null,
+            "Test", "1.0.0", null, null, null, null, null, showInGui, clientSide, null, null, frontend);
+
+        Assert.False(actor.IsRelevant());
+        var manifest = new AssetCollections([], [actor], [], [], []);
+        Assert.Empty(manifest.RelevantBlueprints());
     }
 }

@@ -19,7 +19,7 @@ public static class UnrealModScannerDtoExtensions {
         public bool IsRelevant() {
             var isClientSideOnly = blueprintDto.bClientside ?? false;
             var isShownOnFrontend = blueprintDto.bAllowOnFrontend ?? false;
-            var showInGUI = blueprintDto.bShowInGUI == true;
+            var showInGUI = blueprintDto.bShowInGUI != false;
 
             return !isClientSideOnly && !isShownOnFrontend && showInGUI;
         }

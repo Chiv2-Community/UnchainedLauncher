@@ -40,22 +40,14 @@ public class SecondPassOrchestrator {
                     var refEntry = group.First();
                     //var refEntry = pendingRefs.Where(en => en.TargetBlueprintPath == assetPath).FirstOrDefault();
 
-                    // Identify which Pak contains this blueprint
-                    // We check our provider's file index to find the source container name
-                    string pakName = refEntry.SourcePakFile;
-                    if (_provider.Files.TryGetValue(assetPath, out var gameFile)) {
-                        // Check if the file belongs to a Vfs (Pak/IoStore)
-                        if (gameFile is VfsEntry vfsEntry) {
-                            // vfsEntry.Vfs is the container (FPakReader, FIoStoreReader, etc.)
-                            // .Name is the full path to the .pak/.utoc file
-                            pakName = Path.GetFileName(vfsEntry.Vfs.Name);
-                        }
-                    }
-
-                    // GET or ADD the specific result bucket for this Pak
-                    var pakBucket = mainResult.Paks.GetOrAdd(pakName, (key) => new PakScanResult {
-                        PakPath = key
-                    });
+                    // Referenced assets may introduce a pak that was absent from the first pass.
+                    PakScanResult pakBucket;
+                    if (_provider.Files.TryGetValue(assetPath, out var gameFile) && gameFile is VfsEntry vfsEntry)
+                        pakBucket = mainResult.GetOrAddPak(vfsEntry.Vfs);
+                    else if (mainResult.Paks.TryGetValue(refEntry.SourcePakFile, out var sourcePak))
+                        pakBucket = sourcePak;
+                    else
+                        return;
 
                     // fixme
                     // var targetMarker = pakBucket.GenericMarkers.GetOrAdd(refEntry.SourceMarkerPath, _ => new ConcurrentBag<GenericMarkerEntry>()).FirstOrDefault();

@@ -3,6 +3,7 @@ using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.Pak.Objects;
+using CUE4Parse.UE4.VirtualFileSystem;
 using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
@@ -10,6 +11,11 @@ using UnrealModScanner.Models;
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Config {
     public class ModScanResult {
         public ConcurrentDictionary<string, PakScanResult> Paks { get; } = new();
+
+        public PakScanResult GetOrAddPak(IVfsReader reader) => Paks.GetOrAdd(reader.Name, _ => new PakScanResult {
+            PakPath = Path.GetFullPath(reader.Path),
+            PakHash = HashUtility.CalculatePakHash(reader.Path)
+        });
     }
     public class ScanContext {
         public IFileProvider Provider { get; }

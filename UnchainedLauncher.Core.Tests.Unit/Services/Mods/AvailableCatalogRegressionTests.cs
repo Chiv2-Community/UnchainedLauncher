@@ -1,6 +1,6 @@
 using Moq;
+using CUE4Parse.UE4.VirtualFileSystem;
 using Newtonsoft.Json;
-using System.Security.Cryptography;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -139,6 +139,21 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        public void ScannerPakIdentityPublishesActorsOutsideWorkingDirectory(bool scanBeforeCatalog) {
+            using var file = new ScannedPak();
+            Assert.NotEqual(Path.GetFullPath(Path.GetFileName(file.Result.PakPath)), file.Result.PakPath);
+            var scan = new ModScanTabVM();
+            if (scanBeforeCatalog) PublishScan(scan, file.Scan);
+            var catalog = new AvailableModsAndMapsService(Manager(), scan);
+            if (!scanBeforeCatalog) PublishScan(scan, file.Scan);
+            Assert.Equal("Scanned", Assert.Single(catalog.AvailableServerModBlueprints).ModName);
+            catalog.RefreshCatalog();
+            Assert.Single(catalog.AvailableServerModBlueprints);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
         public void LaunchRefreshRejectsDeletedOrReplacedScannedPak(bool replace) {
             using var file = new ScannedPak();
             var scan = new ModScanTabVM();
@@ -237,7 +252,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             public ScannedPak(string name = "Scanned") {
                 var path = Path.GetTempFileName();
                 File.WriteAllText(path, "scanned");
-                Result = new PakScanResult { PakPath = path, PakHash = Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(path))) };
+                Result = Scan.GetOrAddPak(Mock.Of<IVfsReader>(reader => reader.Path == path && reader.Name == Path.GetFileName(path)));
                 var blueprint = new GenericAssetEntry { AssetPath = $"{name}.uasset", AssetHash = "hash" };
                 blueprint.Properties["ModName"] = name;
                 blueprint.Properties["bShowInGUI"] = true;

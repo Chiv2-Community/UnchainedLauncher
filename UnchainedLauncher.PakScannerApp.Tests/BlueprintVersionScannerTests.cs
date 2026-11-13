@@ -63,12 +63,23 @@ public class BlueprintVersionScannerTests {
         Assert.Equal(["2.3.4"], BlueprintVersionScanner.ReadVersions([fallback, marker]));
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void EmptyMarkerVersionsFallBackToActors(string? version) {
+        var marker = Package(("DA_ModMarker_V2_C", "", false, () => Version(version)));
+        var actor = Package(("ArgonSDKModBase_C", "", true, () => Version("1.2.3")));
+        Assert.Equal(["1.2.3"], BlueprintVersionScanner.ReadVersions([actor, marker]));
+    }
+
     [Fact]
-    public void MissingMarkerVersionDoesNotFallBackToActors() {
+    public void AnyNonemptyMarkerVersionSuppressesActorFallback() {
         var package = Package(
             ("DA_ModMarker_V2_C", "", false, () => Version(null)),
+            ("DA_ModMarker_V3_C", "", false, () => Version("2.0.0")),
             ("ArgonSDKModBase_C", "", true, () => throw new Exception("Fallback must not load")));
-        Assert.Empty(BlueprintVersionScanner.ReadVersions([package]));
+        Assert.Equal(["2.0.0"], BlueprintVersionScanner.ReadVersions([package]));
     }
 
     [Fact]

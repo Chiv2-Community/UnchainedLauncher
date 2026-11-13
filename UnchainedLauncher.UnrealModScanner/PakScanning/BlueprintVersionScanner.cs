@@ -86,15 +86,18 @@ public static class BlueprintVersionScanner {
             }
         }
 
-        var hasMarkers = candidates.Any(candidate => candidate.Marker);
-        var versions = new List<string>();
-        foreach (var candidate in candidates.Where(candidate => candidate.Marker == hasMarkers)) {
-            Logger.Debug($"Reading ModVersion from {candidate.Package.Name}, export {candidate.Index}.");
-            var value = candidate.Package.ExportsLazy[candidate.Index].Value;
-            var properties = candidate.Marker && value is UClass blueprint ? blueprint.ClassDefaultObject.Load() : value;
-            var version = properties?.GetOrDefault<string>("ModVersion");
-            if (!string.IsNullOrWhiteSpace(version)) versions.Add(version);
+        List<string> ReadCandidates(bool marker) {
+            var versions = new List<string>();
+            foreach (var candidate in candidates.Where(candidate => candidate.Marker == marker)) {
+                Logger.Debug($"Reading ModVersion from {candidate.Package.Name}, export {candidate.Index}.");
+                var value = candidate.Package.ExportsLazy[candidate.Index].Value;
+                var properties = candidate.Marker && value is UClass blueprint ? blueprint.ClassDefaultObject.Load() : value;
+                var version = properties?.GetOrDefault<string>("ModVersion");
+                if (!string.IsNullOrWhiteSpace(version)) versions.Add(version);
+            }
+            return versions;
         }
-        return versions;
+        var markerVersions = ReadCandidates(true);
+        return markerVersions.Count > 0 ? markerVersions : ReadCandidates(false);
     }
 }

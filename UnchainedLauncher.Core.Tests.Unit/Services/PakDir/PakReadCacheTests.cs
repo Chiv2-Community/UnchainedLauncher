@@ -211,12 +211,16 @@ public class PakReadCacheTests : IDisposable {
         Assert.Equal(2, reads);
     }
 
-    [Fact]
-    public async Task LegacyVersionResultIsRescannedWithoutRehashing() {
-        using (var cache = new PakReadCache(directory, _ => Task.FromResult<string?>("99.0.0")))
+    [Theory]
+    [InlineData(null, "99.0.0")]
+    [InlineData(1, "99.0.0")]
+    [InlineData(1, null)]
+    public async Task LegacyVersionResultIsRescannedWithoutRehashing(int? revision, string? oldVersion) {
+        using (var cache = new PakReadCache(directory, _ => Task.FromResult(oldVersion)))
             await cache.Version(Pak, await cache.Hash(Pak));
         var json = JsonNode.Parse(File.ReadAllText(Cache))!;
         json["manual.pak"]!.AsObject().Remove("VersionScanRevision");
+        if (revision.HasValue) json["manual.pak"]!["VersionScanRevision"] = revision.Value;
         File.WriteAllText(Cache, json.ToJsonString());
         var reads = 0;
         using (var restarted = new PakReadCache(directory, _ => {

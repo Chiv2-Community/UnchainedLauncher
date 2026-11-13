@@ -32,6 +32,7 @@ public class PakReleaseRecoveryTests : IDisposable {
 
     private static Mock<IUserDialogueSpawner> ConfirmFileChanges() {
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+        dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => { });
         dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
             .Returns(UserDialogueChoice.Yes);
         return dialogue;
@@ -445,6 +446,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             [ReleaseCoordinates.FromRelease(wanted), ReleaseCoordinates.FromRelease(second)],
             [new Mod(wanted.Info, [wanted, current]), new Mod(second.Info, [second])]);
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+        if (!retained) dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => { });
         dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
             .Callback(() => File.WriteAllText(secondPath, "changed during confirmation")).Returns(UserDialogueChoice.Yes);
         dialogue.Setup(d => d.DisplayMessage(It.Is<string>(message => message.Contains("Pak changed during release confirmation"))));

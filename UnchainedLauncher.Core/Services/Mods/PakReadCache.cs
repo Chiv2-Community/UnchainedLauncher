@@ -10,7 +10,7 @@ namespace UnchainedLauncher.Core.Services.Mods;
 // This is read-result caching, not ownership or permission to keep a pak.
 internal sealed class PakReadCache : IDisposable {
     private static readonly ILog Logger = LogManager.GetLogger(nameof(PakReadCache));
-    private const int VersionScanRevision = 1;
+    private const int VersionScanRevision = 2;
     private sealed record Entry([property: JsonRequired] long Length, [property: JsonRequired] long LastWriteTicks,
         [property: JsonRequired] string Hash, [property: JsonRequired] bool VersionRead, [property: JsonRequired] string? Version,
         int VersionScanRevision = 0);

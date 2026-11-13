@@ -16,7 +16,7 @@ using UnrealModScanner.Models;
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
     public class AvailableCatalogRegressionTests {
         private static AssetCollections Assets(string name) => new([], [new($"{name}.uasset", "hash", null, null,
-            name, "1", "", "", "", true, false, true, false, false, true, false, false)],
+            name, "1", "", "", "", true, false, true, false, false, true, false)],
             [new($"TBL/Content/Maps/{name}.umap", "hash", null, null, null, name, null, null, null, "FFA", null)], [], []);
 
         private static Release Release(string name, AssetCollections assets, params Dependency[] dependencies) =>

@@ -34,7 +34,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
                 if (editing) {
                     var assets = new AssetCollections(
                         [new("marker.uasset", "hash", null, null, ["blueprint.uasset"])],
-                        [new("blueprint.uasset", "hash", null, null, "ServerMod", "1", "", "", "", true, false, true, false, false, true, false, false)],
+                        [new("blueprint.uasset", "hash", null, null, "ServerMod", "1", "", "", "", true, false, true, false, false, true, false)],
                         [new("TBL/Content/Maps/Local.umap", "hash", null, null, null, "Local", null, null, null, "FFA", null)],
                         [new("replacement.uasset", "hash", null, null)],
                         [new("arbitrary.uasset", "hash", null, null, "Other")]);

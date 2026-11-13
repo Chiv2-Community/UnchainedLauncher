@@ -22,7 +22,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
     [Collection("Home launch UI")]
     public class ServerSelectionMigrationTests(HomeLaunchUi ui) {
         private static BlueprintDto Blueprint(string name) => new($"{name}.uasset", "hash", $"/Game/{name}.{name}_C", null,
-            name, "1", null, null, null, false, false, true, false, false, true, false, false);
+            name, "1", null, null, null, false, false, true, false, false, true, false);
 
         private static Mod Mod(string name, params BlueprintDto[] blueprints) {
             var release = new Release("v1.0.0", "hash", "mod.pak", DateTime.UtcNow,

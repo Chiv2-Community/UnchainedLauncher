@@ -25,3 +25,7 @@ Reconsider if real Windows scans or checkbox tests fail, if physical paths are u
 ## Subsequent developments - 2026-11-13
 
 The statements that implementation was uncommitted and a commit or PR remained open describe the earlier recording point. They are superseded by the committed implementation and open PR documented in [Scanned pak identity fix submitted for review](2026-11-13-scanned-pak-pr.md). Windows runtime validation remains pending.
+
+## Subsequent developments - 2026-11-13 (catalog follow-up)
+
+The pending Windows-targeted test execution was subsequently performed under Wine, not native Windows; manual end-to-end validation remains pending. User-reported duplicate rows prompted the separate composite catalog identity and picker default recorded in [Actor catalog identity and scan folder default](2026-11-13-actor-catalog-source-identity.md). The path/hash decision remains in effect.

@@ -19,6 +19,8 @@
 
                 <TextBlock
                     Text="{Binding TaskName, Mode=OneWay}"
+                    MaxWidth="560"
+                    TextWrapping="Wrap"
                     Grid.Row="0"
                     FontWeight="SemiBold"
                     Foreground="{StaticResource Brush.TextPrimary}" />

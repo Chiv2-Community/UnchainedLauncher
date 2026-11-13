@@ -5,9 +5,11 @@ using System.Text.Json;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir;
 
+[Collection("Home launch UI")]
 public class KeptUnmanagedPakTests : IDisposable {
     private readonly string _dir = Path.Combine("TestDirectories", nameof(KeptUnmanagedPakTests), Guid.NewGuid().ToString());
     private string ChoicesPath => Path.Combine(_dir, ".unchained", "kept-unmanaged-paks.json");
@@ -20,8 +22,9 @@ public class KeptUnmanagedPakTests : IDisposable {
         return path;
     }
 
-    private static Mock<IUserDialogueSpawner> Dialogue(UserDialogueChoice choice) {
+    private static Mock<IUserDialogueSpawner> Dialogue(UserDialogueChoice choice, bool scan = true) {
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+        if (scan) dialogue.Setup(value => value.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => { });
         dialogue.Setup(value => value.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
             .Returns(choice);
         return dialogue;
@@ -114,10 +117,10 @@ public class KeptUnmanagedPakTests : IDisposable {
         Assert.True(await Recover(Dialogue(UserDialogueChoice.Yes)));
         var release = new Release("v1.0.0", Hash("original"), "Mod1.pak", DateTime.UtcNow,
             new ModInfo("https://github.com/Org/Mod1", "Mod1", "", null, null, [], [], []), null!, null);
-        var cancel = Dialogue(UserDialogueChoice.Cancel);
+        var cancel = Dialogue(UserDialogueChoice.Cancel, scan: false);
         Assert.False(await Recover(cancel, false, release));
         cancel.VerifyAll();
-        Assert.True(await Recover(Dialogue(UserDialogueChoice.Yes), false, release));
+        Assert.True(await Recover(Dialogue(UserDialogueChoice.Yes, scan: false), false, release));
         Assert.Empty(Choices());
     }
 

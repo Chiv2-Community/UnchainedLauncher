@@ -3,9 +3,7 @@ using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.UObject;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Serilog;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
 using UnchainedLauncher.UnrealModScanner.Models.Dto;
@@ -21,6 +19,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
     /// Mod orchestrator then initiates a second pass looking only for the references
     /// </summary>
     public class ReferenceDiscoveryProcessor : IAssetProcessor {
+        private static readonly log4net.ILog Logger = log4net.LogManager.GetLogger(typeof(ReferenceDiscoveryProcessor));
         /// <summary>
         /// </summary>
         private readonly string _containerClassName; // e.g., "DA_ModMarker_C"
@@ -86,34 +85,19 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                     });
                 }
                 catch (Exception e) {
-                    Log.Error("Failed to save Marker properties");
+                    ctx.ProcessingErrors.Add(new AssetProcessingError {
+                        ProcessorName = nameof(ReferenceDiscoveryProcessor),
+                        PackagePath = ctx.FilePath,
+                        ExceptionType = e.GetType().Name,
+                        Message = e.Message
+                    });
+                    Logger.Error($"Marker property '{kvp.Name.Text}' extraction failed: pak '{ctx.PakEntry.PakFileReader.Name}', asset '{ctx.FilePath}'.", e);
                 }
 
                 // properties.Add(kvp.Name.Text, rawValue);
             }
 
-            if (map == null) {
-                Debug.WriteLine($"Could not find TMap for {_mapPropertyName}");
-                // Fallback: if no TMap is specified, try to find an asset with the same name as the parent directory
-                try {
-                    string directory = Path.GetDirectoryName(ctx.FilePath);
-                    string fileName = Path.GetFileName(directory);
-                    string bpPath = Path.Combine(directory, $"{fileName}.uasset").Replace('\\', '/');
-
-                    DiscoveredReferences.Add(new PendingBlueprintReference {
-                        SourceMarkerPath = ctx.FilePath,
-                        SourceMarkerClassName = mainExport.ClassName,
-                        TargetBlueprintPath = bpPath,
-                        TargetClassName = $"{fileName}_C",
-                        SourcePakFile = ctx.PakEntry.PakFileReader.Name,
-                    });
-                }
-                catch (Exception e) {
-                    Console.WriteLine(e);
-                    throw;
-                }
-            }
-            else {
+            if (map != null) {
                 foreach (var entry in map.Properties) {
                     if (entry.Key.GetValue(typeof(FPackageIndex)) is FPackageIndex idx) {
 

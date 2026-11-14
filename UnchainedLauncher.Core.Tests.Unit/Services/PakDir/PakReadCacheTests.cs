@@ -42,6 +42,58 @@ public class PakReadCacheTests : IDisposable {
     }
 
     [Fact]
+    public async Task UnchangedDiskSnapshotDoesNotReparseLargeScanPayloadForHashOrReinventory() {
+        using (var cache = new PakReadCache(directory)) {
+            var hash = await cache.Hash(Pak);
+            cache.WriteScan(Pak, hash, "identity", new string('x', 2 * 1024 * 1024));
+        }
+        // Warm the production boundaries before measuring synchronous reinventory allocations.
+        await PakScanCache.GetHashesAsync([Pak]);
+        _ = new UnchainedLauncher.Core.Services.Mods.PakDir(directory, []);
+        var allocated = GC.GetAllocatedBytesForCurrentThread();
+        for (var n = 0; n < 10; n++) _ = new UnchainedLauncher.Core.Services.Mods.PakDir(directory, []);
+        Assert.True(GC.GetAllocatedBytesForCurrentThread() - allocated < 2 * 1024 * 1024,
+            "Unchanged reinventory must not reparse the scan JSON payload.");
+        using var exclusive = File.Open(Cache, FileMode.Open, FileAccess.Read, FileShare.None);
+        using var locked = File.Open(Pak, FileMode.Open, FileAccess.Read, FileShare.None);
+        Assert.NotNull(Assert.Single(await PakScanCache.GetHashesAsync([Pak])).Value);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ExternalDiskCacheEditsInvalidateParsedSnapshotBySizeOrMtime(bool size) {
+        using (var cache = new PakReadCache(directory)) await cache.Hash(Pak);
+        var timestamp = File.GetLastWriteTimeUtc(Cache);
+        var json = JsonNode.Parse(File.ReadAllText(Cache))!;
+        var hash = new string('A', 128);
+        json["manual.pak"]!["Hash"] = hash;
+        var text = json.ToJsonString();
+        File.WriteAllText(Cache, size ? text + " " : text);
+        File.SetLastWriteTimeUtc(Cache, size ? timestamp : timestamp.AddMinutes(1));
+        using var locked = File.Open(Pak, FileMode.Open, FileAccess.Read, FileShare.None);
+        Assert.Equal(hash, Assert.Single(await PakScanCache.GetHashesAsync([Pak])).Value);
+    }
+
+    [Fact]
+    public async Task ParsedSnapshotsDoNotShareUnsavedClientMutationsAndRefreshAfterSave() {
+        string hash;
+        using (var initial = new PakReadCache(directory)) {
+            hash = await initial.Hash(Pak);
+            initial.WriteScan(Pak, hash, "old", "old scan");
+        }
+        using (var writer = new PakReadCache(directory)) {
+            writer.WriteScan(Pak, hash, "new", "new scan");
+            using var reader = new PakReadCache(directory);
+            Assert.Equal("old scan", reader.ReadScan(Pak, hash, "old"));
+            Assert.Null(reader.ReadScan(Pak, hash, "new"));
+        }
+        using var restarted = new PakReadCache(directory);
+        Assert.Equal("new scan", restarted.ReadScan(Pak, hash, "new"));
+        Assert.Null(restarted.ReadScan(Pak, hash, "old"));
+    }
+
+    [Fact]
     public async Task HashLogsStartBeforeReadingAndCompletionWithDigest() {
         await WithHashLogs(async appender => {
             using var cache = new PakReadCache(directory, readHash: async stream => {
@@ -218,10 +270,13 @@ public class PakReadCacheTests : IDisposable {
     public async Task LegacyVersionResultIsRescannedWithoutRehashing(int? revision, string? oldVersion) {
         using (var cache = new PakReadCache(directory, _ => Task.FromResult(oldVersion)))
             await cache.Version(Pak, await cache.Hash(Pak));
+        var timestamp = File.GetLastWriteTimeUtc(Cache);
         var json = JsonNode.Parse(File.ReadAllText(Cache))!;
         json["manual.pak"]!.AsObject().Remove("VersionScanRevision");
         if (revision.HasValue) json["manual.pak"]!["VersionScanRevision"] = revision.Value;
         File.WriteAllText(Cache, json.ToJsonString());
+        // Revision 2 -> 1 is the same size; make the external edit observable on coarse clocks too.
+        File.SetLastWriteTimeUtc(Cache, timestamp.AddMinutes(1));
         var reads = 0;
         using (var restarted = new PakReadCache(directory, _ => {
             reads++;

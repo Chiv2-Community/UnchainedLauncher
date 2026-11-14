@@ -33,14 +33,16 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
         provider.LoadVirtualPaths();
     }
 
-    public async Task<ModScanResult> RunScanAsync(FilteredFileProvider provider, ScanOptions options, IProgress<double> progress = null) {
+    public async Task<ModScanResult> RunScanAsync(FilteredFileProvider provider, ScanOptions options, IProgress<double> progress = null,
+        Func<string, string>? hashPak = null, bool failOnErrors = false) {
         var discoveryProcessor = modProcessors.OfType<ReferenceDiscoveryProcessor>().FirstOrDefault();
         int processed = 0;
 
         return await Task.Run(async () => {
             InitializeProvider(provider);
             //var scanResult = new ModScanResult();
-            var mainResult = new ModScanResult(); // Das Top-Level Objekt
+            var mainResult = new ModScanResult(hashPak);
+            int failures = 0;
             //var scanResult = new PakScanResult();
 
             // 1. Apply Path Filtering
@@ -55,13 +57,14 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
 
                     if (file.Value is not FPakEntry pakEntry)
                         return;
+                    using var dependencyScope = provider.TrackScan(pakEntry.PakFileReader.Name);
                     IPackage? pkg = null;
                     bool packageLoaded;
                     try {
                         pkg = await provider.LoadPackageAsync(file.Key);
                         // Log.Error($"Failed to load package: {e.Message}");
                         // throw;
-                        if (pkg == null) return;
+                        if (pkg == null) throw new InvalidDataException("Package loader returned no package.");
 
                         var context = new ScanContext(provider, pkg, file.Key, pakEntry);
                         var currentPakResult = mainResult.GetOrAddPak(pakEntry.PakFileReader);
@@ -71,12 +74,19 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                                 processor.Process(context, currentPakResult);
                             }
                             catch (Exception ex) {
-                                Logger.Error($"Processor Error: {ex.Message}", ex);
+                                Interlocked.Increment(ref failures);
+                                Logger.Error($"Processor '{processor.GetType().Name}' failed: pak '{pakEntry.PakFileReader.Name}', asset '{file.Key}'.", ex);
                             }
+                        }
+                        if (context.ProcessingErrors.Count > 0) {
+                            Interlocked.Increment(ref failures);
+                            foreach (var error in context.ProcessingErrors)
+                                Logger.Error($"Processor '{error.ProcessorName}' failed: pak '{pakEntry.PakFileReader.Name}', asset '{error.PackagePath}': {error.ExceptionType}: {error.Message}");
                         }
                     }
                     catch (Exception ex) {
-                        Logger.Error($"Error: {ex.Message}", ex);
+                        Interlocked.Increment(ref failures);
+                        Logger.Error($"Package scan failed: pak '{pakEntry.PakFileReader.Name}', asset '{file.Key}'.", ex);
                     }
                     finally {
                         var count = Interlocked.Increment(ref processed);
@@ -88,7 +98,7 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
 
             if (discoveryProcessor?.DiscoveredReferences.Any() == true) {
                 var secondPass = new SecondPassOrchestrator(provider, options); // options statt _options
-                await secondPass.ResolveReferencesAsync(discoveryProcessor.DiscoveredReferences, mainResult);
+                await secondPass.ResolveReferencesAsync(discoveryProcessor.DiscoveredReferences, mainResult, failOnErrors);
             }
 
             //if (discoveryProcessor.DiscoveredReferences.Any()) {
@@ -105,6 +115,7 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
             // Replacing bags while parallel workers add/remove assets loses updates.
             // Resolve overlaps only after both passes have finished.
             RemoveSpecializedAssets(mainResult);
+            if (failOnErrors && failures != 0) throw new IOException("Pak scan failed; incomplete results were not cached.");
             return mainResult;
         });
     }

@@ -209,7 +209,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
             var configuration = SelectedConfiguration;
             if (configuration == null) return;
 
-            var enabledServerBlueprintDtos = configuration.PrepareServerBlueprintsForLaunch();
+            var enabledServerBlueprintDtos = await configuration.PrepareServerBlueprintsForLaunchAsync();
             var requestedServerBlueprintDtos = configuration.EnabledServerModList.ToArray();
             var formData = configuration.ToServerConfiguration();
 
@@ -403,8 +403,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 await Task.Delay(2000);
 
 
-                var restartActors = await UiDispatcher.InvokeAsync(() => {
-                    _availableModsAndMaps.RefreshCatalog();
+                var restartActors = await UiInvokeAsync(async () => {
+                    await _availableModsAndMaps.RefreshCatalogAsync();
                     return _availableModsAndMaps.AvailableServerModBlueprints
                         .Where(actor => enabledServerBlueprintDtos.Any(selected => ServerBlueprintIdentity.Same(selected, actor)))
                         .Where(actor => !string.IsNullOrWhiteSpace(actor.ClassPath))

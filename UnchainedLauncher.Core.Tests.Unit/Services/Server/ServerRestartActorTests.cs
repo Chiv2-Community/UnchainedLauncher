@@ -50,6 +50,7 @@ public class ServerRestartActorTests(HomeLaunchUi ui) {
             typeof(ModScanTabVM).GetProperty(nameof(scan.LastScanResult))!.SetValue(scan, result);
             var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), []);
             var catalog = new AvailableModsAndMapsService(manager, scan);
+            await catalog.WaitForCatalogAsync();
             var actor = Assert.Single(catalog.AvailableServerModBlueprints);
             Assert.False(string.IsNullOrWhiteSpace(actor.ClassPath));
             var config = new ServerConfigurationVM(manager, scan, catalog, name: name, localIp: "127.0.0.1");

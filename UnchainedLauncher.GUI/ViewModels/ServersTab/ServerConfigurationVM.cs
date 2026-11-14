@@ -12,6 +12,7 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.INIModels;
@@ -357,8 +358,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
                 selections.Remove(selected);
         }
 
-        public BlueprintDto[] PrepareServerBlueprintsForLaunch() {
-            _availableModsAndMaps.RefreshCatalog();
+        public async Task<BlueprintDto[]> PrepareServerBlueprintsForLaunchAsync() {
+            await _availableModsAndMaps.RefreshCatalogAsync();
             ReconcileServerBlueprintSelections();
             var selections = EnabledServerModList;
             var selectedPaths = selections.Select(actor => actor.ClassPath)

@@ -43,6 +43,7 @@ public class LocalModScanTests : IDisposable {
         await vm.RefreshAsync();
         Assert.True(vm.HasUnmanagedPaks);
         Assert.True(vm.CanScan);
+        using (var cache = new PakReadCache(directory)) Assert.Null(cache.CachedHash(Pak));
         File.Delete(Pak);
         await vm.RefreshAsync();
         Assert.False(vm.HasUnmanagedPaks);
@@ -56,6 +57,8 @@ public class LocalModScanTests : IDisposable {
         await vm.RefreshAsync();
         Assert.False(vm.HasUnmanagedPaks);
         Assert.False(vm.CanScan);
+        using var cache = new PakReadCache(directory);
+        Assert.Null(cache.CachedHash(Pak));
     }
 
     [Theory]
@@ -74,6 +77,8 @@ public class LocalModScanTests : IDisposable {
         await vm.RefreshAsync();
         Assert.Equal(replaced, vm.HasUnmanagedPaks);
         Assert.Equal(replaced, vm.CanScan);
+        using var cache = new PakReadCache(directory);
+        Assert.Equal(Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(Pak))), cache.CachedHash(Pak));
     }
 
     [Fact]
@@ -99,6 +104,7 @@ public class LocalModScanTests : IDisposable {
         Assert.True(vm.HasUnmanagedPaks);
         Assert.False(vm.CanScan);
         Assert.NotNull(vm.Scanner.LastScanResult);
+        using (var cache = new PakReadCache(directory)) Assert.NotNull(cache.CachedHash(Pak));
         var restarted = Create();
         await restarted.RefreshAsync();
         Assert.True(restarted.HasUnmanagedPaks);

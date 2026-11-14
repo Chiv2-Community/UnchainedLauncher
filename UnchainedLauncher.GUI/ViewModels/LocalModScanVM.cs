@@ -68,15 +68,19 @@ public partial class LocalModScanVM : ObservableObject {
                 var paths = Directory.GetFiles(PakDirectory, "*.pak")
                     .Where(path => !options.VanillaPakNames.Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase))
                     .Select(Path.GetFullPath).ToArray();
-                var hashes = await PakScanCache.GetHashesAsync(paths);
-                var managed = manager.PakDir.ManagedPaks.Where(pak => {
-                    var path = Path.GetFullPath(Path.Combine(PakDirectory, pak.PakFileName));
-                    var release = manager.GetRelease(pak.Coordinates).FirstOrDefault();
+                var ownership = manager.PakDir.ManagedPaks.Select(pak => (
+                    Path: Path.GetFullPath(Path.Combine(PakDirectory, pak.PakFileName)),
+                    Release: manager.GetRelease(pak.Coordinates).FirstOrDefault())).ToArray();
+                var hashes = await PakScanCache.GetHashesAsync(ownership
+                    .Where(pak => paths.Contains(pak.Path, StringComparer.OrdinalIgnoreCase)
+                        && !string.IsNullOrWhiteSpace(pak.Release?.ReleaseHash)).Select(pak => pak.Path));
+                var managed = ownership.Where(pak => {
+                    var (path, release) = pak;
                     // Unknown ownership stays conservative; stale known ownership does not hide replacements.
                     return release == null || string.IsNullOrWhiteSpace(release.ReleaseHash)
                         || !hashes.TryGetValue(path, out var hash) || hash == null
                         || string.Equals(hash, release.ReleaseHash, StringComparison.OrdinalIgnoreCase);
-                }).Select(pak => Path.GetFullPath(Path.Combine(PakDirectory, pak.PakFileName)))
+                }).Select(pak => pak.Path)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
                 var unmanaged = paths.Where(path => !managed.Contains(path)).ToHashSet(StringComparer.OrdinalIgnoreCase);
                 HasUnmanagedPaks = unmanaged.Count > 0;

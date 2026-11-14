@@ -49,6 +49,8 @@ public class AvailableModsAndMapsService : IDisposable {
     private bool _localRefreshRequested;
     private bool _disposed;
     private readonly HashSet<string> _deletedLocalBlueprints = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, PakManifest> _observedLocalPaks = new(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<string> _unchangedLocalBlueprints = new(StringComparer.OrdinalIgnoreCase);
 
     public void StartWatchingLocalPaks() {
         var directory = _modScanTab.DefaultPakDirectory;
@@ -95,7 +97,7 @@ public class AvailableModsAndMapsService : IDisposable {
             try {
                 await _initialScan;
                 await _modScanTab.WaitForScanAsync();
-                var previousPaks = _cachedScanManifest?.Paks.ToArray() ?? [];
+                var previousPaks = _observedLocalPaks.Values.ToArray();
                 var deletedActors = await Task.Run(() => previousPaks
                     .Where(pak => !string.IsNullOrWhiteSpace(pak.PakPath) && !File.Exists(pak.PakPath))
                     .SelectMany(pak => pak.Inventory.RelevantBlueprints()).Select(ServerBlueprintIdentity.Key).ToArray());
@@ -240,13 +242,11 @@ public class AvailableModsAndMapsService : IDisposable {
 
     private Task RequestRefresh() {
         var version = ++_refreshVersion;
-        var paths = _cachedScanManifest?.Paks.Where(pak => !string.IsNullOrWhiteSpace(pak.PakPath))
-            .Select(pak => Path.GetFullPath(pak.PakPath))
-            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray() ?? [];
-        // Registry-only catalogs stay synchronous and never touch the disk.
-        if (paths.Length == 0) {
+        var paths = _observedLocalPaks.Keys.ToArray();
+        // Registry-only availability stays synchronous, even if old local selection evidence remains.
+        if (_cachedScanManifest?.Paks.Any(pak => !string.IsNullOrWhiteSpace(pak.PakPath)) != true) {
             ReconcileCatalog();
-            return _pendingRefresh = Task.CompletedTask;
+            if (paths.Length == 0) return _pendingRefresh = Task.CompletedTask;
         }
         return _pendingRefresh = ValidateAndReconcileAsync(paths, version);
     }
@@ -262,13 +262,21 @@ public class AvailableModsAndMapsService : IDisposable {
         });
         // Resume on the caller's UI context; obsolete work never changes bound collections.
         if (version == _refreshVersion && hashes != null) {
+            // Retain selection evidence, not availability, while dependency-invalid scans await revalidation.
+            _unchangedLocalBlueprints.Clear();
+            _unchangedLocalBlueprints.UnionWith(_observedLocalPaks.Where(entry =>
+                    !string.IsNullOrWhiteSpace(entry.Value.PakHash)
+                    && hashes.TryGetValue(entry.Key, out var hash)
+                    && string.Equals(hash, entry.Value.PakHash, StringComparison.OrdinalIgnoreCase))
+                .SelectMany(entry => entry.Value.Inventory.RelevantBlueprints()).Select(ServerBlueprintIdentity.Key));
             ReconcileCatalog(hashes);
         }
     }
 
     public BlueprintDto[] GetConfirmedInactiveSelections(IEnumerable<BlueprintDto> selections) {
         var deletedPaths = _deletedLocalBlueprints.Except(AvailableServerModBlueprints.Select(ServerBlueprintIdentity.Key),
-            StringComparer.OrdinalIgnoreCase).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            StringComparer.OrdinalIgnoreCase).Except(_unchangedLocalBlueprints, StringComparer.OrdinalIgnoreCase)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
         // Incomplete dependency metadata is not evidence of disablement.
         if (_modManager.EnabledModReleaseCoordinates.Any(coordinates => _modManager.GetRelease(coordinates).IsNone)
             || _modManager.GetEnabledAndDependencyReleases(includeDependencies: _settings?.AutomaticallyDownloadPakDependencies ?? true)
@@ -320,6 +328,10 @@ public class AvailableModsAndMapsService : IDisposable {
         Logger.Debug("Processing latest scan...");
 
         _cachedScanManifest = scanResult == null ? null : ModManifestConverter.ProcessModScan(scanResult);
+        // Scan publication can precede the watcher refresh; do not lose physical source evidence.
+        foreach (var pak in _cachedScanManifest?.Paks ?? []) {
+            if (!string.IsNullOrWhiteSpace(pak.PakPath)) _observedLocalPaks[Path.GetFullPath(pak.PakPath)] = pak;
+        }
         _ = RequestRefresh();
     }
 }

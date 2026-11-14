@@ -47,7 +47,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public string ContinueButtonText => CurrentPage.ContinueButtonText;
         public bool CanContinue { get; set; }
 
-        public string GoBackButtonText => CurrentPage.GoBackButtonText ?? "";
+        public string GoBackButtonText { get; private set; } = "";
         public bool CanGoBack { get; set; }
         public bool Finished { get; set; }
         public Visibility WindowVisibility { get; set; }
@@ -153,7 +153,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         private void CurrentPagePropertyChanged(object? sender, PropertyChangedEventArgs e) {
             if (sender != null && sender == CurrentPage) {
-                if (e.PropertyName == "CanContinue" || e.PropertyName == "CanGoBack") {
+                if (e.PropertyName == "CanContinue" || e.PropertyName == "CanGoBack" || e.PropertyName == nameof(IInstallerPageViewModel.GoBackButtonText)) {
                     UpdateCurrentPage();
                 }
             }
@@ -166,6 +166,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
             CanContinue = !_navigating && CurrentPage.CanContinue;
             CanGoBack = !_navigating && CurrentPageIndex > 0 && CurrentPage.CanGoBack;
+            GoBackButtonText = CurrentPage.GoBackButtonText ?? "";
             DisplayDescription = CurrentPage.DescriptionText != null ? Visibility.Visible : Visibility.Hidden;
             DisplayGoBackButton = CurrentPageIndex > 0 && CurrentPage.GoBackButtonText != null ? Visibility.Visible : Visibility.Hidden;
         }

@@ -224,6 +224,37 @@ namespace UnchainedLauncher.GUI.Tests {
         }
 
         [Fact]
+        public async Task FailedInstallRefreshesBoundBackLabelAndRetryClearsIt() {
+            var installer = new MockInstaller();
+            installer.Results.Enqueue(false);
+            var log = new InstallerLogPageViewModel(installer, () => new[] { Target("one") }, () => Release);
+            var window = new InstallerWindowViewModel(new() { new TestPage(), log }, new());
+            var boundBackText = window.GoBackButtonText;
+            var labels = new List<string>();
+            window.PropertyChanged += (_, e) => {
+                if (e.PropertyName == nameof(window.GoBackButtonText)) {
+                    boundBackText = window.GoBackButtonText;
+                    labels.Add(boundBackText);
+                }
+            };
+
+            await window.NextButtonCommand.ExecuteAsync(null);
+            Assert.True(window.CanGoBack);
+            Assert.Equal(Visibility.Visible, window.DisplayGoBackButton);
+            Assert.Equal("Back", boundBackText);
+            Assert.Contains("", labels);
+            Assert.Equal("Back", labels.Last());
+
+            await window.BackButtonCommand.ExecuteAsync(null);
+            await window.NextButtonCommand.ExecuteAsync(null);
+            Assert.True(window.CanContinue);
+            Assert.False(window.CanGoBack);
+            Assert.Equal(Visibility.Hidden, window.DisplayGoBackButton);
+            Assert.Equal("", boundBackText);
+            Assert.Equal("", labels.Last());
+        }
+
+        [Fact]
         public async Task NavigationIsBlockedWhileLoadingAndLoadErrorsAreObserved() {
             var completion = new TaskCompletionSource();
             var first = new TestPage();

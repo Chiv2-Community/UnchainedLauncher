@@ -96,7 +96,6 @@ public static class PakScanCache {
                 ModScanResult scanned;
                 var versions = new Dictionary<string, IReadOnlyList<string>?>(StringComparer.OrdinalIgnoreCase);
                 var collectVersions = scan == null && identity == Identity(GameScanOptions.Chivalry2);
-                var completeVersions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var dependencies = new Dictionary<string, PakScanDependencies>(StringComparer.OrdinalIgnoreCase);
                 if (scan != null) scanned = await scan(pending.ToDictionary(path => path, path => hashes[path]));
                 else {
@@ -118,10 +117,15 @@ public static class PakScanCache {
                         var own = provider.MountedVfs.Single(vfs => Path.GetFullPath(vfs.Path) == path);
                         // A directory scan cannot supply a complete per-file version when
                         // another container shadows one of its version-scannable packages.
-                        if (collectVersions && own.Files.Where(pair => pair.Key.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
+                        if (collectVersions) {
+                            var name = Path.GetFileName(path);
+                            if (own.Files.Where(pair => pair.Key.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
                                 && versionFilter(pair)).All(pair => provider.Files.TryGetValue(pair.Key, out var selected)
                                     && ReferenceEquals(selected, pair.Value)))
-                            completeVersions.Add(path);
+                                // No .uasset packages means a successful, empty version result.
+                                versions.TryAdd(name, []);
+                            else versions.Remove(name);
+                        }
                         var lookups = provider.GetScanLookups(path).Concat(own.Files.Keys)
                             .Concat(globalPaths).ToHashSet(StringComparer.Ordinal);
                         var contributors = provider.MountedVfs.Where(vfs => mixedProjects || vfs.Files.Keys.Any(lookups.Contains))
@@ -152,9 +156,8 @@ public static class PakScanCache {
                     cache.WriteScan(path, hashes[path], identity,
                         JsonConvert.SerializeObject(result.Paks[Path.GetFileName(path)], Settings),
                         dependencies.GetValueOrDefault(path) ?? new(inventory, [], [], ExcludedContainers: options.VanillaPakNames.ToArray()));
-                    // No .uasset packages means a successful, empty version result.
-                    if (completeVersions.Contains(path) && (!versions.TryGetValue(Path.GetFileName(path), out var values) || values != null))
-                        cache.StoreVersion(path, hashes[path], PakBlueprintVersion.Latest(values ?? []), fromScan: true);
+                    if (versions.TryGetValue(Path.GetFileName(path), out var values) && values != null)
+                        cache.StoreVersion(path, hashes[path], PakBlueprintVersion.Latest(values), fromScan: true);
                 }
             }
             cache.Prune();

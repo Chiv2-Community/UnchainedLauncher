@@ -278,6 +278,68 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         }
 
         [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public async Task ReplacedManagedPakUsesFreshScanInsteadOfDisabledOrStaleRegistryMetadata(bool enabled, bool scanBeforeCatalog) {
+            using var file = new ScannedPak("Menu");
+            file.Result._Maps.Add(JsonConvert.DeserializeObject<GameMapInfo>("""
+                {"asset_path":"TBL/Content/Maps/Managed.umap","asset_hash":"hash"}
+                """)!);
+            var original = ModManifestConverter.ProcessModScan(file.Scan).Paks.Single().Inventory;
+            original.Blueprints[0] = original.Blueprints[0] with { ModName = "Registry menu", Version = "0.0.1" };
+            var release = Release("Managed", original) with { ReleaseHash = file.Result.PakHash! };
+            var registry = new Mock<IModRegistry>();
+            var mod = new Mod(release.Info, [release]);
+            registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult([], [mod]));
+            var paks = new Mock<IPakDir>();
+            paks.SetupGet(p => p.DirPath).Returns(Path.GetDirectoryName(file.Result.PakPath)!);
+            paks.SetupGet(p => p.ManagedPaks).Returns([new ManagedPak(ReleaseCoordinates.FromRelease(release), Path.GetFileName(file.Result.PakPath), 0)]);
+            paks.Setup(p => p.GetManagedPakFilePath(ReleaseCoordinates.FromRelease(release))).Returns(file.Result.PakPath);
+            var manager = new ModManager(registry.Object, paks.Object, [], [mod]);
+            if (enabled) manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
+            var scan = new ModScanTabVM();
+            if (scanBeforeCatalog) PublishScan(scan, file.Scan);
+            var catalog = new AvailableModsAndMapsService(manager, scan);
+            if (!scanBeforeCatalog) PublishScan(scan, file.Scan);
+            Assert.Equal(enabled ? 1 : 0, catalog.AvailableServerModBlueprints.Count);
+            if (enabled) Assert.Equal("Registry menu", catalog.AvailableServerModBlueprints.Single().ModName);
+
+            // Same length, new modification time: a metadata event must invalidate the cached hash.
+            var modified = File.GetLastWriteTimeUtc(file.Result.PakPath);
+            File.WriteAllText(file.Result.PakPath, "changed");
+            File.SetLastWriteTimeUtc(file.Result.PakPath, modified.AddSeconds(2));
+            await manager.UpdateModsList();
+            Assert.Empty(catalog.AvailableServerModBlueprints);
+            Assert.DoesNotContain(original.Maps[0], catalog.AvailableMaps);
+
+            file.Result.PakHash = Convert.ToHexString(System.Security.Cryptography.SHA512.HashData(File.ReadAllBytes(file.Result.PakPath)));
+            var actor = file.Result.GenericEntries.Values.Single().Single();
+            actor.Properties["ModName"] = "Scanned menu";
+            actor.Properties["ModVersion"] = "0.2.1";
+            PublishScan(scan, file.Scan);
+            var current = Assert.Single(catalog.AvailableServerModBlueprints);
+            Assert.Equal("Scanned menu", current.ModName);
+            Assert.Equal("0.2.1", current.Version);
+            Assert.Empty(catalog.GetConfirmedInactiveSelections([current]));
+            catalog.RefreshCatalog();
+            Assert.Same(current, Assert.Single(catalog.AvailableServerModBlueprints));
+            var restarted = new AvailableModsAndMapsService(manager, scan);
+            Assert.Equal("0.2.1", Assert.Single(restarted.AvailableServerModBlueprints).Version);
+
+            // Returning to the registered bytes restores the normal enable/disable policy.
+            File.WriteAllText(file.Result.PakPath, "scanned");
+            File.SetLastWriteTimeUtc(file.Result.PakPath, modified.AddSeconds(2));
+            catalog.RefreshCatalog();
+            Assert.Equal(enabled ? 1 : 0, catalog.AvailableServerModBlueprints.Count);
+            if (enabled) Assert.Equal("Registry menu", catalog.AvailableServerModBlueprints.Single().ModName);
+            File.Delete(file.Result.PakPath);
+            catalog.RefreshCatalog();
+            Assert.Empty(catalog.AvailableServerModBlueprints);
+        }
+
+        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public void InactiveDetectionUsesDependencyHelpersLatestReleaseAndVersionRangePolicy(bool dependencyAvailable) {

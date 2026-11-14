@@ -70,17 +70,46 @@ public class AvailableModsAndMapsService {
             .Select(ServerBlueprintIdentity.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         inactivePaths.ExceptWith(releases.SelectMany(release => release.Manifest.RelevantBlueprints())
             .Select(ServerBlueprintIdentity.Key));
-        // V1 ownership is in memory; registry-only catalogs do not need the pak inventory.
-        var managedPaths = _cachedScanManifest?.Paks.Count > 0 ? _modManager.PakDir.ManagedPaks.Select(pak =>
-            Path.GetFullPath(Path.Combine(_modManager.PakDir.DirPath, pak.PakFileName)))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase) : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        // Scans must not resurrect disabled managed actors.
+        var scannedPaks = _cachedScanManifest?.Paks.Where(pak => !string.IsNullOrWhiteSpace(pak.PakPath)).ToList() ?? [];
+        var scannedPaths = scannedPaks.Select(pak => Path.GetFullPath(pak.PakPath)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var hashes = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        string? CurrentHash(string path) {
+            path = Path.GetFullPath(path);
+            if (!hashes.TryGetValue(path, out var hash)) {
+                hash = GetCurrentHash(path, verifyHashes);
+                hashes[path] = hash;
+            }
+            return hash;
+        }
+        // Unknown ownership stays conservative; known ownership must match the bytes on disk.
+        // Registry-only catalogs still do not read the pak inventory or files.
+        var managedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var replacedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (scannedPaks.Count > 0) {
+            foreach (var pak in _modManager.PakDir.ManagedPaks) {
+                var path = Path.GetFullPath(Path.Combine(_modManager.PakDir.DirPath, pak.PakFileName));
+                if (!scannedPaths.Contains(path)) continue;
+                var release = _modManager.GetRelease(pak.Coordinates).ToList().FirstOrDefault();
+                var hash = CurrentHash(path);
+                if (release != null && !string.IsNullOrWhiteSpace(release.ReleaseHash) && hash != null
+                    && !string.Equals(hash, release.ReleaseHash, StringComparison.OrdinalIgnoreCase))
+                    replacedPaths.Add(path);
+                else
+                    managedPaths.Add(path);
+            }
+        }
         var manifests = releases.Select(release => (PakPath: _modManager.PakDir.GetManagedPakFilePath(ReleaseCoordinates.FromRelease(release))
-                .IfNone(() => Path.GetFullPath(Path.Combine(_modManager.PakDir.DirPath ?? "", release.PakFileName))), Inventory: release.Manifest))
-            .Concat(_cachedScanManifest?.Paks.Where(pak => !string.IsNullOrWhiteSpace(pak.PakPath)
-                && !managedPaths.Contains(Path.GetFullPath(pak.PakPath)) && IsCurrentScan(pak, verifyHashes)).Select(pak => (pak.PakPath, Inventory: pak.Inventory with {
-                    Blueprints = pak.Inventory.Blueprints.Where(actor => !inactivePaths.Contains(ServerBlueprintIdentity.Key(actor))).ToList()
-                })) ?? []).ToList();
+                .IfNone(() => Path.GetFullPath(Path.Combine(_modManager.PakDir.DirPath ?? "", release.PakFileName))), Inventory: release.Manifest, release.ReleaseHash))
+            .Where(pak => !scannedPaths.Contains(Path.GetFullPath(pak.PakPath))
+                || string.Equals(CurrentHash(pak.PakPath), pak.ReleaseHash, StringComparison.OrdinalIgnoreCase))
+            .Select(pak => (pak.PakPath, pak.Inventory))
+            .Concat(scannedPaks.Where(pak => !managedPaths.Contains(Path.GetFullPath(pak.PakPath))
+                && !string.IsNullOrWhiteSpace(pak.PakHash)
+                && string.Equals(CurrentHash(pak.PakPath), pak.PakHash, StringComparison.OrdinalIgnoreCase))
+                .Select(pak => (pak.PakPath, Inventory: pak.Inventory with {
+                    Blueprints = pak.Inventory.Blueprints.Where(actor => replacedPaths.Contains(Path.GetFullPath(pak.PakPath))
+                        || !inactivePaths.Contains(ServerBlueprintIdentity.Key(actor))).ToList()
+                }))).ToList();
         Reconcile(AvailableMaps, _defaultMaps.Concat(manifests.SelectMany(pak => pak.Inventory.RelevantMaps())));
         // Catalog identity is actor path plus physical pak path, not blueprint metadata.
         var actors = manifests.SelectMany(pak => pak.Inventory.RelevantBlueprints().Select(actor => (
@@ -115,28 +144,26 @@ public class AvailableModsAndMapsService {
         return selections.Where(actor => inactivePaths.Contains(ServerBlueprintIdentity.Key(actor))).ToArray();
     }
 
-    private bool IsCurrentScan(PakManifest pak, bool verifyHash) {
-        if (string.IsNullOrWhiteSpace(pak.PakHash)) return false;
+    private string? GetCurrentHash(string path, bool verifyHash) {
         try {
-            var file = new FileInfo(pak.PakPath);
+            var file = new FileInfo(path);
             if (!file.Exists) {
-                _validatedScanFiles.Remove(pak.PakPath);
-                return false;
+                _validatedScanFiles.Remove(path);
+                return null;
             }
-            var stamp = (pak.PakHash, file.Length, file.LastWriteTimeUtc);
             // Toggle/metadata events reuse validation; launch rehashes even if metadata is unchanged.
-            if (!verifyHash && _validatedScanFiles.TryGetValue(pak.PakPath, out var validated) && validated == stamp)
-                return true;
-            _validatedScanFiles.Remove(pak.PakPath);
-            using var stream = File.OpenRead(pak.PakPath);
-            if (!string.Equals(Convert.ToHexString(SHA512.HashData(stream)), pak.PakHash, StringComparison.OrdinalIgnoreCase))
-                return false;
-            _validatedScanFiles[pak.PakPath] = stamp;
-            return true;
+            if (!verifyHash && _validatedScanFiles.TryGetValue(path, out var validated)
+                && validated.Length == file.Length && validated.Modified == file.LastWriteTimeUtc)
+                return validated.Hash;
+            _validatedScanFiles.Remove(path);
+            using var stream = File.OpenRead(path);
+            var hash = Convert.ToHexString(SHA512.HashData(stream));
+            _validatedScanFiles[path] = (hash, file.Length, file.LastWriteTimeUtc);
+            return hash;
         }
-        catch (IOException) { return false; }
-        catch (UnauthorizedAccessException) { return false; }
-        catch (ArgumentException) { return false; }
+        catch (IOException) { return null; }
+        catch (UnauthorizedAccessException) { return null; }
+        catch (ArgumentException) { return null; }
     }
 
     private static void Reconcile<T>(ObservableCollection<T> catalog, IEnumerable<T> assets) {

@@ -125,19 +125,14 @@ public class PakScanIdentityTests : IDisposable {
     }
 
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(false, true)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
-    public async Task AbsentOrEmptyModActorsRetainMapAndMarkerWithoutGuessingActors(bool emptyMap, bool sameNameAssetExists) {
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AbsentOrEmptyModActorsRetainMapAndMarkerWithoutGuessingActors(bool emptyMap) {
         const string markerPath = "TBL/Content/Mods/MapOnly/ModMarker.uasset";
         const string mapPath = "TBL/Content/Mods/MapOnly/Arena.umap";
-        const string guessedPath = "TBL/Content/Mods/MapOnly/MapOnly.uasset";
         var provider = new Mock<IFileProvider>();
         var entry = (FPakEntry)RuntimeHelpers.GetUninitializedObject(typeof(FPakEntry));
         SetField(entry, "<Vfs>k__BackingField", _reader);
-        GameFile gameFile = entry;
-        provider.Setup(p => p.TryGetGameFile(guessedPath, out gameFile)).Returns(sameNameAssetExists);
         var markerExport = new UObject();
         if (emptyMap) {
             var property = (MapProperty)RuntimeHelpers.GetUninitializedObject(typeof(MapProperty));

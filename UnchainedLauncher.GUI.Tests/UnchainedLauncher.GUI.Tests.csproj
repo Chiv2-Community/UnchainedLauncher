@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3" PrivateAssets="all" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="all" />
+    <PackageReference Include="LanguageExt.Core" Version="4.4.9" />
+    <PackageReference Include="log4net" Version="3.0.1" />
+    <PackageReference Include="Semver" Version="2.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../UnchainedLauncher.GUI/ViewModels/Installer/*.cs" Link="Production/%(Filename)%(Extension)" />
+    <Compile Include="../UnchainedLauncher.Core/Services/IReleaseLocator.cs" Link="Production/IReleaseLocator.cs" />
+    <Compile Include="../UnchainedLauncher.Core/Services/IVersionExtractor.cs" Link="Production/IVersionExtractor.cs" />
+    <Compile Include="../UnchainedLauncher.Core/Extensions/SemVersionExtensions.cs" Link="Production/SemVersionExtensions.cs" />
+    <Compile Include="../UnchainedLauncher.Core/JsonModels/Chivalry2InstallationType.cs" Link="Production/Chivalry2InstallationType.cs" />
+  </ItemGroup>
+</Project>

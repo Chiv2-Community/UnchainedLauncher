@@ -54,11 +54,15 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
             // Both offline startup and the awaited startup refresh must be safe.
             var modList = new ModListVM(manager, Mock.Of<IUserDialogueSpawner>());
-            _ = new AvailableModsAndMapsService(manager, new ModScanTabVM());
+            using var offlineCatalog = new AvailableModsAndMapsService(manager, new ModScanTabVM());
             await modList.RefreshModList();
+            // Metadata refresh starts local pak I/O independently of RefreshModList.
+            await offlineCatalog.LocalModScan.RefreshAsync();
+            await offlineCatalog.WaitForCatalogAsync();
             Assert.False(manager.NeedsMetadataRefresh);
             Assert.Equal([release], manager.GetEnabledAndDependencyReleases());
-            _ = new AvailableModsAndMapsService(manager, new ModScanTabVM());
+            using var refreshedCatalog = new AvailableModsAndMapsService(manager, new ModScanTabVM());
+            await refreshedCatalog.WaitForCatalogAsync();
             Assert.Single(modList.DisplayMods);
 
             var saved = codec.Deserialize(codec.Serialize(manager));

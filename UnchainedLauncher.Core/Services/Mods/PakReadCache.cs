@@ -155,7 +155,10 @@ internal sealed class PakReadCache : IDisposable {
         Validate(path, hash);
         var name = Path.GetFileName(path);
         entries[name] = entries[name] with {
-            VersionRead = true, Version = version, VersionScanRevision = VersionScanRevision, VersionFromScan = fromScan
+            VersionRead = true,
+            Version = version,
+            VersionScanRevision = VersionScanRevision,
+            VersionFromScan = fromScan
         };
         versionsWritten.Add(name);
         dirty = true;

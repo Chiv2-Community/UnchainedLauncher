@@ -121,20 +121,20 @@ public static class BlueprintVersionScanner {
             List<string> ReadCandidates(bool marker) {
                 var versions = new List<string>();
                 foreach (var package in packages)
-                for (var index = 0; index < package.ExportMap.Length; index++) {
-                    var export = package.ExportMap[index];
-                    var isDefault = export.ObjectName.Text.StartsWith("Default__", StringComparison.Ordinal);
-                    var matches = marker
-                        ? !isDefault && ((EObjectFlags)export.ObjectFlags & EObjectFlags.RF_ClassDefaultObject) == 0
-                            && (HasAncestry(package, export.SuperIndex, marker: true) || HasAncestry(package, export.ClassIndex, marker: true))
-                        : isDefault && HasAncestry(package, export.ClassIndex, marker: false);
-                    if (!matches) continue;
-                    Logger.Debug($"Reading ModVersion from {package.Name}, export {index}.");
-                    var value = package.ExportsLazy[index].Value;
-                    var properties = marker && value is UClass blueprint ? blueprint.ClassDefaultObject.Load() : value;
-                    var version = properties?.GetOrDefault<string>("ModVersion");
-                    if (!string.IsNullOrWhiteSpace(version)) versions.Add(version);
-                }
+                    for (var index = 0; index < package.ExportMap.Length; index++) {
+                        var export = package.ExportMap[index];
+                        var isDefault = export.ObjectName.Text.StartsWith("Default__", StringComparison.Ordinal);
+                        var matches = marker
+                            ? !isDefault && ((EObjectFlags)export.ObjectFlags & EObjectFlags.RF_ClassDefaultObject) == 0
+                                && (HasAncestry(package, export.SuperIndex, marker: true) || HasAncestry(package, export.ClassIndex, marker: true))
+                            : isDefault && HasAncestry(package, export.ClassIndex, marker: false);
+                        if (!matches) continue;
+                        Logger.Debug($"Reading ModVersion from {package.Name}, export {index}.");
+                        var value = package.ExportsLazy[index].Value;
+                        var properties = marker && value is UClass blueprint ? blueprint.ClassDefaultObject.Load() : value;
+                        var version = properties?.GetOrDefault<string>("ModVersion");
+                        if (!string.IsNullOrWhiteSpace(version)) versions.Add(version);
+                    }
                 return versions;
             }
             var markerVersions = ReadCandidates(true);

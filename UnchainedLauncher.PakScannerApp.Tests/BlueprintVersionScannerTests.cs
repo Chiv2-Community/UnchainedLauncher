@@ -195,7 +195,8 @@ public class BlueprintVersionScannerTests {
         parent.ExportMap[0].ObjectName = new FName("SharedModBase_C");
         var child = Package(("SharedModBase_C", "", true, () => Version("2.0.0")));
         var imports = child.ImportMap.Append(new FObjectImport {
-            ObjectName = new FName(path), OuterIndex = new FPackageIndex()
+            ObjectName = new FName(path),
+            OuterIndex = new FPackageIndex()
         }).ToArray();
         imports[0].OuterIndex = new FPackageIndex(child, -imports.Length);
         SetField(child, nameof(CUE4Parse.UE4.Assets.Package.ImportMap), imports);

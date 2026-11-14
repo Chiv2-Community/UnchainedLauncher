@@ -11,7 +11,7 @@ namespace UnchainedLauncher.Core.Services.Mods;
 
 // One filename inventory owns hashes, Blueprint versions and full scanner output.
 public static class PakScanCache {
-    private const int ScannerRevision = 2;
+    private const int ScannerRevision = 3;
     private static readonly JsonSerializerSettings Settings = new() {
         ObjectCreationHandling = ObjectCreationHandling.Replace,
         ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,

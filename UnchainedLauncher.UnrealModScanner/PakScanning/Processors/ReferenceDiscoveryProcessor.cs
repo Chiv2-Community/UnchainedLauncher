@@ -98,29 +98,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                 // properties.Add(kvp.Name.Text, rawValue);
             }
 
-            if (map == null) {
-                Debug.WriteLine($"Could not find TMap for {_mapPropertyName}");
-                // Fallback: if no TMap is specified, try to find an asset with the same name as the parent directory
-                try {
-                    string directory = Path.GetDirectoryName(ctx.FilePath);
-                    string fileName = Path.GetFileName(directory);
-                    string bpPath = Path.Combine(directory, $"{fileName}.uasset").Replace('\\', '/');
-
-                    DiscoveredReferences.Add(new PendingBlueprintReference {
-                        SourceMarkerPath = ctx.FilePath,
-                        SourceMarkerClassName = mainExport.ClassName,
-                        TargetBlueprintPath = bpPath,
-                        TargetClassName = $"{fileName}_C",
-                        SourcePakFile = ctx.PakEntry.PakFileReader.Name,
-                        IsInferred = true,
-                    });
-                }
-                catch (Exception e) {
-                    Console.WriteLine(e);
-                    throw;
-                }
-            }
-            else {
+            if (map != null) {
                 foreach (var entry in map.Properties) {
                     if (entry.Key.GetValue(typeof(FPackageIndex)) is FPackageIndex idx) {
 

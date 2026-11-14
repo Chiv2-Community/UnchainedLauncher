@@ -11,7 +11,5 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Dto {
         public string TargetBlueprintPath { get; set; } = string.Empty;
         public string TargetClassName { get; set; } = string.Empty;
         public string SourcePakFile { get; set; } = string.Empty;
-        // A legacy naming-convention guess, not a reference declared by the marker.
-        public bool IsInferred { get; set; }
     }
 }

@@ -49,13 +49,8 @@ public class SecondPassOrchestrator {
                     var packagePath = assetPath.Split(".").First();
                     if (!_provider.TryGetGameFile(packagePath + ".uasset", out var gameFile)
                         && !_provider.TryGetGameFile(packagePath + ".umap", out gameFile)) {
-                        if (group.All(reference => reference.IsInferred)) {
-                            Logger.Debug($"No naming-convention target '{assetPath}' for marker '{refEntry.SourceMarkerPath}' in pak '{refEntry.SourcePakFile}'.");
-                            return;
-                        }
                         throw new FileNotFoundException("Declared blueprint reference was not found.", assetPath);
                     }
-                    // Do not turn unreadable packages into an optional missing-reference result.
                     var package = _provider.LoadPackage(gameFile);
 
                     var blueprintProperties = _options.MarkerProcessors

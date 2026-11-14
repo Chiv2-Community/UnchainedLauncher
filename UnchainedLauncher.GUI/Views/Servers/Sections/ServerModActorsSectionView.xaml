@@ -24,7 +24,7 @@
                 <Border Grid.Column="1" Margin="12,0,0,0" Background="Transparent" VerticalAlignment="Center"
                         Visibility="{Binding LocalModScan.HasUnmanagedPaks, Converter={StaticResource BoolToVisibility}}"
                         PreviewMouseDown="ScanLocalMods_OnPreviewMouseButton" PreviewMouseUp="ScanLocalMods_OnPreviewMouseButton">
-                    <Button x:Name="ScanLocalModsButton" Content="Scan local mods" Padding="8,3" FontSize="12"
+                    <Button x:Name="ScanLocalModsButton" Content="Scan unmanaged mods" Padding="8,3" FontSize="12"
                             FontWeight="Normal" IsEnabled="{Binding LocalModScan.CanScan}" Click="ScanLocalMods_OnClick" />
                 </Border>
                 <ProgressBar Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center"
@@ -33,7 +33,7 @@
                              Visibility="{Binding LocalModScan.Scanner.IsScanning, Converter={StaticResource BoolToVisibility}}" />
                 <TextBlock Grid.Column="3" Margin="12,0,0,0" VerticalAlignment="Center"
                            FontWeight="Normal" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}"
-                           Text="{Binding LocalModScan.LocalModActorCount, StringFormat={}{0} Mod Actors from Unmanaged Paks detected}" />
+                           Text="{Binding LocalModScan.LocalModActorCount, StringFormat={}{0} Mod Actors from Unmanaged Mods detected}" />
             </Grid>
         </DataTemplate>
     </UserControl.Resources>

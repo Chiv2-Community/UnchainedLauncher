@@ -24,7 +24,7 @@ public class ButtonThemeTests(HomeLaunchUi ui) {
             Application.Current.Resources.MergedDictionaries.Add(resources);
             var panel = new StackPanel();
             foreach (var style in new[] { "Button.Base", "Button.Primary", "Button.Secondary", "Button.Success", "Button.Danger", "Button.Light" })
-                panel.Children.Add(new Button { Content = "Scan local mods", Style = (Style)resources[style] });
+                panel.Children.Add(new Button { Content = "Scan unmanaged mods", Style = (Style)resources[style] });
             // Local colors must not defeat the disabled template's neutral appearance.
             panel.Children.Add(new Button { Content = "Custom colors", Background = Brushes.Red, Foreground = Brushes.White });
             window = new Window { Content = panel, Width = 400, Height = 400, ShowActivated = false, ShowInTaskbar = false };

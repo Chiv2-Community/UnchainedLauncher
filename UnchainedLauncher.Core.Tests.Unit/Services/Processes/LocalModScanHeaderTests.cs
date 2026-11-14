@@ -26,7 +26,7 @@ public class LocalModScanHeaderTests(HomeLaunchUi ui) {
         RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
         try {
             window.Show();
-            var button = Descendants<Button>(view).Single(button => Equals(button.Content, "Scan local mods"));
+            var button = Descendants<Button>(view).Single(button => Equals(button.Content, "Scan unmanaged mods"));
             var target = Assert.IsType<Border>(VisualTreeHelper.GetParent(button));
             var card = Assert.Single(Descendants<CollapsibleCard>(view));
             Assert.False(button.IsEnabled);
@@ -103,7 +103,7 @@ public class LocalModScanHeaderTests(HomeLaunchUi ui) {
         try {
             window.Show();
             window.UpdateLayout();
-            var button = Descendants<Button>(view).Single(button => Equals(button.Content, "Scan local mods"));
+            var button = Descendants<Button>(view).Single(button => Equals(button.Content, "Scan unmanaged mods"));
             var progress = Assert.Single(Descendants<ProgressBar>(view));
             Assert.False(button.IsVisible);
             local.HasUnmanagedPaks = local.HasUnscannedPaks = true;
@@ -111,7 +111,7 @@ public class LocalModScanHeaderTests(HomeLaunchUi ui) {
             window.UpdateLayout();
             Assert.True(button.IsVisible);
             Assert.True(button.IsEnabled);
-            Assert.Contains(Descendants<TextBlock>(view), text => text.Text == "3 Mod Actors from Unmanaged Paks detected");
+            Assert.Contains(Descendants<TextBlock>(view), text => text.Text == "3 Mod Actors from Unmanaged Mods detected");
             var card = Assert.Single(Descendants<CollapsibleCard>(view));
             button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Assert.True(card.IsExpanded);

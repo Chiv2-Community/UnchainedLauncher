@@ -156,7 +156,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         var registry = new Mock<IModRegistry>(MockBehavior.Strict);
         var manager = new ModManager(registry.Object, paks, previouslyManaged ? [ReleaseCoordinates.FromRelease(otherVersion)] : [], [new Mod(detected.Info, [otherVersion, detected])]);
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
-        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), "Unmanaged paks detected. Keep them or remove them?", "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), "Unmanaged Mods detected. Keep them or remove them?", "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
             .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, _, _, _, _, changes) => {
                 Assert.Equal(2, changes.Count());
                 Assert.Contains(changes, change => change.Reason == detected.Info.Name);

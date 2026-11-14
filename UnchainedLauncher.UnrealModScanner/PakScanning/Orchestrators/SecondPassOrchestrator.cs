@@ -27,9 +27,10 @@ public class SecondPassOrchestrator {
 
     public async Task ResolveReferencesAsync(
     ConcurrentBag<PendingBlueprintReference> pendingRefs,
-    ModScanResult mainResult) // Changed from PakScanResult to the top-level structure
+    ModScanResult mainResult, bool failOnErrors = false)
 {
         await Task.Run(() => {
+            int failures = 0;
             // Group by path to avoid reloading the same package multiple times
             var groupedRefs = pendingRefs.GroupBy(r => (r.TargetBlueprintPath, r.SourcePakFile));
 
@@ -46,13 +47,16 @@ public class SecondPassOrchestrator {
                         pakBucket = mainResult.GetOrAddPak(vfsEntry.Vfs);
                     else if (mainResult.Paks.TryGetValue(refEntry.SourcePakFile, out var sourcePak))
                         pakBucket = sourcePak;
-                    else
+                    else {
+                        Interlocked.Increment(ref failures);
                         return;
+                    }
 
                     // fixme
                     // var targetMarker = pakBucket.GenericMarkers.GetOrAdd(refEntry.SourceMarkerPath, _ => new ConcurrentBag<GenericMarkerEntry>()).FirstOrDefault();
                     var marker = pakBucket.GetMarker(refEntry.SourceMarkerClassName, refEntry.SourceMarkerPath);
                     if (marker == null) {
+                        Interlocked.Increment(ref failures);
                         Debug.WriteLine($"Could not find marker {refEntry.SourceMarkerClassName} ({refEntry.SourceMarkerPath})");
                     }
                     var newAssetPath = assetPath.Split(".").First();
@@ -62,6 +66,7 @@ public class SecondPassOrchestrator {
                     else if (_provider.TryLoadPackage(newAssetPath + ".umap", out package))
                         newAssetPath = newAssetPath + ".uasset";
                     else {
+                        Interlocked.Increment(ref failures);
                         Console.WriteLine($"SecondPathOrchestrator: Failed to load asset {assetPath}");
                         return;
                     }
@@ -73,7 +78,7 @@ public class SecondPassOrchestrator {
 
                     var (mainExport, index) = BaseAsset.GetMainExport(package).Value;
                     // TODO: throw
-                    if (mainExport == null) return;
+                    if (mainExport == null) { Interlocked.Increment(ref failures); return; }
                     var mainExportLazy = index > 0 ? package.GetExport(index) : package.ExportsLazy[0].Value;
                     var filteredProperties = new Dictionary<string, object?>();
 
@@ -160,9 +165,11 @@ public class SecondPassOrchestrator {
                     // }
                 }
                 catch (Exception ex) {
+                    Interlocked.Increment(ref failures);
                     System.Diagnostics.Debug.WriteLine($"Pass 2 Error: {ex.Message}");
                 }
             });
+            if (failOnErrors && failures != 0) throw new IOException("Pak reference scan failed; incomplete results were not cached.");
         });
     }
 }

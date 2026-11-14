@@ -2,7 +2,6 @@ using Newtonsoft.Json;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using System.Windows;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels.Nodes;
 using UnchainedLauncher.UnrealModScanner.Models.Chivalry2.UnchainedLauncher.UnrealModScanner.Models;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -22,7 +21,7 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
         }
 
         private ObservableCollection<PakChildNode> InitChildren(ModScanResult scanResults) {
-            Application.Current.Dispatcher.Invoke(() => Results.Clear());
+            Results.Clear();
             var children = new ObservableCollection<PakChildNode>();
 
             foreach (var (pakName, scanResult) in scanResults.Paks) {
@@ -98,7 +97,7 @@ namespace UnchainedLauncher.UnrealModScanner.ViewModels {
                 wrapper.PakPathExpanded = $"📦 {scanResult.PakPath}" + (summary.Length > 0 ? $" ({summary})" : "");
                 children.Add(wrapper);
                 // 6. Push to UI Collection
-                Application.Current.Dispatcher.Invoke(() => Results.Add(scanResult));
+                Results.Add(scanResult);
             }
 
             return children;

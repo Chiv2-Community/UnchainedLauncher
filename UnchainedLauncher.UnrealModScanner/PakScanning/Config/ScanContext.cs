@@ -10,11 +10,15 @@ using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Config {
     public class ModScanResult {
+        private readonly Func<string, string> hashPak;
+        public ModScanResult(Func<string, string>? hashPak = null) {
+            this.hashPak = hashPak ?? HashUtility.CalculatePakHash;
+        }
         public ConcurrentDictionary<string, PakScanResult> Paks { get; } = new();
 
         public PakScanResult GetOrAddPak(IVfsReader reader) => Paks.GetOrAdd(reader.Name, _ => new PakScanResult {
             PakPath = Path.GetFullPath(reader.Path),
-            PakHash = HashUtility.CalculatePakHash(reader.Path)
+            PakHash = hashPak(reader.Path)
         });
     }
     public class ScanContext {

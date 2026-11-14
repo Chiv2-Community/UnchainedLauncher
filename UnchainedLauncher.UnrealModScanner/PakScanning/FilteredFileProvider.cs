@@ -42,10 +42,11 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
             };
 
 
+            var contentFilter = options.ScanFilter.With(pakFilter).CreatePakContentFilter();
             return new FilteredFileProvider(
                 pakDir,
                 SearchOption.TopDirectoryOnly,
-                options.ScanFilter.With(pakFilter).CreatePakContentFilter(),
+                kv => contentFilter(kv) && (extraPakFilter?.Invoke(kv) ?? true),
                 options.AesKey,
                 new VersionContainer(options.GameVersion)
             );

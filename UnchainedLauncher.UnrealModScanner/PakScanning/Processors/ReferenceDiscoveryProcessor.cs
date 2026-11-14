@@ -86,6 +86,8 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                     });
                 }
                 catch (Exception e) {
+                    ctx.ProcessingErrors.Add(new AssetProcessingError { ProcessorName = nameof(ReferenceDiscoveryProcessor),
+                        PackagePath = ctx.FilePath, ExceptionType = e.GetType().Name, Message = e.Message });
                     Log.Error("Failed to save Marker properties");
                 }
 

@@ -33,14 +33,16 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
         provider.LoadVirtualPaths();
     }
 
-    public async Task<ModScanResult> RunScanAsync(FilteredFileProvider provider, ScanOptions options, IProgress<double> progress = null) {
+    public async Task<ModScanResult> RunScanAsync(FilteredFileProvider provider, ScanOptions options, IProgress<double> progress = null,
+        Func<string, string>? hashPak = null, bool failOnErrors = false) {
         var discoveryProcessor = modProcessors.OfType<ReferenceDiscoveryProcessor>().FirstOrDefault();
         int processed = 0;
 
         return await Task.Run(async () => {
             InitializeProvider(provider);
             //var scanResult = new ModScanResult();
-            var mainResult = new ModScanResult(); // Das Top-Level Objekt
+            var mainResult = new ModScanResult(hashPak);
+            int failures = 0;
             //var scanResult = new PakScanResult();
 
             // 1. Apply Path Filtering
@@ -61,7 +63,7 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                         pkg = await provider.LoadPackageAsync(file.Key);
                         // Log.Error($"Failed to load package: {e.Message}");
                         // throw;
-                        if (pkg == null) return;
+                        if (pkg == null) { Interlocked.Increment(ref failures); return; }
 
                         var context = new ScanContext(provider, pkg, file.Key, pakEntry);
                         var currentPakResult = mainResult.GetOrAddPak(pakEntry.PakFileReader);
@@ -71,11 +73,14 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                                 processor.Process(context, currentPakResult);
                             }
                             catch (Exception ex) {
+                                Interlocked.Increment(ref failures);
                                 Logger.Error($"Processor Error: {ex.Message}", ex);
                             }
                         }
+                        if (context.ProcessingErrors.Count > 0) Interlocked.Increment(ref failures);
                     }
                     catch (Exception ex) {
+                        Interlocked.Increment(ref failures);
                         Logger.Error($"Error: {ex.Message}", ex);
                     }
                     finally {
@@ -88,7 +93,7 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
 
             if (discoveryProcessor?.DiscoveredReferences.Any() == true) {
                 var secondPass = new SecondPassOrchestrator(provider, options); // options statt _options
-                await secondPass.ResolveReferencesAsync(discoveryProcessor.DiscoveredReferences, mainResult);
+                await secondPass.ResolveReferencesAsync(discoveryProcessor.DiscoveredReferences, mainResult, failOnErrors);
             }
 
             //if (discoveryProcessor.DiscoveredReferences.Any()) {
@@ -105,6 +110,7 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
             // Replacing bags while parallel workers add/remove assets loses updates.
             // Resolve overlaps only after both passes have finished.
             RemoveSpecializedAssets(mainResult);
+            if (failOnErrors && failures != 0) throw new IOException("Pak scan failed; incomplete results were not cached.");
             return mainResult;
         });
     }

@@ -61,6 +61,34 @@ public class PakScanIdentityTests : IDisposable {
         Assert.Same(pak, scan.GetOrAddPak(_reader));
     }
 
+    [Fact]
+    public void SuppliedHashAvoidsAnotherPakRead() {
+        using var exclusive = File.Open(_path, FileMode.Open, FileAccess.Read, FileShare.None);
+        var reads = 0;
+        var scan = new ModScanResult(path => {
+            Assert.Equal(_path, path);
+            reads++;
+            return "already-hashed";
+        });
+        Assert.Equal("already-hashed", scan.GetOrAddPak(_reader).PakHash);
+        scan.GetOrAddPak(_reader);
+        Assert.Equal(1, reads);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ExtraPakFilterRunsAfterConfiguredFilter(bool include) {
+        var entry = (FPakEntry)RuntimeHelpers.GetUninitializedObject(typeof(FPakEntry));
+        SetField(entry, "<Vfs>k__BackingField", _reader);
+        var calls = 0;
+        using var provider = FilteredFileProvider.CreateFromOptions(GameScanOptions.Chivalry2, ScanMode.Mods, _root,
+            _ => { calls++; return include; });
+        provider.Files.AddFiles(new Dictionary<string, GameFile> { ["mod.uasset"] = entry, ["mod.txt"] = entry }, 0);
+        Assert.Equal(include ? 1 : 0, provider.FilteredFiles.Count());
+        Assert.Equal(1, calls);
+    }
+
     private static void SetField(object instance, string name, object value) {
         for (var type = instance.GetType(); type != null; type = type.BaseType) {
             var field = type.GetField(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);

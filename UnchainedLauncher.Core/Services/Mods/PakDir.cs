@@ -353,6 +353,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// NOTE: this should only do anything when the *user* messed something up
         /// </summary>
         private void SynchronizeWithDir() {
+            using var cache = new PakReadCache(DirPath);
             var missing = _managedPaks
                 .Filter(p => !File.Exists(PakNameToPakPath(p.PakFileName)))
                 .ToHashSet();

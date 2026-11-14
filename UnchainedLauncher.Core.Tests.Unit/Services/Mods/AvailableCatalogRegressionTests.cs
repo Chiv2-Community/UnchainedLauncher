@@ -245,7 +245,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             if (replace) {
                 var modified = File.GetLastWriteTimeUtc(file.Result.PakPath);
                 File.WriteAllText(file.Result.PakPath, "altered");
-                File.SetLastWriteTimeUtc(file.Result.PakPath, modified);
+                File.SetLastWriteTimeUtc(file.Result.PakPath, modified.AddMinutes(1));
             }
             else File.Delete(file.Result.PakPath);
             await catalog.RefreshCatalogAsync();
@@ -256,7 +256,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         }
 
         [Fact]
-        public async Task ChangedScanHashRevalidatesEvenWhenFileMetadataIsUnchanged() {
+        public async Task ChangedScanAndFileMetadataRevalidate() {
             using var file = new ScannedPak();
             var scan = new ModScanTabVM();
             var catalog = new AvailableModsAndMapsService(Manager(), scan);
@@ -266,7 +266,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
             var modified = File.GetLastWriteTimeUtc(file.Result.PakPath);
             File.WriteAllText(file.Result.PakPath, "changed");
-            File.SetLastWriteTimeUtc(file.Result.PakPath, modified);
+            File.SetLastWriteTimeUtc(file.Result.PakPath, modified.AddMinutes(1));
             file.Result.PakHash = Convert.ToHexString(System.Security.Cryptography.SHA512.HashData(File.ReadAllBytes(file.Result.PakPath)));
             PublishScan(scan, file.Scan);
             await catalog.WaitForCatalogAsync();
@@ -274,7 +274,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         }
 
         [Fact]
-        public async Task RepeatedScanReusesUnchangedValidationButLaunchStillReadsBytes() {
+        public async Task RepeatedScanAndLaunchReuseUnchangedValidationWithoutReadingBytes() {
             using var file = new ScannedPak();
             var scan = new ModScanTabVM();
             var catalog = new AvailableModsAndMapsService(Manager(), scan);
@@ -287,7 +287,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
                 await catalog.WaitForCatalogAsync();
                 Assert.Same(actor, Assert.Single(catalog.AvailableServerModBlueprints));
                 await catalog.RefreshCatalogAsync();
-                Assert.Empty(catalog.AvailableServerModBlueprints);
+                Assert.Same(actor, Assert.Single(catalog.AvailableServerModBlueprints));
             }
         }
 
@@ -320,7 +320,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
                 var modified = File.GetLastWriteTimeUtc(second.Result.PakPath);
                 File.WriteAllText(second.Result.PakPath, "changed");
-                File.SetLastWriteTimeUtc(second.Result.PakPath, modified);
+                File.SetLastWriteTimeUtc(second.Result.PakPath, modified.AddMinutes(1));
                 var firstLaunch = catalog.RefreshCatalogAsync();
                 var secondLaunch = catalog.RefreshCatalogAsync();
                 PublishScan(scan, second.Scan);
@@ -359,7 +359,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         }
 
         [Fact]
-        public async Task MetadataRefreshReusesValidationButLaunchHashesUnchangedScanAgain() {
+        public async Task MetadataRefreshAndLaunchReusePersistedValidation() {
             using var file = new ScannedPak();
             var registry = new Mock<IModRegistry>();
             registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult([], []));
@@ -374,7 +374,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
                 await catalog.WaitForCatalogAsync();
                 Assert.Single(catalog.AvailableServerModBlueprints);
                 await catalog.RefreshCatalogAsync();
-                Assert.Empty(catalog.AvailableServerModBlueprints);
+                Assert.Single(catalog.AvailableServerModBlueprints);
             }
             await catalog.RefreshCatalogAsync();
             Assert.Single(catalog.AvailableServerModBlueprints);
@@ -451,7 +451,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
             // Returning to the registered bytes restores the normal enable/disable policy.
             File.WriteAllText(file.Result.PakPath, "scanned");
-            File.SetLastWriteTimeUtc(file.Result.PakPath, modified.AddSeconds(2));
+            File.SetLastWriteTimeUtc(file.Result.PakPath, modified.AddSeconds(4));
             await catalog.RefreshCatalogAsync();
             Assert.Equal(enabled ? 1 : 0, catalog.AvailableServerModBlueprints.Count);
             if (enabled) Assert.Equal("Registry menu", catalog.AvailableServerModBlueprints.Single().ModName);
@@ -502,11 +502,42 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             Assert.Equal(secondActor, selections[0]);
         }
 
+        [Fact]
+        public async Task StartupHydratesPersistedRawScanAndLaunchWaitsWithoutReadingPak() {
+            using var file = new ScannedPak();
+            var directory = Path.GetDirectoryName(file.Result.PakPath)!;
+            await PakScanCache.ScanAsync(directory, UnchainedLauncher.UnrealModScanner.Config.Games.GameScanOptions.Chivalry2,
+                _ => Task.FromResult(file.Scan));
+            using var locked = File.Open(file.Result.PakPath, FileMode.Open, FileAccess.Read, FileShare.None);
+            var tab = new ModScanTabVM { DefaultPakDirectory = directory };
+            var catalog = new AvailableModsAndMapsService(Manager(), tab);
+            await catalog.RefreshCatalogAsync();
+            Assert.NotNull(tab.LastScanResult);
+            Assert.Single(tab.LastScanResult!.Paks);
+            Assert.Single(ModManifestConverter.ProcessModScan(tab.LastScanResult).Paks.Single().Inventory.Blueprints);
+            Assert.Equal("Scanned", Assert.Single(catalog.AvailableServerModBlueprints).ModName);
+            await tab.ScanAsync(directory);
+            Assert.False(tab.IsScanning);
+            Assert.Equal("Scanned", Assert.Single(catalog.AvailableServerModBlueprints).ModName);
+        }
+
+        [Fact]
+        public async Task FailedNativeScanResetsUiStateWithoutPublishingPartialResults() {
+            using var file = new ScannedPak(); // Deliberately not a readable Unreal pak.
+            var tab = new ModScanTabVM();
+            await Assert.ThrowsAnyAsync<Exception>(() => tab.ScanAsync(Path.GetDirectoryName(file.Result.PakPath)!));
+            Assert.False(tab.IsScanning);
+            Assert.True(tab.IsNotScanning);
+            Assert.Null(tab.LastScanResult);
+        }
+
         private sealed class ScannedPak : IDisposable {
             public PakScanResult Result { get; }
             public ModScanResult Scan { get; } = new();
             public ScannedPak(string name = "Scanned") {
-                var path = Path.GetTempFileName();
+                var directory = Path.Combine(Path.GetTempPath(), "catalog-paks-" + Guid.NewGuid());
+                Directory.CreateDirectory(directory);
+                var path = Path.Combine(directory, "scanned.pak");
                 File.WriteAllText(path, "scanned");
                 Result = Scan.GetOrAddPak(Mock.Of<IVfsReader>(reader => reader.Path == path && reader.Name == Path.GetFileName(path)));
                 var blueprint = new GenericAssetEntry { AssetPath = $"{name}.uasset", AssetHash = "hash" };
@@ -514,7 +545,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
                 blueprint.Properties["bShowInGUI"] = true;
                 Result.AddGenericEntry(blueprint, "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C");
             }
-            public void Dispose() => File.Delete(Result.PakPath);
+            public void Dispose() => Directory.Delete(Path.GetDirectoryName(Result.PakPath)!, true);
         }
 
         private static void PublishScan(ModScanTabVM scan, ModScanResult? result) {

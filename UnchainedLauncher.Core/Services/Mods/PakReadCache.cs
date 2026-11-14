@@ -165,8 +165,11 @@ internal sealed class PakReadCache : IDisposable {
     internal void WriteScan(string path, string hash, string identity, string json, PakScanDependencies? dependencies = null) {
         Validate(path, hash);
         var name = Path.GetFileName(path);
-        entries[name] = entries[name] with { ScanIdentity = identity, ScanJson = json,
-            ScanDependencies = dependencies == null ? null : JsonSerializer.SerializeToElement(dependencies) };
+        entries[name] = entries[name] with {
+            ScanIdentity = identity,
+            ScanJson = json,
+            ScanDependencies = dependencies == null ? null : JsonSerializer.SerializeToElement(dependencies)
+        };
         scansWritten.Add(name);
         dirty = true;
     }

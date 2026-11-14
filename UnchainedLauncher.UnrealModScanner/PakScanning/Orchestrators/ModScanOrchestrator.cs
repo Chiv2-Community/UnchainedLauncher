@@ -107,7 +107,7 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                     IReadOnlyList<string>? versions;
                     try {
                         versions = versionReader.ReadVersions(packages.Select(package => package as Package
-                            ?? throw new IOException($"Unsupported mod version package: {package.Name}")));
+                            ?? throw new IOException($"Unsupported mod version package: {package.Name}")).ToArray());
                     }
                     catch (Exception error) {
                         Logger.Warn($"Could not extract Blueprint versions during full scan of pak '{name}'.", error);

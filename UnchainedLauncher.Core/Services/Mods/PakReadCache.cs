@@ -125,7 +125,6 @@ internal sealed class PakReadCache : IDisposable {
     }
 
     internal async Task<string?> Version(string path, string hash) {
-        Validate(path, hash);
         if (TryGetVersion(path, hash, out var cached)) {
             Logger.Info($"Using cached Blueprint version for pak '{Path.GetFileName(path)}'.");
             return cached;

@@ -116,9 +116,8 @@ public static class BlueprintVersionScanner {
             }
         }
 
-        internal IReadOnlyList<string> ReadVersions(IEnumerable<Package> source) {
+        internal IReadOnlyList<string> ReadVersions(IReadOnlyList<Package> packages) {
             recorded.Clear();
-            var packages = source.ToArray();
             List<string> ReadCandidates(bool marker) {
                 var versions = new List<string>();
                 foreach (var package in packages)

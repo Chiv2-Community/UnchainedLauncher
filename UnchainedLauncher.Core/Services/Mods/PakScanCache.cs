@@ -23,6 +23,21 @@ public static class PakScanCache {
     private static string Identity(ScanOptions options) => ScannerRevision + ":" +
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(options))));
 
+    private static PakScanResult? DeserializeScan(string name, string json) {
+        try {
+            var pak = JsonConvert.DeserializeObject<PakScanResult>(json, Settings);
+            if (pak == null || pak._Markers.Any(marker => marker == null || marker.Blueprints.Any(child => child == null))) return null;
+            // Reject malformed cached models before handing them to manifest consumers.
+            var check = new ModScanResult();
+            check.Paks[name] = pak;
+            _ = UnchainedLauncher.UnrealModScanner.Services.ModManifestConverter.ProcessModScan(check);
+            return pak;
+        }
+        catch (Exception error) when (error is JsonException or NullReferenceException or ArgumentException) {
+            return null;
+        }
+    }
+
     public static Task<ModScanResult> ScanAsync(string directory, ScanOptions options, IProgress<double>? progress = null,
         bool cachedOnly = false) => ScanAsync(directory, options, null, progress, cachedOnly);
 
@@ -68,21 +83,7 @@ public static class PakScanCache {
                 var dependencies = cache.ReadDependencies(fullPath);
                 if (json != null && (dependencies == null || !dependencies.Matches(inventory,
                     name => cachedOnly ? null : ReadIndex(name)))) json = null;
-                PakScanResult? pak = null;
-                if (json != null) {
-                    try {
-                        pak = JsonConvert.DeserializeObject<PakScanResult>(json, Settings);
-                        if (pak?._Markers.Any(marker => marker == null || marker.Blueprints.Any(child => child == null)) == true) pak = null;
-                        if (pak != null) {
-                            var check = new ModScanResult();
-                            check.Paks[Path.GetFileName(path)] = pak;
-                            _ = UnchainedLauncher.UnrealModScanner.Services.ModManifestConverter.ProcessModScan(check);
-                        }
-                    }
-                    catch (JsonException) { pak = null; }
-                    catch (NullReferenceException) { pak = null; }
-                    catch (ArgumentException) { pak = null; }
-                }
+                var pak = json == null ? null : DeserializeScan(Path.GetFileName(path), json);
                 if (pak != null && string.Equals(pak.PakHash, hash, StringComparison.OrdinalIgnoreCase)
                     && string.Equals(pak.PakPath, fullPath, StringComparison.OrdinalIgnoreCase)) {
                     result.Paks[Path.GetFileName(path)] = pak;

@@ -84,14 +84,54 @@ public class PakScanCacheTests : IDisposable {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task MetadataChangesInvalidateOnlyChangedPak(bool size) {
+    public async Task MetadataChangesInvalidateDependentScansWithoutRehashingUnchangedPak(bool size) {
         File.WriteAllText(Path.Combine(directory, "other.pak"), "other");
         await PakScanCache.ScanAsync(directory, Options, Read);
         var timestamp = File.GetLastWriteTimeUtc(Pak);
         File.WriteAllText(Pak, size ? "longer replacement" : "modified");
         File.SetLastWriteTimeUtc(Pak, size ? timestamp : timestamp.AddMinutes(1));
+        using var locked = File.Open(Path.Combine(directory, "other.pak"), FileMode.Open, FileAccess.Read, FileShare.None);
+        Assert.Empty((await PakScanCache.ScanAsync(directory, Options, cachedOnly: true)).Paks);
         await PakScanCache.ScanAsync(directory, Options, Read);
-        Assert.Equal(3, scans);
+        Assert.Equal(4, scans);
+    }
+
+    [Theory]
+    [InlineData("add")]
+    [InlineData("remove")]
+    [InlineData("rename")]
+    [InlineData("vanilla")]
+    [InlineData("utoc")]
+    [InlineData("ucas")]
+    public async Task MountedInventoryChangesInvalidateSurvivorsButKeepTheirHashes(string change) {
+        var dependency = Path.Combine(directory, "dependency.pak");
+        File.WriteAllText(dependency, "dependency");
+        await PakScanCache.ScanAsync(directory, Options, Read);
+        switch (change) {
+            case "remove": File.Delete(dependency); break;
+            case "rename": File.Move(dependency, dependency + ".renamed.pak"); break;
+            case "vanilla": File.WriteAllText(Path.Combine(directory, Options.VanillaPakNames.First()), "vanilla"); break;
+            case "utoc": File.WriteAllText(Path.Combine(directory, "dependency.utoc"), "container"); break;
+            case "ucas": File.WriteAllText(Path.Combine(directory, "dependency.ucas"), "container"); break;
+            default: File.WriteAllText(Path.Combine(directory, "added.pak"), "added"); break;
+        }
+        using var locked = File.Open(Pak, FileMode.Open, FileAccess.Read, FileShare.None);
+        Assert.Empty((await PakScanCache.ScanAsync(directory, Options, cachedOnly: true)).Paks);
+        var before = scans;
+        var result = await PakScanCache.ScanAsync(directory, Options, Read);
+        Assert.Equal(before + result.Paks.Count, scans);
+        Assert.True(JToken.DeepEquals(JToken.FromObject(result),
+            JToken.FromObject(await PakScanCache.ScanAsync(directory, Options, _ => throw new Exception("Unchanged inventory")))));
+    }
+
+    [Fact]
+    public async Task InventoryChangesDuringScanPublishNoNewScanEntries() {
+        await Assert.ThrowsAsync<IOException>(() => PakScanCache.ScanAsync(directory, Options, hashes => {
+            File.WriteAllText(Path.Combine(directory, "added.pak"), "added");
+            return Read(hashes);
+        }));
+        Assert.Empty((await PakScanCache.ScanAsync(directory, Options, cachedOnly: true)).Paks);
+        Assert.All(JsonNode.Parse(File.ReadAllText(Cache))!.AsObject(), entry => Assert.Null(entry.Value!["ScanJson"]));
     }
 
     [Theory]

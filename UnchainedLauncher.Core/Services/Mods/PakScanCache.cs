@@ -21,6 +21,18 @@ public static class PakScanCache {
     private static string Identity(ScanOptions options) => ScannerRevision + ":" +
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(options))));
 
+    private static string Inventory(string directory) {
+        // Reference resolution can read any mounted container, including vanilla paks.
+        var files = Directory.EnumerateFiles(directory).Where(path => Path.GetExtension(path).ToLowerInvariant()
+            is ".pak" or ".utoc" or ".ucas" or ".uproject").OrderBy(Path.GetFileName, StringComparer.Ordinal);
+        var metadata = files.Select(path => {
+            var file = new FileInfo(path);
+            return new { file.Name, file.Length, Ticks = file.LastWriteTimeUtc.Ticks };
+        }).ToArray();
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
+            System.Text.Json.JsonSerializer.Serialize(metadata))));
+    }
+
     public static Task<ModScanResult> ScanAsync(string directory, ScanOptions options, IProgress<double>? progress = null,
         bool cachedOnly = false) => ScanAsync(directory, options, null, progress, cachedOnly);
 
@@ -29,7 +41,8 @@ public static class PakScanCache {
         IProgress<double>? progress = null, bool cachedOnly = false) => Task.Run(async () => {
             using var cache = new PakReadCache(directory);
             cache.Prune();
-            var identity = Identity(options);
+            var inventory = Inventory(directory);
+            var identity = Identity(options) + ":" + inventory;
             var result = new ModScanResult();
             var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var pending = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -79,11 +92,13 @@ public static class PakScanCache {
                     result.Paks[name] = pak;
                 }
                 // Validate the entire snapshot before publishing any new scan entries.
+                if (Inventory(directory) != inventory) throw new IOException("Pak inventory changed during scanning.");
                 foreach (var path in paths) cache.Validate(path, hashes[Path.GetFullPath(path)]);
                 foreach (var path in pending) cache.WriteScan(path, hashes[path], identity,
                     JsonConvert.SerializeObject(result.Paks[Path.GetFileName(path)], Settings));
             }
             cache.Prune();
+            if (Inventory(directory) != inventory) throw new IOException("Pak inventory changed during scanning.");
             foreach (var pak in result.Paks.Values) cache.Validate(pak.PakPath, pak.PakHash!);
             progress?.Report(100);
             return result;

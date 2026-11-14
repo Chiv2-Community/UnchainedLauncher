@@ -57,7 +57,12 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.Views {
                 FolderName = ModScannerVM.DefaultPakDirectory ?? ""
             };
             if (dlg.ShowDialog() == true) {
-                await ModScannerVM.ScanAsync(dlg.FolderName);
+                try {
+                    await ModScannerVM.ScanAsync(dlg.FolderName);
+                }
+                catch (Exception error) {
+                    MessageBox.Show($"Pak scan failed: {error.Message}", "Scan failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
         private async void Save_UnrealMods_Config_Click(object sender, RoutedEventArgs e) {

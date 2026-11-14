@@ -521,14 +521,20 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             Assert.Equal("Scanned", Assert.Single(catalog.AvailableServerModBlueprints).ModName);
         }
 
-        [Fact]
-        public async Task FailedNativeScanResetsUiStateWithoutPublishingPartialResults() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task FailedNativeScanResetsUiStateWithoutPublishingPartialResults(bool previousScan) {
             using var file = new ScannedPak(); // Deliberately not a readable Unreal pak.
             var tab = new ModScanTabVM();
+            if (previousScan) PublishScan(tab, file.Scan);
+            var previousResult = tab.LastScanResult;
+            var previousVisual = tab.ResultsVisual;
             await Assert.ThrowsAnyAsync<Exception>(() => tab.ScanAsync(Path.GetDirectoryName(file.Result.PakPath)!));
             Assert.False(tab.IsScanning);
             Assert.True(tab.IsNotScanning);
-            Assert.Null(tab.LastScanResult);
+            Assert.Same(previousResult, tab.LastScanResult);
+            Assert.Same(previousVisual, tab.ResultsVisual);
         }
 
         private sealed class ScannedPak : IDisposable {

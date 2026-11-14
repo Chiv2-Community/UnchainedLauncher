@@ -15,6 +15,10 @@ internal sealed class PakReadCache : IDisposable {
         [property: JsonRequired] string Hash, [property: JsonRequired] bool VersionRead, [property: JsonRequired] string? Version,
         int VersionScanRevision = 0, string? ScanIdentity = null, string? ScanJson = null);
     private static readonly object CacheFileLock = new();
+    // Keep only the most recently used disk snapshot; clients own their mutable dictionaries.
+    private sealed record Snapshot(string Path, (long Length, long Ticks) Metadata,
+        Dictionary<string, Entry> Entries, bool NeedsRepair);
+    private static Snapshot? snapshot;
     private readonly string directory;
     private readonly string cachePath;
     private readonly Func<string, Task<string?>> readVersion;
@@ -31,25 +35,35 @@ internal sealed class PakReadCache : IDisposable {
         this.directory = directory;
         this.readVersion = readVersion ?? PakBlueprintVersion.Read;
         this.readHash = readHash ?? (async stream => await SHA512.HashDataAsync(stream));
-        cachePath = Path.Combine(directory, ".unchained", "pak-read-cache.json");
+        cachePath = Path.GetFullPath(Path.Combine(directory, ".unchained", "pak-read-cache.json"));
         lock (CacheFileLock) entries = Load();
     }
 
     private Dictionary<string, Entry> Load() {
         var loadedEntries = new Dictionary<string, Entry>(StringComparer.OrdinalIgnoreCase);
+        var needsRepair = false;
         try {
-            if (!File.Exists(cachePath)) return loadedEntries;
+            if (!File.Exists(cachePath)) { snapshot = null; return loadedEntries; }
+            var before = Metadata(cachePath);
+            if (snapshot is { } saved && saved.Path == cachePath && saved.Metadata == before) {
+                dirty |= saved.NeedsRepair;
+                return new Dictionary<string, Entry>(saved.Entries, StringComparer.OrdinalIgnoreCase);
+            }
             var loaded = JsonSerializer.Deserialize<Dictionary<string, Entry>>(File.ReadAllText(cachePath));
             if (loaded == null) { dirty = true; return loadedEntries; }
             foreach (var (name, entry) in loaded) {
                 if (entry == null || name != Path.GetFileName(name) || entry.Length < 0 || entry.LastWriteTicks <= 0
                     || entry.Hash == null || entry.Hash.Length != 128 || !entry.Hash.All(Uri.IsHexDigit)
-                    || (!entry.VersionRead && entry.Version != null)) { dirty = true; continue; }
+                    || (!entry.VersionRead && entry.Version != null)) { needsRepair = true; continue; }
                 loadedEntries.Add(name, entry);
             }
+            if (before != Metadata(cachePath)) throw new IOException("Pak cache changed while reading.");
+            snapshot = new Snapshot(cachePath, before, new Dictionary<string, Entry>(loadedEntries, StringComparer.OrdinalIgnoreCase), needsRepair);
+            dirty |= needsRepair;
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException or ArgumentException) {
             loadedEntries.Clear();
+            snapshot = null;
             dirty = true;
             Logger.Warn($"Could not read pak cache: {error.Message}");
         }
@@ -208,7 +222,10 @@ internal sealed class PakReadCache : IDisposable {
                 JsonSerializer.Serialize(stream, entries);
                 stream.Flush(flushToDisk: true);
             }
+            var written = Metadata(temporary);
             File.Move(temporary, cachePath, overwrite: true);
+            snapshot = new Snapshot(cachePath, written,
+                new Dictionary<string, Entry>(entries, StringComparer.OrdinalIgnoreCase), false);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
             Logger.Warn($"Could not save pak cache: {error.Message}");

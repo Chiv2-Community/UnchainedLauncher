@@ -41,16 +41,17 @@ public class SecondPassOrchestrator {
                 try {
                     //var refEntry = pendingRefs.Where(en => en.TargetBlueprintPath == assetPath).FirstOrDefault();
 
-                    // The marker belongs to the source pak, even for cross-pak references.
+                    // A pak inventory contains only its physical assets, not another pak's actors.
                     if (!mainResult.Paks.TryGetValue(refEntry.SourcePakFile, out var pakBucket))
                         throw new InvalidDataException("Source pak was not scanned.");
                     var marker = pakBucket.GetMarker(refEntry.SourceMarkerClassName, refEntry.SourceMarkerPath);
                     if (marker == null)
                         throw new InvalidDataException("Source marker was not found.");
                     var packagePath = assetPath.Split(".").First();
-                    if (!_provider.TryGetGameFile(packagePath + ".uasset", out var gameFile)
-                        && !_provider.TryGetGameFile(packagePath + ".umap", out gameFile)) {
-                        throw new FileNotFoundException("Declared blueprint reference was not found.", assetPath);
+                    if (!refEntry.SourceFiles.TryGetValue(_provider.FixPath(packagePath + ".uasset"), out var gameFile)
+                        && !refEntry.SourceFiles.TryGetValue(_provider.FixPath(packagePath + ".umap"), out gameFile)) {
+                        Logger.Debug($"Skipping non-local actor reference '{assetPath}' in pak '{refEntry.SourcePakFile}'.");
+                        return;
                     }
                     var package = _provider.LoadPackage(gameFile);
 
@@ -91,10 +92,8 @@ public class SecondPassOrchestrator {
                         };
                     }
 
-                    // TODO: Verify
-                    var base_name = mainExportLazy.Outer.Name ?? mainExportLazy.Template?.Outer?.Name.Text;
                     var entry = GenericAssetEntry.FromSource(
-                        new PackageAssetSource(package),
+                        new PackageAssetSource(package, gameFile),
                         filteredProperties);
                     if (mainExportLazy is UClass uclass) {
                         var fullName = uclass.GetFullName();

@@ -42,6 +42,51 @@ public class PakReadCacheTests : IDisposable {
     }
 
     [Fact]
+    public async Task VersionsFromFullScansFollowDependenciesAndSurviveCacheMerging() {
+        var dependency = Path.Combine(directory, "shared.pak");
+        File.WriteAllText(dependency, "shared");
+        string hash;
+        using (var scan = new PakReadCache(directory)) {
+            hash = await scan.Hash(Pak);
+            scan.WriteScan(Pak, hash, PakScanCache.ScannerRevision + ":identity", "{}", new(PakScanDependencies.Snapshot(directory), [], ["shared.pak"]));
+            scan.StoreVersion(Pak, hash, "1.2.3", fromScan: true);
+        }
+        using var staleClient = new PakReadCache(directory);
+        using (var launch = new PakReadCache(directory, _ => throw new Exception("Version rescan"))) {
+            Assert.Equal("1.2.3", await launch.Version(Pak, hash));
+            File.Delete(dependency);
+            Assert.False(launch.TryGetVersion(Pak, hash, out _));
+        }
+        using (var scan = new PakReadCache(directory)) {
+            scan.InvalidateScanVersion(Pak, hash);
+            scan.WriteScan(Pak, hash, PakScanCache.ScannerRevision + ":identity", "{}", new(PakScanDependencies.Snapshot(directory), [], []));
+            scan.StoreVersion(Pak, hash, null, fromScan: true);
+        }
+        // An independently loaded client must not restore the older version on save.
+        var other = Path.Combine(directory, "other.pak");
+        File.WriteAllText(other, "other");
+        await staleClient.Hash(other);
+        staleClient.Dispose();
+        using var restarted = new PakReadCache(directory, _ => throw new Exception("Unknown is a cached result"));
+        Assert.True(restarted.TryGetVersion(Pak, hash, out var version));
+        Assert.Null(version);
+    }
+
+    [Fact]
+    public async Task VersionsFromOldFullScansAreNotTrustedBeforeTheNextScan() {
+        string hash;
+        using (var old = new PakReadCache(directory)) {
+            hash = await old.Hash(Pak);
+            old.WriteScan(Pak, hash, (PakScanCache.ScannerRevision - 1) + ":identity", "{}",
+                new(PakScanDependencies.Snapshot(directory), [], []));
+            old.StoreVersion(Pak, hash, "1.2.3", fromScan: true);
+        }
+        using var locked = File.Open(Pak, FileMode.Open, FileAccess.Read, FileShare.None);
+        using var launch = new PakReadCache(directory);
+        Assert.False(launch.TryGetVersion(Pak, hash, out _));
+    }
+
+    [Fact]
     public async Task UnchangedDiskSnapshotDoesNotReparseLargeScanPayloadForHashOrReinventory() {
         using (var cache = new PakReadCache(directory)) {
             var hash = await cache.Hash(Pak);

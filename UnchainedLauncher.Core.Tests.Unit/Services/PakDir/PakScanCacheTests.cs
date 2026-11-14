@@ -61,6 +61,38 @@ public class PakScanCacheTests : IDisposable {
     }
 
     [Fact]
+    public async Task FullScanCachesUnknownVersionForAnEmptyPakWithoutLaunchScanning() {
+        // Minimal valid v3 pak: an empty index and its footer, no compression needed.
+        using (var stream = File.Create(Pak))
+        using (var writer = new BinaryWriter(stream)) {
+            writer.Write(new byte[512]);
+            var indexOffset = stream.Position;
+            var mount = Encoding.UTF8.GetBytes("../../../\0");
+            writer.Write(mount.Length);
+            writer.Write(mount);
+            writer.Write(0);
+            var indexSize = stream.Position - indexOffset;
+            writer.Write(0x5A6F12E1u);
+            writer.Write(3);
+            writer.Write(indexOffset);
+            writer.Write(indexSize);
+            writer.Write(new byte[20]);
+        }
+        var vanilla = Path.Combine(directory, Options.VanillaPakNames.First());
+        File.WriteAllText(vanilla, "Forbidden vanilla container: not even a valid pak");
+        using var lockedVanilla = File.Open(vanilla, FileMode.Open, FileAccess.Read, FileShare.None);
+        await PakScanCache.ScanAsync(directory, Options);
+        using var locked = File.Open(Pak, FileMode.Open, FileAccess.Read, FileShare.None);
+        using var launch = new PakReadCache(directory, _ => throw new Exception("Version rescan"),
+            _ => throw new Exception("Rehash"));
+        var hash = await launch.Hash(Pak);
+        Assert.True(launch.TryGetVersion(Pak, hash, out var version));
+        Assert.Null(version);
+        Assert.Null(await launch.Version(Pak, hash));
+        Assert.Single((await PakScanCache.ScanAsync(directory, Options)).Paks);
+    }
+
+    [Fact]
     public async Task RepeatedScansAndStartupReuseFullRawResultsWithoutOpeningPaks() {
         var first = await PakScanCache.ScanAsync(directory, Options, Read);
         using var locked = File.Open(Pak, FileMode.Open, FileAccess.Read, FileShare.None);

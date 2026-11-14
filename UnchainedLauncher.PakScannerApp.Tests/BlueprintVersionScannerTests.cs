@@ -1,4 +1,5 @@
 using CUE4Parse.FileProvider;
+using CUE4Parse.FileProvider.Objects;
 using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Assets.Objects;
@@ -179,6 +180,49 @@ public class BlueprintVersionScannerTests {
                 return true;
             });
         Assert.Empty(BlueprintVersionScanner.ReadVersions([Create("A", "B")]));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReusesParentMetadataAndReplaysDependenciesForEachPak(bool alreadyLoaded) {
+        const string path = "/Game/SharedModBase";
+        var provider = new Mock<IFileProvider>();
+        provider.Setup(value => value.FixPath(It.IsAny<string>())).Returns((string value) => value + ".uasset");
+        var parent = Package(("BlueprintGeneratedClass", "ArgonSDKModBase_C", false,
+            () => throw new Exception("Parent payload must not load")));
+        parent.Name = path;
+        parent.ExportMap[0].ObjectName = new FName("SharedModBase_C");
+        var child = Package(("SharedModBase_C", "", true, () => Version("2.0.0")));
+        var imports = child.ImportMap.Append(new FObjectImport {
+            ObjectName = new FName(path), OuterIndex = new FPackageIndex()
+        }).ToArray();
+        imports[0].OuterIndex = new FPackageIndex(child, -imports.Length);
+        SetField(child, nameof(CUE4Parse.UE4.Assets.Package.ImportMap), imports);
+        SetField(child, nameof(CUE4Parse.UE4.Assets.Package.Provider), provider.Object);
+        SetField(parent, nameof(CUE4Parse.UE4.Assets.Package.Provider), provider.Object);
+        IPackage loaded = parent;
+        provider.Setup(value => value.TryLoadPackage(path, out loaded)).Returns(true);
+        var reader = new BlueprintVersionScanner.Reader(alreadyLoaded ? [parent, child] : [child]);
+
+        Assert.Equal(["2.0.0"], reader.ReadVersions([child]));
+        provider.Verify(value => value.TryLoadPackage(path, out It.Ref<IPackage>.IsAny), alreadyLoaded ? Times.Never() : Times.Once());
+        provider.Invocations.Clear();
+        Assert.Equal(["2.0.0"], reader.ReadVersions([child]));
+        provider.Verify(value => value.TryGetGameFile(path, out It.Ref<GameFile>.IsAny), Times.Once);
+        provider.Verify(value => value.TryLoadPackage(It.IsAny<string>(), out It.Ref<IPackage>.IsAny), Times.Never);
+    }
+
+    [Fact]
+    public void MarkerVersionSkipsActorAncestryLookups() {
+        var package = Package(
+            ("DA_ModMarker_V2_C", "", false, () => Version("3.0.0")),
+            ("CustomActor_C", "", true, () => throw new Exception("Actor must not load")));
+        var provider = new Mock<IFileProvider>(MockBehavior.Strict);
+        provider.Setup(value => value.FixPath(It.IsAny<string>())).Returns((string path) => path);
+        SetField(package, nameof(CUE4Parse.UE4.Assets.Package.Provider), provider.Object);
+        Assert.Equal(["3.0.0"], BlueprintVersionScanner.ReadVersions([package]));
+        provider.Verify(value => value.TryLoadPackage(It.IsAny<string>(), out It.Ref<IPackage>.IsAny), Times.Never);
     }
 
     [Fact]

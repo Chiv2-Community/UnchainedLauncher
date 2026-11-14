@@ -22,7 +22,7 @@ public class UnmanagedPakScanProgressTests : IDisposable {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task ShowsCurrentPakAndOverallProgressThenClosesBeforeConfirmation(bool cached) {
+    public async Task ShowsProgressOnlyForUncachedVersionsAndClosesBeforeConfirmation(bool cached) {
         File.WriteAllText(Path.Combine(directory, "first.pak"), "first");
         File.WriteAllText(Path.Combine(directory, "second.pak"), "second");
         if (cached) {
@@ -44,8 +44,10 @@ public class UnmanagedPakScanProgressTests : IDisposable {
             }).Returns(() => closed = true);
         dialogue.Setup(value => value.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
             .Callback(() => {
-                Assert.True(closed);
-                Assert.Equal(100, progress!.ProgressPercentage);
+                if (!cached) {
+                    Assert.True(closed);
+                    Assert.Equal(100, progress!.ProgressPercentage);
+                }
             }).Returns(UserDialogueChoice.Cancel);
         var reads = 0;
         using var cache = new PakReadCache(directory, async path => {
@@ -60,15 +62,49 @@ public class UnmanagedPakScanProgressTests : IDisposable {
         Assert.False(await UnmanagedPakRecovery.Recover(Paks(), [], dialogue.Object, [], false, cache));
 
         Assert.Equal(cached ? 0 : 2, reads);
-        Assert.Equal(2, starts.Count);
-        Assert.StartsWith("Scanning pak 1 of 2: ", starts[0].Name);
-        Assert.StartsWith("Scanning pak 2 of 2: ", starts[1].Name);
-        Assert.Equal(0, starts[0].Percentage);
-        Assert.Equal(50, starts[1].Percentage);
-        Assert.Contains(starts, value => value.Name.EndsWith("first.pak"));
-        Assert.Contains(starts, value => value.Name.EndsWith("second.pak"));
-        dialogue.Verify(value => value.DisplayProgress(It.IsAny<MemoryProgress>()), Times.Once);
+        if (cached) {
+            Assert.Null(progress);
+            Assert.Empty(starts);
+        }
+        else {
+            Assert.Equal(2, starts.Count);
+            Assert.StartsWith("Scanning pak 1 of 2: ", starts[0].Name);
+            Assert.StartsWith("Scanning pak 2 of 2: ", starts[1].Name);
+            Assert.Equal(0, starts[0].Percentage);
+            Assert.Equal(50, starts[1].Percentage);
+            Assert.Contains(starts, value => value.Name.EndsWith("first.pak"));
+            Assert.Contains(starts, value => value.Name.EndsWith("second.pak"));
+        }
+        dialogue.Verify(value => value.DisplayProgress(It.IsAny<MemoryProgress>()), cached ? Times.Never : Times.Once);
         Assert.Equal(2, Directory.GetFiles(directory, "*.pak").Length);
+    }
+
+    [Fact]
+    public async Task MixedCacheProgressCountsOnlyPaksThatNeedReading() {
+        var cached = Path.Combine(directory, "cached.pak");
+        var fresh = Path.Combine(directory, "fresh.pak");
+        File.WriteAllText(cached, "cached");
+        File.WriteAllText(fresh, "fresh");
+        using (var prime = new PakReadCache(directory, _ => Task.FromResult<string?>(null)))
+            await prime.Version(cached, await prime.Hash(cached));
+        MemoryProgress? progress = null;
+        var closed = false;
+        var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+        dialogue.Setup(value => value.DisplayProgress(It.IsAny<MemoryProgress>()))
+            .Callback<MemoryProgress>(value => progress = value).Returns(() => closed = true);
+        dialogue.Setup(value => value.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+            .Callback(() => {
+                Assert.True(closed);
+                Assert.Equal(100, progress!.ProgressPercentage);
+            }).Returns(UserDialogueChoice.Cancel);
+        using var cache = new PakReadCache(directory, path => {
+            Assert.Equal(fresh, path);
+            Assert.Equal("Scanning pak 1 of 1: fresh.pak", progress!.TaskName);
+            Assert.Equal(0, progress.ProgressPercentage);
+            return Task.FromResult<string?>("1.2.3");
+        });
+        Assert.False(await UnmanagedPakRecovery.Recover(Paks(), [], dialogue.Object, [], false, cache));
+        dialogue.Verify(value => value.DisplayProgress(It.IsAny<MemoryProgress>()), Times.Once);
     }
 
     [Fact]

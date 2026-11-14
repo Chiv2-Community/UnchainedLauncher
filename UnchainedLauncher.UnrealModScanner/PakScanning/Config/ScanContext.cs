@@ -34,10 +34,10 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Config {
             PakEntry = pakEntry;
         }
 
-        public string GetHash() => HashUtility.GetAssetHash(Provider, FilePath, PakEntry);
+        public string GetHash() => HashUtility.GetAssetHash(PakEntry);
 
         public string GetHash(UObject export) {
-            return HashUtility.GetAssetHash(Provider, FilePath, PakEntry);
+            return GetHash();
         }
 
 

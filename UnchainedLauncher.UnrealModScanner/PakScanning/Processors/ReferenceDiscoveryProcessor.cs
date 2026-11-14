@@ -111,6 +111,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                                 TargetBlueprintPath = PackageUtility.ToGamePathName(resolved.GetPathName()),
                                 TargetClassName = resolved.Name.Text,
                                 SourcePakFile = ctx.PakEntry.PakFileReader.Name,
+                                SourceFiles = ctx.PakEntry.PakFileReader.Files,
                             });
                         }
                     }

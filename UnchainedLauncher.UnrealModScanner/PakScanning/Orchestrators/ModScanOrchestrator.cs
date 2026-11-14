@@ -4,6 +4,7 @@ using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Readers;
 using log4net;
+using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -34,19 +35,18 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
     }
 
     public async Task<ModScanResult> RunScanAsync(FilteredFileProvider provider, ScanOptions options, IProgress<double> progress = null,
-        Func<string, string>? hashPak = null, bool failOnErrors = false) {
+        Func<string, string>? hashPak = null, bool failOnErrors = false,
+        Action<string, IReadOnlyList<string>?>? onVersionsScanned = null) {
         var discoveryProcessor = modProcessors.OfType<ReferenceDiscoveryProcessor>().FirstOrDefault();
         int processed = 0;
 
         return await Task.Run(async () => {
             InitializeProvider(provider);
-            //var scanResult = new ModScanResult();
             var mainResult = new ModScanResult(hashPak);
             int failures = 0;
-            //var scanResult = new PakScanResult();
 
-            // 1. Apply Path Filtering
             var files = provider.FilteredFiles.ToList();
+            var versionPackages = new ConcurrentDictionary<string, ConcurrentBag<IPackage>>(StringComparer.OrdinalIgnoreCase);
 
 
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = -1 };
@@ -58,13 +58,12 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                     if (file.Value is not FPakEntry pakEntry)
                         return;
                     using var dependencyScope = provider.TrackScan(pakEntry.PakFileReader.Name);
-                    IPackage? pkg = null;
-                    bool packageLoaded;
                     try {
-                        pkg = await provider.LoadPackageAsync(file.Key);
-                        // Log.Error($"Failed to load package: {e.Message}");
-                        // throw;
+                        var pkg = await provider.LoadPackageAsync(file.Value);
                         if (pkg == null) throw new InvalidDataException("Package loader returned no package.");
+                        if (onVersionsScanned != null && file.Key.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
+                            && provider.Files.TryGetValue(file.Key, out var selected) && ReferenceEquals(selected, file.Value))
+                            versionPackages.GetOrAdd(pakEntry.PakFileReader.Name, _ => new()).Add(pkg);
 
                         var context = new ScanContext(provider, pkg, file.Key, pakEntry);
                         var currentPakResult = mainResult.GetOrAddPak(pakEntry.PakFileReader);
@@ -97,25 +96,30 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                 });
 
             if (discoveryProcessor?.DiscoveredReferences.Any() == true) {
-                var secondPass = new SecondPassOrchestrator(provider, options); // options statt _options
+                var secondPass = new SecondPassOrchestrator(provider, options);
                 await secondPass.ResolveReferencesAsync(discoveryProcessor.DiscoveredReferences, mainResult, failOnErrors);
             }
-
-            //if (discoveryProcessor.DiscoveredReferences.Any()) {
-            //    var secondPass = new SecondPassOrchestrator(provider, _options);
-
-            //    // We aggregate results into the existing PakScanResult objects
-            //    // mapped by the Blueprint's owning Pak/Path
-            //    await secondPass.ResolveReferencesAsync(
-            //        discoveryProcessor.DiscoveredReferences,
-            //        scanResult
-            //    );
-            //}
 
             // Replacing bags while parallel workers add/remove assets loses updates.
             // Resolve overlaps only after both passes have finished.
             RemoveSpecializedAssets(mainResult);
             if (failOnErrors && failures != 0) throw new IOException("Pak scan failed; incomplete results were not cached.");
+            if (onVersionsScanned != null && failures == 0) {
+                var versionReader = new BlueprintVersionScanner.Reader(versionPackages.Values.SelectMany(packages => packages).OfType<Package>());
+                foreach (var (name, packages) in versionPackages) {
+                    using var dependencyScope = provider.TrackScan(name);
+                    IReadOnlyList<string>? versions;
+                    try {
+                        versions = versionReader.ReadVersions(packages.Select(package => package as Package
+                            ?? throw new IOException($"Unsupported mod version package: {package.Name}")));
+                    }
+                    catch (Exception error) {
+                        Logger.Warn($"Could not extract Blueprint versions during full scan of pak '{name}'.", error);
+                        versions = null;
+                    }
+                    onVersionsScanned(name, versions);
+                }
+            }
             return mainResult;
         });
     }

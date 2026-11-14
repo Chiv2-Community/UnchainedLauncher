@@ -117,7 +117,7 @@ namespace UnchainedLauncher.PakScannerApp.Tests {
         private static FPakEntry CreateEntry(string pakName) {
             var reader = (PakFileReader)RuntimeHelpers.GetUninitializedObject(typeof(PakFileReader));
             SetField(reader, "<Name>k__BackingField", pakName);
-            var entry = (FPakEntry)RuntimeHelpers.GetUninitializedObject(typeof(FPakEntry));
+            var entry = ReadablePakEntry.Create();
             SetField(entry, "<Vfs>k__BackingField", reader);
             return entry;
         }

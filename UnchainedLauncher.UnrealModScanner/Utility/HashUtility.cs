@@ -1,22 +1,15 @@
 ﻿using CUE4Parse.FileProvider;
-using System.Collections.Concurrent;
+using CUE4Parse.FileProvider.Objects;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 
 namespace UnchainedLauncher.UnrealModScanner.Utility {
     internal static class HashUtility {
-        private static readonly ConcurrentDictionary<string, string> _hashStore = new();
-        private static readonly ConcurrentDictionary<string, string> _hashCache = new();
+        // Entry identity includes its owning container; weak keys expire with the provider.
+        private static readonly ConditionalWeakTable<GameFile, Lazy<string>> Hashes = new();
 
-        private static string GetFastHash(byte[] data) {
-            if (data == null || data.Length == 0) return string.Empty;
-
-            // Only hash the first 16KB to save massive CPU/IO time
-            int lengthToHash = Math.Min(data.Length, 16384);
-
-            using var sha1 = SHA1.Create();
-            var hashBytes = sha1.ComputeHash(data, 0, lengthToHash);
-            return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-        }
+        public static string GetAssetHash(GameFile file) => Hashes.GetValue(file,
+            entry => new Lazy<string>(() => Convert.ToHexString(SHA512.HashData(entry.Read())).ToLowerInvariant())).Value;
 
         public static string CalculatePakHash(string filePath) {
             if (!File.Exists(filePath)) return "FILE_NOT_FOUND";
@@ -30,14 +23,7 @@ namespace UnchainedLauncher.UnrealModScanner.Utility {
         }
 
         public static string GetAssetHash(IFileProvider provider, string path, object fallback) {
-            return _hashStore.GetOrAdd(path, _ => {
-                if (provider.TrySaveAsset(path, out var data)) {
-                    // return GetFastHash(data);
-                    byte[] hashBytes = System.Security.Cryptography.SHA512.HashData(data);
-                    return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-                }
-                return fallback.GetHashCode().ToString();
-            });
+            return provider.TryGetGameFile(path, out var file) ? GetAssetHash(file) : fallback.GetHashCode().ToString();
         }
     }
 }

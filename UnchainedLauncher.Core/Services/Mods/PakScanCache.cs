@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System.Security.Cryptography;
 using System.Text;
 using UnchainedLauncher.UnrealModScanner.Config;
+using UnchainedLauncher.UnrealModScanner.Config.Games;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnrealModScanner.Models;
@@ -11,8 +12,8 @@ namespace UnchainedLauncher.Core.Services.Mods;
 
 // One filename inventory owns hashes, Blueprint versions and full scanner output.
 public static class PakScanCache {
-    // Revision 4 refreshes old full scans once, retaining hash/version entries.
-    private const int ScannerRevision = 4;
+    // Refresh scans that could have included another pak's assets or vanilla metadata/hashes.
+    internal const int ScannerRevision = 7;
     private static readonly JsonSerializerSettings Settings = new() {
         ObjectCreationHandling = ObjectCreationHandling.Replace,
         ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
@@ -30,7 +31,10 @@ public static class PakScanCache {
         IProgress<double>? progress = null, bool cachedOnly = false) => Task.Run(async () => {
             using var cache = new PakReadCache(directory);
             cache.Prune();
-            var inventory = PakScanDependencies.Snapshot(directory);
+            Dictionary<string, PakScanDependencies.Stamp> Snapshot() => PakScanDependencies.Snapshot(directory)
+                .Where(pair => !options.VanillaPakNames.Contains(pair.Key, StringComparer.OrdinalIgnoreCase))
+                .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+            var inventory = Snapshot();
             var identity = Identity(options);
             var changedIndexes = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
             string[] ReadIndex(string name) {
@@ -54,7 +58,7 @@ public static class PakScanCache {
             var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var pending = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var paths = Directory.GetFiles(directory, "*.pak")
-                .Where(path => !options.VanillaPakNames.Contains(Path.GetFileName(path))).ToArray();
+                .Where(path => !options.VanillaPakNames.Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)).ToArray();
             foreach (var path in paths) {
                 var fullPath = Path.GetFullPath(path);
                 var hash = cachedOnly ? cache.CachedHash(fullPath) : await cache.Hash(fullPath);
@@ -89,13 +93,17 @@ public static class PakScanCache {
             }
             if (!cachedOnly && pending.Count > 0) {
                 ModScanResult scanned;
+                var versions = new Dictionary<string, IReadOnlyList<string>?>(StringComparer.OrdinalIgnoreCase);
+                var collectVersions = scan == null && identity == Identity(GameScanOptions.Chivalry2);
+                var completeVersions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var dependencies = new Dictionary<string, PakScanDependencies>(StringComparer.OrdinalIgnoreCase);
                 if (scan != null) scanned = await scan(pending.ToDictionary(path => path, path => hashes[path]));
                 else {
                     using var provider = FilteredFileProvider.CreateFromOptions(options, ScanMode.Mods, directory,
                         kv => kv.Value is FPakEntry entry && pending.Contains(Path.GetFullPath(entry.PakFileReader.Path)));
                     scanned = await ScannerFactory.CreateModScanner(options).RunScanAsync(provider, options, progress!,
-                        path => hashes[Path.GetFullPath(path)], failOnErrors: true);
+                        path => hashes[Path.GetFullPath(path)], failOnErrors: true,
+                        onVersionsScanned: collectVersions ? (name, values) => versions[name] = values : null);
                     if (pending.Any(path => !provider.MountedVfs.Any(vfs => Path.GetFullPath(vfs.Path) == path)))
                         throw new IOException("Not all paks could be mounted; scan results were not cached.");
                     var globalPaths = provider.Files.Keys.Where(PakScanDependencies.IsGlobal).ToArray();
@@ -103,9 +111,17 @@ public static class PakScanCache {
                     // have ambiguous inference, so retain a conservative dependency there.
                     var mixedProjects = provider.Files.Keys.Select(PakScanDependencies.ProjectRoot)
                         .Where(root => root != null).Distinct(StringComparer.Ordinal).Take(2).Count() > 1;
+                    var versionFilter = options.ScanFilter.CreatePakContentFilter();
                     foreach (var path in pending) {
                         // Include the owning container's index even if all its assets are shadowed.
                         var own = provider.MountedVfs.Single(vfs => Path.GetFullPath(vfs.Path) == path);
+                        // A directory scan cannot supply a complete per-file version when
+                        // another container shadows one of its version-scannable packages.
+                        if (collectVersions && own.Files.Where(pair => pair.Key.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
+                                && versionFilter(pair)).All(pair => provider.Files.TryGetValue(pair.Key, out var selected)
+                                    && selected is FPakEntry entry
+                                    && string.Equals(Path.GetFullPath(entry.PakFileReader.Path), path, StringComparison.OrdinalIgnoreCase)))
+                            completeVersions.Add(path);
                         var lookups = provider.GetScanLookups(path).Concat(own.Files.Keys)
                             .Concat(globalPaths).ToHashSet(StringComparer.Ordinal);
                         var contributors = provider.MountedVfs.Where(vfs => mixedProjects || vfs.Files.Keys.Any(lookups.Contains))
@@ -117,7 +133,8 @@ public static class PakScanCache {
                         if (usesIoStore) {
                             contributors.UnionWith(inventory.Keys.Where(name => Path.GetExtension(name).ToLowerInvariant() is ".utoc" or ".ucas"));
                         }
-                        dependencies[path] = new(inventory, lookups.ToArray(), contributors.ToArray(), provider.ProjectName, usesIoStore);
+                        dependencies[path] = new(inventory, lookups.ToArray(), contributors.ToArray(), provider.ProjectName, usesIoStore,
+                            options.VanillaPakNames.ToArray());
                     }
                 }
                 foreach (var path in pending) {
@@ -128,14 +145,20 @@ public static class PakScanCache {
                     result.Paks[name] = pak;
                 }
                 // Validate the entire snapshot before publishing any new scan entries.
-                if (!PakScanDependencies.Same(PakScanDependencies.Snapshot(directory), inventory)) throw new IOException("Pak inventory changed during scanning.");
+                if (!PakScanDependencies.Same(Snapshot(), inventory)) throw new IOException("Pak inventory changed during scanning.");
                 foreach (var path in paths) cache.Validate(path, hashes[Path.GetFullPath(path)]);
-                foreach (var path in pending) cache.WriteScan(path, hashes[path], identity,
-                    JsonConvert.SerializeObject(result.Paks[Path.GetFileName(path)], Settings),
-                    dependencies.GetValueOrDefault(path) ?? new(inventory, [], []));
+                foreach (var path in pending) {
+                    cache.InvalidateScanVersion(path, hashes[path]);
+                    cache.WriteScan(path, hashes[path], identity,
+                        JsonConvert.SerializeObject(result.Paks[Path.GetFileName(path)], Settings),
+                        dependencies.GetValueOrDefault(path) ?? new(inventory, [], [], ExcludedContainers: options.VanillaPakNames.ToArray()));
+                    // No .uasset packages means a successful, empty version result.
+                    if (completeVersions.Contains(path) && (!versions.TryGetValue(Path.GetFileName(path), out var values) || values != null))
+                        cache.StoreVersion(path, hashes[path], PakBlueprintVersion.Latest(values ?? []), fromScan: true);
+                }
             }
             cache.Prune();
-            if (!PakScanDependencies.Same(PakScanDependencies.Snapshot(directory), inventory)) throw new IOException("Pak inventory changed during scanning.");
+            if (!PakScanDependencies.Same(Snapshot(), inventory)) throw new IOException("Pak inventory changed during scanning.");
             foreach (var pak in result.Paks.Values) cache.Validate(pak.PakPath, pak.PakHash!);
             progress?.Report(100);
             return result;

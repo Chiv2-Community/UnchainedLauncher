@@ -41,7 +41,9 @@ internal static class UnmanagedPakRecovery {
         var unconfirmed = unmanaged.Where(file => file.Release != null || !kept.Contains(Path.GetFileName(file.Path), file.Hash)).ToList();
         var updates = new List<DependencyUpdate>();
         if (!alwaysKeepUnmanagedPaks) {
-            var scanCount = unconfirmed.Count(file => file.Release == null);
+            var uncached = unconfirmed.Where(file => file.Release == null
+                && !cache.TryGetVersion(file.Path, file.Hash, out _)).Select(file => file.Path).ToHashSet();
+            var scanCount = uncached.Count;
             var progress = new MemoryProgress("Scanning pak versions");
             var closeProgress = scanCount > 0 ? dialogue.DisplayProgress(progress) : null;
             try {
@@ -49,11 +51,14 @@ internal static class UnmanagedPakRecovery {
                 foreach (var file in unconfirmed) {
                     var version = file.Release?.Tag;
                     if (file.Release == null) {
-                        progress.Report(100.0 * completed / scanCount,
+                        var needsScan = uncached.Contains(file.Path);
+                        if (needsScan) progress.Report(100.0 * completed / scanCount,
                             $"Scanning pak {completed + 1} of {scanCount}: {Path.GetFileName(file.Path)}");
                         version = await cache.Version(file.Path, file.Hash);
-                        completed++;
-                        progress.Report(100.0 * completed / scanCount);
+                        if (needsScan) {
+                            completed++;
+                            progress.Report(100.0 * completed / scanCount);
+                        }
                     }
                     updates.Add(new DependencyUpdate(Path.GetFileName(file.Path), null, version ?? "Unknown",
                         file.Release?.ReleaseUrl ?? "", file.Release?.Info.Name ?? "Unrecognized pak"));

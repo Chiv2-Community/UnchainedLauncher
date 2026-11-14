@@ -21,7 +21,8 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
         Predicate<KeyValuePair<string, GameFile>>? pakContentFilter,
         string aesKey,
         VersionContainer? versions = null,
-        StringComparer? pathComparer = null)
+        StringComparer? pathComparer = null,
+        Predicate<string>? containerFilter = null)
         : DefaultFileProvider(new DirectoryInfo(directory), [], searchOption, versions, pathComparer), IFileProvider {
 
         private readonly AsyncLocal<string?> scanOwner = new();
@@ -64,6 +65,11 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
             return base.LoadPackageAsync(path);
         }
 
+        public new Task<IPackage> LoadPackageAsync(GameFile file) {
+            TrackLookup(file.Path);
+            return base.LoadPackageAsync(file);
+        }
+
         // Base methods are non-virtual. Package import resolution calls this interface.
         bool IFileProvider.TryLoadPackage(string path, out IPackage package) {
             TrackLookup(path);
@@ -97,7 +103,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
         }
 
         public void InitializeContainers(IEnumerable<string> paths) {
-            foreach (var path in paths) RegisterVfs(new FileInfo(path));
+            foreach (var path in paths.Where(path => containerFilter?.Invoke(path) != false)) RegisterVfs(new FileInfo(path));
             SubmitKey(new FGuid(), new FAesKey(aesKey));
         }
 
@@ -127,7 +133,10 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
                 SearchOption.TopDirectoryOnly,
                 kv => contentFilter(kv) && (extraPakFilter?.Invoke(kv) ?? true),
                 options.AesKey,
-                new VersionContainer(options.GameVersion)
+                new VersionContainer(options.GameVersion),
+                containerFilter: mode == ScanMode.Mods
+                    ? path => !options.VanillaPakNames.Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
+                    : null
             );
         }
 
@@ -151,7 +160,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning {
 
                 // Filter containers (PAK/UTOC)
                 if (uproject == null && ext is "PAK" or "UTOC") {
-                    RegisterVfs(file);
+                    if (containerFilter?.Invoke(file.FullName) != false) RegisterVfs(file);
                 }
             }
 

@@ -1,3 +1,4 @@
+using CUE4Parse.FileProvider;
 using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Objects.UObject;
@@ -26,7 +27,7 @@ public static class BlueprintVersionScanner {
         ModScanOrchestrator.InitializeCompression(provider);
         var packages = provider.FilteredFiles
             .Where(file => file.Key.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase))
-            .Select(file => provider.LoadPackage(file.Key) as Package
+            .Select(file => provider.LoadPackage(file.Value) as Package
                 ?? throw new IOException($"Unsupported mod version package: {file.Key}"));
         var versions = ReadVersions(packages);
         Logger.Info($"Finished scanning mod version in pak '{Path.GetFileName(pakPath)}' in {timer.ElapsedMilliseconds} ms.");
@@ -42,62 +43,107 @@ public static class BlueprintVersionScanner {
     private static bool IsMarkerClass(string name) =>
         Regex.IsMatch(name, @"^DA_ModMarker_V[0-9]+_C$", RegexOptions.CultureInvariant);
 
-    private static IEnumerable<string> ClassAncestry(Package package, FPackageIndex index) {
-        var visited = new HashSet<(string, int)>();
-        while (!index.IsNull && visited.Add((package.Name.Replace('\\', '/').ToUpperInvariant(), index.Index))) {
-            yield return IndexName(package, index);
-            if (index.IsExport) {
-                index = package.ExportMap[index.Index - 1].SuperIndex;
-                continue;
+    internal sealed class Reader {
+        private readonly Dictionary<(IFileProvider Provider, string Path), Package?> parents = new();
+        private readonly Dictionary<(Package Package, int Index, bool Marker), AncestryResult> ancestry = new();
+        private readonly HashSet<(IFileProvider Provider, string Path)> recorded = new();
+        private sealed record AncestryResult(bool Matches, (IFileProvider Provider, string Path)[] Dependencies);
+
+        internal Reader(IEnumerable<Package> packages) {
+            foreach (var package in packages)
+                if (package.Provider is { } provider) parents.TryAdd((provider, Key(provider, package.Name)), package);
+        }
+
+        private static string Key(IFileProvider provider, string path) =>
+            (provider.FixPath(path) ?? path).Replace('\\', '/');
+
+        private Package? LoadParent(IFileProvider provider, string path, HashSet<(IFileProvider Provider, string Path)> dependencies) {
+            dependencies.Add((provider, path));
+            var key = (provider, Key(provider, path));
+            if (parents.TryGetValue(key, out var cached)) {
+                // A reused package still contributes a lookup to the current pak's dependencies.
+                Record(provider, path);
+                return cached;
             }
-            var import = package.ImportMap[-index.Index - 1];
-            var outer = import;
-            var outers = new HashSet<int>();
-            while (outer.OuterIndex is { IsImport: true } parent && outers.Add(parent.Index)) {
-                outer = package.ImportMap[-parent.Index - 1];
+            var parent = provider.TryLoadPackage(path, out var loaded) ? loaded as Package : null;
+            recorded.Add((provider, path));
+            parents.Add(key, parent);
+            return parent;
+        }
+
+        private void Record(IFileProvider provider, string path) {
+            if (recorded.Add((provider, path))) provider.TryGetGameFile(path, out _);
+        }
+
+        private bool HasAncestry(Package package, FPackageIndex index, bool marker) {
+            if (index.IsNull) return false;
+            var key = (package, index.Index, marker);
+            if (ancestry.TryGetValue(key, out var cached)) {
+                foreach (var (provider, path) in cached.Dependencies) Record(provider, path);
+                return cached.Matches;
             }
-            // Resolve parent metadata without deserializing its class or requiring its SDK ancestors to be present.
-            if (outer.OuterIndex is not { IsNull: true }
-                || outer.ObjectName.Text.StartsWith("/Script/", StringComparison.Ordinal)
-                || package.Provider == null
-                || !package.Provider.TryLoadPackage(outer.ObjectName.Text, out var loaded)
-                || loaded is not Package parentPackage) yield break;
-            var exportIndex = parentPackage.GetExportIndex(import.ObjectName.Text);
-            if (exportIndex < 0) yield break;
-            package = parentPackage;
-            index = new FPackageIndex(package, exportIndex + 1);
+            var dependencies = new HashSet<(IFileProvider Provider, string Path)>();
+            var names = ClassAncestry(package, index, dependencies);
+            var matches = marker ? names.Any(IsMarkerClass) : names.Contains("ArgonSDKModBase_C", StringComparer.Ordinal);
+            ancestry.Add(key, new(matches, dependencies.ToArray()));
+            return matches;
+        }
+
+        private IEnumerable<string> ClassAncestry(Package package, FPackageIndex index,
+            HashSet<(IFileProvider Provider, string Path)> dependencies) {
+            var visited = new HashSet<(string, int)>();
+            while (!index.IsNull && visited.Add((package.Name.Replace('\\', '/').ToUpperInvariant(), index.Index))) {
+                yield return IndexName(package, index);
+                if (index.IsExport) {
+                    index = package.ExportMap[index.Index - 1].SuperIndex;
+                    continue;
+                }
+                var import = package.ImportMap[-index.Index - 1];
+                var outer = import;
+                var outers = new HashSet<int>();
+                while (outer.OuterIndex is { IsImport: true } parent && outers.Add(parent.Index)) {
+                    outer = package.ImportMap[-parent.Index - 1];
+                }
+                // Resolve parent metadata without deserializing its class or requiring its SDK ancestors to be present.
+                if (outer.OuterIndex is not { IsNull: true }
+                    || outer.ObjectName.Text.StartsWith("/Script/", StringComparison.Ordinal)
+                    || package.Provider == null
+                    || LoadParent(package.Provider, outer.ObjectName.Text, dependencies) is not { } parentPackage) yield break;
+                var exportIndex = parentPackage.GetExportIndex(import.ObjectName.Text);
+                if (exportIndex < 0) yield break;
+                package = parentPackage;
+                index = new FPackageIndex(package, exportIndex + 1);
+            }
+        }
+
+        internal IReadOnlyList<string> ReadVersions(IReadOnlyList<Package> packages) {
+            recorded.Clear();
+            List<string> ReadCandidates(bool marker) {
+                var versions = new List<string>();
+                foreach (var package in packages)
+                    for (var index = 0; index < package.ExportMap.Length; index++) {
+                        var export = package.ExportMap[index];
+                        var isDefault = export.ObjectName.Text.StartsWith("Default__", StringComparison.Ordinal);
+                        var matches = marker
+                            ? !isDefault && ((EObjectFlags)export.ObjectFlags & EObjectFlags.RF_ClassDefaultObject) == 0
+                                && (HasAncestry(package, export.SuperIndex, marker: true) || HasAncestry(package, export.ClassIndex, marker: true))
+                            : isDefault && HasAncestry(package, export.ClassIndex, marker: false);
+                        if (!matches) continue;
+                        Logger.Debug($"Reading ModVersion from {package.Name}, export {index}.");
+                        var value = package.ExportsLazy[index].Value;
+                        var properties = marker && value is UClass blueprint ? blueprint.ClassDefaultObject.Load() : value;
+                        var version = properties?.GetOrDefault<string>("ModVersion");
+                        if (!string.IsNullOrWhiteSpace(version)) versions.Add(version);
+                    }
+                return versions;
+            }
+            var markerVersions = ReadCandidates(true);
+            return markerVersions.Count > 0 ? markerVersions : ReadCandidates(false);
         }
     }
 
     internal static IReadOnlyList<string> ReadVersions(IEnumerable<Package> packages) {
-        var candidates = new List<(Package Package, int Index, bool Marker)>();
-        foreach (var package in packages) {
-            for (var index = 0; index < package.ExportMap.Length; index++) {
-                var export = package.ExportMap[index];
-                if (export.ObjectName.Text.StartsWith("Default__", StringComparison.Ordinal)) {
-                    if (ClassAncestry(package, export.ClassIndex).Contains("ArgonSDKModBase_C", StringComparer.Ordinal))
-                        candidates.Add((package, index, false));
-                }
-                else if (((EObjectFlags)export.ObjectFlags & EObjectFlags.RF_ClassDefaultObject) == 0
-                    && ClassAncestry(package, export.SuperIndex)
-                        .Concat(ClassAncestry(package, export.ClassIndex)).Any(IsMarkerClass)) {
-                    candidates.Add((package, index, true));
-                }
-            }
-        }
-
-        List<string> ReadCandidates(bool marker) {
-            var versions = new List<string>();
-            foreach (var candidate in candidates.Where(candidate => candidate.Marker == marker)) {
-                Logger.Debug($"Reading ModVersion from {candidate.Package.Name}, export {candidate.Index}.");
-                var value = candidate.Package.ExportsLazy[candidate.Index].Value;
-                var properties = candidate.Marker && value is UClass blueprint ? blueprint.ClassDefaultObject.Load() : value;
-                var version = properties?.GetOrDefault<string>("ModVersion");
-                if (!string.IsNullOrWhiteSpace(version)) versions.Add(version);
-            }
-            return versions;
-        }
-        var markerVersions = ReadCandidates(true);
-        return markerVersions.Count > 0 ? markerVersions : ReadCandidates(false);
+        var loaded = packages.ToArray();
+        return new Reader(loaded).ReadVersions(loaded);
     }
 }

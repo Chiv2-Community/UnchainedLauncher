@@ -252,6 +252,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private void OnModMetadataRefreshed(object? sender, EventArgs args) => ResolveLegacyServerSelections();
         private void OnModStateChanged(object? sender, EventArgs args) => ReconcileServerBlueprintSelections();
         public ObservableCollection<BlueprintDto> AvailableServerModBlueprints => _availableModsAndMaps.AvailableServerModBlueprints;
+        public ObservableCollection<ServerModActorVM> AvailableServerModActors => _availableModsAndMaps.AvailableServerModActors;
+        public LocalModScanVM LocalModScan => _availableModsAndMaps.LocalModScan;
 
         private ModScanTabVM _modScanTab;
         private readonly AvailableModsAndMapsService _availableModsAndMaps;

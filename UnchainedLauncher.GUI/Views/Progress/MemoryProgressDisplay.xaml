@@ -23,17 +23,13 @@
                     TextWrapping="Wrap"
                     Grid.Row="0"
                     FontWeight="SemiBold"
-                    Foreground="{StaticResource Brush.TextPrimary}" />
+                    Foreground="{DynamicResource Brush.TextPrimary}" />
                 <ProgressBar
                     Grid.Row="2"
                     Height="24"
                     Minimum="0.00"
                     Maximum="100.00"
-                    Value="{Binding ProgressPercentage, Mode=OneWay}"
-                    Background="{StaticResource Brush.InputBackground}"
-                    BorderBrush="{StaticResource Brush.Border}"
-                    Foreground="{StaticResource Brush.Primary}"
-                    BorderThickness="1" />
+                    Value="{Binding ProgressPercentage, Mode=OneWay}" />
             </Grid>
         </DataTemplate>
         <DataTemplate DataType="{x:Type utilities:AccumulatedMemoryProgress}">
@@ -48,20 +44,18 @@
 
                 <TextBlock
                     Text="{Binding TaskName, Mode=OneWay}"
+                    MaxWidth="560"
+                    TextWrapping="Wrap"
                     Grid.Row="0"
                     FontWeight="SemiBold"
                     FontSize="14"
-                    Foreground="{StaticResource Brush.TextPrimary}" />
+                    Foreground="{DynamicResource Brush.TextPrimary}" />
                 <ProgressBar
                     Grid.Row="2"
                     Height="24"
                     Minimum="0.00"
                     Maximum="100.00"
-                    Value="{Binding ProgressPercentage, Mode=OneWay}"
-                    Background="{StaticResource Brush.InputBackground}"
-                    BorderBrush="{StaticResource Brush.Border}"
-                    Foreground="{StaticResource Brush.Primary}"
-                    BorderThickness="1" />
+                    Value="{Binding ProgressPercentage, Mode=OneWay}" />
                 <Expander Grid.Row="4"
                           IsExpanded="True"
                           Header="Details"
@@ -72,7 +66,7 @@
                         BorderThickness="0"
                         Margin="0,8,0,0"
                         Background="Transparent"
-                        Foreground="{StaticResource Brush.TextPrimary}" />
+                         Foreground="{DynamicResource Brush.TextPrimary}" />
                 </Expander>
             </Grid>
         </DataTemplate>

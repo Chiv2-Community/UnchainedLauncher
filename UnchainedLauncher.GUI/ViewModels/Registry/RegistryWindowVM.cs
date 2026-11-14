@@ -126,7 +126,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Registry {
         public LocalModRegistryDetailsVM InlineVM { get; }
 
         public bool IsExpanded { get; set; }
-        public string SectionMessage => IsExpanded ? "▼ Hide Local Mods" : "▶ Manage Local Mods";
+        public string SectionMessage => IsExpanded ? "▼ Hide Unmanaged Mods" : "▶ Manage Unmanaged Mods";
 
 
         public LocalModRegistryVM(LocalModRegistry registry, IRegistryWindowService windowService, RequestDeletion? requestDeletion = null) : base(registry, requestDeletion) {

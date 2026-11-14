@@ -2,7 +2,8 @@ namespace UnchainedLauncher.Core.Services.Mods;
 
 // Lookup paths include misses and payloads; contributors include shadowed candidates.
 internal sealed record PakScanDependencies(Dictionary<string, PakScanDependencies.Stamp> Inventory,
-    string[] Paths, string[] Contributors, string? ProjectName = null, bool UsesIoStore = false) {
+    string[] Paths, string[] Contributors, string? ProjectName = null, bool UsesIoStore = false,
+    string[]? ExcludedContainers = null) {
     internal sealed record Stamp(long Length, long Ticks);
 
     internal static Dictionary<string, Stamp> Snapshot(string directory) => Directory.EnumerateFiles(directory)
@@ -16,6 +17,9 @@ internal sealed record PakScanDependencies(Dictionary<string, PakScanDependencie
         left.Count == right.Count && left.All(pair => right.TryGetValue(pair.Key, out var value) && value == pair.Value);
 
     internal bool Matches(Dictionary<string, Stamp> current, Func<string, string[]?> index) {
+        if (ExcludedContainers is { Length: > 0 }) current = current
+            .Where(pair => !ExcludedContainers.Contains(pair.Key, StringComparer.OrdinalIgnoreCase))
+            .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
         if (Inventory == null || Paths == null || Contributors == null
             || Inventory.Any(pair => pair.Key != Path.GetFileName(pair.Key) || pair.Value == null
                 || pair.Value.Length < 0 || pair.Value.Ticks <= 0)

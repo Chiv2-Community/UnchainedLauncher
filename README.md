@@ -33,7 +33,11 @@ Unchanged scans reuse recorded asset lookups, including missing imports and cros
 Removing an unrelated pak prunes only its entry; changed or added containers are checked by index before reusing dependent scans.
 Plugin/project mapping changes remain conservative; scans that load IoStore packages depend on the IoStore container set because imports use numeric IDs.
 Startup hydration never opens containers and defers results whose new dependencies cannot yet be checked.
-Scanner revision 4 refreshes older full scans once, without discarding reusable hashes or Blueprint versions.
+Full Chivalry 2 scans also extract launch version metadata from already loaded packages, including known-unknown versions.
+Launch reuses those results without a scan-progress popup. Filtered, shadowed, or failed version reads fall back to the version reader when needed.
+Mod scans never mount vanilla containers, including for reference resolution. Asset metadata and hashes come from the owning pak entry.
+Manifest inventories contain only files physically inside each pak. Cross-pak actor references do not add actors or marker associations to the referring pak.
+Scanner revision 7 refreshes older full scans once and rejects versions derived from those scans; reusable pak hashes and standalone version reads are retained.
 Metadata reuse cannot detect edits that preserve both file size and modification time.
 
 ## Community

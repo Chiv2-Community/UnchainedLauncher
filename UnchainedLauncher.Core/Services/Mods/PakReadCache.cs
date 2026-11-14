@@ -14,7 +14,7 @@ internal sealed class PakReadCache : IDisposable {
     private sealed record Entry([property: JsonRequired] long Length, [property: JsonRequired] long LastWriteTicks,
         [property: JsonRequired] string Hash, [property: JsonRequired] bool VersionRead, [property: JsonRequired] string? Version,
         int VersionScanRevision = 0, string? ScanIdentity = null, string? ScanJson = null,
-        JsonElement? ScanDependencies = null);
+        JsonElement? ScanDependencies = null, bool VersionFromScan = false);
     private static readonly object CacheFileLock = new();
     // Keep only the most recently used disk snapshot; clients own their mutable dictionaries.
     private sealed record Snapshot(string Path, (long Length, long Ticks) Metadata,
@@ -125,10 +125,10 @@ internal sealed class PakReadCache : IDisposable {
     }
 
     internal async Task<string?> Version(string path, string hash) {
-        Validate(path, hash);
-        var name = Path.GetFileName(path);
-        var entry = entries[name];
-        if (entry.VersionRead && entry.VersionScanRevision == VersionScanRevision) return entry.Version;
+        if (TryGetVersion(path, hash, out var cached)) {
+            Logger.Info($"Using cached Blueprint version for pak '{Path.GetFileName(path)}'.");
+            return cached;
+        }
         string? version;
         try {
             version = await readVersion(path);
@@ -138,11 +138,39 @@ internal sealed class PakReadCache : IDisposable {
             Logger.Warn($"Could not read Blueprint versions from {path}: {error.Message}");
             return null;
         }
+        StoreVersion(path, hash, version);
+        return version;
+    }
+
+    internal bool TryGetVersion(string path, string hash, out string? version) {
         Validate(path, hash);
-        entries[name] = entry with { VersionRead = true, Version = version, VersionScanRevision = VersionScanRevision };
+        var entry = entries[Path.GetFileName(path)];
+        version = entry.Version;
+        return entry.VersionRead && entry.VersionScanRevision == VersionScanRevision
+            && (!entry.VersionFromScan || entry.ScanIdentity?.StartsWith(PakScanCache.ScannerRevision + ":", StringComparison.Ordinal) == true
+                && ReadDependencies(path)?.Matches(PakScanDependencies.Snapshot(directory), _ => null) == true);
+    }
+
+    internal void StoreVersion(string path, string hash, string? version, bool fromScan = false) {
+        Validate(path, hash);
+        var name = Path.GetFileName(path);
+        entries[name] = entries[name] with {
+            VersionRead = true,
+            Version = version,
+            VersionScanRevision = VersionScanRevision,
+            VersionFromScan = fromScan
+        };
         versionsWritten.Add(name);
         dirty = true;
-        return version;
+    }
+
+    internal void InvalidateScanVersion(string path, string hash) {
+        Validate(path, hash);
+        var name = Path.GetFileName(path);
+        if (!entries[name].VersionFromScan) return;
+        entries[name] = entries[name] with { VersionRead = false, Version = null, VersionFromScan = false };
+        versionsWritten.Add(name);
+        dirty = true;
     }
 
     internal string? CachedHash(string path) => entries.TryGetValue(Path.GetFileName(path), out var entry)
@@ -216,12 +244,13 @@ internal sealed class PakReadCache : IDisposable {
             if (!entries.TryGetValue(name, out var local)) entries[name] = latest;
             else if (local.Hash.Equals(latest.Hash, StringComparison.OrdinalIgnoreCase)
                 && local.Length == latest.Length && local.LastWriteTicks == latest.LastWriteTicks) {
-                var version = versionsWritten.Contains(name) || !latest.VersionRead ? local : latest;
+                var version = versionsWritten.Contains(name) ? local : latest;
                 var scan = scansWritten.Contains(name) || latest.ScanJson == null ? local : latest;
                 entries[name] = local with {
                     VersionRead = version.VersionRead,
                     Version = version.Version,
                     VersionScanRevision = version.VersionScanRevision,
+                    VersionFromScan = version.VersionFromScan,
                     ScanIdentity = scan.ScanIdentity,
                     ScanJson = scan.ScanJson,
                     ScanDependencies = scan.ScanDependencies

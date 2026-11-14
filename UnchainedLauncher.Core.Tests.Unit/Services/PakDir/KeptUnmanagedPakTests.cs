@@ -156,7 +156,7 @@ public class KeptUnmanagedPakTests : IDisposable {
         Write("manual.pak", "original");
         Assert.True(await Recover(Dialogue(UserDialogueChoice.Yes)));
         File.WriteAllText(ChoicesPath, "{corrupt");
-        var cancel = Dialogue(UserDialogueChoice.Cancel);
+        var cancel = Dialogue(UserDialogueChoice.Cancel, scan: false);
         Assert.False(await Recover(cancel));
         cancel.VerifyAll();
         Assert.True(await Recover(Dialogue(UserDialogueChoice.Yes)));

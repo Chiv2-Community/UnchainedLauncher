@@ -61,11 +61,47 @@ public class PakScanCacheTests : IDisposable {
     }
 
     [Fact]
-    public async Task RepeatedScansAndStartupReuseFullRawResultsWithoutOpeningPaks() {
-        var first = await PakScanCache.ScanAsync(directory, Options, Read);
+    public async Task FullScanCachesUnknownVersionForAnEmptyPakWithoutLaunchScanning() {
+        // Minimal valid v3 pak: an empty index and its footer, no compression needed.
+        using (var stream = File.Create(Pak))
+        using (var writer = new BinaryWriter(stream)) {
+            writer.Write(new byte[512]);
+            var indexOffset = stream.Position;
+            var mount = Encoding.UTF8.GetBytes("../../../\0");
+            writer.Write(mount.Length);
+            writer.Write(mount);
+            writer.Write(0);
+            var indexSize = stream.Position - indexOffset;
+            writer.Write(0x5A6F12E1u);
+            writer.Write(3);
+            writer.Write(indexOffset);
+            writer.Write(indexSize);
+            writer.Write(new byte[20]);
+        }
+        var vanilla = Path.Combine(directory, Options.VanillaPakNames.First());
+        File.WriteAllText(vanilla, "Forbidden vanilla container: not even a valid pak");
+        using var lockedVanilla = File.Open(vanilla, FileMode.Open, FileAccess.Read, FileShare.None);
+        await PakScanCache.ScanAsync(directory, Options);
         using var locked = File.Open(Pak, FileMode.Open, FileAccess.Read, FileShare.None);
-        var second = await PakScanCache.ScanAsync(directory, Options, _ => throw new Exception("Rescan"));
-        var startup = await PakScanCache.ScanAsync(directory, Options, cachedOnly: true);
+        using var launch = new PakReadCache(directory, _ => throw new Exception("Version rescan"),
+            _ => throw new Exception("Rehash"));
+        var hash = await launch.Hash(Pak);
+        Assert.True(launch.TryGetVersion(Pak, hash, out var version));
+        Assert.Null(version);
+        Assert.Null(await launch.Version(Pak, hash));
+        Assert.Single((await PakScanCache.ScanAsync(directory, Options)).Paks);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RepeatedScansAndStartupReuseFullRawResultsWithoutOpeningPaks(bool relativeDirectory) {
+        var scanDirectory = relativeDirectory ? Path.GetRelativePath(Environment.CurrentDirectory, directory) : directory;
+        var first = await PakScanCache.ScanAsync(scanDirectory, Options, Read);
+        Assert.Equal(Pak, Assert.Single(first.Paks.Values).PakPath);
+        using var locked = File.Open(Pak, FileMode.Open, FileAccess.Read, FileShare.None);
+        var second = await PakScanCache.ScanAsync(scanDirectory, Options, _ => throw new Exception("Rescan"));
+        var startup = await PakScanCache.ScanAsync(scanDirectory, Options, cachedOnly: true);
         Assert.Equal(1, scans);
         Assert.True(JToken.DeepEquals(JToken.FromObject(first), JToken.FromObject(second)));
         Assert.True(JToken.DeepEquals(JToken.FromObject(first), JToken.FromObject(startup)));

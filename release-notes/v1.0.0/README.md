@@ -143,7 +143,7 @@ The Settings tab has been cleaned up and reorganized:
 
 ## Pak Scanning for Modders
 
-If you develop mods, you can now enable **pak scanning** from the Settings tab. This activates the **Local Mods** tab in the navigation bar, which scans your pak directory for any `.pak` files that aren't managed by the launcher.
+If you develop mods, you can now enable **pak scanning** from the Settings tab. This activates the **Unmanaged Mods** tab in the navigation bar, which scans your pak directory for any `.pak` files that aren't managed by the launcher.
 
 This makes it much easier to detect and use your own in-development paks on servers without manually tracking what's where.
 

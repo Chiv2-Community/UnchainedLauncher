@@ -64,6 +64,34 @@ public class PakScanIdentityTests : IDisposable {
         Assert.All(Enumerable.Range(0, 8), index => Assert.DoesNotContain("TBL/Content/Outside.uasset", provider.GetScanLookups($"owner{index}.pak")));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ModProviderNeverOpensVanillaContainers(bool explicitContainers) {
+        var vanilla = Path.Combine(_root, GameScanOptions.Chivalry2.VanillaPakNames.First().ToUpperInvariant());
+        File.WriteAllText(vanilla, "Not a pak; it must never be opened or parsed");
+        using var locked = File.Open(vanilla, FileMode.Open, FileAccess.Read, FileShare.None);
+        using var provider = FilteredFileProvider.CreateFromOptions(GameScanOptions.Chivalry2, ScanMode.Mods, _root);
+        if (explicitContainers) provider.InitializeContainers([vanilla]);
+        else {
+            // The constructor's identity fixture is not a real pak either.
+            File.Delete(_path);
+            provider.Initialize();
+        }
+        Assert.Empty(provider.MountedVfs);
+        Assert.Empty(provider.UnloadedVfs);
+        Assert.Empty(provider.Files);
+    }
+
+    [Fact]
+    public void SourceHashUsesExactEntryWithoutProviderWideLookup() {
+        var entry = ReadablePakEntry.Create();
+        var provider = new Mock<IFileProvider>(MockBehavior.Strict);
+        var source = new ScanContext(provider.Object, Mock.Of<IPackage>(), "Shared.uasset", entry);
+        Assert.Equal(Convert.ToHexString(SHA512.HashData(entry.Read())).ToLowerInvariant(), source.GetHash());
+        provider.VerifyNoOtherCalls();
+    }
+
     [Fact]
     public void PakIdentityRetainsFullPathAndHashInManifest() {
         var scan = new ModScanResult();
@@ -76,28 +104,38 @@ public class PakScanIdentityTests : IDisposable {
         Assert.Equal(Convert.ToHexString(SHA512.HashData(File.ReadAllBytes(_path))), manifest.PakHash, ignoreCase: true);
     }
 
-    [Fact]
-    public async Task MissingDeclaredReferencesRemainFailures() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task NonLocalReferencesNeverPopulateTheSourceManifest(bool dependencyPresent) {
         const string assetPath = "TBL/Content/Mods/Referenced.uasset";
-        var provider = new Mock<IFileProvider>();
+        var provider = new Mock<IFileProvider>(MockBehavior.Strict);
+        provider.Setup(p => p.FixPath(It.IsAny<string>())).Returns((string path) => path);
+        GameFile foreign = ReadablePakEntry.Create(assetPath);
+        provider.Setup(p => p.TryGetGameFile(assetPath, out foreign)).Returns(dependencyPresent);
         var scan = new ModScanResult();
         var pak = scan.GetOrAddPak(_reader);
         pak.GenericMarkers["DA_ModMarker_C"] = new() { ["Marker.uasset"] = new GenericMarkerEntry() };
         var task = new SecondPassOrchestrator(provider.Object, GameScanOptions.Chivalry2).ResolveReferencesAsync(
             new ConcurrentBag<PendingBlueprintReference>([new() {
                 TargetBlueprintPath = assetPath, SourcePakFile = _reader.Name,
-                SourceMarkerPath = "Marker.uasset", SourceMarkerClassName = "DA_ModMarker_C"
+                SourceMarkerPath = "Marker.uasset", SourceMarkerClassName = "DA_ModMarker_C", SourceFiles = new Dictionary<string, GameFile>()
             }]), scan, failOnErrors: true);
-        await Assert.ThrowsAsync<IOException>(() => task);
+        await task;
         Assert.Empty(pak.GenericMarkers["DA_ModMarker_C"]["Marker.uasset"].Children);
+        var inventory = Assert.Single(ModManifestConverter.ProcessModScan(scan).Paks).Inventory;
+        Assert.Empty(inventory.Blueprints);
+        Assert.Empty(Assert.Single(inventory.Markers).AssociatedBlueprints);
+        provider.Verify(p => p.TryGetGameFile(It.IsAny<string>(), out It.Ref<GameFile>.IsAny), Times.Never);
+        provider.Verify(p => p.LoadPackage(It.IsAny<GameFile>()), Times.Never);
     }
 
     [Fact]
     public async Task ExistingUnreadableReferencesRemainFailures() {
-        var entry = (FPakEntry)RuntimeHelpers.GetUninitializedObject(typeof(FPakEntry));
+        var entry = ReadablePakEntry.Create();
         var provider = new Mock<IFileProvider>();
+        provider.Setup(p => p.FixPath(It.IsAny<string>())).Returns((string path) => path);
         GameFile gameFile = entry;
-        provider.Setup(p => p.TryGetGameFile("/Game/Referenced.uasset", out gameFile)).Returns(true);
         provider.Setup(p => p.LoadPackage(entry)).Throws(new InvalidDataException("broken target"));
         var scan = new ModScanResult();
         var pak = scan.GetOrAddPak(_reader);
@@ -105,9 +143,39 @@ public class PakScanIdentityTests : IDisposable {
         await Assert.ThrowsAsync<IOException>(() => new SecondPassOrchestrator(provider.Object, GameScanOptions.Chivalry2)
             .ResolveReferencesAsync(new ConcurrentBag<PendingBlueprintReference>([new() {
                 TargetBlueprintPath = "/Game/Referenced.Referenced_C", SourcePakFile = _reader.Name,
-                SourceMarkerPath = "Marker.uasset", SourceMarkerClassName = "DA_ModMarker_C"
+                SourceMarkerPath = "Marker.uasset", SourceMarkerClassName = "DA_ModMarker_C",
+                SourceFiles = new Dictionary<string, GameFile> { ["/Game/Referenced.uasset"] = gameFile }
             }]), scan, failOnErrors: true));
         provider.Verify(p => p.LoadPackage(entry), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(".uasset")]
+    [InlineData(".umap")]
+    public async Task LocalReferencesUseTheirPhysicalEntryEvenWhenAnotherPakShadowsThePath(string extension) {
+        var path = "/Game/Referenced" + extension;
+        var local = ReadablePakEntry.Create(path);
+        var foreign = ReadablePakEntry.Create(path);
+        var provider = new Mock<IFileProvider>(MockBehavior.Strict);
+        provider.Setup(p => p.FixPath(It.IsAny<string>())).Returns((string value) => value);
+        GameFile shadow = foreign;
+        provider.Setup(p => p.TryGetGameFile(path, out shadow)).Returns(true);
+        provider.Setup(p => p.LoadPackage(local)).Returns(CreatePackage("Actor", new UObject()));
+        var scan = new ModScanResult();
+        var pak = scan.GetOrAddPak(_reader);
+        pak.GenericMarkers["DA_ModMarker_C"] = new() { ["Marker.uasset"] = new GenericMarkerEntry { AssetPath = "Marker.uasset" } };
+        await new SecondPassOrchestrator(provider.Object, GameScanOptions.Chivalry2).ResolveReferencesAsync(
+            new ConcurrentBag<PendingBlueprintReference>([new() {
+                TargetBlueprintPath = "/Game/Referenced.Referenced_C", SourcePakFile = _reader.Name,
+                SourceMarkerPath = "Marker.uasset", SourceMarkerClassName = "DA_ModMarker_C",
+                SourceFiles = new Dictionary<string, GameFile> { [path] = local }
+            }]), scan, failOnErrors: true);
+        var inventory = Assert.Single(ModManifestConverter.ProcessModScan(scan).Paks).Inventory;
+        Assert.Equal(path, Assert.Single(inventory.Blueprints).Path);
+        Assert.Equal(path, Assert.Single(Assert.Single(inventory.Markers).AssociatedBlueprints));
+        Assert.Equal(Convert.ToHexString(SHA512.HashData(local.Read())).ToLowerInvariant(), Assert.Single(inventory.Blueprints).Hash);
+        provider.Verify(p => p.LoadPackage(local), Times.Once);
+        provider.Verify(p => p.TryGetGameFile(It.IsAny<string>(), out It.Ref<GameFile>.IsAny), Times.Never);
     }
 
     [Theory]
@@ -120,7 +188,7 @@ public class PakScanIdentityTests : IDisposable {
         await Assert.ThrowsAsync<IOException>(() => new SecondPassOrchestrator(provider.Object, GameScanOptions.Chivalry2)
             .ResolveReferencesAsync(new ConcurrentBag<PendingBlueprintReference>([new() {
                 TargetBlueprintPath = "/Game/Referenced.Referenced_C", SourcePakFile = _reader.Name,
-                SourceMarkerPath = "Marker.uasset", SourceMarkerClassName = "DA_ModMarker_C"
+                SourceMarkerPath = "Marker.uasset", SourceMarkerClassName = "DA_ModMarker_C", SourceFiles = new Dictionary<string, GameFile>()
             }]), scan, failOnErrors: true));
     }
 
@@ -131,7 +199,7 @@ public class PakScanIdentityTests : IDisposable {
         const string markerPath = "TBL/Content/Mods/MapOnly/ModMarker.uasset";
         const string mapPath = "TBL/Content/Mods/MapOnly/Arena.umap";
         var provider = new Mock<IFileProvider>();
-        var entry = (FPakEntry)RuntimeHelpers.GetUninitializedObject(typeof(FPakEntry));
+        var entry = ReadablePakEntry.Create();
         SetField(entry, "<Vfs>k__BackingField", _reader);
         var markerExport = new UObject();
         if (emptyMap) {

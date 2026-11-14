@@ -15,6 +15,17 @@ using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
     public class AvailableCatalogRegressionTests {
+        [Fact]
+        public void ManagedActorRowsUseRegistryTitleAsTheirSource() {
+            var release = Release("Managed title", Assets("Actor"));
+            var manager = Manager(release);
+            manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
+            using var catalog = new AvailableModsAndMapsService(manager, new ModScanTabVM());
+            var row = Assert.Single(catalog.AvailableServerModActors);
+            Assert.Equal("Managed title", row.Source);
+            Assert.Same(Assert.Single(catalog.AvailableServerModBlueprints), row.Blueprint);
+        }
+
         private static AssetCollections Assets(string name) => new([], [new($"{name}.uasset", "hash", null, null,
             name, "1", "", "", "", true, false, true, false, false, true, false)],
             [new($"TBL/Content/Maps/{name}.umap", "hash", null, null, null, name, null, null, null, "FFA", null)], [], []);

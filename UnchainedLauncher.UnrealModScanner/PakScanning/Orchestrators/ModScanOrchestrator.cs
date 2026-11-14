@@ -4,6 +4,7 @@ using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Pak.Objects;
 using CUE4Parse.UE4.Readers;
 using log4net;
+using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -34,37 +35,31 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
     }
 
     public async Task<ModScanResult> RunScanAsync(FilteredFileProvider provider, ScanOptions options, IProgress<double> progress = null,
-        Func<string, string>? hashPak = null, bool failOnErrors = false) {
+        Func<string, string>? hashPak = null, bool failOnErrors = false,
+        Action<string, IReadOnlyList<string>?>? onVersionsScanned = null) {
         var discoveryProcessor = modProcessors.OfType<ReferenceDiscoveryProcessor>().FirstOrDefault();
-        int processed = 0;
-
         return await Task.Run(async () => {
             InitializeProvider(provider);
-            //var scanResult = new ModScanResult();
             var mainResult = new ModScanResult(hashPak);
+            int processed = 0;
             int failures = 0;
-            //var scanResult = new PakScanResult();
 
-            // 1. Apply Path Filtering
             var files = provider.FilteredFiles.ToList();
+            var versionPackages = new ConcurrentDictionary<string, ConcurrentBag<IPackage>>(StringComparer.OrdinalIgnoreCase);
 
-
-            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = -1 };
             await Parallel.ForEachAsync(
                 files,
-                parallelOptions,
-                async (file, ct) => { // 'ct' ist das CancellationToken
-
+                new ParallelOptions { MaxDegreeOfParallelism = -1 },
+                async (file, _) => {
                     if (file.Value is not FPakEntry pakEntry)
                         return;
                     using var dependencyScope = provider.TrackScan(pakEntry.PakFileReader.Name);
-                    IPackage? pkg = null;
-                    bool packageLoaded;
                     try {
-                        pkg = await provider.LoadPackageAsync(file.Key);
-                        // Log.Error($"Failed to load package: {e.Message}");
-                        // throw;
+                        var pkg = await provider.LoadPackageAsync(file.Value);
                         if (pkg == null) throw new InvalidDataException("Package loader returned no package.");
+                        if (onVersionsScanned != null && file.Key.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
+                            && provider.Files.TryGetValue(file.Key, out var selected) && ReferenceEquals(selected, file.Value))
+                            versionPackages.GetOrAdd(pakEntry.PakFileReader.Name, _ => new()).Add(pkg);
 
                         var context = new ScanContext(provider, pkg, file.Key, pakEntry);
                         var currentPakResult = mainResult.GetOrAddPak(pakEntry.PakFileReader);
@@ -97,25 +92,30 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                 });
 
             if (discoveryProcessor?.DiscoveredReferences.Any() == true) {
-                var secondPass = new SecondPassOrchestrator(provider, options); // options statt _options
+                var secondPass = new SecondPassOrchestrator(provider, options);
                 await secondPass.ResolveReferencesAsync(discoveryProcessor.DiscoveredReferences, mainResult, failOnErrors);
             }
-
-            //if (discoveryProcessor.DiscoveredReferences.Any()) {
-            //    var secondPass = new SecondPassOrchestrator(provider, _options);
-
-            //    // We aggregate results into the existing PakScanResult objects
-            //    // mapped by the Blueprint's owning Pak/Path
-            //    await secondPass.ResolveReferencesAsync(
-            //        discoveryProcessor.DiscoveredReferences,
-            //        scanResult
-            //    );
-            //}
 
             // Replacing bags while parallel workers add/remove assets loses updates.
             // Resolve overlaps only after both passes have finished.
             RemoveSpecializedAssets(mainResult);
             if (failOnErrors && failures != 0) throw new IOException("Pak scan failed; incomplete results were not cached.");
+            if (onVersionsScanned != null && failures == 0) {
+                var versionReader = new BlueprintVersionScanner.Reader(versionPackages.Values.SelectMany(packages => packages).OfType<Package>());
+                foreach (var (name, packages) in versionPackages) {
+                    using var dependencyScope = provider.TrackScan(name);
+                    IReadOnlyList<string>? versions;
+                    try {
+                        versions = versionReader.ReadVersions(packages.Select(package => package as Package
+                            ?? throw new IOException($"Unsupported mod version package: {package.Name}")).ToArray());
+                    }
+                    catch (Exception error) {
+                        Logger.Warn($"Could not extract Blueprint versions during full scan of pak '{name}'.", error);
+                        versions = null;
+                    }
+                    onVersionsScanned(name, versions);
+                }
+            }
             return mainResult;
         });
     }
@@ -131,82 +131,6 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
         }
     }
 
-    //public async Task<ModScanResult> RunScanAsync(string directory, ScanMode mode, IProgress<double> progress = null) {
-    //    return await Task.Run(() => {
-    //        // Use 'using' or manual dispose if FilteredFileProvider supports it
-    //        var provider = CreateProvider(directory, mode);
-    //        var scanResult = new ModScanResult();
-
-    //        var files = provider.Files
-    //            .Where(f => f.Key.EndsWith(".uasset") || f.Key.EndsWith(".umap"))
-    //            .ToList();
-
-    //        if (files.Count == 0) {
-    //            progress?.Report(100);
-    //            return scanResult;
-    //        }
-
-    //        int processed = 0;
-    //        var partitioner = Partitioner.Create(files, EnumerablePartitionerOptions.NoBuffering);
-    //        Parallel.ForEach(partitioner, new ParallelOptions { MaxDegreeOfParallelism = -1 }, file => {
-    //            //Parallel.ForEach(files, new ParallelOptions { MaxDegreeOfParallelism = -1 }, file => {
-    //            try {
-    //                // Try to peek and skip if not relevant
-    //                //if (!provider.TrySaveAsset(file.Key, out var data)) return;
-
-    //                //string rawContent = System.Text.Encoding.ASCII.GetString(data, 0, Math.Min(data.Length, 5000));
-    //                //bool isInteresting = rawContent.Contains("Marker") || rawContent.Contains("Settings");
-
-    //                //if (!isInteresting && mode == ScanMode.Mods) return; // Skip the heavy LoadPackage
-
-    //                // Normal scan
-    //                var pkg = provider.LoadPackage(file.Key);
-    //                if (pkg == null || file.Value is not FPakEntry pakEntry) return;
-
-    //                var context = new ScanContext(provider, pkg, file.Key, pakEntry);
-    //                var pakName = pakEntry.PakFileReader.Name;
-
-    //                // ConcurrentDictionary handles the thread-safety here
-    //                var result = scanResult.Paks.GetOrAdd(pakName, name => new PakScanResult {
-    //                    PakPath = name,
-    //                    PakHash = HashUtility.CalculatePakHash(pakEntry.PakFileReader.Path)
-    //                });
-
-    //                if (mode == ScanMode.GameInternal) {
-    //                    _internalProcessor?.Process(context, result);
-    //                }
-    //                else {
-    //                    foreach (var processor in _modProcessors) {
-    //                        processor.Process(context, result);
-    //                    }
-    //                }
-    //            }
-    //            catch (Exception ex) {
-    //                // Log the specific file that failed
-    //                System.Diagnostics.Debug.WriteLine($"Error parsing {file.Key}: {ex.Message}");
-    //            }
-    //            finally {
-    //                var count = Interlocked.Increment(ref processed);
-    //                if (count % 50 == 0 || count == files.Count) {
-    //                    progress?.Report((double)count / files.Count * 100);
-    //                }
-    //            }
-    //        });
-
-    //        if (discoveryProcessor.DiscoveredReferences.Any()) {
-    //            var secondPass = new SecondPassOrchestrator(provider, _options);
-
-    //            // We aggregate results into the existing PakScanResult objects
-    //            // mapped by the Blueprint's owning Pak/Path
-    //            await secondPass.ResolveReferencesAsync(
-    //                discoveryProcessor.DiscoveredReferences,
-    //                scanResult
-    //            );
-    //        }
-
-    //        return scanResult;
-    //    });
-    //}
     public async Task<List<GameInternalAssetInfo>> QuickSearchMainPak(FilteredFileProvider provider) {
         return await Task.Run(() => {
             // Mode needs to be GameInternal to target the main pak logic
@@ -218,13 +142,10 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
             if (provider.TrySaveAsset("TBL/AssetRegistry.bin", out var data)) {
                 var archive = new FByteArchive("AssetRegistry.bin", data);
 
-                // This calls the constructor you provided
                 var registryState = new FAssetRegistryState(archive);
 
-                // Using the specific buffer names from your source
                 foreach (var asset in registryState.PreallocatedAssetDataBuffers) {
                     results.Add(new GameInternalAssetInfo {
-                        // asset.ObjectPath is an FName or FSoftObjectPath in CUE4Parse
                         AssetPath = asset.ObjectPath,
                         ClassName = asset.AssetClass.Text,
                         FullPackageName = asset.PackageName.Text,

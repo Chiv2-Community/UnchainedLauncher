@@ -113,6 +113,47 @@ namespace UnchainedLauncher.GUI.Tests {
         });
 
         [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void DiscoveryFailurePreservesOtherStoreAndUiGuards(bool steamFails) => UiThread.Run(async () => {
+            var owner = Environment.CurrentManagedThreadId;
+            var finder = new Chivalry2InstallationFinder {
+                Steam = Target("steam"),
+                Epic = Target("epic"),
+                ThrowOnScan = steamFails,
+                ThrowOnEpicScan = !steamFails
+            };
+            var page = new InstallationSelectionPageViewModel(finder);
+            page.Installations.CollectionChanged += (_, _) => {
+                Assert.Equal(owner, Environment.CurrentManagedThreadId);
+                Assert.True(page.IsScanning);
+                Assert.False(page.CanContinue);
+            };
+            var window = new InstallerWindowViewModel(new() { page, new TestPage() }, page.Installations);
+            while (page.IsScanning) await Task.Yield();
+
+            Assert.Equal(1, finder.Scans);
+            Assert.Equal(1, finder.EpicScans);
+            Assert.NotEqual(owner, finder.ScanThread);
+            Assert.NotEqual(owner, finder.EpicScanThread);
+            Assert.Equal("Error scanning for installations: " + (steamFails ? "Discovery failed" : "Corrupt Epic metadata"),
+                Assert.Single(MessageBox.Messages));
+            var target = Assert.Single(page.Installations);
+            Assert.Equal(steamFails ? finder.Epic : finder.Steam, target.Path);
+            Assert.Equal(steamFails ? InstallationType.EpicGamesStore : InstallationType.Steam, target.InstallationType);
+            Assert.False(page.IsScanning);
+            Assert.False(page.CanContinue);
+            Assert.False(window.CanContinue);
+            await window.NextButtonCommand.ExecuteAsync(null);
+            Assert.Equal(0, window.CurrentPageIndex);
+            target.IsSelected = true;
+            Assert.True(page.CanContinue);
+            Assert.True(window.CanContinue);
+            await window.NextButtonCommand.ExecuteAsync(null);
+            Assert.Equal(1, window.CurrentPageIndex);
+        });
+
+        [Theory]
         [InlineData(false, false, 0)]
         [InlineData(true, false, 1)]
         [InlineData(true, true, 2)]

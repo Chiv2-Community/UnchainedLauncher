@@ -60,9 +60,13 @@ namespace UnchainedLauncher.Core.Services.Installer {
 
     public class Chivalry2InstallationFinder : IChivalry2InstallationFinder {
         public DirectoryInfo? Steam { get; set; }
+        public DirectoryInfo? Epic { get; set; }
         public int Scans { get; private set; }
         public int ScanThread { get; private set; }
+        public int EpicScans { get; private set; }
+        public int EpicScanThread { get; private set; }
         public bool ThrowOnScan { get; set; }
+        public bool ThrowOnEpicScan { get; set; }
         public bool IsValidInstallation(DirectoryInfo path) => true;
         public bool IsSteamDir(DirectoryInfo path) => true;
         public bool IsEGSDir(DirectoryInfo path) => false;
@@ -72,7 +76,12 @@ namespace UnchainedLauncher.Core.Services.Installer {
             if (ThrowOnScan) throw new IOException("Discovery failed");
             return Steam;
         }
-        public DirectoryInfo? FindEGSDir() => null;
+        public DirectoryInfo? FindEGSDir() {
+            EpicScans++;
+            EpicScanThread = Environment.CurrentManagedThreadId;
+            if (ThrowOnEpicScan) throw new System.Text.Json.JsonException("Corrupt Epic metadata");
+            return Epic;
+        }
     }
 
     public interface IUnchainedLauncherInstaller {

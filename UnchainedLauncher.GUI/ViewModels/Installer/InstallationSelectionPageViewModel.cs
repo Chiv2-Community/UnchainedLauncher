@@ -61,8 +61,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             IsScanning = true;
             UpdateCanContinue();
             try {
-                var (steamDir, egsDir) = await Task.Run(() =>
-                    (InstallationFinder.FindSteamDir(), InstallationFinder.FindEGSDir()));
+                var steamDir = await DiscoverInstallation(InstallationFinder.FindSteamDir);
+                var egsDir = await DiscoverInstallation(InstallationFinder.FindEGSDir);
 
                 foreach (var target in Installations)
                     target.PropertyChanged -= UpdateCanContinue;
@@ -81,6 +81,17 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             finally {
                 IsScanning = false;
                 UpdateCanContinue();
+            }
+        }
+
+        private static async Task<DirectoryInfo?> DiscoverInstallation(Func<DirectoryInfo?> findDirectory) {
+            try {
+                return await Task.Run(findDirectory);
+            }
+            catch (Exception ex) {
+                Logger.Error("Error scanning for installations", ex);
+                MessageBox.Show("Error scanning for installations: " + ex.Message);
+                return null;
             }
         }
 

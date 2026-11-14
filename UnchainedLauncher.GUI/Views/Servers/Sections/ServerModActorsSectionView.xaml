@@ -12,9 +12,34 @@
              mc:Ignorable="d">
     <UserControl.Resources>
         <conv:ReleaseEnabledConverter x:Key="ReleaseEnabledConverter" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <DataTemplate x:Key="LocalModActorsHeader">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Server Mod Actors" VerticalAlignment="Center" />
+                <Button x:Name="ScanLocalModsButton" Grid.Column="1" Content="Scan local mods"
+                        Margin="12,0,0,0" Padding="8,3" FontSize="12"
+                        FontWeight="Normal" VerticalAlignment="Center"
+                        Visibility="{Binding LocalModScan.HasUnmanagedPaks, Converter={StaticResource BoolToVisibility}}"
+                        IsEnabled="{Binding LocalModScan.CanScan}" Click="ScanLocalMods_OnClick" />
+                <ProgressBar Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center"
+                             Height="{Binding ActualHeight, ElementName=ScanLocalModsButton}"
+                             Minimum="0" Maximum="100" Value="{Binding LocalModScan.Scanner.ScanProgress}"
+                             Visibility="{Binding LocalModScan.Scanner.IsScanning, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Grid.Column="3" Margin="12,0,0,0" VerticalAlignment="Center"
+                           FontWeight="Normal" FontSize="12" Foreground="{DynamicResource Brush.TextSecondary}"
+                           Text="{Binding LocalModScan.LocalModActorCount, StringFormat={}{0} Local Mod Actors Detected}" />
+            </Grid>
+        </DataTemplate>
     </UserControl.Resources>
     <controls:CollapsibleCard
-        Header="Server Mod Actors"
+        Header="{Binding}"
+        HeaderTemplate="{StaticResource LocalModActorsHeader}"
         IsExpanded="True">
         <ListBox ItemsSource="{Binding AvailableServerModBlueprints}" 
                  BorderThickness="0"

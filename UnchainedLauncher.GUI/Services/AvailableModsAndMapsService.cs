@@ -14,6 +14,7 @@ using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -27,6 +28,7 @@ public class AvailableModsAndMapsService {
 
     public ObservableCollection<MapDto> AvailableMaps { get; }
     public ObservableCollection<BlueprintDto> AvailableServerModBlueprints { get; }
+    public LocalModScanVM LocalModScan { get; }
     public event EventHandler? ModStateChanged;
 
     private PakDirManifest? _cachedScanManifest = null;
@@ -44,6 +46,7 @@ public class AvailableModsAndMapsService {
         _modManager = modManager;
         _modScanTab = modScanTab;
         _settings = settings;
+        LocalModScan = new LocalModScanVM(modManager, modScanTab);
         _defaultMaps = GetDefaultMaps().ToList();
         AvailableMaps = new ObservableCollection<MapDto>();
         AvailableServerModBlueprints = new ObservableCollection<BlueprintDto>();
@@ -68,9 +71,13 @@ public class AvailableModsAndMapsService {
     }
 
     // UpdateModsList resumes on its caller's UI context, just like enable/disable and scan updates.
-    private void OnMetadataRefreshed(object? sender, EventArgs args) => RequestRefresh();
+    private void OnMetadataRefreshed(object? sender, EventArgs args) {
+        _ = LocalModScan.RefreshAsync();
+        _ = RequestRefresh();
+    }
 
     private async void OnModStateChanged() {
+        _ = LocalModScan.RefreshAsync();
         await RequestRefresh();
         await WaitForCatalogAsync();
         ModStateChanged?.Invoke(this, EventArgs.Empty);

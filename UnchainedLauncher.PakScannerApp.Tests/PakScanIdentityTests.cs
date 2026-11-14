@@ -7,8 +7,8 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
-using UnchainedLauncher.UnrealModScanner.Config.Games;
 using UnchainedLauncher.UnrealModScanner.Assets;
+using UnchainedLauncher.UnrealModScanner.Config.Games;
 using UnchainedLauncher.UnrealModScanner.Models.Dto;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
@@ -104,8 +104,11 @@ public class PakScanIdentityTests : IDisposable {
         var pak = scan.GetOrAddPak(_reader);
         pak.GenericMarkers["DA_ModMarker_C"] = new() { ["Marker.uasset"] = new GenericMarkerEntry() };
         var references = new[] { true, false }.Select(inferred => new PendingBlueprintReference {
-            TargetBlueprintPath = "/Game/Referenced.Referenced_C", SourcePakFile = _reader.Name,
-            SourceMarkerPath = "Marker.uasset", SourceMarkerClassName = "DA_ModMarker_C", IsInferred = inferred
+            TargetBlueprintPath = "/Game/Referenced.Referenced_C",
+            SourcePakFile = _reader.Name,
+            SourceMarkerPath = "Marker.uasset",
+            SourceMarkerClassName = "DA_ModMarker_C",
+            IsInferred = inferred
         });
         await Assert.ThrowsAsync<IOException>(() => new SecondPassOrchestrator(provider.Object, GameScanOptions.Chivalry2)
             .ResolveReferencesAsync(new ConcurrentBag<PendingBlueprintReference>(references), scan, failOnErrors: true));

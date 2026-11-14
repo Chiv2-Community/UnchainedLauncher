@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using System.IO;
 using log4net;
+using System.IO;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.Config.Games;

@@ -3,7 +3,6 @@ using CUE4Parse.UE4.Assets.Objects;
 using CUE4Parse.UE4.Objects.UObject;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Serilog;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using UnchainedLauncher.UnrealModScanner.Assets;

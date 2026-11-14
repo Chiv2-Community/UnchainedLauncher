@@ -27,8 +27,7 @@ public class SecondPassOrchestrator {
 
     public async Task ResolveReferencesAsync(
     ConcurrentBag<PendingBlueprintReference> pendingRefs,
-    ModScanResult mainResult, bool failOnErrors = false)
-{
+    ModScanResult mainResult, bool failOnErrors = false) {
         await Task.Run(() => {
             int failures = 0;
             // Group by path to avoid reloading the same package multiple times

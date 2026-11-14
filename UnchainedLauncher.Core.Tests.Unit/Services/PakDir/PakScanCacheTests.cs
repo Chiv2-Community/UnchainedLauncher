@@ -46,8 +46,11 @@ public class PakScanCacheTests : IDisposable {
                  "arbitrary_assets":[{"asset_path":"other.uasset","properties":{"date":"2026-11-13T00:00:00Z"}}],
                  "markers":[{"asset_path":"legacy.uasset","blueprints":[{"asset_path":"legacy-child.uasset",
                    "mod_name":null,"mod_version":null,"mod_author":null,"is_clientside":true}]}]}
-                """, new JsonSerializerSettings { ObjectCreationHandling = ObjectCreationHandling.Replace,
-                    ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor, DateParseHandling = DateParseHandling.None })!;
+                """, new JsonSerializerSettings {
+                ObjectCreationHandling = ObjectCreationHandling.Replace,
+                ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor,
+                DateParseHandling = DateParseHandling.None
+            })!;
             pak.PakPath = path;
             pak.PakHash = hash;
             result.Paks[Path.GetFileName(path)] = pak;

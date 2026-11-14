@@ -192,8 +192,11 @@ internal sealed class PakReadCache : IDisposable {
                 var version = versionsWritten.Contains(name) || !latest.VersionRead ? local : latest;
                 var scan = scansWritten.Contains(name) || latest.ScanJson == null ? local : latest;
                 entries[name] = local with {
-                    VersionRead = version.VersionRead, Version = version.Version, VersionScanRevision = version.VersionScanRevision,
-                    ScanIdentity = scan.ScanIdentity, ScanJson = scan.ScanJson
+                    VersionRead = version.VersionRead,
+                    Version = version.Version,
+                    VersionScanRevision = version.VersionScanRevision,
+                    ScanIdentity = scan.ScanIdentity,
+                    ScanJson = scan.ScanJson
                 };
             }
         }

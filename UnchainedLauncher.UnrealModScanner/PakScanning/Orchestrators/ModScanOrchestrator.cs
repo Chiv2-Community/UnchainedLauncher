@@ -63,7 +63,7 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                         pkg = await provider.LoadPackageAsync(file.Key);
                         // Log.Error($"Failed to load package: {e.Message}");
                         // throw;
-                        if (pkg == null) { Interlocked.Increment(ref failures); return; }
+                        if (pkg == null) throw new InvalidDataException("Package loader returned no package.");
 
                         var context = new ScanContext(provider, pkg, file.Key, pakEntry);
                         var currentPakResult = mainResult.GetOrAddPak(pakEntry.PakFileReader);
@@ -74,14 +74,18 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
                             }
                             catch (Exception ex) {
                                 Interlocked.Increment(ref failures);
-                                Logger.Error($"Processor Error: {ex.Message}", ex);
+                                Logger.Error($"Processor '{processor.GetType().Name}' failed: pak '{pakEntry.PakFileReader.Name}', asset '{file.Key}'.", ex);
                             }
                         }
-                        if (context.ProcessingErrors.Count > 0) Interlocked.Increment(ref failures);
+                        if (context.ProcessingErrors.Count > 0) {
+                            Interlocked.Increment(ref failures);
+                            foreach (var error in context.ProcessingErrors)
+                                Logger.Error($"Processor '{error.ProcessorName}' failed: pak '{pakEntry.PakFileReader.Name}', asset '{error.PackagePath}': {error.ExceptionType}: {error.Message}");
+                        }
                     }
                     catch (Exception ex) {
                         Interlocked.Increment(ref failures);
-                        Logger.Error($"Error: {ex.Message}", ex);
+                        Logger.Error($"Package scan failed: pak '{pakEntry.PakFileReader.Name}', asset '{file.Key}'.", ex);
                     }
                     finally {
                         var count = Interlocked.Increment(ref processed);

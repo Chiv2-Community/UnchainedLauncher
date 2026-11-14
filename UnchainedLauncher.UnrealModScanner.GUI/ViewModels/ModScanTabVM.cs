@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.IO;
+using log4net;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.UnrealModScanner.Config;
 using UnchainedLauncher.UnrealModScanner.Config.Games;
@@ -11,6 +12,7 @@ using UnchainedLauncher.UnrealModScanner.ViewModels;
 namespace UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 
 public partial class ModScanTabVM : ObservableObject {
+    private static readonly ILog Logger = LogManager.GetLogger(typeof(ModScanTabVM));
     [ObservableProperty]
     private PakScanResultVM _resultsVisual = new();
     public ModScanResult? LastScanResult { get; private set; }
@@ -49,6 +51,10 @@ public partial class ModScanTabVM : ObservableObject {
             var result = await PakScanCache.ScanAsync(pakDir, LoadedConfig ?? GameScanOptions.Chivalry2, progress, cachedOnly);
             LastScanResult = result;
             ResultsVisual = new PakScanResultVM(result);
+        }
+        catch (Exception error) {
+            Logger.Error($"Pak scan failed for '{pakDir}' (cachedOnly: {cachedOnly}). Previous results were retained.", error);
+            throw;
         }
         finally { IsScanning = false; }
     }

@@ -21,6 +21,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
     /// Mod orchestrator then initiates a second pass looking only for the references
     /// </summary>
     public class ReferenceDiscoveryProcessor : IAssetProcessor {
+        private static readonly log4net.ILog Logger = log4net.LogManager.GetLogger(typeof(ReferenceDiscoveryProcessor));
         /// <summary>
         /// </summary>
         private readonly string _containerClassName; // e.g., "DA_ModMarker_C"
@@ -92,7 +93,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                         ExceptionType = e.GetType().Name,
                         Message = e.Message
                     });
-                    Log.Error("Failed to save Marker properties");
+                    Logger.Error($"Marker property '{kvp.Name.Text}' extraction failed: pak '{ctx.PakEntry.PakFileReader.Name}', asset '{ctx.FilePath}'.", e);
                 }
 
                 // properties.Add(kvp.Name.Text, rawValue);
@@ -112,6 +113,7 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Processors {
                         TargetBlueprintPath = bpPath,
                         TargetClassName = $"{fileName}_C",
                         SourcePakFile = ctx.PakEntry.PakFileReader.Name,
+                        IsInferred = true,
                     });
                 }
                 catch (Exception e) {

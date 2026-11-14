@@ -58,6 +58,9 @@ jobs:
     - name: Run Scanner Configuration Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.PakScannerApp.Tests --logger:"console;verbosity=detailed"
 
+    - name: Run Installer Workflow Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.GUI.Tests --logger:"console;verbosity=detailed"
+
     - name: Package ${{ matrix.configuration }} binaries
       run: dotnet publish UnchainedLauncher.GUI -c ${{ matrix.configuration}} -o out/
 

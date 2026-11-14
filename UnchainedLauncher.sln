@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnchainedLauncher.UnrealMod
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnchainedLauncher.PakScannerApp.Tests", "UnchainedLauncher.PakScannerApp.Tests\UnchainedLauncher.PakScannerApp.Tests.csproj", "{6F9E5F8B-AB88-4A12-AAB8-ABAF5E4BBABA}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnchainedLauncher.GUI.Tests", "UnchainedLauncher.GUI.Tests\UnchainedLauncher.GUI.Tests.csproj", "{79D68A8D-6E77-4224-AD46-43B947DB3A77}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +40,24 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Debug|x64.Build.0 = Debug|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Debug|x86.Build.0 = Debug|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Debug-FakeChivalryLaunch|Any CPU.ActiveCfg = Debug|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Debug-FakeChivalryLaunch|Any CPU.Build.0 = Debug|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Debug-FakeChivalryLaunch|x64.ActiveCfg = Debug|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Debug-FakeChivalryLaunch|x64.Build.0 = Debug|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Debug-FakeChivalryLaunch|x86.ActiveCfg = Debug|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Debug-FakeChivalryLaunch|x86.Build.0 = Debug|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Release|x64.ActiveCfg = Release|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Release|x64.Build.0 = Release|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Release|x86.ActiveCfg = Release|Any CPU
+		{79D68A8D-6E77-4224-AD46-43B947DB3A77}.Release|x86.Build.0 = Release|Any CPU
 		{0C235765-7B68-48BB-A3E5-87E12C512540}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0C235765-7B68-48BB-A3E5-87E12C512540}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0C235765-7B68-48BB-A3E5-87E12C512540}.Debug|x64.ActiveCfg = Debug|Any CPU

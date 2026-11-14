@@ -1,7 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using log4net;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.GUI.Views.Installer;
@@ -23,6 +25,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public int CurrentPageIndex {
             get => _currentPageIndex;
             set {
+                if (value < 0 || value >= InstallerPages.Count) return;
                 if (_currentPageIndex != value) {
                     // CurrentPage is a computed property based on _currentPageIndex.
                     // We need to unsubscribe from the old page's PropertyChanged event,
@@ -55,6 +58,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public string PageColumnWidth => DisplayDescription == Visibility.Visible ? "2*" : "1*";
 
         public readonly ObservableCollection<InstallationTargetViewModel> InstallTargets;
+        private bool _navigating;
 
 
         public InstallerWindowViewModel() : this(DefaultPages, new ObservableCollection<InstallationTargetViewModel> { new() }) { }
@@ -72,7 +76,7 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             _currentPageIndex = 0;
             CurrentPage.PropertyChanged += CurrentPagePropertyChanged;
 
-            _ = CurrentPage.Load();
+            _ = LoadCurrentPage();
 
             Logger.Info("InstallerWindowViewModel initialized");
             Logger.Info("Current Page: " + CurrentPage.TitleText);
@@ -82,19 +86,46 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         [RelayCommand]
         private async Task NextButton() {
-            await CurrentPage.Continue();
+            if (Finished || _navigating || !CurrentPage.CanContinue) return;
+            if (CurrentPage is InstallationSelectionPageViewModel && !InstallTargets.Any(t => t.IsSelected)) return;
+            _navigating = true;
+            UpdateCurrentPage();
+            try {
+                await CurrentPage.Continue();
 
-            if ((CurrentPageIndex + 1) == InstallerPages.Count) {
-                FinalizeInstallation();
-                return;
+                if ((CurrentPageIndex + 1) == InstallerPages.Count) {
+                    FinalizeInstallation();
+                    return;
+                }
+
+                CurrentPageIndex++;
+                UpdateCurrentPage();
+                await CurrentPage.Load();
             }
+            catch (Exception ex) {
+                Logger.Error("Error loading installer page", ex);
+                MessageBox.Show("Error loading installer page: " + ex.Message);
+            }
+            finally {
+                _navigating = false;
+                UpdateCurrentPage();
+            }
+        }
 
-            CurrentPageIndex++;
+        private async Task LoadCurrentPage() {
+            _navigating = true;
             UpdateCurrentPage();
-
-
-            await CurrentPage.Load();
-            UpdateCurrentPage();
+            try {
+                await CurrentPage.Load();
+            }
+            catch (Exception ex) {
+                Logger.Error("Error loading installer page", ex);
+                MessageBox.Show("Error loading installer page: " + ex.Message);
+            }
+            finally {
+                _navigating = false;
+                UpdateCurrentPage();
+            }
         }
 
         private void FinalizeInstallation() {
@@ -102,15 +133,22 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             WindowVisibility = Visibility.Hidden;
             var result = MessageBox.Show("Chivalry 2 Unchained Launcher has been installed successfully! Would you like to launch it now?", "Installation Complete", MessageBoxButton.YesNo);
             if (result == MessageBoxResult.Yes) {
-                LaunchUnchainedLauncherWindow.Show(InstallTargets);
+                var targets = InstallTargets.Where(t => t.IsSelected);
+                if (CurrentPage is InstallerLogPageViewModel logPage)
+                    targets = targets.Where(t => logPage.SuccessfulTargets.Any(s => s.FullName == t.Path.FullName));
+                var launchTargets = new ObservableCollection<InstallationTargetViewModel>(targets);
+                if (launchTargets.Count > 0)
+                    LaunchUnchainedLauncherWindow.Show(launchTargets);
             }
             Finished = true;
         }
 
         [RelayCommand]
-        private async Task BackButton() {
+        private Task BackButton() {
+            if (_navigating || CurrentPageIndex <= 0 || !CurrentPage.CanGoBack) return Task.CompletedTask;
             CurrentPageIndex--;
             UpdateCurrentPage();
+            return Task.CompletedTask;
         }
 
         private void CurrentPagePropertyChanged(object? sender, PropertyChangedEventArgs e) {
@@ -126,10 +164,10 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
                 return;
             }
 
-            CanContinue = CurrentPage.CanContinue;
-            CanGoBack = CurrentPage.CanGoBack;
+            CanContinue = !_navigating && CurrentPage.CanContinue;
+            CanGoBack = !_navigating && CurrentPageIndex > 0 && CurrentPage.CanGoBack;
             DisplayDescription = CurrentPage.DescriptionText != null ? Visibility.Visible : Visibility.Hidden;
-            DisplayGoBackButton = CurrentPage.GoBackButtonText != null ? Visibility.Visible : Visibility.Hidden;
+            DisplayGoBackButton = CurrentPageIndex > 0 && CurrentPage.GoBackButtonText != null ? Visibility.Visible : Visibility.Hidden;
         }
     }
 }

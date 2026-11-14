@@ -244,7 +244,7 @@ internal sealed class PakReadCache : IDisposable {
             if (!entries.TryGetValue(name, out var local)) entries[name] = latest;
             else if (local.Hash.Equals(latest.Hash, StringComparison.OrdinalIgnoreCase)
                 && local.Length == latest.Length && local.LastWriteTicks == latest.LastWriteTicks) {
-                var version = versionsWritten.Contains(name) || !latest.VersionRead ? local : latest;
+                var version = versionsWritten.Contains(name) ? local : latest;
                 var scan = scansWritten.Contains(name) || latest.ScanJson == null ? local : latest;
                 entries[name] = local with {
                     VersionRead = version.VersionRead,

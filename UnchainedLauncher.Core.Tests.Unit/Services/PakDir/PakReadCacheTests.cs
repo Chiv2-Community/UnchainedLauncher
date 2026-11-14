@@ -73,6 +73,32 @@ public class PakReadCacheTests : IDisposable {
     }
 
     [Fact]
+    public async Task StaleClientHashSavePreservesFullScanVersionInvalidation() {
+        string hash;
+        using (var initial = new PakReadCache(directory)) {
+            hash = await initial.Hash(Pak);
+            initial.WriteScan(Pak, hash, PakScanCache.ScannerRevision + ":old", "{}",
+                new(PakScanDependencies.Snapshot(directory), [], []));
+            initial.StoreVersion(Pak, hash, "1.0.0", fromScan: true);
+        }
+        using var staleClient = new PakReadCache(directory);
+        var identity = PakScanCache.ScannerRevision + ":new";
+        using (var scan = new PakReadCache(directory)) {
+            scan.InvalidateScanVersion(Pak, hash);
+            scan.WriteScan(Pak, hash, identity, "{}", new(PakScanDependencies.Snapshot(directory), [], []));
+        }
+        using (var before = new PakReadCache(directory))
+            Assert.False(before.TryGetVersion(Pak, hash, out _));
+        var other = Path.Combine(directory, "other.pak");
+        File.WriteAllText(other, "other");
+        await staleClient.Hash(other);
+        staleClient.Dispose();
+        using var restarted = new PakReadCache(directory);
+        Assert.Equal("{}", restarted.ReadScan(Pak, hash, identity));
+        Assert.False(restarted.TryGetVersion(Pak, hash, out _));
+    }
+
+    [Fact]
     public async Task VersionsFromOldFullScansAreNotTrustedBeforeTheNextScan() {
         string hash;
         using (var old = new PakReadCache(directory)) {

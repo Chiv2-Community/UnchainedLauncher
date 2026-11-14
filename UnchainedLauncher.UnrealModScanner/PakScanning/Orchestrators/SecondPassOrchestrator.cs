@@ -36,6 +36,7 @@ public class SecondPassOrchestrator {
             // We use Parallel.ForEach for high-speed resolution
             Parallel.ForEach(groupedRefs, new ParallelOptions { MaxDegreeOfParallelism = -1 }, group => {
                 var refEntry = group.First();
+                using var dependencyScope = (_provider as FilteredFileProvider)?.TrackScan(refEntry.SourcePakFile);
                 var assetPath = refEntry.TargetBlueprintPath;
                 try {
                     //var refEntry = pendingRefs.Where(en => en.TargetBlueprintPath == assetPath).FirstOrDefault();

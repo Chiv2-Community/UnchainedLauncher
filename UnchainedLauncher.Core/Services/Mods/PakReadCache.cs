@@ -13,7 +13,8 @@ internal sealed class PakReadCache : IDisposable {
     private const int VersionScanRevision = 2;
     private sealed record Entry([property: JsonRequired] long Length, [property: JsonRequired] long LastWriteTicks,
         [property: JsonRequired] string Hash, [property: JsonRequired] bool VersionRead, [property: JsonRequired] string? Version,
-        int VersionScanRevision = 0, string? ScanIdentity = null, string? ScanJson = null);
+        int VersionScanRevision = 0, string? ScanIdentity = null, string? ScanJson = null,
+        JsonElement? ScanDependencies = null);
     private static readonly object CacheFileLock = new();
     // Keep only the most recently used disk snapshot; clients own their mutable dictionaries.
     private sealed record Snapshot(string Path, (long Length, long Ticks) Metadata,
@@ -153,10 +154,19 @@ internal sealed class PakReadCache : IDisposable {
         return entry.ScanIdentity == identity ? entry.ScanJson : null;
     }
 
-    internal void WriteScan(string path, string hash, string identity, string json) {
+    internal PakScanDependencies? ReadDependencies(string path) {
+        try {
+            return entries.TryGetValue(Path.GetFileName(path), out var entry)
+                ? entry.ScanDependencies?.Deserialize<PakScanDependencies>() : null;
+        }
+        catch (JsonException) { return null; }
+    }
+
+    internal void WriteScan(string path, string hash, string identity, string json, PakScanDependencies? dependencies = null) {
         Validate(path, hash);
         var name = Path.GetFileName(path);
-        entries[name] = entries[name] with { ScanIdentity = identity, ScanJson = json };
+        entries[name] = entries[name] with { ScanIdentity = identity, ScanJson = json,
+            ScanDependencies = dependencies == null ? null : JsonSerializer.SerializeToElement(dependencies) };
         scansWritten.Add(name);
         dirty = true;
     }
@@ -210,7 +220,8 @@ internal sealed class PakReadCache : IDisposable {
                     Version = version.Version,
                     VersionScanRevision = version.VersionScanRevision,
                     ScanIdentity = scan.ScanIdentity,
-                    ScanJson = scan.ScanJson
+                    ScanJson = scan.ScanJson,
+                    ScanDependencies = scan.ScanDependencies
                 };
             }
         }

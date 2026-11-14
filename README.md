@@ -26,6 +26,16 @@ Check out [the wiki](https://unchained.wiki) for more information about modding 
 - **Mod Management**: Download and manage mods for Chivalry 2.
 - **Server Hosting**: Configure and host a server for your friends to join in Unchained Mode
 
+### Pak scan cache
+
+Scan results, hashes, and Blueprint versions share the pak directory's `.unchained/pak-read-cache.json`.
+Unchanged scans reuse recorded asset lookups, including missing imports and cross-pak references.
+Removing an unrelated pak prunes only its entry; changed or added containers are checked by index before reusing dependent scans.
+Plugin/project mapping changes remain conservative; scans that load IoStore packages depend on the IoStore container set because imports use numeric IDs.
+Startup hydration never opens containers and defers results whose new dependencies cannot yet be checked.
+Scanner revision 4 refreshes older full scans once, without discarding reusable hashes or Blueprint versions.
+Metadata reuse cannot detect edits that preserve both file size and modification time.
+
 ## Community
 
 Join the [Chivalry 2 Unchained community on Discord](https://discord.gg/chiv2unchained) to connect with other players, get support, and participate in discussions.

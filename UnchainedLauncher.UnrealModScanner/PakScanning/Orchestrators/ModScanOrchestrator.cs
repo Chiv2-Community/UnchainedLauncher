@@ -57,6 +57,7 @@ public class ModScanOrchestrator(List<IAssetProcessor> modProcessors) {
 
                     if (file.Value is not FPakEntry pakEntry)
                         return;
+                    using var dependencyScope = provider.TrackScan(pakEntry.PakFileReader.Name);
                     IPackage? pkg = null;
                     bool packageLoaded;
                     try {

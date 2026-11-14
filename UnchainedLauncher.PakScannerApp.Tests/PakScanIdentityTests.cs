@@ -39,6 +39,32 @@ public class PakScanIdentityTests : IDisposable {
     }
 
     [Fact]
+    public async Task ProviderTracksInterfaceMissesPayloadsAndParallelSourceScopes() {
+        using var provider = FilteredFileProvider.CreateFromOptions(GameScanOptions.Chivalry2, ScanMode.Mods, _root);
+        IFileProvider resolver = provider;
+        await Task.WhenAll(Enumerable.Range(0, 8).Select(async index => {
+            using var scope = provider.TrackScan($"owner{index}.pak");
+            await Task.Yield();
+            Assert.False(resolver.TryLoadPackage($"TBL/Content/Import{index}", out _));
+            Assert.False(resolver.TryGetGameFile($"TBL/Content/Target{index}.uasset", out _));
+            Assert.False(resolver.TrySaveAsset($"TBL/Content/Hash{index}.uasset", out _));
+        }));
+        for (var index = 0; index < 8; index++) {
+            var paths = provider.GetScanLookups($"owner{index}.pak");
+            Assert.Contains($"TBL/Content/Import{index}.uasset", paths);
+            Assert.Contains($"TBL/Content/Import{index}.umap", paths);
+            Assert.Contains($"TBL/Content/Import{index}.uexp", paths);
+            Assert.Contains($"TBL/Content/Import{index}.ubulk", paths);
+            Assert.Contains($"TBL/Content/Import{index}.uptnl", paths);
+            Assert.Contains($"TBL/Content/Target{index}.uasset", paths);
+            Assert.Contains($"TBL/Content/Hash{index}.uasset", paths);
+            Assert.DoesNotContain($"TBL/Content/Import{(index + 1) % 8}.uasset", paths);
+        }
+        Assert.False(resolver.TryLoadPackage("TBL/Content/Outside", out _));
+        Assert.All(Enumerable.Range(0, 8), index => Assert.DoesNotContain("TBL/Content/Outside.uasset", provider.GetScanLookups($"owner{index}.pak")));
+    }
+
+    [Fact]
     public void PakIdentityRetainsFullPathAndHashInManifest() {
         var scan = new ModScanResult();
         var pak = scan.GetOrAddPak(_reader);

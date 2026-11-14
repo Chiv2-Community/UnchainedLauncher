@@ -119,8 +119,7 @@ public static class PakScanCache {
                         // another container shadows one of its version-scannable packages.
                         if (collectVersions && own.Files.Where(pair => pair.Key.EndsWith(".uasset", StringComparison.OrdinalIgnoreCase)
                                 && versionFilter(pair)).All(pair => provider.Files.TryGetValue(pair.Key, out var selected)
-                                    && selected is FPakEntry entry
-                                    && string.Equals(Path.GetFullPath(entry.PakFileReader.Path), path, StringComparison.OrdinalIgnoreCase)))
+                                    && ReferenceEquals(selected, pair.Value)))
                             completeVersions.Add(path);
                         var lookups = provider.GetScanLookups(path).Concat(own.Files.Keys)
                             .Concat(globalPaths).ToHashSet(StringComparer.Ordinal);

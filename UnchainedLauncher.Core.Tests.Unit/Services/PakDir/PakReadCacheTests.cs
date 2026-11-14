@@ -270,10 +270,13 @@ public class PakReadCacheTests : IDisposable {
     public async Task LegacyVersionResultIsRescannedWithoutRehashing(int? revision, string? oldVersion) {
         using (var cache = new PakReadCache(directory, _ => Task.FromResult(oldVersion)))
             await cache.Version(Pak, await cache.Hash(Pak));
+        var timestamp = File.GetLastWriteTimeUtc(Cache);
         var json = JsonNode.Parse(File.ReadAllText(Cache))!;
         json["manual.pak"]!.AsObject().Remove("VersionScanRevision");
         if (revision.HasValue) json["manual.pak"]!["VersionScanRevision"] = revision.Value;
         File.WriteAllText(Cache, json.ToJsonString());
+        // Revision 2 -> 1 is the same size; make the external edit observable on coarse clocks too.
+        File.SetLastWriteTimeUtc(Cache, timestamp.AddMinutes(1));
         var reads = 0;
         using (var restarted = new PakReadCache(directory, _ => {
             reads++;

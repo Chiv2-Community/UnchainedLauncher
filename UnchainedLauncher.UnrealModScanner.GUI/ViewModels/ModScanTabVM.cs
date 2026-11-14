@@ -33,7 +33,11 @@ public partial class ModScanTabVM : ObservableObject {
         return directory != null && Directory.Exists(directory) ? StartScan(directory, cachedOnly: true) : Task.CompletedTask;
     }
 
-    public Task WaitForScanAsync() => IsScanning ? scanTask : Task.CompletedTask;
+    public async Task WaitForScanAsync() {
+        // Observers wait for completion, not success; the initiating caller reports failures.
+        try { await scanTask; }
+        catch (Exception) { }
+    }
 
     private Task StartScan(string pakDir, bool cachedOnly) => IsScanning ? scanTask : scanTask = ScanCoreAsync(pakDir, cachedOnly);
 

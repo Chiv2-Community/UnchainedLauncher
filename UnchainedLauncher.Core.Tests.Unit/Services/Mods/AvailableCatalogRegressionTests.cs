@@ -345,6 +345,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
                 var task = test();
                 while (!task.IsCompleted) context.RunNext();
                 task.GetAwaiter().GetResult();
+                context.Drain();
             }
             finally { SynchronizationContext.SetSynchronizationContext(previous); }
         }
@@ -355,6 +356,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             public void RunNext() {
                 Assert.True(_queue.TryTake(out var work, TimeSpan.FromSeconds(10)), "Catalog validation did not resume");
                 work.Callback(work.State);
+            }
+            public void Drain() {
+                while (_queue.TryTake(out var work)) work.Callback(work.State);
             }
         }
 
@@ -517,8 +521,50 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             Assert.Single(ModManifestConverter.ProcessModScan(tab.LastScanResult).Paks.Single().Inventory.Blueprints);
             Assert.Equal("Scanned", Assert.Single(catalog.AvailableServerModBlueprints).ModName);
             await tab.ScanAsync(directory);
+            // Scan publication starts catalog validation; drain it before releasing the lock/fixture.
+            await catalog.WaitForCatalogAsync();
             Assert.False(tab.IsScanning);
             Assert.Equal("Scanned", Assert.Single(catalog.AvailableServerModBlueprints).ModName);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ToggleAndLaunchDuringFailedScanReconcilePriorCatalogWithoutUnhandledUiException(bool enable) {
+            RunOnUiContext(async () => {
+                using var file = new ScannedPak(); // Not a readable Unreal pak.
+                var release = Release("Registry", Assets("Registry"));
+                var manager = Manager(release);
+                if (!enable) manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
+                var tab = new ModScanTabVM();
+                var catalog = new AvailableModsAndMapsService(manager, tab);
+                PublishScan(tab, file.Scan);
+                await catalog.WaitForCatalogAsync();
+                var previousVisual = tab.ResultsVisual;
+                var changed = new TaskCompletionSource();
+                catalog.ModStateChanged += (_, _) => changed.SetResult();
+
+                var scan = tab.ScanAsync(Path.GetDirectoryName(file.Result.PakPath)!);
+                Assert.True(tab.IsScanning);
+                tab.DefaultPakDirectory = Path.GetDirectoryName(file.Result.PakPath);
+                Assert.Same(scan, tab.LoadCachedAsync()); // Initiating callers still join the strict task.
+                var observer = tab.WaitForScanAsync();
+                Assert.False(observer.IsCompleted);
+                Assert.True(enable ? manager.EnableModRelease(ReleaseCoordinates.FromRelease(release))
+                    : manager.DisableModRelease(ReleaseCoordinates.FromRelease(release)));
+                var launch = catalog.RefreshCatalogAsync();
+                Assert.False(launch.IsCompleted);
+
+                await Assert.ThrowsAnyAsync<Exception>(() => scan);
+                await changed.Task;
+                await observer;
+                await launch;
+                Assert.False(tab.IsScanning);
+                Assert.Same(file.Scan, tab.LastScanResult);
+                Assert.Same(previousVisual, tab.ResultsVisual);
+                Assert.Contains(catalog.AvailableServerModBlueprints, actor => actor.ModName == "Scanned");
+                AssertAssets(catalog, release.Manifest, enable);
+            });
         }
 
         [Theory]

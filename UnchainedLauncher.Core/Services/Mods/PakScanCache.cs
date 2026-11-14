@@ -73,24 +73,24 @@ public static class PakScanCache {
             var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var pending = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var paths = Directory.GetFiles(directory, "*.pak")
-                .Where(path => !options.VanillaPakNames.Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)).ToArray();
+                .Where(path => !options.VanillaPakNames.Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase))
+                .Select(Path.GetFullPath).ToArray();
             foreach (var path in paths) {
-                var fullPath = Path.GetFullPath(path);
-                var hash = cachedOnly ? cache.CachedHash(fullPath) : await cache.Hash(fullPath);
+                var hash = cachedOnly ? cache.CachedHash(path) : await cache.Hash(path);
                 if (hash == null) continue;
-                hashes[fullPath] = hash;
-                var json = cache.ReadScan(fullPath, hash, identity);
-                var dependencies = cache.ReadDependencies(fullPath);
+                hashes[path] = hash;
+                var json = cache.ReadScan(path, hash, identity);
+                var dependencies = cache.ReadDependencies(path);
                 if (json != null && (dependencies == null || !dependencies.Matches(inventory,
                     name => cachedOnly ? null : ReadIndex(name)))) json = null;
                 var pak = json == null ? null : DeserializeScan(Path.GetFileName(path), json);
                 if (pak != null && string.Equals(pak.PakHash, hash, StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(pak.PakPath, fullPath, StringComparison.OrdinalIgnoreCase)) {
+                    && string.Equals(pak.PakPath, path, StringComparison.OrdinalIgnoreCase)) {
                     result.Paks[Path.GetFileName(path)] = pak;
                     if (!PakScanDependencies.Same(dependencies!.Inventory, inventory))
-                        cache.WriteScan(fullPath, hash, identity, json!, dependencies with { Inventory = inventory });
+                        cache.WriteScan(path, hash, identity, json!, dependencies with { Inventory = inventory });
                 }
-                else pending.Add(fullPath);
+                else pending.Add(path);
             }
             if (!cachedOnly && pending.Count > 0) {
                 ModScanResult scanned;
@@ -150,7 +150,7 @@ public static class PakScanCache {
                 }
                 // Validate the entire snapshot before publishing any new scan entries.
                 if (!PakScanDependencies.Same(Snapshot(), inventory)) throw new IOException("Pak inventory changed during scanning.");
-                foreach (var path in paths) cache.Validate(path, hashes[Path.GetFullPath(path)]);
+                foreach (var path in paths) cache.Validate(path, hashes[path]);
                 foreach (var path in pending) {
                     cache.InvalidateScanVersion(path, hashes[path]);
                     cache.WriteScan(path, hashes[path], identity,

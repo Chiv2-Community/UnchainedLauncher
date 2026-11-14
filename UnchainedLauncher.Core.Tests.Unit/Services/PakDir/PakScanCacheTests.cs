@@ -92,12 +92,16 @@ public class PakScanCacheTests : IDisposable {
         Assert.Single((await PakScanCache.ScanAsync(directory, Options)).Paks);
     }
 
-    [Fact]
-    public async Task RepeatedScansAndStartupReuseFullRawResultsWithoutOpeningPaks() {
-        var first = await PakScanCache.ScanAsync(directory, Options, Read);
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RepeatedScansAndStartupReuseFullRawResultsWithoutOpeningPaks(bool relativeDirectory) {
+        var scanDirectory = relativeDirectory ? Path.GetRelativePath(Environment.CurrentDirectory, directory) : directory;
+        var first = await PakScanCache.ScanAsync(scanDirectory, Options, Read);
+        Assert.Equal(Pak, Assert.Single(first.Paks.Values).PakPath);
         using var locked = File.Open(Pak, FileMode.Open, FileAccess.Read, FileShare.None);
-        var second = await PakScanCache.ScanAsync(directory, Options, _ => throw new Exception("Rescan"));
-        var startup = await PakScanCache.ScanAsync(directory, Options, cachedOnly: true);
+        var second = await PakScanCache.ScanAsync(scanDirectory, Options, _ => throw new Exception("Rescan"));
+        var startup = await PakScanCache.ScanAsync(scanDirectory, Options, cachedOnly: true);
         Assert.Equal(1, scans);
         Assert.True(JToken.DeepEquals(JToken.FromObject(first), JToken.FromObject(second)));
         Assert.True(JToken.DeepEquals(JToken.FromObject(first), JToken.FromObject(startup)));

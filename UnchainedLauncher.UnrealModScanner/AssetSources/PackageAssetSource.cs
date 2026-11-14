@@ -1,5 +1,5 @@
-using CUE4Parse.UE4.Assets;
 using CUE4Parse.FileProvider.Objects;
+using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Objects.UObject;
 using UnchainedLauncher.UnrealModScanner.Utility;
 

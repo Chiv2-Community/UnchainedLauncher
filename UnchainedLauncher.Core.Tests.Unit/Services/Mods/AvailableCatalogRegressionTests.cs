@@ -120,7 +120,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         }
 
         [Fact]
-        public void ScanReplacementAndModDisablePreserveOtherSourcesAndVanillaMaps() {
+        public async Task ScanReplacementAndModDisablePreserveOtherSourcesAndVanillaMaps() {
             using var file = new ScannedPak("Shared");
             file.Result._Maps.Add(JsonConvert.DeserializeObject<GameMapInfo>("""
                 {"asset_path":"TBL/Content/Maps/Shared.umap","asset_hash":"hash",
@@ -135,29 +135,33 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             Assert.NotEmpty(vanilla);
             manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
             PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
             Assert.Single(catalog.AvailableMaps.Where(map => shared.Maps.Contains(map)));
             // Registry and scan fixtures refer to different physical pak paths.
             Assert.Equal(2, catalog.AvailableServerModBlueprints.Count);
             manager.DisableModRelease(ReleaseCoordinates.FromRelease(release));
+            await catalog.WaitForCatalogAsync();
             Assert.All(shared.Maps, map => Assert.Contains(map, catalog.AvailableMaps));
             Assert.Empty(catalog.AvailableServerModBlueprints);
             manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
             PublishScan(scan, new ModScanResult());
+            await catalog.WaitForCatalogAsync();
             AssertAssets(catalog, shared, true);
             manager.DisableModRelease(ReleaseCoordinates.FromRelease(release));
             AssertAssets(catalog, shared, false);
             PublishScan(scan, file.Scan);
             PublishScan(scan, null);
+            await catalog.WaitForCatalogAsync();
             AssertAssets(catalog, shared, false);
             Assert.Equal(vanilla, catalog.AvailableMaps);
         }
 
         [Fact]
-        public void CatalogWithoutScanDoesNotReadPakInventory() {
+        public async Task CatalogWithoutScanDoesNotReadPakInventory() {
             var manager = new Mock<IModManager>();
             manager.SetupGet(m => m.PakDir).Throws(new InvalidOperationException("No scan needs a pak inventory"));
             var catalog = new AvailableModsAndMapsService(manager.Object, new ModScanTabVM());
-            catalog.RefreshCatalog();
+            await catalog.RefreshCatalogAsync();
             Assert.Empty(catalog.AvailableServerModBlueprints);
             Assert.NotEmpty(catalog.AvailableMaps);
         }
@@ -165,20 +169,21 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void ScannerPakIdentityPublishesActorsOutsideWorkingDirectory(bool scanBeforeCatalog) {
+        public async Task ScannerPakIdentityPublishesActorsOutsideWorkingDirectory(bool scanBeforeCatalog) {
             using var file = new ScannedPak();
             Assert.NotEqual(Path.GetFullPath(Path.GetFileName(file.Result.PakPath)), file.Result.PakPath);
             var scan = new ModScanTabVM();
             if (scanBeforeCatalog) PublishScan(scan, file.Scan);
             var catalog = new AvailableModsAndMapsService(Manager(), scan);
             if (!scanBeforeCatalog) PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
             Assert.Equal("Scanned", Assert.Single(catalog.AvailableServerModBlueprints).ModName);
-            catalog.RefreshCatalog();
+            await catalog.RefreshCatalogAsync();
             Assert.Single(catalog.AvailableServerModBlueprints);
         }
 
         [Fact]
-        public void SameActorAndPakPathDeduplicateDespiteDifferentMetadataAndCasing() {
+        public async Task SameActorAndPakPathDeduplicateDespiteDifferentMetadataAndCasing() {
             using var file = new ScannedPak();
             var duplicate = new GenericAssetEntry { AssetPath = "SCANNED.uasset", AssetHash = "different hash" };
             duplicate.Properties["ModName"] = "Different display name";
@@ -187,31 +192,34 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             var scan = new ModScanTabVM();
             var catalog = new AvailableModsAndMapsService(Manager(), scan);
             PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
             var actor = Assert.Single(catalog.AvailableServerModBlueprints);
             PublishScan(scan, file.Scan);
-            catalog.RefreshCatalog();
+            await catalog.RefreshCatalogAsync();
             Assert.Same(actor, Assert.Single(catalog.AvailableServerModBlueprints));
         }
 
         [Fact]
-        public void SameActorInDifferentPaksRemainsDistinctAndSurvivorIsPreserved() {
+        public async Task SameActorInDifferentPaksRemainsDistinctAndSurvivorIsPreserved() {
             using var first = new ScannedPak();
             using var second = new ScannedPak();
             var scan = new ModScanTabVM();
             var catalog = new AvailableModsAndMapsService(Manager(), scan);
             PublishScan(scan, first.Scan);
+            await catalog.WaitForCatalogAsync();
             var survivor = Assert.Single(catalog.AvailableServerModBlueprints);
             first.Scan.Paks[second.Result.PakPath] = second.Result;
             PublishScan(scan, first.Scan);
+            await catalog.WaitForCatalogAsync();
             Assert.Equal(2, catalog.AvailableServerModBlueprints.Count);
             Assert.Contains(catalog.AvailableServerModBlueprints, actor => ReferenceEquals(actor, survivor));
             File.Delete(second.Result.PakPath);
-            catalog.RefreshCatalog();
+            await catalog.RefreshCatalogAsync();
             Assert.Same(survivor, Assert.Single(catalog.AvailableServerModBlueprints));
         }
 
         [Fact]
-        public void DifferentActorPathsInSamePakRemainDistinct() {
+        public async Task DifferentActorPathsInSamePakRemainDistinct() {
             using var file = new ScannedPak();
             var other = new GenericAssetEntry { AssetPath = "Other.uasset", AssetHash = "hash" };
             other.Properties["ModName"] = "Scanned";
@@ -220,17 +228,19 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             var scan = new ModScanTabVM();
             var catalog = new AvailableModsAndMapsService(Manager(), scan);
             PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
             Assert.Equal(2, catalog.AvailableServerModBlueprints.Count);
         }
 
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void LaunchRefreshRejectsDeletedOrReplacedScannedPak(bool replace) {
+        public async Task LaunchRefreshRejectsDeletedOrReplacedScannedPak(bool replace) {
             using var file = new ScannedPak();
             var scan = new ModScanTabVM();
             var catalog = new AvailableModsAndMapsService(Manager(), scan);
             PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
             Assert.Single(catalog.AvailableServerModBlueprints);
             if (replace) {
                 var modified = File.GetLastWriteTimeUtc(file.Result.PakPath);
@@ -238,10 +248,114 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
                 File.SetLastWriteTimeUtc(file.Result.PakPath, modified);
             }
             else File.Delete(file.Result.PakPath);
-            catalog.RefreshCatalog();
+            await catalog.RefreshCatalogAsync();
             Assert.Empty(catalog.AvailableServerModBlueprints);
             PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
             Assert.Empty(catalog.AvailableServerModBlueprints);
+        }
+
+        [Fact]
+        public async Task ChangedScanHashRevalidatesEvenWhenFileMetadataIsUnchanged() {
+            using var file = new ScannedPak();
+            var scan = new ModScanTabVM();
+            var catalog = new AvailableModsAndMapsService(Manager(), scan);
+            PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
+            Assert.Single(catalog.AvailableServerModBlueprints);
+
+            var modified = File.GetLastWriteTimeUtc(file.Result.PakPath);
+            File.WriteAllText(file.Result.PakPath, "changed");
+            File.SetLastWriteTimeUtc(file.Result.PakPath, modified);
+            file.Result.PakHash = Convert.ToHexString(System.Security.Cryptography.SHA512.HashData(File.ReadAllBytes(file.Result.PakPath)));
+            PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
+            Assert.Single(catalog.AvailableServerModBlueprints);
+        }
+
+        [Fact]
+        public async Task RepeatedScanReusesUnchangedValidationButLaunchStillReadsBytes() {
+            using var file = new ScannedPak();
+            var scan = new ModScanTabVM();
+            var catalog = new AvailableModsAndMapsService(Manager(), scan);
+            PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
+            var actor = Assert.Single(catalog.AvailableServerModBlueprints);
+
+            using (File.Open(file.Result.PakPath, FileMode.Open, FileAccess.Read, FileShare.None)) {
+                PublishScan(scan, file.Scan);
+                await catalog.WaitForCatalogAsync();
+                Assert.Same(actor, Assert.Single(catalog.AvailableServerModBlueprints));
+                await catalog.RefreshCatalogAsync();
+                Assert.Empty(catalog.AvailableServerModBlueprints);
+            }
+        }
+
+        [Fact]
+        public void PendingValidationCannotPublishOlderScanOrToggleStateAndPublishesOnUiContext() {
+            RunOnUiContext(async () => {
+                using var first = new ScannedPak("First");
+                using var second = new ScannedPak("Second");
+                var release = Release("Registry", Assets("Registry"));
+                var manager = Manager(release);
+                manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
+                var scan = new ModScanTabVM();
+                var catalog = new AvailableModsAndMapsService(manager, scan);
+                var uiThread = Environment.CurrentManagedThreadId;
+                var published = new List<string?>();
+                catalog.AvailableServerModBlueprints.CollectionChanged += (_, args) => {
+                    Assert.Equal(uiThread, Environment.CurrentManagedThreadId);
+                    if (args.NewItems != null)
+                        published.AddRange(args.NewItems.Cast<BlueprintDto>().Select(actor => actor.ModName));
+                };
+                PublishScan(scan, first.Scan);
+                var launchValidation = catalog.RefreshCatalogAsync();
+                PublishScan(scan, second.Scan);
+                manager.DisableModRelease(ReleaseCoordinates.FromRelease(release));
+                await launchValidation;
+                await catalog.WaitForCatalogAsync();
+                Assert.Equal("Second", Assert.Single(catalog.AvailableServerModBlueprints).ModName);
+                Assert.DoesNotContain("First", published);
+                Assert.DoesNotContain("Registry", published);
+
+                var modified = File.GetLastWriteTimeUtc(second.Result.PakPath);
+                File.WriteAllText(second.Result.PakPath, "changed");
+                File.SetLastWriteTimeUtc(second.Result.PakPath, modified);
+                var firstLaunch = catalog.RefreshCatalogAsync();
+                var secondLaunch = catalog.RefreshCatalogAsync();
+                PublishScan(scan, second.Scan);
+                await Task.WhenAll(firstLaunch, secondLaunch);
+                Assert.Empty(catalog.AvailableServerModBlueprints);
+
+                PublishScan(scan, first.Scan);
+                var obsoleteValidation = catalog.WaitForCatalogAsync();
+                PublishScan(scan, null);
+                await obsoleteValidation;
+                await catalog.WaitForCatalogAsync();
+                Assert.Empty(catalog.AvailableServerModBlueprints);
+            });
+        }
+
+        // Exercise the production notification/continuation boundary without a WPF dispatcher.
+        private static void RunOnUiContext(Func<Task> test) {
+            var previous = SynchronizationContext.Current;
+            var context = new TestUiContext();
+            SynchronizationContext.SetSynchronizationContext(context);
+            try {
+                var task = test();
+                while (!task.IsCompleted) context.RunNext();
+                task.GetAwaiter().GetResult();
+            }
+            finally { SynchronizationContext.SetSynchronizationContext(previous); }
+        }
+
+        private sealed class TestUiContext : SynchronizationContext {
+            private readonly System.Collections.Concurrent.BlockingCollection<(SendOrPostCallback Callback, object? State)> _queue = new();
+            public override void Post(SendOrPostCallback callback, object? state) => _queue.Add((callback, state));
+            public void RunNext() {
+                Assert.True(_queue.TryTake(out var work, TimeSpan.FromSeconds(10)), "Catalog validation did not resume");
+                work.Callback(work.State);
+            }
         }
 
         [Fact]
@@ -253,19 +367,21 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             var scan = new ModScanTabVM();
             var catalog = new AvailableModsAndMapsService(manager, scan);
             PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
             Assert.Single(catalog.AvailableServerModBlueprints);
             using (var locked = File.Open(file.Result.PakPath, FileMode.Open, FileAccess.Read, FileShare.None)) {
                 await manager.UpdateModsList();
+                await catalog.WaitForCatalogAsync();
                 Assert.Single(catalog.AvailableServerModBlueprints);
-                catalog.RefreshCatalog();
+                await catalog.RefreshCatalogAsync();
                 Assert.Empty(catalog.AvailableServerModBlueprints);
             }
-            catalog.RefreshCatalog();
+            await catalog.RefreshCatalogAsync();
             Assert.Single(catalog.AvailableServerModBlueprints);
         }
 
         [Fact]
-        public void ManagedScanCannotResurrectActorWithoutEnabledRegistryProvider() {
+        public async Task ManagedScanCannotResurrectActorWithoutEnabledRegistryProvider() {
             using var file = new ScannedPak();
             var paks = new Mock<IPakDir>();
             paks.SetupGet(p => p.DirPath).Returns(Path.GetDirectoryName(file.Result.PakPath)!);
@@ -274,6 +390,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             var scan = new ModScanTabVM();
             var catalog = new AvailableModsAndMapsService(manager, scan);
             PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
             Assert.Empty(catalog.AvailableServerModBlueprints);
         }
 
@@ -303,6 +420,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             if (scanBeforeCatalog) PublishScan(scan, file.Scan);
             var catalog = new AvailableModsAndMapsService(manager, scan);
             if (!scanBeforeCatalog) PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
             Assert.Equal(enabled ? 1 : 0, catalog.AvailableServerModBlueprints.Count);
             if (enabled) Assert.Equal("Registry menu", catalog.AvailableServerModBlueprints.Single().ModName);
 
@@ -311,6 +429,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             File.WriteAllText(file.Result.PakPath, "changed");
             File.SetLastWriteTimeUtc(file.Result.PakPath, modified.AddSeconds(2));
             await manager.UpdateModsList();
+            await catalog.WaitForCatalogAsync();
             Assert.Empty(catalog.AvailableServerModBlueprints);
             Assert.DoesNotContain(original.Maps[0], catalog.AvailableMaps);
 
@@ -319,23 +438,25 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             actor.Properties["ModName"] = "Scanned menu";
             actor.Properties["ModVersion"] = "0.2.1";
             PublishScan(scan, file.Scan);
+            await catalog.WaitForCatalogAsync();
             var current = Assert.Single(catalog.AvailableServerModBlueprints);
             Assert.Equal("Scanned menu", current.ModName);
             Assert.Equal("0.2.1", current.Version);
             Assert.Empty(catalog.GetConfirmedInactiveSelections([current]));
-            catalog.RefreshCatalog();
+            await catalog.RefreshCatalogAsync();
             Assert.Same(current, Assert.Single(catalog.AvailableServerModBlueprints));
             var restarted = new AvailableModsAndMapsService(manager, scan);
+            await restarted.WaitForCatalogAsync();
             Assert.Equal("0.2.1", Assert.Single(restarted.AvailableServerModBlueprints).Version);
 
             // Returning to the registered bytes restores the normal enable/disable policy.
             File.WriteAllText(file.Result.PakPath, "scanned");
             File.SetLastWriteTimeUtc(file.Result.PakPath, modified.AddSeconds(2));
-            catalog.RefreshCatalog();
+            await catalog.RefreshCatalogAsync();
             Assert.Equal(enabled ? 1 : 0, catalog.AvailableServerModBlueprints.Count);
             if (enabled) Assert.Equal("Registry menu", catalog.AvailableServerModBlueprints.Single().ModName);
             File.Delete(file.Result.PakPath);
-            catalog.RefreshCatalog();
+            await catalog.RefreshCatalogAsync();
             Assert.Empty(catalog.AvailableServerModBlueprints);
         }
 

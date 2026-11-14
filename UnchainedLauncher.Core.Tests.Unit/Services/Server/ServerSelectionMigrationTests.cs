@@ -242,7 +242,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
         });
 
         [Fact]
-        public void ClassPathIdentityDeduplicatesJsonCheckboxesAndLaunchDespiteMetadataChanges() => ui.Run(() => {
+        public Task ClassPathIdentityDeduplicatesJsonCheckboxesAndLaunchDespiteMetadataChanges() => ui.RunAsync(async () => {
             var old = Blueprint("IdentityActor");
             var current = old with { Version = "2", Hash = "new", ModName = "Renamed", ClassPath = old.ClassPath!.ToUpperInvariant() };
             var mod = Mod("IdentityMod", current);
@@ -262,15 +262,15 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             Assert.Equal(true, converter.Convert([current, config.EnabledServerModList], typeof(bool), null!, System.Globalization.CultureInfo.InvariantCulture));
             var unknown = Blueprint("UnknownActor");
             config.EnabledServerModList.Add(unknown);
-            Assert.Equal(current, Assert.Single(config.PrepareServerBlueprintsForLaunch()));
+            Assert.Equal(current, Assert.Single(await config.PrepareServerBlueprintsForLaunchAsync()));
             Assert.Equal(new[] { current, unknown }, config.EnabledServerModList);
-            Assert.Equal(current, Assert.Single(config.PrepareServerBlueprintsForLaunch()));
+            Assert.Equal(current, Assert.Single(await config.PrepareServerBlueprintsForLaunchAsync()));
             config.DisableServerBlueprintMod(old);
             Assert.Equal(unknown, Assert.Single(config.EnabledServerModList));
         });
 
         [Fact]
-        public void DisablingReleaseCleansOwnedPreferencesButRetainsUnknownActorsAndSharedProviders() => ui.Run(() => {
+        public Task DisablingReleaseCleansOwnedPreferencesButRetainsUnknownActorsAndSharedProviders() => ui.RunAsync(async () => {
             var actor = Blueprint("OwnedActor");
             var unknown = Blueprint("UnknownActor");
             var first = Mod("FirstProvider", actor);
@@ -284,17 +284,17 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             config.EnabledServerModList.Add(unknown);
             manager.DisableModRelease(ReleaseCoordinates.FromRelease(first.Releases.First()));
             Assert.Equal(2, config.EnabledServerModList.Count);
-            Assert.Single(config.PrepareServerBlueprintsForLaunch());
+            Assert.Single(await config.PrepareServerBlueprintsForLaunchAsync());
             manager.DisableModRelease(ReleaseCoordinates.FromRelease(second.Releases.First()));
             Assert.Equal(unknown, Assert.Single(config.EnabledServerModList));
-            Assert.Empty(config.PrepareServerBlueprintsForLaunch());
+            Assert.Empty(await config.PrepareServerBlueprintsForLaunchAsync());
             Assert.Equal(unknown, Assert.Single(Decode(codec, codec.Serialize(configs))[0].EnabledServerModList));
         });
 
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void LaunchPrunesOnlyConfirmedDisabledActors(bool unresolvedParent) => ui.Run(() => {
+        public Task LaunchPrunesOnlyConfirmedDisabledActors(bool unresolvedParent) => ui.RunAsync(async () => {
             var actor = Blueprint("DependencyActor");
             var dependency = Mod("Dependency", actor);
             var parent = Mod("Parent");
@@ -307,7 +307,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             var codec = Codec(manager);
             var configs = Decode(codec, "[{\"Name\":\"UnresolvedParent\"}]");
             configs[0].EnabledServerModList.Add(actor);
-            Assert.Empty(configs[0].PrepareServerBlueprintsForLaunch());
+            Assert.Empty(await configs[0].PrepareServerBlueprintsForLaunchAsync());
             Assert.Equal(unresolvedParent ? 1 : 0, configs[0].EnabledServerModList.Count);
             Assert.Equal(unresolvedParent ? 1 : 0, Decode(codec, codec.Serialize(configs))[0].EnabledServerModList.Count);
         });
@@ -337,21 +337,21 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             var codec = Codec(manager);
             var configs = Decode(codec, "[{\"Name\":\"PartialDependencies\"}]");
             configs[0].EnableServerBlueprintMod(actor);
-            Assert.Equal(actor, Assert.Single(configs[0].PrepareServerBlueprintsForLaunch()));
+            Assert.Equal(actor, Assert.Single(await configs[0].PrepareServerBlueprintsForLaunchAsync()));
             registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult(
                 [RegistryMetadataException.PackageListRetrieval("middle-offline", LanguageExt.Prelude.None)],
                 emptyReleases ? [parent, middle with { Releases = [] }, leaf] : [parent, leaf]));
             Assert.True((await manager.UpdateModsList()).HasErrors);
-            Assert.Empty(configs[0].PrepareServerBlueprintsForLaunch());
+            Assert.Empty(await configs[0].PrepareServerBlueprintsForLaunchAsync());
             configs = Decode(codec, codec.Serialize(configs));
             Assert.Equal(actor, Assert.Single(configs[0].EnabledServerModList));
-            Assert.Empty(configs[0].PrepareServerBlueprintsForLaunch());
+            Assert.Empty(await configs[0].PrepareServerBlueprintsForLaunchAsync());
             registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult([], [parent, middle, leaf]));
             Assert.False((await manager.UpdateModsList()).HasErrors);
-            Assert.Equal(actor, Assert.Single(configs[0].PrepareServerBlueprintsForLaunch()));
+            Assert.Equal(actor, Assert.Single(await configs[0].PrepareServerBlueprintsForLaunchAsync()));
             Assert.True(manager.DisableModRelease(coordinates));
             Assert.Empty(configs[0].EnabledServerModList);
-            Assert.Empty(configs[0].PrepareServerBlueprintsForLaunch());
+            Assert.Empty(await configs[0].PrepareServerBlueprintsForLaunchAsync());
         });
 
         private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject {

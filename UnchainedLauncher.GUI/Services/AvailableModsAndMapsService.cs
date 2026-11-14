@@ -9,6 +9,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods;
@@ -29,11 +31,15 @@ public class AvailableModsAndMapsService {
     public event EventHandler? ModStateChanged;
 
     private PakDirManifest? _cachedScanManifest = null;
-    private readonly Dictionary<string, (string Hash, long Length, DateTime Modified)> _validatedScanFiles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, (string Hash, long Length, DateTime Modified, string? ScanHash)> _validatedScanFiles = new(StringComparer.OrdinalIgnoreCase);
     private readonly IModManager _modManager;
     private readonly IUnmanagedPakSettings? _settings;
     private readonly List<MapDto> _defaultMaps;
     private readonly Dictionary<string, BlueprintDto> _serverBlueprintsBySource = new(StringComparer.OrdinalIgnoreCase);
+    private readonly SemaphoreSlim _validationLock = new(1, 1);
+    private int _refreshVersion;
+    private bool _forceValidationPending;
+    private Task _pendingRefresh = Task.CompletedTask;
 
     public AvailableModsAndMapsService(IModManager modManager, ModScanTabVM modScanTab, IUnmanagedPakSettings? settings = null) {
         _modManager = modManager;
@@ -56,14 +62,15 @@ public class AvailableModsAndMapsService {
     }
 
     // UpdateModsList resumes on its caller's UI context, just like enable/disable and scan updates.
-    private void OnMetadataRefreshed(object? sender, EventArgs args) => ReconcileCatalog();
+    private void OnMetadataRefreshed(object? sender, EventArgs args) => RequestRefresh();
 
-    private void OnModStateChanged() {
-        ReconcileCatalog();
+    private async void OnModStateChanged() {
+        await RequestRefresh();
+        await WaitForCatalogAsync();
         ModStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    private void ReconcileCatalog(bool verifyHashes = false) {
+    private void ReconcileCatalog(IReadOnlyDictionary<string, string?>? hashes = null) {
         var releases = _modManager.GetEnabledAndDependencyReleases(includeDependencies: _settings?.AutomaticallyDownloadPakDependencies ?? true).ToList();
         var inactivePaths = _modManager.Mods.SelectMany(mod => mod.Releases)
             .SelectMany(release => release.Manifest.RelevantBlueprints())
@@ -72,15 +79,7 @@ public class AvailableModsAndMapsService {
             .Select(ServerBlueprintIdentity.Key));
         var scannedPaks = _cachedScanManifest?.Paks.Where(pak => !string.IsNullOrWhiteSpace(pak.PakPath)).ToList() ?? [];
         var scannedPaths = scannedPaks.Select(pak => Path.GetFullPath(pak.PakPath)).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var hashes = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        string? CurrentHash(string path) {
-            path = Path.GetFullPath(path);
-            if (!hashes.TryGetValue(path, out var hash)) {
-                hash = GetCurrentHash(path, verifyHashes);
-                hashes[path] = hash;
-            }
-            return hash;
-        }
+        string? CurrentHash(string path) => hashes != null && hashes.TryGetValue(Path.GetFullPath(path), out var hash) ? hash : null;
         // Unknown ownership stays conservative; known ownership must match the bytes on disk.
         // Registry-only catalogs still do not read the pak inventory or files.
         var managedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -89,7 +88,7 @@ public class AvailableModsAndMapsService {
             foreach (var pak in _modManager.PakDir.ManagedPaks) {
                 var path = Path.GetFullPath(Path.Combine(_modManager.PakDir.DirPath, pak.PakFileName));
                 if (!scannedPaths.Contains(path)) continue;
-                var release = _modManager.GetRelease(pak.Coordinates).ToList().FirstOrDefault();
+                var release = _modManager.GetRelease(pak.Coordinates).FirstOrDefault();
                 var hash = CurrentHash(path);
                 if (release != null && !string.IsNullOrWhiteSpace(release.ReleaseHash) && hash != null
                     && !string.Equals(hash, release.ReleaseHash, StringComparison.OrdinalIgnoreCase))
@@ -127,7 +126,51 @@ public class AvailableModsAndMapsService {
     }
 
     // External pak changes do not raise mod-manager events.
-    public void RefreshCatalog() => ReconcileCatalog(verifyHashes: true);
+    public async Task RefreshCatalogAsync() {
+        // A scan or toggle during validation must not let launch use an older snapshot.
+        await RequestRefresh(verifyHashes: true);
+        await WaitForCatalogAsync();
+    }
+
+    public async Task WaitForCatalogAsync() {
+        Task refresh;
+        do {
+            refresh = _pendingRefresh;
+            await refresh;
+        } while (refresh != _pendingRefresh);
+    }
+
+    private Task RequestRefresh(bool verifyHashes = false) {
+        var version = ++_refreshVersion;
+        // Carry a launch's forced validation through superseding scan/toggle requests.
+        _forceValidationPending |= verifyHashes;
+        var paths = _cachedScanManifest?.Paks.Where(pak => !string.IsNullOrWhiteSpace(pak.PakPath))
+            .Select(pak => (Path: Path.GetFullPath(pak.PakPath), ScanHash: pak.PakHash))
+            .DistinctBy(pak => pak.Path, StringComparer.OrdinalIgnoreCase).ToArray() ?? [];
+        // Registry-only catalogs stay synchronous and never touch the disk.
+        if (paths.Length == 0) {
+            _forceValidationPending = false;
+            ReconcileCatalog();
+            return _pendingRefresh = Task.CompletedTask;
+        }
+        return _pendingRefresh = ValidateAndReconcileAsync(paths, version, _forceValidationPending);
+    }
+
+    private async Task ValidateAndReconcileAsync((string Path, string? ScanHash)[] paths, int version, bool verifyHashes) {
+        var hashes = await Task.Run(async () => {
+            await _validationLock.WaitAsync();
+            try {
+                if (version != Volatile.Read(ref _refreshVersion)) return null;
+                return paths.ToDictionary(pak => pak.Path, pak => GetCurrentHash(pak.Path, pak.ScanHash, verifyHashes), StringComparer.OrdinalIgnoreCase);
+            }
+            finally { _validationLock.Release(); }
+        });
+        // Resume on the caller's UI context; obsolete work never changes bound collections.
+        if (version == _refreshVersion && hashes != null) {
+            _forceValidationPending = false;
+            ReconcileCatalog(hashes);
+        }
+    }
 
     public BlueprintDto[] GetConfirmedInactiveSelections(IEnumerable<BlueprintDto> selections) {
         // Incomplete dependency metadata is not evidence of disablement.
@@ -144,21 +187,22 @@ public class AvailableModsAndMapsService {
         return selections.Where(actor => inactivePaths.Contains(ServerBlueprintIdentity.Key(actor))).ToArray();
     }
 
-    private string? GetCurrentHash(string path, bool verifyHash) {
+    private string? GetCurrentHash(string path, string? scanHash, bool verifyHash) {
         try {
             var file = new FileInfo(path);
             if (!file.Exists) {
                 _validatedScanFiles.Remove(path);
                 return null;
             }
-            // Toggle/metadata events reuse validation; launch rehashes even if metadata is unchanged.
+            // Unchanged scans/toggles reuse validation; new scan identity and launch verify bytes.
             if (!verifyHash && _validatedScanFiles.TryGetValue(path, out var validated)
+                && string.Equals(validated.ScanHash, scanHash, StringComparison.OrdinalIgnoreCase)
                 && validated.Length == file.Length && validated.Modified == file.LastWriteTimeUtc)
                 return validated.Hash;
             _validatedScanFiles.Remove(path);
             using var stream = File.OpenRead(path);
             var hash = Convert.ToHexString(SHA512.HashData(stream));
-            _validatedScanFiles[path] = (hash, file.Length, file.LastWriteTimeUtc);
+            _validatedScanFiles[path] = (hash, file.Length, file.LastWriteTimeUtc, scanHash);
             return hash;
         }
         catch (IOException) { return null; }
@@ -201,7 +245,6 @@ public class AvailableModsAndMapsService {
         Logger.Debug("Processing latest scan...");
 
         _cachedScanManifest = scanResult == null ? null : ModManifestConverter.ProcessModScan(scanResult);
-        _validatedScanFiles.Clear();
-        ReconcileCatalog();
+        _ = RequestRefresh();
     }
 }

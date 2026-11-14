@@ -1,5 +1,4 @@
 using Semver;
-using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.GUI.ViewModels.Installer;
 
 namespace System.Windows {

@@ -209,8 +209,12 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="Orientation" Value="Vertical">
-                            <Setter TargetName="PART_Indicator" Property="HorizontalAlignment" Value="Stretch" />
-                            <Setter TargetName="PART_Indicator" Property="VerticalAlignment" Value="Bottom" />
+                            <!-- WPF always sizes PART_Indicator.Width; rotate its track for vertical fill. -->
+                            <Setter TargetName="PART_Track" Property="LayoutTransform">
+                                <Setter.Value>
+                                    <RotateTransform Angle="-90" />
+                                </Setter.Value>
+                            </Setter>
                         </Trigger>
                         <Trigger Property="IsIndeterminate" Value="True">
                             <Trigger.EnterActions>

@@ -58,12 +58,40 @@ public class ProgressBarThemeTests(HomeLaunchUi ui) {
             progress.IsEnabled = false;
             Flush();
             Assert.Equal(0.5, surface.Opacity);
-            progress.Orientation = Orientation.Vertical;
-            progress.Width = 16;
-            progress.Height = 60;
-            Flush();
-            Assert.Equal(track.ActualHeight / 2, indicator.ActualHeight, 3);
-            Assert.Equal(VerticalAlignment.Bottom, indicator.VerticalAlignment);
+            foreach (var orientation in new[] { Orientation.Vertical, Orientation.Horizontal }) {
+                progress.Orientation = orientation;
+                progress.Width = orientation == Orientation.Vertical ? 16 : 160;
+                progress.Height = orientation == Orientation.Vertical ? 60 : 12;
+                foreach (var value in new[] { 10d, 60d, 110d }) {
+                    progress.Value = value;
+                    Flush();
+                    AssertFill((value - 10) / 100);
+                }
+                progress.IsIndeterminate = true;
+                Flush();
+                AssertFill(1);
+                Assert.True(indicator.HasAnimatedProperties);
+                progress.IsIndeterminate = false;
+                progress.Value = 60;
+                Flush();
+                AssertFill(0.5);
+                Assert.False(indicator.HasAnimatedProperties);
+
+                void AssertFill(double fraction) {
+                    var trackBounds = track.TransformToAncestor(surface).TransformBounds(new Rect(track.RenderSize));
+                    var fillBounds = indicator.TransformToAncestor(surface).TransformBounds(new Rect(indicator.RenderSize));
+                    if (orientation == Orientation.Vertical) {
+                        Assert.Equal(trackBounds.Height * fraction, fillBounds.Height, 3);
+                        Assert.Equal(trackBounds.Bottom, fillBounds.Bottom, 3);
+                        Assert.Equal(trackBounds.Width, fillBounds.Width, 3);
+                    }
+                    else {
+                        Assert.Equal(trackBounds.Width * fraction, fillBounds.Width, 3);
+                        Assert.Equal(trackBounds.Left, fillBounds.Left, 3);
+                        Assert.Equal(trackBounds.Height, fillBounds.Height, 3);
+                    }
+                }
+            }
         }
         finally {
             window?.Close();

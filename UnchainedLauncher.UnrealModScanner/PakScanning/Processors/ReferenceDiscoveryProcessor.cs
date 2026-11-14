@@ -4,7 +4,6 @@ using CUE4Parse.UE4.Objects.UObject;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.AssetSources;
 using UnchainedLauncher.UnrealModScanner.Models.Dto;

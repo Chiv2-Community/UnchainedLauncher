@@ -80,7 +80,7 @@ public static class PakScanCache {
                 if (hash == null) continue;
                 hashes[path] = hash;
                 var json = cache.ReadScan(path, hash, identity);
-                var dependencies = cache.ReadDependencies(path);
+                var dependencies = json == null ? null : cache.ReadDependencies(path);
                 if (json != null && (dependencies == null || !dependencies.Matches(inventory,
                     name => cachedOnly ? null : ReadIndex(name)))) json = null;
                 var pak = json == null ? null : DeserializeScan(Path.GetFileName(path), json);

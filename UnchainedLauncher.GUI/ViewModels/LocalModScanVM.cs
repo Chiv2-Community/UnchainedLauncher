@@ -67,12 +67,12 @@ public partial class LocalModScanVM : ObservableObject {
                 var options = Scanner.LoadedConfig ?? GameScanOptions.Chivalry2;
                 var paths = Directory.GetFiles(PakDirectory, "*.pak")
                     .Where(path => !options.VanillaPakNames.Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase))
-                    .Select(Path.GetFullPath).ToArray();
+                    .Select(Path.GetFullPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
                 var ownership = manager.PakDir.ManagedPaks.Select(pak => (
                     Path: Path.GetFullPath(Path.Combine(PakDirectory, pak.PakFileName)),
                     Release: manager.GetRelease(pak.Coordinates).FirstOrDefault())).ToArray();
                 var hashes = await PakScanCache.GetHashesAsync(ownership
-                    .Where(pak => paths.Contains(pak.Path, StringComparer.OrdinalIgnoreCase)
+                    .Where(pak => paths.Contains(pak.Path)
                         && !string.IsNullOrWhiteSpace(pak.Release?.ReleaseHash)).Select(pak => pak.Path));
                 var managed = ownership.Where(pak => {
                     var (path, release) = pak;
@@ -82,7 +82,8 @@ public partial class LocalModScanVM : ObservableObject {
                         || string.Equals(hash, release.ReleaseHash, StringComparison.OrdinalIgnoreCase);
                 }).Select(pak => pak.Path)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                var unmanaged = paths.Where(path => !managed.Contains(path)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var unmanaged = paths;
+                unmanaged.ExceptWith(managed);
                 HasUnmanagedPaks = unmanaged.Count > 0;
                 if (!HasUnmanagedPaks) {
                     HasUnscannedPaks = false;

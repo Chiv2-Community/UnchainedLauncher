@@ -274,9 +274,9 @@ public class AvailableModsAndMapsService : IDisposable {
     }
 
     public BlueprintDto[] GetConfirmedInactiveSelections(IEnumerable<BlueprintDto> selections) {
-        var deletedPaths = _deletedLocalBlueprints.Except(AvailableServerModBlueprints.Select(ServerBlueprintIdentity.Key),
-            StringComparer.OrdinalIgnoreCase).Except(_unchangedLocalBlueprints, StringComparer.OrdinalIgnoreCase)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var deletedPaths = new HashSet<string>(_deletedLocalBlueprints, StringComparer.OrdinalIgnoreCase);
+        deletedPaths.ExceptWith(AvailableServerModBlueprints.Select(ServerBlueprintIdentity.Key));
+        deletedPaths.ExceptWith(_unchangedLocalBlueprints);
         // Incomplete dependency metadata is not evidence of disablement.
         if (_modManager.EnabledModReleaseCoordinates.Any(coordinates => _modManager.GetRelease(coordinates).IsNone)
             || _modManager.GetEnabledAndDependencyReleases(includeDependencies: _settings?.AutomaticallyDownloadPakDependencies ?? true)

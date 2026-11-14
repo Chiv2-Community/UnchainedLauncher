@@ -11,6 +11,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using UnchainedLauncher.Core.Extensions;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -23,11 +24,12 @@ using UnchainedLauncher.UnrealModScanner.Services;
 namespace UnchainedLauncher.GUI.Services;
 
 [AddINotifyPropertyChangedInterface]
-public class AvailableModsAndMapsService {
+public class AvailableModsAndMapsService : IDisposable {
     private static readonly ILog Logger = LogManager.GetLogger(nameof(AvailableModsAndMapsService));
 
     public ObservableCollection<MapDto> AvailableMaps { get; }
     public ObservableCollection<BlueprintDto> AvailableServerModBlueprints { get; }
+    public ObservableCollection<ServerModActorVM> AvailableServerModActors { get; }
     public LocalModScanVM LocalModScan { get; }
     public event EventHandler? ModStateChanged;
 
@@ -35,12 +37,85 @@ public class AvailableModsAndMapsService {
     private readonly IModManager _modManager;
     private readonly IUnmanagedPakSettings? _settings;
     private readonly List<MapDto> _defaultMaps;
-    private readonly Dictionary<string, BlueprintDto> _serverBlueprintsBySource = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ServerModActorVM> _serverActorsBySource = new(StringComparer.OrdinalIgnoreCase);
     private readonly SemaphoreSlim _validationLock = new(1, 1);
     private int _refreshVersion;
     private Task _pendingRefresh = Task.CompletedTask;
     private readonly Task _initialScan;
     private readonly ModScanTabVM _modScanTab;
+    private FileSystemWatcher? _pakWatcher;
+    private DispatcherTimer? _pakRefreshTimer;
+    private Task _localRefresh = Task.CompletedTask;
+    private bool _localRefreshRequested;
+    private bool _disposed;
+    private readonly HashSet<string> _deletedLocalBlueprints = new(StringComparer.OrdinalIgnoreCase);
+
+    public void StartWatchingLocalPaks() {
+        var directory = _modScanTab.DefaultPakDirectory;
+        if (_disposed || _pakWatcher != null || directory == null || !Directory.Exists(directory)) return;
+        var dispatcher = Dispatcher.CurrentDispatcher;
+        _pakRefreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        _pakRefreshTimer.Tick += async (_, _) => {
+            _pakRefreshTimer.Stop();
+            await RefreshLocalPaksAsync();
+        };
+        void QueueRefresh() => dispatcher.InvokeAsync(() => {
+            if (_disposed) return;
+            _pakRefreshTimer.Stop();
+            _pakRefreshTimer.Start();
+        });
+        try {
+            _pakWatcher = new FileSystemWatcher(directory, "*.pak") {
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.Size
+            };
+            _pakWatcher.Created += (_, _) => QueueRefresh();
+            _pakWatcher.Deleted += (_, _) => QueueRefresh();
+            _pakWatcher.Changed += (_, _) => QueueRefresh();
+            _pakWatcher.Renamed += (_, _) => QueueRefresh();
+            _pakWatcher.Error += (_, _) => QueueRefresh();
+            _pakWatcher.EnableRaisingEvents = true;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
+            _pakWatcher?.Dispose();
+            _pakWatcher = null;
+            Logger.Warn("Could not watch the local pak directory.", error);
+        }
+    }
+
+    public Task RefreshLocalPaksAsync() {
+        if (_disposed) return Task.CompletedTask;
+        _localRefreshRequested = true;
+        if (_localRefresh.IsCompleted) _localRefresh = RefreshLocalPaksCoreAsync();
+        return _localRefresh;
+    }
+
+    private async Task RefreshLocalPaksCoreAsync() {
+        do {
+            _localRefreshRequested = false;
+            try {
+                await _initialScan;
+                await _modScanTab.WaitForScanAsync();
+                var previousPaks = _cachedScanManifest?.Paks.ToArray() ?? [];
+                var deletedActors = await Task.Run(() => previousPaks
+                    .Where(pak => !string.IsNullOrWhiteSpace(pak.PakPath) && !File.Exists(pak.PakPath))
+                    .SelectMany(pak => pak.Inventory.RelevantBlueprints()).Select(ServerBlueprintIdentity.Key).ToArray());
+                await _modScanTab.RefreshCachedAsync();
+                await LocalModScan.RefreshAsync();
+                await RefreshCatalogAsync();
+                _deletedLocalBlueprints.UnionWith(deletedActors);
+                ModStateChanged?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception error) {
+                Logger.Warn("Could not refresh collections after a local pak change.", error);
+            }
+        } while (_localRefreshRequested && !_disposed);
+    }
+
+    public void Dispose() {
+        _disposed = true;
+        _pakWatcher?.Dispose();
+        _pakRefreshTimer?.Stop();
+    }
 
     public AvailableModsAndMapsService(IModManager modManager, ModScanTabVM modScanTab, IUnmanagedPakSettings? settings = null) {
         _modManager = modManager;
@@ -50,6 +125,7 @@ public class AvailableModsAndMapsService {
         _defaultMaps = GetDefaultMaps().ToList();
         AvailableMaps = new ObservableCollection<MapDto>();
         AvailableServerModBlueprints = new ObservableCollection<BlueprintDto>();
+        AvailableServerModActors = new ObservableCollection<ServerModActorVM>();
 
         modManager.ModDisabled += _ => OnModStateChanged();
         modManager.ModEnabled += (_, _) => OnModStateChanged();
@@ -111,30 +187,37 @@ public class AvailableModsAndMapsService {
             }
         }
         var manifests = releases.Select(release => (PakPath: _modManager.PakDir.GetManagedPakFilePath(ReleaseCoordinates.FromRelease(release))
-                .IfNone(() => Path.GetFullPath(Path.Combine(_modManager.PakDir.DirPath ?? "", release.PakFileName))), Inventory: release.Manifest, release.ReleaseHash))
+                .IfNone(() => Path.GetFullPath(Path.Combine(_modManager.PakDir.DirPath ?? "", release.PakFileName))), Inventory: release.Manifest,
+                release.ReleaseHash, Source: release.Info.Name))
             .Where(pak => !scannedPaths.Contains(Path.GetFullPath(pak.PakPath))
                 || string.Equals(CurrentHash(pak.PakPath), pak.ReleaseHash, StringComparison.OrdinalIgnoreCase))
-            .Select(pak => (pak.PakPath, pak.Inventory))
+            .Select(pak => (pak.PakPath, pak.Inventory, pak.Source))
             .Concat(scannedPaks.Where(pak => !managedPaths.Contains(Path.GetFullPath(pak.PakPath))
                 && !string.IsNullOrWhiteSpace(pak.PakHash)
                 && string.Equals(CurrentHash(pak.PakPath), pak.PakHash, StringComparison.OrdinalIgnoreCase))
                 .Select(pak => (pak.PakPath, Inventory: pak.Inventory with {
                     Blueprints = pak.Inventory.Blueprints.Where(actor => replacedPaths.Contains(Path.GetFullPath(pak.PakPath))
                         || !inactivePaths.Contains(ServerBlueprintIdentity.Key(actor))).ToList()
-                }))).ToList();
+                }, Source: Path.GetFileName(pak.PakPath)))).ToList();
         Reconcile(AvailableMaps, _defaultMaps.Concat(manifests.SelectMany(pak => pak.Inventory.RelevantMaps())));
         // Catalog identity is actor path plus physical pak path, not blueprint metadata.
         var actors = manifests.SelectMany(pak => pak.Inventory.RelevantBlueprints().Select(actor => (
-            Key: Path.GetFullPath(pak.PakPath) + "\0" + actor.Path.Replace('\\', '/'), Actor: actor)))
-            .DistinctBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase).ToDictionary(entry => entry.Key, entry => entry.Actor, StringComparer.OrdinalIgnoreCase);
-        foreach (var stale in _serverBlueprintsBySource.Where(entry => !actors.TryGetValue(entry.Key, out var actor) || actor != entry.Value).ToList()) {
-            var index = AvailableServerModBlueprints.ToList().FindIndex(actor => ReferenceEquals(actor, stale.Value));
+            Key: Path.GetFullPath(pak.PakPath) + "\0" + actor.Path.Replace('\\', '/'), Actor: actor, pak.Source)))
+            .DistinctBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase).ToDictionary(entry => entry.Key, entry => (entry.Actor, entry.Source), StringComparer.OrdinalIgnoreCase);
+        foreach (var stale in _serverActorsBySource.Where(entry => !actors.TryGetValue(entry.Key, out var actor) || actor.Actor != entry.Value.Blueprint).ToList()) {
+            var index = AvailableServerModBlueprints.ToList().FindIndex(actor => ReferenceEquals(actor, stale.Value.Blueprint));
             if (index >= 0) AvailableServerModBlueprints.RemoveAt(index);
-            _serverBlueprintsBySource.Remove(stale.Key);
+            AvailableServerModActors.Remove(stale.Value);
+            _serverActorsBySource.Remove(stale.Key);
         }
-        foreach (var entry in actors.Where(entry => !_serverBlueprintsBySource.ContainsKey(entry.Key))) {
-            _serverBlueprintsBySource.Add(entry.Key, entry.Value);
-            AvailableServerModBlueprints.Add(entry.Value);
+        foreach (var (key, actor) in actors) {
+            if (_serverActorsBySource.TryGetValue(key, out var existing)) existing.Source = actor.Source;
+            else {
+                var entry = new ServerModActorVM(actor.Actor, actor.Source);
+                _serverActorsBySource.Add(key, entry);
+                AvailableServerModBlueprints.Add(actor.Actor);
+                AvailableServerModActors.Add(entry);
+            }
         }
     }
 
@@ -184,17 +267,21 @@ public class AvailableModsAndMapsService {
     }
 
     public BlueprintDto[] GetConfirmedInactiveSelections(IEnumerable<BlueprintDto> selections) {
+        var deletedPaths = _deletedLocalBlueprints.Except(AvailableServerModBlueprints.Select(ServerBlueprintIdentity.Key),
+            StringComparer.OrdinalIgnoreCase).ToHashSet(StringComparer.OrdinalIgnoreCase);
         // Incomplete dependency metadata is not evidence of disablement.
         if (_modManager.EnabledModReleaseCoordinates.Any(coordinates => _modManager.GetRelease(coordinates).IsNone)
             || _modManager.GetEnabledAndDependencyReleases(includeDependencies: _settings?.AutomaticallyDownloadPakDependencies ?? true)
                 .SelectMany(release => _modManager.GetLatestRelease(ReleaseCoordinates.FromRelease(release)).ToList())
                 .SelectMany(release => release.Info.Dependencies)
-                .Any(dependency => _modManager.GetLatestRelease(ModIdentifier.FromDependency(dependency)).IsNone)) return [];
+                .Any(dependency => _modManager.GetLatestRelease(ModIdentifier.FromDependency(dependency)).IsNone))
+            return selections.Where(actor => deletedPaths.Contains(ServerBlueprintIdentity.Key(actor))).ToArray();
 
         var inactivePaths = _modManager.Mods.SelectMany(mod => mod.Releases)
             .SelectMany(release => release.Manifest.RelevantBlueprints())
             .Select(ServerBlueprintIdentity.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         inactivePaths.ExceptWith(AvailableServerModBlueprints.Select(ServerBlueprintIdentity.Key));
+        inactivePaths.UnionWith(deletedPaths);
         return selections.Where(actor => inactivePaths.Contains(ServerBlueprintIdentity.Key(actor))).ToArray();
     }
 

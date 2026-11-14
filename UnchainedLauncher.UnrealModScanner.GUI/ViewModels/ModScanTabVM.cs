@@ -27,12 +27,27 @@ public partial class ModScanTabVM : ObservableObject {
     private bool _isScanning;
     public bool IsNotScanning => !IsScanning;
     private Task scanTask = Task.CompletedTask;
+    private string? scanDirectory;
 
     public Task ScanAsync(string pakDir) => StartScan(pakDir, cachedOnly: false);
 
     public Task LoadCachedAsync() {
         var directory = DefaultPakDirectory;
         return directory != null && Directory.Exists(directory) ? StartScan(directory, cachedOnly: true) : Task.CompletedTask;
+    }
+
+    public async Task RefreshCachedAsync() {
+        await WaitForScanAsync();
+        var directory = scanDirectory ?? DefaultPakDirectory;
+        if (directory == null) return;
+        if (Directory.Exists(directory)) await StartScan(directory, cachedOnly: true);
+        else PublishResult(new ModScanResult(), directory);
+    }
+
+    private void PublishResult(ModScanResult result, string directory) {
+        scanDirectory = Path.GetFullPath(directory);
+        LastScanResult = result;
+        ResultsVisual = new PakScanResultVM(result);
     }
 
     public async Task WaitForScanAsync() {
@@ -49,8 +64,7 @@ public partial class ModScanTabVM : ObservableObject {
         try {
             var progress = new Progress<double>(percent => ScanProgress = percent);
             var result = await PakScanCache.ScanAsync(pakDir, LoadedConfig ?? GameScanOptions.Chivalry2, progress, cachedOnly);
-            LastScanResult = result;
-            ResultsVisual = new PakScanResultVM(result);
+            PublishResult(result, pakDir);
         }
         catch (Exception error) {
             Logger.Error($"Pak scan failed for '{pakDir}' (cachedOnly: {cachedOnly}). Previous results were retained.", error);

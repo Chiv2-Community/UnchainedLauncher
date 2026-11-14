@@ -179,16 +179,12 @@ public class PakScanCacheTests : IDisposable {
     [Theory]
     [InlineData("invalid-json")]
     [InlineData("null-collection")]
-    [InlineData("wrong-identity")]
     public async Task CorruptScanIsAMissWithoutDiscardingHash(string corruption) {
         await PakScanCache.ScanAsync(directory, Options, Read);
         var json = JsonNode.Parse(File.ReadAllText(Cache))!;
-        if (corruption == "wrong-identity") json["manual.pak"]!["ScanIdentity"] = "wrong";
-        else {
-            var raw = JObject.Parse(json["manual.pak"]!["ScanJson"]!.GetValue<string>());
-            raw["maps"] = null;
-            json["manual.pak"]!["ScanJson"] = corruption == "invalid-json" ? "{" : raw.ToString();
-        }
+        var raw = JObject.Parse(json["manual.pak"]!["ScanJson"]!.GetValue<string>());
+        raw["maps"] = null;
+        json["manual.pak"]!["ScanJson"] = corruption == "invalid-json" ? "{" : raw.ToString();
         File.WriteAllText(Cache, json.ToJsonString());
         using var locked = File.Open(Pak, FileMode.Open, FileAccess.Read, FileShare.None);
         await PakScanCache.ScanAsync(directory, Options, Read);

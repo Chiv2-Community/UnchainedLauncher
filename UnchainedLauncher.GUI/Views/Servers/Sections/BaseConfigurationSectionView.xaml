@@ -97,6 +97,7 @@
 
             <ComboBox Grid.Row="1" Grid.Column="0"
                       ItemsSource="{Binding AvailableMaps}"
+                      behaviors:SearchableComboBoxBehavior.SortAlphabetically="True"
                       behaviors:SearchableComboBoxBehavior.TextConverter="{StaticResource MapToTravelStringConverter}"
                       SelectedItem="{Binding GameMode.MapToAdd, Mode=TwoWay}"
                       MinWidth="220"

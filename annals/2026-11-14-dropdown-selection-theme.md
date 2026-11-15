@@ -21,3 +21,7 @@ The new `SearchResultItemBase` in `UnchainedLauncher.GUI/Resources/Themes/Inputs
 - The supplied tool output reports 29 portable GUI tests passed, Windows-targeted unit projects built, and a Release publish succeeded before merging the remote formatter commit. The WPF style regression was compiled but not shown running. These checks do not verify the visual fix.
 - A Proton launch was initiated after publishing; the supplied response does not establish that the relaunched window rendered or that the updated selection was inspected. The publish preceded the formatting merge, so the launched binary is not proven to be the exact merged HEAD.
 - Validate selected, inactive, hovered and disabled rows in dark and light modes, including the version selector and theme switching, on Windows. Reconsider the template if visibility, accessibility, or existing item styling regresses. PR merge and release remain unverified.
+
+## Subsequent developments (2026-11-14)
+
+The WPF inactive-selection regression subsequently ran in passing Windows CI, and PR #196 merged. The earlier unexecuted-test and unverified-merge statements are historical; manual visual verification and release remain unestablished. See [alphabetical map dropdown results](2026-11-14-alphabetical-map-dropdowns.md).

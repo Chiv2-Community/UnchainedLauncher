@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
@@ -16,6 +17,12 @@ namespace UnchainedLauncher.GUI.Behaviors {
 
         public static readonly DependencyProperty TextConverterProperty = DependencyProperty.RegisterAttached(
             "TextConverter", typeof(IValueConverter), typeof(SearchableComboBoxBehavior));
+
+        public static readonly DependencyProperty SortAlphabeticallyProperty = DependencyProperty.RegisterAttached(
+            "SortAlphabetically", typeof(bool), typeof(SearchableComboBoxBehavior), new PropertyMetadata(false));
+
+        public static bool GetSortAlphabetically(DependencyObject target) => (bool)target.GetValue(SortAlphabeticallyProperty);
+        public static void SetSortAlphabetically(DependencyObject target, bool value) => target.SetValue(SortAlphabeticallyProperty, value);
 
         public static bool GetIsSearchBox(DependencyObject target) => (bool)target.GetValue(IsSearchBoxProperty);
         public static void SetIsSearchBox(DependencyObject target, bool value) => target.SetValue(IsSearchBoxProperty, value);
@@ -78,7 +85,9 @@ namespace UnchainedLauncher.GUI.Behaviors {
             private void Refresh() {
                 // A separate result list keeps filtering from clearing the bound ComboBox selection or shared views.
                 var previous = results.SelectedItem;
-                results.ItemsSource = combo.Items.Cast<object>().Where(item => FuzzySearch.Matches(Label(item), box.Text)).ToList();
+                IEnumerable<object> matches = combo.Items.Cast<object>().Where(item => FuzzySearch.Matches(Label(item), box.Text));
+                if (GetSortAlphabetically(combo)) matches = matches.OrderBy(Label, StringComparer.OrdinalIgnoreCase);
+                results.ItemsSource = matches.ToList();
                 results.SelectedItem = results.Items.Contains(previous) ? previous :
                     results.Items.Contains(combo.SelectedItem) ? combo.SelectedItem : null;
                 if (results.SelectedItem == null && results.Items.Count > 0) results.SelectedIndex = 0;

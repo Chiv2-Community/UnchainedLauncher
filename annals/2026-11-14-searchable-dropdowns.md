@@ -29,3 +29,5 @@ Reconsider the approach if Windows testing exposes selection, accessibility, sty
 ## Subsequent developments (2026-11-14)
 
 The implementation-uncommitted status and the statement in Implementation and rationale that no implementation commit exists are historical, now outdated: the implementation was committed and submitted for review. The decision remains accepted; interaction validation remains open. See [implementation and PR](2026-11-14-searchable-dropdowns-pr.md).
+
+Further review fixed Tab traversal and ran WPF regressions in Windows CI before merge. The blanket interaction-validation-open statement above is partially outdated; manual visual coverage remains open. See [alphabetical map dropdown results](2026-11-14-alphabetical-map-dropdowns.md).

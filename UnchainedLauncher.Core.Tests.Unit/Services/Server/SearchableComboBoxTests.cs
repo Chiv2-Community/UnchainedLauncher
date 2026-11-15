@@ -4,10 +4,46 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using UnchainedLauncher.Core.Tests.Unit.Services.Processes;
+using UnchainedLauncher.GUI.Behaviors;
+using UnchainedLauncher.GUI.Converters;
+using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
     [Collection("Home launch UI")]
     public class SearchableComboBoxTests(HomeLaunchUi ui) {
+        [Fact]
+        public void MapResultsSortByVisibleLabelWithoutReorderingSource() => ui.Run(() => {
+            MapDto Map(string folder, string label) => new($"TBL/Content/Maps/{folder}/{label}.umap",
+                "hash", null, null, null, "Unrelated display metadata", null, null, null, "FFA", null);
+            var zulu = Map("A", "TDM_zulu");
+            var beta = Map("B", "FFA_beta");
+            var alpha = Map("Z", "ffa_Alpha");
+            var maps = new ObservableCollection<MapDto> { zulu, beta, alpha };
+            var combo = CreateCombo(maps);
+            try {
+                SearchableComboBoxBehavior.SetTextConverter(combo, MapToTravelStringConverter.Instance);
+                SearchableComboBoxBehavior.SetSortAlphabetically(combo, true);
+                combo.SelectedItem = zulu;
+                var box = (TextBox)combo.Template.FindName("PART_SearchBox", combo);
+                var results = (ListBox)combo.Template.FindName("PART_SearchResults", combo);
+                combo.IsDropDownOpen = true;
+                Assert.Equal(new[] { alpha, beta, zulu }, results.Items.Cast<MapDto>());
+                box.Text = "ffa";
+                Assert.Equal(new[] { alpha, beta }, results.Items.Cast<MapDto>());
+                var aardvark = Map("Y", "FFA_aardvark");
+                maps.Add(aardvark);
+                Assert.Equal(new[] { aardvark, alpha, beta }, results.Items.Cast<MapDto>());
+                box.Clear();
+                Assert.Equal(new[] { aardvark, alpha, beta, zulu }, results.Items.Cast<MapDto>());
+                combo.IsDropDownOpen = false;
+                combo.IsDropDownOpen = true;
+                Assert.Equal(new[] { aardvark, alpha, beta, zulu }, results.Items.Cast<MapDto>());
+                Assert.Same(zulu, combo.SelectedItem);
+                Assert.Equal(new[] { zulu, beta, alpha, aardvark }, maps);
+            }
+            finally { Window.GetWindow(combo).Close(); }
+        });
+
         [Fact]
         public void InactiveSelectedResultsUseThemeBrushesAndFollowThemeChanges() => ui.Run(() => {
             var resources = new ResourceDictionary {

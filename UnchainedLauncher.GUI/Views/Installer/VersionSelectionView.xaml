@@ -35,9 +35,7 @@
                 SelectedItem="{Binding SelectedVersion}"
                 DisplayMemberPath="DisplayText">
                 <ComboBox.Resources>
-                    <Style x:Key="SearchResultItem" TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                        <Setter Property="Padding" Value="8,6" />
-                        <Setter Property="Focusable" Value="False" />
+                    <Style x:Key="SearchResultItem" TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource SearchResultItemBase}">
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsLatestStable}" Value="True">
                                 <Setter Property="FontWeight" Value="Bold" />

@@ -8,6 +8,28 @@ using UnchainedLauncher.GUI.Behaviors;
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
     public class SearchableComboBoxTests {
         [Fact]
+        public void InactiveSelectedResultsUseThemeBrushesAndFollowThemeChanges() => OnSta(() => {
+            var resources = new ResourceDictionary {
+                Source = new Uri("/UnchainedLauncher;component/Resources/Themes/Inputs.xaml", UriKind.Relative)
+            };
+            var item = new ListBoxItem { Content = "Selected option", Resources = resources,
+                Style = (Style)resources["SearchResultItem"], IsSelected = true };
+            item.ApplyTemplate();
+            var border = (Border)item.Template.FindName("ResultBorder", item);
+            Assert.False(System.Windows.Controls.Primitives.Selector.GetIsSelectionActive(item));
+
+            foreach (var theme in new[] { "DarkConstants.xaml", "LightConstants.xaml" }) {
+                resources.MergedDictionaries.Clear();
+                resources.MergedDictionaries.Add(new ResourceDictionary {
+                    Source = new Uri($"/UnchainedLauncher;component/Resources/Themes/{theme}", UriKind.Relative)
+                });
+                Assert.Same(resources["Brush.PrimaryTransparent"], border.Background);
+                Assert.Same(resources["Brush.Primary"], border.BorderBrush);
+                Assert.Same(resources["Brush.TextPrimary"], item.Foreground);
+            }
+        });
+
+        [Fact]
         public void FilteringPreservesSelectionBindingAndOtherSelectors() => OnSta(() => {
             var items = new ObservableCollection<string> { "Steam", "Epic Games Store", "Xbox Game Pass" };
             var model = new SelectionModel { Selection = "Steam" };

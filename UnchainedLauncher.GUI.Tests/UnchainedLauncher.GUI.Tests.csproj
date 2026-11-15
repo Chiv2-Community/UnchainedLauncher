@@ -18,6 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/Installer/*.cs" Link="Production/%(Filename)%(Extension)" />
+    <Compile Include="../UnchainedLauncher.GUI/Services/FuzzySearch.cs" Link="Production/FuzzySearch.cs" />
     <Compile Include="../UnchainedLauncher.Core/Services/IReleaseLocator.cs" Link="Production/IReleaseLocator.cs" />
     <Compile Include="../UnchainedLauncher.Core/Services/IVersionExtractor.cs" Link="Production/IVersionExtractor.cs" />
     <Compile Include="../UnchainedLauncher.Core/Extensions/SemVersionExtensions.cs" Link="Production/SemVersionExtensions.cs" />

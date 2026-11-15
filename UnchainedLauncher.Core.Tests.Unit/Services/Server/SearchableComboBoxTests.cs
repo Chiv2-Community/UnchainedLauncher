@@ -11,8 +11,12 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             var resources = new ResourceDictionary {
                 Source = new Uri("/UnchainedLauncher;component/Resources/Themes/Inputs.xaml", UriKind.Relative)
             };
-            var item = new ListBoxItem { Content = "Selected option", Resources = resources,
-                Style = (Style)resources["SearchResultItem"], IsSelected = true };
+            var item = new ListBoxItem {
+                Content = "Selected option",
+                Resources = resources,
+                Style = (Style)resources["SearchResultItem"],
+                IsSelected = true
+            };
             item.ApplyTemplate();
             var border = (Border)item.Template.FindName("ResultBorder", item);
             Assert.False(System.Windows.Controls.Primitives.Selector.GetIsSelectionActive(item));

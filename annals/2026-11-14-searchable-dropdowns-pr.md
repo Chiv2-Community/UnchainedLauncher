@@ -25,3 +25,7 @@ The existing choice remains: an independent result list avoids modifying the bou
 ## Subsequent developments (2026-11-14)
 
 The result-row styling described by the implementation was changed after a dark-mode report; the search design remains in place. The fix and its unverified visual status are recorded in [theme-aware dropdown selection](2026-11-14-dropdown-selection-theme.md).
+
+## Subsequent developments (2026-11-14): review and merge
+
+The earlier statements that WPF interaction tests had not run and merge was not established are historical. Review found and fixed a Tab trap and test initialization failure; Windows CI then passed and PR #196 merged. See [alphabetical map dropdown results](2026-11-14-alphabetical-map-dropdowns.md) for evidence and remaining visual limitations.

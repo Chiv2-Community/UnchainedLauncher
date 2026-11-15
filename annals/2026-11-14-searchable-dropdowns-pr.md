@@ -21,3 +21,7 @@ The existing choice remains: an independent result list avoids modifying the bou
 - The supplied tool output reports 29 portable GUI tests passed, Windows-targeted projects compiled, and a self-contained Release publish succeeded. The WPF interaction tests were not executed on Windows; builds and portable tests do not establish interactive correctness.
 - The supplied process listing shows the published executable and WebView process running under Proton. It does not establish that the window rendered correctly or that dropdown interactions were tested.
 - Validate selection, display labels, mouse and keyboard behavior, accessibility and shared sources on Windows. Reconsider the design if those checks expose regressions or users need a different fuzzy-matching definition. Merge and release are not established.
+
+## Subsequent developments (2026-11-14)
+
+The result-row styling described by the implementation was changed after a dark-mode report; the search design remains in place. The fix and its unverified visual status are recorded in [theme-aware dropdown selection](2026-11-14-dropdown-selection-theme.md).

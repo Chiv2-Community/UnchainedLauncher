@@ -178,6 +178,7 @@
                             </ToggleButton>
 
                             <TextBox x:Name="PART_SearchBox"
+                                     IsTabStop="False"
                                      behaviors:SearchableComboBoxBehavior.IsSearchBox="True"
                                      Background="Transparent"
                                      Foreground="{TemplateBinding Foreground}"

@@ -3,11 +3,13 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using UnchainedLauncher.Core.Tests.Unit.Services.Processes;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
-    public class SearchableComboBoxTests {
+    [Collection("Home launch UI")]
+    public class SearchableComboBoxTests(HomeLaunchUi ui) {
         [Fact]
-        public void InactiveSelectedResultsUseThemeBrushesAndFollowThemeChanges() => OnSta(() => {
+        public void InactiveSelectedResultsUseThemeBrushesAndFollowThemeChanges() => ui.Run(() => {
             var resources = new ResourceDictionary {
                 Source = new Uri("/UnchainedLauncher;component/Resources/Themes/Inputs.xaml", UriKind.Relative)
             };
@@ -33,7 +35,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
         });
 
         [Fact]
-        public void FilteringPreservesSelectionBindingAndOtherSelectors() => OnSta(() => {
+        public void FilteringPreservesSelectionBindingAndOtherSelectors() => ui.Run(() => {
             var items = new ObservableCollection<string> { "Steam", "Epic Games Store", "Xbox Game Pass" };
             var model = new SelectionModel { Selection = "Steam" };
             var combo = CreateCombo(items);
@@ -73,7 +75,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
         });
 
         [Fact]
-        public void LiveSourcesAndKeyboardNavigationUseVisibleLabels() => OnSta(() => {
+        public void LiveSourcesAndKeyboardNavigationUseVisibleLabels() => ui.Run(() => {
             var items = new ObservableCollection<Choice> { new("First choice"), new("Second choice") };
             var combo = CreateCombo(items);
             combo.DisplayMemberPath = nameof(Choice.Label);
@@ -97,6 +99,49 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             Window.GetWindow(combo).Close();
         });
 
+        [Theory]
+        [InlineData(FocusNavigationDirection.Next, false)]
+        [InlineData(FocusNavigationDirection.Previous, false)]
+        [InlineData(FocusNavigationDirection.Next, true)]
+        [InlineData(FocusNavigationDirection.Previous, true)]
+        public void TabTraversalLeavesComboWithoutCommittingSearch(FocusNavigationDirection direction, bool searchOpen) => ui.Run(() => {
+            var items = new[] { "Steam", "Epic Games Store", "Xbox Game Pass" };
+            var model = new SelectionModel { Selection = "Steam" };
+            var combo = CreateCombo(items);
+            var window = Window.GetWindow(combo);
+            try {
+                combo.SetBinding(ComboBox.SelectedItemProperty, new Binding(nameof(SelectionModel.Selection)) {
+                    Source = model,
+                    Mode = BindingMode.TwoWay
+                });
+                var before = new Button { Content = "Before" };
+                var after = new Button { Content = "After" };
+                window.Content = null;
+                window.Content = new StackPanel { Children = { before, combo, after } };
+                window.Activate();
+                window.UpdateLayout();
+                Assert.True(combo.Focus());
+                var box = (TextBox)combo.Template.FindName("PART_SearchBox", combo);
+                if (searchOpen) {
+                    combo.IsDropDownOpen = true;
+                    Assert.True(box.IsKeyboardFocused);
+                    box.Text = "egs";
+                    // Route the preview, then run the unhandled Tab's normal WPF focus traversal.
+                    Assert.False(Press(box, Key.Tab).Handled);
+                }
+                Assert.False(combo.IsDropDownOpen);
+                Assert.True(combo.IsKeyboardFocused);
+                Assert.True(combo.MoveFocus(new TraversalRequest(direction)));
+                Assert.Same(direction == FocusNavigationDirection.Next ? after : before, Keyboard.FocusedElement);
+                Assert.False(combo.IsDropDownOpen);
+                Assert.Empty(box.Text);
+                Assert.Equal("Steam", model.Selection);
+                Assert.Equal("Steam", combo.SelectedItem);
+                Assert.True(BindingOperations.IsDataBound(combo, ComboBox.SelectedItemProperty));
+            }
+            finally { window.Close(); }
+        });
+
         private static ComboBox CreateCombo(System.Collections.IEnumerable items) {
             var resources = new ResourceDictionary {
                 Source = new Uri("/UnchainedLauncher;component/Resources/Themes/Inputs.xaml", UriKind.Relative)
@@ -107,8 +152,13 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             return combo;
         }
 
-        private static void Press(UIElement target, Key key) => target.RaiseEvent(new KeyEventArgs(
-            Keyboard.PrimaryDevice, new StubPresentationSource(), 0, key) { RoutedEvent = Keyboard.PreviewKeyDownEvent });
+        private static KeyEventArgs Press(UIElement target, Key key) {
+            var args = new KeyEventArgs(Keyboard.PrimaryDevice, new StubPresentationSource(), 0, key) {
+                RoutedEvent = Keyboard.PreviewKeyDownEvent
+            };
+            target.RaiseEvent(args);
+            return args;
+        }
 
         private sealed class StubPresentationSource : PresentationSource {
             public override System.Windows.Media.Visual RootVisual { get; set; } = null!;
@@ -121,18 +171,5 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
         }
 
         private sealed record Choice(string Label);
-
-        private static void OnSta(Action action) {
-            Exception? error = null;
-            var thread = new Thread(() => {
-                try { action(); }
-                catch (Exception ex) { error = ex; }
-                finally { System.Windows.Threading.Dispatcher.CurrentDispatcher.InvokeShutdown(); }
-            });
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
-            thread.Join();
-            if (error != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
-        }
     }
 }

@@ -1,6 +1,7 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:conv="clr-namespace:UnchainedLauncher.GUI.Converters">
+                    xmlns:conv="clr-namespace:UnchainedLauncher.GUI.Converters"
+                    xmlns:behaviors="clr-namespace:UnchainedLauncher.GUI.Behaviors">
 
     <conv:RoundedRectClipConverter x:Key="RoundedRectClipConverter" />
 
@@ -83,7 +84,46 @@
         </Style.Triggers>
     </Style>
 
+    <Style x:Key="SearchResultItemBase" TargetType="ListBoxItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="ResultBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource Brush.LightTransparent}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource Brush.PrimaryTransparent}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.6" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SearchResultItem" TargetType="ListBoxItem" BasedOn="{StaticResource SearchResultItemBase}" />
+
     <Style TargetType="ComboBox">
+        <Setter Property="IsTextSearchEnabled" Value="False" />
         <Setter Property="Background" Value="{DynamicResource Brush.InputBackground}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.InputBorder}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.TextPrimary}" />
@@ -137,6 +177,24 @@
                                 </ToggleButton.Template>
                             </ToggleButton>
 
+                            <TextBox x:Name="PART_SearchBox"
+                                     IsTabStop="False"
+                                     behaviors:SearchableComboBoxBehavior.IsSearchBox="True"
+                                     Background="Transparent"
+                                     Foreground="{TemplateBinding Foreground}"
+                                     CaretBrush="{TemplateBinding Foreground}"
+                                     Padding="12,4,4,4"
+                                     BorderThickness="0"
+                                     VerticalContentAlignment="Center"
+                                     AutomationProperties.Name="Search options">
+                                <TextBox.Template>
+                                    <ControlTemplate TargetType="TextBox">
+                                        <ScrollViewer x:Name="PART_ContentHost" Background="{TemplateBinding Background}"
+                                                      Padding="{TemplateBinding Padding}" />
+                                    </ControlTemplate>
+                                </TextBox.Template>
+                            </TextBox>
+
                             <!-- Chevron icon -->
                             <Path Grid.Column="1"
                                   HorizontalAlignment="Center"
@@ -175,17 +233,29 @@
                                     <Border.Effect>
                                         <DropShadowEffect BlurRadius="12" ShadowDepth="3" Opacity="0.25" />
                                     </Border.Effect>
-                                    <ScrollViewer CanContentScroll="True"
-                                                  HorizontalScrollBarVisibility="Disabled"
-                                                  MaxHeight="{TemplateBinding MaxDropDownHeight}">
-                                        <ItemsPresenter />
-                                    </ScrollViewer>
+                                    <Grid>
+                                        <ListBox x:Name="PART_SearchResults"
+                                                 Focusable="False"
+                                                 BorderThickness="0"
+                                                 ItemContainerStyle="{DynamicResource SearchResultItem}"
+                                                 MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                                 ItemTemplate="{TemplateBinding ItemTemplate}"
+                                                 ItemTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                                 DisplayMemberPath="{TemplateBinding DisplayMemberPath}"
+                                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                 ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                                        <TextBlock x:Name="NoResults" Text="No matches" Margin="12,8" Visibility="Collapsed" />
+                                    </Grid>
                                 </Border>
                             </Grid>
                         </Popup>
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger SourceName="PART_SearchResults" Property="HasItems" Value="False">
+                            <Setter TargetName="NoResults" Property="Visibility" Value="Visible" />
+                        </Trigger>
                         <Trigger Property="IsDropDownOpen" Value="True">
+                            <Setter TargetName="ContentPresenter" Property="Visibility" Value="Hidden" />
                             <!-- Make the closed box and opened popup feel like one continuous rounded shape -->
                             <Setter TargetName="OuterBorder" Property="CornerRadius" Value="6,6,0,0" />
                             <Setter TargetName="OuterBorder" Property="BorderThickness" Value="1,1,1,0" />

@@ -97,6 +97,7 @@
 
             <ComboBox Grid.Row="1" Grid.Column="0"
                       ItemsSource="{Binding AvailableMaps}"
+                      behaviors:SearchableComboBoxBehavior.TextConverter="{StaticResource MapToTravelStringConverter}"
                       SelectedItem="{Binding GameMode.MapToAdd, Mode=TwoWay}"
                       MinWidth="220"
                       ToolTip="Add a map to the Maplist (repeat to add multiple maps).">

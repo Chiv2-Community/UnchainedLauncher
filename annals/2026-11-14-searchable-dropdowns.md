@@ -25,3 +25,7 @@ Evidence: `UnchainedLauncher.GUI/Resources/Themes/Inputs.xaml`, `UnchainedLaunch
 The supplied tool output reports 29 portable GUI tests passed and Windows-targeted GUI and regression projects compiled. It also reports dependency vulnerability warnings. WPF interaction tests were written and compiled, but not run on the Linux host; interactive Windows behavior remains unverified. Verify filtering, selections, label rendering, mouse and keyboard navigation, accessibility, shared data sources, and every actual dropdown on Windows before treating the feature as complete. The separate results list trades native ComboBox item handling for isolation; compatibility with existing item templates and styles needs validation.
 
 Reconsider the approach if Windows testing exposes selection, accessibility, styling, or performance regressions, or if users need a different definition of fuzzy matching. The source does not establish rejected alternatives, a release target, or subsequent acceptance, merge, or deployment.
+
+## Subsequent developments (2026-11-14)
+
+The implementation-uncommitted status and the statement in Implementation and rationale that no implementation commit exists are historical, now outdated: the implementation was committed and submitted for review. The decision remains accepted; interaction validation remains open. See [implementation and PR](2026-11-14-searchable-dropdowns-pr.md).

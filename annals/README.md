@@ -4,4 +4,5 @@ Reverse chronological index. See also the [keyword index](index.md).
 
 | Date | Record | Status | Scope | Git provenance |
 | --- | --- | --- | --- | --- |
-| 2026-11-14 | [Searchable dropdowns for the 1.0.x launcher](2026-11-14-searchable-dropdowns.md) | accepted; implementation uncommitted | 1.0.x launcher GUI | `be6b4b3cd76b52258cec7a78d1f12635794f9403` |
+| 2026-11-14 | [Searchable dropdown implementation and PR](2026-11-14-searchable-dropdowns-pr.md) | implemented on feature branch; interaction unverified | 1.0.x launcher GUI | `22782111d530fe250e3f16bedbd2282135f52e74` |
+| 2026-11-14 | [Searchable dropdowns for the 1.0.x launcher](2026-11-14-searchable-dropdowns.md) | accepted; implementation status updated in subsequent developments | 1.0.x launcher GUI | `be6b4b3cd76b52258cec7a78d1f12635794f9403` |

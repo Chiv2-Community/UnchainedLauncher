@@ -139,20 +139,25 @@ namespace UnchainedLauncher.GUI.Behaviors {
                 if (key == Key.F4 || ((Keyboard.Modifiers & ModifierKeys.Alt) != 0 && (key == Key.Up || key == Key.Down))) {
                     combo.IsDropDownOpen = !combo.IsDropDownOpen;
                     e.Handled = true;
-                } else if (e.Key == Key.Escape && combo.IsDropDownOpen) {
+                }
+                else if (e.Key == Key.Escape && combo.IsDropDownOpen) {
                     combo.IsDropDownOpen = false;
                     e.Handled = true;
-                } else if (e.Key == Key.Enter && combo.IsDropDownOpen) {
+                }
+                else if (e.Key == Key.Enter && combo.IsDropDownOpen) {
                     if (results.SelectedItem != null) Commit(results.SelectedItem);
                     e.Handled = true;
-                } else if (e.Key == Key.Tab && combo.IsDropDownOpen) {
+                }
+                else if (e.Key == Key.Tab && combo.IsDropDownOpen) {
                     // Close without committing an unchosen search result; preserve normal tab traversal.
                     combo.IsDropDownOpen = false;
-                } else if (e.Key == Key.Down || e.Key == Key.Up ||
+                }
+                else if (e.Key == Key.Down || e.Key == Key.Up ||
                            (combo.IsDropDownOpen && (e.Key == Key.PageDown || e.Key == Key.PageUp))) {
                     if (!combo.IsDropDownOpen) {
                         combo.IsDropDownOpen = true;
-                    } else if (results.Items.Count > 0) {
+                    }
+                    else if (results.Items.Count > 0) {
                         var step = e.Key == Key.PageDown ? 10 : e.Key == Key.PageUp ? -10 : e.Key == Key.Down ? 1 : -1;
                         results.SelectedIndex = Math.Clamp(results.SelectedIndex + step, 0, results.Items.Count - 1);
                         results.ScrollIntoView(results.SelectedItem);

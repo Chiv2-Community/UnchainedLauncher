@@ -3,7 +3,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using UnchainedLauncher.GUI.Behaviors;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
     public class SearchableComboBoxTests {
@@ -13,7 +12,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
             var model = new SelectionModel { Selection = "Steam" };
             var combo = CreateCombo(items);
             combo.SetBinding(ComboBox.SelectedItemProperty, new Binding(nameof(SelectionModel.Selection)) {
-                Source = model, Mode = BindingMode.TwoWay
+                Source = model,
+                Mode = BindingMode.TwoWay
             });
             var other = new ComboBox { ItemsSource = items, SelectedItem = "Steam" };
             var box = (TextBox)combo.Template.FindName("PART_SearchBox", combo);

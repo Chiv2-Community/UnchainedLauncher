@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnchainedLauncher.PakScanne
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnchainedLauncher.Installer.Tests", "UnchainedLauncher.Installer.Tests\UnchainedLauncher.Installer.Tests.csproj", "{EA2E604E-FBA2-4D4B-B2F0-AC558AC3C958}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnchainedLauncher.Instance.Tests", "UnchainedLauncher.Instance.Tests\UnchainedLauncher.Instance.Tests.csproj", "{6DA2FF62-836B-4351-A609-27B249943F8F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,6 +42,24 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Debug|x64.Build.0 = Debug|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Debug|x86.Build.0 = Debug|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Debug-FakeChivalryLaunch|Any CPU.ActiveCfg = Debug|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Debug-FakeChivalryLaunch|Any CPU.Build.0 = Debug|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Debug-FakeChivalryLaunch|x64.ActiveCfg = Debug|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Debug-FakeChivalryLaunch|x64.Build.0 = Debug|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Debug-FakeChivalryLaunch|x86.ActiveCfg = Debug|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Debug-FakeChivalryLaunch|x86.Build.0 = Debug|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Release|x64.ActiveCfg = Release|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Release|x64.Build.0 = Release|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Release|x86.ActiveCfg = Release|Any CPU
+		{6DA2FF62-836B-4351-A609-27B249943F8F}.Release|x86.Build.0 = Release|Any CPU
 		{EA2E604E-FBA2-4D4B-B2F0-AC558AC3C958}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{EA2E604E-FBA2-4D4B-B2F0-AC558AC3C958}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EA2E604E-FBA2-4D4B-B2F0-AC558AC3C958}.Debug|x64.ActiveCfg = Debug|Any CPU

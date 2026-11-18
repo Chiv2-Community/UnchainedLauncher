@@ -61,6 +61,9 @@ jobs:
     - name: Run Portable Installer Workflow Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Installer.Tests --logger:"console;verbosity=detailed"
 
+    - name: Run Installation Presence Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Instance.Tests --logger:"console;verbosity=detailed"
+
     - name: Run Scanner Configuration Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.PakScannerApp.Tests --logger:"console;verbosity=detailed"
 

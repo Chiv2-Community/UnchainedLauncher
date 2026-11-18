@@ -393,16 +393,18 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir {
         }
 
         [Fact]
-        public async Task SignatureCollisionRollsBackPakRenameAndPreservesUnknownSignature() {
+        public async Task SignatureMoveFailureRollsBackPakRenameAndPreservesUnknownDirectory() {
             await Install(NewPakDir(), _a);
             var unknownSignature = Path.Combine(_directory, "qz__-__A.sig");
-            File.WriteAllText(unknownSignature, "user signature");
+            Directory.CreateDirectory(unknownSignature);
+            var userFile = Path.Combine(unknownSignature, "user-file");
+            File.WriteAllText(userFile, "user contents");
             var results = await NewPakDir().InstallModSet(new[] {
                 new ModInstallRequest(_a, Write), new ModInstallRequest(_b, Write)
             }, Option<AccumulatedMemoryProgress>.None).ToListAsync();
 
             Assert.Contains(results, r => r.IsLeft);
-            Assert.Equal("user signature", File.ReadAllText(unknownSignature));
+            Assert.Equal("user contents", File.ReadAllText(userFile));
             Assert.All(ReadInventory(), p => Assert.True(File.Exists(Path.Combine(_directory, p.PakFileName))));
             Assert.Equal("q__-__A.pak", ReadInventory().Single(p => p.Coordinates == _a).PakFileName);
         }

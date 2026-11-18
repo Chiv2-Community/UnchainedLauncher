@@ -479,16 +479,33 @@ public class PakReleaseRecoveryTests : IDisposable {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task SignatureRelocationCoalescesOnlyIdenticalSignatures(bool identical) {
+    public async Task SignatureOnlyDestinationPreservesExistingManagedPak(bool identical) {
         var wanted = Release("v1.0.0");
         var source = Write("q__-__Mod1 (9).pak", wanted.Tag);
         Write("q__-__Mod1 (9).sig", "signature");
         Write("q__-__Mod1.sig", identical ? "signature" : "conflict");
         var paks = new Core.Services.Mods.PakDir(_dir, [new ManagedPak(ReleaseCoordinates.FromRelease(wanted), Path.GetFileName(source), 7)]);
         var results = await paks.InstallModSet([new ModInstallRequest(ReleaseCoordinates.FromRelease(wanted), _ => throw new Exception("Unexpected download"))], Prelude.None).ToListAsync();
-        Assert.Equal(identical, Assert.Single(results).IsRight);
-        Assert.Equal(!identical, File.Exists(source));
+        Assert.True(Assert.Single(results).IsRight);
+        Assert.True(File.Exists(source));
+        Assert.Equal(Path.GetFileName(source), Assert.Single(await paks.GetManagedPaks()).PakFileName);
+        Assert.Equal(identical ? "signature" : "conflict", File.ReadAllText(Path.Join(_dir, "q__-__Mod1.sig")));
         Assert.Equal("signature", File.ReadAllText(Path.ChangeExtension(Path.Join(_dir, Assert.Single(await paks.GetManagedPaks()).PakFileName), ".sig")));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SignatureValidationStillRejectsOnlyConflictingSignatures(bool identical) {
+        var source = Write("source.pak", "payload");
+        Write("source.sig", "signature");
+        var destination = Path.Join(_dir, "destination.pak");
+        Write("destination.sig", identical ? "signature" : "conflict");
+
+        if (identical) Core.Services.Mods.PakDir.ValidateMoveSignatures(source, destination);
+        else Assert.Throws<IOException>(() => Core.Services.Mods.PakDir.ValidateMoveSignatures(source, destination));
+        Assert.Equal("signature", File.ReadAllText(Path.ChangeExtension(source, ".sig")));
+        Assert.Equal(identical ? "signature" : "conflict", File.ReadAllText(Path.ChangeExtension(destination, ".sig")));
     }
 
     [Fact]

@@ -16,6 +16,32 @@ using UnrealModScanner.Models;
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
     public class AvailableCatalogRegressionTests {
         [Fact]
+        public void LaunchWaitsForLocalWorkStartedDuringCatalogValidation() {
+            RunOnUiContext(async () => {
+                var release = Release("Managed", Assets("Managed"));
+                var coordinates = ReleaseCoordinates.FromRelease(release);
+                var path = new TaskCompletionSource<LanguageExt.Option<string>>();
+                var paks = new Mock<IPakDir>();
+                paks.Setup(pak => pak.GetManagedPakFilePath(coordinates)).Returns(path.Task);
+                var manager = new ModManager(Mock.Of<IModRegistry>(), paks.Object, [coordinates],
+                    [new Mod(release.Info, [release])]);
+                using var catalog = new AvailableModsAndMapsService(manager, new ModScanTabVM());
+                var launch = catalog.RefreshCatalogAsync();
+                var local = new TaskCompletionSource();
+                // Hold watcher work at its async boundary without racing a filesystem timer.
+                typeof(AvailableModsAndMapsService).GetField("_localRefresh",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                    .SetValue(catalog, local.Task);
+                path.SetResult(LanguageExt.Prelude.Some(Path.GetFullPath("managed.pak")));
+                await Task.Yield();
+                Assert.False(launch.IsCompleted);
+                local.SetResult();
+                await launch;
+                Assert.Single(catalog.AvailableServerModBlueprints);
+            });
+        }
+
+        [Fact]
         public async Task InventoryFailureRetainsThePreviousCompleteCatalog() {
             using var file = new ScannedPak();
             var paks = new Mock<IPakDir>();

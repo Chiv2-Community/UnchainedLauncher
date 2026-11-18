@@ -237,9 +237,13 @@ public class AvailableModsAndMapsService : IDisposable {
 
     public async Task RefreshCatalogAsync() {
         // A scan or toggle during validation must not let launch use an older snapshot.
-        await _localRefresh;
-        await RequestRefresh();
-        await WaitForCatalogAsync();
+        Task localRefresh;
+        do {
+            localRefresh = _localRefresh;
+            await localRefresh;
+            await RequestRefresh();
+            await WaitForCatalogAsync();
+        } while (localRefresh != _localRefresh);
     }
 
     public async Task WaitForCatalogAsync() {

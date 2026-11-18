@@ -85,6 +85,7 @@
             <ComboBox
                 Grid.Column="0"
                 ItemsSource="{Binding ServerConfigs}"
+                TextSearch.TextPath="Name"
                 SelectedItem="{Binding SelectedConfiguration}">
                 <ComboBox.ItemTemplate>
                     <DataTemplate>

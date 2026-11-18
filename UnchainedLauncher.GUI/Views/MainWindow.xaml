@@ -190,6 +190,8 @@
                              ToolTip="Search by plugin name, repository, description or author" Padding="8,6" VerticalContentAlignment="Center" />
                     <TextBlock Grid.Column="3" Text="Sort: " Style="{StaticResource Heading.H3}" VerticalAlignment="Center" Margin="8,0,0,0" />
                     <ComboBox Grid.Column="4" ItemsSource="{Binding SortModes}" SelectedItem="{Binding SelectedSortMode}"
+                              behaviors:SearchableComboBoxBehavior.TextConverter="{StaticResource ModSortModeToStringConverter}"
+                              behaviors:SearchableComboBoxBehavior.TextConverterParameter="Plugins"
                               ToolTip="Sort plugins" VerticalAlignment="Center">
                         <ComboBox.ItemTemplate>
                             <DataTemplate>
@@ -256,6 +258,7 @@
                                                     Command="{Binding EnableOrDisableCommand}" Margin="0,0,8,0"
                                                     Style="{StaticResource Button.EnableOrDisable}" />
                                             <ComboBox Grid.Column="3" ItemsSource="{Binding AvailableVersions}"
+                                                      TextSearch.TextPath="Version"
                                                       SelectedItem="{Binding SelectedVersion, Mode=TwoWay}"
                                                       ToolTip="Select version" VerticalAlignment="Stretch">
                                                 <ComboBox.ItemTemplate>

@@ -49,6 +49,7 @@
                        Margin="8 0 0 0"
                        Style="{StaticResource Heading.H3}" />
             <ComboBox Grid.Column="4"
+                      behaviors:SearchableComboBoxBehavior.TextConverter="{StaticResource ModSortModeToStringConverter}"
                       ItemsSource="{Binding SortModes}"
                       SelectedItem="{Binding SelectedSortMode}"
                       ToolTip="Sort mods"

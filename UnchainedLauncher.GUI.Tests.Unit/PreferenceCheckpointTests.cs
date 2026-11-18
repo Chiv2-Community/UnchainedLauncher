@@ -24,6 +24,8 @@ public sealed class PreferenceCheckpointTests {
             < startup.IndexOf("new DllManager(", StringComparison.Ordinal));
         Assert.True(startup.IndexOf("InitializeModManager(", StringComparison.Ordinal)
             < startup.IndexOf("new ModListVM(", StringComparison.Ordinal));
+        Assert.True(startup.IndexOf("new DllManager(", StringComparison.Ordinal)
+            < startup.IndexOf("availableModsAndMaps.StartWatchingLocalPaks()", StringComparison.Ordinal));
         Assert.Contains("LegacyOwnershipMigration.Load", source);
         Assert.Contains("checkpoint.AndThen(new SavedPaksPreparer", source);
         Assert.Contains("prepareSavedPaks.AndThen(noSigLaunchPreparer", source);

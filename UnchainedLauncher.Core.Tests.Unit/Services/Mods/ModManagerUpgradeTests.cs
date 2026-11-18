@@ -54,18 +54,26 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
 
             // Both offline startup and the awaited startup refresh must be safe.
             var modList = new ModListVM(manager, Mock.Of<IUserDialogueSpawner>());
-            _ = new AvailableModsAndMapsService(manager, new ModScanTabVM());
-            await modList.RefreshModList();
-            Assert.False(manager.NeedsMetadataRefresh);
-            Assert.Equal([release], manager.GetEnabledAndDependencyReleases());
-            _ = new AvailableModsAndMapsService(manager, new ModScanTabVM());
-            Assert.Single(modList.DisplayMods);
+            using var offlineCatalog = new AvailableModsAndMapsService(manager, new ModScanTabVM());
+            try {
+                await modList.RefreshModList();
+                Assert.False(manager.NeedsMetadataRefresh);
+                Assert.Equal([release], manager.GetEnabledAndDependencyReleases());
+                using var refreshedCatalog = new AvailableModsAndMapsService(manager, new ModScanTabVM());
+                await refreshedCatalog.WaitForCatalogAsync();
+                Assert.Single(modList.DisplayMods);
 
-            var saved = codec.Deserialize(codec.Serialize(manager));
-            Assert.True(saved.Success);
-            Assert.Single(saved.Result!.Mods);
-            Assert.Equal([coordinates], saved.Result.EnabledModReleaseCoordinates);
-            Assert.Equal(((ManagedPakDir)manager.PakDir).ManagedPaks, ((ManagedPakDir)saved.Result.PakDir).ManagedPaks);
+                var saved = codec.Deserialize(codec.Serialize(manager));
+                Assert.True(saved.Success);
+                Assert.Single(saved.Result!.Mods);
+                Assert.Equal([coordinates], saved.Result.EnabledModReleaseCoordinates);
+                Assert.Equal(((ManagedPakDir)manager.PakDir).ManagedPaks, ((ManagedPakDir)saved.Result.PakDir).ManagedPaks);
+            }
+            finally {
+                // Metadata refresh starts local cache work; drain it before fixture deletion.
+                await offlineCatalog.LocalModScan.RefreshAsync();
+                await offlineCatalog.WaitForCatalogAsync();
+            }
         }
 
         [Fact]

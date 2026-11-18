@@ -50,9 +50,19 @@ namespace UnchainedLauncher.UnrealModScanner.GUI.Views {
         private async void Scan_UnrealMods_Click(object sender, RoutedEventArgs e) {
             if (ModScannerVM == null) return;
 
-            var dlg = new OpenFolderDialog { Title = "Select Pak Directory" };
+            var dlg = new OpenFolderDialog {
+                Title = "Select Pak Directory",
+                InitialDirectory = ModScannerVM.DefaultPakDirectory ?? "",
+                DefaultDirectory = ModScannerVM.DefaultPakDirectory ?? "",
+                FolderName = ModScannerVM.DefaultPakDirectory ?? ""
+            };
             if (dlg.ShowDialog() == true) {
-                await ModScannerVM.ScanAsync(dlg.FolderName);
+                try {
+                    await ModScannerVM.ScanAsync(dlg.FolderName);
+                }
+                catch (Exception error) {
+                    MessageBox.Show($"Pak scan failed: {error.Message}", "Scan failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
         private async void Save_UnrealMods_Config_Click(object sender, RoutedEventArgs e) {

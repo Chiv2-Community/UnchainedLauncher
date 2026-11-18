@@ -36,7 +36,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             Func<IReadOnlyList<Release>, IReadOnlyList<Release>>? resolvePlan = null);
 
         /// <summary>
-        /// A delegate that creates a FileWriter for writing pak data to the specified file path.
+        /// Creates a FileWriter for the specified path, transferring input-stream ownership to PakDir.
         /// </summary>
         /// <param name="filePath">The destination file path to write to</param>
         /// <returns>An async either containing the FileWriter on success, or an Error on failure</returns>

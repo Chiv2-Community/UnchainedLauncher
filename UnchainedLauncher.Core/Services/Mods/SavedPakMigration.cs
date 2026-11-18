@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 
 namespace UnchainedLauncher.Core.Services.Mods;
 
@@ -59,11 +60,64 @@ public static class SavedPakMigration {
         }
     }
 
-    // Caller holds every participating inventory lock. Publish ownership before deleting source evidence.
-    internal static void Migrate(string destination, IEnumerable<string> sources, Action<IReadOnlyList<string>> publish) {
+    internal record Transfer(string Source, string Target, string Hash);
+    internal record CleanupEvidence(string ConfigHash, string[] SourceDirectories, Transfer[] Files);
+
+    internal static IEnumerable<string> CleanupSources(string backupRoot) {
+        RejectLinks(backupRoot);
+        if (!Directory.Exists(backupRoot)) return [];
+        return Directory.EnumerateFiles(backupRoot, "saved-cleanup.json", SearchOption.TopDirectoryOnly)
+            .SelectMany(path => ReadTransfers(path).SourceDirectories).Distinct().ToArray();
+    }
+
+    internal static bool HasPayload(string directory) {
+        RejectLinks(directory);
+        return Files(directory).Any();
+    }
+
+    private static CleanupEvidence ReadTransfers(string path) {
+        RejectLinks(path);
+        var evidence = JsonSerializer.Deserialize<CleanupEvidence>(File.ReadAllBytes(path))
+            ?? throw new InvalidDataException($"Invalid Saved cleanup evidence: {path}");
+        var config = Path.GetDirectoryName(path)![..^".migration-backups".Length];
+        RejectLinks(config);
+        if (!File.Exists(config) || ModManagerPersistence.OwnershipHash(File.ReadAllText(config)) != evidence.ConfigHash)
+            throw new IOException($"Saved ownership publication is unverified. Preserve and reconcile '{path}' before starting.");
+        return evidence;
+    }
+
+    internal static void RetryCleanup(string backupRoot) {
+        RejectLinks(backupRoot);
+        if (!Directory.Exists(backupRoot)) return;
+        foreach (var path in Directory.EnumerateFiles(backupRoot, "saved-cleanup.json")) {
+            foreach (var transfer in ReadTransfers(path).Files) {
+                RejectLinks(transfer.Source);
+                RejectLinks(transfer.Target);
+                if (!File.Exists(transfer.Source)) continue;
+                if (!File.Exists(transfer.Target) || Hash(transfer.Source) != transfer.Hash || Hash(transfer.Target) != transfer.Hash)
+                    throw new IOException($"Saved cleanup evidence no longer matches; files preserved: {transfer.Source}");
+                File.Delete(transfer.Source);
+            }
+        }
+    }
+
+    internal static void CompleteCleanup(string backupRoot) {
+        var path = Path.Combine(backupRoot, "saved-cleanup.json");
+        if (File.Exists(path)) File.Move(path, path + "." + Guid.NewGuid().ToString("N") + ".completed");
+    }
+
+    private static string Hash(string path) {
+        using var stream = File.OpenRead(path);
+        return Convert.ToHexString(SHA256.HashData(stream));
+    }
+
+    // Copy and verify first; publish ordinary ownership before consuming source evidence.
+    internal static void Migrate(string destination, IEnumerable<string> sources, Action<IReadOnlyList<string>, Action<string>> publish,
+        string? backupRoot = null) {
         RejectLinks(destination);
+        var sourceDirectories = sources.Select(Path.GetFullPath).ToArray();
         var files = new List<(string Source, string Target)>();
-        foreach (var source in sources) {
+        foreach (var source in sourceDirectories) {
             RejectLinks(source);
             if (!Directory.Exists(source) || SameDirectory(source, destination)) continue;
             foreach (var file in Files(source)) {
@@ -78,6 +132,7 @@ public static class SavedPakMigration {
             if (group.Skip(1).Any(f => !Identical(group.First().Source, f.Source)))
                 throw new IOException($"Conflicting Saved files; files preserved: {group.Key}");
 
+        if (files.Count > 0) Directory.CreateDirectory(destination);
         foreach (var (source, target) in files) {
             if (!File.Exists(target)) {
                 var staging = target + "." + Guid.NewGuid().ToString("N") + ".partial";
@@ -94,7 +149,17 @@ public static class SavedPakMigration {
             }
             if (!Identical(source, target)) throw new IOException($"Saved file changed during migration: {source}");
         }
-        publish(files.Select(f => f.Source).ToArray());
+        void PreserveCleanupEvidence(string configHash) {
+            if (files.Count == 0) return;
+            if (backupRoot == null) throw new IOException("Saved migration requires a recovery backup directory.");
+            RejectLinks(backupRoot);
+            Directory.CreateDirectory(backupRoot);
+            // Existing incomplete transfers must be reconciled before another transfer.
+            LegacyOwnershipMigration.WriteEvidence(Path.Combine(backupRoot, "saved-cleanup.json"),
+                JsonSerializer.SerializeToUtf8Bytes(new CleanupEvidence(configHash, sourceDirectories,
+                    files.Select(f => new Transfer(f.Source, f.Target, Hash(f.Source))).ToArray())));
+        }
+        publish(files.Select(f => f.Source).ToArray(), PreserveCleanupEvidence);
         foreach (var (source, target) in files) {
             RejectLinks(source);
             RejectLinks(target);

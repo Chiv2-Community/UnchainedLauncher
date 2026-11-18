@@ -22,6 +22,15 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
+            try { return await PrepareLaunchCore(options); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+                _logger.Error("Failed to persist mod ownership.", ex);
+                _userDialogueSpawner.DisplayMessage($"Could not save mod ownership. Launch cancelled; retry after resolving file permissions or disk space.\n{ex.Message}");
+                return None;
+            }
+        }
+
+        private async Task<Option<LaunchOptions>> PrepareLaunchCore(LaunchOptions options) {
             var includeDependencies = _settings?.AutomaticallyDownloadPakDependencies ?? true;
             IReadOnlyList<Release> releasesToInstall = [];
             var adopted = new List<Release>();

@@ -6,6 +6,7 @@ using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.GUI.Services;
+using UnchainedLauncher.Core.Utilities;
 using Xunit;
 
 namespace UnchainedLauncher.GUI.Tests.Unit;
@@ -21,14 +22,27 @@ public sealed class SavedPakMigrationTests : IDisposable {
     private string Target => Path.Combine(_root, "TBL", "Content", "Paks");
     private string Source => Path.Combine(_root, "TBL", "Saved", "Paks");
     private string Inventory => Path.Combine(Target, ".unchained", "inventory.json");
+    private string Config => Path.Combine(_root, ".mod_cache", "mod_manager_config.json");
 
     private static void Write(string directory, string name, string bytes) {
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Combine(directory, name), bytes);
     }
 
-    private PakDir DirectoryFor(PakDirMetadata? metadata = null) =>
-        (PakDir)ModManagerCodec.ToClassType(new StandardModManagerMetadata([], [], metadata), _registry, Target).PakDir;
+    private PakDir DirectoryFor(PakDirMetadata? metadata = null) {
+        var manager = ModManagerCodec.ToClassType(new StandardModManagerMetadata([], [], metadata), _registry, Target);
+        _ = new ModManagerPersistence(manager, Config);
+        return (PakDir)manager.PakDir;
+    }
+
+    private async Task<PakDir> Startup(PakDirMetadata? metadata = null) {
+        await Task.Yield();
+        if (metadata != null) {
+            var manager = new ModManager(_registry, new PakDir(metadata.DirPath, metadata.ManagedPaks), []);
+            new ModManagerCodec(_registry).SerializeFile(Config, manager);
+        }
+        return (PakDir)LegacyOwnershipMigration.Load(Config, _registry, installationPakDirectory: Target).Manager.PakDir;
+    }
 
     [Fact]
     public async Task MovesNestedPaksAndSignaturesButDoesNotGrantFilenameOwnership() {
@@ -45,16 +59,16 @@ public sealed class SavedPakMigrationTests : IDisposable {
     }
 
     [Fact]
-    public async Task OwnershipIsPublishedBeforeCleanupAndSurvivesStaleHostSnapshot() {
+    public async Task OwnershipIsPublishedBeforeCleanupAndSurvivesRestart() {
         Write(Source, "managed.pak", "owned");
         var metadata = new PakDirMetadata(Source, [new(_coordinates, "managed.pak", 0)]);
         var directory = DirectoryFor(metadata);
         await directory.MigrateSavedPaks();
         Assert.Single(directory.ManagedPaks);
-        Assert.Single(JsonSerializer.Deserialize<List<ManagedPak>>(File.ReadAllText(Inventory))!);
+        Assert.Single(((PakDir)new ModManagerCodec(_registry).Deserialize(File.ReadAllText(Config)).Result!.PakDir).ManagedPaks);
+        Assert.False(File.Exists(Inventory));
         Assert.False(File.Exists(Path.Combine(Source, "managed.pak")));
-        var restarted = DirectoryFor(metadata);
-        await restarted.MigrateSavedPaks();
+        var restarted = await Startup();
         Assert.Single(restarted.ManagedPaks);
     }
 
@@ -67,6 +81,15 @@ public sealed class SavedPakMigrationTests : IDisposable {
     }
 
     [Fact]
+    public async Task MissingAttributedSourceCannotClaimAnotherProfilesSameNamedFile() {
+        Write(Path.Combine(_root, "TBL", "Saved_Unchained", "Paks"), "managed.pak", "unknown");
+        var directory = DirectoryFor(new(Source, [new(_coordinates, "managed.pak", 0)]));
+        await directory.MigrateSavedPaks();
+        Assert.Empty(directory.ManagedPaks);
+        Assert.Equal("unknown", File.ReadAllText(Path.Combine(Target, "managed.pak")));
+    }
+
+    [Fact]
     public async Task IncomingUnknownCannotReviveMissingDestinationSnapshotEntry() {
         Write(Source, "managed.pak", "unknown");
         var directory = DirectoryFor(new(Target, [new(_coordinates, "managed.pak", 0)]));
@@ -75,14 +98,13 @@ public sealed class SavedPakMigrationTests : IDisposable {
     }
 
     [Fact]
-    public async Task ExistingSharedInventoryWinsOverConflictingLegacyCoordinates() {
+    public async Task ConflictingLegacyCoordinatesPreserveSources() {
         Write(Target, "current.pak", "current");
         Write(Path.GetDirectoryName(Inventory)!, "inventory.json",
             JsonSerializer.Serialize(new[] { new ManagedPak(_coordinates, "current.pak", 0) }));
         Write(Source, "old.pak", "old");
-        var directory = DirectoryFor(new(Source, [new(_coordinates, "old.pak", 0)]));
-        await directory.MigrateSavedPaks();
-        Assert.Equal("current.pak", Assert.Single(directory.ManagedPaks).PakFileName);
+        await Assert.ThrowsAsync<IOException>(() => Startup(new(Source, [new(_coordinates, "old.pak", 0)])));
+        Assert.True(File.Exists(Path.Combine(Source, "old.pak")));
         Assert.True(File.Exists(Path.Combine(Target, "old.pak")));
     }
 
@@ -94,7 +116,7 @@ public sealed class SavedPakMigrationTests : IDisposable {
         Write(Source, "unknown.sig", "signature");
         Write(Source, "other.pak", "other");
         Write(Target, conflict, "different");
-        await Assert.ThrowsAsync<IOException>(() => DirectoryFor().MigrateSavedPaks());
+        await Assert.ThrowsAsync<IOException>(() => Startup());
         Assert.True(File.Exists(Path.Combine(Source, "other.pak")));
         Assert.False(File.Exists(Path.Combine(Target, "other.pak")));
     }
@@ -126,7 +148,7 @@ public sealed class SavedPakMigrationTests : IDisposable {
         Directory.CreateDirectory(Path.GetDirectoryName(link)!);
         if (kind == "source-file") File.CreateSymbolicLink(link, Path.Combine(external, "unknown.pak"));
         else Directory.CreateSymbolicLink(link, external);
-        await Assert.ThrowsAsync<IOException>(() => DirectoryFor().MigrateSavedPaks());
+        await Assert.ThrowsAsync<IOException>(() => Startup());
         Assert.Equal("preserved", File.ReadAllText(Path.Combine(external, "unknown.pak")));
     }
 
@@ -136,7 +158,7 @@ public sealed class SavedPakMigrationTests : IDisposable {
     public async Task InterruptedOrCorruptInventoryBlocksMigration(string name) {
         Write(Source, "unknown.pak", "preserved");
         Write(Path.GetDirectoryName(Inventory)!, name, "invalid");
-        await Assert.ThrowsAnyAsync<Exception>(() => DirectoryFor().MigrateSavedPaks());
+        await Assert.ThrowsAnyAsync<Exception>(() => Startup());
         Assert.True(File.Exists(Path.Combine(Source, "unknown.pak")));
         Assert.False(File.Exists(Path.Combine(Target, "unknown.pak")));
     }
@@ -144,17 +166,17 @@ public sealed class SavedPakMigrationTests : IDisposable {
     [Fact]
     public async Task FailedPublicationRetainsSourcesAndRetriesVerifiedCopies() {
         Write(Source, "managed.pak", "owned");
-        Directory.CreateDirectory(Path.Combine(Target, ".unchained", "inventory.tmp"));
+        Directory.CreateDirectory(Config);
         var directory = DirectoryFor(new(Source, [new(_coordinates, "managed.pak", 0)]));
         var failure = await Record.ExceptionAsync(() => directory.MigrateSavedPaks());
         Assert.True(failure is IOException or UnauthorizedAccessException);
         Assert.True(File.Exists(Path.Combine(Source, "managed.pak")));
         Assert.Equal("owned", File.ReadAllText(Path.Combine(Target, "managed.pak")));
         Assert.Empty(System.IO.Directory.GetFiles(Target, "*.partial"));
-        System.IO.Directory.Delete(Path.Combine(Target, ".unchained", "inventory.tmp"));
-        await directory.MigrateSavedPaks();
-        Assert.Single(directory.ManagedPaks);
-        Assert.False(File.Exists(Path.Combine(Source, "managed.pak")));
+        System.IO.Directory.Delete(Config);
+        // A failed ownership checkpoint cannot turn cleanup evidence into authority.
+        await Assert.ThrowsAsync<IOException>(() => Startup());
+        Assert.True(File.Exists(Path.Combine(Source, "managed.pak")));
     }
 
     [Fact]
@@ -211,7 +233,7 @@ public sealed class SavedPakMigrationTests : IDisposable {
     public async Task SourcePendingMarkerAlsoBlocksMigration() {
         Write(Source, "managed.pak", "preserved");
         Write(Path.Combine(Source, ".unchained"), "pending", "");
-        await Assert.ThrowsAsync<InvalidDataException>(() => DirectoryFor().MigrateSavedPaks());
+        await Assert.ThrowsAsync<InvalidDataException>(() => Startup());
         Assert.True(File.Exists(Path.Combine(Source, "managed.pak")));
     }
 
@@ -219,8 +241,7 @@ public sealed class SavedPakMigrationTests : IDisposable {
     public async Task SharedSourceInventoryOverridesStaleHostOwnership() {
         Write(Source, "managed.pak", "owned");
         Write(Path.Combine(Source, ".unchained"), "inventory.json", "[]");
-        var directory = DirectoryFor(new(Source, [new(_coordinates, "managed.pak", 0)]));
-        await directory.MigrateSavedPaks();
+        var directory = await Startup(new(Source, [new(_coordinates, "managed.pak", 0)]));
         Assert.Empty(directory.ManagedPaks);
         Assert.True(File.Exists(Path.Combine(Target, "managed.pak")));
     }
@@ -231,6 +252,7 @@ public sealed class SavedPakMigrationTests : IDisposable {
         var manager = new ModManager(_registry, new PakDir(Source, [new(_coordinates, "managed.pak", 0)]), [_coordinates]);
         var codec = new ModManagerCodec(_registry, Target);
         var decoded = codec.Deserialize(codec.Serialize(manager)).Result!;
+        _ = new ModManagerPersistence(decoded, Config);
         Assert.Equal(Target, decoded.PakDir.DirPath);
         Assert.True(File.Exists(Path.Combine(Source, "managed.pak")));
         Assert.Equal(Source, ((StandardModManagerMetadata)ModManagerCodec.ToJsonType(decoded)).PakDir!.DirPath);
@@ -241,24 +263,17 @@ public sealed class SavedPakMigrationTests : IDisposable {
     }
 
     [Fact]
-    public async Task ConcurrentMigrationsSerializeAndRespectCancellation() {
+    public async Task CancellationDoesNotTouchSourcesOrCreateInventoryLocks() {
         Write(Source, "managed.pak", "owned");
         var metadata = new PakDirMetadata(Source, [new(_coordinates, "managed.pak", 0)]);
         var directory = DirectoryFor(metadata);
-        var lockPath = Path.Combine(Target, ".unchained", "inventory.lock");
-        System.IO.Directory.CreateDirectory(Path.GetDirectoryName(lockPath)!);
-        using (var held = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
-        using (var cancellation = new CancellationTokenSource()) {
-            var blocked = directory.MigrateSavedPaks(cancellationToken: cancellation.Token);
-            Assert.False(blocked.IsCompleted);
-            cancellation.Cancel();
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => blocked);
-            Assert.True(File.Exists(Path.Combine(Source, "managed.pak")));
-        }
-        var other = DirectoryFor(metadata);
-        await Task.WhenAll(directory.MigrateSavedPaks(), other.MigrateSavedPaks());
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => directory.MigrateSavedPaks(cancellationToken: cancellation.Token));
+        Assert.True(File.Exists(Path.Combine(Source, "managed.pak")));
+        await directory.MigrateSavedPaks();
         Assert.Single(directory.ManagedPaks);
-        Assert.Single(other.ManagedPaks);
+        Assert.False(File.Exists(Path.Combine(Target, ".unchained", "inventory.lock")));
     }
 
     public void Dispose() {

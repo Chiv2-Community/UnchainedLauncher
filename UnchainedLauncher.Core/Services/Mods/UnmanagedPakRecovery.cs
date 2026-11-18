@@ -9,7 +9,7 @@ internal static class UnmanagedPakRecovery {
     private record Candidate(string Path, string Hash, Release? Release, bool Managed);
 
     internal static async Task<bool> Recover(PakDir paks, IEnumerable<Release> known,
-        IUserDialogueSpawner dialogue, Action beginChange, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks, PakReadCache cache,
+        IUserDialogueSpawner dialogue, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks, PakReadCache cache,
         Action<IReadOnlyList<Release>> preparePlan,
         Action<Action, IReadOnlyList<ManagedPak>>? stageChanges = null) {
         var kept = new KeptUnmanagedPaks(paks.DirPath);
@@ -77,7 +77,6 @@ internal static class UnmanagedPakRecovery {
                     || !File.ReadAllBytes(signature).SequenceEqual(File.ReadAllBytes(retainedSignature))))
                     throw new IOException($"Conflicting duplicate signature; files were preserved: {signature}");
             }
-            if (duplicates.Count > 0 || unconfirmed.Count > 0) beginChange();
             foreach (var (file, kind) in duplicates.Select(pair => (pair.Duplicate, "duplicate"))
                 .Concat((choice == UserDialogueChoice.No ? unconfirmed : []).Select(file => (file, "unmanaged")))) {
                 File.Delete(Path.ChangeExtension(file.Path, ".sig"));

@@ -22,6 +22,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public static ModRegistryMetadata ToJsonType(IModRegistry registry) =>
             registry switch {
                 LocalModRegistry d => new LocalModRegistryMetadata(d.RegistryPath),
+                GithubModRegistry d when d.UsesDefaultRevision => new GithubModRegistryMetadata(d.Organization, d.RepoName),
                 GithubModRegistry d => new GithubModRegistryMetadata(BaseUrl: d.RegistryBaseUrl),
                 AggregateModRegistry d => new AggregateModRegistryMetadata(d.ModRegistries.Select(ToJsonType).ToArray()),
 

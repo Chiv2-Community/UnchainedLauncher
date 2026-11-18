@@ -41,4 +41,23 @@ public sealed class SavedPakMigrationRootTests {
         }
         finally { Directory.Delete(root, true); }
     }
+
+    [Fact]
+    public async Task WindowsSourceAliasesAcquireOnlyOneInventoryLock() {
+        var root = Path.Combine(Path.GetTempPath(), "SavedMigration_" + Guid.NewGuid().ToString("N"));
+        var source = Path.Combine(root, "TBL", "Saved_Unchained", "Paks");
+        var target = Path.Combine(root, "TBL", "Content", "Paks");
+        Directory.CreateDirectory(source);
+        File.WriteAllText(Path.Combine(source, "unknown.pak"), "preserved");
+        try {
+            var alias = Path.Combine(root, "TBL", "Saved_UNCHAINED", "Paks");
+            var metadata = new StandardModManagerMetadata([], [], new(alias, []));
+            var manager = ModManagerCodec.ToClassType(metadata, Mock.Of<IModRegistry>(), target);
+            using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await ((LauncherPakDir)manager.PakDir).MigrateSavedPaks(cancellationToken: cancellation.Token);
+            Assert.False(File.Exists(Path.Combine(source, "unknown.pak")));
+            Assert.Equal("preserved", File.ReadAllText(Path.Combine(target, "unknown.pak")));
+        }
+        finally { Directory.Delete(root, true); }
+    }
 }

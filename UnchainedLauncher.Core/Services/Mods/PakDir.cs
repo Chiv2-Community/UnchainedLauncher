@@ -29,8 +29,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public async Task MigrateSavedPaks(string suffix = "Unchained", CancellationToken cancellationToken = default) {
             if (!MigrateInstallationSavedPaks) return;
+            var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
             var sources = SavedPakMigration.SourceDirectories(DirPath, suffix, LegacySavedMetadata)
-                .Where(p => !SavedPakMigration.SameDirectory(p, DirPath)).Distinct().ToArray();
+                .Select(Path.GetFullPath).Where(p => !SavedPakMigration.SameDirectory(p, DirPath)).Distinct(pathComparer).ToArray();
             foreach (var path in sources.Append(DirPath)) {
                 SavedPakMigration.RejectLinks(path);
                 foreach (var name in new[] { "inventory.lock", "inventory.json", "inventory.tmp", "pending" })
@@ -39,7 +40,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var locks = new List<FileStream>();
             try {
                 // Stable ordering also serializes migrations sharing a legacy source.
-                foreach (var path in sources.Where(Directory.Exists).Append(DirPath).OrderBy(Path.GetFullPath, StringComparer.Ordinal))
+                foreach (var path in sources.Where(Directory.Exists).Append(DirPath).OrderBy(Path.GetFullPath, pathComparer))
                     locks.Add(await new PakInventory(path).Lock(cancellationToken));
                 ReloadInventory();
                 var ownership = new List<ManagedPak>();

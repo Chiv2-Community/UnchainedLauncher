@@ -20,9 +20,10 @@ public sealed class SavedPakMigrationRootTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task LockedSourceCleanupKeepsPublishedOwnershipAndRetriesAfterRestart(bool attributedGlobal) {
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    public async Task LockedSourceCleanupKeepsPublishedOwnershipAndRetries(bool attributedGlobal, bool restart) {
         var root = Path.Combine(Path.GetTempPath(), "SavedMigration_" + Guid.NewGuid().ToString("N"));
         var previousLocal = Environment.GetEnvironmentVariable("LOCALAPPDATA");
         var local = Path.Combine(root, "Local");
@@ -46,7 +47,8 @@ public sealed class SavedPakMigrationRootTests {
                 Assert.Equal("owned", File.ReadAllText(Path.Combine(target, "managed.pak")));
                 Assert.Equal(target, ((StandardModManagerMetadata)ModManagerCodec.ToJsonType(manager)).PakDir!.DirPath);
             }
-            var restarted = LegacyOwnershipMigration.Load(config, registry, installationPakDirectory: target).Manager;
+            var restarted = restart ? LegacyOwnershipMigration.Load(config, registry, installationPakDirectory: target).Manager : manager;
+            await ((LauncherPakDir)restarted.PakDir).MigrateSavedPaks();
             Assert.Single(((LauncherPakDir)restarted.PakDir).ManagedPaks);
             Assert.False(File.Exists(pak));
         }

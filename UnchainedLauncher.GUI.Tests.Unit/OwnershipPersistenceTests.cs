@@ -185,6 +185,24 @@ public sealed class OwnershipPersistenceTests : IDisposable {
     }
 
     [Fact]
+    public void CustomDirectoryConversionDoesNotRebindOrSweepInstallationSavedPaks() {
+        var custom = Path.Combine(_root, "custom");
+        Directory.CreateDirectory(Path.Combine(custom, ".unchained"));
+        File.WriteAllText(Path.Combine(custom, "custom.pak"), "custom");
+        File.WriteAllText(Path.Combine(custom, ".unchained", "inventory.json"), "[]");
+        var source = Path.Combine(_root, "TBL", "Saved", "Paks");
+        Directory.CreateDirectory(source);
+        File.WriteAllText(Path.Combine(source, "other-installation.pak"), "preserved");
+        Save(new ModManager(_registry, new PakDir(custom, [new(Coordinates(), "custom.pak", 0)]), []));
+        var converted = Startup();
+        Assert.Equal(custom, converted.PakDir.DirPath);
+        Assert.Empty(((PakDir)converted.PakDir).ManagedPaks);
+        Assert.True(File.Exists(Path.Combine(custom, "custom.pak")));
+        Assert.True(File.Exists(Path.Combine(source, "other-installation.pak")));
+        Assert.False(File.Exists(Path.Combine(custom, ".unchained", "inventory.json")));
+    }
+
+    [Fact]
     public async Task BatchPartialFailureAndEarlyDisposalSaveOwnershipOnce() {
         var manager = Manager();
         new ModManagerPersistence(manager, Config).Save();

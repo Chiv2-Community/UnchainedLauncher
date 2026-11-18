@@ -38,6 +38,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public Task MigrateSavedPaks(string suffix = "Unchained", CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!MigrateInstallationSavedPaks) return Task.CompletedTask;
+            if (LegacySourceOwnership.Count == 0 && MigrationBackupRoot != null) {
+                SavedPakMigration.RetryCleanup(MigrationBackupRoot);
+                SavedPakMigration.CompleteCleanup(MigrationBackupRoot);
+            }
             var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
             var sources = SavedPakMigration.SourceDirectories(DirPath, suffix, LegacySavedMetadata)
                 .Select(Path.GetFullPath).Where(p => !SavedPakMigration.SameDirectory(p, DirPath)).Distinct(pathComparer).ToArray();

@@ -160,5 +160,5 @@ public static class LegacyOwnershipMigration {
 
     private static bool ValidCoordinatePart(string? value) =>
         !string.IsNullOrWhiteSpace(value) && value is not "." and not ".."
-        && !value.Any(c => c < 32 || "/\\:\0?#".Contains(c));
+        && !value.Any(c => c < 32 || "/\\:\0?".Contains(c));
 }

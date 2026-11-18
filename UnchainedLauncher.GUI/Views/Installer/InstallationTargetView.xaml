@@ -2,6 +2,7 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ivms="clr-namespace:UnchainedLauncher.GUI.ViewModels.Installer"
+             xmlns:behaviors="clr-namespace:UnchainedLauncher.GUI.Behaviors"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
@@ -27,6 +28,7 @@
                   HorizontalAlignment="Stretch"
                   VerticalAlignment="Center"
                   ItemsSource="{Binding AvailableInstallationTypes}"
+                  behaviors:SearchableComboBoxBehavior.TextConverter="{StaticResource InstallationTypeConverter}"
                   SelectedItem="{Binding InstallationType}"
                   Margin="0,0,10,0">
             <ComboBox.ItemTemplate>

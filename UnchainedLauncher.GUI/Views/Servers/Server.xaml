@@ -255,6 +255,8 @@
 
                 <ComboBox Grid.Column="0"
                           ItemsSource="{Binding AvailableMaps}"
+                          behaviors:SearchableComboBoxBehavior.SortAlphabetically="True"
+                          behaviors:SearchableComboBoxBehavior.TextConverter="{x:Static converters:MapToTravelStringConverter.Instance}"
                           SelectedItem="{Binding SelectedMapToChange}"
                           HorizontalAlignment="Stretch"
                           VerticalAlignment="Center">

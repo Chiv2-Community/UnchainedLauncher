@@ -70,6 +70,7 @@
                 
                 <!-- Version Dropdown -->
                 <ComboBox Grid.Column="3"
+                          TextSearch.TextPath="Tag"
                           ItemsSource="{Binding Mod.Releases}"
                           SelectedItem="{Binding SelectedRelease, Mode=TwoWay}"
                            ToolTip="Select version"

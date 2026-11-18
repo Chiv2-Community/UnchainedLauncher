@@ -86,10 +86,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
         }
 
         [Fact]
-        public void OfflineV3UpgradeRefreshRestoresCatalogsAndSelectionsInPlace() {
-            RunSta(() => {
+        public Task OfflineV3UpgradeRefreshRestoresCatalogsAndSelectionsInPlace() {
+            return ui.RunAsync(async () => {
                 var pakDir = Path.Combine(Path.GetTempPath(), "offline-upgrade-" + Guid.NewGuid());
                 Directory.CreateDirectory(pakDir);
+                AvailableModsAndMapsService? catalog = null;
                 try {
                     File.WriteAllBytes(Path.Combine(pakDir, "ExampleMod.pak"), []);
                     var json = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "ModManagerV3.json"))
@@ -113,10 +114,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                     Assert.Single(installed);
 
                     // App startup awaits this refresh before constructing the catalog and saved servers.
-                    Assert.True(manager.UpdateModsList().GetAwaiter().GetResult().HasErrors);
+                    Assert.True((await manager.UpdateModsList()).HasErrors);
                     Assert.True(manager.NeedsMetadataRefresh);
                     var scan = new ModScanTabVM();
-                    var catalog = new AvailableModsAndMapsService(manager, scan);
+                    catalog = new AvailableModsAndMapsService(manager, scan);
                     var codec = new ServerConfigurationCodec(manager, scan, catalog);
                     var savedSelections = Fixture().Replace("v1.0.0", "v0.0.2");
                     var configs = Decode(codec, savedSelections);
@@ -132,7 +133,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                     // Reconnect through the production refresh boundary, without a toggle, scan, or restart.
                     registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult([], [mod]));
                     for (var i = 0; i < 3; i++) {
-                        Assert.False(manager.UpdateModsList().GetAwaiter().GetResult().HasErrors);
+                        Assert.False((await manager.UpdateModsList()).HasErrors);
+                        await catalog.WaitForCatalogAsync();
                         Assert.False(manager.NeedsMetadataRefresh);
                         Assert.Same(actors, catalog.AvailableServerModBlueprints);
                         Assert.Same(maps, catalog.AvailableMaps);
@@ -147,13 +149,21 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                     }
                     // The restored actor is available to deselect, and refresh does not reselect it.
                     configs[0].DisableServerBlueprintMod(actor);
-                    manager.UpdateModsList().GetAwaiter().GetResult();
+                    await manager.UpdateModsList();
+                    await catalog.WaitForCatalogAsync();
                     Assert.Empty(selected);
                     Assert.Equal(actor, Assert.Single(actors));
                     Assert.Contains(map, maps);
                     Assert.Single(SavedEntries(codec.Serialize(configs)).Where(e => e.TryGetProperty("Org", out _)));
                 }
-                finally { Directory.Delete(pakDir, recursive: true); }
+                finally {
+                    if (catalog != null) {
+                        await catalog.LocalModScan.RefreshAsync();
+                        await catalog.WaitForCatalogAsync();
+                        catalog.Dispose();
+                    }
+                    Directory.Delete(pakDir, recursive: true);
+                }
             });
         }
 

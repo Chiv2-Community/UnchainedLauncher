@@ -252,6 +252,8 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         private void OnModMetadataRefreshed(object? sender, EventArgs args) => ResolveLegacyServerSelections();
         private void OnModStateChanged(object? sender, EventArgs args) => ReconcileServerBlueprintSelections();
         public ObservableCollection<BlueprintDto> AvailableServerModBlueprints => _availableModsAndMaps.AvailableServerModBlueprints;
+        public ObservableCollection<ServerModActorVM> AvailableServerModActors => _availableModsAndMaps.AvailableServerModActors;
+        public LocalModScanVM LocalModScan => _availableModsAndMaps.LocalModScan;
 
         private ModScanTabVM _modScanTab;
         private readonly AvailableModsAndMapsService _availableModsAndMaps;
@@ -359,7 +361,7 @@ namespace UnchainedLauncher.GUI.ViewModels.ServersTab {
         }
 
         public async Task<BlueprintDto[]> PrepareServerBlueprintsForLaunch() {
-            await _availableModsAndMaps.RefreshCatalog();
+            await _availableModsAndMaps.RefreshCatalogAsync();
             ReconcileServerBlueprintSelections();
             var selections = EnabledServerModList;
             var selectedPaths = selections.Select(actor => actor.ClassPath)

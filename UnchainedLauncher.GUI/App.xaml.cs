@@ -140,6 +140,14 @@ namespace UnchainedLauncher.GUI {
 
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
             var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+            try {
+                if (modManager.PakDir is PakDir directory) await directory.MigrateSavedPaks();
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+                _log.Error("Could not migrate Saved paks at startup.", ex);
+                userDialogueSpawner.DisplayMessage($"Could not move Saved paks. Resolve the conflict or file permissions, then retry.\n{ex.Message}");
+                return null;
+            }
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
             var settingsViewModel = InitializeSettingsViewModel(installationFinder, installer, launcherReleaseLocator, registryWindowViewModel, registryWindowService, modManager, userDialogueSpawner);
             var dllManager = new DllManager(
@@ -170,6 +178,7 @@ namespace UnchainedLauncher.GUI {
 
             var noSigLaunchPreparer = NoSigPreparer.Create(modManager.PakDir, userDialogueSpawner);
             var sigLaunchPreparer = SigPreparer.Create(modManager.PakDir, userDialogueSpawner);
+            IChivalry2LaunchPreparer<LaunchOptions> prepareSavedPaks = new SavedPaksPreparer(modManager.PakDir, userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
@@ -178,13 +187,13 @@ namespace UnchainedLauncher.GUI {
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
-                noSigLaunchPreparer.IgnoreOptions<LaunchOptions>(),
+                prepareSavedPaks.AndThen(noSigLaunchPreparer.IgnoreOptions<LaunchOptions>()),
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                pluginInstaller
+                prepareSavedPaks.AndThen(pluginInstaller)
                     .AndThen(modInstaller)
                     .Sub(sigLaunchPreparer),
                 unchainedProcessLauncher,
@@ -314,11 +323,11 @@ namespace UnchainedLauncher.GUI {
             Func<ModManager> initializeDefaultModManager = () =>
                 new ModManager(
                     registry,
-                    new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>()),
+                    ModManagerCodec.CreateInstallationPakDir(),
                     Enumerable.Empty<ReleaseCoordinates>()
                 );
 
-            var codec = new ModManagerCodec(registry);
+            var codec = ModManagerCodec.ForInstallation(registry);
             var modManager = InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
 
             RegisterSaveToFileOnExit(modManager, codec, jsonPath);

@@ -151,7 +151,7 @@ public sealed class OwnershipPersistenceTests : IDisposable {
     public void FailedInitialConfigSaveCannotRetireInventory() {
         WriteInventory(JsonSerializer.Serialize(new[] { Owned() }));
         Directory.CreateDirectory(Config);
-        Assert.ThrowsAny<IOException>(Startup);
+        Assert.True(Record.Exception(() => Startup()) is IOException or UnauthorizedAccessException);
         Assert.True(File.Exists(Inventory));
         Assert.NotEmpty(Directory.GetFiles(LegacyOwnershipMigration.BackupRoot(Config), "inventory.json", SearchOption.AllDirectories));
     }

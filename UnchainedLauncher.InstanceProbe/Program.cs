@@ -1,4 +1,7 @@
+using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes;
+using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
 
 internal static class Program {
@@ -13,6 +16,11 @@ internal static class Program {
 
         if (args.Contains("--initialize")) {
             File.WriteAllText("initialized", "started");
+            return 0;
+        }
+
+        if (args.Contains("--convert-ownership")) {
+            LegacyOwnershipMigration.Load(FilePaths.ModManagerConfigPath, new AggregateModRegistry([]));
             return 0;
         }
 

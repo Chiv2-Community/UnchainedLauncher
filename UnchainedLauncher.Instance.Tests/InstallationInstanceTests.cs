@@ -3,7 +3,10 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Installer;
+using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes;
+using UnchainedLauncher.Core.Utilities;
 using UnchainedLauncher.GUI.Services;
 using Xunit;
 using Xunit.Abstractions;
@@ -147,6 +150,36 @@ public sealed class InstallationInstanceTests : IDisposable {
             ? $"{entry.FullName}:{file.LastWriteTimeUtc.Ticks}:{File.ReadAllText(file.FullName)}"
             : entry.FullName)
         .ToArray();
+
+    [WindowsFact]
+    public async Task DuplicateCannotRunTheRealOwnershipConverter() {
+        var target = _root.CreateSubdirectory(Path.Combine("TBL", "Content", "Paks"));
+        File.WriteAllText(Path.Combine(target.FullName, "owned.pak"), "owned");
+        var config = Path.Combine(_root.FullName, ".mod_cache", "mod_manager_config.json");
+        var inventory = Path.Combine(target.FullName, ".unchained", "inventory.json");
+        Directory.CreateDirectory(Path.GetDirectoryName(inventory)!);
+        var registry = new AggregateModRegistry([]);
+        var codec = new ModManagerCodec(registry);
+        void WriteLegacyState() {
+            codec.SerializeFile(config, new ModManager(registry, new PakDir(target.FullName,
+                [new(new("Org", "Mod", "v1"), "owned.pak", 0)]), []));
+            File.WriteAllText(inventory, "[]");
+        }
+        WriteLegacyState();
+        using (var first = Start(_root, "--convert-ownership")) {
+            await first.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(15));
+            Assert.Equal(0, first.ExitCode);
+            Assert.False(File.Exists(inventory));
+            Assert.Empty(((PakDir)codec.Deserialize(File.ReadAllText(config)).Result!.PakDir).ManagedPaks);
+        }
+        WriteLegacyState();
+        using var holder = await StartHolder(_root);
+        var before = Snapshot();
+        using var duplicate = Start(_root, "--convert-ownership");
+        await duplicate.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(15));
+        Assert.Equal(2, duplicate.ExitCode);
+        Assert.Equal(before, Snapshot());
+    }
 
     [WindowsFact]
     public async Task InstallerOccupiedTargetRefusesBeforeVersionOrWritesEvenWithReplaceCurrent() {

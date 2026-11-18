@@ -11,6 +11,25 @@ using Xunit;
 namespace UnchainedLauncher.GUI.Tests.Unit;
 
 public sealed class PreferenceCheckpointTests {
+    [Fact]
+    public void CombinedStartupKeepsGuardBeforeStateAndConversionBeforePlugins() {
+        var source = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "AppStartup.cs"));
+        Assert.True(source.IndexOf("InstallationStartup.TryAcquire", StringComparison.Ordinal)
+            < source.IndexOf("base.OnStartup", StringComparison.Ordinal));
+        Assert.True(source.IndexOf("InstallationStartup.TryAcquire", StringComparison.Ordinal)
+            < source.IndexOf("XmlConfigurator.Configure", StringComparison.Ordinal));
+        Assert.Contains("currentInstallation: _installationGuard", source);
+        var startup = source[source.IndexOf("private async Task<Window?> InitializeMainWindow", StringComparison.Ordinal)..];
+        Assert.True(startup.IndexOf("InitializeModManager(", StringComparison.Ordinal)
+            < startup.IndexOf("new DllManager(", StringComparison.Ordinal));
+        Assert.True(startup.IndexOf("InitializeModManager(", StringComparison.Ordinal)
+            < startup.IndexOf("new ModListVM(", StringComparison.Ordinal));
+        Assert.Contains("LegacyOwnershipMigration.Load", source);
+        Assert.Contains("checkpoint.AndThen(new SavedPaksPreparer", source);
+        Assert.Contains("prepareSavedPaks.AndThen(noSigLaunchPreparer", source);
+        Assert.Contains("prepareSavedPaks.AndThen(pluginInstaller", source);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

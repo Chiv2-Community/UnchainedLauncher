@@ -30,8 +30,14 @@ public static class LegacyOwnershipMigration {
         var original = File.Exists(configPath) ? File.ReadAllBytes(configPath) : null;
         JsonNode? document = original == null ? null : JsonNode.Parse(original)
             ?? throw new InvalidDataException($"Null mod-manager config: {configPath}");
+        if (document != null && (document["Kind"]?.GetValue<string>() != "StandardModManager"
+            || document["EnabledModReleases"] is not JsonArray))
+            throw new InvalidDataException($"Invalid mod-manager config: {configPath}");
         var installation = Path.GetFullPath(installationPakDirectory ?? FilePaths.PakDir);
         var metadata = document?["PakDir"];
+        if (metadata != null && (string.IsNullOrWhiteSpace(metadata["DirPath"]?.GetValue<string>())
+            || metadata["ManagedPaks"] is not JsonArray))
+            throw new InvalidDataException($"Invalid ownership snapshot: {configPath}");
         var configured = metadata?["DirPath"]?.GetValue<string>() ?? installation;
         if (metadata?["ManagedPaks"] is JsonNode snapshot)
             Validate(configured, snapshot.Deserialize<ManagedPak[]>() ?? throw new InvalidDataException("Null ownership snapshot."));

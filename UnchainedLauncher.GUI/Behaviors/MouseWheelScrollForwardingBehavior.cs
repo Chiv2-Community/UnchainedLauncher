@@ -67,7 +67,7 @@ namespace UnchainedLauncher.GUI.Behaviors {
             return false;
         }
 
-        private static ScrollViewer? FindAncestorScrollViewer(DependencyObject d) {
+        internal static ScrollViewer? FindAncestorScrollViewer(DependencyObject d) {
             // Start searching from the parent, otherwise we'll just find ourselves if 'd' is a ScrollViewer.
             DependencyObject? current = GetParent(d);
             while (current != null) {

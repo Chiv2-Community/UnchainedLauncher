@@ -62,6 +62,7 @@ namespace UnchainedLauncher.GUI.Behaviors {
                 box.GotKeyboardFocus += SearchFocused;
                 combo.PreviewKeyDown += KeyDown;
                 combo.PreviewTextInput += TextInput;
+                combo.PreviewMouseWheel += MouseWheel;
                 combo.DropDownOpened += Opened;
                 OpenProperty.AddValueChanged(combo, OpenChanged);
                 results.PreviewMouseLeftButtonUp += ChooseWithMouse;
@@ -144,32 +145,48 @@ namespace UnchainedLauncher.GUI.Behaviors {
                 e.Handled = true;
             }
 
+            private void MouseWheel(object sender, MouseWheelEventArgs e) {
+                if (combo.IsDropDownOpen) return;
+                // Stop WPF's closed-box wheel selection before its bubbling class handler.
+                e.Handled = true;
+                MouseWheelScrollForwardingBehavior.FindAncestorScrollViewer(combo)?.RaiseEvent(
+                    new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta) { RoutedEvent = Mouse.MouseWheelEvent });
+            }
+
             private void KeyDown(object sender, KeyEventArgs e) {
                 var key = e.Key == Key.System ? e.SystemKey : e.Key;
                 if (key == Key.F4 || ((Keyboard.Modifiers & ModifierKeys.Alt) != 0 && (key == Key.Up || key == Key.Down))) {
                     combo.IsDropDownOpen = !combo.IsDropDownOpen;
                     e.Handled = true;
                 }
-                else if (e.Key == Key.Escape && combo.IsDropDownOpen) {
+                else if (key == Key.Escape && combo.IsDropDownOpen) {
                     combo.IsDropDownOpen = false;
                     e.Handled = true;
                 }
-                else if (e.Key == Key.Enter && combo.IsDropDownOpen) {
+                else if (key == Key.Enter && combo.IsDropDownOpen) {
                     if (results.SelectedItem != null) Commit(results.SelectedItem);
                     e.Handled = true;
                 }
-                else if (e.Key == Key.Tab && combo.IsDropDownOpen) {
+                else if (key == Key.Tab && combo.IsDropDownOpen) {
                     // Cancel an unchosen result without handling normal focus traversal.
                     combo.IsDropDownOpen = false;
                 }
-                else if (e.Key == Key.Down || e.Key == Key.Up ||
-                           (combo.IsDropDownOpen && (e.Key == Key.PageDown || e.Key == Key.PageUp))) {
-                    if (!combo.IsDropDownOpen) {
-                        combo.IsDropDownOpen = true;
-                    }
-                    else if (results.Items.Count > 0) {
-                        var step = e.Key == Key.PageDown ? 10 : e.Key == Key.PageUp ? -10 : e.Key == Key.Down ? 1 : -1;
-                        results.SelectedIndex = Math.Clamp(results.SelectedIndex + step, 0, results.Items.Count - 1);
+                else if (key is Key.Down or Key.Up or Key.PageDown or Key.PageUp ||
+                         (!box.IsKeyboardFocusWithin && key is Key.Home or Key.End or Key.Left or Key.Right)) {
+                    // TextBox keeps Home/End/Left/Right for caret and selection editing.
+                    var wasOpen = combo.IsDropDownOpen;
+                    if (!wasOpen) combo.IsDropDownOpen = true;
+                    if (results.Items.Count > 0) {
+                        var step = key switch {
+                            Key.PageDown => 10,
+                            Key.PageUp => -10,
+                            Key.Down => 1,
+                            Key.Left => combo.FlowDirection == FlowDirection.RightToLeft ? 1 : -1,
+                            Key.Right => combo.FlowDirection == FlowDirection.RightToLeft ? -1 : 1,
+                            _ => -1
+                        };
+                        results.SelectedIndex = key == Key.Home ? 0 : key == Key.End ? results.Items.Count - 1 :
+                            wasOpen ? Math.Clamp(results.SelectedIndex + step, 0, results.Items.Count - 1) : results.SelectedIndex;
                         results.ScrollIntoView(results.SelectedItem);
                     }
                     e.Handled = true;
@@ -181,6 +198,7 @@ namespace UnchainedLauncher.GUI.Behaviors {
                 box.GotKeyboardFocus -= SearchFocused;
                 combo.PreviewKeyDown -= KeyDown;
                 combo.PreviewTextInput -= TextInput;
+                combo.PreviewMouseWheel -= MouseWheel;
                 combo.DropDownOpened -= Opened;
                 OpenProperty.RemoveValueChanged(combo, OpenChanged);
                 results.PreviewMouseLeftButtonUp -= ChooseWithMouse;

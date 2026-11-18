@@ -16,6 +16,7 @@
     <Compile Include="../UnchainedLauncher.GUI/Views/Controls/CollapsibleCard.xaml.cs" Link="Controls/CollapsibleCard.xaml.cs" />
     <Compile Include="../UnchainedLauncher.GUI/Views/Controls/InputOptions.cs" Link="Controls/InputOptions.cs" />
     <Compile Include="../UnchainedLauncher.GUI/Behaviors/SearchableComboBoxBehavior.cs" Link="SearchableComboBoxBehavior.cs" />
+    <Compile Include="../UnchainedLauncher.GUI/Behaviors/MouseWheelScrollForwardingBehavior.cs" Link="MouseWheelScrollForwardingBehavior.cs" />
     <Compile Include="../UnchainedLauncher.GUI/Converters/RoundedRectClipConverter.cs" Link="RoundedRectClipConverter.cs" />
     <Compile Include="../UnchainedLauncher.GUI/Converters/ModSortModeToStringConverter.cs" Link="ModSortModeToStringConverter.cs" />
   </ItemGroup>

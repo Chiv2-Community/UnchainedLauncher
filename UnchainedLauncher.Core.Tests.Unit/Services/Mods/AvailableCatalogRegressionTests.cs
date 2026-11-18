@@ -228,6 +228,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             await catalog.WaitForCatalogAsync();
             AssertAssets(catalog, shared, true);
             manager.DisableModRelease(ReleaseCoordinates.FromRelease(release));
+            await catalog.WaitForCatalogAsync();
             AssertAssets(catalog, shared, false);
             PublishScan(scan, file.Scan);
             PublishScan(scan, null);

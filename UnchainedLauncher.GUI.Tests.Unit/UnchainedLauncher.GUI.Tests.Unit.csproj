@@ -17,6 +17,7 @@
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-windows'">
     <Compile Remove="CardVisualTreeTests.cs" />
+    <Compile Remove="ProgressVisualTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../UnchainedLauncher.GUI/Views/Controls/CollapsibleCard.xaml" Link="Views/CollapsibleCard.xaml" CopyToOutputDirectory="PreserveNewest" />
@@ -31,6 +32,9 @@
     <None Include="../UnchainedLauncher.GUI/Views/Mods/ModList.xaml" Link="Views/ModList.xaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../UnchainedLauncher.GUI/Views/MainWindow.xaml" Link="Views/MainWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../UnchainedLauncher.GUI/Resources/Themes/Misc.xaml" Link="Views/Misc.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Resources/Themes/Buttons.xaml" Link="Views/Buttons.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Views/Settings.xaml" Link="Views/Settings.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Views/Progress/MemoryProgressDisplay.xaml" Link="Views/MemoryProgressDisplay.xaml" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../UnchainedLauncher.Core/UnchainedLauncher.Core.csproj" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All" />

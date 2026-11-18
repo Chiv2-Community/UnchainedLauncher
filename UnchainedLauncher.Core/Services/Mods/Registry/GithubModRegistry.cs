@@ -14,6 +14,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public string Organization { get; set; }
         public string RepoName { get; set; }
         private readonly string _revisionPath = "refs/heads/main";
+        internal bool UsesDefaultRevision => _revisionPath == "refs/heads/main";
         public string RegistryBaseUrl => $"https://raw.githubusercontent.com/{Organization}/{RepoName}/{_revisionPath}";
         public string PackageDBBaseUrl => $"{RegistryBaseUrl}/package_db";
         public string DllDatabaseUrl => $"{RegistryBaseUrl}/dll_db";

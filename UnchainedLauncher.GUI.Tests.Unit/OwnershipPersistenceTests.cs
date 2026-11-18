@@ -8,6 +8,7 @@ using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
+using UnchainedLauncher.GUI.ViewModels.Registry;
 using Xunit;
 
 namespace UnchainedLauncher.GUI.Tests.Unit;
@@ -44,6 +45,96 @@ public sealed class OwnershipPersistenceTests : IDisposable {
     private void Save(ModManager manager) => new ModManagerCodec(_registry).SerializeFile(Config, manager);
     private static ModInstallRequest Install(string name) => new(Coordinates(name),
         path => new FileWriter(path, new MemoryStream([1, 2, 3]), 3));
+
+    [Theory]
+    [InlineData("Local#Team", "Mod", false)]
+    [InlineData("LocalTeam", "Mod#1", false)]
+    [InlineData("Local#Team", "Mod", true)]
+    [InlineData("LocalTeam", "Mod#1", true)]
+    [InlineData("Local Team.é_+@!$%&'()=-[]{};,", "Mod.é_+@!$%&'()=-[]{};,", false)]
+    [InlineData("Local Team.é_+@!$%&'()=-[]{};,", "Mod.é_+@!$%&'()=-[]{};,", true)]
+    public async Task LocalRegistryIdentitySurvivesInstallAndStartup(string organization, string module, bool convertInventory) {
+        var source = Path.Combine(_root, "source.pak");
+        File.WriteAllBytes(source, [1, 2, 3]);
+        var form = new RegistryReleaseFormVM(Release("Mod"), source) { Organization = organization, Name = module };
+        var (release, pakPath) = form.ToRelease();
+        var coordinates = new ReleaseCoordinates(organization, module, "v1");
+        Assert.Equal(coordinates, ReleaseCoordinates.FromRelease(release));
+        var registry = new LocalModRegistry(Path.Combine(_root, "registry"));
+        await registry.AddRelease(release, pakPath);
+        Assert.True((await registry.GetModRelease(coordinates)).IsRight);
+        var (manager, persistence) = LegacyOwnershipMigration.Load(Config, registry, installationPakDirectory: Paks);
+        persistence.Save();
+        var catalog = await manager.UpdateModsList();
+        Assert.Empty(catalog.Errors);
+        Assert.Single(catalog.Mods);
+        Assert.True(manager.EnableModRelease(coordinates));
+        var results = 0;
+        await foreach (var result in manager.InstallMods([release], Option<AccumulatedMemoryProgress>.None)) {
+            Assert.True(result.IsRight);
+            results++;
+        }
+        Assert.Equal(1, results);
+        var owned = Assert.Single(((PakDir)manager.PakDir).ManagedPaks);
+        Assert.Equal(coordinates, owned.Coordinates);
+        Assert.Equal("q__-__" + module + ".pak", owned.PakFileName);
+        Assert.Equal(0, owned.Priority);
+        var codec = new ModManagerCodec(registry);
+        Assert.Equal(owned, Assert.Single(((PakDir)codec.Deserialize(File.ReadAllText(Config)).Result!.PakDir).ManagedPaks));
+        Assert.False(File.Exists(Inventory));
+        if (convertInventory) {
+            File.WriteAllText(Config, codec.Serialize(new ModManager(registry, new PakDir(Paks, []), [coordinates])));
+            WriteInventory(JsonSerializer.Serialize(new[] { owned }));
+        }
+        var configBefore = File.ReadAllBytes(Config);
+        var inventoryBefore = convertInventory ? File.ReadAllBytes(Inventory) : null;
+        var restarted = LegacyOwnershipMigration.Load(Config, registry, installationPakDirectory: Paks).Manager;
+        Assert.Equal(owned, Assert.Single(((PakDir)restarted.PakDir).ManagedPaks));
+        Assert.Equal(coordinates, Assert.Single(restarted.EnabledModReleaseCoordinates));
+        Assert.False(File.Exists(Inventory));
+        if (convertInventory) {
+            var backup = Assert.Single(Directory.GetFiles(LegacyOwnershipMigration.BackupRoot(Config), "inventory.json", SearchOption.AllDirectories));
+            Assert.Equal(inventoryBefore, File.ReadAllBytes(backup));
+            var configBackup = Assert.Single(Directory.GetFiles(LegacyOwnershipMigration.BackupRoot(Config), "mod_manager_config.json", SearchOption.AllDirectories));
+            Assert.Equal(configBefore, File.ReadAllBytes(configBackup));
+        }
+        else Assert.Equal(configBefore, File.ReadAllBytes(Config));
+        Assert.Equal(owned, Assert.Single(((PakDir)LegacyOwnershipMigration.Load(Config, registry, installationPakDirectory: Paks).Manager.PakDir).ManagedPaks));
+        Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(Path.Combine(Paks, owned.PakFileName)));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(".")]
+    [InlineData("..")]
+    [InlineData("../escape")]
+    [InlineData("a/b")]
+    [InlineData("a\\b")]
+    [InlineData("C:stream")]
+    [InlineData("a?b")]
+    [InlineData("a\0b")]
+    [InlineData("a\nb")]
+    public void UnsafeOrBlankIdentityCannotLoadSnapshotOrInventory(string? value) {
+        foreach (var organization in new[] { true, false }) {
+            var coordinates = organization ? Coordinates() with { Org = value! } : Coordinates() with { ModuleName = value! };
+            var owned = Owned() with { Coordinates = coordinates };
+            Save(Manager(owned));
+            var configBefore = File.ReadAllBytes(Config);
+            Assert.Throws<InvalidDataException>(Startup);
+            Assert.Equal(configBefore, File.ReadAllBytes(Config));
+            Save(Manager());
+            configBefore = File.ReadAllBytes(Config);
+            WriteInventory(JsonSerializer.Serialize(new[] { owned }));
+            var inventoryBefore = File.ReadAllBytes(Inventory);
+            Assert.Throws<InvalidDataException>(Startup);
+            Assert.Equal(configBefore, File.ReadAllBytes(Config));
+            Assert.Equal(inventoryBefore, File.ReadAllBytes(Inventory));
+            Assert.Equal("Mod", File.ReadAllText(Path.Combine(Paks, owned.PakFileName)));
+            File.Delete(Inventory);
+        }
+    }
 
     [Theory]
     [InlineData("release/v1.0.0")]
@@ -164,10 +255,20 @@ public sealed class OwnershipPersistenceTests : IDisposable {
     [InlineData("../escape.pak")]
     [InlineData("a\\escape.pak")]
     [InlineData("stream:evil.pak")]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("a\0b.pak")]
+    [InlineData("a\nb.pak")]
+    [InlineData("a?b.pak")]
+    [InlineData("a*b.pak")]
+    [InlineData("a<b.pak")]
+    [InlineData("a>b.pak")]
+    [InlineData("a\"b.pak")]
+    [InlineData("a|b.pak")]
     [InlineData("pakchunk0-WindowsNoEditor.pak")]
     public void InvalidInventoryNamesAreRejected(string name) {
         Save(Manager());
-        WriteInventory(JsonSerializer.Serialize(new[] { new ManagedPak(Coordinates(), name, 0) }));
+        WriteInventory(JsonSerializer.Serialize(new[] { new ManagedPak(new("Local#Team", "Mod#1", "v1"), name, 0) }));
         Assert.Throws<InvalidDataException>(Startup);
         Assert.True(File.Exists(Inventory));
     }

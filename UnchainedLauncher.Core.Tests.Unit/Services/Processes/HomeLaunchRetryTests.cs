@@ -52,9 +52,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Processes {
             public Action? OnAttached { get; set; }
             private readonly List<Process> _processes = [];
             public HomeVM Home { get; }
+            public int Shutdowns { get; private set; }
+            public TaskCompletionSource ShutdownRequested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            public LaunchHarness() {
-                var settings = new SettingsVM(null!, null!, InstallationType.Steam, true, false, "", "https://example.test", false, false, "-test");
+            public LaunchHarness(InstallationType installationType = InstallationType.Steam, Task<bool>? attachment = null) {
+                var settings = new SettingsVM(null!, null!, installationType, true, false, "", "https://example.test", false, false, "-test");
                 var mods = new Mock<IModManager>();
                 var info = new ModInfo("https://github.com/Chiv2-Community/Unchained-Mods", "Unchained-Mods", "", null, null, [], [], []);
                 var release = new Release("v1", "hash", "mod.pak", DateTime.UtcNow, info, new AssetCollections([], [], [], [], []), null);
@@ -77,14 +79,73 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Processes {
                         Exits.Add(exit);
                         OnAttached?.Invoke();
                     })
-                    .ReturnsAsync(true);
-                Home = new HomeVM(settings, mods.Object, Vanilla.Object, Modded.Object, Dialogue.Object, watcher.Object);
+                    .Returns(attachment ?? Task.FromResult(true));
+                Home = new HomeVM(settings, mods.Object, Vanilla.Object, Modded.Object, Dialogue.Object, watcher.Object, () => {
+                    Assert.True(Application.Current.Dispatcher.CheckAccess());
+                    Shutdowns++;
+                    ShutdownRequested.TrySetResult();
+                });
             }
 
             public void Dispose() {
                 foreach (var process in _processes) process.Dispose();
             }
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void FailedEgsLaunchDoesNotShutdown(bool modded) => ui.Run(() => {
+            using var h = new LaunchHarness(InstallationType.EpicGamesStore);
+            var launcher = modded ? h.Modded : h.Vanilla;
+            launcher.Setup(l => l.Launch(It.IsAny<LaunchOptions>()))
+                .ReturnsAsync(UnchainedLaunchFailure.InjectionFailed().AsLaunchFailed("-test"));
+            Assert.True((modded ? h.Home.LaunchUnchained() : h.Home.LaunchVanilla()).GetAwaiter().GetResult().IsNone);
+            Assert.Empty(h.Exits);
+            Assert.Equal(0, h.Shutdowns);
+            Assert.Equal(Visibility.Visible, h.Home.MainWindowVisibility);
+        });
+
+        [Theory]
+        [InlineData(false, 0, true)]
+        [InlineData(true, 0, true)]
+        [InlineData(false, 42, false)]
+        [InlineData(true, 42, false)]
+        [InlineData(false, -67, false)]
+        [InlineData(true, -67, false)]
+        public Task EgsWaitsForGameExitThenShutsDownWithoutRetry(bool modded, int code, bool acceptable) => ui.RunAsync(async () => {
+            using var h = new LaunchHarness(InstallationType.EpicGamesStore);
+            var result = await (modded ? h.Home.LaunchUnchained() : h.Home.LaunchVanilla());
+            Assert.True(result.IsSome);
+            Assert.Equal(0, h.Shutdowns);
+            Assert.Single(h.Exits);
+            Assert.Equal(Visibility.Hidden, h.Home.MainWindowVisibility);
+            Assert.False(h.Home.Settings.CanLaunch);
+
+            await Task.Run(() => h.Exits[0](code, acceptable));
+
+            Assert.Equal(1, h.Shutdowns);
+            Assert.Single(h.Options);
+            Assert.Equal(Visibility.Hidden, h.Home.MainWindowVisibility);
+            h.Dialogue.Verify(d => d.DisplayMessage(It.IsAny<string>()), Times.Never);
+        });
+
+        [Theory]
+        [InlineData(InstallationType.EpicGamesStore, false)]
+        [InlineData(InstallationType.EpicGamesStore, true)]
+        [InlineData(InstallationType.Steam, false)]
+        [InlineData(InstallationType.Steam, true)]
+        public Task AttachmentFailureDispatchesShutdownWithoutRetry(InstallationType installationType, bool modded) => ui.RunAsync(async () => {
+            var attachment = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var h = new LaunchHarness(installationType, attachment.Task);
+            await (modded ? h.Home.LaunchUnchained() : h.Home.LaunchVanilla());
+            Assert.Equal(0, h.Shutdowns);
+            await Task.Run(() => attachment.SetResult(false));
+            await h.ShutdownRequested.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Equal(1, h.Shutdowns);
+            Assert.Single(h.Options);
+            h.Dialogue.Verify(d => d.DisplayMessage(It.IsAny<string>()), Times.Never);
+        });
 
         [Fact]
         public void RepeatedPatchFailureRetriesOnceThenRestoresWindowAndFreshLaunchGetsNewBudget() => ui.Run(() => {

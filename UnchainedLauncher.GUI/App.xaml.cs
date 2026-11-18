@@ -225,9 +225,11 @@ namespace UnchainedLauncher.GUI {
                 return null;
             }
 
-            var modScanTab = new ModScanTabVM();
+            var modScanTab = new ModScanTabVM { DefaultPakDirectory = Path.GetFullPath(FilePaths.PakDir) };
             var helpVM = new HelpVM(settingsViewModel, installer, launcherReleaseLocator, modManager.PakDir, userDialogueSpawner, Shutdown);
             var availableModsAndMaps = new AvailableModsAndMapsService(modManager, modScanTab, settingsViewModel);
+            availableModsAndMaps.StartWatchingLocalPaks();
+            Exit += (_, _) => availableModsAndMaps.Dispose();
 
             var serverConfigurationVMs =
                 InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager, modScanTab, availableModsAndMaps);

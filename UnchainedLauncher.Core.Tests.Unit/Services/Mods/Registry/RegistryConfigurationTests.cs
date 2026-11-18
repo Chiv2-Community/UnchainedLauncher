@@ -1,5 +1,5 @@
-using System.Text.Json;
 using DiscriminatedUnions;
+using System.Text.Json;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Dlls;
 using UnchainedLauncher.Core.Services.Mods;
@@ -204,7 +204,10 @@ public sealed class RegistryConfigurationTests {
     public void InvalidOrDatabaseSpecificRootsAreRejected(string root) {
         Assert.Throws<InvalidDataException>(() => new GithubModRegistry(root));
         var json = JsonSerializer.Serialize(new {
-            Kind = "GithubModRegistry", Org = "Valid", RepoName = "Valid", BaseUrl = root
+            Kind = "GithubModRegistry",
+            Org = "Valid",
+            RepoName = "Valid",
+            BaseUrl = root
         });
         Assert.Throws<InvalidDataException>(() => ModRegistryCodec.Instance.Deserialize(json));
     }

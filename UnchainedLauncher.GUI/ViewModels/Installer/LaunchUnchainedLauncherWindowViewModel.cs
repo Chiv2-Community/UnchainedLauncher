@@ -22,23 +22,24 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         public IEnumerable<InstallationTargetViewModel> LaunchTargets { get; }
 
-        public InstallationTargetViewModel SelectedTarget { get; set; }
+        public InstallationTargetViewModel? SelectedTarget { get; set; }
 
         private Action CloseWindow { get; }
 
         public LaunchUnchainedLauncherWindowViewModel(IEnumerable<InstallationTargetViewModel> targets, Action closeWindow) {
-            LaunchTargets = targets.Filter(x => x.IsSelected);
+            LaunchTargets = targets.Where(x => x.IsSelected).ToList();
             CloseWindow = closeWindow;
 
-            if (LaunchTargets.Count() < 0) {
+            if (!LaunchTargets.Any()) {
                 MessageBox.Show("Error: No installation targets found after installation complete. This is a bug. Please file a report.");
             }
 
-            SelectedTarget = LaunchTargets.First();
+            SelectedTarget = LaunchTargets.FirstOrDefault();
         }
 
         [RelayCommand]
         public void Launch() {
+            if (SelectedTarget == null) return;
             string fileName;
             switch (SelectedTarget.InstallationType) {
                 case InstallationType.Steam:

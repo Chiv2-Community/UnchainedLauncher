@@ -20,8 +20,8 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         public string ContinueButtonText => "Continue";
         public bool CanContinue { get; set; }
-        public string GoBackButtonText => "Back";
-        public bool CanGoBack => true;
+        public string? GoBackButtonText => null;
+        public bool CanGoBack => false;
         public string TitleText => "📍 Select Installation Locations";
         public string DescriptionText => "Choose where to install Unchained. We'll safely move your original Chivalry2Launcher.exe to Chivalry2Launcher-ORIGINAL.exe as a backup.";
 
@@ -34,24 +34,42 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
             Installations = new ObservableCollection<InstallationTargetViewModel>();
 
-            Installations.CollectionChanged += (_, _) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Installations)));
-
-            ScanForInstallations();
+            Installations.CollectionChanged += (_, e) => {
+                if (e.OldItems != null)
+                    foreach (InstallationTargetViewModel target in e.OldItems)
+                        target.PropertyChanged -= UpdateCanContinue;
+                if (e.NewItems != null)
+                    foreach (InstallationTargetViewModel target in e.NewItems)
+                        target.PropertyChanged += UpdateCanContinue;
+                UpdateCanContinue();
+            };
         }
 
         public Task Continue() => Task.CompletedTask;
-        public Task Load() => Task.Run(ScanForInstallations);
+        private bool _loaded;
+        public bool IsScanning { get; private set; }
+
+        public async Task Load() {
+            if (_loaded) return;
+            await ScanForInstallations();
+            _loaded = true;
+        }
 
         [RelayCommand]
-        private void ScanForInstallations() {
-            Installations.Clear();
-
+        private async Task ScanForInstallations() {
+            if (IsScanning) return;
+            IsScanning = true;
+            UpdateCanContinue();
             try {
-                var steamDir = InstallationFinder.FindSteamDir();
+                var steamDir = await DiscoverInstallation(InstallationFinder.FindSteamDir);
+                var egsDir = await DiscoverInstallation(InstallationFinder.FindEGSDir);
+
+                foreach (var target in Installations)
+                    target.PropertyChanged -= UpdateCanContinue;
+                Installations.Clear();
                 if (steamDir != null)
                     AddInstallation(new InstallationTargetViewModel(steamDir, InstallationType.Steam, false));
 
-                var egsDir = InstallationFinder.FindEGSDir();
                 if (egsDir != null)
                     AddInstallation(new InstallationTargetViewModel(egsDir, InstallationType.EpicGamesStore, false));
 
@@ -60,10 +78,26 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
                 Logger.Error("Error scanning for installations", ex);
                 MessageBox.Show("Error scanning for installations: " + ex.Message);
             }
+            finally {
+                IsScanning = false;
+                UpdateCanContinue();
+            }
+        }
+
+        private static async Task<DirectoryInfo?> DiscoverInstallation(Func<DirectoryInfo?> findDirectory) {
+            try {
+                return await Task.Run(findDirectory);
+            }
+            catch (Exception ex) {
+                Logger.Error("Error scanning for installations", ex);
+                MessageBox.Show("Error scanning for installations: " + ex.Message);
+                return null;
+            }
         }
 
         [RelayCommand]
         private void BrowseForInstallation() {
+            if (IsScanning) return;
             var dialog = new OpenFileDialog {
                 Title = "Select Chivalry2Launcher.exe from your Chivalry 2 Installation Directory"
             };
@@ -87,12 +121,15 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
 
         private void AddInstallation(InstallationTargetViewModel target) {
             Installations.Add(target);
-            target.PropertyChanged += UpdateCanContinue;
+        }
+
+        private void UpdateCanContinue() {
+            CanContinue = !IsScanning && Installations.Any(inst => inst.IsSelected);
         }
 
         private void UpdateCanContinue(object? sender, PropertyChangedEventArgs e) {
-            if (e.PropertyName == "IsSelected") {
-                CanContinue = Installations.Any(inst => inst.IsSelected);
+            if (e.PropertyName == nameof(InstallationTargetViewModel.IsSelected)) {
+                UpdateCanContinue();
             }
         }
     }

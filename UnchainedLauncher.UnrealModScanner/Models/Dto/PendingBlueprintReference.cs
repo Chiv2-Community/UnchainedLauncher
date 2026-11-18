@@ -1,5 +1,4 @@
-﻿
-
+﻿using CUE4Parse.FileProvider.Objects;
 namespace UnchainedLauncher.UnrealModScanner.Models.Dto {
     /// <summary>
     /// Holds a reference found in a Marker to be processed later.
@@ -11,5 +10,6 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Dto {
         public string TargetBlueprintPath { get; set; } = string.Empty;
         public string TargetClassName { get; set; } = string.Empty;
         public string SourcePakFile { get; set; } = string.Empty;
+        public required IReadOnlyDictionary<string, GameFile> SourceFiles { get; init; }
     }
 }

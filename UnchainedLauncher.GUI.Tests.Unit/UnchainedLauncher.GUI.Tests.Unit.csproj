@@ -14,9 +14,16 @@
     <Using Include="System.Net.Http" />
     <Page Include="../UnchainedLauncher.GUI/Views/Controls/CollapsibleCard.xaml" Link="Controls/CollapsibleCard.xaml" />
     <Compile Include="../UnchainedLauncher.GUI/Views/Controls/CollapsibleCard.xaml.cs" Link="Controls/CollapsibleCard.xaml.cs" />
+    <Compile Include="../UnchainedLauncher.GUI/Views/Controls/InputOptions.cs" Link="Controls/InputOptions.cs" />
+    <Compile Include="../UnchainedLauncher.GUI/Behaviors/SearchableComboBoxBehavior.cs" Link="SearchableComboBoxBehavior.cs" />
+    <Compile Include="../UnchainedLauncher.GUI/Behaviors/MouseWheelScrollForwardingBehavior.cs" Link="MouseWheelScrollForwardingBehavior.cs" />
+    <Compile Include="../UnchainedLauncher.GUI/Converters/RoundedRectClipConverter.cs" Link="RoundedRectClipConverter.cs" />
+    <Compile Include="../UnchainedLauncher.GUI/Converters/ModSortModeToStringConverter.cs" Link="ModSortModeToStringConverter.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-windows'">
     <Compile Remove="CardVisualTreeTests.cs" />
+    <Compile Remove="ProgressVisualTests.cs" />
+    <Compile Remove="SearchableComboBoxTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="../UnchainedLauncher.GUI/Views/Controls/CollapsibleCard.xaml" Link="Views/CollapsibleCard.xaml" CopyToOutputDirectory="PreserveNewest" />
@@ -32,6 +39,18 @@
     <None Include="../UnchainedLauncher.GUI/Views/Mods/ModList.xaml" Link="Views/ModList.xaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../UnchainedLauncher.GUI/Views/MainWindow.xaml" Link="Views/MainWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../UnchainedLauncher.GUI/Resources/Themes/Misc.xaml" Link="Views/Misc.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Resources/Themes/Buttons.xaml" Link="Views/Buttons.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../UnchainedLauncher.GUI/Services/FuzzySearch.cs" Link="FuzzySearch.cs" />
+    <None Include="../UnchainedLauncher.GUI/Resources/Themes/Inputs.xaml" Link="Views/Inputs.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Resources/Themes/DarkConstants.xaml" Link="Views/DarkConstants.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Resources/Themes/LightConstants.xaml" Link="Views/LightConstants.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Views/Installer/VersionSelectionView.xaml" Link="Views/VersionSelectionView.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Views/Installer/InstallationTargetView.xaml" Link="Views/InstallationTargetView.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Views/Servers/Sections/BaseConfigurationSectionView.xaml" Link="Views/BaseConfigurationSectionView.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Views/Servers/Server.xaml" Link="Views/Server.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Views/Servers/ServersTab.xaml" Link="Views/ServersTab.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Views/Settings.xaml" Link="Views/Settings.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/Views/Progress/MemoryProgressDisplay.xaml" Link="Views/MemoryProgressDisplay.xaml" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../UnchainedLauncher.Core/UnchainedLauncher.Core.csproj" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All" />

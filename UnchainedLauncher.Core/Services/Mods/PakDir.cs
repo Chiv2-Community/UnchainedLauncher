@@ -24,6 +24,50 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public IEnumerable<ManagedPak> ManagedPaks => _managedPaks;
         private readonly List<ManagedPak> _managedPaks;
         private readonly PakInventory _inventory;
+        internal PakDirMetadata? LegacySavedMetadata { get; set; }
+        internal bool MigrateInstallationSavedPaks { get; set; }
+
+        public async Task MigrateSavedPaks(string suffix = "Unchained", CancellationToken cancellationToken = default) {
+            if (!MigrateInstallationSavedPaks) return;
+            var sources = SavedPakMigration.SourceDirectories(DirPath, suffix, LegacySavedMetadata)
+                .Where(p => !SavedPakMigration.SameDirectory(p, DirPath)).Distinct().ToArray();
+            foreach (var path in sources.Append(DirPath)) {
+                SavedPakMigration.RejectLinks(path);
+                foreach (var name in new[] { "inventory.lock", "inventory.json", "inventory.tmp", "pending" })
+                    SavedPakMigration.RejectLinks(Path.Combine(path, ".unchained", name));
+            }
+            var locks = new List<FileStream>();
+            try {
+                // Stable ordering also serializes migrations sharing a legacy source.
+                foreach (var path in sources.Where(Directory.Exists).Append(DirPath).OrderBy(Path.GetFullPath, StringComparer.Ordinal))
+                    locks.Add(await new PakInventory(path).Lock(cancellationToken));
+                ReloadInventory();
+                var ownership = new List<ManagedPak>();
+                foreach (var source in sources.Where(Directory.Exists)) {
+                    var legacy = LegacySavedMetadata != null && SavedPakMigration.SameDirectory(source, LegacySavedMetadata.DirPath)
+                        ? LegacySavedMetadata.ManagedPaks : [];
+                    var sourcePaks = new PakInventory(source).Load(legacy);
+                    ownership.AddRange(sourcePaks.Where(p => File.Exists(Path.Combine(source, p.PakFileName))));
+                }
+                SavedPakMigration.Migrate(DirPath, sources, copied => {
+                    var merged = _managedPaks.ToList();
+                    foreach (var pak in ownership) {
+                        if (!copied.Any(source => Path.GetFileName(source).Equals(pak.PakFileName, StringComparison.OrdinalIgnoreCase))) continue;
+                        // Existing shared inventory always wins; never replace its filename or coordinate.
+                        if (merged.Any(p => p.Coordinates == pak.Coordinates
+                            || p.PakFileName.Equals(pak.PakFileName, StringComparison.OrdinalIgnoreCase))) continue;
+                        merged.Add(pak);
+                    }
+                    _inventory.Save(merged);
+                    _managedPaks.Clear();
+                    _managedPaks.AddRange(merged);
+                });
+                LegacySavedMetadata = null;
+            }
+            finally {
+                foreach (var inventoryLock in locks.AsEnumerable().Reverse()) inventoryLock.Dispose();
+            }
+        }
 
         public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks)
             : this(dirPath, managedPaks, TimeProvider.System) { }

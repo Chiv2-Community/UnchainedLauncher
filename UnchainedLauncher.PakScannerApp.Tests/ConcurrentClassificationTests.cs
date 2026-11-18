@@ -2,7 +2,6 @@ using UnchainedLauncher.UnrealModScanner.Assets;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.Services;
 using UnrealModScanner.Models;
-using Xunit;
 
 namespace UnchainedLauncher.PakScannerApp.Tests;
 

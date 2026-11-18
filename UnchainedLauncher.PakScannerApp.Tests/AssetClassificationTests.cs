@@ -13,7 +13,6 @@ using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Processors;
 using UnrealModScanner.Models;
-using Xunit;
 
 namespace UnchainedLauncher.PakScannerApp.Tests {
     public class AssetClassificationTests : IDisposable {

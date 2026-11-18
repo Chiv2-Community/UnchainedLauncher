@@ -3,7 +3,6 @@ using CUE4Parse.FileProvider.Objects;
 using CUE4Parse.UE4.Readers;
 using System.Security.Cryptography;
 using UnchainedLauncher.UnrealModScanner.Utility;
-using Xunit;
 
 namespace UnchainedLauncher.PakScannerApp.Tests;
 

@@ -62,8 +62,7 @@ public sealed class RegistryConfigurationTests {
                 registryUrls: () => [registry.DllDatabaseUrl]);
             await manager.RefreshAsync();
             Assert.Equal(new[] {
-                "https://raw.githubusercontent.com/Other/CustomRegistry/refs/heads/main/dll_db/plugin_list_index.txt",
-                "https://raw.githubusercontent.com/Other/CustomRegistry/refs/heads/main/dll_db/index.json"
+                "https://raw.githubusercontent.com/Other/CustomRegistry/refs/heads/main/dll_db/plugin_list_index.txt"
             }, handler.Requests);
             Assert.Empty(manager.Releases);
         }

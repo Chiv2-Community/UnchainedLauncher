@@ -24,5 +24,6 @@
     <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/UnmanagedPakScanProgressTests.cs" Link="UnmanagedPakScanProgressTests.cs" />
     <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/PakReleaseRecoveryTests.cs" Link="PakReleaseRecoveryTests.cs" />
     <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/SharedPakInventoryTests.cs" Link="SharedPakInventoryTests.cs" />
+    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/KeptUnmanagedPakTests.cs" Link="KeptUnmanagedPakTests.cs" />
   </ItemGroup>
 </Project>

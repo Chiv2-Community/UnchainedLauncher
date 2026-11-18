@@ -181,14 +181,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var completed = false;
             try {
                 var result = await mkFileWriter(stagingPath)
-                .Bind(fileWriter =>
-                    // TODO: allow passing of a cancellation token here
-                    fileWriter.WriteAsync(progress, CancellationToken.None)
-                    .Map(_ => {
-                        File.Move(stagingPath, PakNameToPakPath(fullActualName));
-                        return fullActualName;
-                    })
-                );
+                    .Bind(fileWriter => WriteAndCloseInput(fileWriter).ToAsync());
                 completed = result.IsRight;
                 return result;
             }
@@ -200,6 +193,18 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     _deleteFile(stagingPath)
                         .IfLeft(e => throw new IOException($"Failed to remove incomplete pak download: {e}"));
                 }
+            }
+
+            async Task<Either<Error, string>> WriteAndCloseInput(FileWriter fileWriter) {
+                Either<Error, Unit> written;
+                using (fileWriter.InputStream) {
+                    // TODO: allow passing of a cancellation token here
+                    written = await fileWriter.WriteAsync(progress, CancellationToken.None);
+                }
+                return written.Map(_ => {
+                    File.Move(stagingPath, PakNameToPakPath(fullActualName));
+                    return fullActualName;
+                });
             }
         }
 

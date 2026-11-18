@@ -504,7 +504,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             if (enabled) manager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
             var scan = new ModScanTabVM();
             if (scanBeforeCatalog) PublishScan(scan, file.Scan);
-            var catalog = new AvailableModsAndMapsService(manager, scan);
+            using var catalog = new AvailableModsAndMapsService(manager, scan);
             if (!scanBeforeCatalog) PublishScan(scan, file.Scan);
             await catalog.WaitForCatalogAsync();
             Assert.Equal(enabled ? 1 : 0, catalog.AvailableServerModBlueprints.Count);
@@ -531,7 +531,7 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             Assert.Empty(catalog.GetConfirmedInactiveSelections([current]));
             await catalog.RefreshCatalogAsync();
             Assert.Same(current, Assert.Single(catalog.AvailableServerModBlueprints));
-            var restarted = new AvailableModsAndMapsService(manager, scan);
+            using var restarted = new AvailableModsAndMapsService(manager, scan);
             await restarted.WaitForCatalogAsync();
             Assert.Equal("0.2.1", Assert.Single(restarted.AvailableServerModBlueprints).Version);
 
@@ -544,6 +544,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods {
             File.Delete(file.Result.PakPath);
             await catalog.RefreshCatalogAsync();
             Assert.Empty(catalog.AvailableServerModBlueprints);
+            await catalog.LocalModScan.RefreshAsync();
+            await restarted.LocalModScan.RefreshAsync();
         }
 
         [Theory]

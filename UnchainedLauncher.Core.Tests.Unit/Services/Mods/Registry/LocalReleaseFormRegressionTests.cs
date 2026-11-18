@@ -27,7 +27,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
             var root = Path.Combine(Path.GetTempPath(), "LocalReleaseForm_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
             try {
-                var registry = new LocalModRegistry(Path.Combine(root, "registry"));
+                var registryMock = new Mock<LocalModRegistry>(Path.Combine(root, "registry")) { CallBase = true };
+                // List previews are unrelated to form serialization; do not leave background readers at cleanup.
+                registryMock.Setup(value => value.GetAllMods()).ReturnsAsync(new GetAllModsResult([], []));
+                var registry = registryMock.Object;
                 var pak = Path.Combine(root, "source.pak");
                 await File.WriteAllTextAsync(pak, "test pak");
                 RegistryReleaseFormVM form;

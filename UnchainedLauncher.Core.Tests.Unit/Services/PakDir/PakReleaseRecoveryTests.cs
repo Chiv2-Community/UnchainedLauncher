@@ -38,6 +38,7 @@ public class PakReleaseRecoveryTests : IDisposable {
 
     private static Mock<IUserDialogueSpawner> Dialogue(UserDialogueChoice choice) {
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+        dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => { });
         dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
             .Returns(choice);
         dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
@@ -67,6 +68,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         }
     }
 
+#if !PORTABLE_SCANNER_TESTS
     [Theory]
     [InlineData("", false)]
     [InlineData("https://example.test/release", true)]
@@ -76,6 +78,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         Assert.Equal(available, row.HasReleaseInformation);
         Assert.Equal(available, row.HyperlinkCommand.CanExecute(null));
     }
+#endif
 
     [Theory]
     [InlineData("1.9.0|1.10.0|invalid", "1.10.0")]

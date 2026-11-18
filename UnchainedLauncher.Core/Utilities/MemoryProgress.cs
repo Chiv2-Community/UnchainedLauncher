@@ -16,6 +16,11 @@ namespace UnchainedLauncher.Core.Utilities {
         public void Report(double value) {
             ProgressPercentage = Math.Clamp(value, 0.00, 100.00);
         }
+
+        public void Report(double value, string taskName) {
+            TaskName = taskName;
+            Report(value);
+        }
     }
 
     public class AccumulatedMemoryProgress : MemoryProgress {

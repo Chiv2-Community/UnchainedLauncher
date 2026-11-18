@@ -15,7 +15,7 @@ public class UnmanagedPakScanProgressTests : IDisposable {
     private Core.Services.Mods.PakDir Paks() => new(directory, []);
 
     private Task<bool> Recover(IUserDialogueSpawner dialogue, bool alwaysKeep, PakReadCache cache) =>
-        UnmanagedPakRecovery.Recover(Paks(), [], dialogue, () => { }, [], alwaysKeep, cache, _ => { });
+        UnmanagedPakRecovery.Recover(Paks(), [], dialogue, [], alwaysKeep, cache, _ => { });
 
     [Theory]
     [InlineData(false)]

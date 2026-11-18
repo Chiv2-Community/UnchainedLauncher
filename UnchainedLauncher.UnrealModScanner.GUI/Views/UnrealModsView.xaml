@@ -17,9 +17,13 @@
         <nodes:PropertyFilterConverter x:Key="PropFilter" />
 	</UserControl.Resources>
     <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
-			<StackPanel Orientation="Horizontal">
-				<Button Content="Scan"
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+			<StackPanel Grid.Column="0" Orientation="Horizontal">
+				<Button x:Name="ScanButton" Content="Scan"
 						Click="Scan_UnrealMods_Click"
 						IsEnabled="{Binding ModScannerVM.IsNotScanning, 
                     RelativeSource={RelativeSource AncestorType=UserControl}}" />
@@ -48,15 +52,15 @@
 						Click="Collapse_UnrealMods_Click"
 						IsEnabled="{Binding ModScannerVM.IsNotScanning, 
                     RelativeSource={RelativeSource AncestorType=UserControl}}" />
-				<ProgressBar Minimum="0"
+			</StackPanel>
+				<ProgressBar Grid.Column="1" Minimum="0"
                  Maximum="100"
                  Value="{Binding ModScannerVM.ScanProgress, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                 Height="20"
-                 Margin="5"
-				 Width="500"			 
+                 Height="{Binding ActualHeight, ElementName=ScanButton}"
+                 VerticalAlignment="Center"
+                 Margin="5,0,0,0"
                  Visibility="{Binding ModScannerVM.IsScanning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-			</StackPanel>
-        </StackPanel>
+        </Grid>
 
         <!-- <TreeView ItemsSource="{Binding viewModels:ModScanTabVM.ResultsVisual.Results}"> -->
         <!-- <TreeView ItemsSource="{Binding ResultsVisual.Children}"> -->

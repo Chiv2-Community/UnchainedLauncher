@@ -3,13 +3,23 @@ using CUE4Parse.UE4.Assets;
 using CUE4Parse.UE4.Assets.Exports;
 using CUE4Parse.UE4.Objects.UObject;
 using CUE4Parse.UE4.Pak.Objects;
+using CUE4Parse.UE4.VirtualFileSystem;
 using System.Collections.Concurrent;
 using UnchainedLauncher.UnrealModScanner.Utility;
 using UnrealModScanner.Models;
 
 namespace UnchainedLauncher.UnrealModScanner.PakScanning.Config {
     public class ModScanResult {
+        private readonly Func<string, string> hashPak;
+        public ModScanResult(Func<string, string>? hashPak = null) {
+            this.hashPak = hashPak ?? HashUtility.CalculatePakHash;
+        }
         public ConcurrentDictionary<string, PakScanResult> Paks { get; } = new();
+
+        public PakScanResult GetOrAddPak(IVfsReader reader) => Paks.GetOrAdd(reader.Name, _ => new PakScanResult {
+            PakPath = Path.GetFullPath(reader.Path),
+            PakHash = hashPak(reader.Path)
+        });
     }
     public class ScanContext {
         public IFileProvider Provider { get; }
@@ -24,10 +34,10 @@ namespace UnchainedLauncher.UnrealModScanner.PakScanning.Config {
             PakEntry = pakEntry;
         }
 
-        public string GetHash() => HashUtility.GetAssetHash(Provider, FilePath, PakEntry);
+        public string GetHash() => HashUtility.GetAssetHash(PakEntry);
 
         public string GetHash(UObject export) {
-            return HashUtility.GetAssetHash(Provider, FilePath, PakEntry);
+            return GetHash();
         }
 
 

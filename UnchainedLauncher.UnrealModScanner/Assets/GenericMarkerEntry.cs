@@ -19,7 +19,7 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
         /// <summary>
         /// Contains Markers discovered by ReferenceDiscoveryProcessor
         /// </summary>
-        [JsonProperty("children")]
+        [JsonProperty("children", Required = Required.DisallowNull)]
         public ConcurrentBag<GenericAssetEntry> Children { get; private set; } = new();
 
         public void AddGenericEntry(GenericAssetEntry entry) => Children.Add(entry);

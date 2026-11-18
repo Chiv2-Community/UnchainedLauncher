@@ -43,6 +43,7 @@ public class PakReleaseRecoveryTests : IDisposable {
 
     private static Mock<IUserDialogueSpawner> Dialogue(UserDialogueChoice choice) {
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
+        dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => { });
         dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Yes", "No", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
             .Returns(choice);
         dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
@@ -72,6 +73,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         }
     }
 
+#if !PORTABLE_SCANNER_TESTS
     [Theory]
     [InlineData("", false)]
     [InlineData("https://example.test/release", true)]
@@ -81,6 +83,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         Assert.Equal(available, row.HasReleaseInformation);
         Assert.Equal(available, row.HyperlinkCommand.CanExecute(null));
     }
+#endif
 
     [Theory]
     [InlineData("1.9.0|1.10.0|invalid", "1.10.0")]
@@ -108,7 +111,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         var paks = new Core.Services.Mods.PakDir(_dir, []);
         Persist(paks);
         var dialogue = Dialogue(choice);
-        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), "Unmanaged paks detected. Keep them or remove them?", "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+        dialogue.Setup(d => d.DisplayUpdateMessage("Unmanaged Mods detected", "Unmanaged Mods detected. Keep them or remove them?", "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
             .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, message, _, _, _, changes) => {
                 Assert.Equal(2, changes.Count());
                 Assert.DoesNotContain("Directory:", message);
@@ -140,6 +143,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             Assert.Empty(await Reload().GetManagedPaks());
         }
         dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), alwaysKeep ? Times.Never : Times.Once);
+        dialogue.Verify(d => d.DisplayUpdateMessage("Unmanaged Mods detected", "Unmanaged Mods detected. Keep them or remove them?", "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), alwaysKeep ? Times.Never : Times.Once);
     }
 
     [Theory]
@@ -484,16 +488,33 @@ public class PakReleaseRecoveryTests : IDisposable {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task SignatureRelocationCoalescesOnlyIdenticalSignatures(bool identical) {
+    public async Task SignatureOnlyDestinationPreservesExistingManagedPak(bool identical) {
         var wanted = Release("v1.0.0");
         var source = Write("q__-__Mod1 (9).pak", wanted.Tag);
         Write("q__-__Mod1 (9).sig", "signature");
         Write("q__-__Mod1.sig", identical ? "signature" : "conflict");
         var paks = new Core.Services.Mods.PakDir(_dir, [new ManagedPak(ReleaseCoordinates.FromRelease(wanted), Path.GetFileName(source), 7)]);
         var results = await paks.InstallModSet([new ModInstallRequest(ReleaseCoordinates.FromRelease(wanted), _ => throw new Exception("Unexpected download"))], Prelude.None).ToListAsync();
-        Assert.Equal(identical, Assert.Single(results).IsRight);
-        Assert.Equal(!identical, File.Exists(source));
+        Assert.True(Assert.Single(results).IsRight);
+        Assert.True(File.Exists(source));
+        Assert.Equal(Path.GetFileName(source), Assert.Single(await paks.GetManagedPaks()).PakFileName);
+        Assert.Equal(identical ? "signature" : "conflict", File.ReadAllText(Path.Join(_dir, "q__-__Mod1.sig")));
         Assert.Equal("signature", File.ReadAllText(Path.ChangeExtension(Path.Join(_dir, Assert.Single(await paks.GetManagedPaks()).PakFileName), ".sig")));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SignatureValidationStillRejectsOnlyConflictingSignatures(bool identical) {
+        var source = Write("source.pak", "payload");
+        Write("source.sig", "signature");
+        var destination = Path.Join(_dir, "destination.pak");
+        Write("destination.sig", identical ? "signature" : "conflict");
+
+        if (identical) Core.Services.Mods.PakDir.ValidateMoveSignatures(source, destination);
+        else Assert.Throws<IOException>(() => Core.Services.Mods.PakDir.ValidateMoveSignatures(source, destination));
+        Assert.Equal("signature", File.ReadAllText(Path.ChangeExtension(source, ".sig")));
+        Assert.Equal(identical ? "signature" : "conflict", File.ReadAllText(Path.ChangeExtension(destination, ".sig")));
     }
 
     [Fact]

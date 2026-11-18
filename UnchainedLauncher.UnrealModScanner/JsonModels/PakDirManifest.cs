@@ -58,7 +58,8 @@ namespace UnchainedLauncher.UnrealModScanner.JsonModels {
         [property: JsonPropertyName("online_only")][property: JsonProperty("online_only")] bool? bOnlineOnly,
         [property: JsonPropertyName("host_only")][property: JsonProperty("host_only")] bool? bHostOnly,
         [property: JsonPropertyName("allow_on_frontend")][property: JsonProperty("allow_on_frontend")] bool? bAllowOnFrontend,
-        [property: JsonPropertyName("is_hidden")][property: JsonProperty("is_hidden")] bool? IsHidden
+        // Kept only for source compatibility; visibility uses bShowInGUI.
+        [property: System.Text.Json.Serialization.JsonIgnore][property: Newtonsoft.Json.JsonIgnore] bool? IsHidden = null
     ) : BaseAssetDto(Path, Hash, ClassPath, ObjectClass);
 
     public record MapDto(

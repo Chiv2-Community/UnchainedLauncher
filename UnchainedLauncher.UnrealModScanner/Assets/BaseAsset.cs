@@ -79,14 +79,7 @@ namespace UnchainedLauncher.UnrealModScanner.Assets {
 
 
         protected void Initialize(IAssetSource source) {
-            var filePath = source.FilePath;
-            if (source is PackageAssetSource package)
-                filePath = filePath + ".uasset"; // FIXME: maybe also umap? where is it stored
-            // if (filePath.EndsWith(".uasset") || filePath.EndsWith(".umap")) {
-            //     filePath = filePath.Replace(".uasset", "");
-            //     filePath = filePath.Replace(".umap", "");
-            // }
-            AssetPath = filePath;
+            AssetPath = source.FilePath;
 
             AssetHash = source.GetHash(null);
 

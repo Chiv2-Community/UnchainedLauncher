@@ -150,7 +150,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 );
 
         private string AvailablePakName(string suggestedFileName) {
-            var unManagedPaks = GetUnmanagedPaks().ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var unManagedPaks = GetUnmanagedPakDestinations().ToHashSet(StringComparer.OrdinalIgnoreCase);
             var actualName = Path.GetFileNameWithoutExtension(suggestedFileName);
             var extension = Path.GetExtension(suggestedFileName);
             var fullActualName = actualName + extension;
@@ -274,7 +274,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var existingByCoords = _managedPaks
                 .Filter(p => installCoordinatesSet.Contains(p.Coordinates))
                 .ToDictionary(p => p.Coordinates, p => p);
-            var unmanagedPaths = GetUnmanagedPaks().ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var unmanagedPaths = GetUnmanagedPakDestinations().ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             // Categorize each install: Skip (already correct), Move (relocate), or Download (new)
             var installActions = installsList
@@ -490,6 +490,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// NOTE: this should only do anything when the *user* messed something up
         /// </summary>
         private void SynchronizeWithDir() {
+            using var cache = new PakReadCache(DirPath);
             var missing = _managedPaks
                 .Filter(p => !File.Exists(PakNameToPakPath(p.PakFileName)))
                 .ToHashSet();
@@ -519,8 +520,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
             return Path.Join(DirPath, fileName);
         }
 
-        private IEnumerable<string> GetUnmanagedPaks() {
+        private IEnumerable<string> GetUnmanagedPakDestinations() {
+            // An unrelated signature reserves its pak name even when the pak itself is absent.
             return GetModPakFiles()
+                .Concat(GetSigFiles().Select(path => Path.ChangeExtension(path, ".pak")))
                 .Filter(p => !_managedPaks.Exists(pak => pak.PakFileName.Equals(Path.GetFileName(p), StringComparison.OrdinalIgnoreCase)));
         }
 

@@ -46,7 +46,7 @@ public class UpdatesWindowTests(HomeLaunchUi ui) {
             }
             var unknown = new DependencyUpdate("a-long-unmanaged-pak-name.pak", null, "Unknown", "", "Unrecognized pak");
             var known = new DependencyUpdate("known.pak", null, "1.2.3", "https://example.test/release", "Example mod");
-            window = new UpdatesWindow("Unmanaged paks detected", "Unmanaged paks detected. Keep them or remove them?",
+            window = new UpdatesWindow("Unmanaged Mods detected", "Unmanaged Mods detected. Keep them or remove them?",
                 "Keep", "Remove", "Cancel", Enumerable.Range(0, 8).Select(i => new DependencyUpdateViewModel(i == 0 ? unknown : known))) {
                 Width = 400,
                 Height = 280,
@@ -73,7 +73,7 @@ public class UpdatesWindowTests(HomeLaunchUi ui) {
                 Assert.InRange(position.Y + action.ActualHeight, 0, window.ActualHeight);
             }
             window.Close();
-            window = new UpdatesWindow("Unmanaged paks detected", "Unmanaged paks detected. Keep them or remove them?",
+            window = new UpdatesWindow("Unmanaged Mods detected", "Unmanaged Mods detected. Keep them or remove them?",
                 "Keep", "Remove", "Cancel", Enumerable.Range(0, cardCount).Select(_ => new DependencyUpdateViewModel(known))) {
                 ShowActivated = false,
                 ShowInTaskbar = false

@@ -9,8 +9,8 @@ namespace UnchainedLauncher.UnrealModScanner.Models.Chivalry2 {
     [Obsolete("Use GenericMarkerEntry in the future")]
     public sealed class ModMarkerInfo : BaseAsset {
 
-        [JsonProperty("blueprints")]
-        public List<BlueprintModInfo> Blueprints { get; } = new();
+        [JsonProperty("blueprints", Required = Required.DisallowNull)]
+        public List<BlueprintModInfo> Blueprints { get; private set; } = new();
 
         // TODO
         //public required GameMapInfo Map { get; init;  }

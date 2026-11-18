@@ -5,9 +5,11 @@ using System.Text.Json;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.PakDir;
 
+[Collection("Home launch UI")]
 public class KeptUnmanagedPakTests : IDisposable {
     private readonly string _dir = Path.Combine("TestDirectories", nameof(KeptUnmanagedPakTests), Guid.NewGuid().ToString());
     private string ChoicesPath => Path.Combine(_dir, ".unchained", "kept-unmanaged-paks.json");
@@ -20,12 +22,17 @@ public class KeptUnmanagedPakTests : IDisposable {
         return path;
     }
 
-    private static Mock<IUserDialogueSpawner> Dialogue(UserDialogueChoice choice) {
+    private static Mock<IUserDialogueSpawner> Dialogue(UserDialogueChoice? choice = null) {
         var dialogue = new Mock<IUserDialogueSpawner>(MockBehavior.Strict);
-        dialogue.Setup(value => value.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
-            .Returns(choice);
+        dialogue.Setup(value => value.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => { });
+        if (choice.HasValue)
+            dialogue.Setup(value => value.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+                .Returns(choice.Value);
         return dialogue;
     }
+
+    private static void VerifyPrompt(Mock<IUserDialogueSpawner> dialogue) =>
+        dialogue.Verify(value => value.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), Times.Once);
 
     private async Task<bool> Recover(Mock<IUserDialogueSpawner> dialogue, bool alwaysKeep = false, params Release[] known) {
         using var cache = new PakReadCache(_dir);
@@ -73,23 +80,23 @@ public class KeptUnmanagedPakTests : IDisposable {
     [InlineData(true, true)]
     public async Task KeepSurvivesRestartButChangedNameOrHashRequiresNewConsent(bool rename, bool alwaysKeep) {
         var path = Write("manual.pak", "original");
-        var initial = alwaysKeep ? new Mock<IUserDialogueSpawner>(MockBehavior.Strict) : Dialogue(UserDialogueChoice.Yes);
+        var initial = alwaysKeep ? Dialogue() : Dialogue(UserDialogueChoice.Yes);
         Assert.True(await Recover(initial, alwaysKeep));
         Assert.Equal(Hash("original"), Choices()["manual.pak"]);
         Assert.Empty(new Core.Services.Mods.PakDir(_dir, []).ManagedPaks);
-        Assert.True(await Recover(new Mock<IUserDialogueSpawner>(MockBehavior.Strict)));
+        Assert.True(await Recover(Dialogue()));
 
         if (rename) File.Move(path, Path.Combine(_dir, "renamed.pak"));
         else File.WriteAllText(path, "changed");
         var cancel = Dialogue(UserDialogueChoice.Cancel);
         Assert.False(await Recover(cancel));
-        cancel.VerifyAll();
+        VerifyPrompt(cancel);
         Assert.Equal(Hash("original"), Choices()["manual.pak"]);
         Assert.True(await Recover(Dialogue(UserDialogueChoice.Yes)));
         var entry = Assert.Single(Choices());
         Assert.Equal(rename ? "renamed.pak" : "manual.pak", entry.Key);
         Assert.Equal(Hash(rename ? "original" : "changed"), entry.Value);
-        Assert.True(await Recover(new Mock<IUserDialogueSpawner>(MockBehavior.Strict)));
+        Assert.True(await Recover(Dialogue()));
     }
 
     [Fact]
@@ -106,7 +113,7 @@ public class KeptUnmanagedPakTests : IDisposable {
         Assert.False(File.Exists(added));
         Assert.Equal("kept.pak", Assert.Single(Choices()).Key);
         File.Delete(retained);
-        Assert.True(await Recover(new Mock<IUserDialogueSpawner>(MockBehavior.Strict)));
+        Assert.True(await Recover(Dialogue()));
         Assert.Empty(Choices());
     }
 
@@ -118,7 +125,7 @@ public class KeptUnmanagedPakTests : IDisposable {
             new ModInfo("https://github.com/Org/Mod1", "Mod1", "", null, null, [], [], []), null!, null);
         var cancel = Dialogue(UserDialogueChoice.Cancel);
         Assert.False(await Recover(cancel, false, release));
-        cancel.VerifyAll();
+        VerifyPrompt(cancel);
         Assert.True(await Recover(Dialogue(UserDialogueChoice.Yes), false, release));
         Assert.Empty(Choices());
     }
@@ -141,11 +148,11 @@ public class KeptUnmanagedPakTests : IDisposable {
         Assert.True(await Recover(Dialogue(UserDialogueChoice.Yes)));
         var duplicate = Write("duplicate-copy.pak", "original");
         var signature = Write("duplicate-copy.sig", "different signature");
-        await Assert.ThrowsAsync<IOException>(() => Recover(new Mock<IUserDialogueSpawner>(MockBehavior.Strict)));
+        await Assert.ThrowsAsync<IOException>(() => Recover(Dialogue()));
         Assert.True(File.Exists(duplicate));
         Assert.True(File.Exists(signature));
         File.WriteAllText(signature, "signature");
-        Assert.True(await Recover(new Mock<IUserDialogueSpawner>(MockBehavior.Strict)));
+        Assert.True(await Recover(Dialogue()));
         Assert.False(File.Exists(duplicate));
         Assert.Equal("kept.pak", Assert.Single(Choices()).Key);
     }
@@ -157,7 +164,7 @@ public class KeptUnmanagedPakTests : IDisposable {
         File.WriteAllText(ChoicesPath, "{corrupt");
         var cancel = Dialogue(UserDialogueChoice.Cancel);
         Assert.False(await Recover(cancel));
-        cancel.VerifyAll();
+        VerifyPrompt(cancel);
         Assert.True(await Recover(Dialogue(UserDialogueChoice.Yes)));
         Assert.Equal(Hash("original"), Choices()["manual.pak"]);
     }

@@ -1,6 +1,7 @@
 using log4net;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Mods;
 
@@ -42,14 +43,35 @@ internal static class UnmanagedPakRecovery {
         var unconfirmed = unmanaged.Where(file => file.Release != null || !kept.Contains(Path.GetFileName(file.Path), file.Hash)).ToList();
         var updates = new List<DependencyUpdate>();
         if (!alwaysKeepUnmanagedPaks) {
-            foreach (var file in unconfirmed) {
-                var version = file.Release?.Tag ?? await cache.Version(file.Path, file.Hash) ?? "Unknown";
-                updates.Add(new DependencyUpdate(Path.GetFileName(file.Path), null, version,
-                    file.Release?.ReleaseUrl ?? "", file.Release?.Info.Name ?? "Unrecognized pak"));
+            var uncached = unconfirmed.Where(file => file.Release == null
+                && !cache.TryGetVersion(file.Path, file.Hash, out _)).Select(file => file.Path).ToHashSet();
+            var scanCount = uncached.Count;
+            var progress = new MemoryProgress("Scanning pak versions");
+            var closeProgress = scanCount > 0 ? dialogue.DisplayProgress(progress) : null;
+            try {
+                var completed = 0;
+                foreach (var file in unconfirmed) {
+                    var version = file.Release?.Tag;
+                    if (file.Release == null) {
+                        var needsScan = uncached.Contains(file.Path);
+                        if (needsScan) progress.Report(100.0 * completed / scanCount,
+                            $"Scanning pak {completed + 1} of {scanCount}: {Path.GetFileName(file.Path)}");
+                        version = await cache.Version(file.Path, file.Hash);
+                        if (needsScan) {
+                            completed++;
+                            progress.Report(100.0 * completed / scanCount);
+                        }
+                    }
+                    updates.Add(new DependencyUpdate(Path.GetFileName(file.Path), null, version ?? "Unknown",
+                        file.Release?.ReleaseUrl ?? "", file.Release?.Info.Name ?? "Unrecognized pak"));
+                }
+            }
+            finally {
+                closeProgress?.Invoke();
             }
         }
         var choice = alwaysKeepUnmanagedPaks || unconfirmed.Count == 0 ? UserDialogueChoice.Yes : dialogue.DisplayUpdateMessage(
-            "Unmanaged paks detected", "Unmanaged paks detected. Keep them or remove them?", "Keep", "Remove", "Cancel",
+            "Unmanaged Mods detected", "Unmanaged Mods detected. Keep them or remove them?", "Keep", "Remove", "Cancel",
             updates);
         if (choice != UserDialogueChoice.Yes && choice != UserDialogueChoice.No) return false;
         var detected = choice == UserDialogueChoice.Yes

@@ -1,6 +1,6 @@
+using Moq;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using Moq;
 using LauncherPakDir = UnchainedLauncher.Core.Services.Mods.PakDir;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods;

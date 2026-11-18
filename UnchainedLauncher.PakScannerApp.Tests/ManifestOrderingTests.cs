@@ -5,7 +5,6 @@ using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Orchestrators;
 using UnchainedLauncher.UnrealModScanner.Services;
 using UnrealModScanner.Models;
-using Xunit;
 
 namespace UnchainedLauncher.PakScannerApp.Tests {
     public class ManifestOrderingTests {

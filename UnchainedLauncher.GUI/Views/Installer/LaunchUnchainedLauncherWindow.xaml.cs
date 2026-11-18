@@ -14,6 +14,10 @@ namespace UnchainedLauncher.GUI.Views.Installer {
         public static void Show(IEnumerable<InstallationTargetViewModel> targets) {
             var window = new LaunchUnchainedLauncherWindow();
             var vm = new LaunchUnchainedLauncherWindowViewModel(targets, window.Close);
+            if (vm.SelectedTarget == null) {
+                window.Close();
+                return;
+            }
 
             // Don't even show the window if there's only 1 valid launch candidate
             if (targets.Filter(x => x.IsSelected).Count() == 1) {

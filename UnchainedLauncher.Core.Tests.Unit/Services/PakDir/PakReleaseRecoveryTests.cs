@@ -23,6 +23,11 @@ public class PakReleaseRecoveryTests : IDisposable {
         }
     }
     private readonly string _dir = Path.Join("TestDirectories", nameof(PakReleaseRecoveryTests), Guid.NewGuid().ToString());
+    private string Config => Path.Combine(_dir, ".mod_cache", "mod_manager_config.json");
+    private void Persist(Core.Services.Mods.PakDir paks) =>
+        new ModManagerPersistence(new ModManager(Mock.Of<IModRegistry>(), paks, []), Config).Save();
+    private Core.Services.Mods.PakDir Reload() =>
+        (Core.Services.Mods.PakDir)new ModManagerCodec(Mock.Of<IModRegistry>()).Deserialize(File.ReadAllText(Config)).Result!.PakDir;
     public PakReleaseRecoveryTests() => Directory.CreateDirectory(_dir);
     public void Dispose() => Directory.Delete(_dir, true);
 
@@ -104,7 +109,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         Write("q__-__Mod1 (9).sig", "signature");
         var unrelated = Write("manual.pak", "unknown content");
         var paks = new Core.Services.Mods.PakDir(_dir, []);
-        var sibling = new Core.Services.Mods.PakDir(_dir, []);
+        Persist(paks);
         var dialogue = Dialogue(choice);
         dialogue.Setup(d => d.DisplayUpdateMessage("Unmanaged Mods detected", "Unmanaged Mods detected. Keep them or remove them?", "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
             .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, message, _, _, _, changes) => {
@@ -124,17 +129,18 @@ public class PakReleaseRecoveryTests : IDisposable {
         if (choice == UserDialogueChoice.Yes) {
             Assert.False(File.Exists(duplicate));
             Assert.False(File.Exists(Path.ChangeExtension(duplicate, ".sig")));
-            Assert.Equal(ReleaseCoordinates.FromRelease(wanted), Assert.Single(await sibling.GetManagedPaks()).Coordinates);
-            Assert.True(await sibling.RecoverReleases([wanted], [wanted], new Mock<IUserDialogueSpawner>(MockBehavior.Strict).Object));
+            var restarted = Reload();
+            Assert.Equal(ReleaseCoordinates.FromRelease(wanted), Assert.Single(await restarted.GetManagedPaks()).Coordinates);
+            Assert.True(await restarted.RecoverReleases([wanted], [wanted], new Mock<IUserDialogueSpawner>(MockBehavior.Strict).Object));
         }
         else if (choice == UserDialogueChoice.Cancel) {
             Assert.True(File.Exists(duplicate));
             Assert.Equal("signature", File.ReadAllText(Path.ChangeExtension(duplicate, ".sig")));
-            Assert.Empty(await sibling.GetManagedPaks());
+            Assert.Empty(await Reload().GetManagedPaks());
         }
         else {
             Assert.False(File.Exists(duplicate));
-            Assert.Empty(await sibling.GetManagedPaks());
+            Assert.Empty(await Reload().GetManagedPaks());
         }
         dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), alwaysKeep ? Times.Never : Times.Once);
         dialogue.Verify(d => d.DisplayUpdateMessage("Unmanaged Mods detected", "Unmanaged Mods detected. Keep them or remove them?", "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), alwaysKeep ? Times.Never : Times.Once);
@@ -193,6 +199,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             new ManagedPak(ReleaseCoordinates.FromRelease(wanted), Path.GetFileName(wantedPath), 1)
         };
         var paks = new Core.Services.Mods.PakDir(_dir, original);
+        Persist(paks);
         var registry = new Mock<IModRegistry>(MockBehavior.Strict);
         registry.Setup(r => r.DownloadPak(ReleaseCoordinates.FromRelease(wanted), It.IsAny<string>()))
             .Returns((ReleaseCoordinates _, string output) => {
@@ -231,7 +238,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             Assert.Equal(wanted.Tag, File.ReadAllText(Path.Join(_dir, installed.PakFileName)));
         }
         else {
-            Assert.Equal(original, await new Core.Services.Mods.PakDir(_dir, []).GetManagedPaks());
+            Assert.Equal(original, await Reload().GetManagedPaks());
             Assert.Equal(older.Tag, File.ReadAllText(olderPath));
             Assert.Equal("CORRUPT", File.ReadAllText(wantedPath));
             Assert.Equal("older signature", File.ReadAllText(Path.ChangeExtension(olderPath, ".sig")));
@@ -341,6 +348,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         Write("pakchunk0-WindowsNoEditor.sig", "base signature");
         var paks = new Core.Services.Mods.PakDir(_dir,
             [new ManagedPak(ReleaseCoordinates.FromRelease(dependency), Path.GetFileName(dependencyPath), 0)]);
+        Persist(paks);
         var registry = new Mock<IModRegistry>(MockBehavior.Strict);
         registry.Setup(r => r.DownloadPak(ReleaseCoordinates.FromRelease(dependency), It.IsAny<string>()))
             .Returns((ReleaseCoordinates _, string output) => {
@@ -378,7 +386,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             Assert.Equal("dependency signature", File.ReadAllText(Path.ChangeExtension(dependencyPath, ".sig")));
             Assert.Empty(manager.EnabledModReleaseCoordinates);
             Assert.False(File.Exists(Path.Join(_dir, ".unchained", "pending")));
-            Assert.Single(await new Core.Services.Mods.PakDir(_dir, []).GetManagedPaks());
+            Assert.Single(await Reload().GetManagedPaks());
         }
         if (acceptReplacement) Assert.Equal(dependency.Tag, File.ReadAllText(dependencyPath));
     }
@@ -510,18 +518,19 @@ public class PakReleaseRecoveryTests : IDisposable {
     }
 
     [Fact]
-    public async Task FailedRecoveryMutationRetainsTheInterruptionMarker() {
+    public async Task FailedRecoveryMutationPreservesFilesAndDurableOwnershipWithoutMarkers() {
         var wanted = Release("v1.0.0");
         var path = Write("q__-__Mod1.pak", wanted.Tag);
         var duplicate = Write("q__-__Mod1 (9).pak", wanted.Tag);
         Directory.CreateDirectory(Path.ChangeExtension(duplicate, ".sig")); // Deny signature deletion after confirmation.
         var paks = new Core.Services.Mods.PakDir(_dir, []);
+        Persist(paks);
 
         Assert.False(await paks.RecoverReleases([wanted], [wanted], Dialogue(UserDialogueChoice.Yes).Object));
 
-        Assert.True(File.Exists(Path.Join(_dir, ".unchained", "pending")));
+        Assert.False(File.Exists(Path.Join(_dir, ".unchained", "pending")));
         Assert.Equal(wanted.Tag, File.ReadAllText(path));
         Assert.Equal(wanted.Tag, File.ReadAllText(duplicate));
-        await Assert.ThrowsAsync<InvalidDataException>(() => new Core.Services.Mods.PakDir(_dir, []).GetManagedPaks());
+        Assert.Empty(await Reload().GetManagedPaks());
     }
 }

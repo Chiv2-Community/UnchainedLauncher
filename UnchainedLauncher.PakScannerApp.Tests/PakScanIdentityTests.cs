@@ -20,7 +20,6 @@ using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Orchestrators;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Processors;
 using UnchainedLauncher.UnrealModScanner.Services;
-using Xunit;
 
 namespace UnchainedLauncher.PakScannerApp.Tests;
 

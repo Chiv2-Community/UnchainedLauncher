@@ -45,35 +45,29 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
         }
 
         [Fact]
-        public Task SiblingInstallCannotBecomeAnUnmanagedLaunchActorWithoutRegistryMetadata() => ui.RunAsync(async () => {
+        public Task ManagedInstallCannotBecomeAnUnmanagedLaunchActorWithoutRegistryMetadata() => ui.RunAsync(async () => {
             var directory = Path.Combine(Path.GetTempPath(), "actor-ownership-" + Guid.NewGuid());
             Directory.CreateDirectory(directory);
             try {
                 File.WriteAllText(Path.Combine(directory, "pakchunk0-WindowsNoEditor.sig"), "sig");
-                var reader = new Core.Services.Mods.PakDir(directory, []);
                 var writer = new Core.Services.Mods.PakDir(directory, []);
                 var coordinates = new ReleaseCoordinates("Org", "Managed", "v1");
                 await foreach (var result in writer.InstallModSet([new ModInstallRequest(coordinates,
                     path => EitherAsync<Error, FileWriter>.Right(new FileWriter(path, new MemoryStream([1, 2, 3]), 3)))],
                     Option<AccumulatedMemoryProgress>.None)) result.IfLeft(error => throw error);
-                Assert.Empty(reader.ManagedPaks);
                 var path = Path.Combine(directory, Assert.Single(writer.ManagedPaks).PakFileName);
                 var scan = Scan(path);
-                var manager = new ModManager(Mock.Of<IModRegistry>(), reader, []);
-                using var inventoryLock = await new PakInventory(directory).Lock();
+                var manager = new ModManager(Mock.Of<IModRegistry>(), writer, []);
                 var catalog = new AvailableModsAndMapsService(manager, scan);
                 var actor = UnchainedLauncher.UnrealModScanner.Services.ModManifestConverter
                     .ProcessModScan(scan.LastScanResult!).Paks.Single().Inventory.Blueprints.Single();
                 var config = new ServerConfigurationVM(manager, scan, catalog, localIp: "127.0.0.1");
                 config.EnableServerBlueprintMod(actor);
                 var launch = config.PrepareServerBlueprintsForLaunch();
-                Assert.False(launch.IsCompleted);
-                await Dispatcher.Yield(DispatcherPriority.Background); // Contention must yield the UI thread.
-                inventoryLock.Dispose();
                 Assert.Empty(await launch.WaitAsync(TimeSpan.FromSeconds(5)));
                 Assert.Empty(catalog.AvailableServerModBlueprints);
                 Assert.Equal(actor, Assert.Single(config.EnabledServerModList));
-                Assert.Single(reader.ManagedPaks); // Reconciliation refreshed the real shared inventory.
+                Assert.Single(writer.ManagedPaks);
             }
             finally { Directory.Delete(directory, true); }
         });

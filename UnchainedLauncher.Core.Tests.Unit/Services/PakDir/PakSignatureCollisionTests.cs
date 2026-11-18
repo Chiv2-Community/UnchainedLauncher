@@ -60,8 +60,8 @@ public sealed class PakSignatureCollisionTests : IDisposable {
         Assert.Equal("installation signature", File.ReadAllText(Path.ChangeExtension(path, ".sig")));
         AssertUnrelatedUnchanged();
 
-        // Shared inventory, not a host snapshot, must reuse the collision-safe name and signature.
-        directory = new ManagedPakDirectory(_directory, []);
+        // Restart from the persisted config snapshot, not a second inventory authority.
+        directory = Reload(directory);
         await Install(directory, _dependency);
         Assert.Equal(installed, Assert.Single(directory.ManagedPaks));
         Assert.Equal(1, _downloads);
@@ -94,7 +94,7 @@ public sealed class PakSignatureCollisionTests : IDisposable {
         Assert.Equal(new[] { _dependent, _dependency }, directory.ManagedPaks
             .OrderBy(pak => pak.PakFileName, StringComparer.OrdinalIgnoreCase).Select(pak => pak.Coordinates));
 
-        directory = new ManagedPakDirectory(_directory, []);
+        directory = Reload(directory);
         await Install(directory, _dependency, _dependent);
         Assert.Equal(relocated, directory.ManagedPaks.Single(pak => pak.Coordinates == _dependency));
         Assert.Equal(2, _downloads);
@@ -109,4 +109,12 @@ public sealed class PakSignatureCollisionTests : IDisposable {
     }
 
     public void Dispose() => Directory.Delete(_directory, recursive: true);
+
+    private ManagedPakDirectory Reload(ManagedPakDirectory directory) {
+        var registry = Moq.Mock.Of<IModRegistry>();
+        var config = Path.Combine(_directory, ".mod_cache", "mod_manager_config.json");
+        new ModManagerPersistence(new ModManager(registry, directory, []), config).Save();
+        return (ManagedPakDirectory)LegacyOwnershipMigration.Load(config, registry,
+            installationPakDirectory: _directory).Manager.PakDir;
+    }
 }

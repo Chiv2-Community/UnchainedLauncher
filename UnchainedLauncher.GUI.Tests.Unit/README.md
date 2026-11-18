@@ -5,6 +5,11 @@ Linux runs the portable tests. Windows also compiles the production `Collapsible
 and runs STA visual-tree, nested-layout, collapse, theme, and hit-testing checks.
 The scale cases use layout transforms, not monitor DPI changes.
 
+Portable coverage includes fuzzy matching, dropdown label/template wiring, plugin
+selectors, and progress/theme XAML contracts. Windows also exercises searchable
+dropdown selection, mouse/keyboard commit, cancel/focus traversal, live results,
+theme changes, and progress fill in both orientations.
+
 Cross-compile those WPF tests on Linux:
 
 ```sh

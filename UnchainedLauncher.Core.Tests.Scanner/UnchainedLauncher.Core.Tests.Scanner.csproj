@@ -23,7 +23,9 @@
     <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/PakScanCacheTests.cs" Link="PakScanCacheTests.cs" />
     <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/UnmanagedPakScanProgressTests.cs" Link="UnmanagedPakScanProgressTests.cs" />
     <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/PakReleaseRecoveryTests.cs" Link="PakReleaseRecoveryTests.cs" />
-    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/SharedPakInventoryTests.cs" Link="SharedPakInventoryTests.cs" />
+    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/PakMutationSafetyTests.cs" Link="PakMutationSafetyTests.cs" />
+    <Compile Include="../UnchainedLauncher.GUI.Tests.Unit/OwnershipPersistenceTests.cs" Link="OwnershipPersistenceTests.cs" />
+    <None Include="../UnchainedLauncher.Core.Tests.Unit/TestData/ModManagerV3.json" Link="TestData/ModManagerV3.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/KeptUnmanagedPakTests.cs" Link="KeptUnmanagedPakTests.cs" />
     <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/PakSignatureCollisionTests.cs" Link="PakSignatureCollisionTests.cs" />
   </ItemGroup>

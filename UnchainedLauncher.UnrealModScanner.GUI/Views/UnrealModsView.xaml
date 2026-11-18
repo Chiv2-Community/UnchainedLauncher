@@ -58,7 +58,7 @@
                  Value="{Binding ModScannerVM.ScanProgress, RelativeSource={RelativeSource AncestorType=UserControl}}"
                  Height="{Binding ActualHeight, ElementName=ScanButton}"
                  VerticalAlignment="Center"
-                  Margin="5,0,0,0"
+                 Margin="5,0,0,0"
                  Visibility="{Binding ModScannerVM.IsScanning, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
         </Grid>
 

@@ -14,9 +14,11 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         public string TitleText => "Installation Log";
         public string? DescriptionText => null;
         public string ContinueButtonText => "Finish";
-        public string? GoBackButtonText => null;
+        public string? GoBackButtonText => CanGoBack ? "Back" : null;
         public bool CanContinue { get; set; }
-        public bool CanGoBack => false;
+        public bool CanGoBack { get; private set; }
+
+        public List<DirectoryInfo> SuccessfulTargets { get; } = new List<DirectoryInfo>();
 
         public string Log { get; set; }
 
@@ -29,8 +31,6 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             () => new List<DirectoryInfo>(),
             () => new ReleaseTarget("", "", new SemVersion(0, 0), Array.Empty<ReleaseAsset>(), DateTimeOffset.Now, true, false)
         ) {
-            AppendLog("Mocking installation log...").Start();
-            AppendLog("Doing things...").Start();
         }
 
         public InstallerLogPageViewModel(IUnchainedLauncherInstaller installer, Func<IEnumerable<DirectoryInfo>> getTargets, Func<ReleaseTarget> getSelectedRelease) {
@@ -44,7 +44,16 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
         }
 
         public async Task Load() {
-            var targets = _getInstallationTargets();
+            CanContinue = false;
+            CanGoBack = false;
+            SuccessfulTargets.Clear();
+            Log = "";
+            var targets = _getInstallationTargets().ToList();
+            if (targets.Count == 0) {
+                await AppendLog("❌ No installation targets selected. Go back and select an installation location.");
+                CanGoBack = true;
+                return;
+            }
             var release = _getSelectedRelease();
 
             await AppendLog("🚀 Selected version: v" + release.Version);
@@ -54,9 +63,29 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             foreach (var target in targets!) {
                 await AppendLog("-----------------------------------------------------");
                 await AppendLog($"🛠️ Installing v{release.Version} to {target}");
-                await _installer.Install(target, release, false, AppendLog);
+                bool installed;
+                try {
+                    installed = await _installer.Install(target, release, false, AppendLog);
+                }
+                catch (Exception ex) {
+                    installed = false;
+                    await AppendLog(ex.ToString());
+                }
+                if (installed) {
+                    SuccessfulTargets.Add(target);
+                    await AppendLog($"✅ Installed to {target.FullName}");
+                }
+                else {
+                    await AppendLog($"❌ Installation failed for {target.FullName}");
+                }
                 await AppendLog("-----------------------------------------------------");
                 await AppendLog("");
+            }
+
+            if (SuccessfulTargets.Count != targets.Count) {
+                await AppendLog($"❌ Installed to {SuccessfulTargets.Count} of {targets.Count} locations. Review the errors above, then go back to retry or change installation locations.");
+                CanGoBack = true;
+                return;
             }
 
             await AppendLog("✅ Installation complete!");
@@ -70,11 +99,9 @@ namespace UnchainedLauncher.GUI.ViewModels.Installer {
             return Task.CompletedTask;
         }
 
-        private async Task AppendLog(string appendString) {
+        private Task AppendLog(string appendString) {
             Log += appendString + "\n";
-
-            // People think nothing happened when things are too fast. Slow them down just so they believe.
-            await Task.Delay(100 + Random.Shared.Next(0, 500));
+            return Task.CompletedTask;
         }
     }
 }

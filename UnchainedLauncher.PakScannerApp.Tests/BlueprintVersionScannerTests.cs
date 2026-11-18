@@ -9,7 +9,6 @@ using Moq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
-using Xunit;
 
 namespace UnchainedLauncher.PakScannerApp.Tests;
 

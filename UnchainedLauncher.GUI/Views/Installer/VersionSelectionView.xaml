@@ -33,10 +33,9 @@
                 VerticalAlignment="Center"
                 ItemsSource="{Binding VisibleVersions}"
                 SelectedItem="{Binding SelectedVersion}"
-                DisplayMemberPath="DisplayText"
-                DropDownOpened="VersionComboBox_DropDownOpened">
+                DisplayMemberPath="DisplayText">
                 <ComboBox.Resources>
-                    <Style TargetType="{x:Type ComboBoxItem}">
+                    <Style x:Key="SearchResultItem" TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource SearchResultItemBase}">
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsLatestStable}" Value="True">
                                 <Setter Property="FontWeight" Value="Bold" />

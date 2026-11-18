@@ -106,7 +106,7 @@ public class PakReleaseRecoveryTests : IDisposable {
         var paks = new Core.Services.Mods.PakDir(_dir, []);
         var sibling = new Core.Services.Mods.PakDir(_dir, []);
         var dialogue = Dialogue(choice);
-        dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), "Unmanaged paks detected. Keep them or remove them?", "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
+        dialogue.Setup(d => d.DisplayUpdateMessage("Unmanaged Mods detected", "Unmanaged Mods detected. Keep them or remove them?", "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()))
             .Callback<string, string, string, string, string?, IEnumerable<DependencyUpdate>>((_, message, _, _, _, changes) => {
                 Assert.Equal(2, changes.Count());
                 Assert.DoesNotContain("Directory:", message);
@@ -137,6 +137,7 @@ public class PakReleaseRecoveryTests : IDisposable {
             Assert.Empty(await sibling.GetManagedPaks());
         }
         dialogue.Verify(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), alwaysKeep ? Times.Never : Times.Once);
+        dialogue.Verify(d => d.DisplayUpdateMessage("Unmanaged Mods detected", "Unmanaged Mods detected. Keep them or remove them?", "Keep", "Remove", "Cancel", It.IsAny<IEnumerable<DependencyUpdate>>()), alwaysKeep ? Times.Never : Times.Once);
     }
 
     [Theory]

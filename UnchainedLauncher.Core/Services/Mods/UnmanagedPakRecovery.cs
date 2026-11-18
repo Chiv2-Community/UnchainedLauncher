@@ -71,7 +71,7 @@ internal static class UnmanagedPakRecovery {
             }
         }
         var choice = alwaysKeepUnmanagedPaks || unconfirmed.Count == 0 ? UserDialogueChoice.Yes : dialogue.DisplayUpdateMessage(
-            "Unmanaged paks detected", "Unmanaged paks detected. Keep them or remove them?", "Keep", "Remove", "Cancel",
+            "Unmanaged Mods detected", "Unmanaged Mods detected. Keep them or remove them?", "Keep", "Remove", "Cancel",
             updates);
         if (choice != UserDialogueChoice.Yes && choice != UserDialogueChoice.No) return false;
         var detected = choice == UserDialogueChoice.Yes

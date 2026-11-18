@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../UnchainedLauncher.Core/Services/Processes/InstallationInstanceGuard.cs" Link="InstallationInstanceGuard.cs" />
+    <ProjectReference Include="../UnchainedLauncher.Core/UnchainedLauncher.Core.csproj" />
     <Compile Include="../UnchainedLauncher.GUI/Services/InstallationStartup.cs" Link="InstallationStartup.cs" />
   </ItemGroup>
 </Project>

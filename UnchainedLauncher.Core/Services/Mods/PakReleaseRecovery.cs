@@ -10,7 +10,7 @@ internal static class PakReleaseRecovery {
     private record LocalPak(string Path, string Hash, Release? Release);
 
     internal static async Task<bool> Recover(PakDir paks, IReadOnlyList<Release> requested,
-        IEnumerable<Release> known, IUserDialogueSpawner dialogue, Action beginChange, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks,
+        IEnumerable<Release> known, IUserDialogueSpawner dialogue, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks,
         Func<IReadOnlyList<Release>, IReadOnlyList<Release>>? resolvePlan) {
         try {
             using var cache = new PakReadCache(paks.DirPath);
@@ -23,7 +23,7 @@ internal static class PakReleaseRecovery {
             // Stage ownership and deletions until the complete plan has passed validation and confirmation.
             Action applyUnmanaged = () => { };
             IReadOnlyList<ManagedPak> adoptedPaks = [];
-            if (!await UnmanagedPakRecovery.Recover(paks, known.Concat(requested), dialogue, beginChange, adopted,
+            if (!await UnmanagedPakRecovery.Recover(paks, known.Concat(requested), dialogue, adopted,
                 alwaysKeepUnmanagedPaks, cache, PreparePlan, (apply, proposed) => { applyUnmanaged = apply; adoptedPaks = proposed; })) return false;
             if (requested.Count == 0) {
                 applyUnmanaged();
@@ -105,7 +105,6 @@ internal static class PakReleaseRecovery {
             }
             applyUnmanaged();
             if (replacements.Count == 0 && recovered.All(paks => paks.Count == 0)) return true;
-            beginChange();
             foreach (var pak in replacements.Distinct()) DeletePak(pak);
             for (var i = 0; i < requested.Count; i++) {
                 var matching = recovered[i];

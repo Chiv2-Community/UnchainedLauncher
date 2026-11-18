@@ -1,6 +1,7 @@
 using LanguageExt;
 using log4net;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -39,6 +40,16 @@ namespace UnchainedLauncher.GUI {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
         // Retain until process termination, including all late shutdown saves. Never dispose on exit.
         private static InstallationInstanceGuard? _installationGuard;
+        private readonly List<Action> _preferenceSaves = new();
+
+        private void SavePreferences() {
+            foreach (var save in _preferenceSaves) save();
+        }
+
+        private void RegisterPreferenceSave(Action save) {
+            _preferenceSaves.Add(save);
+            RegisterExitHandler(save);
+        }
 
         protected override async void OnStartup(StartupEventArgs e) {
             if (!InstallationStartup.TryAcquire(out _installationGuard, out var error)) {
@@ -147,7 +158,17 @@ namespace UnchainedLauncher.GUI {
             var registryWindowService = new RegistryWindowService();
 
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
-            var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+            ModManager modManager;
+            try {
+                modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+                _log.Error("Could not load or migrate mod ownership.", ex);
+                userDialogueSpawner.DisplayMessage($"Could not load or migrate mod ownership. Files were preserved; resolve the evidence or file permissions before retrying.\n{ex.Message}");
+                Shutdown();
+                return null;
+            }
+            RegisterSaveToFileOnExit(modRegistry, ModRegistryCodec.Instance, FilePaths.RegistryConfigPath);
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
             var settingsViewModel = InitializeSettingsViewModel(installationFinder, installer, launcherReleaseLocator, registryWindowViewModel, registryWindowService, modManager, userDialogueSpawner);
             var dllManager = new DllManager(
@@ -178,6 +199,8 @@ namespace UnchainedLauncher.GUI {
 
             var noSigLaunchPreparer = NoSigPreparer.Create(modManager.PakDir, userDialogueSpawner);
             var sigLaunchPreparer = SigPreparer.Create(modManager.PakDir, userDialogueSpawner);
+            IChivalry2LaunchPreparer<LaunchOptions> checkpoint = new SavePreferencesPreparer(SavePreferences, userDialogueSpawner);
+            var prepareSavedPaks = checkpoint.AndThen(new SavedPaksPreparer(modManager.PakDir, userDialogueSpawner));
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
@@ -186,13 +209,13 @@ namespace UnchainedLauncher.GUI {
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
-                noSigLaunchPreparer.IgnoreOptions<LaunchOptions>(),
+                prepareSavedPaks.AndThen(noSigLaunchPreparer.IgnoreOptions<LaunchOptions>()),
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                pluginInstaller
+                prepareSavedPaks.AndThen(pluginInstaller)
                     .AndThen(modInstaller)
                     .Sub(sigLaunchPreparer),
                 unchainedProcessLauncher,
@@ -314,23 +337,14 @@ namespace UnchainedLauncher.GUI {
             // another AggregateModRegistry, so no worries there.
             var registry = new AggregateModRegistry(loadedResult);
 
-            RegisterSaveToFileOnExit(registry, ModRegistryCodec.Instance, jsonPath);
             return registry;
         }
 
         private ModManager InitializeModManager(string jsonPath, IModRegistry registry) {
-            Func<ModManager> initializeDefaultModManager = () =>
-                new ModManager(
-                    registry,
-                    new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>()),
-                    Enumerable.Empty<ReleaseCoordinates>()
-                );
-
-            var codec = new ModManagerCodec(registry);
-            var modManager = InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
-
-            RegisterSaveToFileOnExit(modManager, codec, jsonPath);
-            return modManager;
+            var (manager, persistence) = LegacyOwnershipMigration.Load(jsonPath, registry,
+                ex => MessageBox.Show($"Could not save mod selection. Retry before exiting.\n{ex.Message}"));
+            RegisterPreferenceSave(persistence.Save);
+            return manager;
         }
 
         private ObservableCollection<ServerConfigurationVM> InitializeServerConfigurations(string jsonPath,
@@ -342,7 +356,7 @@ namespace UnchainedLauncher.GUI {
             var serverConfigurations = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
 
             RegisterSaveToFileOnExit(serverConfigurations, codec, jsonPath);
-            Exit += (_, _) => serverConfigurations.ForEach(x => x.SaveINI());
+            RegisterPreferenceSave(() => serverConfigurations.ForEach(x => x.SaveINI()));
 
             return serverConfigurations;
         }
@@ -388,17 +402,7 @@ namespace UnchainedLauncher.GUI {
         }
 
         private void RegisterSaveToFileOnExit<T>(T t, ICodec<T> codec, string filePath) {
-            RegisterExitHandler(() => {
-                try {
-                    _log.Info($"Saving {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec})...");
-                    codec.SerializeFile(filePath, t);
-                }
-                catch (Exception ex) {
-                    _log.Error(
-                        $"Failed to save configuration for {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec}).",
-                        ex);
-                }
-            });
+            RegisterPreferenceSave(() => codec.SerializeFile(filePath, t));
         }
 
         /// <summary>

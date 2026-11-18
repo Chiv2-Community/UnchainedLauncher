@@ -26,9 +26,15 @@
     <Compile Remove="SearchableComboBoxTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Using Include="Xunit" />
     <None Include="../UnchainedLauncher.GUI/Views/Controls/CollapsibleCard.xaml" Link="Views/CollapsibleCard.xaml" CopyToOutputDirectory="PreserveNewest" />
     <!-- Exercise the platform-independent view model without loading WPF. -->
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/DllManagerVM.cs" Link="DllManagerVM.cs" />
+    <Compile Include="../UnchainedLauncher.GUI/Services/SavedPaksPreparer.cs" Link="SavedPaksPreparer.cs" />
+    <Compile Include="../UnchainedLauncher.GUI/Services/SavePreferencesPreparer.cs" Link="SavePreferencesPreparer.cs" />
+    <None Include="../UnchainedLauncher.Core.Tests.Unit/TestData/ModManagerV3.json" Link="TestData/ModManagerV3.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../UnchainedLauncher.GUI/App.xaml.cs" Link="TestData/AppStartup.cs" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/PakMutationSafetyTests.cs" Link="PakMutationSafetyTests.cs" />
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/Registry/RegistryReleaseFormVM.cs" Link="RegistryReleaseFormVM.cs" />
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/ModSortMode.cs" Link="ModSortMode.cs" />
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/ModVM.cs" Link="ModVM.cs" />

@@ -26,17 +26,17 @@ namespace UnchainedLauncher.Core.Services.Mods {
     /// Manages the pak directory for Chivalry 2 mods, handling installation, signing, and cleanup of pak files.
     /// </summary>
     public interface IPakDir {
-        /// <summary>Reloads and snapshots managed pak ownership under the shared directory lock.</summary>
+        /// <summary>Snapshots managed pak ownership.</summary>
         Task<ManagedPak[]> GetManagedPaks();
 
         /// <summary>Verifies existing release files and confirms ownership or file changes before installation.</summary>
-        /// <param name="resolvePlan">Resolves merged explicit and adopted roots under the inventory lock, before validation.</param>
+        /// <param name="resolvePlan">Resolves merged explicit and adopted roots before validation.</param>
         Task<bool> RecoverReleases(IReadOnlyList<Release> requested, IEnumerable<Release> known, IUserDialogueSpawner dialogue,
             ICollection<Release>? adopted = null, bool alwaysKeepUnmanagedPaks = false,
             Func<IReadOnlyList<Release>, IReadOnlyList<Release>>? resolvePlan = null);
 
         /// <summary>
-        /// A delegate that creates a FileWriter for writing pak data to the specified file path.
+        /// Creates a FileWriter for the specified path, transferring input-stream ownership to PakDir.
         /// </summary>
         /// <param name="filePath">The destination file path to write to</param>
         /// <returns>An async either containing the FileWriter on success, or an Error on failure</returns>

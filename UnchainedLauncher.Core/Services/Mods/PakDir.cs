@@ -23,15 +23,61 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public IEnumerable<ManagedPak> ManagedPaks => _managedPaks;
         private readonly List<ManagedPak> _managedPaks;
-        private readonly PakInventory _inventory;
+        public event EventHandler? OwnershipChanged;
+        internal PakDirMetadata? LegacySavedMetadata { get; set; }
+        internal bool MigrateInstallationSavedPaks { get; set; }
+        internal Dictionary<string, ManagedPak[]> LegacySourceOwnership { get; set; } = new();
+        internal string? MigrationBackupRoot { get; set; }
+        internal ModManagerPersistence? Persistence { get; set; }
 
-        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks)
-            : this(dirPath, managedPaks, TimeProvider.System) { }
+        internal void ReplaceOwnership(IEnumerable<ManagedPak> paks) {
+            _managedPaks.Clear();
+            _managedPaks.AddRange(paks);
+        }
 
-        internal PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks, TimeProvider timeProvider) {
+        public Task MigrateSavedPaks(string suffix = "Unchained", CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!MigrateInstallationSavedPaks) return Task.CompletedTask;
+            var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+            var sources = SavedPakMigration.SourceDirectories(DirPath, suffix, LegacySavedMetadata)
+                .Select(Path.GetFullPath).Where(p => !SavedPakMigration.SameDirectory(p, DirPath)).Distinct(pathComparer).ToArray();
+            // Only startup may interpret legacy ownership. Late evidence must survive untouched.
+            foreach (var source in sources)
+                if (!LegacySourceOwnership.ContainsKey(source))
+                    LegacyOwnershipMigration.RejectUnconvertedEvidence(source);
+            if (LegacySourceOwnership.Count == 0 && MigrationBackupRoot != null) {
+                SavedPakMigration.RetryCleanup(MigrationBackupRoot);
+                SavedPakMigration.CompleteCleanup(MigrationBackupRoot);
+            }
+            var ownership = sources.SelectMany(source => (LegacySourceOwnership.TryGetValue(source, out var paks) ? paks
+                : LegacySavedMetadata != null && SavedPakMigration.SameDirectory(source, LegacySavedMetadata.DirPath)
+                    ? LegacySavedMetadata.ManagedPaks : []).Select(pak => (Source: Path.GetFullPath(Path.Combine(source, pak.PakFileName)), Pak: pak))).ToArray();
+            SavedPakMigration.Migrate(DirPath, sources, (copied, preserveCleanupEvidence) => {
+                var merged = _managedPaks.ToList();
+                foreach (var (source, pak) in ownership) {
+                    if (!copied.Any(path => pathComparer.Equals(Path.GetFullPath(path), source))) continue;
+                    var collision = merged.FirstOrDefault(p => p.Coordinates == pak.Coordinates
+                        || p.PakFileName.Equals(pak.PakFileName, StringComparison.OrdinalIgnoreCase));
+                    if (collision != null && collision != pak)
+                        throw new IOException($"Conflicting Saved ownership: {pak.PakFileName}");
+                    if (collision == null) merged.Add(pak);
+                }
+                ReplaceOwnership(merged);
+                // Save the destination snapshot, not the old source attribution.
+                LegacySavedMetadata = null;
+                if (copied.Count > 0 && Persistence == null)
+                    throw new IOException("Saved migration requires durable mod-manager persistence.");
+                if (copied.Count > 0) preserveCleanupEvidence(Persistence!.SnapshotHash);
+                OwnershipChanged?.Invoke(this, EventArgs.Empty);
+            }, MigrationBackupRoot);
+            if (LegacySourceOwnership.Count == 0 && MigrationBackupRoot != null)
+                SavedPakMigration.CompleteCleanup(MigrationBackupRoot);
+            return Task.CompletedTask;
+        }
+
+        public PakDir(string dirPath, IEnumerable<ManagedPak> managedPaks) {
             DirPath = dirPath;
             _managedPaks = managedPaks.ToList();
-            _inventory = new PakInventory(dirPath, timeProvider);
             SynchronizeWithDir();
         }
 
@@ -75,20 +121,20 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 );
         }
 
-        public async Task<Either<Error, Unit>> Uninstall(ModIdentifier coords) {
+        public Task<Either<Error, Unit>> Uninstall(ModIdentifier coords) {
+            var previous = _managedPaks.ToArray();
             try {
-                using var inventoryLock = await _inventory.Lock();
-                ReloadInventory();
-                _inventory.Save(_managedPaks);
-                _inventory.BeginChange();
                 var result = UninstallCore(coords);
                 SynchronizeWithDir();
-                _inventory.Save(_managedPaks);
-                return result;
+                return Task.FromResult(result);
             }
-            catch (Exception ex) {
-                return Error.New("Failed to update managed pak inventory", ex);
+            finally {
+                NotifyChanges(previous);
             }
+        }
+
+        private void NotifyChanges(ManagedPak[] previous) {
+            if (!previous.SequenceEqual(_managedPaks)) OwnershipChanged?.Invoke(this, EventArgs.Empty);
         }
 
         private Either<Error, Unit> UninstallCore(ModIdentifier coords) =>
@@ -135,14 +181,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var completed = false;
             try {
                 var result = await mkFileWriter(stagingPath)
-                .Bind(fileWriter =>
-                    // TODO: allow passing of a cancellation token here
-                    fileWriter.WriteAsync(progress, CancellationToken.None)
-                    .Map(_ => {
-                        File.Move(stagingPath, PakNameToPakPath(fullActualName));
-                        return fullActualName;
-                    })
-                );
+                    .Bind(fileWriter => WriteAndCloseInput(fileWriter).ToAsync());
                 completed = result.IsRight;
                 return result;
             }
@@ -155,85 +194,55 @@ namespace UnchainedLauncher.Core.Services.Mods {
                         .IfLeft(e => throw new IOException($"Failed to remove incomplete pak download: {e}"));
                 }
             }
+
+            async Task<Either<Error, string>> WriteAndCloseInput(FileWriter fileWriter) {
+                Either<Error, Unit> written;
+                using (fileWriter.InputStream) {
+                    // TODO: allow passing of a cancellation token here
+                    written = await fileWriter.WriteAsync(progress, CancellationToken.None);
+                }
+                return written.Map(_ => {
+                    File.Move(stagingPath, PakNameToPakPath(fullActualName));
+                    return fullActualName;
+                });
+            }
         }
 
         public IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSet(
-                IEnumerable<ModInstallRequest> installs,
-                Option<AccumulatedMemoryProgress> progress) => InstallModSetLocked(installs, progress);
+                IEnumerable<ModInstallRequest> installs, Option<AccumulatedMemoryProgress> progress) =>
+            InstallModSetBatch(installs, progress);
 
-        private async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSetLocked(
+        private async IAsyncEnumerable<Either<Error, ManagedPak>> InstallModSetBatch(
                 IEnumerable<ModInstallRequest> installs,
                 Option<AccumulatedMemoryProgress> progress,
                 [EnumeratorCancellation] CancellationToken cancellationToken = default) {
-            FileStream? inventoryLock = null;
-            Error? inventoryError = null;
+            var previous = _managedPaks.ToArray();
             try {
-                inventoryLock = await _inventory.Lock(cancellationToken);
-                ReloadInventory();
-                // Publish migration and check writability before changing any pak files.
-                _inventory.Save(_managedPaks);
-            }
-            catch (OperationCanceledException) {
-                inventoryLock?.Dispose();
-                throw;
-            }
-            catch (Exception ex) {
-                inventoryError = Error.New("Failed to load managed pak inventory", ex);
-            }
-            using (inventoryLock) {
-                if (inventoryError != null) {
-                    yield return inventoryError;
-                    yield break;
-                }
-                // Publish each result before yielding, including successful partial preparations.
-                await using var results = InstallModSetCore(installs, progress).GetAsyncEnumerator();
-                while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                SynchronizeWithDir();
+                await foreach (var result in InstallModSetCore(installs, progress)) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    inventoryError = null;
-                    var hasResult = false;
-                    try {
-                        hasResult = await results.MoveNextAsync();
-                        _inventory.Save(_managedPaks);
-                    }
-                    catch (Exception ex) {
-                        inventoryError = Error.New("Failed to prepare managed paks", ex);
-                    }
-                    if (inventoryError != null) {
-                        yield return inventoryError;
-                        yield break;
-                    }
-                    if (!hasResult) yield break;
-                    yield return results.Current;
+                    yield return result;
                 }
             }
-        }
-
-        private void ReloadInventory() {
-            var latest = _inventory.Load(_managedPaks);
-            _managedPaks.Clear();
-            _managedPaks.AddRange(latest);
-            SynchronizeWithDir();
+            finally { NotifyChanges(previous); }
         }
 
         public async Task<bool> RecoverReleases(IReadOnlyList<Release> requested, IEnumerable<Release> known, IUserDialogueSpawner dialogue,
             ICollection<Release>? adopted = null, bool alwaysKeepUnmanagedPaks = false,
             Func<IReadOnlyList<Release>, IReadOnlyList<Release>>? resolvePlan = null) {
+            var previous = _managedPaks.ToArray();
             try {
-                using var inventoryLock = await _inventory.Lock();
-                ReloadInventory();
-                _inventory.Save(_managedPaks);
-                var recovered = await PakReleaseRecovery.Recover(this, requested, known, dialogue, _inventory.BeginChange, adopted ?? new List<Release>(), alwaysKeepUnmanagedPaks, resolvePlan);
-                if (recovered) {
-                    SynchronizeWithDir();
-                    _inventory.Save(_managedPaks);
-                }
-                // Leave pending intact if a mutation failed after it began.
-                return recovered;
+                return await PakReleaseRecovery.Recover(this, requested, known, dialogue, adopted ?? new List<Release>(), alwaysKeepUnmanagedPaks, resolvePlan);
             }
             catch (Exception ex) {
-                Logger.Error("Failed to recover managed pak inventory", ex);
-                dialogue.DisplayMessage($"Failed to recover managed pak inventory: {ex.Message}");
+                Logger.Error("Failed to recover managed paks", ex);
+                dialogue.DisplayMessage($"Failed to recover managed paks: {ex.Message}");
                 return false;
+            }
+            finally {
+                SynchronizeWithDir();
+                NotifyChanges(previous);
             }
         }
 
@@ -241,6 +250,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
             _managedPaks.RemoveAll(existing => existing.Coordinates == pak.Coordinates
                 || existing.PakFileName.Equals(pak.PakFileName, StringComparison.OrdinalIgnoreCase));
             _managedPaks.Add(pak);
+            OwnershipChanged?.Invoke(this, EventArgs.Empty);
         }
 
         internal static IEnumerable<string> GetInstallFileNames(IEnumerable<ReleaseCoordinates> releases) {
@@ -330,9 +340,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
             // Process removes
             for (var i = 0; i < removeActions.Count; i++) {
-                _inventory.BeginChange();
                 var removed = ProcessRemove(removeActions[i]);
-                _inventory.Save(_managedPaks);
                 if (removed.IsLeft) yield return removed.Map(_ => removeActions[i].Existing);
                 removeProgress.IfSome(p => p.Report(100d * (i + 1) / removeActions.Count));
             }
@@ -379,7 +387,6 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         private Either<Error, ManagedPak> ProcessMove(InstallAction.Move move) {
-            _inventory.BeginChange();
             var sourcePath = PakNameToPakPath(move.Existing.PakFileName);
             var targetName = AvailablePakName(move.TargetPakName);
             var targetPath = PakNameToPakPath(targetName);
@@ -395,7 +402,6 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         private async Task<Either<Error, ManagedPak>> ProcessDownload(InstallAction.Download download, Option<MemoryProgress> taskProgress) {
-            _inventory.BeginChange();
             return (await _writePak(download.Install.Writer, taskProgress.Map(p => (IProgress<double>)p), download.FinalPakName))
                 .Map(pakFileName => {
                     var managedPak = new ManagedPak(download.Install.Coordinates, pakFileName, download.Index);
@@ -504,25 +510,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 .ToOption();
         }
 
-        public async Task<ManagedPak[]> GetManagedPaks() {
-            using var inventoryLock = await _inventory.Lock();
-            ReloadInventory();
-            return _managedPaks.ToArray();
-        }
+        public Task<ManagedPak[]> GetManagedPaks() => Task.FromResult(_managedPaks.ToArray());
 
-        public async Task<Option<string>> GetManagedPakFilePath(ReleaseCoordinates coords) {
-            try {
-                using var inventoryLock = await _inventory.Lock();
-                ReloadInventory();
-                return GetManagedPakFile(coords)
-                    .Map(pak => PakNameToPakPath(pak.PakFileName));
-            }
-            catch (Exception ex) {
-                // Installation will surface the inventory error and cancel the launch.
-                Logger.Error("Failed to read managed pak inventory", ex);
-                return None;
-            }
-        }
+        public Task<Option<string>> GetManagedPakFilePath(ReleaseCoordinates coords) =>
+            Task.FromResult(GetManagedPakFile(coords).Map(pak => PakNameToPakPath(pak.PakFileName)));
 
         private string PakNameToPakPath(string fileName) {
             return Path.Join(DirPath, fileName);
@@ -534,44 +525,44 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
         public Task<Either<IEnumerable<Error>, Unit>> SignAll() {
-            return WithDirectoryLock(() => GetModPakFiles()
+            return RunFileOperation(() => GetModPakFiles()
                 .Map(_signFile)
                 .BindLefts());
         }
 
         public Task<Either<IEnumerable<Error>, Unit>> UnSignAll() {
-            return WithDirectoryLock(() => GetModPakFiles()
+            return RunFileOperation(() => GetModPakFiles()
                 .Map(_unsignFile)
                 .BindLefts());
         }
 
-        private async Task<Either<IEnumerable<Error>, Unit>> WithDirectoryLock(Func<Either<IEnumerable<Error>, Unit>> action, string errorMessage = "Failed to update pak signatures") {
+        private Task<Either<IEnumerable<Error>, Unit>> RunFileOperation(Func<Either<IEnumerable<Error>, Unit>> action, string errorMessage = "Failed to update pak signatures") {
             try {
-                using var inventoryLock = await _inventory.Lock();
-                return action();
+                return Task.FromResult(action());
             }
             catch (Exception ex) {
-                return Left<IEnumerable<Error>, Unit>(new[] { Error.New(errorMessage, ex) });
+                return Task.FromResult(Left<IEnumerable<Error>, Unit>(new[] { Error.New(errorMessage, ex) }));
             }
         }
 
         public Task<Either<IEnumerable<Error>, Unit>> Reset() {
-            return WithDirectoryLock(() => {
-                ReloadInventory();
-                _inventory.Save(_managedPaks);
-                _inventory.BeginChange();
-                var result = Directory.EnumerateFiles(DirPath)
+            return RunFileOperation(() => {
+                var previous = _managedPaks.ToArray();
+                try {
+                    return Directory.EnumerateFiles(DirPath)
                     .Filter(p => !(p.EndsWith(BasePakFileName) || p.EndsWith(BaseSigFileName)))
                     .Map(_deleteFile)
                     .BindLefts();
-                SynchronizeWithDir();
-                _inventory.Save(_managedPaks);
-                return result;
-            }, "Failed to reset managed pak inventory");
+                }
+                finally {
+                    SynchronizeWithDir();
+                    NotifyChanges(previous);
+                }
+            }, "Failed to reset managed paks");
         }
 
         public Task<Either<IEnumerable<Error>, Unit>> DeleteOrphanedSigs() {
-            return WithDirectoryLock(() => GetSigFiles()
+            return RunFileOperation(() => GetSigFiles()
                 .Filter(p => !File.Exists(Path.ChangeExtension(p, ".pak")))
                 .Map(_deleteFile)
                 .BindLefts());

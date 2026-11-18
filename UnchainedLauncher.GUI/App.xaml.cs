@@ -37,8 +37,16 @@ namespace UnchainedLauncher.GUI {
     /// </summary>
     public partial class App : Application {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
+        // Retain until process termination, including all late shutdown saves. Never dispose on exit.
+        private static InstallationInstanceGuard? _installationGuard;
 
         protected override async void OnStartup(StartupEventArgs e) {
+            if (!InstallationStartup.TryAcquire(out _installationGuard, out var error)) {
+                MessageBox.Show(error, "Unchained Launcher", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Shutdown(1);
+                return;
+            }
+
             try {
                 base.OnStartup(e);
 
@@ -78,7 +86,7 @@ namespace UnchainedLauncher.GUI {
 
 
                 var installationFinder = new Chivalry2InstallationFinder();
-                var installer = new UnchainedLauncherInstaller(Shutdown);
+                var installer = new UnchainedLauncherInstaller(Shutdown, currentInstallation: _installationGuard);
 
                 // figure out if we need to install by checking our current working directory
                 var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());

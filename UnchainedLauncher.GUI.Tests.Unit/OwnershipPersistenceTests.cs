@@ -46,6 +46,69 @@ public sealed class OwnershipPersistenceTests : IDisposable {
         path => new FileWriter(path, new MemoryStream([1, 2, 3]), 3));
 
     [Theory]
+    [InlineData("release/v1.0.0")]
+    [InlineData("local build #1?")]
+    public async Task InstalledReleaseTagSurvivesPersistAndRestart(string tag) {
+        var (manager, persistence) = LegacyOwnershipMigration.Load(Config, _registry, installationPakDirectory: Paks);
+        persistence.Save();
+        var coordinates = Coordinates() with { Version = tag };
+        var request = new ModInstallRequest(coordinates,
+            path => new FileWriter(path, new MemoryStream([1, 2, 3]), 3));
+        var results = 0;
+        await foreach (var result in manager.PakDir.InstallModSet([request], Option<AccumulatedMemoryProgress>.None)) {
+            Assert.True(result.IsRight);
+            results++;
+        }
+        Assert.Equal(1, results);
+        var owned = Assert.Single(((PakDir)manager.PakDir).ManagedPaks);
+        Assert.Equal(coordinates, owned.Coordinates);
+        Assert.Equal(owned, Assert.Single(((PakDir)Reload().PakDir).ManagedPaks));
+        Assert.False(File.Exists(Inventory));
+        var before = File.ReadAllBytes(Config);
+        Assert.Equal(owned, Assert.Single(((PakDir)Startup().PakDir).ManagedPaks));
+        Assert.Equal(before, File.ReadAllBytes(Config));
+        Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(Path.Combine(Paks, owned.PakFileName)));
+    }
+
+    [Theory]
+    [InlineData("release/v1.0.0")]
+    [InlineData("local build #1?")]
+    public void CleanInventoryPreservesExactReleaseTag(string tag) {
+        Save(Manager());
+        var owned = Owned() with { Coordinates = Coordinates() with { Version = tag } };
+        WriteInventory(JsonSerializer.Serialize(new[] { owned }));
+        var inventoryBefore = File.ReadAllBytes(Inventory);
+        Assert.Equal(owned, Assert.Single(((PakDir)Startup().PakDir).ManagedPaks));
+        Assert.False(File.Exists(Inventory));
+        Assert.Equal(owned, Assert.Single(((PakDir)Reload().PakDir).ManagedPaks));
+        Assert.Equal(owned, Assert.Single(((PakDir)Startup().PakDir).ManagedPaks));
+        var backup = Assert.Single(Directory.GetFiles(LegacyOwnershipMigration.BackupRoot(Config), "inventory.json", SearchOption.AllDirectories));
+        Assert.Equal(inventoryBefore, File.ReadAllBytes(backup));
+        Assert.Equal("Mod", File.ReadAllText(Path.Combine(Paks, owned.PakFileName)));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("\t\r\n")]
+    public void BlankReleaseTagCannotLoadSnapshotOrInventory(string? tag) {
+        var owned = Owned() with { Coordinates = Coordinates() with { Version = tag! } };
+        Save(Manager(owned));
+        var before = File.ReadAllBytes(Config);
+        Assert.Throws<InvalidDataException>(Startup);
+        Assert.Equal(before, File.ReadAllBytes(Config));
+        Save(Manager());
+        before = File.ReadAllBytes(Config);
+        WriteInventory(JsonSerializer.Serialize(new[] { owned }));
+        var inventoryBefore = File.ReadAllBytes(Inventory);
+        Assert.Throws<InvalidDataException>(Startup);
+        Assert.Equal(before, File.ReadAllBytes(Config));
+        Assert.Equal(inventoryBefore, File.ReadAllBytes(Inventory));
+        Assert.Equal("Mod", File.ReadAllText(Path.Combine(Paks, owned.PakFileName)));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void CleanInventorySupersedesStaleConfigIncludingEmpty(bool empty) {

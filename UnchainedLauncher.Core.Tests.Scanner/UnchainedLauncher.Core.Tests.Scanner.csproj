@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+    <!-- Reuse Core's existing friend assembly without referencing the Windows GUI. -->
+    <AssemblyName>UnchainedLauncher.Core.Tests.Unit</AssemblyName>
+    <DefineConstants>$(DefineConstants);PORTABLE_SCANNER_TESTS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../UnchainedLauncher.Core/UnchainedLauncher.Core.csproj" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <Using Include="Xunit" />
+    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Extensions/BlueprintVisibilityTests.cs" Link="BlueprintVisibilityTests.cs" />
+    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/PakReadCacheTests.cs" Link="PakReadCacheTests.cs" />
+    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/PakScanCacheTests.cs" Link="PakScanCacheTests.cs" />
+    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/UnmanagedPakScanProgressTests.cs" Link="UnmanagedPakScanProgressTests.cs" />
+    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/PakReleaseRecoveryTests.cs" Link="PakReleaseRecoveryTests.cs" />
+    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/PakMutationSafetyTests.cs" Link="PakMutationSafetyTests.cs" />
+    <Compile Include="../UnchainedLauncher.GUI.Tests.Unit/OwnershipPersistenceTests.cs" Link="OwnershipPersistenceTests.cs" />
+    <Compile Include="../UnchainedLauncher.GUI/ViewModels/Registry/RegistryReleaseFormVM.cs" Link="RegistryReleaseFormVM.cs" />
+    <None Include="../UnchainedLauncher.Core.Tests.Unit/TestData/ModManagerV3.json" Link="TestData/ModManagerV3.json" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/KeptUnmanagedPakTests.cs" Link="KeptUnmanagedPakTests.cs" />
+    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Services/PakDir/PakSignatureCollisionTests.cs" Link="PakSignatureCollisionTests.cs" />
+  </ItemGroup>
+</Project>

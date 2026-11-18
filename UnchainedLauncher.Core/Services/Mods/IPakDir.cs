@@ -1,5 +1,6 @@
 using LanguageExt;
 using LanguageExt.Common;
+using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
 
@@ -25,8 +26,17 @@ namespace UnchainedLauncher.Core.Services.Mods {
     /// Manages the pak directory for Chivalry 2 mods, handling installation, signing, and cleanup of pak files.
     /// </summary>
     public interface IPakDir {
+        /// <summary>Snapshots managed pak ownership.</summary>
+        Task<ManagedPak[]> GetManagedPaks();
+
+        /// <summary>Verifies existing release files and confirms ownership or file changes before installation.</summary>
+        /// <param name="resolvePlan">Resolves merged explicit and adopted roots before validation.</param>
+        Task<bool> RecoverReleases(IReadOnlyList<Release> requested, IEnumerable<Release> known, IUserDialogueSpawner dialogue,
+            ICollection<Release>? adopted = null, bool alwaysKeepUnmanagedPaks = false,
+            Func<IReadOnlyList<Release>, IReadOnlyList<Release>>? resolvePlan = null);
+
         /// <summary>
-        /// A delegate that creates a FileWriter for writing pak data to the specified file path.
+        /// Creates a FileWriter for the specified path, transferring input-stream ownership to PakDir.
         /// </summary>
         /// <param name="filePath">The destination file path to write to</param>
         /// <returns>An async either containing the FileWriter on success, or an Error on failure</returns>
@@ -37,7 +47,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// </summary>
         /// <param name="coords">The mod identifier specifying which mod to uninstall</param>
         /// <returns>Right(Unit) on success, Left(Error) on failure</returns>
-        Either<Error, Unit> Uninstall(ModIdentifier coords);
+        Task<Either<Error, Unit>> Uninstall(ModIdentifier coords);
 
         /// <summary>
         /// Installs a set of mods, handling file naming conflicts and progress reporting.
@@ -53,34 +63,34 @@ namespace UnchainedLauncher.Core.Services.Mods {
         /// This is required for the game to load modded pak files.
         /// </summary>
         /// <returns>Right(Unit) if all files were signed successfully, Left with errors otherwise</returns>
-        Either<IEnumerable<Error>, Unit> SignAll();
+        Task<Either<IEnumerable<Error>, Unit>> SignAll();
 
         /// <summary>
         /// Removes signature files for all managed pak files, effectively preventing them from loading.
         /// </summary>
         /// <returns>Right(Unit) if all signature files were removed successfully, Left with errors otherwise</returns>
-        Either<IEnumerable<Error>, Unit> UnSignAll();
+        Task<Either<IEnumerable<Error>, Unit>> UnSignAll();
 
         /// <summary>
         /// Deletes any .sig files that don't have a corresponding .pak file.
         /// Useful for cleaning up after manual pak file deletions.
         /// </summary>
         /// <returns>Right(Unit) if cleanup succeeded, Left with errors otherwise</returns>
-        Either<IEnumerable<Error>, Unit> DeleteOrphanedSigs();
+        Task<Either<IEnumerable<Error>, Unit>> DeleteOrphanedSigs();
 
         /// <summary>
         /// Removes all mod pak and sig files from the directory, restoring it to a clean state.
         /// Preserves the base game pak and sig files (pakchunk0-WindowsNoEditor).
         /// </summary>
         /// <returns>Right(Unit) if reset succeeded, Left with errors otherwise</returns>
-        Either<IEnumerable<Error>, Unit> Reset();
+        Task<Either<IEnumerable<Error>, Unit>> Reset();
 
         /// <summary>
         /// Gets the full file path for a managed pak file by its release coordinates.
         /// </summary>
         /// <param name="coords">The release coordinates to look up</param>
         /// <returns>Some(path) if the pak is managed, None otherwise</returns>
-        Option<string> GetManagedPakFilePath(ReleaseCoordinates coords);
+        Task<Option<string>> GetManagedPakFilePath(ReleaseCoordinates coords);
 
         /// <summary>
         /// Gets the directory path where pak files are stored.

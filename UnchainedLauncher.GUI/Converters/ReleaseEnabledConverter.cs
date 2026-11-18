@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using System.Windows.Data;
+using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 
 namespace UnchainedLauncher.GUI.Converters {
@@ -15,8 +17,7 @@ namespace UnchainedLauncher.GUI.Converters {
 
             if (blueprint == null || list == null) return false;
 
-            // ObservableCollection.Contains will use value equality of the record type
-            return list.Contains(blueprint);
+            return list.Any(selected => ServerBlueprintIdentity.Same(selected, blueprint));
         }
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) {

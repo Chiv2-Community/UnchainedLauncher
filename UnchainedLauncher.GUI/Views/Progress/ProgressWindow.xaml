@@ -8,6 +8,7 @@
                        xmlns:designInstances="clr-namespace:UnchainedLauncher.GUI.Views.Progress.DesignInstances"
                        mc:Ignorable="d"
                        Title="Progress Window"
+                       MinWidth="400"
                        d:DesignHeight="300" d:DesignWidth="300"
                        SizeToContent="WidthAndHeight"
                        Style="{DynamicResource UnchainedChrome}"

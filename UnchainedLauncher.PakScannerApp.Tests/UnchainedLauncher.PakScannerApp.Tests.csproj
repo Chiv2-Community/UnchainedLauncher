@@ -16,6 +16,9 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <Using Include="Xunit" />
+    <Compile Include="../UnchainedLauncher.Core/Extensions/UnrealModScannerDtoExtensions.cs" Link="Core/UnrealModScannerDtoExtensions.cs" />
+    <Compile Include="../UnchainedLauncher.Core.Tests.Unit/Extensions/BlueprintVisibilityTests.cs" Link="Core/BlueprintVisibilityTests.cs" />
     <None Include="../UnchainedLauncher.PakScannerApp/scanconfig_default.json" Link="scanconfig_default.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

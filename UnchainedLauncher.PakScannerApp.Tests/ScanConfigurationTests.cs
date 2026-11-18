@@ -4,7 +4,6 @@ using System.Text.Json;
 using UnchainedLauncher.UnrealModScanner.Config.Games;
 using UnchainedLauncher.UnrealModScanner.PakScanning;
 using UnchainedLauncher.UnrealModScanner.PakScanning.Config;
-using Xunit;
 
 namespace UnchainedLauncher.PakScannerApp.Tests {
     public class ScanConfigurationTests : IDisposable {

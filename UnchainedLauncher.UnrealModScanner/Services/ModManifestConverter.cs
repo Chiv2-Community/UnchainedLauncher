@@ -9,7 +9,8 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
         public static PakDirManifest ProcessModScan(ModScanResult scanResult) {
             var paks = new List<PakManifest>();
 
-            foreach (var entry in scanResult.Paks) {
+            foreach (var entry in scanResult.Paks.OrderBy(p => p.Value.PakPath, StringComparer.Ordinal)
+                         .ThenBy(p => p.Key, StringComparer.Ordinal)) {
                 var pakInventory = new PakManifest(
                     PakName: entry.Key,
                     PakPath: entry.Value.PakPath,
@@ -51,7 +52,8 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                         Hash: marker.AssetHash,
                         ClassPath: marker.ClassPath,
                         ObjectClass: marker.ClassName,
-                        AssociatedBlueprints: marker.Children.Select(c => c.AssetPath).ToList()
+                        AssociatedBlueprints: marker.Children.Select(c => c.AssetPath)
+                            .OrderBy(path => path, StringComparer.Ordinal).ToList()
                     );
 
                     markers.Add(markerDto);
@@ -59,8 +61,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                     // Process the children (Blueprints) into the main collection
                     foreach (var childAsset in marker.Children) {
                         if (blueprints.All(x => x.Path != childAsset.AssetPath)) {
-                            // Any blueprints found in a marker should be shown
-                            blueprints.Add(MapToBlueprintDto(childAsset, false));
+                            blueprints.Add(MapToBlueprintDto(childAsset));
                         }
                     }
                 }
@@ -71,10 +72,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
             foreach (var (classPath, entries) in result.GenericEntries)
                 if (classPath == "/Game/Mods/ArgonSDK/Mods/ArgonSDKModBase.ArgonSDKModBase_C")
                     foreach (var genericBlueprint in entries) {
-                        // Legacy blueprints have no marker, so we need to mark them as not hidden.
-                        // Any blueprint with no associated DA_ModMarker_C is legacy, and should not be hidden.
-                        var isHidden = result.GenericMarkers.Any(x => x.Key == "DA_ModMarker_C");
-                        var blueprint = MapToBlueprintDto(genericBlueprint, isHidden);
+                        var blueprint = MapToBlueprintDto(genericBlueprint);
                         blueprints.Add(blueprint);
                     }
                 else {
@@ -121,15 +119,15 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
             }
 
             return new AssetCollections(
-                Markers: markers,
-                Blueprints: blueprints,
-                Maps: maps,
-                Replacements: replacements,
-                Arbitrary: arbitrary
+                Markers: markers.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList(),
+                Blueprints: blueprints.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList(),
+                Maps: maps.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList(),
+                Replacements: replacements.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList(),
+                Arbitrary: arbitrary.OrderBy(asset => asset.Path, StringComparer.Ordinal).ToList()
             );
         }
 
-        private static BlueprintDto MapToBlueprintDto(GenericAssetEntry bp, bool? isHidden) {
+        private static BlueprintDto MapToBlueprintDto(GenericAssetEntry bp) {
             return new BlueprintDto(
                 Path: bp.AssetPath,
                 Hash: bp.AssetHash,
@@ -142,12 +140,11 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                 Author: GetProp<string>(bp.Properties, "Author") ?? "",
                 bEnableByDefault: GetProp<bool>(bp.Properties, "bEnableByDefault"),
                 bSilentLoad: GetProp<bool>(bp.Properties, "bSilentLoad"),
-                bShowInGUI: GetProp<bool>(bp.Properties, "bShowInGUI"),
+                bShowInGUI: GetProp<bool?>(bp.Properties, "bShowInGUI"),
                 bClientside: GetProp<bool>(bp.Properties, "bClientside"),
                 bOnlineOnly: GetProp<bool>(bp.Properties, "bOnlineOnly"),
                 bHostOnly: GetProp<bool>(bp.Properties, "bHostOnly"),
-                bAllowOnFrontend: GetProp<bool>(bp.Properties, "bAllowOnFrontend"),
-                IsHidden: isHidden
+                bAllowOnFrontend: GetProp<bool>(bp.Properties, "bAllowOnFrontend")
             );
         }
 
@@ -165,7 +162,7 @@ namespace UnchainedLauncher.UnrealModScanner.Services {
                 // Handle cases where numbers might be boxed as different types
                 if (value is T typedValue) return typedValue;
 
-                try { return (T)Convert.ChangeType(value, typeof(T)); }
+                try { return (T)Convert.ChangeType(value, Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T)); }
                 catch { return default; }
             }
             return default;

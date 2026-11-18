@@ -24,10 +24,10 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             _userDialogueSpawner = userDialogueSpawner;
         }
 
-        public Task<Option<Unit>> PrepareLaunch(Unit input) {
+        public async Task<Option<Unit>> PrepareLaunch(Unit input) {
             _logger.Info("Ensuring sigs are removed for all modded paks.");
             var result =
-                PakDir.UnSignAll()
+                (await PakDir.UnSignAll())
                     .Match(
                         _ => Some(input),
                         errors => {
@@ -41,7 +41,7 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                         }
                     );
 
-            return Task.FromResult(result);
+            return result;
         }
     }
 }

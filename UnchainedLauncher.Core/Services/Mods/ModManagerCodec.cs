@@ -8,11 +8,13 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.Core.Services.Mods {
 
     public class ModManagerCodec : Codec<ModManager> {
-        public ModManagerCodec(IModRegistry registry) : base(
-            new Serializer<ModManager>(manager => JsonHelpers.Serialize(ToJsonType(manager))),
-            new Deserializer<ModManager>(json => Decode(json, registry))) { }
+        public static ModManagerCodec ForInstallation(IModRegistry registry) => new(registry, Path.GetFullPath(FilePaths.PakDir));
 
-        private static DeserializationResult<ModManager> Decode(string json, IModRegistry registry) {
+        public ModManagerCodec(IModRegistry registry, string? pakDirectory = null) : base(
+            new Serializer<ModManager>(manager => JsonHelpers.Serialize(ToJsonType(manager))),
+            new Deserializer<ModManager>(json => Decode(json, registry, pakDirectory))) { }
+
+        private static DeserializationResult<ModManager> Decode(string json, IModRegistry registry, string? pakDirectory) {
             try {
                 var document = JsonNode.Parse(json);
                 var invalidated = false;
@@ -28,7 +30,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 }
                 return JsonHelpers.Deserialize<ModManagerMetadata>(document?.ToJsonString() ?? json)
                     .Map(metadata => {
-                        var manager = ToClassType(metadata, registry);
+                        var manager = ToClassType(metadata, registry, pakDirectory);
                         manager.NeedsMetadataRefresh |= invalidated;
                         return manager;
                     });
@@ -39,11 +41,11 @@ namespace UnchainedLauncher.Core.Services.Mods {
         }
 
 
-        public static ModManager ToClassType(ModManagerMetadata metadata, IModRegistry registry) =>
+        public static ModManager ToClassType(ModManagerMetadata metadata, IModRegistry registry, string? pakDirectory = null) =>
             metadata switch {
                 StandardModManagerMetadata m => new ModManager(
                     registry,
-                    CreatePakDir(m.PakDir),
+                    CreatePakDir(m.PakDir, pakDirectory),
                     m.EnabledModReleases,
                     // Cached V3 metadata has no V4 release info or asset inventory. Keep
                     // enabled coordinates and managed paks, but refetch unusable metadata.
@@ -61,10 +63,21 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 r?.Info is { RepoUrl: not null, Authors: not null, ImageUrls: not null }
                 && r.Manifest is { Maps: not null, Blueprints: not null, Markers: not null, Replacements: not null, Arbitrary: not null });
 
-        private static PakDir CreatePakDir(PakDirMetadata? metadata) =>
-            metadata != null
-                ? new PakDir(metadata.DirPath, metadata.ManagedPaks, metadata.DefaultSigPath)
-                : new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>());
+        private static PakDir CreatePakDir(PakDirMetadata? metadata, string? installationDirectory) {
+            if (installationDirectory == null)
+                return new PakDir(metadata?.DirPath ?? FilePaths.PakDir, metadata?.ManagedPaks ?? [], metadata?.DefaultSigPath);
+            var legacySaved = metadata != null && SavedPakMigration.SourceDirectories(installationDirectory, cached: metadata)
+                .Any(source => SavedPakMigration.SameDirectory(source, metadata.DirPath));
+            // Explicit custom directories remain custom. Never import another installation's snapshot.
+            if (metadata != null && !legacySaved && !SavedPakMigration.SameDirectory(metadata.DirPath, installationDirectory))
+                return new PakDir(metadata.DirPath, metadata.ManagedPaks, metadata.DefaultSigPath);
+            return new PakDir(installationDirectory, legacySaved ? [] : metadata?.ManagedPaks ?? [], metadata?.DefaultSigPath) {
+                LegacySavedMetadata = legacySaved ? metadata : null,
+                MigrateInstallationSavedPaks = true
+            };
+        }
+
+        public static PakDir CreateInstallationPakDir() => CreatePakDir(null, Path.GetFullPath(FilePaths.PakDir));
 
         public static ModManagerMetadata ToJsonType(IModManager manager) =>
             manager switch {
@@ -72,7 +85,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     m.EnabledModReleaseCoordinates,
                     m.Mods,
                     m.PakDir switch {
-                        PakDir pd => new PakDirMetadata(pd.DirPath, pd.ManagedPaks, pd.DefaultSigPath),
+                        PakDir pd => pd.LegacySavedMetadata ?? new PakDirMetadata(pd.DirPath, pd.ManagedPaks, pd.DefaultSigPath),
                         _ => null
                     }
                 ),

@@ -10,17 +10,19 @@
              d:DesignHeight="300" d:DesignWidth="800"
              Focusable="True">
 
-    <Border Style="{StaticResource PluginCard}">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="Brush.Dependency" Color="#D09128" />
+    </UserControl.Resources>
 
+    <controls:CollapsibleCard IsExpanded="{Binding IsExpanded, Mode=TwoWay}"
+                               IsActive="{Binding IsEnabled}"
+                               IsDependency="{Binding IsDependency}"
+                              ShowExpansionIndicator="False"
+                              HighlightOnHover="True"
+                              ShowHeaderSeparator="True">
+        <controls:CollapsibleCard.Header>
             <!-- Header: Icon, Name, Enable/Disable, Version selector -->
-            <Grid Grid.Row="0">
+            <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
@@ -52,13 +54,25 @@
                 <!-- Enable/Disable Button -->
                 <Button Grid.Column="2"
                         Content="{Binding ButtonText}"
+                        ToolTip="{Binding ButtonToolTip}"
                         Command="{Binding EnableOrDisableCommand}"
-                        Margin="0,0,8,0" Style="{StaticResource Button.EnableOrDisable}" />
+                        Margin="0,0,8,0">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource Button.EnableOrDisable}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsDependency}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource Brush.Dependency}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
                 
                 <!-- Version Dropdown -->
                 <ComboBox Grid.Column="3"
+                          TextSearch.TextPath="Tag"
                           ItemsSource="{Binding Mod.Releases}"
-                          SelectedItem="{Binding EnabledRelease, Mode=TwoWay}"
+                          SelectedItem="{Binding SelectedRelease, Mode=TwoWay}"
                            ToolTip="Select version"
                            VerticalAlignment="Stretch">
                     <ComboBox.ItemTemplate>
@@ -72,9 +86,12 @@
                     </ComboBox.ItemTemplate>
                 </ComboBox>
             </Grid>
-
+        </controls:CollapsibleCard.Header>
+        <controls:CollapsibleCard.Body>
+            <StackPanel>
             <!-- Description: Regular text box -->
-            <TextBox Grid.Row="1"
+            <TextBox
+                     controls:InputOptions.IsHoverHighlightEnabled="False"
                      Text="{Binding Description, Mode=OneWay}"
                      Margin="0,12,0,0"
                      MinHeight="100"
@@ -84,7 +101,7 @@
                      VerticalScrollBarVisibility="Auto" />
 
             <!-- Details Card -->
-            <controls:CollapsibleCard Grid.Row="2"
+            <controls:CollapsibleCard
                                       Header="Contents"
                                       IsExpanded="False"
                                       Margin="0,12,0,0"
@@ -195,7 +212,7 @@
             </controls:CollapsibleCard>
 
             <!-- Dependencies Card -->
-            <StackPanel Grid.Row="3" Margin="0,12,0,0">
+            <StackPanel Margin="0,12,0,0">
                 <controls:CollapsibleCard Header="Dependencies"
                                           IsExpanded="False"
                                           Visibility="{Binding HasDependencies, Converter={StaticResource BoolToVisibilityConverter}}">
@@ -234,6 +251,7 @@
                     </controls:CollapsibleCard.Body>
                 </controls:CollapsibleCard>
             </StackPanel>
-        </Grid>
-    </Border>
+            </StackPanel>
+        </controls:CollapsibleCard.Body>
+    </controls:CollapsibleCard>
 </UserControl>

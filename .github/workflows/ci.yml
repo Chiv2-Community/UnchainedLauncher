@@ -4,9 +4,11 @@ on:
   push:
     branches:
         - 'main'
+        - 'hotfix/**'
   pull_request:
     branches:
         - 'main'
+        - 'hotfix/**'
         - 'series/*'
         - 'feature/dll-validation'
 
@@ -53,6 +55,15 @@ jobs:
       run: dotnet build -c ${{ matrix.configuration }}
     - name: Run Unit Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Core.Tests.Unit --logger:"console;verbosity=detailed"
+
+    - name: Run GUI Unit Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.GUI.Tests.Unit --logger:"console;verbosity=detailed"
+
+    - name: Run Portable Installer Workflow Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Installer.Tests --logger:"console;verbosity=detailed"
+
+    - name: Run Installation Presence Tests
+      run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.Instance.Tests --logger:"console;verbosity=detailed"
 
     - name: Run Scanner Configuration Tests
       run: dotnet test -c ${{ matrix.configuration }} .\UnchainedLauncher.PakScannerApp.Tests --logger:"console;verbosity=detailed"

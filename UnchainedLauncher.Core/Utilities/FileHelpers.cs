@@ -107,10 +107,9 @@ namespace UnchainedLauncher.Core.Utilities {
 
 
     /// <summary>
-    /// A single-use writer that owns its input stream. WriteAsync disposes the input
-    /// after success, failure, or cancellation. Dispose the writer if it is not written.
+    /// Writes a borrowed input stream. The acquiring caller must dispose the stream.
     /// </summary>
-    public class FileWriter : IDisposable {
+    public class FileWriter {
         private static readonly ILog logger = LogManager.GetLogger(nameof(FileWriter));
 
         public string FilePath { get; }
@@ -126,7 +125,6 @@ namespace UnchainedLauncher.Core.Utilities {
         public EitherAsync<Error, Unit> WriteAsync(Option<IProgress<double>> progress, CancellationToken cancellationToken) {
             return Prelude.TryAsync(
                 async () => {
-                    using var inputStream = InputStream;
                     // Ensure the input stream is readable
                     if (!InputStream.CanRead) {
                         logger.Error($"The input stream for file '{FilePath}' is not readable.");
@@ -158,8 +156,6 @@ namespace UnchainedLauncher.Core.Utilities {
                 })
                 .ToEither();
         }
-
-        public void Dispose() => InputStream.Dispose();
 
 
 

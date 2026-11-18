@@ -24,12 +24,11 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             _userDialogueSpawner = userDialogueSpawner;
         }
 
-        public Task<Option<Unit>> PrepareLaunch(Unit input) {
+        public async Task<Option<Unit>> PrepareLaunch(Unit input) {
             _logger.Info("Ensuring sigs are set up for all pak files.");
-            var result = PakDir
-                .SignAll()
-                .Bind(_ => PakDir.DeleteOrphanedSigs())
-                .Match(
+            var signed = await PakDir.SignAll();
+            var result = signed.IsRight ? await PakDir.DeleteOrphanedSigs() : signed;
+            return result.Match(
                     _ => Some(input),
                     errors => {
                         errors.ToList().ForEach(e => _logger.Error($"Failed to sign file: {e.Message}"));
@@ -41,8 +40,6 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
                         return None;
                     }
                 );
-
-            return Task.FromResult(result);
         }
     }
 }

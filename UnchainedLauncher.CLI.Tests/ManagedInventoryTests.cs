@@ -35,7 +35,7 @@ public class ManagedInventoryTests : IDisposable {
             await Prepare(gui, launch);
             codec.SerializeFile(Path.GetFullPath(FilePaths.ModManagerConfigPath), gui);
             var guiConfiguration = File.ReadAllText(FilePaths.ModManagerConfigPath);
-            var oldExtra = gui.PakDir.GetManagedPakFilePath(selected).IfNone("");
+            var oldExtra = (await gui.PakDir.GetManagedPakFilePath(selected)).IfNone("");
             Assert.True(File.Exists(oldExtra));
 
             var secondCli = Manager(registry, []);
@@ -133,7 +133,7 @@ public class ManagedInventoryTests : IDisposable {
             Assert.Equal(Path.Combine(Path.GetFullPath(FilePaths.PakDir), "pakchunk0-WindowsNoEditor.sig"), restoredPaks.DefaultSigPath);
             var managed = Assert.Single(restoredPaks.ManagedPaks);
             File.Delete(Path.ChangeExtension(Path.Combine(restoredPaks.DirPath, managed.PakFileName), ".sig"));
-            Assert.True(restoredPaks.SignAll().IsRight);
+            Assert.True((await restoredPaks.SignAll()).IsRight);
         });
     }
 

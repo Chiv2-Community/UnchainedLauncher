@@ -19,7 +19,8 @@
                     <Border x:Name="border" CornerRadius="4" Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}">
-                        <ContentPresenter Margin="4" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        <ContentPresenter x:Name="content" Margin="4" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}"
                                           RecognizesAccessKey="True" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -30,8 +31,12 @@
                             <Setter TargetName="border" Property="Opacity" Value="0.9" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Background" Value="#FFADB5BD" />
-                            <Setter Property="Foreground" Value="#FFE9ECEF" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource Brush.Light}" />
+                            <Setter TargetName="border" Property="BorderBrush" Value="{DynamicResource Brush.InputBorder}" />
+                            <Setter TargetName="border" Property="Opacity" Value="1" />
+                            <Setter TargetName="content" Property="TextElement.Foreground" Value="{DynamicResource Brush.Muted}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Muted}" />
+                            <Setter Property="Cursor" Value="Arrow" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

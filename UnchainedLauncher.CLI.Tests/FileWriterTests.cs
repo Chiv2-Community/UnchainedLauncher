@@ -28,19 +28,18 @@ public class FileWriterTests : IDisposable {
         var registry = new LocalModRegistry(Path.Combine(_directory, "registry"));
         await registry.AddRelease(release, source);
         var output = outcome == "output-failure" ? _directory : Path.Combine(_directory, "output.pak");
-        using var writer = await registry.DownloadPak(ReleaseCoordinates.FromRelease(release), output)
+        var writer = await registry.DownloadPak(ReleaseCoordinates.FromRelease(release), output)
             .Match(Right: value => value, Left: error => throw new Exception(error.Message));
         Assert.True(writer.InputStream.CanRead);
-        if (outcome == "abandoned") {
-            writer.Dispose();
+        using (writer.InputStream) {
+            if (outcome != "abandoned") {
+                using var cancellation = new CancellationTokenSource();
+                if (outcome == "cancelled") cancellation.Cancel();
+                var result = await writer.WriteAsync(Option<IProgress<double>>.None, cancellation.Token);
+                Assert.Equal(outcome == "success", result.IsRight);
+            }
         }
-        else {
-            using var cancellation = new CancellationTokenSource();
-            if (outcome == "cancelled") cancellation.Cancel();
-            var result = await writer.WriteAsync(Option<IProgress<double>>.None, cancellation.Token);
-            Assert.Equal(outcome == "success", result.IsRight);
-        }
-        // Check before fixture/writer disposal: Linux must detect the same leak as Windows.
+        // Check before fixture cleanup: Linux must detect the same leak as Windows.
         Assert.False(writer.InputStream.CanRead);
         var registryPak = Path.Combine(registry.RegistryPath, info.Organization, info.RepoName, release.Tag, release.PakFileName);
         using var exclusive = File.Open(registryPak, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
@@ -53,9 +52,11 @@ public class FileWriterTests : IDisposable {
     public async Task InputIsClosedAfterReadFailureOrMidCopyCancellation(bool cancel) {
         using var cancellation = new CancellationTokenSource();
         using var input = new InterruptingStream(cancellation, cancel);
-        using var writer = new FileWriter(Path.Combine(_directory, "output.pak"), input, input.Length);
-        var result = await writer.WriteAsync(Option<IProgress<double>>.None, cancellation.Token);
-        Assert.True(result.IsLeft);
+        var writer = new FileWriter(Path.Combine(_directory, "output.pak"), input, input.Length);
+        using (writer.InputStream) {
+            var result = await writer.WriteAsync(Option<IProgress<double>>.None, cancellation.Token);
+            Assert.True(result.IsLeft);
+        }
         Assert.False(input.CanRead);
         Assert.Equal(cancel, cancellation.IsCancellationRequested);
     }

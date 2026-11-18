@@ -1,6 +1,7 @@
 using LanguageExt;
 using log4net;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -39,8 +40,26 @@ namespace UnchainedLauncher.GUI {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
         private bool _unsafeLoadAllDlls;
         private string[] _launchArguments = [];
+        // Retain until process termination, including all late shutdown saves. Never dispose on exit.
+        private static InstallationInstanceGuard? _installationGuard;
+        private readonly List<Action> _preferenceSaves = new();
+
+        private void SavePreferences() {
+            foreach (var save in _preferenceSaves) save();
+        }
+
+        private void RegisterPreferenceSave(Action save) {
+            _preferenceSaves.Add(save);
+            RegisterExitHandler(save);
+        }
 
         protected override async void OnStartup(StartupEventArgs e) {
+            if (!InstallationStartup.TryAcquire(out _installationGuard, out var error)) {
+                MessageBox.Show(error, "Unchained Launcher", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Shutdown(1);
+                return;
+            }
+
             try {
                 base.OnStartup(e);
                 (_unsafeLoadAllDlls, _launchArguments) = UnsafeDllLoading.ParseGuiArguments(e.Args);
@@ -81,7 +100,7 @@ namespace UnchainedLauncher.GUI {
 
 
                 var installationFinder = new Chivalry2InstallationFinder();
-                var installer = new UnchainedLauncherInstaller(Shutdown);
+                var installer = new UnchainedLauncherInstaller(Shutdown, currentInstallation: _installationGuard);
 
                 // figure out if we need to install by checking our current working directory
                 var currentDirectory = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -142,16 +161,25 @@ namespace UnchainedLauncher.GUI {
             var registryWindowService = new RegistryWindowService();
 
             var modRegistry = InitializeModRegistry(FilePaths.RegistryConfigPath);
-            var modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+            ModManager modManager;
+            try {
+                modManager = InitializeModManager(FilePaths.ModManagerConfigPath, modRegistry);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+                _log.Error("Could not load or migrate mod ownership.", ex);
+                userDialogueSpawner.DisplayMessage($"Could not load or migrate mod ownership. Files were preserved; resolve the evidence or file permissions before retrying.\n{ex.Message}");
+                Shutdown();
+                return null;
+            }
+            RegisterSaveToFileOnExit(modRegistry, ModRegistryCodec.Instance, FilePaths.RegistryConfigPath);
+            var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
+            var settingsViewModel = InitializeSettingsViewModel(installationFinder, installer, launcherReleaseLocator, registryWindowViewModel, registryWindowService, modManager, userDialogueSpawner);
             var dllManager = new DllManager(
                 Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir),
-                FilePaths.DllManagerConfigPath, new HttpClient(), () => modManager.GetEnabledAndDependencyReleases().ToArray(),
+                FilePaths.DllManagerConfigPath, new HttpClient(), () => modManager.GetEnabledAndDependencyReleases(settingsViewModel.AutomaticallyDownloadPakDependencies).ToArray(),
                 () => modRegistry.ModRegistries.OfType<GithubModRegistry>()
                     .Select(registry => registry.DllDatabaseUrl).ToArray());
 
-            var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
-
-            var settingsViewModel = InitializeSettingsViewModel(installationFinder, installer, launcherReleaseLocator, registryWindowViewModel, registryWindowService, modManager, userDialogueSpawner);
             var dllManagerViewModel = new DllManagerVM(dllManager, settingsViewModel, userDialogueSpawner);
             await dllManagerViewModel.RefreshCommand.ExecuteAsync(null);
 
@@ -174,21 +202,23 @@ namespace UnchainedLauncher.GUI {
 
             var noSigLaunchPreparer = NoSigPreparer.Create(modManager.PakDir, userDialogueSpawner);
             var sigLaunchPreparer = SigPreparer.Create(modManager.PakDir, userDialogueSpawner);
+            IChivalry2LaunchPreparer<LaunchOptions> checkpoint = new SavePreferencesPreparer(SavePreferences, userDialogueSpawner);
+            var prepareSavedPaks = checkpoint.AndThen(new SavedPaksPreparer(modManager.PakDir, userDialogueSpawner));
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
             IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
-                modManager, userDialogueSpawner
+                modManager, userDialogueSpawner, settingsViewModel
             );
 
             var vanillaLauncher = new Chivalry2Launcher(
-                noSigLaunchPreparer.IgnoreOptions<LaunchOptions>(),
+                prepareSavedPaks.AndThen(noSigLaunchPreparer.IgnoreOptions<LaunchOptions>()),
                 officialProcessLauncher,
                 Directory.GetCurrentDirectory()
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                pluginInstaller
+                prepareSavedPaks.AndThen(pluginInstaller)
                     .AndThen(modInstaller)
                     .Sub(sigLaunchPreparer),
                 unchainedProcessLauncher,
@@ -210,7 +240,7 @@ namespace UnchainedLauncher.GUI {
                 unchainedLauncher,
                 userDialogueSpawner,
                 chivProcessMonitor);
-            var modListViewModel = new ModListVM(modManager, userDialogueSpawner);
+            var modListViewModel = new ModListVM(modManager, userDialogueSpawner, settingsViewModel);
 
             if (modManager.NeedsMetadataRefresh || !modManager.Mods.Any())
                 await modListViewModel.RefreshModListCommand.ExecuteAsync(null);
@@ -229,9 +259,11 @@ namespace UnchainedLauncher.GUI {
                 return null;
             }
 
-            var modScanTab = new ModScanTabVM();
+            var modScanTab = new ModScanTabVM { DefaultPakDirectory = Path.GetFullPath(FilePaths.PakDir) };
             var helpVM = new HelpVM(settingsViewModel, installer, launcherReleaseLocator, modManager.PakDir, userDialogueSpawner, Shutdown);
-            var availableModsAndMaps = new AvailableModsAndMapsService(modManager, modScanTab);
+            var availableModsAndMaps = new AvailableModsAndMapsService(modManager, modScanTab, settingsViewModel);
+            availableModsAndMaps.StartWatchingLocalPaks();
+            Exit += (_, _) => availableModsAndMaps.Dispose();
 
             var serverConfigurationVMs =
                 InitializeServerConfigurations(FilePaths.ServerConfigurationsFilePath, modManager, modScanTab, availableModsAndMaps);
@@ -309,23 +341,14 @@ namespace UnchainedLauncher.GUI {
             // another AggregateModRegistry, so no worries there.
             var registry = new AggregateModRegistry(loadedResult);
 
-            RegisterSaveToFileOnExit(registry, ModRegistryCodec.Instance, jsonPath);
             return registry;
         }
 
         private ModManager InitializeModManager(string jsonPath, IModRegistry registry) {
-            Func<ModManager> initializeDefaultModManager = () =>
-                new ModManager(
-                    registry,
-                    new PakDir(FilePaths.PakDir, Enumerable.Empty<ManagedPak>()),
-                    Enumerable.Empty<ReleaseCoordinates>()
-                );
-
-            var codec = new ModManagerCodec(registry);
-            var modManager = InitializeFromFileWithCodec(codec, jsonPath, initializeDefaultModManager);
-
-            RegisterSaveToFileOnExit(modManager, codec, jsonPath);
-            return modManager;
+            var (manager, persistence) = LegacyOwnershipMigration.Load(jsonPath, registry,
+                ex => MessageBox.Show($"Could not save mod selection. Retry before exiting.\n{ex.Message}"));
+            RegisterPreferenceSave(persistence.Save);
+            return manager;
         }
 
         private ObservableCollection<ServerConfigurationVM> InitializeServerConfigurations(string jsonPath,
@@ -337,7 +360,7 @@ namespace UnchainedLauncher.GUI {
             var serverConfigurations = InitializeFromFileWithCodec(codec, jsonPath, initializeDefault);
 
             RegisterSaveToFileOnExit(serverConfigurations, codec, jsonPath);
-            Exit += (_, _) => serverConfigurations.ForEach(x => x.SaveINI());
+            RegisterPreferenceSave(() => serverConfigurations.ForEach(x => x.SaveINI()));
 
             return serverConfigurations;
         }
@@ -383,17 +406,7 @@ namespace UnchainedLauncher.GUI {
         }
 
         private void RegisterSaveToFileOnExit<T>(T t, ICodec<T> codec, string filePath) {
-            RegisterExitHandler(() => {
-                try {
-                    _log.Info($"Saving {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec})...");
-                    codec.SerializeFile(filePath, t);
-                }
-                catch (Exception ex) {
-                    _log.Error(
-                        $"Failed to save configuration for {typeof(T).Name} to {filePath} using {codec.GetType().Name}({codec}).",
-                        ex);
-                }
-            });
+            RegisterPreferenceSave(() => codec.SerializeFile(filePath, t));
         }
 
         /// <summary>

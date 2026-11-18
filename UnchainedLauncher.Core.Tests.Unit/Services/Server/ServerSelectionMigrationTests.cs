@@ -2,19 +2,27 @@ using Moq;
 using System.Collections.ObjectModel;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
+using System.Windows.Threading;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
+using UnchainedLauncher.Core.Tests.Unit.Services.Processes;
 using UnchainedLauncher.GUI.Services;
 using UnchainedLauncher.GUI.ViewModels.ServersTab;
+using UnchainedLauncher.GUI.Views.Servers.Sections;
 using UnchainedLauncher.UnrealModScanner.GUI.ViewModels;
 using UnchainedLauncher.UnrealModScanner.JsonModels;
 using ManagedPakDir = UnchainedLauncher.Core.Services.Mods.PakDir;
 
 namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
-    public class ServerSelectionMigrationTests {
+    [Collection("Home launch UI")]
+    public class ServerSelectionMigrationTests(HomeLaunchUi ui) {
         private static BlueprintDto Blueprint(string name) => new($"{name}.uasset", "hash", $"/Game/{name}.{name}_C", null,
-            name, "1", null, null, null, false, false, true, false, false, true, false, false);
+            name, "1", null, null, null, false, false, true, false, false, true, false);
 
         private static Mod Mod(string name, params BlueprintDto[] blueprints) {
             var release = new Release("v1.0.0", "hash", "mod.pak", DateTime.UtcNow,
@@ -78,10 +86,11 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
         }
 
         [Fact]
-        public void OfflineV3UpgradeRefreshRestoresCatalogsAndSelectionsInPlace() {
-            RunSta(() => {
+        public Task OfflineV3UpgradeRefreshRestoresCatalogsAndSelectionsInPlace() {
+            return ui.RunAsync(async () => {
                 var pakDir = Path.Combine(Path.GetTempPath(), "offline-upgrade-" + Guid.NewGuid());
                 Directory.CreateDirectory(pakDir);
+                AvailableModsAndMapsService? catalog = null;
                 try {
                     File.WriteAllBytes(Path.Combine(pakDir, "ExampleMod.pak"), []);
                     var json = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestData", "ModManagerV3.json"))
@@ -105,10 +114,10 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                     Assert.Single(installed);
 
                     // App startup awaits this refresh before constructing the catalog and saved servers.
-                    Assert.True(manager.UpdateModsList().GetAwaiter().GetResult().HasErrors);
+                    Assert.True((await manager.UpdateModsList()).HasErrors);
                     Assert.True(manager.NeedsMetadataRefresh);
                     var scan = new ModScanTabVM();
-                    var catalog = new AvailableModsAndMapsService(manager, scan);
+                    catalog = new AvailableModsAndMapsService(manager, scan);
                     var codec = new ServerConfigurationCodec(manager, scan, catalog);
                     var savedSelections = Fixture().Replace("v1.0.0", "v0.0.2");
                     var configs = Decode(codec, savedSelections);
@@ -124,7 +133,8 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                     // Reconnect through the production refresh boundary, without a toggle, scan, or restart.
                     registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult([], [mod]));
                     for (var i = 0; i < 3; i++) {
-                        Assert.False(manager.UpdateModsList().GetAwaiter().GetResult().HasErrors);
+                        Assert.False((await manager.UpdateModsList()).HasErrors);
+                        await catalog.WaitForCatalogAsync();
                         Assert.False(manager.NeedsMetadataRefresh);
                         Assert.Same(actors, catalog.AvailableServerModBlueprints);
                         Assert.Same(maps, catalog.AvailableMaps);
@@ -139,13 +149,21 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                     }
                     // The restored actor is available to deselect, and refresh does not reselect it.
                     configs[0].DisableServerBlueprintMod(actor);
-                    manager.UpdateModsList().GetAwaiter().GetResult();
+                    await manager.UpdateModsList();
+                    await catalog.WaitForCatalogAsync();
                     Assert.Empty(selected);
                     Assert.Equal(actor, Assert.Single(actors));
                     Assert.Contains(map, maps);
                     Assert.Single(SavedEntries(codec.Serialize(configs)).Where(e => e.TryGetProperty("Org", out _)));
                 }
-                finally { Directory.Delete(pakDir, recursive: true); }
+                finally {
+                    if (catalog != null) {
+                        await catalog.LocalModScan.RefreshAsync();
+                        await catalog.WaitForCatalogAsync();
+                        catalog.Dispose();
+                    }
+                    Directory.Delete(pakDir, recursive: true);
+                }
             });
         }
 
@@ -183,6 +201,203 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Server {
                     saved = next;
                 }
             });
+        }
+
+        [Fact]
+        public void DisablingActorRemovesAllSavedDuplicatesAndPreservesOtherSelections() {
+            RunSta(() => {
+                var codec = Codec(new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), []));
+                var configs = Decode(codec, Fixture());
+                var actor = Blueprint("DuplicateActor");
+                var other = Blueprint("OtherActor");
+                foreach (var entry in new[] { actor, other, actor with { }, actor })
+                    configs[0].EnabledServerModList.Add(entry);
+                configs = Decode(codec, codec.Serialize(configs));
+                configs[0].DisableServerBlueprintMod(actor);
+                Assert.Equal(other, Assert.Single(configs[0].EnabledServerModList));
+                configs[0].DisableServerBlueprintMod(actor);
+                var reloaded = Decode(codec, codec.Serialize(configs));
+                Assert.Equal(other, Assert.Single(reloaded[0].EnabledServerModList));
+                Assert.Equal(2, SavedEntries(codec.Serialize(reloaded)).Count(entry => entry.TryGetProperty("Org", out _)));
+            });
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(3)]
+        public Task OpeningSavedActorCheckboxDoesNotDuplicateSelectionAndAllowsUnchecking(int savedCopies) =>
+            ui.RunAsync(() => {
+                var actor = Blueprint("SelectedActor");
+                var mod = Mod("ExampleMod", actor);
+                var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(),
+                    [ReleaseCoordinates.FromRelease(mod.Releases.First())], [mod]);
+                var scan = new ModScanTabVM();
+                var catalog = new AvailableModsAndMapsService(manager, scan);
+                var config = new ServerConfigurationVM(manager, scan, catalog,
+                    enabledServerModList: new ObservableCollection<BlueprintDto>(Enumerable.Repeat(actor, savedCopies)));
+                for (var i = 0; i < 2; i++) {
+                    var view = new ServerModActorsSectionView { DataContext = config };
+                    view.Measure(new Size(640, 480));
+                    view.Arrange(new Rect(0, 0, 640, 480));
+                    view.UpdateLayout();
+                    Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                    var checkbox = Descendants<CheckBox>(view).Single();
+                    Assert.True(checkbox.IsChecked);
+                    Assert.Equal(savedCopies, config.EnabledServerModList.Count);
+                    Assert.All(config.EnabledServerModList, selected => Assert.Equal(actor, selected));
+                    if (i == 1) {
+                        checkbox.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
+                        Dispatcher.CurrentDispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                        Assert.False(checkbox.IsChecked);
+                        Assert.Empty(config.EnabledServerModList);
+                    }
+                    view.DataContext = null;
+                }
+                return Task.CompletedTask;
+            });
+
+        [Fact]
+        public Task ClassPathIdentityDeduplicatesJsonCheckboxesAndLaunchDespiteMetadataChanges() =>
+            ui.RunAsync(async () => {
+                var old = Blueprint("IdentityActor");
+                var current = old with { Version = "2", Hash = "new", ModName = "Renamed", ClassPath = old.ClassPath!.ToUpperInvariant() };
+                var mod = Mod("IdentityMod", current);
+                var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(),
+                    [ReleaseCoordinates.FromRelease(mod.Releases.First())], [mod]);
+                var codec = Codec(manager);
+                var configs = Decode(codec, "[{\"Name\":\"Identity\"}]");
+                var config = configs[0];
+                config.EnabledServerModList.Add(old);
+                config.EnableServerBlueprintMod(old with { });
+                config.EnableServerBlueprintMod(current);
+                Assert.Single(config.EnabledServerModList);
+                config.EnabledServerModList.Add(current);
+                Assert.Single(SavedEntries(codec.Serialize(configs)));
+                Assert.Single(Decode(codec, codec.Serialize(configs))[0].EnabledServerModList);
+                var converter = new UnchainedLauncher.GUI.Converters.ReleaseEnabledConverter();
+                Assert.Equal(true, converter.Convert([current, config.EnabledServerModList], typeof(bool), null!, System.Globalization.CultureInfo.InvariantCulture));
+                var unknown = Blueprint("UnknownActor");
+                config.EnabledServerModList.Add(unknown);
+                Assert.Equal(current, Assert.Single(await config.PrepareServerBlueprintsForLaunch()));
+                Assert.Equal(new[] { current, unknown }, config.EnabledServerModList);
+                Assert.Equal(current, Assert.Single(await config.PrepareServerBlueprintsForLaunch()));
+                config.DisableServerBlueprintMod(old);
+                Assert.Equal(unknown, Assert.Single(config.EnabledServerModList));
+            });
+
+        [Fact]
+        public Task DisablingReleaseCleansOwnedPreferencesButRetainsUnknownActorsAndSharedProviders() =>
+            ui.RunAsync(async () => {
+                var actor = Blueprint("OwnedActor");
+                var unknown = Blueprint("UnknownActor");
+                var first = Mod("FirstProvider", actor);
+                var second = Mod("SecondProvider", actor with { Hash = "other" });
+                var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(),
+                    [ReleaseCoordinates.FromRelease(first.Releases.First()), ReleaseCoordinates.FromRelease(second.Releases.First())], [first, second]);
+                var codec = Codec(manager);
+                var configs = Decode(codec, "[{\"Name\":\"Owned\"}]");
+                var config = configs[0];
+                config.EnabledServerModList.Add(actor);
+                config.EnabledServerModList.Add(unknown);
+                manager.DisableModRelease(ReleaseCoordinates.FromRelease(first.Releases.First()));
+                Assert.Equal(2, config.EnabledServerModList.Count);
+                Assert.Single(await config.PrepareServerBlueprintsForLaunch());
+                manager.DisableModRelease(ReleaseCoordinates.FromRelease(second.Releases.First()));
+                Assert.Equal(unknown, Assert.Single(config.EnabledServerModList));
+                Assert.Empty(await config.PrepareServerBlueprintsForLaunch());
+                Assert.Equal(unknown, Assert.Single(Decode(codec, codec.Serialize(configs))[0].EnabledServerModList));
+            });
+
+        [Fact]
+        public Task LaunchPrunesSavedDisabledActors() =>
+            ui.RunAsync(async () => {
+                var actor = Blueprint("SavedActor");
+                var mod = Mod("SavedMod", actor);
+                var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), [], [mod]);
+                var codec = Codec(manager);
+                var config = Decode(codec, "[{\"Name\":\"Saved\"}]")[0];
+                config.EnabledServerModList.Add(actor);
+                Assert.Empty(await config.PrepareServerBlueprintsForLaunch());
+                Assert.Empty(config.EnabledServerModList);
+            });
+
+        [Fact]
+        public Task UnresolvedEnabledParentPreservesSelectedDependencyActorAcrossLaunchAndSave() =>
+            ui.RunAsync(async () => {
+                var actor = Blueprint("DependencyActor");
+                var dependency = Mod("Dependency", actor);
+                var parent = Mod("Parent");
+                var oldParent = parent.Releases.First() with {
+                    Info = parent.LatestReleaseInfo with {
+                        Dependencies = [new Dependency("Chiv2-Community/Dependency", "v1.0.0")]
+                    }
+                };
+                parent = parent with { Releases = [oldParent] };
+                var unresolved = ReleaseCoordinates.FromRelease(oldParent) with { Version = "v9.0.0" };
+                var manager = new ModManager(Mock.Of<IModRegistry>(), Mock.Of<IPakDir>(), [unresolved], [parent, dependency]);
+                var codec = Codec(manager);
+                var configs = Decode(codec, "[{\"Name\":\"UnresolvedParent\"}]");
+                configs[0].EnabledServerModList.Add(actor);
+                Assert.Empty(await configs[0].PrepareServerBlueprintsForLaunch());
+                Assert.Equal(actor, Assert.Single(configs[0].EnabledServerModList));
+                Assert.Equal(actor, Assert.Single(Decode(codec, codec.Serialize(configs))[0].EnabledServerModList));
+            });
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public Task PartialCyclicDependencyRefreshPreservesActorAcrossLaunchSaveReloadAndRecovery(bool emptyReleases) =>
+            ui.RunAsync(async () => {
+                var actor = Blueprint("LeafActor");
+                var leaf = Mod("Leaf", actor);
+                leaf = leaf with { Releases = [leaf.Releases.First()] };
+                var middle = Mod("Middle");
+                var middleRelease = middle.Releases.First() with {
+                    Info = middle.LatestReleaseInfo with {
+                        Dependencies = [new Dependency("Chiv2-Community/Leaf", "v1.0.0"), new Dependency("Chiv2-Community/Parent", "v1.0.0")]
+                    }
+                };
+                middle = middle with { Releases = [middleRelease] };
+                var parent = Mod("Parent");
+                var parentRelease = parent.Releases.First() with {
+                    Info = parent.LatestReleaseInfo with {
+                        Dependencies = [new Dependency("Chiv2-Community/Middle", "v1.0.0")]
+                    }
+                };
+                parent = parent with { Releases = [parentRelease] };
+                var coordinates = ReleaseCoordinates.FromRelease(parentRelease);
+                var registry = new Mock<IModRegistry>();
+                var manager = new ModManager(registry.Object, Mock.Of<IPakDir>(), [coordinates], [parent, middle, leaf]);
+                var codec = Codec(manager);
+                var configs = Decode(codec, "[{\"Name\":\"PartialDependencies\"}]");
+                configs[0].EnableServerBlueprintMod(actor);
+                Assert.Equal(actor, Assert.Single(await configs[0].PrepareServerBlueprintsForLaunch()));
+
+                registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult(
+                    [RegistryMetadataException.PackageListRetrieval("middle-offline", LanguageExt.Prelude.None)],
+                    emptyReleases ? [parent, middle with { Releases = [] }, leaf] : [parent, leaf]));
+                Assert.True((await manager.UpdateModsList()).HasErrors);
+                Assert.True(manager.GetRelease(coordinates).IsSome);
+                Assert.Empty(await configs[0].PrepareServerBlueprintsForLaunch());
+                configs = Decode(codec, codec.Serialize(configs));
+                Assert.Equal(actor, Assert.Single(configs[0].EnabledServerModList));
+                Assert.Empty(await configs[0].PrepareServerBlueprintsForLaunch());
+
+                registry.Setup(r => r.GetAllMods()).ReturnsAsync(new GetAllModsResult([], [parent, middle, leaf]));
+                Assert.False((await manager.UpdateModsList()).HasErrors);
+                Assert.Equal(actor, Assert.Single(await configs[0].PrepareServerBlueprintsForLaunch()));
+                Assert.Equal(actor, Assert.Single(configs[0].EnabledServerModList));
+                Assert.True(manager.DisableModRelease(coordinates));
+                Assert.Empty(configs[0].EnabledServerModList);
+                Assert.Empty(await configs[0].PrepareServerBlueprintsForLaunch());
+            });
+
+        private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject {
+            for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++) {
+                var child = VisualTreeHelper.GetChild(root, i);
+                if (child is T match) yield return match;
+                foreach (var descendant in Descendants<T>(child)) yield return descendant;
+            }
         }
 
         private static void RunSta(Action action) {

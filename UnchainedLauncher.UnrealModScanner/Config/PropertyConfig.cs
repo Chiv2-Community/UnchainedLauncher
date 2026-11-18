@@ -2,7 +2,7 @@
 
 namespace UnchainedLauncher.UnrealModScanner.Config {
     /// <summary>
-    /// Limits recursion depth when using EExtractionMode.Json. 
+    /// Limits recursion depth when using EExtractionMode.Json.
     /// 0 = Root only, 1 = One level deep, etc.
     /// </summary>
     public record PropertyConfig(
@@ -23,7 +23,7 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
             new("Author", EExtractionMode.String),
             new("bEnableByDefault", EExtractionMode.Raw),
             new("bSilentLoad", EExtractionMode.Raw),
-            new("bShowInGUI ", EExtractionMode.Raw),
+            new("bShowInGUI", EExtractionMode.Raw),
             new("bClientside", EExtractionMode.Raw),
             new("bOnlineOnly", EExtractionMode.Raw),
             new("bHostOnly", EExtractionMode.Raw),
@@ -46,7 +46,7 @@ namespace UnchainedLauncher.UnrealModScanner.Config {
             new("Author", EExtractionMode.String),
             new("bEnableByDefault", EExtractionMode.Raw),
             new("bSilentLoad", EExtractionMode.Raw),
-            new("bShowInGUI ", EExtractionMode.Raw),
+            new("bShowInGUI", EExtractionMode.Raw),
             new("bClientside", EExtractionMode.Raw),
             new("bOnlineOnly", EExtractionMode.Raw),
             new("bHostOnly", EExtractionMode.Raw),

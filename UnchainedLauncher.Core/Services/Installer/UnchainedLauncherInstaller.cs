@@ -24,11 +24,14 @@ namespace UnchainedLauncher.Core.Services.Installer {
 
         private Action<int> EndProgram { get; }
         private readonly IVersionExtractor _versionExtractor;
+        private readonly InstallationInstanceGuard? _currentInstallation;
 
 
-        public UnchainedLauncherInstaller(Action<int> endProgram, IVersionExtractor? versionExtractor = null) {
+        public UnchainedLauncherInstaller(Action<int> endProgram, IVersionExtractor? versionExtractor = null,
+            InstallationInstanceGuard? currentInstallation = null) {
             EndProgram = endProgram;
             _versionExtractor = versionExtractor ?? new FileInfoVersionExtractor();
+            _currentInstallation = currentInstallation;
         }
 
         /// <summary>
@@ -51,6 +54,16 @@ namespace UnchainedLauncher.Core.Services.Installer {
             }
 
             try {
+                InstallationInstanceGuard? targetGuard = null;
+                if (_currentInstallation == null || !_currentInstallation.Protects(targetDir)) {
+                    if (!InstallationInstanceGuard.TryAcquire(targetDir, out targetGuard)) {
+                        await log("Close the launcher using the target installation before installing.");
+                        return false;
+                    }
+                }
+                // Self-update reuses the process-lifetime guard; external targets release before Finish.
+                using var targetLease = targetGuard;
+
                 var url =
                     (from releaseAssets in release.Assets
                      where releaseAssets.Name.Contains("Launcher.exe")

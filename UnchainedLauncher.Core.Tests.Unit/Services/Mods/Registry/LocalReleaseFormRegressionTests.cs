@@ -27,10 +27,9 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Mods.Registry {
             var root = Path.Combine(Path.GetTempPath(), "LocalReleaseForm_" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(root);
             try {
-                // The form test does not exercise the view's async-void list refresh.
-                // Keep it from reading manifests after the fixture starts cleanup.
                 var registryMock = new Mock<LocalModRegistry>(Path.Combine(root, "registry")) { CallBase = true };
-                registryMock.Setup(source => source.GetAllMods()).ReturnsAsync(new GetAllModsResult([], []));
+                // List previews are unrelated to form serialization; do not leave background readers at cleanup.
+                registryMock.Setup(value => value.GetAllMods()).ReturnsAsync(new GetAllModsResult([], []));
                 var registry = registryMock.Object;
                 var pak = Path.Combine(root, "source.pak");
                 await File.WriteAllTextAsync(pak, "test pak");

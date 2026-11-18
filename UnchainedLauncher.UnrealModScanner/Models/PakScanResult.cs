@@ -40,92 +40,69 @@ public sealed class PakScanResult {
     /// Assets returned by GenericCDOProcessor and ReferenceDiscoveryProcessor<br/>
     /// structure: Dict(ClassPath: List(<see cref="GenericAssetEntry"/>))
     /// </summary>
-    [JsonProperty("generic_assets")]
-    public ConcurrentDictionary<string, ConcurrentBag<GenericAssetEntry>> GenericEntries { get; } = new();
+    [JsonProperty("generic_assets", Required = Required.DisallowNull)]
+    public ConcurrentDictionary<string, ConcurrentBag<GenericAssetEntry>> GenericEntries { get; private set; } = new();
     /// <summary>
     /// Markers discovered using <see cref="UnchainedLauncher.UnrealModScanner.PakScanning.Processors.ReferenceDiscoveryProcessor"/><br/>
     /// structure: Dict(ClassName: Dict(AssetPath, <see cref="GenericMarkerEntry"/>))
     /// </summary>
-    [JsonProperty("generic_markers")]
-    public ConcurrentDictionary<string, ConcurrentDictionary<string, GenericMarkerEntry>> GenericMarkers { get; } = new();
+    [JsonProperty("generic_markers", Required = Required.DisallowNull)]
+    public ConcurrentDictionary<string, ConcurrentDictionary<string, GenericMarkerEntry>> GenericMarkers { get; private set; } = new();
     /// <summary>
     /// Assets discovered by ReplacementProcessor
     /// </summary>
-    [JsonProperty("asset_replacements")]
-    public ConcurrentBag<GenericAssetEntry> _AssetReplacements { get; } = new();
+    [JsonProperty("asset_replacements", Required = Required.DisallowNull)]
+    public ConcurrentBag<GenericAssetEntry> _AssetReplacements { get; private set; } = new();
     /// <summary>
     /// Levels extracted with MapProcessor
     /// </summary>
-    [JsonProperty("maps")]
-    public ConcurrentBag<GameMapInfo> _Maps { get; } = new();
+    [JsonProperty("maps", Required = Required.DisallowNull)]
+    public ConcurrentBag<GameMapInfo> _Maps { get; private set; } = new();
 
     private ConcurrentBag<GenericAssetEntry> _arbitraryAssets = new();
+    private readonly ConcurrentDictionary<string, byte> _specializedAssetPaths = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> _removedArbitraryAssetPaths = new(StringComparer.Ordinal);
     /// <summary>
     /// Uncategorized assets in pak (Not in official directories)
     /// </summary>
-    [JsonProperty("arbitrary_assets")]
+    [JsonProperty("arbitrary_assets", Required = Required.DisallowNull)]
     public ConcurrentBag<GenericAssetEntry> ArbitraryAssets {
         get => _arbitraryAssets;
         set => _arbitraryAssets = value ?? new ConcurrentBag<GenericAssetEntry>();
     }
-    [JsonProperty("failed_packages")]
-    public ConcurrentBag<FailedPackage> FailedPackages { get; } = new();
+    [JsonProperty("failed_packages", Required = Required.DisallowNull)]
+    public ConcurrentBag<FailedPackage> FailedPackages { get; private set; } = new();
     /// <summary>
     /// Scan result from AssetRegistry scan
     /// </summary>
-    [JsonProperty("internal_assets")]
-    public ConcurrentBag<GameInternalAssetInfo> InternalAssets { get; } = new();
+    [JsonProperty("internal_assets", Required = Required.DisallowNull)]
+    public ConcurrentBag<GameInternalAssetInfo> InternalAssets { get; private set; } = new();
 
     public void AddGenericEntry(GenericAssetEntry entryBase, string base_name) {
         var bag = GenericEntries.GetOrAdd(base_name, _ => new ConcurrentBag<GenericAssetEntry>());
         bag.Add(entryBase);
     }
 
-    public static bool RemoveByAssetPath<T>(
-        ref ConcurrentBag<T> bag,
-        string assetPath)
-        where T : BaseAsset {
-        var oldBag = bag;
-
-        if (!oldBag.Any(e => e.AssetPath == assetPath))
-            return false;
-
-        var filtered = oldBag.Where(e => e.AssetPath != assetPath).ToList();
-
-        if (filtered.Count == oldBag.Count)
-            return false;
-
-        var newBag = new ConcurrentBag<T>(filtered);
-
-        return Interlocked.CompareExchange(ref bag, newBag, oldBag) == oldBag;
-    }
-
     public void RemoveEntryGlobal(string assetPath) {
-        Parallel.ForEach(GenericEntries, kvp => {
-            string baseName = kvp.Key;
-
-            while (true) {
-                if (!GenericEntries.TryGetValue(baseName, out var oldBag))
-                    break;
-
-                var bagCopy = oldBag;
-
-                // Attempt removal using the generic helper
-                if (!RemoveByAssetPath(ref bagCopy, assetPath))
-                    break;
-
-                // Swap the updated bag into the dictionary
-                if (GenericEntries.TryUpdate(baseName, bagCopy, oldBag))
-                    break;
-            }
-        });
+        _specializedAssetPaths.TryAdd(assetPath, 0);
     }
     public void RemoveSpecializedAsset(BaseAsset baseAsset) {
         RemoveEntryGlobal(baseAsset.AssetPath);
-        RemoveByAssetPath(ref _arbitraryAssets, baseAsset.AssetPath);
+        RemoveArbitraryAsset(baseAsset);
     }
     public void RemoveArbitraryAsset(BaseAsset baseAsset) {
-        RemoveByAssetPath(ref _arbitraryAssets, baseAsset.AssetPath);
+        _removedArbitraryAssetPaths.TryAdd(baseAsset.AssetPath, 0);
+    }
+
+    /// <summary>Apply exclusions after both scan passes have finished writing.</summary>
+    public void FinalizeClassification() {
+        // Never replace a bag while workers may still be adding to it.
+        foreach (var (classPath, entries) in GenericEntries) {
+            GenericEntries[classPath] = new ConcurrentBag<GenericAssetEntry>(
+                entries.Where(entry => !_specializedAssetPaths.ContainsKey(entry.AssetPath)));
+        }
+        _arbitraryAssets = new ConcurrentBag<GenericAssetEntry>(
+            _arbitraryAssets.Where(entry => !_removedArbitraryAssetPaths.ContainsKey(entry.AssetPath)));
     }
 
     public void AddGenericMarker(GenericMarkerEntry entry, string base_name) {
@@ -145,8 +122,10 @@ public sealed class PakScanResult {
 
     // Chivalry 2 specific
 
-    [JsonProperty("markers")]
-    public ConcurrentBag<ModMarkerInfo> _Markers { get; } = new();
+    [JsonProperty("markers", Required = Required.DisallowNull)]
+#pragma warning disable CS0618 // Preserve the legacy marker serialization contract.
+    public ConcurrentBag<ModMarkerInfo> _Markers { get; private set; } = new();
+#pragma warning restore CS0618
 
     // UI 
 
@@ -162,7 +141,7 @@ public sealed class PakScanResult {
     /// Whether this category is expanded
     /// </summary>
     [JsonIgnore]
-    public string PakPathExpanded { get; set; }
+    public string PakPathExpanded { get; set; } = string.Empty;
 
     [JsonIgnore]
     public bool IsExpanded {
@@ -189,8 +168,8 @@ public sealed class PakScanResult {
         }
     }
 
-    public event PropertyChangedEventHandler PropertyChanged;
-    protected void OnPropertyChanged([CallerMemberName] string name = null)
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string? name = null)
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
     // Serialization filters

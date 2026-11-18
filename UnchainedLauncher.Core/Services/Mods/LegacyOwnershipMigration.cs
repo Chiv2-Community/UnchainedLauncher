@@ -145,7 +145,8 @@ public static class LegacyOwnershipMigration {
         if (paks.Any(p => p == null || p.Coordinates == null
             || !ValidCoordinatePart(p.Coordinates.Org)
             || !ValidCoordinatePart(p.Coordinates.ModuleName)
-            || !ValidCoordinatePart(p.Coordinates.Version)
+            // Version is an exact release tag, not a filesystem component.
+            || string.IsNullOrWhiteSpace(p.Coordinates.Version)
             || string.IsNullOrWhiteSpace(p.PakFileName)
             || p.PakFileName.IndexOfAny(['/', '\\', ':', '\0']) >= 0
             || p.PakFileName.Any(c => c < 32 || "<>\"|?*".Contains(c))

@@ -1,6 +1,6 @@
+using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using Microsoft.Win32.SafeHandles;
 
 namespace UnchainedLauncher.Core.Services.Processes {
     /// <summary>Presence of a launcher or installer for one physical local Windows directory.</summary>

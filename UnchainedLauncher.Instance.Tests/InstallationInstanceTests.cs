@@ -1,6 +1,6 @@
+using Semver;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Semver;
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Installer;
 using UnchainedLauncher.Core.Services.Processes;

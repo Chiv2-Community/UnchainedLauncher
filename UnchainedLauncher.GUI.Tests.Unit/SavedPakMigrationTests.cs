@@ -45,6 +45,90 @@ public sealed class SavedPakMigrationTests : IDisposable {
     }
 
     [Fact]
+    public async Task NondefaultInventorySurvivesStartupAndPrelaunchCheckpoint() {
+        var source = Path.Combine(_root, "TBL", "Saved_Server_1", "Paks");
+        var owned = new ManagedPak(_coordinates, "owned.pak", 3);
+        Write(source, owned.PakFileName, "owned");
+        Write(Path.Combine(source, ".unchained"), "inventory.json", JsonSerializer.Serialize(new[] { owned }));
+        var (manager, persistence) = LegacyOwnershipMigration.Load(Config, _registry, installationPakDirectory: Target);
+        persistence.Save();
+        Assert.True((await new SavedPaksPreparer(manager.PakDir, Mock.Of<IUserDialogueSpawner>())
+            .PrepareLaunch(new([], Prelude.None, "", false, false, "Server_1", Prelude.None))).IsSome);
+        Assert.Equal(owned, Assert.Single(((PakDir)manager.PakDir).ManagedPaks));
+        Assert.Equal(owned, Assert.Single(((PakDir)new ModManagerCodec(_registry).Deserialize(File.ReadAllText(Config)).Result!.PakDir).ManagedPaks));
+        Assert.Equal("owned", File.ReadAllText(Path.Combine(Target, owned.PakFileName)));
+        Assert.False(File.Exists(Path.Combine(source, owned.PakFileName)));
+        Assert.False(File.Exists(Path.Combine(source, ".unchained", "inventory.json")));
+    }
+
+    [Theory]
+    [InlineData("pending", "")]
+    [InlineData("inventory.json", "{")]
+    [InlineData("inventory.tmp", "[]")]
+    public async Task NondefaultUncertaintyStopsStartupBeforePayloadMutation(string name, string content) {
+        var source = Path.Combine(_root, "TBL", "Saved_Server_1", "Paks");
+        Write(source, "owned.pak", "owned");
+        Write(Source, "default.pak", "default");
+        Write(Path.Combine(source, ".unchained"), name, content);
+        if (name == "pending")
+            Write(Path.Combine(source, ".unchained"), "inventory.json",
+                JsonSerializer.Serialize(new[] { new ManagedPak(_coordinates, "owned.pak", 3) }));
+        await Assert.ThrowsAsync<InvalidDataException>(() => Startup());
+        Assert.Equal("owned", File.ReadAllText(Path.Combine(source, "owned.pak")));
+        Assert.Equal("default", File.ReadAllText(Path.Combine(Source, "default.pak")));
+        Assert.Equal(content, File.ReadAllText(Path.Combine(source, ".unchained", name)));
+        if (name == "pending") Assert.True(File.Exists(Path.Combine(source, ".unchained", "inventory.json")));
+        Assert.False(Directory.Exists(Target));
+        Assert.False(File.Exists(Config));
+    }
+
+    [Theory]
+    [InlineData("inventory.json", "[]")]
+    [InlineData("pending", "")]
+    [InlineData("inventory.json", "{")]
+    [InlineData("inventory.tmp", "[]")]
+    public async Task LateNondefaultEvidenceIsRefusedBeforePrelaunchPayloadMutation(string name, string content) {
+        var (manager, persistence) = LegacyOwnershipMigration.Load(Config, _registry, installationPakDirectory: Target);
+        var source = Path.Combine(_root, "TBL", "Saved_Server_1", "Paks");
+        Write(source, "owned.pak", "owned");
+        Write(Path.Combine(source, ".unchained"), name, content);
+        persistence.Save();
+        var before = File.ReadAllBytes(Config);
+        Assert.True((await new SavedPaksPreparer(manager.PakDir, Mock.Of<IUserDialogueSpawner>())
+            .PrepareLaunch(new([], Prelude.None, "", false, false, "Server_1", Prelude.None))).IsNone);
+        Assert.Equal(before, File.ReadAllBytes(Config));
+        Assert.Equal("owned", File.ReadAllText(Path.Combine(source, "owned.pak")));
+        Assert.Equal(content, File.ReadAllText(Path.Combine(source, ".unchained", name)));
+        Assert.False(File.Exists(Path.Combine(Target, "owned.pak")));
+    }
+
+    [Theory]
+    [InlineData("saved_Custom")]
+    [InlineData("SAVED_Custom")]
+    [InlineData("saved")]
+    public async Task SavedCaseAliasesFollowPlatformIdentityInCodecAndStartup(string name) {
+        var canonical = name.Equals("saved", StringComparison.Ordinal) ? "Saved" : "Saved_Custom";
+        var actual = Path.Combine(_root, "TBL", canonical, "Paks");
+        var alias = Path.Combine(_root, "TBL", name, "Paks");
+        Write(actual, "owned.pak", "owned");
+        var owned = new ManagedPak(_coordinates, "owned.pak", 3);
+        var metadata = new PakDirMetadata(alias, [owned]);
+        var decoded = ModManagerCodec.ToClassType(new StandardModManagerMetadata([], [], metadata), _registry, Target);
+        Assert.Equal(OperatingSystem.IsWindows() ? Target : alias, decoded.PakDir.DirPath);
+        var started = await Startup(metadata);
+        Assert.Equal(OperatingSystem.IsWindows() ? Target : alias, started.DirPath);
+        if (OperatingSystem.IsWindows()) {
+            Assert.Equal(owned, Assert.Single(started.ManagedPaks));
+            Assert.False(File.Exists(Path.Combine(actual, owned.PakFileName)));
+            Assert.Equal("owned", File.ReadAllText(Path.Combine(Target, owned.PakFileName)));
+        }
+        else {
+            Assert.True(File.Exists(Path.Combine(actual, owned.PakFileName)));
+            Assert.False(File.Exists(Path.Combine(Target, owned.PakFileName)));
+        }
+    }
+
+    [Fact]
     public async Task MovesNestedPaksAndSignaturesButDoesNotGrantFilenameOwnership() {
         Write(Path.Combine(Source, "nested"), "unknown.PAK", "pak");
         Write(Source, "orphan.sig", "sig");

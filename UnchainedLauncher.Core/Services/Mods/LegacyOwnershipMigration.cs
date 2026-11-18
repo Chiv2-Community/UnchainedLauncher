@@ -13,6 +13,16 @@ public static class LegacyOwnershipMigration {
     private static readonly string[] LegacyNames = ["inventory.tmp", "inventory.lock", "pending", "inventory.json"];
     public static string BackupRoot(string configPath) => Path.GetFullPath(configPath) + ".migration-backups";
 
+    internal static void RejectUnconvertedEvidence(string directory) {
+        SavedPakMigration.RejectLinks(directory);
+        foreach (var name in LegacyNames.Where(name => name != "inventory.lock")) {
+            var path = Path.Combine(directory, ".unchained", name);
+            SavedPakMigration.RejectLinks(path);
+            if (File.Exists(path) || Directory.Exists(path))
+                throw new IOException($"Unconverted legacy ownership in '{directory}'. Files were preserved; restart to convert or reconcile before launching.");
+        }
+    }
+
     public static (ModManager Manager, ModManagerPersistence Persistence) Load(
         string configPath, IModRegistry registry, Action<Exception>? reportSelectionSaveFailure = null,
         string? installationPakDirectory = null) {

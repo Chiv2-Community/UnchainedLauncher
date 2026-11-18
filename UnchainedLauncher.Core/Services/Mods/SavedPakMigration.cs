@@ -4,23 +4,38 @@ using System.Text.Json;
 namespace UnchainedLauncher.Core.Services.Mods;
 
 public static class SavedPakMigration {
+    private static StringComparison PathComparison =>
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
     public static bool SameDirectory(string left, string right) =>
         Path.GetFullPath(left).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
             .Equals(Path.GetFullPath(right).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
-                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
+                PathComparison);
+
+    private static bool IsSavedProfile(string name) =>
+        name.Equals("Saved", PathComparison)
+        || name.StartsWith("Saved_", PathComparison) && ValidSuffix(name[6..]);
+
+    private static bool ValidSuffix(string suffix) =>
+        suffix.Length != 0 && suffix.All(c => char.IsAsciiLetterOrDigit(c) || c == '_');
 
     public static IEnumerable<string> SourceDirectories(string destination, string suffix = "Unchained", PakDirMetadata? cached = null) {
-        if (suffix.Length == 0 || suffix.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_'))
+        if (!ValidSuffix(suffix))
             throw new IOException("Invalid Saved directory suffix.");
         var tbl = Path.GetDirectoryName(Path.GetDirectoryName(Path.GetFullPath(destination)))!;
         yield return Path.Combine(tbl, "Saved", "Paks");
         yield return Path.Combine(tbl, "Saved_" + suffix, "Paks");
+        // Installation-local profiles are bounded inputs to the same startup importer.
+        RejectLinks(tbl);
+        if (Directory.Exists(tbl))
+            foreach (var profile in Directory.EnumerateDirectories(tbl))
+                if (IsSavedProfile(Path.GetFileName(profile)))
+                    yield return Path.Combine(profile, "Paks");
         // Shared user roots cannot be attributed to an installation without its cached source path.
         if (cached == null) yield break;
         var parent = Path.GetDirectoryName(Path.GetFullPath(cached.DirPath));
         var name = Path.GetFileName(parent);
-        if (name != "Saved" && (name == null || !name.StartsWith("Saved_", StringComparison.Ordinal)
-            || name[6..].Length == 0 || name[6..].Any(c => !char.IsAsciiLetterOrDigit(c) && c != '_'))) yield break;
+        if (name == null || !IsSavedProfile(name)) yield break;
         var installationCandidate = Path.Combine(tbl, name!, "Paks");
         if (SameDirectory(installationCandidate, cached.DirPath)) yield return installationCandidate;
         var local = Environment.GetEnvironmentVariable("LOCALAPPDATA");

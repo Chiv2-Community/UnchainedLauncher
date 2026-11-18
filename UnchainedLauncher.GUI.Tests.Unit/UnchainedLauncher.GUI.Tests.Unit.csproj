@@ -26,6 +26,7 @@
     <Compile Remove="SearchableComboBoxTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Using Include="Xunit" />
     <None Include="../UnchainedLauncher.GUI/Views/Controls/CollapsibleCard.xaml" Link="Views/CollapsibleCard.xaml" CopyToOutputDirectory="PreserveNewest" />
     <!-- Exercise the platform-independent view model without loading WPF. -->
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/DllManagerVM.cs" Link="DllManagerVM.cs" />

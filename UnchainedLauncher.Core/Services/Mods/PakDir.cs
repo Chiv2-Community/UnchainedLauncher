@@ -38,13 +38,17 @@ namespace UnchainedLauncher.Core.Services.Mods {
         public Task MigrateSavedPaks(string suffix = "Unchained", CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!MigrateInstallationSavedPaks) return Task.CompletedTask;
+            var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+            var sources = SavedPakMigration.SourceDirectories(DirPath, suffix, LegacySavedMetadata)
+                .Select(Path.GetFullPath).Where(p => !SavedPakMigration.SameDirectory(p, DirPath)).Distinct(pathComparer).ToArray();
+            // Only startup may interpret legacy ownership. Late evidence must survive untouched.
+            foreach (var source in sources)
+                if (!LegacySourceOwnership.ContainsKey(source))
+                    LegacyOwnershipMigration.RejectUnconvertedEvidence(source);
             if (LegacySourceOwnership.Count == 0 && MigrationBackupRoot != null) {
                 SavedPakMigration.RetryCleanup(MigrationBackupRoot);
                 SavedPakMigration.CompleteCleanup(MigrationBackupRoot);
             }
-            var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-            var sources = SavedPakMigration.SourceDirectories(DirPath, suffix, LegacySavedMetadata)
-                .Select(Path.GetFullPath).Where(p => !SavedPakMigration.SameDirectory(p, DirPath)).Distinct(pathComparer).ToArray();
             var ownership = sources.SelectMany(source => (LegacySourceOwnership.TryGetValue(source, out var paks) ? paks
                 : LegacySavedMetadata != null && SavedPakMigration.SameDirectory(source, LegacySavedMetadata.DirPath)
                     ? LegacySavedMetadata.ManagedPaks : []).Select(pak => (Source: Path.GetFullPath(Path.Combine(source, pak.PakFileName)), Pak: pak))).ToArray();

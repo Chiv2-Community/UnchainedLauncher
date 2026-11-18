@@ -127,11 +127,22 @@ public sealed class OwnershipPersistenceTests : IDisposable {
         WriteInventory(JsonSerializer.Serialize(new[] { Owned(), new ManagedPak(Coordinates("Missing"), "missing.pak", 1) }));
         var cache = Path.Combine(Paks, ".unchained", "pak-read-cache.json");
         var consent = Path.Combine(Paks, ".unchained", "kept-unmanaged-paks.json");
-        File.WriteAllText(cache, "cache-evidence");
+        var payload = new FileInfo(Path.Combine(Paks, "Mod.pak"));
+        // Synthetic released hash-only schema; full production-writer coverage is in PakScanCacheTests.
+        File.WriteAllText(cache, JsonSerializer.Serialize(new Dictionary<string, object> {
+            ["Mod.pak"] = new {
+                payload.Length,
+                LastWriteTicks = payload.LastWriteTimeUtc.Ticks,
+                Hash = Convert.ToHexString(System.Security.Cryptography.SHA512.HashData(File.ReadAllBytes(payload.FullName))),
+                VersionRead = false,
+                Version = (string?)null
+            }
+        }));
+        var cacheBytes = File.ReadAllBytes(cache);
         File.WriteAllText(consent, "consent-evidence");
         File.WriteAllText(Path.Combine(Paks, ".unchained", "inventory.tmp"), "stale-temporary");
         Assert.Single(((PakDir)Startup().PakDir).ManagedPaks);
-        Assert.Equal("cache-evidence", File.ReadAllText(cache));
+        Assert.Equal(cacheBytes, File.ReadAllBytes(cache));
         Assert.Equal("consent-evidence", File.ReadAllText(consent));
         Assert.False(File.Exists(Path.Combine(Paks, ".unchained", "inventory.tmp")));
     }

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.ObjectModel;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -12,7 +13,6 @@ using System.Xml.Linq;
 using UnchainedLauncher.GUI.Behaviors;
 using UnchainedLauncher.GUI.Converters;
 using UnchainedLauncher.GUI.ViewModels;
-using Xunit;
 using Xunit.Abstractions;
 
 namespace UnchainedLauncher.GUI.Tests.Unit;
@@ -100,19 +100,44 @@ public class SearchableComboBoxTests {
     });
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void NativeInputPreservesSelectionCaretEditingAndTabTraversal(bool suppressPositioningMove) => RunSta(() => {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void NativeInputPreservesSelectionCaretEditingAndTabTraversal(bool suppressPositioningMove, bool occludeWindow) => RunSta(() => {
         using var host = new Host(new[] { "Steam", "Epic Games Store", "Xbox Game Pass" });
+        using var desktop = new NativeInputScope(host.Window);
         var model = BindMiddleSelection(host);
         host.Window.Left = 100;
         host.Window.Top = 100;
         host.Window.Activate();
         Pump();
+        if (occludeWindow) {
+            desktop.ShowObstruction();
+            var coveredPoint = host.Combo.PointToScreen(new Point(host.Combo.ActualWidth / 2, host.Combo.ActualHeight / 2));
+            Assert.True(SetCursorPos((int)coveredPoint.X, (int)coveredPoint.Y));
+            Pump();
+            Assert.Equal(desktop.ObstructionHandle, WindowFromPoint(new NativePoint { X = (int)coveredPoint.X, Y = (int)coveredPoint.Y }));
+            Assert.Equal(desktop.ObstructionHandle, GetForegroundWindow());
+            output.WriteLine($"Controlled obstruction: {DescribeWindow(GetForegroundWindow())}");
+        }
+        // Activation alone does not retain foreground ownership while the dispatcher pumps.
+        // Raise above ordinary desktop windows, then acquire foreground through real user input.
+        host.Window.Topmost = true;
+        Pump();
+        var activationPoint = host.Before.PointToScreen(new Point(host.Before.ActualWidth / 2, host.Before.ActualHeight / 2));
+        Assert.True(SetCursorPos((int)activationPoint.X, (int)activationPoint.Y));
+        Pump();
+        var hwnd = new WindowInteropHelper(host.Window).Handle;
+        Assert.True(GetCursorPos(out var activationCursor));
+        output.WriteLine($"Activation hit: {DescribeWindow(WindowFromPoint(activationCursor))}; foreground: {DescribeWindow(GetForegroundWindow())}");
+        Assert.Equal(hwnd, WindowFromPoint(activationCursor));
+        mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
+        mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
+        Pump();
+        Assert.Equal(hwnd, GetForegroundWindow());
         Assert.True(host.Window.IsActive);
         host.Combo.Focus();
         Pump();
-        var hwnd = new WindowInteropHelper(host.Window).Handle;
         var positioning = true;
         var nativeWheelEvents = 0;
         HwndSource.FromHwnd(hwnd).AddHook((IntPtr window, int message, IntPtr wParam, IntPtr lParam, ref bool handled) => {
@@ -128,13 +153,17 @@ public class SearchableComboBoxTests {
         Pump();
         positioning = false;
         // WPF routes wheel input through its mouse target, not its keyboard focus.
-        // Initialize that target through real native input even if positioning sent no move.
-        mouse_event(0x0001, 0, 0, 0, UIntPtr.Zero);
+        // Cross a pixel so an already-active WPF mouse device cannot reuse its cached target.
+        mouse_event(0x0001, 1, 0, 0, UIntPtr.Zero);
+        Pump();
+        Assert.True(host.Combo.IsMouseOver, "Native movement must establish the WPF wheel target.");
+        Assert.True(SetCursorPos((int)point.X, (int)point.Y));
         Pump();
         Assert.True(GetCursorPos(out var cursor));
         output.WriteLine($"Wheel target={point}, cursor={cursor.X},{cursor.Y}, hit=0x{WindowFromPoint(cursor):x}, " +
             $"host=0x{hwnd:x}, foreground=0x{GetForegroundWindow():x}, focus=0x{GetFocus():x}, " +
             $"WPF focus={Keyboard.FocusedElement}, mouseOver={Mouse.DirectlyOver}, dpi={GetDpiForWindow(hwnd)}");
+        output.WriteLine($"Wheel hit: {DescribeWindow(WindowFromPoint(cursor))}; foreground: {DescribeWindow(GetForegroundWindow())}");
         Assert.Equal((int)point.X, cursor.X);
         Assert.Equal((int)point.Y, cursor.Y);
         Assert.Equal(hwnd, WindowFromPoint(cursor));
@@ -232,7 +261,8 @@ public class SearchableComboBoxTests {
     private static SelectionModel BindMiddleSelection(Host host) {
         var model = new SelectionModel { Selection = "Epic Games Store" };
         host.Combo.SetBinding(ComboBox.SelectedItemProperty, new Binding(nameof(SelectionModel.Selection)) {
-            Source = model, Mode = BindingMode.TwoWay
+            Source = model,
+            Mode = BindingMode.TwoWay
         });
         return model;
     }
@@ -262,10 +292,68 @@ public class SearchableComboBoxTests {
     private static extern IntPtr GetForegroundWindow();
 
     [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr window);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr window, StringBuilder text, int count);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(IntPtr window, StringBuilder text, int count);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+
+    [DllImport("user32.dll")]
     private static extern IntPtr GetFocus();
 
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr window);
+
+    private static string DescribeWindow(IntPtr window) {
+        var title = new StringBuilder(256);
+        var className = new StringBuilder(256);
+        GetWindowText(window, title, title.Capacity);
+        GetClassName(window, className, className.Capacity);
+        var thread = GetWindowThreadProcessId(window, out var process);
+        return $"HWND=0x{window:x}, pid={process}, tid={thread}, class={className}, title={title}";
+    }
+
+    private sealed class NativeInputScope : IDisposable {
+        private readonly Window window;
+        private readonly bool topmost;
+        private readonly IntPtr foreground = GetForegroundWindow();
+        private readonly NativePoint cursor;
+        private Window? obstruction;
+
+        public IntPtr ObstructionHandle => new WindowInteropHelper(obstruction!).Handle;
+
+        public NativeInputScope(Window window) {
+            this.window = window;
+            topmost = window.Topmost;
+            Assert.True(GetCursorPos(out cursor));
+        }
+
+        public void ShowObstruction() {
+            obstruction = new Window {
+                Title = "Native input ownership regression",
+                Left = window.Left,
+                Top = window.Top,
+                Width = window.Width,
+                Height = window.Height,
+                ShowInTaskbar = false
+            };
+            obstruction.Show();
+            obstruction.Activate();
+            Pump();
+        }
+
+        public void Dispose() {
+            window.Topmost = topmost;
+            obstruction?.Close();
+            SetCursorPos(cursor.X, cursor.Y);
+            if (foreground != IntPtr.Zero) SetForegroundWindow(foreground);
+        }
+    }
 
     private static void NativeKey(byte key) {
         keybd_event(key, 0, 0, UIntPtr.Zero);
@@ -296,7 +384,8 @@ public class SearchableComboBoxTests {
         using var host = new Host(items);
         var model = new SelectionModel { Selection = "Steam" };
         host.Combo.SetBinding(ComboBox.SelectedItemProperty, new Binding(nameof(SelectionModel.Selection)) {
-            Source = model, Mode = BindingMode.TwoWay
+            Source = model,
+            Mode = BindingMode.TwoWay
         });
         var other = new ComboBox { ItemsSource = items, SelectedItem = "Steam" };
         host.Combo.IsDropDownOpen = true;
@@ -428,7 +517,11 @@ public class SearchableComboBoxTests {
             Combo = new ComboBox { ItemsSource = items, Resources = resources, Style = (Style)resources[typeof(ComboBox)], Width = 250 };
             Window = new Window {
                 Content = new StackPanel { Children = { Before, Combo, After } },
-                Width = 300, Height = 180, Left = -10000, ShowInTaskbar = false, ShowActivated = false
+                Width = 300,
+                Height = 180,
+                Left = -10000,
+                ShowInTaskbar = false,
+                ShowActivated = false
             };
             Window.Show();
             Window.UpdateLayout();

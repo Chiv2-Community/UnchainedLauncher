@@ -139,11 +139,14 @@ public class SearchableComboBoxTests {
         host.Combo.Focus();
         Pump();
         var positioning = true;
+        NativePoint? observedMove = null;
         var nativeWheelEvents = 0;
         HwndSource.FromHwnd(hwnd).AddHook((IntPtr window, int message, IntPtr wParam, IntPtr lParam, ref bool handled) => {
             if (message is 0x0200 or 0x020a)
                 output.WriteLine($"Native 0x{message:x}: wParam=0x{wParam:x}, lParam=0x{lParam:x}");
             if (message == 0x020a) nativeWheelEvents++;
+            if (!positioning && message == 0x0200)
+                observedMove = new NativePoint { X = (short)lParam.ToInt64(), Y = (short)(lParam.ToInt64() >> 16) };
             // Exercise setup without relying on SetCursorPos's mouse-move notification.
             if (positioning && suppressPositioningMove && message == 0x0200) handled = true;
             return IntPtr.Zero;
@@ -153,9 +156,24 @@ public class SearchableComboBoxTests {
         Pump();
         positioning = false;
         // WPF routes wheel input through its mouse target, not its keyboard focus.
-        // Cross a pixel so an already-active WPF mouse device cannot reuse its cached target.
-        mouse_event(0x0001, 1, 0, 0, UIntPtr.Zero);
-        Pump();
+        // Absolute input bypasses pointer-speed rounding; observe delivery before returning to center.
+        var displaced = host.Combo.PointToScreen(new Point(host.Combo.ActualWidth / 2 + 8, host.Combo.ActualHeight / 2));
+        var displacedCursor = new NativePoint { X = (int)displaced.X, Y = (int)displaced.Y };
+        var displacedClient = displacedCursor;
+        Assert.True(ScreenToClient(hwnd, ref displacedClient));
+        Assert.NotEqual((int)point.X, displacedCursor.X);
+        Assert.Equal(hwnd, WindowFromPoint(displacedCursor));
+        MoveAbsolute(displacedCursor);
+        PumpUntil(() => observedMove is { } move && move.X == displacedClient.X && move.Y == displacedClient.Y &&
+            host.Combo.IsMouseOver);
+        Assert.True(GetCursorPos(out var movedCursor));
+        output.WriteLine($"Displaced target={displacedCursor.X},{displacedCursor.Y}, cursor={movedCursor.X},{movedCursor.Y}, " +
+            $"nativeMove={observedMove?.X},{observedMove?.Y}, expectedClient={displacedClient.X},{displacedClient.Y}, mouseOver={Mouse.DirectlyOver}");
+        Assert.Equal(displacedCursor.X, movedCursor.X);
+        Assert.Equal(displacedCursor.Y, movedCursor.Y);
+        Assert.Equal(hwnd, WindowFromPoint(movedCursor));
+        Assert.True(observedMove is { } delivered && delivered.X == displacedClient.X && delivered.Y == displacedClient.Y,
+            "The injected absolute mouse move must reach the host.");
         Assert.True(host.Combo.IsMouseOver, "Native movement must establish the WPF wheel target.");
         Assert.True(SetCursorPos((int)point.X, (int)point.Y));
         Pump();
@@ -277,6 +295,59 @@ public class SearchableComboBoxTests {
     private static extern void mouse_event(uint flags, uint x, uint y, uint data, UIntPtr extra);
 
     [StructLayout(LayoutKind.Sequential)]
+    private struct MouseInput {
+        public int X;
+        public int Y;
+        public uint Data;
+        public uint Flags;
+        public uint Time;
+        public UIntPtr Extra;
+    }
+
+    // MOUSEINPUT is the largest INPUT union member on both x86 and x64.
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeInput {
+        public uint Type;
+        public MouseInput Mouse;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint SendInput(uint count, NativeInput[] inputs, int size);
+
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int index);
+
+    [DllImport("user32.dll")]
+    private static extern bool ScreenToClient(IntPtr window, ref NativePoint point);
+
+    private static void MoveAbsolute(NativePoint point) {
+        var left = GetSystemMetrics(76); // SM_XVIRTUALSCREEN
+        var top = GetSystemMetrics(77); // SM_YVIRTUALSCREEN
+        var width = GetSystemMetrics(78); // SM_CXVIRTUALSCREEN
+        var height = GetSystemMetrics(79); // SM_CYVIRTUALSCREEN
+        Assert.InRange(width, 1, 65536);
+        Assert.InRange(height, 1, 65536);
+        Assert.InRange(point.X - left, 0, width - 1);
+        Assert.InRange(point.Y - top, 0, height - 1);
+        var input = new NativeInput {
+            Mouse = new MouseInput {
+                X = NormalizeAbsolute(point.X - left, width),
+                Y = NormalizeAbsolute(point.Y - top, height),
+                Flags = 0x0001 | 0x2000 | 0x4000 | 0x8000 // MOVE | MOVE_NOCOALESCE | VIRTUALDESK | ABSOLUTE
+            }
+        };
+        var sent = SendInput(1, new[] { input }, Marshal.SizeOf<NativeInput>());
+        Assert.True(sent == 1, $"SendInput sent {sent}/1 mouse moves; Win32 error={Marshal.GetLastWin32Error()}.");
+    }
+
+    private static int NormalizeAbsolute(int pixel, int size) {
+        // Choose the midpoint of the integer coordinates that map back to this pixel.
+        var first = (pixel * 65536L + size - 1) / size;
+        var last = ((pixel + 1) * 65536L + size - 1) / size - 1;
+        return (int)((first + last) / 2);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     private struct NativePoint {
         public int X;
         public int Y;
@@ -365,6 +436,20 @@ public class SearchableComboBoxTests {
         var frame = new System.Windows.Threading.DispatcherFrame();
         var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
         timer.Tick += (_, _) => { timer.Stop(); frame.Continue = false; };
+        timer.Start();
+        System.Windows.Threading.Dispatcher.PushFrame(frame);
+    }
+
+    private static void PumpUntil(Func<bool> delivered) {
+        var frame = new System.Windows.Threading.DispatcherFrame();
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(10) };
+        timer.Tick += (_, _) => {
+            if (delivered() || elapsed.Elapsed >= TimeSpan.FromSeconds(1)) {
+                timer.Stop();
+                frame.Continue = false;
+            }
+        };
         timer.Start();
         System.Windows.Threading.Dispatcher.PushFrame(frame);
     }

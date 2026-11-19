@@ -218,7 +218,8 @@ public class ManagedInventoryTests : IDisposable {
             var restored = codec.Deserialize(File.ReadAllText(first.InstancePaths.ModMetadata));
             Assert.True(restored.Success);
             var restoredPaks = Assert.IsType<PakDir>(restored.Result!.PakDir);
-            Assert.Equal(Path.Combine(Path.GetFullPath(FilePaths.PakDir), "pakchunk0-WindowsNoEditor.sig"), restoredPaks.DefaultSigPath);
+            Assert.Equal(Path.Combine(Path.GetFullPath(FilePaths.PakDir), "pakchunk0-WindowsNoEditor.sig"),
+                Path.GetFullPath(restoredPaks.DefaultSigPath!));
             var managed = Assert.Single(restoredPaks.ManagedPaks);
             File.Delete(Path.ChangeExtension(Path.Combine(restoredPaks.DirPath, managed.PakFileName), ".sig"));
             Assert.True((await restoredPaks.SignAll()).IsRight);

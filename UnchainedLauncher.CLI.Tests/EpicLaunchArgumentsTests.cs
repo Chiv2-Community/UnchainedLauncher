@@ -52,7 +52,8 @@ public sealed class EpicLaunchArgumentsTests : IDisposable {
         var heroic = InstallHeroic(flatpak);
         var info = EpicLaunchArguments.StartInfo(Path.Combine(_root, "game"), _ => null, _root);
         Assert.Equal(flatpak ? "flatpak" : "legendary", info.FileName);
-        Assert.Equal(Path.Combine(heroic, "legendaryConfig/legendary"), info.Environment["LEGENDARY_CONFIG_PATH"]);
+        Assert.Equal(Path.GetFullPath(Path.Combine(heroic, "legendaryConfig/legendary")),
+            Path.GetFullPath(info.Environment["LEGENDARY_CONFIG_PATH"]!));
         Assert.Equal(new[] { "launch", "Peppermint", "--json", "--skip-version-check" }, info.ArgumentList.TakeLast(4));
         Assert.True(info.RedirectStandardInput && info.RedirectStandardOutput && info.RedirectStandardError);
         if (flatpak) Assert.Contains("--env=LEGENDARY_CONFIG_PATH=" + info.Environment["LEGENDARY_CONFIG_PATH"], info.ArgumentList);

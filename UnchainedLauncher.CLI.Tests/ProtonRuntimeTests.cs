@@ -266,8 +266,8 @@ public sealed class ProtonRuntimeTests : IDisposable {
         ["server", "--chivalry2-path", Game, "--platform", "EGS", "--proton-helper", Helper, .. extra]);
 
     private (string Proton, string Compat) Heroic(string root, string? game = null, string type = "proton") {
-        var proton = Path.Combine(root, "tools/proton/selected/proton");
-        var compat = Path.Combine(root, "Prefixes/Chivalry 2");
+        var proton = Path.GetFullPath(Path.Combine(root, "tools/proton/selected/proton"));
+        var compat = Path.GetFullPath(Path.Combine(root, "Prefixes/Chivalry 2"));
         Write(proton, "");
         Write(Path.Combine(compat, "pfx/system.reg"), "");
         Write(Path.Combine(root, "legendaryConfig/legendary/installed.json"), System.Text.Json.JsonSerializer.Serialize(
@@ -279,7 +279,7 @@ public sealed class ProtonRuntimeTests : IDisposable {
 
     [Fact]
     public void EpicExplicitRuntimeDoesNotRequireSteamOrUseSteamGameIdentity() {
-        var proton = Path.Combine(_root, "standalone/proton");
+        var proton = Path.GetFullPath(Path.Combine(_root, "standalone/proton"));
         var compat = Path.Combine(_root, "Epic prefix");
         Write(proton, "");
         Write(Path.Combine(compat, "pfx/system.reg"), "");
@@ -327,7 +327,7 @@ public sealed class ProtonRuntimeTests : IDisposable {
         Heroic(Path.Combine(_root, ".config/heroic"), type: "wine");
         Write(Path.Combine(Steam, "steamapps/libraryfolders.vdf"), "invalid {");
         Write(Path.Combine(Steam, "config/config.vdf"), "invalid {");
-        var proton = Path.Combine(_root, "override/proton");
+        var proton = Path.GetFullPath(Path.Combine(_root, "override/proton"));
         var compat = Path.Combine(_root, "override prefix");
         Write(proton, "");
         Write(Path.Combine(compat, "pfx/system.reg"), "");

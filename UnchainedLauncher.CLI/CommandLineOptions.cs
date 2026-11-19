@@ -14,12 +14,6 @@ internal static class CommandLineOptions {
         var launcherArgs = separator < 0 ? args : args[..separator];
         var gameArgs = separator < 0 ? [] : args[(separator + 1)..];
         var root = new RootCommand("Unchained client/server launcher and registry queries. Launch on Windows directly or Linux through Proton.");
-        var config = new Option<string?>("--config-path") {
-            Description = "Launch YAML overrides launch options; mod-query reads its registry settings.",
-            Arity = ArgumentArity.ExactlyOne,
-            Recursive = true
-        };
-        root.Options.Add(config);
         var unsafeDlls = UnsafeDllLoading.CreateOption(recursive: true);
         root.Options.Add(unsafeDlls);
         var server = new Definition(client: false);
@@ -30,30 +24,12 @@ internal static class CommandLineOptions {
         root.Subcommands.Add(queries.Command);
         var dllQueries = new ModQueryDefinition(RegistryPackageKind.Dll);
         root.Subcommands.Add(dllQueries.Command);
-        // Never interpret @values as file reads, including ignored YAML overrides.
+        // Never interpret @values as file reads.
         // Response-file expansion is deliberately disabled for all launcher input.
         var parsed = parse(root, launcherArgs, new ParserConfiguration { ResponseFileTokenReplacer = null });
         var loadAllDlls = UnsafeDllLoading.Read(parsed, unsafeDlls, launcherArgs);
         var definition = parsed.CommandResult.Command == server.Command ? server : client;
         var isQuery = queries.Contains(parsed.CommandResult.Command) || dllQueries.Contains(parsed.CommandResult.Command);
-        if (!isQuery && parsed.GetResult(config) is { } configResult) {
-            if (parsed.CommandResult.Command == root) throw new ArgumentException("Expected the 'server' or 'client' subcommand.");
-            // Help actions skip library validators. Check the parsed selector itself
-            // so --help cannot bypass its singleton/non-empty contract either.
-            if (configResult.IdentifierTokenCount != 1 || configResult.Tokens.Count != 1 || string.IsNullOrWhiteSpace(configResult.Tokens[0].Value))
-                throw new ArgumentException("Specify exactly one non-empty --config-path.");
-            // All non-selector conversion, required-option and unknown-token errors
-            // are irrelevant when YAML is authoritative; do not bind those values.
-            var errors = parsed.Errors.Where(error => error.SymbolResult == configResult);
-            ThrowErrors(errors.Select(error => error.Message));
-            var configured = YamlConfiguration.Load(parsed.GetValue(config)!, definition.Command == client.Command);
-            if (loadAllDlls) {
-                if (configured is CliLaunchOptions single) single.Shared.EnableUnsafeDllLoading();
-                if (configured is ServerGroupOptions group)
-                    foreach (var entry in group.Servers) entry.Options.Shared.EnableUnsafeDllLoading();
-            }
-            return configured;
-        }
         if (args.Length == 0 || parsed.GetResult("--help") is not null) {
             using var output = new StringWriter();
             var help = new HelpAction();
@@ -65,7 +41,7 @@ internal static class CommandLineOptions {
         if (isQuery) {
             if (loadAllDlls) throw new ArgumentException("Unsafe DLL loading is only valid for launch commands.");
             if (separator >= 0) throw new ArgumentException("mod-query does not accept forwarded game arguments.");
-            return (dllQueries.Contains(parsed.CommandResult.Command) ? dllQueries : queries).ToOptions(parsed, config);
+            return (dllQueries.Contains(parsed.CommandResult.Command) ? dllQueries : queries).ToOptions(parsed);
         }
         if (parsed.CommandResult.Command == root) throw new ArgumentException("Expected the 'server' or 'client' subcommand.");
         var launch = definition.ToOptions(parsed, gameArgs);
@@ -98,8 +74,12 @@ internal static class CommandLineOptions {
                 Required = true,
                 CustomParser = result => {
                     if (result.Tokens.Count != 1) { result.AddError("Specify --platform once."); return null; }
-                    try { return InstallationTypeYamlConverter.Parse(result.Tokens[0].Value); }
-                    catch (ArgumentException ex) { result.AddError(ex.Message); return null; }
+                    var value = result.Tokens[0].Value;
+                    if (value.Equals("Steam", StringComparison.OrdinalIgnoreCase)) return InstallationType.Steam;
+                    if (value.Equals("EGS", StringComparison.OrdinalIgnoreCase)
+                        || value.Equals("EpicGamesStore", StringComparison.OrdinalIgnoreCase)) return InstallationType.EpicGamesStore;
+                    result.AddError("Platform must be Steam or EGS (EpicGamesStore).");
+                    return null;
                 }
             };
             Command.Options.Add(platform);

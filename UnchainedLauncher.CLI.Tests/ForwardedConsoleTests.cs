@@ -37,18 +37,6 @@ public sealed class ForwardedConsoleTests {
     }
 
     [Fact]
-    public void YamlCanSuppressConsoleWithoutChangingStandardCapture() {
-        var path = Path.Combine(Path.GetTempPath(), "no-spawn-console-" + Guid.NewGuid().ToString("N") + ".yaml");
-        try {
-            File.WriteAllText(path, "chiv2-path: .\nplatform: Steam\nserver:\n  no-spawn-console: true\n");
-            var options = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
-            Assert.True(options.Settings.NoSpawnConsole);
-            Assert.Contains("--attach-stdio", options.ToLaunchOptions().LaunchArgs);
-        }
-        finally { File.Delete(path); }
-    }
-
-    [Fact]
     public async Task FormatsNativeJsonRecordsAlongsidePlainDiagnostics() {
         const string json = "{\"time\":\"2026-10-28T12:34:56.123456789+02:00\",\"level\":\"INFO\",\"module_path\":\"plugin::startup\",\"message\":\"[start] 世界\\nsecond\\u001b[2J\",\"attributes\":{\"enclosing_function\":\"start\"}}";
         using var console = new ForwardedConsole();

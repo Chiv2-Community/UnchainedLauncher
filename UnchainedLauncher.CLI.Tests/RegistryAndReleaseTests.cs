@@ -191,10 +191,8 @@ public class RegistryAndReleaseTests : IDisposable {
         });
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task ProductionWiringInstallsManyModsAndForwardsActorsFromAnotherDirectory(bool useYaml) {
+    [Fact]
+    public async Task ProductionWiringInstallsManyModsAndForwardsActorsFromAnotherDirectory() {
         var callerDirectory = Directory.GetCurrentDirectory();
         var install = Path.Combine(_directory, "arbitrary game installation");
         var paks = Path.Combine(install, FilePaths.PakDir);
@@ -216,18 +214,6 @@ public class RegistryAndReleaseTests : IDisposable {
             args.AddRange(["--add-registry", "local:" + registryPath, "--mod", $"org/mod{i}:v1.0.0", "--server-mod", actors[i]]);
         }
         var options = CliLaunchOptions.Parse(args.ToArray());
-        if (useYaml) {
-            string Quote(string value) => "'" + value.Replace("'", "''") + "'";
-            var yaml = new List<string> { "chiv2-path: " + Quote(install), "platform: Steam", "server:", "  mod-setup:", "    registries:" };
-            yaml.AddRange(options.Shared.Registries.Select(r => "      - " + Quote(r.Kind + ":" + r.Location)));
-            yaml.Add("    mods:");
-            yaml.AddRange(options.Shared.Mods.Select(m => "      - " + Quote($"{m.Org}/{m.ModuleName}:{m.Version}")));
-            yaml.Add("  mod-actors:");
-            yaml.AddRange(actors.Select(actor => "    - " + Quote(actor)));
-            var config = Path.Combine(_directory, "launch.yaml");
-            File.WriteAllLines(config, yaml);
-            options = CliLaunchOptions.Parse(["server", "--config-path", config]);
-        }
         var aggregate = ServerLauncher.CreateRegistry(options);
         var official = Assert.Single(aggregate.ModRegistries.OfType<GithubModRegistry>());
         Assert.Equal(("Chiv2-Community", "C2ModRegistry"), (official.Organization, official.RepoName));

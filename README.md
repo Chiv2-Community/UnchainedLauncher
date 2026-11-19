@@ -53,7 +53,7 @@ Join the [Chivalry 2 Unchained community on Discord](https://discord.gg/chiv2unc
 
 `UnchainedLauncher.CLI` launches clients or servers and depends on Core, not WPF.
 See [the CLI guide](UnchainedLauncher.CLI/README.md) for building, launch options,
-registry formats, YAML configuration, and the live server dashboard.
+registry formats and the live server dashboard.
 
 ## License
 

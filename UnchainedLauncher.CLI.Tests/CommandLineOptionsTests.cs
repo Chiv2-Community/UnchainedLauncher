@@ -10,7 +10,7 @@ public class CommandLineOptionsTests {
         var options = CliLaunchOptions.Parse([command, "--help"]);
         Assert.True(options.Help);
         Assert.Contains("--chivalry2-path", options.HelpText);
-        Assert.Contains("--config-path", options.HelpText);
+        Assert.DoesNotContain("--config-path", options.HelpText);
         Assert.Equal(command == "server", options.HelpText.Contains("--no-desync-patch"));
         Assert.Equal(command == "server", options.HelpText.Contains("--discord-bot-token"));
     }

@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
-using YamlDotNet.Serialization;
 
 namespace UnchainedLauncher.CLI;
 
@@ -26,48 +25,21 @@ public abstract class LaunchConfiguration {
 }
 
 public sealed class ServerConfiguration : LaunchConfiguration {
-    public Dictionary<string, MapProfile?>? MapProfiles { get; set; }
     public bool NoTui { get; set; }
     public ServerSettings? Server { get; set; }
-    public Dictionary<string, ServerSettings?>? Servers { get; set; }
-    // Recognized but skipped: do not deserialize or validate the inactive schema.
-    [YamlConverter(typeof(IgnoredYamlNodeConverter))]
-    public object? Client { get; set; }
 
     public override void Validate() {
         base.Validate();
-        foreach (var (name, profile) in MapProfiles ?? []) {
-            if (string.IsNullOrWhiteSpace(name) || name != name.Trim()) throw new ValidationException("map-profiles keys must not be blank or have surrounding whitespace.");
-            MapRotation.ValidateMap(profile, $"map-profiles.{name}");
-        }
-        if (Server is not null) ValidateServer(Server);
-        if (Servers is not null) {
-            if (Server is not null) throw new ValidationException("Use either server or servers, not both.");
-            if (Servers.Count == 0) throw new ValidationException("servers must contain at least one named server.");
-            foreach (var settings in Servers.Values) {
-                if (settings is null) throw new ValidationException("Each servers entry must contain server settings.");
-                ValidateServer(settings);
-            }
-        }
-    }
-
-    private void ValidateServer(ServerSettings settings) {
-        Validator.ValidateObject(settings, new ValidationContext(settings), validateAllProperties: true);
-        settings.Rotation = MapRotation.Resolve(settings.MapRotation, MapProfiles, settings.ExplicitStartingMap);
+        if (Server is not null)
+            Validator.ValidateObject(Server, new ValidationContext(Server), validateAllProperties: true);
     }
 }
 
 public sealed class ClientConfiguration : LaunchConfiguration {
-    [YamlConverter(typeof(IgnoredYamlNodeConverter))]
-    public object? MapProfiles { get; set; }
     [Required]
     public string SavedDirSuffix { get; set; } = UnchainedLauncher.Core.Services.Mods.ProfileAssetPaths.SharedSuffix;
     public ModSetupConfiguration? ModSetup { get; set; }
     public ClientSettings? Client { get; set; }
-    [YamlConverter(typeof(IgnoredYamlNodeConverter))]
-    public object? Server { get; set; }
-    [YamlConverter(typeof(IgnoredYamlNodeConverter))]
-    public object? Servers { get; set; }
 }
 
 public sealed class ModSetupConfiguration {
@@ -82,23 +54,14 @@ public sealed class ClientSettings {
 
 public sealed class ServerSettings {
     public bool NoSpawnConsole { get; set; }
-    public List<MapRotationEntry>? MapRotation { get; set; }
-    [YamlIgnore]
-    internal MapRotation? Rotation { get; set; }
-    [YamlIgnore]
-    internal string? ExplicitStartingMap { get; private set; }
     public ModSetupConfiguration? ModSetup { get; set; }
-    public Dictionary<string, Dictionary<string, Dictionary<string, object?>>>? Ini { get; set; }
     public string? SavedDirSuffix { get; set; }
     [Required]
     public string Name { get; set; } = "Unchained Server";
     public string Description { get; set; } = "";
     public string? Password { get; set; }
     [Required]
-    public string StartingMap {
-        get => Rotation?.Maps[Rotation.StartIndex] ?? ExplicitStartingMap ?? "FFA_Courtyard";
-        set => ExplicitStartingMap = value;
-    }
+    public string StartingMap { get; set; } = "FFA_Courtyard";
     public string? LocalIp { get; set; }
     [Range(1, 65535)]
     public int GamePort { get; set; } = 7777;

@@ -37,29 +37,6 @@ public sealed class ModQueryTests : IDisposable {
     }
 
     [Fact]
-    public void RegistryYamlUsesRelativePathsAndIgnoresNonQuerySettings() {
-        var local = Path.Combine(_directory, "local");
-        Directory.CreateDirectory(local);
-        var path = Path.Combine(_directory, "launch.yaml");
-        File.WriteAllText(path, """
-            platform: invalid
-            chiv2-path: null
-            mod-setup:
-              registries: ['local:local']
-              mods: {ignored: invalid-selection}
-              dlls: not-a-list
-            server: {name: one, name: two}
-            client: not-a-mapping
-            """);
-        var query = Parse("get", "org/mod", "--config-path", path, "--version", "v1.0.0", "--add-registry=github:ignored/repo");
-        Assert.Equal("v1.0.0", query.Version);
-        Assert.Equal(local, Assert.Single(query.RegistryOptions.Registries).Location);
-        Assert.Equal(2, query.RegistryOptions.CreateRegistry().ModRegistries.Count);
-        File.WriteAllText(path, "mod-setup: {registries: ['local:local']}\nmod-setup: {}\n");
-        Assert.Throws<ArgumentException>(() => Parse("list", "--config-path", path));
-    }
-
-    [Fact]
     public void CoreRegistryConfigurationAndQueryOptionsWorkBeforeSubcommands() {
         Directory.CreateDirectory(Path.Combine(_directory, "local"));
         var path = Path.Combine(_directory, "registries.json");
@@ -101,7 +78,7 @@ public sealed class ModQueryTests : IDisposable {
         var result = CommandLineOptions.Parse(["mod-query", operation, "--help"]);
         Assert.True(result.Help);
         Assert.Contains("--add-registry", result.HelpText);
-        Assert.Contains("--config-path", result.HelpText);
+        Assert.DoesNotContain("--config-path", result.HelpText);
         Assert.Equal(0, await Program.Main(["mod-query", operation, "--help"]));
     }
 

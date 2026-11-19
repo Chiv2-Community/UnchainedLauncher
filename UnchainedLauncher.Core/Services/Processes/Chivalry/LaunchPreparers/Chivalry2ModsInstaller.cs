@@ -35,6 +35,11 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             try {
                 result = await PrepareLaunchCore(options);
             }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+                _logger.Error("Failed to persist mod ownership.", ex);
+                _userDialogueSpawner.DisplayMessage($"Could not save mod ownership. Launch cancelled; retry after resolving file permissions or disk space.\n{ex.Message}");
+                result = None;
+            }
             finally {
                 // Persist physical ownership even when preparation fails partway through.
                 try { inventory?.Save(); }

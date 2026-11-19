@@ -2,6 +2,7 @@ using LanguageExt;
 using LanguageExt.Common;
 using Moq;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
@@ -48,6 +49,39 @@ public sealed class PakMutationSafetyTests : IDisposable {
     private async Task Install(LauncherPakDir paks, params ReleaseCoordinates[] coordinates) {
         await foreach (var result in paks.InstallModSet(coordinates.Select(c => new ModInstallRequest(c, Write)), Prelude.None))
             result.IfLeft(e => throw e);
+    }
+
+    [Fact]
+    public async Task FailedOwnershipCheckpointCancelsLaunchAndAllowsRetry() {
+        var release = new Release("1", "hash", "source.pak", DateTime.UtcNow,
+            new("https://github.com/test/A", "A", "", null, null, [], [], []),
+            new([], [], [], [], []), "");
+        var registry = new Mock<IModRegistry>();
+        var paks = new LauncherPakDir(Paks, []);
+        var manager = new ModManager(registry.Object, paks, [_a], [new Mod(release.Info, [release])]);
+        var persistence = new ModManagerPersistence(manager, Config);
+        persistence.Save();
+        registry.Setup(r => r.DownloadPak(_a, It.IsAny<string>()))
+            .Returns((ReleaseCoordinates _, string path) => {
+                File.Delete(Config);
+                Directory.CreateDirectory(Config);
+                return Prelude.RightAsync<ModPakStreamAcquisitionFailure, FileWriter>(
+                    new FileWriter(path, new MemoryStream([1, 2, 3]), 3));
+            });
+        var closed = false;
+        var dialogue = new Mock<IUserDialogueSpawner>();
+        dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => closed = true);
+        var installer = new Core.Services.Processes.Chivalry.LaunchPreparers.Chivalry2ModsInstaller(manager, dialogue.Object);
+        var result = await installer.PrepareLaunch(new Core.Services.Processes.Chivalry.LaunchOptions(
+            [], "", "", false, false, Prelude.None, Prelude.None));
+        Assert.True(result.IsNone);
+        Assert.True(closed);
+        Assert.Single(paks.ManagedPaks);
+        dialogue.Verify(d => d.DisplayMessage(It.Is<string>(message =>
+            message.Contains("ownership") && message.Contains("cancelled"))), Times.Once);
+        Directory.Delete(Config);
+        persistence.Save();
+        Assert.Single(Reload().ManagedPaks);
     }
 
     [Fact]

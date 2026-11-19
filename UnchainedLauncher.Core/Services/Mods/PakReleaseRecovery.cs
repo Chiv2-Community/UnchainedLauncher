@@ -23,7 +23,9 @@ internal static class PakReleaseRecovery {
             // Stage ownership and deletions until the complete plan has passed validation and confirmation.
             Action applyUnmanaged = () => { };
             IReadOnlyList<ManagedPak> adoptedPaks = [];
-            if (!await UnmanagedPakRecovery.Recover(paks, known.Concat(requested), dialogue, adopted,
+            // Profile inventories are authoritative; unowned files remain user assets.
+            if (paks.CachePath != null) PreparePlan([]);
+            else if (!await UnmanagedPakRecovery.Recover(paks, known.Concat(requested), dialogue, adopted,
                 alwaysKeepUnmanagedPaks, cache, PreparePlan, (apply, proposed) => { applyUnmanaged = apply; adoptedPaks = proposed; })) return false;
             if (requested.Count == 0) {
                 applyUnmanaged();
@@ -86,6 +88,10 @@ internal static class PakReleaseRecovery {
             // Validate destinations, duplicate signatures, and freshness before any mutation.
             for (var i = 0; i < recovered.Count; i++) {
                 var destination = Path.Join(paks.DirPath, names[i]);
+                // Profile installs reserve unknown signatures and select a collision-safe name.
+                if (paks.CachePath != null && File.Exists(Path.ChangeExtension(destination, ".sig"))
+                    && !tracked.Any(pak => pak.PakFileName.Equals(names[i], StringComparison.OrdinalIgnoreCase)))
+                    continue;
                 if (recovered[i].Count > 0 && (!File.Exists(destination)
                     || recovered[i][0].Path.Equals(destination, StringComparison.OrdinalIgnoreCase)
                     || replacements.Any(pak => pak.Path.Equals(destination, StringComparison.OrdinalIgnoreCase))))
@@ -129,6 +135,12 @@ internal static class PakReleaseRecovery {
         !string.IsNullOrWhiteSpace(first) && first.Equals(second, StringComparison.OrdinalIgnoreCase);
 
     private static bool MatchesDestination(string path, string name) {
+        var numeric = Regex.Match(name, @"^(.*)(_[0-9]+_P)\.pak$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (numeric.Success) {
+            return Regex.IsMatch(Path.GetFileName(path),
+                $@"^{Regex.Escape(numeric.Groups[1].Value)}( \([0-9]+\))?{Regex.Escape(numeric.Groups[2].Value)}\.pak$",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
         var stem = Regex.Escape(Path.GetFileNameWithoutExtension(name.Split("__-__", 2)[1]));
         return Regex.IsMatch(Path.GetFileName(path), $@"^q[a-z]*__-__{stem}( \([0-9]+\))?\.pak$", RegexOptions.IgnoreCase);
     }

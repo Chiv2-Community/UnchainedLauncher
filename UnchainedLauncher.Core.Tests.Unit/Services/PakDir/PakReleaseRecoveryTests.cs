@@ -176,7 +176,9 @@ public class PakReleaseRecoveryTests : IDisposable {
 
         Assert.Equal(choice == UserDialogueChoice.Yes, (await pipeline.PrepareLaunch(options)).IsSome);
         Assert.Equal(choice == UserDialogueChoice.Yes, nextStage);
-        Assert.Equal(choice == UserDialogueChoice.Yes ? wanted.Tag : content, File.ReadAllText(path));
+        var resultingPath = choice == UserDialogueChoice.Yes
+            ? Path.Join(_dir, Assert.Single(await paks.GetManagedPaks()).PakFileName) : path;
+        Assert.Equal(choice == UserDialogueChoice.Yes ? wanted.Tag : content, File.ReadAllText(resultingPath));
         Assert.Empty(Directory.GetFiles(_dir, "*.partial"));
         registry.Verify(r => r.DownloadPak(It.IsAny<ReleaseCoordinates>(), It.IsAny<string>()), choice == UserDialogueChoice.Yes ? Times.Once : Times.Never);
     }
@@ -388,7 +390,8 @@ public class PakReleaseRecoveryTests : IDisposable {
             Assert.False(File.Exists(Path.Join(_dir, ".unchained", "pending")));
             Assert.Single(await Reload().GetManagedPaks());
         }
-        if (acceptReplacement) Assert.Equal(dependency.Tag, File.ReadAllText(dependencyPath));
+        if (acceptReplacement) Assert.Equal(dependency.Tag, File.ReadAllText(Path.Join(_dir,
+            (await paks.GetManagedPaks()).Single(pak => pak.Coordinates == ReleaseCoordinates.FromRelease(dependency)).PakFileName)));
     }
 
     [Theory]
@@ -451,9 +454,9 @@ public class PakReleaseRecoveryTests : IDisposable {
 
         Assert.True((await new Chivalry2ModsInstaller(manager, dialogue.Object).PrepareLaunch(options)).IsSome);
 
-        Assert.Equal(new[] { $"qz__-__{stems[0]}.pak", $"qy__-__{stems[1]}.pak" },
+        Assert.Equal(new[] { $"{stems[0]}_0_P.pak", $"{stems[1]}_1_P.pak" },
             (await paks.GetManagedPaks()).OrderBy(pak => pak.Priority).Select(pak => pak.PakFileName));
-        Assert.Equal(dependencyContent, File.ReadAllText(Path.Join(_dir, $"qz__-__{stems[0]}.pak")));
+        Assert.Equal(dependencyContent, File.ReadAllText(Path.Join(_dir, $"{stems[0]}_0_P.pak")));
         Assert.Equal(2, Directory.GetFiles(_dir, "*.pak").Length);
         registry.VerifyNoOtherCalls();
     }
@@ -490,15 +493,15 @@ public class PakReleaseRecoveryTests : IDisposable {
     [InlineData(true)]
     public async Task SignatureOnlyDestinationPreservesExistingManagedPak(bool identical) {
         var wanted = Release("v1.0.0");
-        var source = Write("q__-__Mod1 (9).pak", wanted.Tag);
-        Write("q__-__Mod1 (9).sig", "signature");
-        Write("q__-__Mod1.sig", identical ? "signature" : "conflict");
+        var source = Write("Mod1 (9)_0_P.pak", wanted.Tag);
+        Write("Mod1 (9)_0_P.sig", "signature");
+        Write("Mod1_0_P.sig", identical ? "signature" : "conflict");
         var paks = new Core.Services.Mods.PakDir(_dir, [new ManagedPak(ReleaseCoordinates.FromRelease(wanted), Path.GetFileName(source), 7)]);
         var results = await paks.InstallModSet([new ModInstallRequest(ReleaseCoordinates.FromRelease(wanted), _ => throw new Exception("Unexpected download"))], Prelude.None).ToListAsync();
         Assert.True(Assert.Single(results).IsRight);
         Assert.True(File.Exists(source));
         Assert.Equal(Path.GetFileName(source), Assert.Single(await paks.GetManagedPaks()).PakFileName);
-        Assert.Equal(identical ? "signature" : "conflict", File.ReadAllText(Path.Join(_dir, "q__-__Mod1.sig")));
+        Assert.Equal(identical ? "signature" : "conflict", File.ReadAllText(Path.Join(_dir, "Mod1_0_P.sig")));
         Assert.Equal("signature", File.ReadAllText(Path.ChangeExtension(Path.Join(_dir, Assert.Single(await paks.GetManagedPaks()).PakFileName), ".sig")));
     }
 

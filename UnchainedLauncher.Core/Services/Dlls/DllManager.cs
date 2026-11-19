@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Dlls {
     /// <summary>Only explicitly enabled, registry-backed releases may reach the injector.</summary>
@@ -187,6 +188,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
         private static PluginInfo NormalizeInfo(PluginInfo info) => info with {
             PluginDependencies = info.RequiredPlugins,
             ModDependencies = info.RequiredMods,
+            Dependencies = null,
             ImageUrls = info.ImageUrls ?? [],
             Schema = null
         };
@@ -323,7 +325,10 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 throw new InvalidOperationException("DLL registry settings changed. Refresh Plugin Manager before launching.");
         }
 
-        private string GetPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.EffectiveFileName);
+        // Linux injects immutable, content-addressed cache objects. Never unlink an
+        // installed pathname: Unix cannot bind that deletion to a validated handle.
+        private string GetPath(DllRelease release) => OperatingSystem.IsLinux() ? GetCachePath(release) : GetInstalledPath(release);
+        private string GetInstalledPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.EffectiveFileName);
         private string GetLegacyPath(DllRelease release) => Path.Combine(_root, release.Organization, release.Name, release.Sha256, release.EffectiveFileName);
         private string GetLegacyCliPath(DllRelease release) => Path.Combine(_legacyCliRoot, release.Sha256, release.EffectiveFileName);
         private string GetCachePath(DllRelease release) => Path.Combine(_cacheRoot, release.Sha256, release.EffectiveFileName);
@@ -363,12 +368,14 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 if (File.Exists(path) && !MatchesFile(path, release) && ManagedReleaseAt(path) == null)
                     throw new InvalidDataException($"Unrecognized DLL at managed path; file left unchanged: {path}");
                 var cache = GetCachePath(release);
+                Directory.CreateDirectory(Path.GetDirectoryName(cache)!);
+                using var cacheLease = await AssetCacheFiles.LockAsync(Path.Combine(Path.GetDirectoryName(cache)!, ".lock"), cancellationToken);
                 if (File.Exists(cache)) {
                     using var existing = File.OpenRead(cache);
                     ValidateBytes(existing, release);
                     continue;
                 }
-                var installed = new[] { path, GetLegacyPath(release), GetLegacyCliPath(release) }
+                var installed = new[] { path, GetInstalledPath(release), GetLegacyPath(release), GetLegacyCliPath(release) }
                     .FirstOrDefault(candidate => File.Exists(candidate) && MatchesFile(candidate, release));
                 if (installed != null) {
                     CopyValidated(installed, cache, release);
@@ -376,7 +383,6 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 }
                 if (!allowDownloads)
                     throw new InvalidOperationException($"Automatic plugin downloads are disabled; missing registered DLL: {release.Key}");
-                Directory.CreateDirectory(Path.GetDirectoryName(cache)!);
                 var temp = cache + "." + Guid.NewGuid().ToString("N") + ".tmp";
                 try {
                     using var response = await _http.GetAsync(release.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -397,7 +403,11 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                         target.Position = 0;
                         ValidateBytes(target, release);
                     }
-                    File.Move(temp, cache, true);
+                    try { File.Move(temp, cache); }
+                    catch (IOException) when (File.Exists(cache)) {
+                        using var winner = File.OpenRead(cache);
+                        ValidateBytes(winner, release);
+                    }
                 }
                 finally { if (File.Exists(temp)) File.Delete(temp); }
             }
@@ -408,7 +418,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 var active = selected.Select(GetPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
                 // Only validated files at paths owned by this manager may be archived.
                 // Unknown names/versions, even inside Managed, are left untouched.
-                foreach (var managedRoot in new[] { _root, _legacyCliRoot }.Where(Directory.Exists)) {
+                foreach (var managedRoot in new[] { _root, _legacyCliRoot }.Where(root => !OperatingSystem.IsLinux() && Directory.Exists(root))) {
                     foreach (var path in Directory.EnumerateFiles(managedRoot, "*", SearchOption.AllDirectories).ToArray()) {
                         var release = ManagedReleaseAt(path);
                         if (release == null || (active.Contains(path) && selected.Any(candidate =>
@@ -438,15 +448,28 @@ namespace UnchainedLauncher.Core.Services.Dlls {
             try {
                 using var input = archive ? OpenForArchive(source)
                     : new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read);
-                using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
-                    ValidateBytes(input, release);
-                    input.CopyTo(output);
-                    ValidateBytes(output, release);
+                ValidateBytes(input, release);
+                if (!archive && !overwrite) {
+                    // The validated cache handle denies replacement on Windows until
+                    // publication completes. Never overwrite shared DLL bytes in place.
+                    beforePublish?.Invoke();
+                    if (AssetCacheFiles.TryCreateHardLink(destination, source)) return;
                 }
-                beforePublish?.Invoke();
-                // Cache entries may be replaced, but active publication must atomically
-                // fail if an external writer has created any destination file.
-                File.Move(temp, destination, overwrite);
+                // A linked source and its cache object have the same identity. Do not
+                // replace that cache entry while the archival handle protects it.
+                using var existingCache = archive && File.Exists(destination)
+                    ? new FileStream(destination, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete)
+                    : null;
+                if (existingCache != null) ValidateBytes(existingCache, release);
+                else {
+                    using (var output = new FileStream(temp, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)) {
+                        input.CopyTo(output);
+                        ValidateBytes(output, release);
+                    }
+                    if (archive || overwrite) beforePublish?.Invoke();
+                    // Active publication must fail if another writer won the name.
+                    File.Move(temp, destination, overwrite);
+                }
                 // Deterministic test boundary: the cache exists, and the validated
                 // source must still deny writes, renames and pathname replacement.
                 cachePublished?.Invoke();
@@ -491,7 +514,7 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                     var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
                     try { ValidateBytes(stream, release); }
                     catch { stream.Dispose(); throw; }
-                    files.Add(new ValidatedDll(path, stream));
+                    files.Add(new ValidatedDll(path, stream, release.Size, release.Sha256));
                 }
                 return files;
             }
@@ -504,8 +527,12 @@ namespace UnchainedLauncher.Core.Services.Dlls {
 
     public sealed class ValidatedDll : IDisposable {
         public string Path { get; }
+        public long Size { get; }
+        public string Sha256 { get; }
         private readonly Stream _stream;
-        internal ValidatedDll(string path, Stream stream) { Path = path; _stream = stream; }
+        internal ValidatedDll(string path, Stream stream, long size, string sha256) {
+            Path = path; _stream = stream; Size = size; Sha256 = sha256;
+        }
         public void Dispose() => _stream.Dispose();
     }
 }

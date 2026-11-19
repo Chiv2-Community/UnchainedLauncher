@@ -22,21 +22,35 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
+            ManagedPakInventory? inventory;
             try {
-                var inventory = ManagedPakInventory.Reconcile(_modManager);
-                try {
-                    return await PrepareLaunchCore(options);
-                }
-                finally {
-                    // Persist physical ownership even when preparation fails partway through.
-                    inventory?.Save();
-                }
+                inventory = ManagedPakInventory.Reconcile(_modManager);
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
-                _logger.Error("Failed to persist mod ownership.", ex);
-                _userDialogueSpawner.DisplayMessage($"Could not save mod ownership. Launch cancelled; retry after resolving file permissions or disk space.\n{ex.Message}");
+            catch (Exception e) when (e is InvalidDataException or IOException or UnauthorizedAccessException) {
+                ReportInventoryFailure(e);
                 return None;
             }
+            var saved = true;
+            Option<LaunchOptions> result;
+            try {
+                result = await PrepareLaunchCore(options);
+            }
+            finally {
+                // Persist physical ownership even when preparation fails partway through.
+                try { inventory?.Save(); }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException) {
+                    saved = false;
+                    ReportInventoryFailure(e);
+                }
+            }
+            return saved ? result : None;
+        }
+
+        private void ReportInventoryFailure(Exception e) {
+            _logger.Error($"Failed to reconcile managed pak inventory: {e.Message}");
+            _userDialogueSpawner.DisplayMessage(
+                $"Could not reconcile managed pak inventory: {e.Message}\n" +
+                "Launch cancelled. Resolve the pak setup errors before launching.");
         }
 
         private async Task<Option<LaunchOptions>> PrepareLaunchCore(LaunchOptions options) {

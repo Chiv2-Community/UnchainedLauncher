@@ -65,13 +65,13 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         private static PakDir CreatePakDir(PakDirMetadata? metadata, string? installationDirectory) {
             if (installationDirectory == null)
-                return new PakDir(metadata?.DirPath ?? FilePaths.PakDir, metadata?.ManagedPaks ?? [], metadata?.DefaultSigPath);
+                return new PakDir(metadata?.DirPath ?? FilePaths.PakDir, metadata?.ManagedPaks ?? [], metadata?.DefaultSigPath, metadata?.CachePath);
             var legacySaved = metadata != null && SavedPakMigration.SourceDirectories(installationDirectory, cached: metadata)
                 .Any(source => SavedPakMigration.SameDirectory(source, metadata.DirPath));
             // Explicit custom directories remain custom. Never import another installation's snapshot.
             if (metadata != null && !legacySaved && !SavedPakMigration.SameDirectory(metadata.DirPath, installationDirectory))
-                return new PakDir(metadata.DirPath, metadata.ManagedPaks, metadata.DefaultSigPath);
-            return new PakDir(installationDirectory, legacySaved ? [] : metadata?.ManagedPaks ?? [], metadata?.DefaultSigPath) {
+                return new PakDir(metadata.DirPath, metadata.ManagedPaks, metadata.DefaultSigPath, metadata.CachePath);
+            return new PakDir(installationDirectory, legacySaved ? [] : metadata?.ManagedPaks ?? [], metadata?.DefaultSigPath, metadata?.CachePath) {
                 LegacySavedMetadata = legacySaved ? metadata : null,
                 MigrateInstallationSavedPaks = true
             };
@@ -85,7 +85,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     m.EnabledModReleaseCoordinates,
                     m.Mods,
                     m.PakDir switch {
-                        PakDir pd => pd.LegacySavedMetadata ?? new PakDirMetadata(pd.DirPath, pd.ManagedPaks, pd.DefaultSigPath),
+                        PakDir pd => pd.LegacySavedMetadata ?? new PakDirMetadata(pd.DirPath, pd.ManagedPaks, pd.DefaultSigPath, pd.CachePath),
                         _ => null
                     }
                 ),
@@ -107,7 +107,9 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
     public record PakDirMetadata(string DirPath, IEnumerable<ManagedPak> ManagedPaks,
         [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
-        string? DefaultSigPath = null);
+        string? DefaultSigPath = null,
+        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        string? CachePath = null);
 
     internal static class ModManagerMetadataKind {
         public const string StandardModManager = "StandardModManager";

@@ -1,9 +1,29 @@
 using System.Net;
+using System.Net.Sockets;
 using Xunit;
 
 namespace UnchainedLauncher.CLI.Tests;
 
 public class LocalAddressDetectorTests {
+    [Theory]
+    [InlineData("127.0.0.1")]
+    [InlineData("0.0.0.0")]
+    public async Task QueryUsesIpv4LoopbackForLocalAndWildcardAddresses(string address) {
+        using var listener = new UdpClient(new IPEndPoint(IPAddress.Loopback, 0));
+        var port = ((IPEndPoint)listener.Client.LocalEndPoint!).Port;
+        var options = Assert.IsType<ServerOptions>(CliLaunchOptions.Parse([
+            "server", "--chivalry2-path", ".", "--platform", "Steam", "--local-ip", address, "--query-port", port.ToString()
+        ]));
+        var query = ServerLauncher.CreateQuery(options).InfoAsync();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var request = await listener.ReceiveAsync(timeout.Token);
+        Assert.Equal(AddressFamily.InterNetwork, request.RemoteEndPoint.AddressFamily);
+        byte[] response = [255, 255, 255, 255, 73, 17,
+            .. "Test\0Map\0Folder\0Game\0"u8.ToArray(), 0, 0, 1, 32, 0, (byte)'D', (byte)'W', 0, 1];
+        await listener.SendAsync(response, request.RemoteEndPoint, timeout.Token);
+        Assert.Equal("Test", (await query).Name);
+    }
+
     [Fact]
     public void PrefersUsableDefaultGatewayAddressOverOtherInterfaces() {
         var candidates = new[] {

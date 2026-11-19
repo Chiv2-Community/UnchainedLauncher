@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using Xunit;
@@ -21,6 +23,80 @@ public class YamlConfigurationTests : IDisposable {
 
     private CliLaunchOptions Load(string body, bool client = false) =>
         CliLaunchOptions.Parse([client ? "client" : "server", "--config-path", Write(body)]);
+
+    [Theory]
+    [InlineData("a", "a")]
+    [InlineData("Z09_", "Z09_")]
+    [InlineData("_", "_")]
+    [InlineData("-Host-one-", "Hostone")]
+    public void CliAndYamlSuffixesUseTheSameProfileNormalization(string suffix, string normalized) {
+        foreach (var command in new[] { "client", "server" }) {
+            var cli = CliLaunchOptions.Parse([command, "--chivalry2-path", ".", "--platform", "Steam", "--saved-dir-suffix=" + suffix]);
+            var yaml = Load(command == "client" ? $"saved-dir-suffix: '{suffix}'" : $"server: {{saved-dir-suffix: '{suffix}'}}", command == "client");
+            foreach (var options in new[] { cli, yaml }) {
+                Assert.Equal(suffix, options.Shared.SavedDirSuffix);
+                Assert.Equal(normalized, options.Shared.Assets.Suffix);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("---")]
+    [InlineData("é")]
+    [InlineData("Ａ")]
+    [InlineData("../outside")]
+    [InlineData("with space")]
+    [InlineData("line\nbreak")]
+    [InlineData("name\\other")]
+    public void CliAndYamlRejectInvalidSuffixesAtTheProfileBoundary(string suffix) {
+        var expected = Assert.Throws<ArgumentException>(() => new UnchainedLauncher.Core.Services.Mods.ProfileAssetPaths(suffix));
+        foreach (var command in new[] { "client", "server" }) {
+            var cli = Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse([
+                command, "--chivalry2-path", ".", "--platform", "Steam", "--saved-dir-suffix=" + suffix, "--mod=invalid"]));
+            var quoted = System.Text.Json.JsonSerializer.Serialize(suffix);
+            var yaml = Assert.Throws<ArgumentException>(() => Load(command == "client"
+                ? $"saved-dir-suffix: {quoted}\nmod-setup: {{mods: [invalid]}}"
+                : $"server: {{saved-dir-suffix: {quoted}, mod-setup: {{mods: [invalid]}}}}", command == "client"));
+            if (suffix.Length == 0) Assert.Contains("Required argument missing for option: '--saved-dir-suffix'", cli.Message);
+            else Assert.Equal(expected.Message, cli.Message);
+            if (suffix.Length == 0 && command == "client") Assert.Contains("The SavedDirSuffix field is required.", yaml.Message);
+            else Assert.Equal(expected.Message, yaml.Message);
+        }
+    }
+
+    [Theory]
+    [InlineData(false, "::1")]
+    [InlineData(true, "::1")]
+    [InlineData(false, "::")]
+    [InlineData(true, "::")]
+    [InlineData(false, "::ffff:127.0.0.1")]
+    [InlineData(true, "::ffff:127.0.0.1")]
+    public void ServerRejectsIpv6DuringParsing(bool yaml, string address) {
+        var error = Assert.Throws<ArgumentException>(() => yaml
+            ? Load($"server: {{local-ip: '{address}'}}")
+            : CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam", "--local-ip", address]));
+        Assert.Contains("local-ip must be an IPv4 address", error.Message);
+    }
+
+    [Theory]
+    [InlineData(false, "127.0.0.1")]
+    [InlineData(true, "127.0.0.1")]
+    [InlineData(false, "192.168.50.10")]
+    [InlineData(true, "192.168.50.10")]
+    [InlineData(false, "0.0.0.0")]
+    [InlineData(true, "0.0.0.0")]
+    [InlineData(false, null)]
+    [InlineData(true, null)]
+    public void ServerAcceptsIpv4OverridesAndAutoDetection(bool yaml, string? address) {
+        var options = Assert.IsType<ServerOptions>(yaml
+            ? Load(address is null ? "server: {}" : $"server: {{local-ip: '{address}'}}")
+            : CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam",
+                .. address is null ? Array.Empty<string>() : ["--local-ip", address]]));
+        Assert.Equal(AddressFamily.InterNetwork, IPAddress.Parse(options.Settings.LocalIp!).AddressFamily);
+        if (address is not null) Assert.Equal(address, options.Settings.LocalIp);
+        Assert.Equal(options.Settings.LocalIp, options.ToServerLaunchOptions().LocalIp.IfNone(""));
+    }
 
     [Fact]
     public void ConfigurationIsAuthoritativeWithEitherConfigPathSyntax() {
@@ -134,7 +210,7 @@ public class YamlConfigurationTests : IDisposable {
         Assert.Equal(client, options is ClientOptions);
         Assert.Equal(client, options.ToLaunchOptions().ServerLaunchOptions.IsNone);
         if (client) Assert.Equal("TBL", options.ToLaunchOptions().LaunchArgs);
-        else Assert.StartsWith("TBL -server --additional-pak-dir ", options.ToLaunchOptions().LaunchArgs);
+        else Assert.StartsWith("TBL -server ", options.ToLaunchOptions().LaunchArgs);
         Assert.Equal(!client, options.ToLaunchOptions().ToCLIArgs().Any(arg => arg.Rendered == "-nullrhi"));
     }
 
@@ -308,14 +384,15 @@ public class YamlConfigurationTests : IDisposable {
         var cwd = Directory.GetCurrentDirectory();
         Directory.CreateDirectory(Path.Combine(_directory, "local registry"));
         var options = Load("""
-            saved-dir-suffix: Test_1
             update-plugin: false
             allow-unstable-plugin: true
             no-tui: true
-            mod-setup:
-              registries: ['local:local registry', 'config:registries.json', 'github:owner/repo']
-              mods: ['org/one:v1.2.3', 'org/two:v2.0.0']
-              dlls: ['org/plugin:v1.0.0']
+            server:
+              saved-dir-suffix: Test_1
+              mod-setup:
+                registries: ['local:local registry', 'config:registries.json', 'github:owner/repo']
+                mods: ['org/one:v1.2.3', 'org/two:v2.0.0']
+                dlls: ['org/plugin:v1.0.0']
             """);
         Assert.Equal(cwd, Directory.GetCurrentDirectory());
         Assert.Equal(Path.Combine(_directory, "game installation"), options.Shared.Chivalry2Path);
@@ -328,7 +405,7 @@ public class YamlConfigurationTests : IDisposable {
         Assert.False(options.Shared.UpdatePlugin);
         Assert.True(options.Shared.AllowUnstablePlugin);
         Assert.True(Assert.IsType<ServerOptions>(options).NoTui);
-        var plain = Load("mod-setup: { registries: [], mods: [], dlls: [] }");
+        var plain = Load("server: {mod-setup: { registries: [], mods: [], dlls: [] }}");
         var official = Assert.Single(ServerLauncher.CreateRegistry(plain).ModRegistries);
         Assert.IsType<GithubModRegistry>(official);
         Assert.Equal("Chiv2-Community", ((GithubModRegistry)official).Organization);
@@ -347,7 +424,7 @@ public class YamlConfigurationTests : IDisposable {
               name: YAML Server
               description: Example MOTD
               password: private password
-              map: TO_Test
+              starting-map: TO_Test
               local-ip: 127.0.0.2
               game-port: 10001
               ping-port: 10002
@@ -407,14 +484,18 @@ public class YamlConfigurationTests : IDisposable {
     [Theory]
     [InlineData("typo: value")]
     [InlineData("server: []")]
-    [InlineData("mod-setup: {registries: not-a-list}")]
-    [InlineData("mod-setup: {mods: [null]}")]
-    [InlineData("mod-setup: {mods: ['org/mod:v1', 'org/mod:v2']}")]
+    [InlineData("server: {mod-setup: {registries: not-a-list}}")]
+    [InlineData("server: {mod-setup: {mods: [null]}}")]
+    [InlineData("server: {mod-setup: {mods: ['org/mod:v1', 'org/mod:v2']}}")]
+    [InlineData("saved-dir-suffix: OldRootValue")]
+    [InlineData("mod-setup: {mods: []}")]
     [InlineData("server: {query-port: 7777}")]
     [InlineData("server: {game-port: 0}")]
     [InlineData("server: {game-port: 1.5}")]
     [InlineData("server: {headless: invalid}")]
     [InlineData("server: {typo: true}")]
+    [InlineData("server: {map: TO_Test}")]
+    [InlineData("server: {starting-map: ''}")]
     [InlineData("server: {censor-mode: invalid}")]
     [InlineData("server: {warmup-time: -1}")]
     [InlineData("server: {discord: {bot-token: secret}}")]

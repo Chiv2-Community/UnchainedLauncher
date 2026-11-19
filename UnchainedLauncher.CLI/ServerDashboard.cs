@@ -9,6 +9,9 @@ public sealed class ServerDashboard : IDisposable {
     private readonly Dictionary<int, (DateTimeOffset Time, string? Status)> _lastPlainOutput = [];
     private readonly ServerLaunchOptions? _launchOptions;
     private int _scrollOffset;
+    private bool _showConsole;
+    private bool _followConsole = true;
+    private readonly Dictionary<int, long> _lastConsoleSequence = [];
     private readonly ServerTabs? _tabs;
     private readonly TerminalMouseParser _mouseParser = new();
     private TerminalMouse? _mouse;
@@ -42,9 +45,11 @@ public sealed class ServerDashboard : IDisposable {
                 }
                 switch (key.Key) {
                     case ConsoleKey.Q: return true;
-                    case ConsoleKey.PageDown: _scrollOffset += 10; break;
-                    case ConsoleKey.PageUp: _scrollOffset = Math.Max(0, _scrollOffset - 10); break;
-                    case ConsoleKey.Home: _scrollOffset = 0; break;
+                    case ConsoleKey.L: _showConsole = !_showConsole; _scrollOffset = 0; _followConsole = true; break;
+                    case ConsoleKey.End: _followConsole = true; break;
+                    case ConsoleKey.PageDown: _scrollOffset += 10; _followConsole = false; break;
+                    case ConsoleKey.PageUp: _scrollOffset = Math.Max(0, _scrollOffset - 10); _followConsole = false; break;
+                    case ConsoleKey.Home: _scrollOffset = 0; _followConsole = false; break;
                     case ConsoleKey.LeftArrow: _tabs?.Move(-1); _scrollOffset = 0; break;
                     case ConsoleKey.RightArrow: _tabs?.Move(1); _scrollOffset = 0; break;
                 }
@@ -60,19 +65,23 @@ public sealed class ServerDashboard : IDisposable {
             try {
                 var width = Math.Max(1, Console.WindowWidth - 1);
                 var height = Math.Max(1, Console.WindowHeight - 1);
-                var lines = FormatLines(pid, sample, history, width, launchOptions ?? _launchOptions)
+                var lines = (_showConsole
+                    ? new[] { $"Plugin console | PID {pid} | L: dashboard | End: follow" }
+                        .Concat(history.ConsoleLines.Select(line => line.Text))
+                    : FormatLines(pid, sample, history, width, launchOptions ?? _launchOptions))
                     .SelectMany(line => WrapLine(SafeText(line), width)).ToArray();
                 if (status is not null) lines = WrapLine(SafeText(status), width).Concat(lines).ToArray();
                 var tabLine = _tabs?.Layout(width);
                 var firstContentRow = tabLine is null ? 0 : 1;
                 var contentHeight = Math.Max(0, height - firstContentRow - 1);
+                if (_showConsole && _followConsole) _scrollOffset = Math.Max(0, lines.Length - contentHeight);
                 _scrollOffset = Math.Clamp(_scrollOffset, 0, Math.Max(0, lines.Length - contentHeight));
                 Console.SetCursorPosition(0, 0);
                 for (var row = 0; row < height; row++) {
                     var index = row - firstContentRow + _scrollOffset;
                     var text = row == 0 && tabLine is not null ? tabLine
                         : row == height - 1
-                        ? $"Left/Right: tabs | PgUp/PgDn: scroll | Q: stop all | {_scrollOffset + 1}-{Math.Min(lines.Length, _scrollOffset + contentHeight)}/{lines.Length}"
+                        ? $"L: console/dashboard | End: follow | Left/Right: tabs | PgUp/PgDn: scroll | Q: stop | {_scrollOffset + 1}-{Math.Min(lines.Length, _scrollOffset + contentHeight)}/{lines.Length}"
                         : index < lines.Length ? lines[index] : "";
                     Console.Write(text[..Math.Min(text.Length, width)].PadRight(width));
                     if (row + 1 < height) Console.WriteLine();
@@ -82,6 +91,11 @@ public sealed class ServerDashboard : IDisposable {
             catch (Exception ex) when (ex is IOException or ArgumentOutOfRangeException or PlatformNotSupportedException) {
                 _interactive = false;
             }
+        }
+        var lastSequence = _lastConsoleSequence.GetValueOrDefault(pid);
+        foreach (var line in history.ConsoleLines.Where(line => line.Sequence > lastSequence)) {
+            Console.WriteLine(SafeText((status is null ? "" : status + " | ") + line.Text));
+            _lastConsoleSequence[pid] = line.Sequence;
         }
         if (_lastPlainOutput.TryGetValue(pid, out var lastOutput) && lastOutput.Status == status
             && sample.Time - lastOutput.Time < TimeSpan.FromSeconds(10)) return;
@@ -117,6 +131,11 @@ public sealed class ServerDashboard : IDisposable {
             "", "Timeline (latest events):"
         ];
         lines.AddRange(history.Events.TakeLast(8).Select(e => $"  {e.Time:HH:mm:ss}  {e.Message}"));
+        if (history.ConsoleLines.Count != 0) {
+            lines.Add("");
+            lines.Add("Plugin console (L: full console; latest lines):");
+            lines.AddRange(history.ConsoleLines.TakeLast(5).Select(line => line.Text));
+        }
         return lines;
     }
 

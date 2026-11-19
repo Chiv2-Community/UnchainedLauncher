@@ -21,8 +21,7 @@ public sealed record RegistrySpec(string Kind, string Location) {
 
     public IModRegistry Create() => Kind switch {
         "github" => new GithubModRegistry(Location.Split('/')[0], Location.Split('/')[1]),
-        "local" => Directory.Exists(Location) ? new LocalModRegistry(Location)
-            : throw new DirectoryNotFoundException($"Local registry directory does not exist: {Location}"),
+        "local" => new LocalModRegistry(RequireLocalDirectory(Location)),
         "config" => LoadConfiguration(),
         _ => throw new ArgumentException($"Unsupported registry kind: {Kind}")
     };
@@ -36,10 +35,13 @@ public sealed record RegistrySpec(string Kind, string Location) {
     }
 
     private static ModRegistryMetadata ResolvePaths(ModRegistryMetadata metadata, string directory) => metadata switch {
-        LocalModRegistryMetadata local => local with { PakReleaseDir = Path.GetFullPath(local.PakReleaseDir, directory) },
+        LocalModRegistryMetadata local => local with { PakReleaseDir = RequireLocalDirectory(Path.GetFullPath(local.PakReleaseDir, directory)) },
         AggregateModRegistryMetadata aggregate => aggregate with {
             Registries = aggregate.Registries.Select(r => ResolvePaths(r, directory)).ToArray()
         },
         _ => metadata
     };
+
+    private static string RequireLocalDirectory(string path) => Directory.Exists(path) ? path
+        : throw new DirectoryNotFoundException($"Local registry directory does not exist: {path}");
 }

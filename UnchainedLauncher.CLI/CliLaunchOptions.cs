@@ -1,6 +1,8 @@
 using System.Net;
+using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
@@ -23,21 +25,31 @@ public sealed class SharedLaunchOptions {
     public IReadOnlyList<ReleaseCoordinates> Mods { get; }
     public IReadOnlyList<ReleaseCoordinates> Dlls { get; }
     public IReadOnlyList<string> GameArguments { get; }
+    internal ProfileAssetPaths Assets { get; set; }
+    internal ProtonConfiguration ProtonConfiguration { get; }
+    internal ProtonRuntime? Proton { get; set; }
 
-    internal SharedLaunchOptions(LaunchConfiguration configuration, string directory, string? savedDirSuffix = null) {
+    internal SharedLaunchOptions(LaunchConfiguration configuration, string directory, string? savedDirSuffix = null, ServerSettings? server = null) {
         Chivalry2Path = Path.GetFullPath(configuration.Chiv2Path!, directory);
-        SavedDirSuffix = savedDirSuffix ?? configuration.SavedDirSuffix;
+        SavedDirSuffix = savedDirSuffix ?? server?.SavedDirSuffix ?? (configuration as ClientConfiguration)?.SavedDirSuffix ?? "UnchainedCLI";
+        Assets = new ProfileAssetPaths(SavedDirSuffix);
+        var proton = configuration.Proton ?? new ProtonConfiguration();
+        string? Absolute(string? value) => value == null ? null : Path.GetFullPath(value, directory);
+        ProtonConfiguration = new ProtonConfiguration {
+            Path = Absolute(proton.Path),
+            CompatDataPath = Absolute(proton.CompatDataPath),
+            SteamPath = Absolute(proton.SteamPath),
+            HelperPath = Absolute(proton.HelperPath)
+        };
         Platform = configuration.Platform!.Value;
         Backend = configuration.ServerBrowserBackend;
         UpdatePlugin = configuration.UpdatePlugin;
         AllowUnstablePlugin = configuration.AllowUnstablePlugin;
         GameArguments = Entries(configuration.GameArgs, allowEmpty: true).ToArray();
-        var setup = configuration.ModSetup ?? new ModSetupConfiguration();
+        var setup = server?.ModSetup ?? (configuration as ClientConfiguration)?.ModSetup ?? new ModSetupConfiguration();
         RegistryOptions = new RegistryOptions(setup.Registries, directory);
         Mods = Entries(setup.Mods).Select(ParseCoordinates).ToArray();
         Dlls = Entries(setup.Dlls).Select(ParseCoordinates).ToArray();
-        if (!Regex.IsMatch(SavedDirSuffix, @"\A[A-Za-z0-9_-]+\z"))
-            throw new ArgumentException("saved-dir-suffix may contain only letters, digits, underscores, and hyphens.");
         if (!Uri.TryCreate(Backend, UriKind.Absolute, out var backend) || backend.Scheme is not ("http" or "https"))
             throw new ArgumentException("server-browser-backend must be an HTTP(S) URL.");
         if (Mods.GroupBy(m => (m.Org, m.ModuleName)).Any(g => g.Select(m => m.Version).Distinct().Count() > 1))
@@ -59,6 +71,7 @@ public abstract class CliLaunchOptions : CliCommandOptions {
     private readonly SharedLaunchOptions? _shared;
     public SharedLaunchOptions Shared => _shared ?? throw new InvalidOperationException("Help is not a launch request.");
     public IReadOnlyList<string> GameArguments { get; }
+    public ServerInstancePaths InstancePaths => new(Shared.Assets);
 
     private protected CliLaunchOptions(SharedLaunchOptions shared, IEnumerable<string> gameArguments) {
         _shared = shared;
@@ -75,23 +88,24 @@ public abstract class CliLaunchOptions : CliCommandOptions {
         ?? throw new ArgumentException("Expected a client or server launch command.");
 
     internal static CliLaunchOptions FromConfiguration(LaunchConfiguration configuration, string directory) {
-        var shared = new SharedLaunchOptions(configuration, directory);
         return configuration switch {
             ServerConfiguration server => new ServerOptions(
-                server.Server?.SavedDirSuffix is { } suffix ? new SharedLaunchOptions(configuration, directory, suffix) : shared,
+                new SharedLaunchOptions(configuration, directory, server: server.Server),
                 server.Server ?? new ServerSettings(), server.NoTui),
-            ClientConfiguration client => new ClientOptions(shared, SharedLaunchOptions.Entries(client.Client?.GameArgs, allowEmpty: true)),
+            ClientConfiguration client => new ClientOptions(new SharedLaunchOptions(configuration, directory), SharedLaunchOptions.Entries(client.Client?.GameArgs, allowEmpty: true)),
             _ => throw new ArgumentException("Expected client or server configuration.")
         };
     }
 
     public abstract LaunchOptions ToLaunchOptions();
 
-    private protected LaunchOptions BuildLaunchOptions(IEnumerable<string> prefix, LanguageExt.Option<ServerLaunchOptions> server) => new(
+    private protected LaunchOptions BuildLaunchOptions(IEnumerable<string> prefix, LanguageExt.Option<ServerLaunchOptions> server) {
+        return new(
         EnabledReleases: Shared.Mods.Distinct(), ServerBrowserBackend: Some(Shared.Backend),
         LaunchArgs: string.Join(" ", prefix.Concat(GameArguments.Select(ArgumentEscaper.Escape))),
         CheckForDependencyUpdates: Shared.UpdatePlugin, AllowUnstablePluginReleases: Shared.AllowUnstablePlugin,
         SavedDirSuffix: Some(Shared.SavedDirSuffix), ServerLaunchOptions: server);
+    }
 
     internal static CliLaunchOptions ForHelp(string text) => new HelpOptions(text);
 
@@ -108,23 +122,27 @@ public sealed class ClientOptions : CliLaunchOptions {
 }
 
 public sealed class ServerOptions : CliLaunchOptions {
+    internal IniOverrides Ini { get; }
     public ServerSettings Settings { get; }
     public bool NoTui { get; }
-    public ServerInstancePaths InstancePaths { get; }
+    internal string? PluginLoggingPath { get; set; }
+    // Chivalry removes hyphens when choosing its Saved directory (the plugin log path does not).
+    internal string GameSavedDirSuffix => Shared.Assets.Suffix;
 
     internal ServerOptions(SharedLaunchOptions shared, ServerSettings settings, bool noTui)
         : base(shared, SharedLaunchOptions.Entries(settings.GameArgs, allowEmpty: true)) {
         Settings = settings;
+        Ini = IniOverrides.Parse(settings.Ini);
+        if (settings.Rotation is not null && Ini.Contains("Game", "/Script/TBL.TBLGameMode", "MapListIndex"))
+            throw new ArgumentException("MapListIndex is managed by map-rotation; use starting-map to choose the first map.");
         NoTui = noTui;
-        InstancePaths = new ServerInstancePaths(Path.Combine(shared.Chivalry2Path, ".unchained", "servers", "Server-" + shared.SavedDirSuffix));
-        if (GameArguments.Any(argument => argument == "--additional-pak-dir" || argument.StartsWith("--additional-pak-dir=", StringComparison.Ordinal)))
-            throw new ArgumentException("--additional-pak-dir is managed by the launcher; do not pass it through game-args.");
         if (!settings.Headless && settings.DesyncPatch)
             throw new ArgumentException("Desync patch requires a headless server. To enable rendering, pass --no-desync-patch or set server.desync-patch: false in YAML.");
         if (new[] { settings.GamePort, settings.PingPort, settings.QueryPort, settings.RconPort }.Distinct().Count() != 4)
             throw new ArgumentException("Game, ping, query, and RCON ports must be distinct.");
         settings.LocalIp = string.IsNullOrWhiteSpace(settings.LocalIp) ? LocalAddressDetector.Detect().ToString() : settings.LocalIp.Trim();
-        if (!IPAddress.TryParse(settings.LocalIp, out _)) throw new ArgumentException("local-ip must be an IP address.");
+        if (!IPAddress.TryParse(settings.LocalIp, out var address) || address.AddressFamily != AddressFamily.InterNetwork)
+            throw new ArgumentException("local-ip must be an IPv4 address.");
         settings.ModActors = SharedLaunchOptions.Entries(settings.ModActors).Distinct().ToList();
         ToDiscordOptions();
     }
@@ -144,12 +162,27 @@ public sealed class ServerOptions : CliLaunchOptions {
     public ServerLaunchOptions ToServerLaunchOptions() => new(
         Settings.Headless, Settings.Name, Settings.Description, RegisterWithBackend: Settings.Register,
         Password: string.IsNullOrWhiteSpace(Settings.Password) ? None : Some(Settings.Password.Trim()),
-        Settings.Map, Settings.GamePort, BeaconPort: Settings.PingPort, Settings.QueryPort, Settings.RconPort,
+        Settings.StartingMap, Settings.GamePort, BeaconPort: Settings.PingPort, Settings.QueryPort, Settings.RconPort,
         FFATimeLimit: null, FFAScoreLimit: null, TDMTimeLimit: null, TDMTicketCount: null,
         PlayerBotCount: null, WarmupTime: null, LocalIp: Optional(Settings.LocalIp),
         ServerMods: Settings.ModActors ?? [], DiscordIntegration: ToDiscordOptions(),
-        Settings.DesyncPatch, Settings.UseBackendBanlist, Settings.CensorMode);
+        Settings.DesyncPatch, Settings.UseBackendBanlist, Settings.CensorMode) {
+        SuppressServerNameOverride = Ini.Contains("Game", "/Script/TBL.TBLGameMode", "ServerName")
+    };
 
-    public override LaunchOptions ToLaunchOptions() => BuildLaunchOptions(
-        ["TBL", "-server", new Parameter("--additional-pak-dir", InstancePaths.Paks).Rendered], Some(ToServerLaunchOptions()));
+    public override LaunchOptions ToLaunchOptions() {
+        var prefix = new List<string> { "TBL", "-server" };
+        if (!GameArguments.Any(arg => arg is "--attach-stdio" or "-attach-stdio")) prefix.Add("--attach-stdio");
+        if (!PluginLogging.HasOverride(GameArguments)) {
+            prefix.Add("--log4rs-yaml");
+            prefix.Add(ArgumentEscaper.Escape(PluginLoggingPath ?? InstancePaths.Logging));
+        }
+        if (Settings.NoSpawnConsole && !GameArguments.Any(arg => arg is "--no-spawn-console" or "-no-spawn-console")) prefix.Add("--no-spawn-console");
+        if (!Ini.Contains("Game", "/Script/TBL.TBLTitleScreen", "bSavedHasAgreedToTOS"))
+            prefix.Add("-ini:Game:[/Script/TBL.TBLTitleScreen]:bSavedHasAgreedToTOS=True");
+        if (!Ini.Contains("Game", "/Script/TBL.TBLGameInstance", "FirstLoadCompleted"))
+            prefix.Add("-ini:Game:[/Script/TBL.TBLGameInstance]:FirstLoadCompleted=True");
+        prefix.AddRange(Ini.RawArguments);
+        return BuildLaunchOptions(prefix, Some(ToServerLaunchOptions()));
+    }
 }

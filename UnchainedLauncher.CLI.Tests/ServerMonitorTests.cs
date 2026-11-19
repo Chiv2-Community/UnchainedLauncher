@@ -7,6 +7,23 @@ namespace UnchainedLauncher.CLI.Tests;
 
 public class ServerMonitorTests {
     [Fact]
+    public async Task AlreadyExitedProcessRecordsNormalExitWithoutQuerying() {
+        var info = new ProcessStartInfo(OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh") {
+            UseShellExecute = false,
+            ArgumentList = { OperatingSystem.IsWindows() ? "/c" : "-c", "exit 7" }
+        };
+        using var process = Process.Start(info)!;
+        await process.WaitForExitAsync();
+        var monitor = new ServerMonitor(process, new PendingQuery());
+        var renders = 0;
+        await monitor.RunAsync((_, _) => renders++, CancellationToken.None)
+            .WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(1, renders); // Final history render, not a fabricated metrics sample.
+        Assert.Empty(monitor.History.Samples);
+        Assert.Equal("Server exited (code 7)", monitor.History.Events.Last().Message);
+    }
+
+    [Fact]
     public async Task CoreProgressWorksWithoutAUiSynchronizationContext() {
         await Task.Run(() => {
             Assert.Null(SynchronizationContext.Current);

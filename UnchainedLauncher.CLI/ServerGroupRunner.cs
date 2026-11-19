@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using UnchainedLauncher.Core.Services.Server.A2S;
 
 namespace UnchainedLauncher.CLI;
@@ -7,12 +6,11 @@ internal sealed record ServerTabSnapshot(ServerSample Sample, ServerHistory Hist
 
 internal static class ServerGroupRunner {
     internal static async Task<int> RunAsync(ServerGroupOptions group, CancellationTokenSource stop,
-        Func<ServerOptions, CancellationToken, Task<Process>>? launch = null,
+        Func<ServerOptions, CancellationToken, Task<LaunchedGame>>? launch = null,
         Func<ServerOptions, IA2S>? query = null) {
-        launch ??= (options, token) => ServerLauncher.LaunchAsync(options, token);
         query ??= ServerLauncher.CreateQuery;
         using var monitoring = CancellationTokenSource.CreateLinkedTokenSource(stop.Token);
-        var processes = new List<Process>();
+        var processes = new List<LaunchedGame>();
         var leases = new List<IDisposable>();
         var tasks = new List<Task>();
         var snapshots = new ServerTabSnapshot?[group.Servers.Count];
@@ -23,42 +21,51 @@ internal static class ServerGroupRunner {
             foreach (var entry in group.Servers) {
                 stop.Token.ThrowIfCancellationRequested();
                 Console.Error.WriteLine($"Starting server {entry.Id}...");
-                processes.Add(await launch(entry.Options, stop.Token));
+                processes.Add(launch != null ? await launch(entry.Options, stop.Token)
+                    : await ServerLauncher.LaunchAsync(entry.Options, stop.Token));
             }
 
             using var dashboard = new ServerDashboard(!group.NoTui,
                 tabNames: group.Servers.Select(entry => entry.Id).ToArray());
             for (var i = 0; i < processes.Count; i++) tasks.Add(MonitorAsync(i));
 
+            var launchOptions = group.Servers.Select(entry => entry.Options.ToServerLaunchOptions()).ToArray();
             using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
-            while (true) {
-                if (dashboard.StopRequested()) stop.Cancel();
+            try {
+                while (true) {
+                    if (dashboard.StopRequested()) stop.Cancel();
+                    RenderSnapshots();
+                    if (stop.IsCancellationRequested || tasks.All(task => task.IsCompleted)) break;
+                    if (tasks.Any(task => task.IsFaulted))
+                        await Task.WhenAll(tasks.Where(task => task.IsFaulted));
+                    if (!await timer.WaitForNextTickAsync(stop.Token)) break;
+                }
+            }
+            finally {
+                monitoring.Cancel();
+                await Task.WhenAll(tasks);
+                RenderSnapshots();
+            }
+            return stop.IsCancellationRequested ? 0 : processes.Select(process => process.ExitCode).FirstOrDefault(code => code != 0);
+
+            void RenderSnapshots() {
                 for (var i = 0; i < snapshots.Length; i++) {
                     if (dashboard.IsInteractive && i != dashboard.SelectedTab) continue;
                     var snapshot = Volatile.Read(ref snapshots[i]);
                     if (snapshot is not null) dashboard.Render(processes[i].Id, snapshot.Sample, snapshot.History,
-                        group.Servers[i].Options.ToServerLaunchOptions(), $"[{group.Servers[i].Id}] {snapshot.Status}");
+                        launchOptions[i], $"[{group.Servers[i].Id}] {snapshot.Status}");
                 }
-                if (stop.IsCancellationRequested || tasks.All(task => task.IsCompleted)) break;
-                if (tasks.Any(task => task.IsFaulted))
-                    await Task.WhenAll(tasks.Where(task => task.IsFaulted));
-                if (!await timer.WaitForNextTickAsync(stop.Token)) break;
             }
-            monitoring.Cancel();
-            await Task.WhenAll(tasks);
-            return stop.IsCancellationRequested ? 0 : processes.Select(process => process.ExitCode).FirstOrDefault(code => code != 0);
 
             async Task MonitorAsync(int index) {
                 var process = processes[index];
                 var monitor = new ServerMonitor(process, query(group.Servers[index].Options));
                 var last = new ServerSample(DateTimeOffset.Now, TimeSpan.Zero, null, null, null, null, null, false);
                 Volatile.Write(ref snapshots[index], new(last, monitor.History.Snapshot(), "Starting"));
-                if (!process.HasExited) {
-                    await monitor.RunAsync((sample, history) => {
-                        last = sample;
-                        Volatile.Write(ref snapshots[index], new(sample, history.Snapshot(), "Running"));
-                    }, monitoring.Token);
-                }
+                await monitor.RunAsync((sample, history) => {
+                    last = sample;
+                    Volatile.Write(ref snapshots[index], new(sample, history.Snapshot(), "Running"));
+                }, monitoring.Token);
                 var status = process.HasExited ? $"Exited (code {process.ExitCode}); last recorded metrics" : "Stopping";
                 Volatile.Write(ref snapshots[index], new(last, monitor.History.Snapshot(stopped: process.HasExited), status));
             }
@@ -72,8 +79,7 @@ internal static class ServerGroupRunner {
             foreach (var process in processes) {
                 try {
                     if (!process.HasExited) {
-                        process.Kill(entireProcessTree: true);
-                        await process.WaitForExitAsync();
+                        await process.StopAsync();
                     }
                 }
                 catch (Exception) { failedStops.Add(process.Id); }

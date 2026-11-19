@@ -1,11 +1,9 @@
 using StructuredINI;
-using System.Diagnostics;
 using System.Net;
 using UnchainedLauncher.Core.INIModels.Game;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using UnchainedLauncher.Core.Services.Server.A2S;
@@ -14,23 +12,24 @@ using UnchainedLauncher.Core.Utilities;
 namespace UnchainedLauncher.CLI;
 
 public static class ServerLauncher {
-    public static async Task<Process> LaunchAsync(CliLaunchOptions request, CancellationToken cancellationToken) {
+    public static async Task<LaunchedGame> LaunchAsync(CliLaunchOptions request, CancellationToken cancellationToken) {
         var options = request.Shared;
-        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Game launching requires Windows (Core's DLL injector uses kernel32.dll).");
+        await ProtonRuntime.ConfigureAsync(request, cancellationToken);
         var executable = Path.Combine(options.Chivalry2Path, FilePaths.GameBinPath);
         var basePakPath = Path.Combine(options.Chivalry2Path, FilePaths.PakDir);
-        var instance = (request as ServerOptions)?.InstancePaths;
+        var instance = request.InstancePaths;
         if (!File.Exists(executable)) throw new FileNotFoundException("Chivalry 2 shipping executable was not found. Check --chivalry2-path.", executable);
         if (!Directory.Exists(basePakPath)) throw new DirectoryNotFoundException($"Chivalry 2 Paks directory was not found: {basePakPath}");
+        await PluginLogging.PrepareAsync(request, cancellationToken);
 
         var registry = CreateRegistry(request);
 
         return await InInstallationDirectoryAsync(request, async () => {
-            var cachePath = instance?.ModMetadata ?? Path.Combine(options.Chivalry2Path, FilePaths.ModCachePath, "cli_mod_manager.json");
+            var cachePath = instance.ModMetadata;
             var codec = new ModManagerCodec(registry);
             // Core reconciles physical ownership across hosts immediately before installing.
             // CLI selection comes only from this request, never from a cached GUI selection.
-            var manager = CreateModManager(request, registry);
+            var manager = CreateModManager(request, registry, cancellationToken);
             Console.Error.WriteLine("Loading mod registries...");
             var fetched = await manager.UpdateModsList();
             cancellationToken.ThrowIfCancellationRequested();
@@ -44,64 +43,73 @@ public static class ServerLauncher {
                 var appIdPath = Path.Combine(options.Chivalry2Path, FilePaths.SteamAppIdPath);
                 if (!File.Exists(appIdPath)) File.WriteAllText(appIdPath, "1824220");
             }
-            var dialogue = new ConsoleDialogue();
             var pluginUpdater = CreateDllSession(request, registry, manager, cancellationToken);
-            var modInstaller = new Chivalry2ModsInstaller(manager, dialogue);
-            var signing = SigPreparer.Create(manager.PakDir, dialogue);
-            // Call preparers sequentially so each receives the previous result.
-            // Always save the managed-pak inventory, even after a partial installation.
-            var preparer = Chivalry2LaunchPreparer.Create<LaunchOptions>(async launch => {
-                cancellationToken.ThrowIfCancellationRequested();
-                var updated = await pluginUpdater.PrepareLaunch(launch);
-                cancellationToken.ThrowIfCancellationRequested();
-                if (updated.IsNone) return LanguageExt.Option<LaunchOptions>.None;
-                try {
-                    updated = await modInstaller.PrepareLaunch(updated.IfNone(launch));
-                }
-                finally {
-                    codec.SerializeFile(cachePath, manager);
-                }
-                cancellationToken.ThrowIfCancellationRequested();
-                if (updated.IsNone || (await signing.PrepareLaunch(LanguageExt.Unit.Default)).IsNone)
-                    return LanguageExt.Option<LaunchOptions>.None;
-                cancellationToken.ThrowIfCancellationRequested();
-                InitializeServerProfile(request);
-                return updated;
-            });
-            var launcher = new UnchainedChivalry2Launcher(preparer, new ProcessLauncher(executable),
-                options.Chivalry2Path, pluginUpdater);
-            var result = await launcher.Launch(request.ToLaunchOptions());
-            return result.Match(
-                Right: process => process,
-                // Do not print LaunchFailed.Message: it contains raw password/auth arguments.
-                Left: failure => throw new InvalidOperationException("Game launch or DLL injection failed. Check the installation, plugin, and mod files.", failure));
+            var preparer = CreateLaunchPreparer(request, manager, pluginUpdater, codec, cachePath, cancellationToken);
+            if (options.Proton != null) {
+                var prepared = await preparer.PrepareLaunch(request.ToLaunchOptions());
+                if (prepared.IsNone) throw new InvalidOperationException("Launch preparation was cancelled.");
+                return await ProtonGameLauncher.LaunchAsync(request, prepared.IfNone(request.ToLaunchOptions()), pluginUpdater, cancellationToken);
+            }
+            return await NativeGameLauncher.LaunchAsync(executable, options.Chivalry2Path,
+                request.ToLaunchOptions(), preparer, pluginUpdater, forwardConsole: request is ServerOptions);
+        });
+    }
+
+    internal static IChivalry2LaunchPreparer<LaunchOptions> CreateLaunchPreparer(CliLaunchOptions request,
+        ModManager manager, DllLaunchSession pluginUpdater, ModManagerCodec codec, string cachePath,
+        CancellationToken cancellationToken = default) {
+        var dialogue = new ConsoleDialogue();
+        var modInstaller = new Chivalry2ModsInstaller(manager, dialogue);
+        var signing = SigPreparer.CreateForProfile(manager.PakDir, dialogue);
+        // Call preparers sequentially so each receives the previous result.
+        // Always save the managed-pak inventory, even after a partial installation.
+        return Chivalry2LaunchPreparer.Create<LaunchOptions>(async launch => {
+            cancellationToken.ThrowIfCancellationRequested();
+            var updated = await pluginUpdater.PrepareLaunch(launch);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (updated.IsNone) return LanguageExt.Option<LaunchOptions>.None;
+            // DLL preparation can enable older pak releases with different dependencies.
+            ValidateReleases(manager, request.Shared.Mods);
+            try {
+                updated = await modInstaller.PrepareLaunch(updated.IfNone(launch));
+            }
+            finally {
+                codec.SerializeFile(cachePath, manager);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (updated.IsNone || (await signing.PrepareLaunch(LanguageExt.Unit.Default)).IsNone)
+                return LanguageExt.Option<LaunchOptions>.None;
+            cancellationToken.ThrowIfCancellationRequested();
+            InitializeServerProfile(request);
+            return updated;
         });
     }
 
     internal static AggregateModRegistry CreateRegistry(CliLaunchOptions options) =>
         options.Shared.RegistryOptions.CreateRegistry();
 
-    internal static ModManager CreateModManager(CliLaunchOptions request, AggregateModRegistry registry) {
-        var basePakPath = Path.Combine(request.Shared.Chivalry2Path, FilePaths.PakDir);
-        return new ModManager(registry, (request as ServerOptions)?.InstancePaths.CreatePakDir(basePakPath)
-            ?? new PakDir(basePakPath, []), request.Shared.Mods.Distinct());
+    internal static ModManager CreateModManager(CliLaunchOptions request, AggregateModRegistry registry, CancellationToken cancellationToken = default) {
+        return new ModManager(registry, request.InstancePaths.CreatePakDir(request.Shared.Chivalry2Path, cancellationToken), request.Shared.Mods.Distinct());
     }
 
     internal static DllLaunchSession CreateDllSession(CliLaunchOptions request, AggregateModRegistry registry,
         IModManager manager, CancellationToken cancellationToken = default, HttpClient? client = null) =>
-        new(registry, manager, (request as ServerOptions)?.InstancePaths.Plugins
-            ?? Path.Combine(request.Shared.Chivalry2Path, FilePaths.PluginDir),
-            request.Shared.Dlls, request.Shared.UnsafeLoadAllDlls, cancellationToken, client);
+        new(registry, manager, request.InstancePaths.Plugins,
+            request.Shared.Dlls, request.Shared.UnsafeLoadAllDlls, cancellationToken, client, request.Shared.Assets.DllCache);
 
     internal static void InitializeServerProfile(CliLaunchOptions request, Func<string, string>? configPath = null) {
-        if (request is not ServerOptions) return;
+        if (request is not ServerOptions server) return;
 
-        var directory = (configPath ?? FilePaths.Chiv2ConfigPath)(request.Shared.SavedDirSuffix);
+        var directory = configPath != null ? configPath(server.GameSavedDirSuffix)
+            : Path.Combine(Path.GetDirectoryName(request.Shared.Assets.Root)!, "Config", "WindowsNoEditor");
         // Match the GUI's startup defaults without rewriting unrelated server or player settings.
         var writer = new StructuredINIWriter();
-        if (!writer.BufferWrite(new TBLTitleScreen()) || !writer.BufferWrite(new TBLGameInstance()) ||
-            !writer.WriteOut(Path.Combine(directory, "Game.ini")))
+        if (!writer.BufferWrite(new TBLTitleScreen()) || !writer.BufferWrite(new TBLGameInstance()))
             throw new IOException("Could not initialize the server INI profile; refusing to launch.");
+        var files = new Dictionary<string, StructuredINIWriter>(StringComparer.OrdinalIgnoreCase) { ["Game"] = writer };
+        server.Ini.BufferInto(files);
+        server.Settings.Rotation?.BufferInto(writer);
+        IniPatches.Write(directory, files);
     }
 
     // Several existing Core preparers use installation-relative paths.
@@ -135,12 +143,21 @@ public static class ServerLauncher {
                     throw new InvalidOperationException($"Core did not resolve dependency {dependency.Organization}/{dependency.RepoName} for the requested release. Its current resolver uses latest-release dependency metadata.");
             }
         }
+        var selected = releases.Select(ReleaseCoordinates.FromRelease).ToHashSet();
+        var sorted = manager.SortByDependencies(releases).ToArray();
+        if (!selected.SetEquals(sorted.Select(ReleaseCoordinates.FromRelease)))
+            throw new InvalidOperationException("Mod dependencies contain a cycle; refusing to install an incomplete pak set.");
+        var preceding = new HashSet<ModIdentifier>();
+        foreach (var release in sorted) {
+            if (release.Info.EffectiveModDependencies.Any(dependency => !preceding.Contains(ModIdentifier.FromDependency(dependency))))
+                throw new InvalidOperationException("Selected mod dependencies contain a cycle or violate the resolved pak order; refusing to install.");
+            preceding.Add(ModIdentifier.FromRelease(release));
+        }
     }
 
     public static IA2S CreateQuery(ServerOptions options) {
         var address = options.Settings.LocalIp is null ? IPAddress.Loopback : IPAddress.Parse(options.Settings.LocalIp);
         if (address.Equals(IPAddress.Any)) address = IPAddress.Loopback;
-        if (address.Equals(IPAddress.IPv6Any)) address = IPAddress.IPv6Loopback;
         return new A2S(new IPEndPoint(address, options.Settings.QueryPort));
     }
 }

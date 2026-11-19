@@ -10,6 +10,10 @@ namespace UnchainedLauncher.Core.Services.Processes {
     public interface IProcessLauncher {
         string Executable { get; }
         public Either<LaunchFailed, Process> Launch(string workingDirectory, string args);
+
+        // Diagnostic launchers and test doubles do not own a suspended native thread.
+        public Either<LaunchFailed, Process> Launch(string workingDirectory, string args, Func<Process, bool> initialize) =>
+            Launch(workingDirectory, args).Bind(process => ProcessLauncher.Initialize(process, initialize, Executable, args));
     }
 
     public class PowershellProcessLauncher : IProcessLauncher {
@@ -52,9 +56,34 @@ namespace UnchainedLauncher.Core.Services.Processes {
         private static readonly ILog Logger = LogManager.GetLogger(nameof(ProcessLauncher));
 
         public string Executable { get; }
+        private readonly ProcessOutputCapture? _output;
 
-        public ProcessLauncher(string executable) {
+        public ProcessLauncher(string executable) : this(executable, null) { }
+
+        public ProcessLauncher(string executable, ProcessOutputCapture? output) {
             Executable = executable;
+            _output = output;
+        }
+
+        public Either<LaunchFailed, Process> Launch(string workingDirectory, string args, Func<Process, bool> initialize) {
+            if (OperatingSystem.IsWindows())
+                return SuspendedProcessLauncher.Launch(Executable, workingDirectory, args, initialize, _output);
+            // Game launching is Windows-only; retain portable argument-probe support.
+            return Launch(workingDirectory, args).Bind(process => Initialize(process, initialize, Executable, args));
+        }
+
+        internal static Either<LaunchFailed, Process> Initialize(Process process, Func<Process, bool> initialize,
+            string executable, string args) {
+            try {
+                if (initialize(process)) return Right(process);
+                throw new InvalidOperationException("DLL injection failed.");
+            }
+            catch (Exception error) {
+                try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
+                catch (Exception cleanupError) { Logger.Error("Could not terminate failed launch.", cleanupError); }
+                finally { process.Dispose(); }
+                return Left(new LaunchFailed(executable, args, error));
+            }
         }
 
         /// <summary>
@@ -67,6 +96,8 @@ namespace UnchainedLauncher.Core.Services.Processes {
         /// The process that was created.
         /// </returns>
         public Either<LaunchFailed, Process> Launch(string workingDirectory, string args) {
+            if (_output != null && OperatingSystem.IsWindows())
+                return SuspendedProcessLauncher.Launch(Executable, workingDirectory, args, _ => true, _output);
             var proc = new Process {
                 StartInfo = new ProcessStartInfo() {
                     FileName = Executable,

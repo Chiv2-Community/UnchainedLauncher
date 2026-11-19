@@ -1,6 +1,16 @@
 # Launcher CLI
 
 This project launches an Unchained Chivalry 2 **client or server**, without the WPF GUI.
+On Windows, the shared game launcher creates the game suspended, injects DLLs,
+then resumes its main thread. Failed injection terminates the suspended game.
+On Linux, the native CLI invokes Proton with a bundled Windows launch helper.
+Steam and Epic Games Store/Heroic installations are supported; Epic authentication
+comes from the existing Heroic/Legendary login flow, not Steam.
+The native Rust helper uses Windows suspended launch and injection APIs; the TUI stays in
+the invoking Linux terminal. Only the game and helper run under Proton.
+CLI servers also pass TOS-acceptance and first-load-completed INI overrides to
+avoid interactive first-run screens. The CLI also initializes the game's saved profile.
+Profile-local paks use the game's native `Saved_<suffix>/Paks` search directory.
 It uses Core for mod installation, plugin updates, signature preparation,
 process launching, DLL injection, and A2S queries.
 
@@ -21,16 +31,24 @@ dotnet run --project UnchainedLauncher.CLI -c Release -- server `
   --platform Steam `
   --saved-dir-suffix MyServer `
   --name "My Unchained Server" `
-  --map FFA_Courtyard
+  --starting-map FFA_Courtyard `
+  --dll Chiv2-Community/UnchainedPlugin:v1.0.0-RC3 `
+  --mod Chiv2-Community/Unchained-Mods:v0.1.0 `
+  --mod Chiv2-Community/Chiv2Turbo:v0.0.4 `
+  --server-mod /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C
 ```
 
 The path is the installation root containing `TBL`, not the Win64 directory.
+The example pins registered releases.
 The server is headless by default (`-nullrhi -unattended -nosound`); use
 `--headless false --no-desync-patch` to render it (the desync patch only supports
 headless servers). The plugin is installed
 or updated from the latest stable UnchainedPlugin release by default. Use
-`--no-plugin-update` to keep your installed `UnchainedPlugin.dll`; it must already
-exist. `--allow-unstable-plugin` permits prerelease plugin updates.
+`--no-plugin-update` to disable DLL downloads, not version selection; all required
+registered DLL versions must already be installed or cached. To retain a desired
+registered plugin version, pin its exact tag with
+`--dll Chiv2-Community/UnchainedPlugin:<tag>`.
+`--allow-unstable-plugin` permits automatic prerelease selection.
 
 For deployment without a .NET runtime:
 
@@ -39,8 +57,167 @@ dotnet publish UnchainedLauncher.CLI -c Release -r win-x64 --self-contained true
 .\out-cli\UnchainedLauncher.CLI.exe server --help
 ```
 
-Help, parsing, and the unit tests also work on Linux. Actual game launching and
-DLL injection require Windows; Wine/Proton launching is not implemented.
+### Linux with Proton
+
+Use x86-64 Linux and publish the native CLI with its Windows helper. The example
+below is for **Steam**: keep Steam running and launch through Steam once to
+initialize its prefix. Epic users use the same published bundle but follow
+[Epic/Heroic setup](#epic-games-store-and-heroic-on-linux) instead; Steam is not a
+prerequisite for that store.
+
+Building on Linux also requires Rust, the `x86_64-pc-windows-msvc` target
+(`rustup target add x86_64-pc-windows-msvc`), Clang/LLD, and `uv`.
+The build invokes `uvx cargo-xwin` to cross-compile the helper; its first run
+downloads the Windows SDK/CRT. The helper links the CRT statically and has no
+.NET runtime dependency. Published binaries do not require these build tools.
+
+```bash
+dotnet publish UnchainedLauncher.CLI -c Release -r linux-x64 --self-contained true -o out-cli-linux
+./out-cli-linux/UnchainedLauncher.CLI server \
+  --chivalry2-path "$HOME/.local/share/Steam/steamapps/common/Chivalry 2" \
+  --platform Steam \
+  --saved-dir-suffix MyServer \
+  --name 'My Unchained Server' \
+  --starting-map FFA_Courtyard
+```
+
+Linux publication produces one executable, including the Linux .NET runtime and
+native Windows helper; .NET extracts its contents automatically at startup. Updated
+bundles extract into their own content-specific directories. Ordinary Linux builds
+copy the helper beside the CLI. Do not run the Windows CLI under Proton. Press `Q`
+or Ctrl+C in the native terminal to stop a server. Client launches leave the game
+running independently.
+
+Discovery uses Steam's `libraryfolders.vdf` and game app manifest to locate the
+game library and its `steamapps/compatdata/1824220` directory. Tool selection
+honors `STEAM_COMPAT_TOOL_PATHS` or Steam's configured compatibility-tool name.
+Ambiguous or unknown tools require an explicit `--proton-path`; the CLI does not
+silently pick a different installed Proton version.
+
+Overrides for nonstandard installations:
+
+- `--proton-path`: Proton executable or its containing directory.
+- `--compat-data-path`: compatibility-data directory **containing `pfx`**, not
+  `pfx` itself. Also honors `STEAM_COMPAT_DATA_PATH` and standard `WINEPREFIX`
+  pointing to a Proton `pfx` directory.
+- `--steam-path`: Steam client directory, also read from
+  `STEAM_COMPAT_CLIENT_INSTALL_PATH`. Standard and Flatpak Steam locations are searched.
+- `--proton-helper`: helper executable for development; published builds locate
+  their bundled helper automatically.
+
+The same settings are available under root-level `proton` in YAML:
+
+```yaml
+proton:
+  path: /path/to/Proton/proton
+  compat-data-path: /path/to/steamapps/compatdata/1824220
+  steam-path: /path/to/Steam
+```
+
+YAML paths resolve relative to the configuration file. Wine's known-folder API
+provides `LocalAppData`; `winepath` translates paths between the native host and
+the selected prefix. The CLI never assumes a Windows username or constructs
+`drive_c/users/steamuser` paths. Profile paks, plugins, INI files, and caches use
+the same `Saved_<suffix>` layout as Windows inside that prefix.
+
+On Linux, selected DLLs are injected directly from content-addressed cache paths
+outside `Plugins`; inventories remain per-profile. Switching versions or
+deselecting a DLL does not delete old installed files or cache objects. Only the
+selected descriptors are injected (unless unsafe loading is explicitly enabled).
+Windows retains managed installation and handle-protected archival.
+
+DLLs are registry-validated natively, then hash/size-checked again and held open
+by the helper before injection. Per-launch IPC is private and never puts game
+credentials on the helper's command line. The native monitor uses the game's
+Unix PID for resource metrics and the helper for exit status. Cancellation stops
+only the owned game, never the prefix-wide wineserver. If a server's CLI dies
+unexpectedly, the helper stops its game after the heartbeat expires.
+
+For Linux Epic/Heroic launches, see below. macOS game launching is unsupported.
+Registry queries remain portable and do not require Proton.
+
+### Epic Games Store and Heroic on Linux
+
+Both `server` and `client` accept `--platform EGS` (`EpicGamesStore` is equivalent).
+Use the Heroic-installed game directory for `--chivalry2-path`; the CLI does not
+download the game, sign in to Epic, or select a Heroic account.
+
+1. Install and launch the game through Heroic once using a **Proton** runner.
+   This initializes its compatibility-data directory containing `pfx/system.reg`.
+   Wine-only/Wine-GE prefixes are not supported by the CLI's Proton backend.
+2. Sign in through Heroic/Legendary. Native Heroic/Legendary requires a compatible
+   `legendary` command on `PATH`; matching Flatpak Heroic installations use their
+   bundled Legendary through `flatpak`, without a native Legendary installation.
+3. Launch the native CLI with `--platform EGS`. When the installed game path
+   matches Heroic's `Peppermint` entry, the CLI reuses its selected Proton executable
+   and prefix. Discovery reads native `$XDG_CONFIG_HOME/heroic` (default
+   `~/.config/heroic`) and Flatpak
+   `~/.var/app/com.heroicgameslauncher.hgl/config/heroic` settings.
+
+For custom locations, stale Heroic settings, or a separate initialized server
+prefix, override both `--proton-path` and `--compat-data-path`. The latter is the
+directory **containing `pfx`**, not `pfx` itself. `WINEPREFIX` pointing at that
+`pfx` also works. Explicit flags and Proton environment overrides take precedence
+over Heroic settings. Do not substitute an uninitialized directory or a different
+runner into an active prefix.
+
+Steam installation, Steam login, and Steam game manifests are **not required for
+EGS**. The CLI does not assign Chivalry 2's Steam app ID to Epic launches or choose
+Epic's runner from Steam's game settings. An explicitly selected Proton build may
+still require its normal host/runtime dependencies. Both stores use the same
+plugin injection, stdio capture, and `--no-spawn-console`
+paths.
+
+On each Linux EGS launch, the CLI automatically obtains fresh launch arguments
+noninteractively from Legendary using the matching Heroic login directory, or
+Legendary's default login when no Heroic installation matches. Authentication is
+cancellable and times out after 60 seconds. `LEGENDARY_CONFIG_PATH` overrides the
+login directory; use the account associated with the installed game.
+
+Explicit `AUTH_*` game arguments (after `--`, or in YAML `game-args`) bypass
+automatic authentication. Native Windows EGS launches still require fresh arguments
+from an external Epic launch flow. Missing or expired credentials can leave the
+game at Frontend without a working server.
+
+The CLI does not store credentials or add an Epic login client. Do not save launch
+tokens in YAML, shell history, screenshots, or shared logs; game arguments can
+still be visible to local process inspection.
+
+### Captured server output
+
+Server launches capture stdout and stderr and pass the plugin's `--attach-stdio`
+argument automatically. The launcher creates `<saveddir>/unchained/logging.yaml`
+if missing and passes its path through `--log4rs-yaml`. It selects native log4rs
+JSON on stdout and retains normal text file logs and filters. Existing YAML is
+preserved; edit it to customize logging, or pass an explicit `--log4rs-yaml` game
+argument to use another file. Proton receives the Windows-mapped path.
+`--no-spawn-console` independently
+suppresses its console window. Captured stdin is EOF, not the TUI's keyboard.
+
+Windows supplies ordinary redirected stdio with an explicit handle inheritance
+list. Linux passes redirected handles through the bundled Windows helper using Proton
+`runinprefix`, avoiding the Steam.exe wrapper that discards inherited streams.
+
+The helper is supplied by UnchainedLauncher, not Proton. Its request/heartbeat
+protocol is private and version-coupled to the CLI; deploy the matching bundle.
+For JSON output and integration details, see the plugin's
+[structured logging guide](https://github.com/Chiv2-Community/UnchainedPlugin/blob/feature/console-forwarding/docs/logging.md#structured-logging).
+
+Press **L** to switch between the dashboard and full console, **Page Up/Page Down**
+to scroll, and **End** to resume following new output. Each server has its own
+512-line history; the dashboard also shows a short preview. Plain/no-TUI mode
+prints received lines. Native log4rs JSON records are displayed as timestamp,
+level, module (or target), and message. Other output, including non-JSON startup
+diagnostics and malformed records, remains plain text.
+
+Retained history and displayed lines are bounded; terminal controls are neutralized.
+Output includes game and other DLL output, not just plugin logs. Slow readers can
+block writers. Configure a log4rs JSON file appender for a separate machine-readable
+log with all structured attributes. File appenders remain independent. Interactive
+console commands are not supported.
+
+UE logging switches are not added. Chivalry 2's shipping build does not provide
+UE log output.
 
 ## Mod registry queries
 
@@ -54,13 +231,14 @@ UnchainedLauncher.CLI mod-query get Chiv2-Community/Unchained-Mods
 UnchainedLauncher.CLI mod-query get organization/mod-id --version v1.2.3
 UnchainedLauncher.CLI mod-query versions organization/mod-id
 UnchainedLauncher.CLI mod-query list --add-registry local:./registry
-UnchainedLauncher.CLI mod-query get organization/mod-id --config-path ./server.yaml
+UnchainedLauncher.CLI mod-query get organization/mod-id --config-path ./registry-query.yaml
 ```
 
 The official registry is always included. Repeat `--add-registry` to include
 GitHub, local, or Core JSON-config registries, using the same formats as launch
-commands. `--config-path` reads `mod-setup.registries` from an existing launch
-YAML file instead of the `--add-registry` arguments. YAML-relative paths resolve
+commands. For queries, `--config-path` reads root `mod-setup.registries` from a
+query or client YAML file instead of the `--add-registry` arguments. It does not
+select or merge the per-server registries in server YAML. YAML-relative paths resolve
 relative to that file. Only registry configuration is used: installation,
 platform, client/server settings, mod selections, and plugin policies are not
 required or applied. Query operands and `--version` remain command-line inputs.
@@ -149,19 +327,19 @@ Put reusable launcher settings in YAML instead. Arguments after `--`, including
 ```yaml
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam
-saved-dir-suffix: MyServer
-mod-setup:
-  registries: [] # Official registry remains enabled, even with an empty list.
-  mods: []       # organization/mod-id:exact-release-tag
-  dlls: []       # Optional dll_db coordinates: organization/id:version.
 server:
+  saved-dir-suffix: MyServer
+  mod-setup:
+    registries: [] # Official registry remains enabled, even with an empty list.
+    mods: []       # organization/mod-id:exact-release-tag
+    dlls: []       # Optional dll_db coordinates: organization/id:version.
   name: My Server
   description: My server description
   game-port: 7777
   ping-port: 3075
   query-port: 7071
   rcon-port: 9001
-  map: FFA_Courtyard
+  starting-map: FFA_Courtyard
   mod-actors: [] # Explicit blueprint class paths to activate.
   desync-patch: true
   use-backend-banlist: true
@@ -177,12 +355,15 @@ Separate mode-specific schemas:
   do not create a server dashboard, and return after launching without stopping the game.
 
 Common root options are `server-browser-backend`, `update-plugin` (default true),
-`allow-unstable-plugin` (default false), `no-tui` (default false), and `game-args`
-(list of strings). `server.game-args` or `client.game-args` is appended to the
+`allow-unstable-plugin` (default false), and `game-args` (list of strings).
+The root `no-tui` option (default false) is server-only.
+`server.game-args` or `client.game-args` is appended to the
 common list only for the matching command. The client schema currently supports
-`game-args`; shared installation, platform, plugin, and mod options remain at the root.
+`game-args`; client installation, platform, plugin, mod, and saved-profile options remain at the root.
+For servers, `mod-setup` and `saved-dir-suffix` belong inside `server` or each
+`servers` entry, never at the root. A single unnamed server defaults to `UnchainedCLI`.
 
-The server section supports name, description/MOTD, password, map, local IP,
+The server section supports name, description/MOTD, password, `starting-map`, local IP,
 all four ports, `headless`, `register`, `mod-actors`, `desync-patch`,
 `use-backend-banlist`, and `censor-mode` (`none`, `standard`, `sex`, `zealous`).
 Desync patch and backend banlist **default to true in server mode**; set their
@@ -194,11 +375,102 @@ Local IPv4 is automatically detected from active non-loopback/non-tunnel interfa
 preferring one with a default gateway; it falls back to another usable IPv4 or loopback.
 Set `local-ip` only to override this choice (for example, with a VPN or multiple adapters).
 Time/score/ticket limits, player bot count, and warmup are **INI settings**, not
-part of either CLI schema; configure them in the selected saved profile.
+dedicated launcher flags; configure them in the selected saved profile or `server.ini`.
+Use `starting-map` / `--starting-map`; the former `map` / `--map` names are rejected.
 Before a server launch, the CLI initializes the selected profile's `Game.ini` with
 `bSavedHasAgreedToTOS=True` and `FirstLoadCompleted=True`, matching the GUI's startup
 defaults so first-run screens do not block unattended startup. Other existing INI
 settings are preserved. Client launches do not initialize or rewrite INI files.
+Chivalry removes hyphens from the suffix in its `Saved_<suffix>` directory;
+the CLI initializes that directory. Plugin log paths retain the original suffix.
+
+### Map rotation and profiles
+
+```yaml
+map-profiles:
+  courtyard:
+    map-name: FFA_Courtyard
+
+servers:
+  first:
+    map-rotation:
+      - courtyard
+      - map-name: FFA_Wardenglade
+  second:
+    game-port: 7778
+    ping-port: 3076
+    query-port: 7072
+    rcon-port: 9002
+    map-rotation:
+      - courtyard
+      - map-name: FFA_Bazaar
+```
+
+- Put `map-rotation` inside `server` or each `servers` entry.
+- Entries are inline `{map-name: ...}` objects or exact, case-sensitive keys from root `map-profiles`.
+- A bare string is a profile reference, not a map name.
+- Order and repeated entries are preserved.
+- The first entry is the default starting map.
+- Set `starting-map` to a rotation map-name to start at its first occurrence, matching case-insensitively.
+- Map names accept short names or package paths, without travel options.
+- An explicit rotation must contain at least one entry.
+- Rotation setup replaces only `MapList` and `MapListIndex` in the server's saved `Game.ini`.
+- Omitting `map-rotation` preserves the profile's existing rotation and the normal `starting-map` default.
+- `MapList` is forbidden in `ini`, including typed and `raw` forms.
+- `MapListIndex` cannot be set through `ini` when a rotation is configured.
+- Profile and inline map objects currently accept only `map-name`.
+- Per-map INI and actors remain deferred to [#154](https://github.com/Chiv2-Community/UnchainedLauncher/issues/154) and [#155](https://github.com/Chiv2-Community/UnchainedLauncher/issues/155).
+- Server-level `mod-actors` still apply to every map.
+
+### INI overrides
+
+Nest `ini` under `server` or a named `servers` entry. Its shape is
+`file category -> section -> field -> value`:
+
+```yaml
+server:
+  ini:
+    Game:
+      /Script/TBL.TBLGameMode:
+        BotBackfillEnabled: true
+        ClassLimits:
+          - Class: Poleman
+            ClassLimitPercent: 10
+          - Class: Archer
+            ClassLimitPercent: 0
+        SomeUnknownOption:
+          type: String
+          value: example
+        SomeOtherUnknownOption:
+          type: raw
+          value: SomeStructuredThing(foo, bar, 10, baz, false)
+```
+
+- Known fields infer their type from Core's INI models. They also accept
+  `{value: ...}` or `{type: Boolean, value: true}`. An explicit known-field type
+  must match its definition, unless it is `raw`.
+- Unknown fields require both `type` and `value`; a bare value fails with instructions.
+- Types are case-insensitive: `String`, `Boolean` (`Bool`), `Int32` (`Int`),
+  `Single` (`Float`), `Double`, `Decimal`, `CharacterClass`, `ClassLimit`,
+  `AutoBalance`, and `CallbackList`. Append `[]` for an array, for example
+  `{type: 'String[]', value: [one, two]}`. Quote array type names in YAML flow mappings.
+- Records accept named members or positional lists in constructor order:
+  `ClassLimit` uses `[Class, ClassLimitPercent]`; `AutoBalance` uses
+  `[MinNumPlayers, MaxNumPlayers, AllowedNumPlayersDifference]`.
+  `CallbackList` accepts a list of strings. Numbers use invariant decimal notation;
+  enum values must be named members. Values are not rescaled (10 stays 10).
+- Typed values patch only selected keys in the server's saved-profile INI files.
+  Arrays replace that field's existing entries; `[]` explicitly clears it.
+  Other keys and sections are preserved. These changes persist after the server exits;
+  omitting a field on a later launch does not undo it.
+- Use `map-rotation`, not an INI `MapList` override, to configure maps.
+- `raw` requires a string and bypasses type parsing and validation. Its exact value
+  is escaped for transport in one `-ini:` argument, not written to the profile.
+  It cannot override an array: Unreal's command-line INI overrides do not support arrays.
+- File categories have no path or `.ini` extension (`Game`, `Engine`, etc.).
+  All overrides are validated before preparation. Explicit INI `ServerName` and
+  startup-screen fields take precedence over the launcher's generated defaults.
+  Forwarded `game-args` remain explicit user arguments; avoid conflicting INI overrides there.
 
 Discord configuration is nested under the server:
 
@@ -224,18 +496,17 @@ Use a `servers` dictionary instead of the single `server` block:
 ```yaml
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam
-saved-dir-suffix: MyHost
 servers:
   courtyard:
     name: Courtyard FFA
-    map: FFA_Courtyard
+    starting-map: FFA_Courtyard
     game-port: 7777
     ping-port: 3075
     query-port: 7071
     rcon-port: 9001
   arena:
     name: Arena FFA
-    map: FFA_Courtyard
+    starting-map: FFA_Courtyard
     game-port: 7778
     ping-port: 3076
     query-port: 7072
@@ -247,25 +518,37 @@ See [the multi-server example](examples/servers.yaml). The existing `server` sch
 and individual CLI launch arguments still launch one server.
 
 - Keys are tab IDs: unique, case-insensitive letters, digits, underscores, and hyphens.
-- Each entry accepts the same fields as `server`, including its own actors,
-  arguments, password, and Discord settings. Installation, platform, registry,
-  pak/DLL selections, and common arguments remain shared at the root; files are
-  prepared separately in each instance directory.
-- Profiles default to `<saved-dir-suffix>-<id>`. Set `saved-dir-suffix` inside an
-  entry to override it. Profile names must be distinct, ignoring case.
-- Server paks, DLLs, inventories, and DLL caches live under
-  `<installation>/.unchained/servers/Server-<saved-dir-suffix>/`, in `Paks`,
-  `Plugins`, and `.cache/dlls` subdirectories. This also applies to single-server
-  launches. Directories persist for reuse; a per-instance lock prevents concurrent
+- Each entry accepts the same fields as `server`, including its own `mod-setup`,
+  `ini`, actors, arguments, password, and Discord settings. Installation, platform,
+  plugin-update policy, and common arguments remain shared at the root.
+  Registries and pak/DLL selections are independent; verified bytes share the cache.
+- Profiles default to the server key (`courtyard`, `arena`). Set `saved-dir-suffix` inside an
+  entry to override it. Profile names must be distinct, ignoring case and hyphens.
+- Active paks live under `%LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/Paks`;
+  DLLs remain under `%LOCALAPPDATA%/Chivalry 2/Saved_<suffix>/unchained/plugins`.
+  Hyphens are removed from the saved suffix, matching the game. This also applies to
+  clients; the default client suffix is `unchained`. A per-profile lock prevents concurrent
   CLI processes from using the same profile. Plugin injection never scans another
   instance's directory, including with the unsafe flag.
-- The launcher supplies `--additional-pak-dir <absolute instance Paks path>`.
-  **This requires an UnchainedPlugin release supporting that option.** Do not pass
-  the option manually through `game-args`. Signatures use the installation's base
+- The game discovers profile paks without an additional plugin argument.
+  Managed filenames use `<mod>_<order>_P.pak`, using Unreal's native patch priority
+  instead of alphabetical prefixes. Orders start at zero in dependency order;
+  higher numbers override lower numbers, so dependents override their dependencies
+  and all managed mods override vanilla assets. Collision counters stay before
+  the order suffix, for example `SomeMod (1)_2_P.pak`.
+  Signatures use the installation's base
   signature as a read-only template; no base pak is copied or modified.
-- The plugin option adds a mount directory; it does not suppress game-wide paks
+- Relaunch with the desired `--mod` selections to install them into `Paks`.
+  Old files under `unchained/paks` are not migrated or deleted automatically.
+- Profile-local discovery does not suppress game-wide paks
   already present in `TBL/Content/Paks`. Existing global mods may still affect all
   instances. The launcher does not move or delete them during instance setup.
+- Shared caches live under `%LOCALAPPDATA%/Chivalry 2/unchained/cache/{paks,dlls}`.
+  Pak objects are keyed by SHA-512 and downloaded once under a per-object lock.
+  Profiles use hard links when supported, or copies from cache across volumes or
+  unsupported filesystems. Cache objects and linked paks must not be edited in place.
+  Signatures stay profile-local. Windows may prevent removal or reordering of a
+  linked pak while another process holds that file open; stop affected servers first.
 - Assign all four ports to each server. Every port must be distinct across the
   entire group, even when local IPs differ. Defaults are not automatically offset.
 - All entries are validated before launch. Startup is sequential because Core
@@ -337,18 +620,19 @@ paths from release metadata:
 --server-mod /Game/Mods/Example/BP_Example.BP_Example_C
 ```
 
-Core shares physical managed-pak ownership between GUI and CLI through
-`<installation>\TBL\Content\Paks\.unchained_managed_paks.json`, updated after mod
-preparation (including partial failures). On first use it migrates ownership from
-both existing host caches; later host snapshots cannot replace this inventory.
-The CLI still saves its own metadata in `.mod_cache\cli_mod_manager.json`, but
+Core records physical managed-pak ownership in each active pak directory's
+`.unchained_managed_paks.json`, updated after preparation, including partial failures.
+That inventory is shared by hosts using the same profile; it does not authorize
+changes to another profile or to legacy installation-wide paks.
+The CLI saves its metadata in the profile's `unchained/cli_mod_manager.json`, but
 never overwrites GUI configuration or reuses the GUI's enabled-mod selection.
 Each launch reconciles the installed managed set with that host's selected releases;
 genuinely unmanaged user paks are preserved.
 Core's installation pipeline changes the installed managed pak set and signatures.
-Client launches and the GUI share the installation's managed pak set; do not prepare
-those concurrently. CLI servers instead prepare paks and inject DLLs from private
-instance directories. They still need separate saved suffixes/ports; CLI startup
+The GUI installs paks in each launch profile's `Saved_<suffix>/Paks` directory,
+using a shared GUI mod selection and shared `Saved_unchained/unchained/plugins` DLLs.
+CLI mod and DLL selections remain request-specific. CLI profiles
+need separate saved suffixes/ports; CLI startup
 preparation remains sequential because some Core operations change CWD and metadata.
 
 ## DLL compatibility behavior
@@ -356,28 +640,38 @@ preparation remains sequential because some Core operations change CWD and metad
 GUI and CLI share DLL registry validation, managed storage, caching, and injection.
 The CLI selects UnchainedPlugin from `dll_db` for each launch; GUI selections stay
 in the Plugin Manager's saved profile.
-`--dll organization/id:version` (or YAML `mod-setup.dlls`) additionally selects
+`--dll organization/id:version` (or each server's YAML `mod-setup.dlls`) additionally selects
 registry releases in CLI launches. Plugin dependencies are resolved before their
 dependents; target mismatches, missing releases, cycles, and conflicting versions
 fail preparation. Pak dependencies enter the shared mod manager.
 
 Every selected DLL must match the registry's SHA-256 and size. Downloads are
 verified before installation. Active DLLs use
-`Plugins/Managed/<organization>/<repository>/<dll_file_name>`; inactive registered
-versions use `Win64/.cache/dlls/<sha256>/<dll_file_name>`. Switching versions restores
-validated cached files without downloading again. Registered files in historical
-`Managed` hash directories or `.dll-managed` directories migrate after validation.
+`plugins/Managed/<organization>/<repository>/<dll_file_name>` under the selected
+profile's `unchained` directory; inactive registered versions use the shared
+`unchained/cache/dlls/<sha256>/<dll_file_name>`. Switching versions restores
+validated cached files without downloading again.
+Active DLLs use hard links to validated cached bytes where supported, with an atomic
+copy fallback across volumes or on unsupported filesystems. Concurrent preparations
+serialize downloads per cache object. Never edit cached or linked DLLs in place.
+If Windows blocks removal of a DLL linked to a running peer, stop that peer before
+changing versions; preparation fails rather than modifying shared bytes.
+Registered files in historical `Managed` hash directories or `.dll-managed`
+directories migrate after validation.
 Loose DLLs, unknown filenames, and unregistered versions stay untouched and are
 not loaded in safe mode. CLI selections never overwrite the GUI plugin profile.
-`Plugins/dll_manager.json` records the last successful selection.
+`plugins/dll_manager.json` records the last successful CLI selection.
 Safe injection uses only that launch's verified allowlist, not the directory or
 the saved inventory. The unsafe load-all option retains other DLLs for injection.
 `--no-plugin-update` forbids downloads but permits restoring cached versions.
+It does not retain the installed version; pin the desired registered tag with
+`--dll Chiv2-Community/UnchainedPlugin:<tag>` and install or cache every required DLL.
 Only explicitly pinned prereleases (or `--allow-unstable-plugin` for automatic
 selection) are eligible; automatic selection otherwise uses the latest stable.
 
-Other DLLs in `<installation>\TBL\Binaries\Win64\Plugins` are not enumerated
-for injection unless this exact command-line flag is explicitly supplied:
+Other DLLs in the selected profile's `unchained/plugins` directory are not enumerated
+for injection unless this exact command-line flag is explicitly supplied. Legacy
+installation-wide plugin directories are left untouched and are never scanned:
 
 ```text
 --unsafe-very-dangerous-load-all-dlls
@@ -404,9 +698,9 @@ Run `server --help` for the full option list. Additional settings include:
 
 | Option | Default / behavior |
 | --- | --- |
-| `--saved-dir-suffix` | `UnchainedCLI`; letters, digits, `_`, and `-` only |
+| `--saved-dir-suffix` | client: `unchained`; server: `UnchainedCLI`; letters, digits, `_`, and `-` only |
 | `--name`, `--description`, `--password` | Name, description/MOTD, optional password |
-| `--map` | `FFA_Courtyard` |
+| `--starting-map` | `FFA_Courtyard` |
 | `--game-port` | `7777` |
 | `--ping-port` | `3075` |
 | `--query-port` | `7071` (A2S) |
@@ -434,9 +728,11 @@ UnchainedLauncher.CLI.exe server --chivalry2-path "C:\Games\Chivalry 2" --platfo
 ```
 
 `--platform Steam` creates `steam_appid.txt` with Chivalry 2's app ID if it is missing;
-Steam must be available for authentication. `--platform EGS` does not obtain Epic
-credentials. Supply the current Epic launch/authentication arguments after `--`
-from your existing EGS launch flow. Selecting EGS alone does not authenticate you.
+Steam must be available for authentication. On Linux, `--platform EGS` obtains
+fresh arguments from the existing Heroic/Legendary login unless explicit `AUTH_*`
+game arguments are supplied; see [Epic/Heroic setup](#epic-games-store-and-heroic-on-linux).
+On native Windows, supply fresh Epic launch/authentication arguments after `--`
+from your external EGS launch flow.
 Avoid exposing authentication arguments and passwords in shared scripts or process listings.
 
 ## Live dashboard and shutdown
@@ -481,4 +777,7 @@ dotnet test UnchainedLauncher.CLI.Tests -c Release
 
 Tests cover parsing, Core option mapping, registry configuration, dependency checks,
 bounded history, unavailable telemetry, and monitor cancellation without a game installation.
-Windows CI builds, tests, and publishes the CLI separately from the GUI.
+Proton tests cover Steam metadata, library symlinks, tool/prefix overrides, private
+IPC directories, argument boundaries, and separate game/supervisor metrics.
+Windows and Linux CI test and publish the CLI separately from the GUI. Linux
+artifacts include the Windows Proton helper; CI does not launch the actual game.

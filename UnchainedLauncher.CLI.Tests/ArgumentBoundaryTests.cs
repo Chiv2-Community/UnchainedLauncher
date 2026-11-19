@@ -34,9 +34,9 @@ public sealed class ArgumentBoundaryTests : IDisposable {
         // Repeat the value so YAML exercises both shared and command-specific forwarding.
         var options = Parse(command, yaml, [argument, argument, "sentinel-after-forwarded"]);
         var expected = new List<string> { "TBL" };
-        if (command == "server") expected.AddRange(["-server", "--additional-pak-dir",
-            Path.Combine(_directory, ".unchained", "servers", "Server-UnchainedCLI", "Paks")]);
-        expected.AddRange([argument, argument, "sentinel-after-forwarded", "-saveddirsuffix=UnchainedCLI", "-unchained"]);
+        if (command == "server") expected.AddRange(["-server", "--attach-stdio", "--log4rs-yaml", options.InstancePaths.Logging]);
+        if (command == "server") expected.AddRange(FirstRunArguments);
+        expected.AddRange([argument, argument, "sentinel-after-forwarded", "-saveddirsuffix=" + options.Shared.SavedDirSuffix, "-unchained"]);
         if (command == "server") expected.AddRange(DefaultServerArguments());
         expected.AddRange(["--server-browser-backend", "https://servers.polehammer.net"]);
 
@@ -51,9 +51,9 @@ public sealed class ArgumentBoundaryTests : IDisposable {
     public async Task GeneratedServerValuesAlsoPreserveBoundaries(bool yaml) {
         const string value = "quoted \"name\"\\\tline\nend\\";
         var options = Assert.IsType<ServerOptions>(Parse("server", yaml, [], value));
-        var expected = new List<string> { "TBL", "-server", "--additional-pak-dir",
-            Path.Combine(_directory, ".unchained", "servers", "Server-UnchainedCLI", "Paks"),
-            "-saveddirsuffix=UnchainedCLI", "-unchained" };
+        var expected = new List<string> { "TBL", "-server", "--attach-stdio", "--log4rs-yaml", options.InstancePaths.Logging };
+        expected.AddRange(FirstRunArguments);
+        expected.AddRange(["-saveddirsuffix=UnchainedCLI", "-unchained"]);
         expected.AddRange(DefaultServerArguments(value, value, value));
         // Password follows the headless/backend flags, before local IP and desync options.
         expected.Insert(expected.IndexOf("--local-ip"), "ServerPassword=" + value);
@@ -63,14 +63,34 @@ public sealed class ArgumentBoundaryTests : IDisposable {
     }
 
     [Fact]
-    public async Task PrivatePakDirectoryWithSpacesReachesProcessAsOneArgument() {
+    public async Task NativePakDirectoryDoesNotRequireAProcessArgument() {
         var installation = Path.Combine(_directory, "Game With Spaces");
         var options = CliLaunchOptions.Parse(["server", "--chivalry2-path", installation, "--platform", "Steam", "--local-ip", "127.0.0.1"]);
-        var expected = new List<string> { "TBL", "-server", "--additional-pak-dir",
-            Path.Combine(installation, ".unchained", "servers", "Server-UnchainedCLI", "Paks"),
-            "-saveddirsuffix=UnchainedCLI", "-unchained" };
+        var expected = new List<string> { "TBL", "-server", "--attach-stdio", "--log4rs-yaml", options.InstancePaths.Logging };
+        expected.AddRange(FirstRunArguments);
+        expected.AddRange(["-saveddirsuffix=UnchainedCLI", "-unchained"]);
         expected.AddRange(DefaultServerArguments());
         expected.AddRange(["--server-browser-backend", "https://servers.polehammer.net"]);
+        Assert.Equal(expected, await CaptureLaunch(options.ToLaunchOptions()));
+    }
+
+    [Theory]
+    [InlineData("  SomeStructuredThing(foo, bar, 10, baz, false)  ")]
+    [InlineData("quoted \"value\" and trailing slash\\")]
+    [InlineData("line\nbreak\tand & | > shell text")]
+    public async Task RawIniOverridesPreserveExactContentsAsOneArgument(string value) {
+        var path = Path.Combine(_directory, "raw.yaml");
+        File.WriteAllText(path, $"chiv2-path: {JsonSerializer.Serialize(_directory)}\nplatform: Steam\nserver:\n" +
+            "  local-ip: 127.0.0.1\n  ini:\n    Game:\n      /Script/TBL.TBLGameMode:\n" +
+            $"        Custom: {{type: raw, value: {JsonSerializer.Serialize(value)}}}\n");
+        var options = CliLaunchOptions.Parse(["server", "--config-path", path]);
+        var expected = new List<string> { "TBL", "-server", "--attach-stdio", "--log4rs-yaml", options.InstancePaths.Logging };
+        expected.AddRange(FirstRunArguments);
+        expected.Add("-ini:Game:[/Script/TBL.TBLGameMode]:Custom=" + value);
+        expected.AddRange(["-saveddirsuffix=UnchainedCLI", "-unchained"]);
+        expected.AddRange(DefaultServerArguments());
+        expected.AddRange(["--server-browser-backend", "https://servers.polehammer.net"]);
+        Assert.Equal(expected, await CaptureControl(expected));
         Assert.Equal(expected, await CaptureLaunch(options.ToLaunchOptions()));
     }
 
@@ -78,17 +98,22 @@ public sealed class ArgumentBoundaryTests : IDisposable {
         if (!yaml) return CliLaunchOptions.Parse([command, "--chivalry2-path", _directory, "--platform", "Steam",
             .. command == "server" ? new[] { "--local-ip", "127.0.0.1" } : [],
             .. serverValue is null ? System.Array.Empty<string>() : ["--name", serverValue, "--description", serverValue,
-                "--map", serverValue, "--password", serverValue], "--", .. arguments]);
+                "--starting-map", serverValue, "--password", serverValue], "--", .. arguments]);
         var path = Path.Combine(_directory, "launch.yaml");
         // JSON-quoted strings are YAML scalars; cover both shared and command-specific game-args lists.
         File.WriteAllText(path, $"chiv2-path: {JsonSerializer.Serialize(_directory)}\nplatform: Steam\n" +
             $"game-args: {JsonSerializer.Serialize(arguments.Take(1))}\n{command}:\n" +
             (command == "server" ? "  local-ip: 127.0.0.1\n" : "") +
-            (serverValue is null ? "" : string.Concat(new[] { "name", "description", "map", "password" }
+            (serverValue is null ? "" : string.Concat(new[] { "name", "description", "starting-map", "password" }
                 .Select(key => $"  {key}: {JsonSerializer.Serialize(serverValue)}\n"))) +
             $"  game-args: {JsonSerializer.Serialize(arguments.Skip(1))}\n");
         return CliLaunchOptions.Parse([command, "--config-path", path]);
     }
+
+    private static readonly string[] FirstRunArguments = [
+        "-ini:Game:[/Script/TBL.TBLTitleScreen]:bSavedHasAgreedToTOS=True",
+        "-ini:Game:[/Script/TBL.TBLGameInstance]:FirstLoadCompleted=True"
+    ];
 
     private static IEnumerable<string> DefaultServerArguments(string name = "Unchained Server",
         string description = "", string map = "FFA_Courtyard") => [

@@ -6,12 +6,14 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Markup;
 using System.Xml.Linq;
 using UnchainedLauncher.GUI.Behaviors;
 using UnchainedLauncher.GUI.Converters;
 using UnchainedLauncher.GUI.ViewModels;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace UnchainedLauncher.GUI.Tests.Unit;
 
@@ -20,6 +22,10 @@ public class WpfInputCollection { }
 
 [Collection("WPF input")]
 public class SearchableComboBoxTests {
+    private readonly ITestOutputHelper output;
+
+    public SearchableComboBoxTests(ITestOutputHelper output) => this.output = output;
+
     [Theory]
     [InlineData(Key.Home)]
     [InlineData(Key.End)]
@@ -93,8 +99,10 @@ public class SearchableComboBoxTests {
         Assert.True(host.Combo.IsDropDownOpen);
     });
 
-    [Fact]
-    public void NativeInputPreservesSelectionCaretEditingAndTabTraversal() => RunSta(() => {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativeInputPreservesSelectionCaretEditingAndTabTraversal(bool suppressPositioningMove) => RunSta(() => {
         using var host = new Host(new[] { "Steam", "Epic Games Store", "Xbox Game Pass" });
         var model = BindMiddleSelection(host);
         host.Window.Left = 100;
@@ -104,9 +112,35 @@ public class SearchableComboBoxTests {
         Assert.True(host.Window.IsActive);
         host.Combo.Focus();
         Pump();
+        var hwnd = new WindowInteropHelper(host.Window).Handle;
+        var positioning = true;
+        var nativeWheelEvents = 0;
+        HwndSource.FromHwnd(hwnd).AddHook((IntPtr window, int message, IntPtr wParam, IntPtr lParam, ref bool handled) => {
+            if (message is 0x0200 or 0x020a)
+                output.WriteLine($"Native 0x{message:x}: wParam=0x{wParam:x}, lParam=0x{lParam:x}");
+            if (message == 0x020a) nativeWheelEvents++;
+            // Exercise setup without relying on SetCursorPos's mouse-move notification.
+            if (positioning && suppressPositioningMove && message == 0x0200) handled = true;
+            return IntPtr.Zero;
+        });
         var point = host.Combo.PointToScreen(new Point(host.Combo.ActualWidth / 2, host.Combo.ActualHeight / 2));
         Assert.True(SetCursorPos((int)point.X, (int)point.Y));
         Pump();
+        positioning = false;
+        // WPF routes wheel input through its mouse target, not its keyboard focus.
+        // Initialize that target through real native input even if positioning sent no move.
+        mouse_event(0x0001, 0, 0, 0, UIntPtr.Zero);
+        Pump();
+        Assert.True(GetCursorPos(out var cursor));
+        output.WriteLine($"Wheel target={point}, cursor={cursor.X},{cursor.Y}, hit=0x{WindowFromPoint(cursor):x}, " +
+            $"host=0x{hwnd:x}, foreground=0x{GetForegroundWindow():x}, focus=0x{GetFocus():x}, " +
+            $"WPF focus={Keyboard.FocusedElement}, mouseOver={Mouse.DirectlyOver}, dpi={GetDpiForWindow(hwnd)}");
+        Assert.Equal((int)point.X, cursor.X);
+        Assert.Equal((int)point.Y, cursor.Y);
+        Assert.Equal(hwnd, WindowFromPoint(cursor));
+        Assert.Equal(hwnd, GetForegroundWindow());
+        Assert.Equal(hwnd, GetFocus());
+        Assert.True(host.Combo.IsMouseOver, "Native movement must establish the WPF wheel target.");
         var wheelEvents = 0;
         host.Combo.AddHandler(Mouse.PreviewMouseWheelEvent, new MouseWheelEventHandler((_, _) => wheelEvents++), true);
         foreach (var delta in new[] { 120, -120 }) {
@@ -116,6 +150,7 @@ public class SearchableComboBoxTests {
             Assert.Equal("Epic Games Store", model.Selection);
             Assert.False(host.Combo.IsDropDownOpen);
         }
+        Assert.Equal(2, nativeWheelEvents);
         Assert.Equal(2, wheelEvents);
         foreach (var key in new byte[] { 0x24, 0x23, 0x25, 0x27, 0x26, 0x28, 0x21, 0x22 }) {
             host.Combo.IsDropDownOpen = false;
@@ -210,6 +245,27 @@ public class SearchableComboBoxTests {
 
     [DllImport("user32.dll")]
     private static extern void mouse_event(uint flags, uint x, uint y, uint data, UIntPtr extra);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr WindowFromPoint(NativePoint point);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetFocus();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr window);
 
     private static void NativeKey(byte key) {
         keybd_event(key, 0, 0, UIntPtr.Zero);

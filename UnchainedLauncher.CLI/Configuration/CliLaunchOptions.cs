@@ -126,6 +126,7 @@ public sealed class ClientOptions : CliLaunchOptions {
 }
 
 public sealed class ServerOptions : CliLaunchOptions {
+    internal IniOverrides Ini { get; }
     public ServerSettings Settings { get; }
     public bool NoTui { get; }
     internal string? PluginLoggingPath { get; set; }
@@ -135,9 +136,12 @@ public sealed class ServerOptions : CliLaunchOptions {
     internal ServerOptions(SharedLaunchOptions shared, ServerSettings settings, bool noTui)
         : base(shared, SharedLaunchOptions.Entries(settings.GameArgs, allowEmpty: true)) {
         Settings = settings;
+        Ini = IniOverrides.Parse(settings.Ini);
+        if (settings.Rotation is not null && Ini.Contains("Game", "/Script/TBL.TBLGameMode", "MapListIndex"))
+            throw new ArgumentException("MapListIndex is managed by map-rotation; use starting-map to choose the first map.");
         NoTui = noTui;
         if (!settings.Headless && settings.DesyncPatch)
-            throw new ArgumentException("Desync patch requires a headless server. To enable rendering, pass --no-desync-patch.");
+            throw new ArgumentException("Desync patch requires a headless server. To enable rendering, pass --no-desync-patch or set server.desync-patch: false in YAML.");
         if (new[] { settings.GamePort, settings.PingPort, settings.QueryPort, settings.RconPort }.Distinct().Count() != 4)
             throw new ArgumentException("Game, ping, query, and RCON ports must be distinct.");
         settings.LocalIp = string.IsNullOrWhiteSpace(settings.LocalIp) ? LocalAddressDetector.Detect().ToString() : settings.LocalIp.Trim();
@@ -166,7 +170,9 @@ public sealed class ServerOptions : CliLaunchOptions {
         FFATimeLimit: null, FFAScoreLimit: null, TDMTimeLimit: null, TDMTicketCount: null,
         PlayerBotCount: null, WarmupTime: null, LocalIp: Optional(Settings.LocalIp),
         ServerMods: Settings.ModActors ?? [], DiscordIntegration: ToDiscordOptions(),
-        Settings.DesyncPatch, Settings.UseBackendBanlist, Settings.CensorMode);
+        Settings.DesyncPatch, Settings.UseBackendBanlist, Settings.CensorMode) {
+        SuppressServerNameOverride = Ini.Contains("Game", "/Script/TBL.TBLGameMode", "ServerName")
+    };
 
     public override LaunchOptions ToLaunchOptions() {
         var prefix = new List<string> { "TBL", "-server" };
@@ -176,8 +182,11 @@ public sealed class ServerOptions : CliLaunchOptions {
             prefix.Add(ArgumentEscaper.Escape(PluginLoggingPath ?? InstancePaths.Logging));
         }
         if (Settings.NoSpawnConsole && !GameArguments.Any(arg => arg is "--no-spawn-console" or "-no-spawn-console")) prefix.Add("--no-spawn-console");
-        prefix.Add("-ini:Game:[/Script/TBL.TBLTitleScreen]:bSavedHasAgreedToTOS=True");
-        prefix.Add("-ini:Game:[/Script/TBL.TBLGameInstance]:FirstLoadCompleted=True");
+        if (!Ini.Contains("Game", "/Script/TBL.TBLTitleScreen", "bSavedHasAgreedToTOS"))
+            prefix.Add("-ini:Game:[/Script/TBL.TBLTitleScreen]:bSavedHasAgreedToTOS=True");
+        if (!Ini.Contains("Game", "/Script/TBL.TBLGameInstance", "FirstLoadCompleted"))
+            prefix.Add("-ini:Game:[/Script/TBL.TBLGameInstance]:FirstLoadCompleted=True");
+        prefix.AddRange(Ini.RawArguments);
         return BuildLaunchOptions(prefix, Some(ToServerLaunchOptions()));
     }
 }

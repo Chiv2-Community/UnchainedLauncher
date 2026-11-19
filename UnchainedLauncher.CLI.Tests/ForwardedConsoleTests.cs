@@ -1,7 +1,7 @@
-using System.Text;
 using UnchainedLauncher.CLI.Configuration;
 using UnchainedLauncher.CLI.Monitoring;
 using UnchainedLauncher.CLI.Terminal;
+using System.Text;
 using Xunit;
 
 namespace UnchainedLauncher.CLI.Tests;
@@ -37,6 +37,18 @@ public sealed class ForwardedConsoleTests {
         Assert.True(options.Settings.NoSpawnConsole);
         Assert.Contains("--attach-stdio", options.ToLaunchOptions().LaunchArgs);
         Assert.Contains("--no-spawn-console", options.ToLaunchOptions().LaunchArgs);
+    }
+
+    [Fact]
+    public void YamlCanSuppressConsoleWithoutChangingStandardCapture() {
+        var path = Path.Combine(Path.GetTempPath(), "no-spawn-console-" + Guid.NewGuid().ToString("N") + ".yaml");
+        try {
+            File.WriteAllText(path, "chiv2-path: .\nplatform: Steam\nserver:\n  no-spawn-console: true\n");
+            var options = Assert.IsType<ServerOptions>(YamlConfiguration.Load(path, client: false));
+            Assert.True(options.Settings.NoSpawnConsole);
+            Assert.Contains("--attach-stdio", options.ToLaunchOptions().LaunchArgs);
+        }
+        finally { File.Delete(path); }
     }
 
     [Fact]

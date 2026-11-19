@@ -161,7 +161,7 @@ public class ServerOptionsTests {
         var error = Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(Args(arguments)));
         Assert.Contains("headless", error.Message);
         Assert.Contains("--no-desync-patch", error.Message);
-        Assert.DoesNotContain("YAML", error.Message);
+        Assert.Contains("server.desync-patch: false", error.Message);
         var options = CliLaunchOptions.Parse(Args(arguments.Concat(["--no-desync-patch"]).ToArray()));
         var server = Assert.IsType<ServerOptions>(options).ToServerLaunchOptions();
         Assert.False(server.Headless);

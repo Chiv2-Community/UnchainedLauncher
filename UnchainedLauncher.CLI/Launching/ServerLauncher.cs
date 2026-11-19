@@ -1,3 +1,4 @@
+using UnchainedLauncher.CLI.Registries;
 using StructuredINI;
 using System.Net;
 using UnchainedLauncher.CLI.Configuration;
@@ -109,11 +110,9 @@ public static class ServerLauncher {
         if (!writer.BufferWrite(new TBLTitleScreen()) || !writer.BufferWrite(new TBLGameInstance()))
             throw new IOException("Could not initialize the server INI profile; refusing to launch.");
         var files = new Dictionary<string, StructuredINIWriter>(StringComparer.OrdinalIgnoreCase) { ["Game"] = writer };
-        Directory.CreateDirectory(directory);
-        foreach (var (file, contents) in files) {
-            var path = Path.Combine(directory, file + ".ini");
-            if (!contents.WriteOut(path)) throw new IOException($"Could not initialize server settings: {path}");
-        }
+        server.Ini.BufferInto(files);
+        server.Settings.Rotation?.BufferInto(writer);
+        IniPatches.Write(directory, files);
     }
 
     // Several existing Core preparers use installation-relative paths.

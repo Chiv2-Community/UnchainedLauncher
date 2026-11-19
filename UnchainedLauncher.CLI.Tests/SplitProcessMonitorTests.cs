@@ -1,8 +1,10 @@
-using System.Diagnostics;
-using System.Text;
+using UnchainedLauncher.CLI.Commands;
 using UnchainedLauncher.CLI.Launching;
 using UnchainedLauncher.CLI.Monitoring;
 using UnchainedLauncher.CLI.Terminal;
+using System.Diagnostics;
+using System.Text;
+using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Server.A2S;
 using Xunit;
 
@@ -31,6 +33,56 @@ public sealed class SplitProcessMonitorTests {
         Assert.Equal("Server exited (code 7)", final!.Events.Last().Message);
         Assert.Contains(final.ConsoleLines, line => line.Text.EndsWith("supervisor-tail"));
         Assert.Empty(game.ConsoleOutput!.Drain());
+    }
+
+    [Fact]
+    public async Task ExitedGameDoesNotStopHealthyGroupPeerBeforeExplicitCancellation() {
+        if (!OperatingSystem.IsLinux()) return;
+        var root = Path.Combine(Path.GetTempPath(), "unchained-split-monitor-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        using var fixture = await SplitProcess.StartAsync();
+        using var healthy = Process.Start("/bin/sleep", "30")!;
+        using var healthyObserver = Process.GetProcessById(healthy.Id);
+        using var stop = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var output = new StringWriter();
+        var original = Console.Out;
+        Console.SetOut(output);
+        try {
+            var path = Path.Combine(root, "servers.yaml");
+            File.WriteAllText(path, """
+                chiv2-path: .
+                platform: Steam
+                no-tui: true
+                servers:
+                  crashed: { game-port: 7000, ping-port: 7001, query-port: 7002, rcon-port: 7003 }
+                  healthy: { game-port: 7004, ping-port: 7005, query-port: 7006, rcon-port: 7007 }
+                """);
+            var group = Assert.IsType<ServerGroupOptions>(CommandLineOptions.Parse(["server", "--config-path", path]));
+            foreach (var entry in group.Servers) entry.Options.Shared.Assets = new ProfileAssetPaths(entry.Id, root);
+            var launches = 0;
+            var queries = 0;
+            var observedHealthyPeer = false;
+            Assert.Equal(0, await ServerGroupRunner.RunAsync(group, stop,
+                (_, _) => Task.FromResult(++launches == 1 ? fixture.Game : new LaunchedGame(healthy)),
+                _ => ++queries == 1 ? new CallbackQuery(fixture.ExitSupervisorAsync) : new CallbackQuery(() => {
+                    if (fixture.Game.HasExited) {
+                        Assert.False(stop.IsCancellationRequested);
+                        Assert.False(healthyObserver.HasExited);
+                        observedHealthyPeer = true;
+                        stop.Cancel();
+                    }
+                    return Task.CompletedTask;
+                })).WaitAsync(TimeSpan.FromSeconds(15)));
+            Assert.True(observedHealthyPeer);
+            Assert.True(stop.IsCancellationRequested);
+            Assert.Contains("Exited (code 7)", output.ToString());
+            Assert.Contains("supervisor-tail", output.ToString());
+        }
+        finally {
+            Console.SetOut(original);
+            if (!healthyObserver.HasExited) { healthyObserver.Kill(entireProcessTree: true); await healthyObserver.WaitForExitAsync(); }
+            Directory.Delete(root, true);
+        }
     }
 
     private sealed class CallbackQuery(Func<Task> action) : IA2S {

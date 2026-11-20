@@ -15,6 +15,7 @@ namespace UnchainedLauncher.CLI.Tests;
 
 public sealed class NativeConsoleLaunchTests : IDisposable {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "native-console-" + Guid.NewGuid().ToString("N"));
+    private bool _rootCreated;
     private int? _probeId;
     private string _stopState = "not stopped";
     private readonly ITestOutputHelper _log;
@@ -22,9 +23,9 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
         OperatingSystem.IsWindows() ? "ArgumentProbe.exe" : "ArgumentProbe");
     public NativeConsoleLaunchTests(ITestOutputHelper log) {
         _log = log;
-        Directory.CreateDirectory(Path.Combine(_root, FilePaths.BinDir));
     }
     public void Dispose() {
+        if (!_rootCreated) return;
         try { Directory.Delete(_root, recursive: true); }
         catch (IOException error) {
             throw new IOException($"Fixture deletion failed. Probe PID={_probeId}; {_stopState}; " +
@@ -34,14 +35,21 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
         }
     }
 
+    private void CreateRoot() {
+        Directory.CreateDirectory(Path.Combine(_root, FilePaths.BinDir));
+        _rootCreated = true;
+    }
+
     [Fact]
     public async Task CancelledPreparationClosesStdioWithoutWaitingForAChild() {
+        Assert.False(Directory.Exists(_root));
         if (!OperatingSystem.IsWindows()) return;
         var options = new LaunchOptions([], Option<string>.None, "", false, false,
             Option<string>.None, Option<ServerLaunchOptions>.None);
         var preparer = Chivalry2LaunchPreparer.Create<LaunchOptions>(_ => Option<LaunchOptions>.None);
         await Assert.ThrowsAsync<InvalidOperationException>(() => NativeGameLauncher.LaunchAsync(Probe, _root,
             options, preparer, new ProbeInjector(Path.Combine(_root, "not-created")), forwardConsole: true).WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.False(Directory.Exists(_root));
     }
 
     [Theory]
@@ -49,6 +57,7 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
     [InlineData(true)]
     public async Task FailedLaunchClosesStdioAndExcludesUnrelatedHandles(bool throwDuringInjection) {
         if (!OperatingSystem.IsWindows()) return;
+        CreateRoot();
         using var unrelated = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
         using var capture = new ProcessOutputCapture();
         using var current = Process.GetCurrentProcess();
@@ -71,12 +80,14 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
     [Fact]
     public async Task DisposingReceiverUnblocksAnIdleInheritedPipeRead() {
         if (!OperatingSystem.IsWindows()) return;
+        CreateRoot();
         using var capture = new ProcessOutputCapture();
         using var console = new ForwardedConsole();
         var read = console.CaptureAsync(capture.StandardOutput);
         using var process = new ProcessLauncher(Probe, capture).Launch(_root,
             "--std-probe " + ArgumentEscaper.Escape(Path.Combine(_root, "idle.txt")), _ => true)
             .Match(Left: error => throw error, Right: value => value);
+        _probeId = process.Id;
         try {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             while (!console.Drain().Contains("stdout marker 世界")) await Task.Delay(10, timeout.Token);
@@ -85,14 +96,21 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
             Assert.False(process.HasExited);
         }
         finally {
+            // This direct launch uses the fixture root, not the game's Win64 directory.
+            _stopState = $"before kill: root holders={DirectoryHolders(_root)}";
+            _log.WriteLine($"Probe PID={_probeId}; {_stopState}");
             if (!process.HasExited) process.Kill(entireProcessTree: true);
             await process.WaitForExitAsync();
+            _stopState += $"; WaitForExitAsync completed; HasExited={process.HasExited}; ExitCode={process.ExitCode}; " +
+                $"after exit: root holders={DirectoryHolders(_root)}";
+            _log.WriteLine(_stopState);
         }
     }
 
     [Fact]
     public async Task AttachStdioCapturesBothStreamsThroughTheSuspendedLaunchWithoutIpc() {
         if (!OperatingSystem.IsWindows()) return;
+        CreateRoot();
         var output = Path.Combine(_root, "std-probe.txt");
         var options = new LaunchOptions([], Option<string>.None,
             "--std-probe " + ArgumentEscaper.Escape(output), false, false, Option<string>.None, Option<ServerLaunchOptions>.None);
@@ -136,6 +154,7 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
     [Fact]
     public async Task SuspendedWindowsLaunchInheritsUnicodeParentEnvironment() {
         if (!OperatingSystem.IsWindows()) return;
+        CreateRoot();
         var output = Path.Combine(_root, "unicode.json");
         var name = "UNCHAINED_ENV_" + Guid.NewGuid().ToString("N");
         Environment.SetEnvironmentVariable(name, "世界 = value");

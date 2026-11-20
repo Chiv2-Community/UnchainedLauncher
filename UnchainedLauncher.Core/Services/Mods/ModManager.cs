@@ -52,9 +52,6 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         public IPakDir PakDir { get; }
 
-        public ModManager WithPakDir(IPakDir directory) =>
-            new(ModRegistry, directory, EnabledModReleaseCoordinates, Mods) { NeedsMetadataRefresh = NeedsMetadataRefresh };
-
         public ModManager(
             IModRegistry modRegistry,
             IPakDir pakDir,
@@ -160,7 +157,7 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 _mods
                     .Find(release.Matches)?// Find the mod that matches these coords
                     .Releases
-                    .Exists(release.Matches) // Find the release that matches these coords 
+                    .Exists(release.Matches) // Find the release that matches these coords
                 ?? false; // default to false if nothing was found
 
             return releaseExists;

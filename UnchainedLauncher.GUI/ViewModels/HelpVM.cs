@@ -93,7 +93,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             if (choice == UserDialogueChoice.No) return;
 
             await CleanUpInstallation_actions();
-            const string replaceCommand = $@" 
+            const string replaceCommand = $@"
                 while (Test-Path '{originalPath}' -PathType Leaf) {{
                     try {{
                         Move-Item -Path '{originalPath}' -Destination '{launcherPath}' -Force;
@@ -104,7 +104,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     }}
                 }};";
 
-            const string deleteCommand = $@" 
+            const string deleteCommand = $@"
                 while (Test-Path '{launcherPath}' -PathType Leaf) {{
                     try {{
                         Remove-Item -Path '{launcherPath}' -Force;
@@ -147,13 +147,13 @@ namespace UnchainedLauncher.GUI.ViewModels {
 
         private string CleanupDisclosure() =>
             "* All files in .mod_cache\n" +
-            $"* All files in {new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix).Plugins}\n" +
+            $"* All files in {FilePaths.PluginDir}\n" +
             $"* All non-vanilla files in {PakDir.DirPath}\n" +
-            "Shared caches, other CLI profiles, and legacy installation-wide assets are retained.";
+            "Shared caches and CLI profile assets are retained.";
 
         private async Task CleanUpInstallation_actions() {
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
-            FileHelpers.DeleteDirectory(new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix).Plugins);
+            FileHelpers.DeleteDirectory(FilePaths.PluginDir);
             await PakDir.Reset();
         }
 

@@ -17,7 +17,6 @@ public static class ServerLauncher {
         await ProtonRuntime.ConfigureAsync(request, cancellationToken);
         var executable = Path.Combine(options.Chivalry2Path, FilePaths.GameBinPath);
         var basePakPath = Path.Combine(options.Chivalry2Path, FilePaths.PakDir);
-        var instance = request.InstancePaths;
         if (!File.Exists(executable)) throw new FileNotFoundException("Chivalry 2 shipping executable was not found. Check --chivalry2-path.", executable);
         if (!Directory.Exists(basePakPath)) throw new DirectoryNotFoundException($"Chivalry 2 Paks directory was not found: {basePakPath}");
         await PluginLogging.PrepareAsync(request, cancellationToken);
@@ -25,10 +24,7 @@ public static class ServerLauncher {
         var registry = CreateRegistry(request);
 
         return await InInstallationDirectoryAsync(request, async () => {
-            var cachePath = instance.ModMetadata;
-            var codec = new ModManagerCodec(registry);
-            // Core reconciles physical ownership across hosts immediately before installing.
-            // CLI selection comes only from this request, never from a cached GUI selection.
+            // Ownership/cache come from this profile; selection comes only from the request.
             var manager = CreateModManager(request, registry, cancellationToken);
             Console.Error.WriteLine("Loading mod registries...");
             var fetched = await manager.UpdateModsList();
@@ -44,7 +40,7 @@ public static class ServerLauncher {
                 if (!File.Exists(appIdPath)) File.WriteAllText(appIdPath, "1824220");
             }
             var pluginUpdater = CreateDllSession(request, registry, manager, cancellationToken);
-            var preparer = CreateLaunchPreparer(request, manager, pluginUpdater, codec, cachePath, cancellationToken);
+            var preparer = CreateLaunchPreparer(request, manager, pluginUpdater, cancellationToken);
             if (options.Proton != null) {
                 var prepared = await preparer.PrepareLaunch(request.ToLaunchOptions());
                 if (prepared.IsNone) throw new InvalidOperationException("Launch preparation was cancelled.");
@@ -56,13 +52,13 @@ public static class ServerLauncher {
     }
 
     internal static IChivalry2LaunchPreparer<LaunchOptions> CreateLaunchPreparer(CliLaunchOptions request,
-        ModManager manager, DllLaunchSession pluginUpdater, ModManagerCodec codec, string cachePath,
+        ModManager manager, DllLaunchSession pluginUpdater,
         CancellationToken cancellationToken = default) {
         var dialogue = new ConsoleDialogue();
         var modInstaller = new Chivalry2ModsInstaller(manager, dialogue);
         var signing = SigPreparer.CreateForProfile(manager.PakDir, dialogue);
         // Call preparers sequentially so each receives the previous result.
-        // Always save the managed-pak inventory, even after a partial installation.
+        // The mutating manager checkpoints ownership, including partial installation.
         return Chivalry2LaunchPreparer.Create<LaunchOptions>(async launch => {
             cancellationToken.ThrowIfCancellationRequested();
             var updated = await pluginUpdater.PrepareLaunch(launch);
@@ -70,12 +66,7 @@ public static class ServerLauncher {
             if (updated.IsNone) return LanguageExt.Option<LaunchOptions>.None;
             // DLL preparation can enable older pak releases with different dependencies.
             ValidateReleases(manager, request.Shared.Mods);
-            try {
-                updated = await modInstaller.PrepareLaunch(updated.IfNone(launch));
-            }
-            finally {
-                codec.SerializeFile(cachePath, manager);
-            }
+            updated = await modInstaller.PrepareLaunch(updated.IfNone(launch));
             cancellationToken.ThrowIfCancellationRequested();
             if (updated.IsNone || (await signing.PrepareLaunch(LanguageExt.Unit.Default)).IsNone)
                 return LanguageExt.Option<LaunchOptions>.None;
@@ -89,7 +80,9 @@ public static class ServerLauncher {
         options.Shared.RegistryOptions.CreateRegistry();
 
     internal static ModManager CreateModManager(CliLaunchOptions request, AggregateModRegistry registry, CancellationToken cancellationToken = default) {
-        return new ModManager(registry, request.InstancePaths.CreatePakDir(request.Shared.Chivalry2Path, cancellationToken), request.Shared.Mods.Distinct());
+        return LegacyOwnershipMigration.LoadProfile(request.InstancePaths.ModMetadata, registry,
+            request.InstancePaths.CreatePakDir(request.Shared.Chivalry2Path, cancellationToken),
+            request.Shared.Mods.Distinct()).Manager;
     }
 
     internal static DllLaunchSession CreateDllSession(CliLaunchOptions request, AggregateModRegistry registry,

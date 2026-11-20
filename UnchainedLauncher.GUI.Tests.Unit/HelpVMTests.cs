@@ -29,9 +29,9 @@ public sealed class HelpVMTests {
                 : File.Exists(FilePaths.OriginalLauncherPath) ? "IMPORTANT: Wait at least 1 second and then launch normally."
                 : "IMPORTANT: The original launcher is not present. You will need to verify game files after this so it can be re-downloaded.";
             Assert.Equal(string.Join("\n", intro, "* All files in .mod_cache",
-                $"* All files in {new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix).Plugins}",
+                $"* All files in {FilePaths.PluginDir}",
                 $"* All non-vanilla files in {path}",
-                "Shared caches, other CLI profiles, and legacy installation-wide assets are retained.", "", instruction), dialogue.Messages[^1]);
+                "Shared caches and CLI profile assets are retained.", "", instruction), dialogue.Messages[^1]);
             Assert.Equal(uninstall ? "Really uninstall?" : "Really clean up installation?", dialogue.Captions[^1]);
         }
         Assert.Equal(2, dialogue.Messages.Count);

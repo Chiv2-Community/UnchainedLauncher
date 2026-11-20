@@ -29,7 +29,6 @@
     <Using Include="Xunit" />
     <None Include="../UnchainedLauncher.GUI/Views/Controls/CollapsibleCard.xaml" Link="Views/CollapsibleCard.xaml" CopyToOutputDirectory="PreserveNewest" />
     <!-- Exercise the platform-independent view model without loading WPF. -->
-    <Compile Include="../UnchainedLauncher.GUI/Services/ProfileModsLaunchPreparer.cs" Link="ProfileModsLaunchPreparer.cs" />
     <Compile Include="../UnchainedLauncher.GUI/ViewModels/DllManagerVM.cs" Link="DllManagerVM.cs" />
     <Compile Include="../UnchainedLauncher.GUI/Services/SavedPaksPreparer.cs" Link="SavedPaksPreparer.cs" />
     <Compile Include="../UnchainedLauncher.GUI/Services/SavePreferencesPreparer.cs" Link="SavePreferencesPreparer.cs" />

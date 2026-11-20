@@ -176,7 +176,7 @@ namespace UnchainedLauncher.GUI {
             var settingsViewModel = InitializeSettingsViewModel(installationFinder, installer, launcherReleaseLocator, registryWindowViewModel, registryWindowService, modManager, userDialogueSpawner);
             var assets = new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix);
             var dllManager = new DllManager(
-                assets.Plugins,
+                FilePaths.PluginDir,
                 FilePaths.DllManagerConfigPath, new HttpClient(), () => modManager.GetEnabledAndDependencyReleases(settingsViewModel.AutomaticallyDownloadPakDependencies).ToArray(),
                 () => modRegistry.ModRegistries.OfType<GithubModRegistry>()
                     .Select(registry => registry.DllDatabaseUrl).ToArray(), assets.DllCache);
@@ -207,9 +207,9 @@ namespace UnchainedLauncher.GUI {
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
-            IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new ProfileModsLaunchPreparer(
-                modManager, userDialogueSpawner, Directory.GetCurrentDirectory(), precedingDllPreparer: pluginInstaller, settings: settingsViewModel
-            );
+            IChivalry2LaunchPreparer<LaunchOptions> pakInstaller = new Chivalry2ModsInstaller(modManager, userDialogueSpawner, settingsViewModel);
+            var modInstaller = pluginInstaller.AndThen(
+                pakInstaller.Sub(SigPreparer.CreateForProfile(modManager.PakDir, userDialogueSpawner)));
 
             var vanillaLauncher = new Chivalry2Launcher(
                 prepareSavedPaks.AndThen(noSigLaunchPreparer.IgnoreOptions<LaunchOptions>()),
@@ -225,7 +225,7 @@ namespace UnchainedLauncher.GUI {
                 // don't shove dlls into processes that don't need them and cause crashes
                 new NullInjector(true)
 #else
-                new DllInjector(dllManager, assets.Plugins, _unsafeLoadAllDlls)
+                new DllInjector(dllManager, FilePaths.PluginDir, _unsafeLoadAllDlls)
 #endif
             );
 
@@ -343,11 +343,7 @@ namespace UnchainedLauncher.GUI {
         }
 
         private ModManager InitializeModManager(string jsonPath, IModRegistry registry) {
-            var (loaded, _) = LegacyOwnershipMigration.Load(jsonPath, registry,
-                ex => MessageBox.Show($"Could not save mod selection. Retry before exiting.\n{ex.Message}"));
-            var assets = new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix);
-            var manager = assets.Rebind(loaded, Directory.GetCurrentDirectory());
-            var persistence = new ModManagerPersistence(manager, jsonPath,
+            var (manager, persistence) = LegacyOwnershipMigration.Load(jsonPath, registry,
                 ex => MessageBox.Show($"Could not save mod selection. Retry before exiting.\n{ex.Message}"));
             RegisterPreferenceSave(persistence.Save);
             return manager;

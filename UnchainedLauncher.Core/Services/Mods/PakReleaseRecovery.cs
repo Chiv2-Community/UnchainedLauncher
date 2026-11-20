@@ -23,7 +23,7 @@ internal static class PakReleaseRecovery {
             // Stage ownership and deletions until the complete plan has passed validation and confirmation.
             Action applyUnmanaged = () => { };
             IReadOnlyList<ManagedPak> adoptedPaks = [];
-            // Profile inventories are authoritative; unowned files remain user assets.
+            // Profile configs own their files; unowned files remain user assets.
             if (paks.CachePath != null) PreparePlan([]);
             else if (!await UnmanagedPakRecovery.Recover(paks, known.Concat(requested), dialogue, adopted,
                 alwaysKeepUnmanagedPaks, cache, PreparePlan, (apply, proposed) => { applyUnmanaged = apply; adoptedPaks = proposed; })) return false;

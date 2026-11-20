@@ -86,25 +86,6 @@ namespace UnchainedLauncher.Core.Services.Mods {
             SynchronizeWithDir();
         }
 
-        internal void ReconcileManagedPaks(IEnumerable<ManagedPak> managedPaks) {
-            var owned = managedPaks?.ToList();
-            if (owned is null || owned.Any(p => p is null || p.PakFileName is null
-                || p.Coordinates is null || string.IsNullOrWhiteSpace(p.Coordinates.Org)
-                || string.IsNullOrWhiteSpace(p.Coordinates.ModuleName)
-                || string.IsNullOrWhiteSpace(p.Coordinates.Version)))
-                throw new InvalidDataException("Invalid managed pak inventory.");
-            // Inventory authorizes deletion only inside this directory, never base/user paks.
-            if (owned.Any(p => string.IsNullOrWhiteSpace(p.PakFileName)
-                || Path.GetFileName(p.PakFileName) != p.PakFileName
-                || p.PakFileName.Contains('\\') || p.PakFileName.Contains('/')
-                || !p.PakFileName.EndsWith(".pak", StringComparison.OrdinalIgnoreCase)
-                || p.PakFileName.Equals(BasePakFileName, StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidDataException("Invalid managed pak filename in inventory.");
-            _managedPaks.Clear();
-            _managedPaks.AddRange(owned.DistinctBy(p => p.PakFileName, StringComparer.OrdinalIgnoreCase));
-            SynchronizeWithDir();
-        }
-
         private IEnumerable<string> GetSigFiles() {
             return Directory.EnumerateFiles(DirPath, "*.sig");
         }
@@ -261,7 +242,11 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     yield return result;
                 }
             }
-            finally { NotifyChanges(previous); }
+            finally {
+                NotifyChanges(previous);
+                // Also retire write-ahead reservations when every download failed.
+                if (previous.SequenceEqual(_managedPaks)) Persistence?.Save();
+            }
         }
 
         public async Task<bool> RecoverReleases(IReadOnlyList<Release> requested, IEnumerable<Release> known, IUserDialogueSpawner dialogue,
@@ -435,25 +420,41 @@ namespace UnchainedLauncher.Core.Services.Mods {
             var targetPath = PakNameToPakPath(targetName);
 
             var managedPak = new ManagedPak(move.Install.Coordinates, targetName, move.Index);
-            return _moveManagedPak(sourcePath, targetPath, () => {
+            _managedPaks.Add(managedPak);
+            try { Persistence?.Save(); }
+            catch {
+                _managedPaks.Remove(managedPak);
+                throw;
+            }
+            var result = _moveManagedPak(sourcePath, targetPath, () => {
                 // Ownership follows the payload even if removing the old signature fails.
                 _managedPaks.RemoveAll(p => p.Coordinates.Matches(move.Install.Coordinates));
                 _managedPaks.Add(managedPak);
                 Logger.Info($"Relocated {move.Install.Coordinates.ModuleName} to {targetName}");
             })
                 .Map(_ => managedPak);
+            if (File.Exists(sourcePath)) _managedPaks.Remove(managedPak);
+            return result;
         }
 
         private async Task<Either<Error, ManagedPak>> ProcessDownload(InstallAction.Download download, Option<MemoryProgress> taskProgress) {
             var name = AvailablePakName(download.FinalPakName);
+            var managedPak = new ManagedPak(download.Install.Coordinates, name, download.Index);
+            // Publish ownership before publishing a new payload. A failed config write
+            // must not leave a signed, unowned download behind on restart.
+            _managedPaks.Add(managedPak);
+            try { Persistence?.Save(); }
+            catch {
+                _managedPaks.Remove(managedPak);
+                throw;
+            }
             var progress = taskProgress.Map(p => (IProgress<double>)p);
             var written = CachePath is null
                 ? await _writePak(download.Install.Writer, progress, name)
                 : (await new PakCache(CachePath).Install(download.Install, PakNameToPakPath(name), progress, _cancellationToken)).Map(_ => name);
+            if (written.IsLeft) _managedPaks.Remove(managedPak);
             return written
                 .Map(pakFileName => {
-                    var managedPak = new ManagedPak(download.Install.Coordinates, pakFileName, download.Index);
-                    _managedPaks.Add(managedPak);
                     _signFile(PakNameToPakPath(managedPak.PakFileName))
                         .IfLeft(e => Logger.Error($"Failed to sign {managedPak.PakFileName}: {e.Message}"));
                     return managedPak;

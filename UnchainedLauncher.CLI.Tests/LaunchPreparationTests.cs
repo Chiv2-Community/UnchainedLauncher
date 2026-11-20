@@ -42,8 +42,7 @@ public sealed class LaunchPreparationTests : IDisposable {
         using var client = new HttpClient(new DownloadHandler());
         var session = new DllLaunchSession(registry, manager, request.InstancePaths.Plugins, client: client,
             cacheDirectory: Path.Combine(_directory, "dll-cache"));
-        var preparer = ServerLauncher.CreateLaunchPreparer(request, manager, session, new ModManagerCodec(registry),
-            Path.Combine(_directory, "host.json"));
+        var preparer = ServerLauncher.CreateLaunchPreparer(request, manager, session);
         ManagedPak[]? first = null;
         for (var i = 0; i < 2; i++) {
             Assert.True((await preparer.PrepareLaunch(request.ToLaunchOptions())).IsSome);
@@ -99,13 +98,13 @@ public sealed class LaunchPreparationTests : IDisposable {
         var plugins = Path.Combine(_directory, "plugins");
         var session = new DllLaunchSession(registry, manager, plugins, client: client,
             cacheDirectory: Path.Combine(_directory, "dll-cache"));
-        var cachePath = Path.Combine(_directory, "cli_mod_manager.json");
-        var preparer = ServerLauncher.CreateLaunchPreparer(request, manager, session, new ModManagerCodec(registry), cachePath);
+        var cachePath = request.InstancePaths.ModMetadata;
+        var preparer = ServerLauncher.CreateLaunchPreparer(request, manager, session);
         if (hasTransitiveDependency) {
             var error = await Assert.ThrowsAsync<InvalidOperationException>(() => preparer.PrepareLaunch(request.ToLaunchOptions()));
             Assert.Contains(dependencyPublished ? "Core did not resolve dependency org/transitive" : "Missing stable dependency: org/transitive", error.Message);
             Assert.Empty(Directory.GetFiles(request.InstancePaths.Paks, "*.pak"));
-            Assert.False(File.Exists(cachePath));
+            Assert.Empty(((PakDir)new ModManagerCodec(registry).Deserialize(File.ReadAllText(cachePath)).Result!.PakDir).ManagedPaks);
         }
         else {
             Assert.True((await preparer.PrepareLaunch(request.ToLaunchOptions())).IsSome);
@@ -165,8 +164,8 @@ public sealed class LaunchPreparationTests : IDisposable {
         using var client = new HttpClient(new DownloadHandler());
         var session = new DllLaunchSession(registry, manager, Path.Combine(_directory, "plugins"), client: client,
             cacheDirectory: Path.Combine(_directory, "dll-cache"));
-        var cachePath = Path.Combine(_directory, "cli_mod_manager.json");
-        var preparer = ServerLauncher.CreateLaunchPreparer(request, manager, session, new ModManagerCodec(registry), cachePath);
+        var cachePath = request.InstancePaths.ModMetadata;
+        var preparer = ServerLauncher.CreateLaunchPreparer(request, manager, session);
         if (graph == "acyclic") {
             Assert.True((await preparer.PrepareLaunch(request.ToLaunchOptions())).IsSome);
             Assert.Equal(4, Directory.GetFiles(request.InstancePaths.Paks, "*.pak").Length);
@@ -175,7 +174,7 @@ public sealed class LaunchPreparationTests : IDisposable {
             var error = await Assert.ThrowsAsync<InvalidOperationException>(() => preparer.PrepareLaunch(request.ToLaunchOptions()));
             Assert.Contains("cycle", error.Message);
             Assert.Equal([unknown], Directory.GetFiles(request.InstancePaths.Paks, "*.pak"));
-            Assert.False(File.Exists(cachePath));
+            Assert.Empty(((PakDir)new ModManagerCodec(registry).Deserialize(File.ReadAllText(cachePath)).Result!.PakDir).ManagedPaks);
         }
         Assert.Contains(selected, manager.EnabledModReleaseCoordinates);
         Assert.Equal("preserve unknown bytes", File.ReadAllText(unknown));
@@ -228,8 +227,8 @@ public sealed class LaunchPreparationTests : IDisposable {
         var plugins = Path.Combine(_directory, "plugins");
         var session = new DllLaunchSession(registry, manager, plugins, request.Shared.Dlls, client: client,
             cacheDirectory: Path.Combine(_directory, "dll-cache"));
-        var cachePath = Path.Combine(_directory, "cli_mod_manager.json");
-        var preparer = ServerLauncher.CreateLaunchPreparer(request, manager, session, new ModManagerCodec(registry), cachePath);
+        var cachePath = request.InstancePaths.ModMetadata;
+        var preparer = ServerLauncher.CreateLaunchPreparer(request, manager, session);
 
         if (incompatible || selectedTag == "v2.0.0") {
             var error = await Assert.ThrowsAsync<InvalidOperationException>(() => preparer.PrepareLaunch(request.ToLaunchOptions()));

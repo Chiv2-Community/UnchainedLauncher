@@ -47,6 +47,48 @@ public sealed class OwnershipPersistenceTests : IDisposable {
         path => new FileWriter(path, new MemoryStream([1, 2, 3]), 3));
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OldCliSavedInventoryMergesConfigBeforeInstallationTransferAndRetriesBackupFailure(bool failBackup) {
+        var source = Path.Combine(_root, "TBL", "Saved_Unchained", "Paks");
+        Directory.CreateDirectory(source);
+        var records = new[] { new ManagedPak(Coordinates("A"), "a.pak", 0), new ManagedPak(Coordinates("B"), "b.pak", 1) };
+        foreach (var record in records) {
+            File.WriteAllText(Path.Combine(source, record.PakFileName), record.PakFileName);
+            File.WriteAllText(Path.Combine(source, Path.ChangeExtension(record.PakFileName, ".sig")), "signed");
+        }
+        var inventory = Path.Combine(source, FilePaths.ManagedPakInventoryFileName);
+        File.WriteAllText(inventory, JsonHelpers.Serialize(new PakDirMetadata(source, [records[0]])));
+        Save(new ModManager(_registry, new PakDir(source, records), [Coordinates("B")]));
+        File.WriteAllText(Path.Combine(Paks, "unknown.pak"), "preserved");
+        var before = File.ReadAllBytes(Config);
+        var inventoryBefore = File.ReadAllBytes(inventory);
+        if (failBackup) {
+            File.WriteAllText(LegacyOwnershipMigration.BackupRoot(Config), "blocked");
+            Assert.ThrowsAny<IOException>(Startup);
+            Assert.Equal(before, File.ReadAllBytes(Config));
+            Assert.Equal(inventoryBefore, File.ReadAllBytes(inventory));
+            foreach (var record in records) Assert.True(File.Exists(Path.Combine(source, record.PakFileName)));
+            File.Delete(LegacyOwnershipMigration.BackupRoot(Config));
+        }
+        var manager = Startup();
+        Assert.Equal(Paks, manager.PakDir.DirPath);
+        Assert.Equal(records, ((PakDir)manager.PakDir).ManagedPaks);
+        Assert.Equal(records, ((PakDir)Reload().PakDir).ManagedPaks);
+        foreach (var record in records) {
+            Assert.False(File.Exists(Path.Combine(source, record.PakFileName)));
+            Assert.False(File.Exists(Path.Combine(source, Path.ChangeExtension(record.PakFileName, ".sig"))));
+            Assert.Equal(record.PakFileName, File.ReadAllText(Path.Combine(Paks, record.PakFileName)));
+            Assert.Equal("signed", File.ReadAllText(Path.Combine(Paks, Path.ChangeExtension(record.PakFileName, ".sig"))));
+        }
+        Assert.False(File.Exists(inventory));
+        Assert.Equal(records, ((PakDir)Startup().PakDir).ManagedPaks);
+        Assert.True((await manager.PakDir.Uninstall(Coordinates("B"))).IsRight);
+        Assert.Equal(records[0], Assert.Single(((PakDir)Startup().PakDir).ManagedPaks));
+        Assert.Equal("preserved", File.ReadAllText(Path.Combine(Paks, "unknown.pak")));
+    }
+
+    [Theory]
     [InlineData("Local#Team", "Mod", false)]
     [InlineData("LocalTeam", "Mod#1", false)]
     [InlineData("Local#Team", "Mod", true)]
@@ -328,7 +370,7 @@ public sealed class OwnershipPersistenceTests : IDisposable {
         Directory.CreateDirectory(Config);
         Assert.True(Record.Exception(() => Startup()) is IOException or UnauthorizedAccessException);
         Assert.True(File.Exists(Inventory));
-        Assert.NotEmpty(Directory.GetFiles(LegacyOwnershipMigration.BackupRoot(Config), "inventory.json", SearchOption.AllDirectories));
+        Assert.False(Directory.Exists(LegacyOwnershipMigration.BackupRoot(Config)));
     }
 
     [Fact]
@@ -378,7 +420,7 @@ public sealed class OwnershipPersistenceTests : IDisposable {
     }
 
     [Fact]
-    public async Task BatchPartialFailureAndEarlyDisposalSaveOwnershipOnce() {
+    public async Task BatchPartialFailureAndEarlyDisposalPreserveWriteAheadOwnership() {
         var manager = Manager();
         new ModManagerPersistence(manager, Config).Save();
         var paks = (PakDir)manager.PakDir;
@@ -387,7 +429,7 @@ public sealed class OwnershipPersistenceTests : IDisposable {
         await using (var results = paks.InstallModSet([Install("First"), Install("Never")], Option<AccumulatedMemoryProgress>.None).GetAsyncEnumerator()) {
             Assert.True(await results.MoveNextAsync());
             Assert.True(results.Current.IsRight);
-            Assert.Empty(((PakDir)Reload().PakDir).ManagedPaks);
+            Assert.Equal(Coordinates("First"), Assert.Single(((PakDir)Reload().PakDir).ManagedPaks).Coordinates);
         }
         Assert.Equal(1, notifications);
         Assert.Equal(Coordinates("First"), Assert.Single(((PakDir)Reload().PakDir).ManagedPaks).Coordinates);
@@ -396,6 +438,49 @@ public sealed class OwnershipPersistenceTests : IDisposable {
         Assert.Equal(2, notifications);
         Assert.Equal(2, ((PakDir)Reload().PakDir).ManagedPaks.Count());
         Assert.False(Directory.Exists(Path.Combine(Paks, ".unchained")));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReorderPublicationFailurePreservesBothPayloadsAcrossRestart(bool afterMove) {
+        var manager = Manager();
+        var paks = (PakDir)manager.PakDir;
+        var blockFinal = false;
+        var evidence = Config + ".last-success";
+        void Block() {
+            File.Move(Config, evidence);
+            Directory.CreateDirectory(Config);
+        }
+        // Subscribe before persistence to obstruct only the final batch checkpoint.
+        paks.OwnershipChanged += (_, _) => {
+            if (!blockFinal) return;
+            blockFinal = false;
+            Block();
+        };
+        new ModManagerPersistence(manager, Config).Save();
+        await foreach (var result in paks.InstallModSet([Install("First"), Install("Second")], Option<AccumulatedMemoryProgress>.None))
+            Assert.True(result.IsRight);
+        File.WriteAllText(Path.Combine(Paks, "unknown.pak"), "unknown");
+        if (afterMove) blockFinal = true;
+        else Block();
+        var failure = await Record.ExceptionAsync(async () => {
+            await foreach (var _ in paks.InstallModSet([Install("Second"), Install("First")], Option<AccumulatedMemoryProgress>.None)) { }
+        });
+        Assert.True(failure is IOException or UnauthorizedAccessException, failure?.ToString() ?? "No failure");
+        Assert.Equal(2, paks.ManagedPaks.Count());
+        var durable = new ModManagerCodec(_registry).Deserialize(File.ReadAllText(evidence)).Result!;
+        Assert.Equal(paks.ManagedPaks, ((PakDir)durable.PakDir).ManagedPaks);
+        Directory.Delete(Config);
+        File.Move(evidence, Config);
+        var restarted = Startup();
+        Assert.Equal(paks.ManagedPaks, ((PakDir)restarted.PakDir).ManagedPaks);
+        await foreach (var result in restarted.PakDir.InstallModSet([Install("Second"), Install("First")], Option<AccumulatedMemoryProgress>.None))
+            Assert.True(result.IsRight);
+        Assert.Equal(new[] { Coordinates("Second"), Coordinates("First") },
+            ((PakDir)Startup().PakDir).ManagedPaks.OrderBy(p => p.Priority).Select(p => p.Coordinates));
+        Assert.Equal(3, Directory.GetFiles(Paks, "*.pak").Length);
+        Assert.Equal("unknown", File.ReadAllText(Path.Combine(Paks, "unknown.pak")));
     }
 
     [Fact]

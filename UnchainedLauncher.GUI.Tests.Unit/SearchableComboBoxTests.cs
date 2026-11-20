@@ -111,6 +111,7 @@ public class SearchableComboBoxTests {
         host.Window.Top = 100;
         host.Window.Activate();
         Pump();
+        desktop.MinimizeTerminals(output);
         if (occludeWindow) {
             desktop.ShowObstruction();
             var coveredPoint = host.Combo.PointToScreen(new Point(host.Combo.ActualWidth / 2, host.Combo.ActualHeight / 2));
@@ -119,15 +120,19 @@ public class SearchableComboBoxTests {
             Assert.Equal(desktop.ObstructionHandle, WindowFromPoint(new NativePoint { X = (int)coveredPoint.X, Y = (int)coveredPoint.Y }));
             Assert.Equal(desktop.ObstructionHandle, GetForegroundWindow());
             output.WriteLine($"Controlled obstruction: {DescribeWindow(GetForegroundWindow())}");
+            desktop.MinimizeObstruction(output);
+            Assert.NotEqual(desktop.ObstructionHandle,
+                WindowFromPoint(new NativePoint { X = (int)coveredPoint.X, Y = (int)coveredPoint.Y }));
         }
-        // Activation alone does not retain foreground ownership while the dispatcher pumps.
-        // Raise above ordinary desktop windows, then acquire foreground through real user input.
+        // Reassert native Z-order even if WPF already considers this window topmost.
         host.Window.Topmost = true;
+        var hwnd = new WindowInteropHelper(host.Window).Handle;
+        Assert.True(SetWindowPos(hwnd, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010),
+            $"Cannot raise native input host; Win32 error={Marshal.GetLastWin32Error()}.");
         Pump();
         var activationPoint = host.Before.PointToScreen(new Point(host.Before.ActualWidth / 2, host.Before.ActualHeight / 2));
         Assert.True(SetCursorPos((int)activationPoint.X, (int)activationPoint.Y));
         Pump();
-        var hwnd = new WindowInteropHelper(host.Window).Handle;
         Assert.True(GetCursorPos(out var activationCursor));
         output.WriteLine($"Activation hit: {DescribeWindow(WindowFromPoint(activationCursor))}; foreground: {DescribeWindow(GetForegroundWindow())}");
         Assert.Equal(hwnd, WindowFromPoint(activationCursor));
@@ -274,6 +279,8 @@ public class SearchableComboBoxTests {
         Pump();
         NativeKey(0x0d);
         Assert.Equal("Xbox Game Pass", model.Selection);
+        desktop.RestoreWindows();
+        if (occludeWindow) Assert.False(IsIconic(desktop.ObstructionHandle));
     });
 
     private static SelectionModel BindMiddleSelection(Host host) {
@@ -380,6 +387,50 @@ public class SearchableComboBoxTests {
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr window);
 
+    private delegate bool EnumWindowCallback(IntPtr window, IntPtr parameter);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool EnumWindows(EnumWindowCallback callback, IntPtr parameter);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr window);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsIconic(IntPtr window);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool GetWindowRect(IntPtr window, out NativeRect bounds);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool ShowWindowAsync(IntPtr window, int command);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WindowPlacement {
+        public uint Length;
+        public uint Flags;
+        public uint ShowCommand;
+        public NativePoint MinPosition;
+        public NativePoint MaxPosition;
+        public NativeRect NormalPosition;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool GetWindowPlacement(IntPtr window, ref WindowPlacement placement);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPlacement(IntPtr window, ref WindowPlacement placement);
+
     private static string DescribeWindow(IntPtr window) {
         var title = new StringBuilder(256);
         var className = new StringBuilder(256);
@@ -394,6 +445,7 @@ public class SearchableComboBoxTests {
         private readonly bool topmost;
         private readonly IntPtr foreground = GetForegroundWindow();
         private readonly NativePoint cursor;
+        private readonly List<(IntPtr Handle, WindowPlacement Placement)> minimized = new();
         private Window? obstruction;
 
         public IntPtr ObstructionHandle => new WindowInteropHelper(obstruction!).Handle;
@@ -411,18 +463,72 @@ public class SearchableComboBoxTests {
                 Top = window.Top,
                 Width = window.Width,
                 Height = window.Height,
-                ShowInTaskbar = false
+                ShowInTaskbar = false,
+                Topmost = true
             };
             obstruction.Show();
             obstruction.Activate();
             Pump();
         }
 
+        public void MinimizeTerminals(ITestOutputHelper output) {
+            var terminals = new List<IntPtr>();
+            Assert.True(GetWindowRect(new WindowInteropHelper(window).Handle, out var hostBounds));
+            Assert.True(EnumWindows((handle, _) => {
+                var className = new StringBuilder(256);
+                GetClassName(handle, className, className.Capacity);
+                if (IsWindowVisible(handle) && !IsIconic(handle) &&
+                    className.ToString() == "CASCADIA_HOSTING_WINDOW_CLASS" &&
+                    GetWindowRect(handle, out var bounds) &&
+                    bounds.Left < hostBounds.Right && bounds.Right > hostBounds.Left &&
+                    bounds.Top < hostBounds.Bottom && bounds.Bottom > hostBounds.Top)
+                    terminals.Add(handle);
+                return true;
+            }, IntPtr.Zero));
+            // HostedComputeAgent's Windows Terminal can cover even a topmost WPF host.
+            // Minimize only overlapping terminals, preserving placement for this test's cleanup.
+            foreach (var terminal in terminals) Minimize(terminal, output);
+        }
+
+        public void MinimizeObstruction(ITestOutputHelper output) => Minimize(ObstructionHandle, output);
+
+        private void Minimize(IntPtr handle, ITestOutputHelper output) {
+            var placement = new WindowPlacement { Length = (uint)Marshal.SizeOf<WindowPlacement>() };
+            Assert.True(GetWindowPlacement(handle, ref placement));
+            minimized.Add((handle, placement));
+            output.WriteLine($"Minimizing native input obstruction: {DescribeWindow(handle)}; show={placement.ShowCommand}");
+            Assert.True(ShowWindowAsync(handle, 6)); // SW_MINIMIZE; do not close the runner's terminal.
+            PumpUntil(() => IsIconic(handle));
+            Assert.True(IsIconic(handle), $"Desktop isolation failed: {DescribeWindow(handle)}");
+        }
+
+        public void RestoreWindows() {
+            var failures = new List<string>();
+            for (var i = minimized.Count - 1; i >= 0; i--) {
+                var (handle, placement) = minimized[i];
+                placement.Flags |= 4; // WPF_ASYNCWINDOWPLACEMENT: the terminal has another input queue.
+                var accepted = SetWindowPlacement(handle, ref placement);
+                bool Restored() {
+                    var actual = new WindowPlacement { Length = (uint)Marshal.SizeOf<WindowPlacement>() };
+                    return GetWindowPlacement(handle, ref actual) && !IsIconic(handle) &&
+                        actual.ShowCommand == placement.ShowCommand &&
+                        actual.NormalPosition.Equals(placement.NormalPosition);
+                }
+                if (accepted) PumpUntil(Restored);
+                if (accepted && Restored()) minimized.RemoveAt(i);
+                else failures.Add(DescribeWindow(handle));
+            }
+            Assert.True(failures.Count == 0, $"Desktop restoration failed: {string.Join("; ", failures)}");
+        }
+
         public void Dispose() {
-            window.Topmost = topmost;
-            obstruction?.Close();
-            SetCursorPos(cursor.X, cursor.Y);
-            if (foreground != IntPtr.Zero) SetForegroundWindow(foreground);
+            try { RestoreWindows(); }
+            finally {
+                window.Topmost = topmost;
+                obstruction?.Close();
+                SetCursorPos(cursor.X, cursor.Y);
+                if (foreground != IntPtr.Zero) SetForegroundWindow(foreground);
+            }
         }
     }
 

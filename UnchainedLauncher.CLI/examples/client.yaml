@@ -8,7 +8,7 @@ mod-setup:
   dlls: []
 
 # Run with: UnchainedLauncher.CLI.exe client --config-path client.yaml
-# A server block, if included, is ignored by the client command.
+# A servers block, if included, is ignored by the client command.
 update-plugin: true
 client:
   game-args: []

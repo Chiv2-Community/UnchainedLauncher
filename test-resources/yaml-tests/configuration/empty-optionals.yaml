@@ -1,0 +1,4 @@
+chiv2-path: './game installation'
+platform: Steam
+servers:
+  server: {description: '', password: '', local-ip: '', discord: {bot-token: '', general-channel-id: ''}}

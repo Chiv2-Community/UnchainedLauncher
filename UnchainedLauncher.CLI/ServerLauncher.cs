@@ -20,7 +20,9 @@ public static class ServerLauncher {
         var instance = request.InstancePaths;
         if (!File.Exists(executable)) throw new FileNotFoundException("Chivalry 2 shipping executable was not found. Check --chivalry2-path.", executable);
         if (!Directory.Exists(basePakPath)) throw new DirectoryNotFoundException($"Chivalry 2 Paks directory was not found: {basePakPath}");
+        if (request is ServerOptions server) ReadSavedRotationIndex(server, ProfileConfigDirectory(server));
         await PluginLogging.PrepareAsync(request, cancellationToken);
+        await MapProfileIni.PrepareAsync(request, cancellationToken);
 
         var registry = CreateRegistry(request);
 
@@ -100,16 +102,23 @@ public static class ServerLauncher {
     internal static void InitializeServerProfile(CliLaunchOptions request, Func<string, string>? configPath = null) {
         if (request is not ServerOptions server) return;
 
-        var directory = configPath != null ? configPath(server.GameSavedDirSuffix)
-            : Path.Combine(Path.GetDirectoryName(request.Shared.Assets.Root)!, "Config", "WindowsNoEditor");
+        var directory = configPath != null ? configPath(server.GameSavedDirSuffix) : ProfileConfigDirectory(server);
+        ReadSavedRotationIndex(server, directory);
         // Match the GUI's startup defaults without rewriting unrelated server or player settings.
         var writer = new StructuredINIWriter();
         if (!writer.BufferWrite(new TBLTitleScreen()) || !writer.BufferWrite(new TBLGameInstance()))
             throw new IOException("Could not initialize the server INI profile; refusing to launch.");
-        var files = new Dictionary<string, StructuredINIWriter>(StringComparer.OrdinalIgnoreCase) { ["Game"] = writer };
-        server.Ini.BufferInto(files);
-        server.Settings.Rotation?.BufferInto(writer);
-        IniPatches.Write(directory, files);
+        server.Ini.ApplyProfile(directory, writer, server.Settings.Rotation, Path.Combine(request.InstancePaths.Root, "ini-cache"));
+    }
+
+    private static string ProfileConfigDirectory(ServerOptions server) =>
+        Path.Combine(Path.GetDirectoryName(server.Shared.Assets.Root)!, "Config", "WindowsNoEditor");
+
+    internal static void ReadSavedRotationIndex(ServerOptions server, string directory) {
+        if (server.Settings.ExplicitStartingMap is not null || server.Settings.Rotation is not { } rotation) return;
+        var restored = rotation.ReadSavedIndex(Path.Combine(directory, "Game.ini"));
+        server.Settings.Rotation = restored;
+        if (server.Settings.Resolved is { } resolved) server.Settings.Resolved = resolved with { Rotation = restored };
     }
 
     // Several existing Core preparers use installation-relative paths.

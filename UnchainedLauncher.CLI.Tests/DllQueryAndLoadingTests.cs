@@ -24,11 +24,10 @@ public sealed class DllQueryAndLoadingTests : IDisposable {
 
     [Fact]
     public void UnsafePermissionSurvivesAuthoritativeYamlOnlyWhenExplicitlyOnCommandLine() {
-        var path = Path.Combine(_directory, "launch.yaml");
-        File.WriteAllText(path, "chiv2-path: .\nplatform: Steam\n");
+        var path = YamlTestResources.Write(_directory, "registry/defaults");
         Assert.False(CliLaunchOptions.Parse(["client", "--config-path", path]).Shared.UnsafeLoadAllDlls);
         Assert.True(CliLaunchOptions.Parse(["client", "--config-path", path, UnsafeDllLoading.FlagName]).Shared.UnsafeLoadAllDlls);
-        File.AppendAllText(path, "unsafe-very-dangerous-load-all-dlls: true\n");
+        YamlTestResources.Write(_directory, "registry/unsafe-launch");
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["client", "--config-path", path]));
     }
 
@@ -36,8 +35,7 @@ public sealed class DllQueryAndLoadingTests : IDisposable {
     [InlineData("--unsafe-very-dangerous-load-all-dlls=true")]
     [InlineData("--unsafe-very-dangerous-load-all-dlls=false")]
     public void PermissionIsAValueLessFlagEvenWhenYamlIgnoresOtherArguments(string flag) {
-        var path = Path.Combine(_directory, "launch.yaml");
-        File.WriteAllText(path, "chiv2-path: .\nplatform: Steam\n");
+        var path = YamlTestResources.Write(_directory, "registry/defaults");
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--config-path", path, flag]));
         Assert.Throws<ArgumentException>(() => UnsafeDllLoading.ParseGuiArguments([flag]));
     }
@@ -148,14 +146,13 @@ public sealed class DllQueryAndLoadingTests : IDisposable {
     [Fact]
     public void DllQueryUsesConfiguredRegistriesAndQueryYamlCannotGrantUnsafePermission() {
         Registry();
-        var path = Path.Combine(_directory, "query.yaml");
-        File.WriteAllText(path, "mod-setup: {registries: ['local:.']}\n");
+        var path = YamlTestResources.Write(_directory, "registry/dll-query");
         var query = Assert.IsType<ModQueryOptions>(CommandLineOptions.Parse(["dll-query", "get", "org/plugin", "--config-path", path, "--version", "v1.0.0"]));
         Assert.Equal(RegistryPackageKind.Dll, query.Kind);
         Assert.Equal(_directory, Assert.Single(query.RegistryOptions.Registries).Location.TrimEnd(Path.DirectorySeparatorChar));
         Assert.Equal("v1.0.0", query.Version);
         Assert.Equal(2, query.RegistryOptions.CreateRegistry().ModRegistries.Count);
-        File.AppendAllText(path, "unsafe-very-dangerous-load-all-dlls: true\n");
+        YamlTestResources.Write(_directory, "registry/unsafe-query");
         Assert.Throws<ArgumentException>(() => CommandLineOptions.Parse(["dll-query", "list", "--config-path", path]));
     }
 

@@ -5,7 +5,69 @@ using System.Text;
 
 namespace StructuredINI {
     public class StructuredINIParser {
-        public string Serialize<T>(T instance) {
+        public sealed record Entry(string Section, string Key, string Value) {
+            public string Name => Key.TrimStart('!', '+', '-', '.');
+        }
+
+        // Read unknown sections and fields without requiring a CLR model.
+        public IReadOnlyList<Entry> ReadEntries(string content, bool strict = false) {
+            var entries = new List<Entry>();
+            var section = "";
+            foreach (var original in content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None)) {
+                var line = original.Trim();
+                if (line.Length == 0 || line.StartsWith(';') || line.StartsWith('#')) continue;
+                if (line.StartsWith('[') && line.EndsWith(']')) {
+                    section = line[1..^1];
+                    continue;
+                }
+                var equals = line.IndexOf('=');
+                if (section.Length == 0 || equals <= 0 || line.Contains('\0')) {
+                    if (strict) throw new FormatException("Invalid INI structure.");
+                    continue;
+                }
+                var entry = new Entry(section, line[..equals].Trim(), line[(equals + 1)..]);
+                if (entry.Name.Length == 0) {
+                    if (strict) throw new FormatException("Invalid INI key.");
+                    continue;
+                }
+                entries.Add(entry);
+            }
+            return entries;
+        }
+
+        // Values are already encoded by StructuredINI codecs. Use the same collection
+        // representation for model-based serialization and dynamically selected fields.
+        public static bool IsArrayDelta(IEnumerable<KeyValuePair<string, string>> entries) {
+            var commands = entries.ToArray();
+            return commands.Length > 0 && commands.All(entry => entry.Key.Length > 0 && entry.Key[0] is '+' or '-' or '.');
+        }
+
+        public IEnumerable<KeyValuePair<string, string>> SerializeEntries(string key, IEnumerable<string> values, bool collection, bool isConfigRoot, char operation = '\0') {
+            var encoded = values.ToArray();
+            if (isConfigRoot && operation != '\0')
+                throw new ArgumentException("Root array operations must be resolved before serializing entries.");
+            if (operation != '\0') {
+                if (!collection || operation is not ('+' or '-' or '.' or '!'))
+                    throw new ArgumentException("INI array operations require a collection and one of +, -, ., or !.");
+                if (operation == '!') {
+                    if (encoded.Length != 0) throw new ArgumentException("The ! array operation requires an empty list.");
+                    yield return new("!" + key, "ClearArray");
+                }
+                else foreach (var value in encoded) yield return new(operation + key, value);
+                yield break;
+            }
+            if (!collection || isConfigRoot) {
+                foreach (var value in encoded) yield return new(key, value);
+                yield break;
+            }
+            // A supplied collection replaces inherited values, including when empty.
+            yield return new("!" + key, "ClearArray");
+            var emitted = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var value in encoded)
+                yield return new((emitted.Add(value) ? "+" : ".") + key, value);
+        }
+
+        public string Serialize<T>(T instance, bool isConfigRoot) {
             var type = typeof(T);
             var sectionAttr = type.GetCustomAttribute<INISectionAttribute>();
             if (sectionAttr == null) {
@@ -26,46 +88,26 @@ namespace StructuredINI {
 
                 if (IsCollection(prop.PropertyType, out var elementType)) {
                     var list = (IList)val;
-                    if (list.Count == 0) {
-                        // Explicitly clear to represent empty list
-                        sb.AppendLine($"!{keyName}=Clear");
-                    }
-                    else {
-                        var codec = CodecRegistry.Get(elementType) as dynamic;
-                        var emittedValues = new HashSet<object>();
-
-                        for (int i = 0; i < list.Count; i++) {
-                            var item = list[i];
-                            // Encode value
-                            string encoded;
-                            try {
-                                var encodeMethod = codec.GetType().GetMethod("Encode");
-                                encoded = (string)encodeMethod.Invoke(codec, new object[] { item });
-                            }
-                            catch (Exception ex) {
-                                throw new InvalidOperationException($"Failed to encode value of type {elementType.Name}", ex);
-                            }
-
-                            sb.AppendLine($"{keyName}={encoded}");
-                            emittedValues.Add(item);
-                        }
-                    }
+                    foreach (var entry in SerializeEntries(keyName, list.Cast<object>().Select(item => EncodeValue(elementType, item)), collection: true, isConfigRoot: isConfigRoot))
+                        sb.AppendLine($"{entry.Key}={entry.Value}");
                 }
                 else {
-                    var codec = CodecRegistry.Get(prop.PropertyType) as dynamic;
-                    string encoded;
-                    try {
-                        var encodeMethod = codec.GetType().GetMethod("Encode");
-                        encoded = (string)encodeMethod.Invoke(codec, new object[] { val });
-                    }
-                    catch (Exception ex) {
-                        throw new InvalidOperationException($"Failed to encode value of type {prop.PropertyType.Name}", ex);
-                    }
-                    sb.AppendLine($"{keyName}={encoded}");
+                    foreach (var entry in SerializeEntries(keyName, new[] { EncodeValue(prop.PropertyType, val) }, collection: false, isConfigRoot: isConfigRoot))
+                        sb.AppendLine($"{entry.Key}={entry.Value}");
                 }
             }
 
             return sb.ToString();
+        }
+
+        private static string EncodeValue(Type type, object value) {
+            var codec = CodecRegistry.Get(type);
+            try {
+                return (string)codec.GetType().GetMethod("Encode")!.Invoke(codec, new[] { value })!;
+            }
+            catch (Exception ex) {
+                throw new InvalidOperationException($"Failed to encode value of type {type.Name}", ex);
+            }
         }
 
         public T Deserialize<T>(string iniContent) {
@@ -76,7 +118,6 @@ namespace StructuredINI {
             }
 
             var sectionName = sectionAttr.SectionName;
-            var lines = GetLinesForSection(iniContent, sectionName);
 
             // Prepare storage for property values
             // For arrays/lists, we store the List<ElementType> object.
@@ -99,47 +140,20 @@ namespace StructuredINI {
                 }
             }
 
-            foreach (var line in lines) {
-                ProcessLine(line, propMap, propertyValues);
+            foreach (var entry in ReadEntries(iniContent).Where(entry => entry.Section.Equals(sectionName, StringComparison.OrdinalIgnoreCase))) {
+                ProcessLine(entry, propMap, propertyValues);
             }
 
             return CreateInstance<T>(propertyValues, properties);
         }
 
-        private List<string> GetLinesForSection(string content, string sectionName) {
-            var result = new List<string>();
-            var lines = content.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
-            bool insideSection = false;
-
-            foreach (var line in lines) {
-                var trimmed = line.Trim();
-                if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("#"))
-                    continue;
-
-                if (trimmed.StartsWith("[") && trimmed.EndsWith("]")) {
-                    var currentSection = trimmed.Substring(1, trimmed.Length - 2);
-                    insideSection = string.Equals(currentSection, sectionName, StringComparison.OrdinalIgnoreCase);
-                    continue;
-                }
-
-                if (insideSection) {
-                    result.Add(trimmed);
-                }
-            }
-            return result;
-        }
-
-        private void ProcessLine(string line, Dictionary<string, PropertyInfo> propMap, Dictionary<string, object> propertyValues) {
+        private void ProcessLine(Entry entry, Dictionary<string, PropertyInfo> propMap, Dictionary<string, object> propertyValues) {
             // Syntax: [Prefix]Key=Value
             // Prefixes: !, +, -, .
             // If no prefix, it's Set.
 
-            // Find position of =
-            int idx = line.IndexOf('=');
-            if (idx == -1) return; // Invalid line
-
-            string keyPart = line.Substring(0, idx).Trim();
-            string valuePart = line.Substring(idx + 1).Trim();
+            string keyPart = entry.Key;
+            string valuePart = entry.Value.Trim();
 
             char prefix = '\0';
             string key = keyPart;

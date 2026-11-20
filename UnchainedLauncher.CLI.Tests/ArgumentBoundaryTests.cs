@@ -79,11 +79,9 @@ public sealed class ArgumentBoundaryTests : IDisposable {
     [InlineData("quoted \"value\" and trailing slash\\")]
     [InlineData("line\nbreak\tand & | > shell text")]
     public async Task RawIniOverridesPreserveExactContentsAsOneArgument(string value) {
-        var path = Path.Combine(_directory, "raw.yaml");
-        File.WriteAllText(path, $"chiv2-path: {JsonSerializer.Serialize(_directory)}\nplatform: Steam\nserver:\n" +
-            "  local-ip: 127.0.0.1\n  ini:\n    Game:\n      /Script/TBL.TBLGameMode:\n" +
-            $"        Custom: {{type: raw, value: {JsonSerializer.Serialize(value)}}}\n");
-        var options = CliLaunchOptions.Parse(["server", "--config-path", path]);
+        var path = YamlTestResources.Write(_directory, "arguments/raw", ("INSTALL", JsonSerializer.Serialize(_directory)),
+            ("VALUE", JsonSerializer.Serialize(value)));
+        var options = YamlTestResources.ParseLaunch(["server", "--config-path", path]);
         var expected = new List<string> { "TBL", "-server", "--attach-stdio", "--log4rs-yaml", options.InstancePaths.Logging };
         expected.AddRange(FirstRunArguments);
         expected.Add("-ini:Game:[/Script/TBL.TBLGameMode]:Custom=" + value);
@@ -99,15 +97,11 @@ public sealed class ArgumentBoundaryTests : IDisposable {
             .. command == "server" ? new[] { "--local-ip", "127.0.0.1" } : [],
             .. serverValue is null ? System.Array.Empty<string>() : ["--name", serverValue, "--description", serverValue,
                 "--starting-map", serverValue, "--password", serverValue], "--", .. arguments]);
-        var path = Path.Combine(_directory, "launch.yaml");
         // JSON-quoted strings are YAML scalars; cover both shared and command-specific game-args lists.
-        File.WriteAllText(path, $"chiv2-path: {JsonSerializer.Serialize(_directory)}\nplatform: Steam\n" +
-            $"game-args: {JsonSerializer.Serialize(arguments.Take(1))}\n{command}:\n" +
-            (command == "server" ? "  local-ip: 127.0.0.1\n" : "") +
-            (serverValue is null ? "" : string.Concat(new[] { "name", "description", "starting-map", "password" }
-                .Select(key => $"  {key}: {JsonSerializer.Serialize(serverValue)}\n"))) +
-            $"  game-args: {JsonSerializer.Serialize(arguments.Skip(1))}\n");
-        return CliLaunchOptions.Parse([command, "--config-path", path]);
+        var path = YamlTestResources.Write(_directory, "arguments/" + (serverValue is null ? command : "server-values"),
+            ("INSTALL", JsonSerializer.Serialize(_directory)), ("SHARED_ARGS", JsonSerializer.Serialize(arguments.Take(1))),
+            ("COMMAND_ARGS", JsonSerializer.Serialize(arguments.Skip(1))), ("VALUE", JsonSerializer.Serialize(serverValue)));
+        return YamlTestResources.ParseLaunch([command, "--config-path", path]);
     }
 
     private static readonly string[] FirstRunArguments = [

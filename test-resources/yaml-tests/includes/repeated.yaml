@@ -1,0 +1,3 @@
+servers:
+  one: {name: !load name.yaml, mod-actors: !load actors.yaml}
+  two: {mod-actors: !load actors.yaml}

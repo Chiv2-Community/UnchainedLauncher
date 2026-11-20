@@ -1,0 +1,4 @@
+chiv2-path: './game installation'
+platform: Steam
+servers:
+  server: {desync-patch: false, use-backend-banlist: false}

@@ -1,0 +1,37 @@
+chiv2-path: .
+platform: Steam
+map-profiles:
+  day:
+    map-name: FFA_Courtyard
+    ini:
+      engine:
+        ModSettings:
+          Value: 20
+          Names: []
+  night:
+    map-name: FFA_Courtyard
+    ini:
+      Engine:
+        ModSettings:
+          Value: 30
+          '-Names': [A]
+servers:
+  server:
+    starting-map: FFA_Wardenglade
+    ini:
+      Engine:
+        ModSettings:
+          Value: 10
+          Neighbor: keep
+          Names: [A, A, B]
+    map-rotation:
+      - day
+      - night
+      - map-name: FFA_Courtyard
+        name: Day reprise
+        ini:
+          engine:
+            ModSettings:
+              Value: 20
+              Names: []
+      - {map-name: FFA_Wardenglade}

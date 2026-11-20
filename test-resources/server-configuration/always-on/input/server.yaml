@@ -1,0 +1,11 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  ini:
+    Engine: ./global-Engine.ini
+    Game: ./global-Game.ini
+servers:
+  server:
+    ini:
+      Engine: ./server-Engine.ini
+      Game: ./server-Game.ini

@@ -1,0 +1,13 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  ini: { __CATEGORY__: ./global.ini }
+servers:
+  server:
+    ini: { __CATEGORY__: ./server.ini }
+    map-settings:
+      '~':
+        ini:
+          __CATEGORY__:
+            Mod: {Value: 9}
+    map-rotation: [{map: FFA_Courtyard}]

@@ -15,14 +15,11 @@ public class YamlConfigurationTests : IDisposable {
     public YamlConfigurationTests() => Directory.CreateDirectory(_directory);
     public void Dispose() => Directory.Delete(_directory, recursive: true);
 
-    private string Write(string body, bool includeRequired = true) {
-        var path = Path.Combine(_directory, "launch.yaml");
-        File.WriteAllText(path, (includeRequired ? "chiv2-path: './game installation'\nplatform: Steam\n" : "") + body);
-        return path;
-    }
+    private string Write(string fixture, params (string Token, string Value)[] replacements) =>
+        YamlTestResources.Write(_directory, "configuration/" + fixture, replacements);
 
-    private CliLaunchOptions Load(string body, bool client = false) =>
-        CliLaunchOptions.Parse([client ? "client" : "server", "--config-path", Write(body)]);
+    private CliLaunchOptions Load(string fixture, bool client = false, params (string Token, string Value)[] replacements) =>
+        YamlTestResources.ParseLaunch([client ? "client" : "server", "--config-path", Write(fixture, replacements)]);
 
     [Theory]
     [InlineData("a", "a")]
@@ -32,7 +29,7 @@ public class YamlConfigurationTests : IDisposable {
     public void CliAndYamlSuffixesUseTheSameProfileNormalization(string suffix, string normalized) {
         foreach (var command in new[] { "client", "server" }) {
             var cli = CliLaunchOptions.Parse([command, "--chivalry2-path", ".", "--platform", "Steam", "--saved-dir-suffix=" + suffix]);
-            var yaml = Load(command == "client" ? $"saved-dir-suffix: '{suffix}'" : $"server: {{saved-dir-suffix: '{suffix}'}}", command == "client");
+            var yaml = Load(command + "-suffix", command == "client", ("SUFFIX", System.Text.Json.JsonSerializer.Serialize(suffix)));
             foreach (var options in new[] { cli, yaml }) {
                 Assert.Equal(suffix, options.Shared.SavedDirSuffix);
                 Assert.Equal(normalized, options.Shared.Assets.Suffix);
@@ -55,9 +52,7 @@ public class YamlConfigurationTests : IDisposable {
             var cli = Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse([
                 command, "--chivalry2-path", ".", "--platform", "Steam", "--saved-dir-suffix=" + suffix, "--mod=invalid"]));
             var quoted = System.Text.Json.JsonSerializer.Serialize(suffix);
-            var yaml = Assert.Throws<ArgumentException>(() => Load(command == "client"
-                ? $"saved-dir-suffix: {quoted}\nmod-setup: {{mods: [invalid]}}"
-                : $"server: {{saved-dir-suffix: {quoted}, mod-setup: {{mods: [invalid]}}}}", command == "client"));
+            var yaml = Assert.Throws<ArgumentException>(() => Load(command + "-invalid-suffix", command == "client", ("SUFFIX", quoted)));
             if (suffix.Length == 0) Assert.Contains("Required argument missing for option: '--saved-dir-suffix'", cli.Message);
             else Assert.Equal(expected.Message, cli.Message);
             if (suffix.Length == 0 && command == "client") Assert.Contains("The SavedDirSuffix field is required.", yaml.Message);
@@ -74,7 +69,7 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData(true, "::ffff:127.0.0.1")]
     public void ServerRejectsIpv6DuringParsing(bool yaml, string address) {
         var error = Assert.Throws<ArgumentException>(() => yaml
-            ? Load($"server: {{local-ip: '{address}'}}")
+            ? Load("local-ip", false, ("ADDRESS", address))
             : CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam", "--local-ip", address]));
         Assert.Contains("local-ip must be an IPv4 address", error.Message);
     }
@@ -90,7 +85,7 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData(true, null)]
     public void ServerAcceptsIpv4OverridesAndAutoDetection(bool yaml, string? address) {
         var options = Assert.IsType<ServerOptions>(yaml
-            ? Load(address is null ? "server: {}" : $"server: {{local-ip: '{address}'}}")
+            ? address is null ? Load("empty-server") : Load("local-ip", false, ("ADDRESS", address))
             : CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam",
                 .. address is null ? Array.Empty<string>() : ["--local-ip", address]]));
         Assert.Equal(AddressFamily.InterNetwork, IPAddress.Parse(options.Settings.LocalIp!).AddressFamily);
@@ -99,23 +94,8 @@ public class YamlConfigurationTests : IDisposable {
     }
 
     [Fact]
-    public void ConfigurationIsAuthoritativeWithEitherConfigPathSyntax() {
-        var path = Write("server:\n  name: From YAML\n");
-        foreach (var args in new[] {
-            new[] { "server", "--typo", "--name", "Ignored", "--config-path", path, "--", "-ignored-game-arg" },
-            new[] { "server", "--config-path=" + path, "--platform=Invalid", "--help" }
-        }) {
-            var options = CliLaunchOptions.Parse(args);
-            Assert.IsType<ServerOptions>(options);
-            Assert.False(options.Help);
-            Assert.Equal("From YAML", Assert.IsType<ServerOptions>(options).Settings.Name);
-            Assert.Empty(options.GameArguments);
-        }
-    }
-
-    [Fact]
     public void AuthoritativeYamlIgnoresResponseFileTokensAndAllOtherOptionErrors() {
-        var path = Write("server: {name: From YAML}\n");
+        var path = Write("authoritative");
         var response = Path.Combine(_directory, "ignored.rsp");
         File.WriteAllText(response, "--config-path=must-not-be-loaded --name=must-not-be-bound");
         foreach (var command in new[] { "server", "client" }) {
@@ -127,7 +107,7 @@ public class YamlConfigurationTests : IDisposable {
                     [command, .. ignored, "--config-path=" + path],
                     [command, .. ignored, "--config-path=" + path, "--help"]
                 }) {
-                    var options = CliLaunchOptions.Parse(args);
+                    var options = YamlTestResources.ParseLaunch(args);
                     Assert.False(options.Help);
                     Assert.True(options.Shared.UpdatePlugin);
                     Assert.Empty(options.GameArguments);
@@ -156,7 +136,7 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData("client", true)]
     public void OneLibraryParseControlsBothOrdinaryAndYamlLaunches(string command, bool yaml) {
         string[] args = yaml
-            ? [command, "--config-path", Write(""), "--platform=Invalid", "--unknown"]
+            ? [command, "--config-path", Write("defaults"), "--platform=Invalid", "--unknown"]
             : [command, "--chivalry2-path", ".", "--platform", "Steam"];
         var calls = 0;
         var options = CommandLineOptions.Parse([.. args, "--", "@game-file", "--config-path", "not-config"], (root, tokens, configuration) => {
@@ -172,13 +152,15 @@ public class YamlConfigurationTests : IDisposable {
             return root.Parse(tokens, configuration);
         });
         Assert.Equal(1, calls);
-        Assert.Equal(command == "server", options is ServerOptions);
-        Assert.Equal(yaml ? [] : new[] { "@game-file", "--config-path", "not-config" }, Assert.IsAssignableFrom<CliLaunchOptions>(options).GameArguments);
+        Assert.Equal(command == "server" && yaml, options is ServerGroupOptions);
+        var launch = YamlTestResources.Launch(options);
+        Assert.Equal(command == "server", launch is ServerOptions);
+        Assert.Equal(yaml ? [] : new[] { "@game-file", "--config-path", "not-config" }, launch.GameArguments);
     }
 
     [Fact]
     public void AuthoritativeYamlStillRejectsMissingEmptyAndDuplicateSelectors() {
-        var path = Write("");
+        var path = Write("defaults");
         foreach (var command in new[] { "server", "client" }) {
             foreach (var selectors in new[] {
                 new[] { "--config-path" },
@@ -192,21 +174,15 @@ public class YamlConfigurationTests : IDisposable {
                 Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse([command, "--platform=Invalid", .. selectors, "--help"]));
             }
         }
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["--config-path", path]));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["--config-path", path, "--help"]));
-    }
-
-    [Fact]
-    public void ConfigPathAfterGameSeparatorIsForwardedNotLoaded() {
-        var options = CliLaunchOptions.Parse(["server", "--chivalry2-path", _directory, "--platform", "Steam", "--", "--config-path", "game-file"]);
-        Assert.Equal(new[] { "--config-path", "game-file" }, options.GameArguments);
+        Assert.Throws<ArgumentException>(() => YamlTestResources.ParseLaunch(["--config-path", path]));
+        Assert.Throws<ArgumentException>(() => YamlTestResources.ParseLaunch(["--config-path", path, "--help"]));
     }
 
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void SubcommandSelectsModeRegardlessOfIncludedBlocks(bool client) {
-        var options = Load("client: {}\nserver: {}\n", client);
+        var options = Load("both-modes", client);
         Assert.Equal(client, options is ClientOptions);
         Assert.Equal(client, options.ToLaunchOptions().ServerLaunchOptions.IsNone);
         if (client) Assert.Equal("TBL", options.ToLaunchOptions().LaunchArgs);
@@ -216,20 +192,7 @@ public class YamlConfigurationTests : IDisposable {
 
     [Fact]
     public void ExplicitClientIgnoresServerFieldsEvenWhenTheyAreInvalid() {
-        var options = Load("""
-            client:
-              game-args: ['-client-only']
-            game-args: ['-AUTH_PASSWORD=auth value']
-            server:
-              game-port: not-a-port
-              headless: not-a-boolean
-              typo: whatever
-              mod-actors: not-a-list
-              discord:
-                bot-token: secret
-                general-channel-id: []
-              game-args: ['-server']
-            """, client: true);
+        var options = Load("client-ignores-server", client: true);
         Assert.IsType<ClientOptions>(options);
         var launch = options.ToLaunchOptions();
         Assert.True(launch.ServerLaunchOptions.IsNone);
@@ -240,11 +203,11 @@ public class YamlConfigurationTests : IDisposable {
 
     [Fact]
     public void ServerIgnoresClientBlockAndEachCommandValidatesOnlyItsOwnSchema() {
-        var server = Load("client: not-a-mapping\nserver: {name: Correct}");
+        var server = Load("server-ignores-client");
         Assert.Equal("Correct", Assert.IsType<ServerOptions>(server).Settings.Name);
-        Assert.Throws<ArgumentException>(() => Load("client: not-a-mapping", client: true));
-        Assert.Throws<ArgumentException>(() => Load("client: {typo: invalid}", client: true));
-        Assert.IsType<ClientOptions>(Load("server: not-a-mapping\nclient: {}", client: true));
+        Assert.Throws<ArgumentException>(() => Load("invalid-client-mapping", client: true));
+        Assert.Throws<ArgumentException>(() => Load("invalid-client-key", client: true));
+        Assert.IsType<ClientOptions>(Load("client-ignores-server-scalar", client: true));
     }
 
     public static TheoryData<bool, string> InactiveYamlNodes {
@@ -252,15 +215,8 @@ public class YamlConfigurationTests : IDisposable {
             var data = new TheoryData<bool, string>();
             foreach (var client in new[] { true, false }) {
                 foreach (var node in new[] {
-                    "not-a-mapping", "null", "[]", "{}", "*unused-alias",
-                    "{game-args: [], game-args: []}",
-                    "{nested: {password: first-secret, password: second-secret}}",
-                    "[{nested: {field: one, field: two}}, [scalar, {field: [], field: {}}]]",
-                    "{nested: [{field: one, field: two}], nested: ignored}",
-                    "!ignored-tag {field: one, field: two}",
-                    "|-\n  literal scalar\n  field: not-a-mapping",
-                    "\n  nested:\n    field: one\n    field: two",
-                    "\n  - nested:\n      field: one\n      field: two\n  - [scalar, {}]"
+                    "scalar", "null", "list", "mapping", "alias", "duplicate-args", "duplicate-password",
+                    "nested-list", "nested-duplicate", "tag", "literal", "block-mapping", "block-list"
                 }) data.Add(client, node);
             }
             return data;
@@ -270,9 +226,8 @@ public class YamlConfigurationTests : IDisposable {
     [Theory]
     [MemberData(nameof(InactiveYamlNodes))]
     public void InactiveYamlNodeIsSkippedAtProductionLaunchBoundary(bool client, string node) {
-        var active = client ? "client" : "server";
-        var inactive = client ? "server" : "client";
-        var options = Load($"{inactive}: {node}\n{active}: {{game-args: ['-active']}}\ngame-args: ['-shared']\n", client);
+        var options = Load(client ? "inactive-node-client" : "inactive-node-server", client,
+            ("NODE", YamlTestResources.Read("configuration/nodes/" + node).TrimEnd('\r', '\n')));
         Assert.Equal(client, options is ClientOptions);
         var launch = options.ToLaunchOptions();
         Assert.Equal(client, launch.ServerLaunchOptions.IsNone);
@@ -286,9 +241,7 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData(true)]
     [InlineData(false)]
     public void InactiveYamlAliasIsNotBoundToAnActiveObject(bool client) {
-        var active = client ? "client" : "server";
-        var inactive = client ? "server" : "client";
-        var options = Load($"{active}: &active {{game-args: ['-active']}}\n{inactive}: *active\n", client);
+        var options = Load(client ? "inactive-alias-client" : "inactive-alias-server", client);
         Assert.Equal(client, options is ClientOptions);
         Assert.Contains("-active", options.ToLaunchOptions().LaunchArgs);
     }
@@ -297,21 +250,14 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData(true)]
     [InlineData(false)]
     public void SkippingInactiveYamlRetainsRootSharedAndActiveDuplicateChecks(bool client) {
-        var active = client ? "client" : "server";
-        var inactive = client ? "server" : "client";
-        foreach (var body in new[] {
-            "platform: Steam\n",
-            "game-args: []\ngame-args: []\n",
-            "mod-setup: {mods: [], mods: []}\n",
-            $"{active}: {{game-args: [], game-args: []}}\n",
-            $"{active}: {{}}\n{active}: {{}}\n",
-            $"{inactive}: {{}}\n"
+        foreach (var fixture in new[] {
+            "duplicate-platform", "duplicate-shared-args", "duplicate-mods", "duplicate-active-args", "duplicate-active", "duplicate-inactive"
         }) {
-            var error = Assert.Throws<ArgumentException>(() => Load($"{inactive}: {{nested: {{field: one, field: two}}}}\n" + body, client));
+            var error = Assert.Throws<ArgumentException>(() => Load(fixture + (client ? "-client" : "-server"), client));
             Assert.Contains("Invalid YAML configuration or schema", error.Message);
         }
         if (!client) {
-            Assert.Throws<ArgumentException>(() => Load("client: {}\nserver: {discord: {bot-token: first-secret, bot-token: second-secret}}\n"));
+            Assert.Throws<ArgumentException>(() => Load("duplicate-discord-token"));
         }
     }
 
@@ -319,22 +265,21 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData(true)]
     [InlineData(false)]
     public void SkippedInactiveYamlStillRequiresValidSyntaxWithoutExposingSecrets(bool client) {
-        var inactive = client ? "server" : "client";
-        var error = Assert.Throws<ArgumentException>(() => Load($"{inactive}: {{password: TOP-SECRET, nested: [}}\n", client));
+        var error = Assert.Throws<ArgumentException>(() => Load(client ? "inactive-syntax-error-client" : "inactive-syntax-error-server", client));
         Assert.Contains("Invalid YAML configuration or schema", error.Message);
         Assert.DoesNotContain("TOP-SECRET", error.Message);
     }
 
     [Fact]
     public void ServerSafetyFlagsDefaultOnAndCanBeDisabledInYaml() {
-        var defaults = Assert.IsType<ServerOptions>(Load("server: {}")).ToServerLaunchOptions();
+        var defaults = Assert.IsType<ServerOptions>(Load("empty-server")).ToServerLaunchOptions();
         Assert.True(defaults.Headless);
         Assert.True(defaults.DesyncPatch);
         Assert.True(defaults.UseBackendBanlist);
         Assert.True(defaults.LocalIp.IsSome);
         Assert.Contains("-nullrhi", defaults.ToCLIArgs().Select(arg => arg.Rendered));
         Assert.Contains("--desync-patch", defaults.ToCLIArgs().Select(arg => arg.Rendered));
-        var disabled = Assert.IsType<ServerOptions>(Load("server: {desync-patch: false, use-backend-banlist: false}")).ToServerLaunchOptions();
+        var disabled = Assert.IsType<ServerOptions>(Load("disabled-safety")).ToServerLaunchOptions();
         Assert.False(disabled.DesyncPatch);
         Assert.False(disabled.UseBackendBanlist);
         Assert.DoesNotContain("--desync-patch", disabled.ToCLIArgs().Select(arg => arg.Rendered));
@@ -342,21 +287,21 @@ public class YamlConfigurationTests : IDisposable {
     }
 
     [Theory]
-    [InlineData("server: {headless: false}")]
-    [InlineData("server: {headless: false, desync-patch: true}")]
-    public void RenderingRequiresExplicitlyDisablingDesyncPatchInYaml(string yaml) {
-        var error = Assert.Throws<ArgumentException>(() => Load(yaml));
+    [InlineData("rendering-default-patch")]
+    [InlineData("rendering-enabled-patch")]
+    public void RenderingRequiresExplicitlyDisablingDesyncPatchInYaml(string fixture) {
+        var error = Assert.Throws<ArgumentException>(() => Load(fixture));
         Assert.Contains("headless", error.Message);
         Assert.Contains("--no-desync-patch", error.Message);
-        Assert.Contains("server.desync-patch: false", error.Message);
-        var client = Assert.IsType<ClientOptions>(Load(yaml, client: true)).ToLaunchOptions();
+        Assert.Contains("servers.<name>.desync-patch: false", error.Message);
+        var client = Assert.IsType<ClientOptions>(Load(fixture, client: true)).ToLaunchOptions();
         Assert.True(client.ServerLaunchOptions.IsNone);
         Assert.Equal("TBL", client.LaunchArgs);
     }
 
     [Fact]
     public void RenderingWithExplicitlyDisabledDesyncPatchInYamlIsAllowed() {
-        var options = Assert.IsType<ServerOptions>(Load("server: {headless: false, desync-patch: false}"));
+        var options = Assert.IsType<ServerOptions>(Load("rendering-disabled-patch"));
         var server = options.ToServerLaunchOptions();
         Assert.False(server.Headless);
         Assert.False(server.DesyncPatch);
@@ -374,26 +319,16 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData("player-bot-count")]
     [InlineData("warmup-time")]
     public void IniFieldsAreNotExposedInYamlOrCommandLine(string field) {
-        Assert.Throws<ArgumentException>(() => Load($"server: {{{field}: 1}}"));
+        Assert.Throws<ArgumentException>(() => Load("unexposed-ini-field", false, ("FIELD", field)));
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--chivalry2-path", ".", "--platform", "Steam", $"--{field}=1"]));
-        Assert.IsType<ClientOptions>(Load($"server: {{{field}: 1}}", client: true));
+        Assert.IsType<ClientOptions>(Load("unexposed-ini-field", true, ("FIELD", field)));
     }
 
     [Fact]
     public void PathsAreRelativeToYamlFileWithoutChangingCwdAndDefaultRegistryRemains() {
         var cwd = Directory.GetCurrentDirectory();
         Directory.CreateDirectory(Path.Combine(_directory, "local registry"));
-        var options = Load("""
-            update-plugin: false
-            allow-unstable-plugin: true
-            no-tui: true
-            server:
-              saved-dir-suffix: Test_1
-              mod-setup:
-                registries: ['local:local registry', 'config:registries.json', 'github:owner/repo']
-                mods: ['org/one:v1.2.3', 'org/two:v2.0.0']
-                dlls: ['org/plugin:v1.0.0']
-            """);
+        var options = Load("relative-paths");
         Assert.Equal(cwd, Directory.GetCurrentDirectory());
         Assert.Equal(Path.Combine(_directory, "game installation"), options.Shared.Chivalry2Path);
         Assert.Equal(Path.Combine(_directory, "local registry"), options.Shared.Registries[0].Location);
@@ -405,7 +340,7 @@ public class YamlConfigurationTests : IDisposable {
         Assert.False(options.Shared.UpdatePlugin);
         Assert.True(options.Shared.AllowUnstablePlugin);
         Assert.True(Assert.IsType<ServerOptions>(options).NoTui);
-        var plain = Load("server: {mod-setup: { registries: [], mods: [], dlls: [] }}");
+        var plain = Load("empty-packages");
         var official = Assert.Single(ServerLauncher.CreateRegistry(plain).ModRegistries);
         Assert.IsType<GithubModRegistry>(official);
         Assert.Equal("Chiv2-Community", ((GithubModRegistry)official).Organization);
@@ -413,38 +348,7 @@ public class YamlConfigurationTests : IDisposable {
 
     [Fact]
     public void AllServerAndDiscordFieldsMapToCoreAndRenderedArguments() {
-        var options = Load("""
-            client:
-              typo: this ignored client field would be invalid in client mode
-              game-args: ['-client-only']
-            server-browser-backend: https://example.test
-            game-args: ['-log']
-            server:
-              headless: true
-              name: YAML Server
-              description: Example MOTD
-              password: private password
-              starting-map: TO_Test
-              local-ip: 127.0.0.2
-              game-port: 10001
-              ping-port: 10002
-              query-port: 10003
-              rcon-port: 10004
-              register: true
-              mod-actors: ['/Game/A.A_C', '/Game/B.B_C', '/Game/A.A_C']
-              desync-patch: true
-              use-backend-banlist: true
-              censor-mode: zealous
-              game-args: ['-custom=value with spaces']
-              discord:
-                bot-token: '--secret-token'
-                admin-channel-id: '123456789012345678'
-                general-channel-id: '234567890123456789'
-                dashboard-channel-id: '345678901234567890'
-                event-log-channel-id: '456789012345678901'
-                admin-role-id: '567890123456789012'
-                mention-admins: false
-            """);
+        var options = Load("all-server-fields");
         var server = Assert.IsType<ServerOptions>(options).ToServerLaunchOptions();
         Assert.True(server.Headless);
         Assert.Equal("YAML Server", server.Name);
@@ -482,44 +386,39 @@ public class YamlConfigurationTests : IDisposable {
     }
 
     [Theory]
-    [InlineData("typo: value")]
-    [InlineData("server: []")]
-    [InlineData("server: {mod-setup: {registries: not-a-list}}")]
-    [InlineData("server: {mod-setup: {mods: [null]}}")]
-    [InlineData("server: {mod-setup: {mods: ['org/mod:v1', 'org/mod:v2']}}")]
-    [InlineData("saved-dir-suffix: OldRootValue")]
-    [InlineData("mod-setup: {mods: []}")]
-    [InlineData("server: {query-port: 7777}")]
-    [InlineData("server: {game-port: 0}")]
-    [InlineData("server: {game-port: 1.5}")]
-    [InlineData("server: {headless: invalid}")]
-    [InlineData("server: {typo: true}")]
-    [InlineData("server: {map: TO_Test}")]
-    [InlineData("server: {starting-map: ''}")]
-    [InlineData("server: {censor-mode: invalid}")]
-    [InlineData("server: {warmup-time: -1}")]
-    [InlineData("server: {discord: {bot-token: secret}}")]
-    [InlineData("server: {discord: {general-channel-id: '123'}}")]
-    [InlineData("server: {name: one, name: two}")]
-    [InlineData("game-args: {invalid: mapping}")]
-    public void InvalidConfigurationFailsBeforeLaunching(string body) {
-        Assert.Throws<ArgumentException>(() => Load(body));
+    [InlineData("unknown-root-key")]
+    [InlineData("server-list")]
+    [InlineData("registries-scalar")]
+    [InlineData("null-mod")]
+    [InlineData("conflicting-mods")]
+    [InlineData("root-suffix")]
+    [InlineData("root-mods")]
+    [InlineData("conflicting-port")]
+    [InlineData("zero-port")]
+    [InlineData("fractional-port")]
+    [InlineData("invalid-headless")]
+    [InlineData("unknown-server-key")]
+    [InlineData("wrong-map-key")]
+    [InlineData("empty-start")]
+    [InlineData("invalid-censor")]
+    [InlineData("discord-token-only")]
+    [InlineData("discord-channel-only")]
+    [InlineData("duplicate-name")]
+    [InlineData("args-mapping")]
+    public void InvalidConfigurationFailsBeforeLaunching(string fixture) {
+        Assert.Throws<ArgumentException>(() => Load(fixture));
     }
 
     [Fact]
     public void InvalidYamlMissingFilesAndDocumentsFailWithoutExposingSecrets() {
-        var malformed = Write("server:\n  password: TOP-SECRET\n  discord: [\n");
-        var error = Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--config-path", malformed]));
+        var malformed = Write("malformed");
+        var error = Assert.Throws<ArgumentException>(() => YamlTestResources.ParseLaunch(["server", "--config-path", malformed]));
         Assert.DoesNotContain("TOP-SECRET", error.Message);
         Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Path.Combine(_directory, "missing.yaml"), false));
-        Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Write("", includeRequired: false), false));
-        Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Write("---\nchiv2-path: .\nplatform: Steam\n"), false));
-        Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Write("platform: Steam", includeRequired: false), false));
-        Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Write("chiv2-path: .", includeRequired: false), false));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--config-path"]));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--config-path="]));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--config-path=x", "--config-path=y"]));
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["--config-path", Write("")]));
+        Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Write("empty-document"), false));
+        Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Write("multiple-documents"), false));
+        Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Write("missing-path"), false));
+        Assert.Throws<ArgumentException>(() => YamlConfiguration.Load(Write("missing-platform"), false));
     }
 
     [Fact]
@@ -535,9 +434,9 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData("EGS", InstallationType.EpicGamesStore)]
     [InlineData("EpicGamesStore", InstallationType.EpicGamesStore)]
     public void YamlUsesCoreInstallationTypeAndPreservesEgsAlias(string platform, InstallationType expected) {
-        var path = Write($"chiv2-path: .\nplatform: {platform}\nupdate-plugin: false\nallow-unstable-plugin: true\n", includeRequired: false);
+        var path = Write("platform", ("PLATFORM", platform));
         foreach (var command in new[] { "server", "client" }) {
-            var options = CliLaunchOptions.Parse([command, "--config-path", path]);
+            var options = YamlTestResources.ParseLaunch([command, "--config-path", path]);
             Assert.Equal(expected, options.Shared.Platform);
             Assert.False(options.Shared.UpdatePlugin);
             Assert.True(options.Shared.AllowUnstablePlugin);
@@ -550,13 +449,13 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData("Unknown")]
     public void PlaceholderAndNumericPlatformsAreNotLaunchable(string platform) {
         Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["client", "--chivalry2-path", ".", "--platform", platform]));
-        var path = Write($"chiv2-path: .\nplatform: {platform}\n", includeRequired: false);
-        Assert.Throws<ArgumentException>(() => CliLaunchOptions.Parse(["server", "--config-path", path]));
+        var path = Write("platform", ("PLATFORM", platform));
+        Assert.Throws<ArgumentException>(() => YamlTestResources.ParseLaunch(["server", "--config-path", path]));
     }
 
     [Fact]
     public void EmptyOptionalServerFieldsAreAllowed() {
-        var options = Load("server: {description: '', password: '', local-ip: '', discord: {bot-token: '', general-channel-id: ''}}");
+        var options = Load("empty-optionals");
         Assert.Equal("", Assert.IsType<ServerOptions>(options).Settings.Description);
         Assert.True(Assert.IsType<ServerOptions>(options).ToServerLaunchOptions().Password.IsNone);
         Assert.True(Assert.IsType<ServerOptions>(options).ToDiscordOptions().IsNone);
@@ -566,7 +465,7 @@ public class YamlConfigurationTests : IDisposable {
     [InlineData(true)]
     [InlineData(false)]
     public async Task ProductionSupervisionLeavesClientRunningButStopsServer(bool client) {
-        var options = Load(client ? "client: {}\n" : "no-tui: true\n", client);
+        var options = Load(client ? "empty-client" : "no-tui", client);
         using var child = Process.Start(new ProcessStartInfo {
             FileName = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sleep",
             Arguments = OperatingSystem.IsWindows() ? "/c ping -n 30 127.0.0.1 > nul" : "30",

@@ -46,7 +46,7 @@ public sealed class SharedLaunchOptions {
         UpdatePlugin = configuration.UpdatePlugin;
         AllowUnstablePlugin = configuration.AllowUnstablePlugin;
         GameArguments = Entries(configuration.GameArgs, allowEmpty: true).ToArray();
-        var setup = server?.ModSetup ?? (configuration as ClientConfiguration)?.ModSetup ?? new ModSetupConfiguration();
+        var setup = server?.Resolved?.Packages ?? server?.ModSetup ?? (configuration as ClientConfiguration)?.ModSetup ?? new ModSetupConfiguration();
         RegistryOptions = new RegistryOptions(setup.Registries, directory);
         Mods = Entries(setup.Mods).Select(ParseCoordinates).ToArray();
         Dlls = Entries(setup.Dlls).Select(ParseCoordinates).ToArray();
@@ -89,9 +89,6 @@ public abstract class CliLaunchOptions : CliCommandOptions {
 
     internal static CliLaunchOptions FromConfiguration(LaunchConfiguration configuration, string directory) {
         return configuration switch {
-            ServerConfiguration server => new ServerOptions(
-                new SharedLaunchOptions(configuration, directory, server: server.Server),
-                server.Server ?? new ServerSettings(), server.NoTui),
             ClientConfiguration client => new ClientOptions(new SharedLaunchOptions(configuration, directory), SharedLaunchOptions.Entries(client.Client?.GameArgs, allowEmpty: true)),
             _ => throw new ArgumentException("Expected client or server configuration.")
         };
@@ -126,24 +123,32 @@ public sealed class ServerOptions : CliLaunchOptions {
     public ServerSettings Settings { get; }
     public bool NoTui { get; }
     internal string? PluginLoggingPath { get; set; }
+    internal string? MapProfilePath { get; set; }
     // Chivalry removes hyphens when choosing its Saved directory (the plugin log path does not).
     internal string GameSavedDirSuffix => Shared.Assets.Suffix;
 
     internal ServerOptions(SharedLaunchOptions shared, ServerSettings settings, bool noTui)
         : base(shared, SharedLaunchOptions.Entries(settings.GameArgs, allowEmpty: true)) {
         Settings = settings;
-        Ini = IniOverrides.Parse(settings.Ini);
+        Ini = settings.Resolved?.Ini ?? IniOverrides.Parse(settings.Ini);
         if (settings.Rotation is not null && Ini.Contains("Game", "/Script/TBL.TBLGameMode", "MapListIndex"))
             throw new ArgumentException("MapListIndex is managed by map-rotation; use starting-map to choose the first map.");
+        if (settings.Rotation is { } rotation && (rotation.HasOverrides || rotation.Actors is not null)) {
+            if (Ini.RawArguments.Any()) throw new ArgumentException("Server ini cannot use raw alongside map-profile INI; use typed values for the default layer.");
+            if (GameArguments.Any(argument => argument.TrimStart('-').Split('=', 2)[0] == "unchained-profile-location"))
+                throw new ArgumentException("unchained-profile-location is managed by map-profile INI; remove the conflicting game argument.");
+            if (settings.Resolved is null)
+                foreach (var layer in rotation.Layers) Ini.ValidateMapOverrides(layer.Ini);
+        }
         NoTui = noTui;
         if (!settings.Headless && settings.DesyncPatch)
-            throw new ArgumentException("Desync patch requires a headless server. To enable rendering, pass --no-desync-patch or set server.desync-patch: false in YAML.");
+            throw new ArgumentException("Desync patch requires a headless server. To enable rendering, pass --no-desync-patch or set servers.<name>.desync-patch: false in YAML.");
         if (new[] { settings.GamePort, settings.PingPort, settings.QueryPort, settings.RconPort }.Distinct().Count() != 4)
             throw new ArgumentException("Game, ping, query, and RCON ports must be distinct.");
         settings.LocalIp = string.IsNullOrWhiteSpace(settings.LocalIp) ? LocalAddressDetector.Detect().ToString() : settings.LocalIp.Trim();
         if (!IPAddress.TryParse(settings.LocalIp, out var address) || address.AddressFamily != AddressFamily.InterNetwork)
             throw new ArgumentException("local-ip must be an IPv4 address.");
-        settings.ModActors = SharedLaunchOptions.Entries(settings.ModActors).Distinct().ToList();
+        settings.ModActors = settings.Resolved?.Actors.ToList() ?? SharedLaunchOptions.Entries(settings.ModActors).Distinct().ToList();
         ToDiscordOptions();
     }
 
@@ -172,6 +177,10 @@ public sealed class ServerOptions : CliLaunchOptions {
 
     public override LaunchOptions ToLaunchOptions() {
         var prefix = new List<string> { "TBL", "-server" };
+        if (MapProfilePath is { } mapProfilePath) {
+            prefix.Add("--unchained-profile-location");
+            prefix.Add(ArgumentEscaper.Escape(mapProfilePath));
+        }
         if (!GameArguments.Any(arg => arg is "--attach-stdio" or "-attach-stdio")) prefix.Add("--attach-stdio");
         if (!PluginLogging.HasOverride(GameArguments)) {
             prefix.Add("--log4rs-yaml");

@@ -324,46 +324,73 @@ Put reusable launcher settings in YAML instead. Arguments after `--`, including
 `chiv2-path` and `platform` (`Steam` or `EGS`) are required. See the complete
 [server example](examples/server.yaml) and [client example](examples/client.yaml).
 
+### Including YAML files
+
+Use `!load` to substitute another file's YAML at any active configuration node:
+
+```yaml
+servers:
+  my-server: !load ./servers/my-server.yaml
+```
+
+```yaml
+# servers/my-server.yaml
+ini:
+  Engine: !load ../ini/engine.yaml
+```
+
+- Each file contains one YAML document; included content must match the target schema.
+- Nested `!load` paths resolve relative to the file containing the reference.
+- Includes substitute content; they do not introduce another merge layer.
+- Only local files are supported; cycles and excessive expansion are rejected.
+- YAML anchors are local to each file; `!load` itself cannot declare an anchor.
+- Inactive client/server sections are skipped without reading their includes.
+- INI, installation, Proton, and local/config registry paths resolve against their containing file.
+
+### Configuration example
+
 ```yaml
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam
-server:
-  saved-dir-suffix: MyServer
-  mod-setup:
-    registries: [] # Official registry remains enabled, even with an empty list.
-    mods: []       # organization/mod-id:exact-release-tag
-    dlls: []       # Optional dll_db coordinates: organization/id:version.
-  name: My Server
-  description: My server description
-  game-port: 7777
-  ping-port: 3075
-  query-port: 7071
-  rcon-port: 9001
-  starting-map: FFA_Courtyard
-  mod-actors: [] # Explicit blueprint class paths to activate.
-  desync-patch: true
-  use-backend-banlist: true
+global-settings:
+  registries: [] # Official registry remains enabled.
+  mods: []       # organization/mod-id:exact-release-tag
+  plugins: []    # dll_db coordinates: organization/id:version
+servers:
+  server:
+    saved-dir-suffix: MyServer
+    name: My Server
+    description: My server description
+    game-port: 7777
+    ping-port: 3075
+    query-port: 7071
+    rcon-port: 9001
+    starting-map: FFA_Courtyard
+    mod-actors: [] # Explicit blueprint class paths to activate.
+    desync-patch: true
+    use-backend-banlist: true
 ```
 
 Separate mode-specific schemas:
 - The **subcommand**, not the document's contents, always determines mode.
-- `server --config-path ...` reads the `server` mapping and completely ignores `client`.
-- `client --config-path ...` reads the `client` mapping and completely ignores `server`,
+- `server --config-path ...` requires a nonempty `servers` mapping of named server settings and completely ignores `client`. The singular `server` key is rejected.
+- `client --config-path ...` reads the `client` mapping and completely ignores server settings,
   including actors, Discord, and server-only arguments; ignored blocks are not schema-validated.
-- A missing active block uses that command's defaults. `client` is a mapping, not a boolean mode switch.
+- A missing `client` block uses client defaults. Server launches require explicit named entries, even when all settings come from `global-settings`. `client` is a mapping, not a boolean mode switch.
 - Client launches omit `-server`, headless flags, and server-specific options,
   do not create a server dashboard, and return after launching without stopping the game.
 
 Common root options are `server-browser-backend`, `update-plugin` (default true),
 `allow-unstable-plugin` (default false), and `game-args` (list of strings).
 The root `no-tui` option (default false) is server-only.
-`server.game-args` or `client.game-args` is appended to the
+`servers.<name>.game-args` or `client.game-args` is appended to the
 common list only for the matching command. The client schema currently supports
 `game-args`; client installation, platform, plugin, mod, and saved-profile options remain at the root.
-For servers, `mod-setup` and `saved-dir-suffix` belong inside `server` or each
-`servers` entry, never at the root. A single unnamed server defaults to `UnchainedCLI`.
+Server packages belong under `global-settings` or individual servers as `mods`,
+`plugins`, and `registries`, never directly at the root. `saved-dir-suffix` belongs
+to each server and defaults to its key. Ordinary non-YAML CLI server launches still default to `UnchainedCLI`.
 
-The server section supports name, description/MOTD, password, `starting-map`, local IP,
+Each `servers` entry supports name, description/MOTD, password, `starting-map`, local IP,
 all four ports, `headless`, `register`, `mod-actors`, `desync-patch`,
 `use-backend-banlist`, and `censor-mode` (`none`, `standard`, `sex`, `zealous`).
 Desync patch and backend banlist **default to true in server mode**; set their
@@ -375,7 +402,7 @@ Local IPv4 is automatically detected from active non-loopback/non-tunnel interfa
 preferring one with a default gateway; it falls back to another usable IPv4 or loopback.
 Set `local-ip` only to override this choice (for example, with a VPN or multiple adapters).
 Time/score/ticket limits, player bot count, and warmup are **INI settings**, not
-dedicated launcher flags; configure them in the selected saved profile or `server.ini`.
+dedicated launcher flags; configure them in the selected saved profile or `servers.<name>.ini`.
 Use `starting-map` / `--starting-map`; the former `map` / `--map` names are rejected.
 Before a server launch, the CLI initializes the selected profile's `Game.ini` with
 `bSavedHasAgreedToTOS=True` and `FirstLoadCompleted=True`, matching the GUI's startup
@@ -384,72 +411,132 @@ settings are preserved. Client launches do not initialize or rewrite INI files.
 Chivalry removes hyphens from the suffix in its `Saved_<suffix>` directory;
 the CLI initializes that directory. Plugin log paths retain the original suffix.
 
-### Map rotation and profiles
+### Layered settings and match presets
 
 ```yaml
-map-profiles:
-  courtyard:
-    map-name: FFA_Courtyard
-
+global-settings:
+  mod-actors: [/Game/Mods/AgMods/Common.Common_C]
+  ini:
+    Engine:
+      /Game/Mods/AgMods/Example.Example_C:
+        RoundLimit: 10
+  map-settings:
+    'FFA_~':
+      ini:
+        Engine:
+          /Game/Mods/AgMods/Example.Example_C:
+            RoundLimit: 8
+  match-presets:
+    courtyard:
+      name: Courtyard FFA
+      map: FFA_Courtyard
+      mod-actors: [/Game/Mods/AgMods/Example.Example_C]
 servers:
-  first:
+  server:
     map-rotation:
       - courtyard
-      - map-name: FFA_Wardenglade
-  second:
-    game-port: 7778
-    ping-port: 3076
-    query-port: 7072
-    rcon-port: 9002
-    map-rotation:
-      - courtyard
-      - map-name: FFA_Bazaar
+      - preset: courtyard
+        name: Courtyard reprise
+        ini:
+          Engine:
+            /Game/Mods/AgMods/Example.Example_C:
+              RoundLimit: 5
+      - {map: FFA_Wardenglade}
 ```
 
-- Put `map-rotation` inside `server` or each `servers` entry.
-- Entries are inline `{map-name: ...}` objects or exact, case-sensitive keys from root `map-profiles`.
-- A bare string is a profile reference, not a map name.
-- Order and repeated entries are preserved.
-- The first entry is the default starting map.
-- Set `starting-map` to a rotation map-name to start at its first occurrence, matching case-insensitively.
-- Map names accept short names or package paths, without travel options.
-- An explicit rotation must contain at least one entry.
-- Rotation setup replaces only `MapList` and `MapListIndex` in the server's saved `Game.ini`.
-- Omitting `map-rotation` preserves the profile's existing rotation and the normal `starting-map` default.
-- `MapList` is forbidden in `ini`, including typed and `raw` forms.
-- `MapListIndex` cannot be set through `ini` when a rotation is configured.
-- Profile and inline map objects currently accept only `map-name`.
-- Per-map INI and actors remain deferred to [#154](https://github.com/Chiv2-Community/UnchainedLauncher/issues/154) and [#155](https://github.com/Chiv2-Community/UnchainedLauncher/issues/155).
-- Server-level `mod-actors` still apply to every map.
+- `global-settings` and each server accept always-on `ini`, `mod-actors`, `mods`, and `plugins`.
+- Both scopes also accept ordered `map-settings` and named `match-presets`.
+- A server rule replaces the complete same-named global rule, case-insensitively.
+- Preset keys may be patterns such as `'duel-~'`. All matches apply from least to most specific; a server definition replaces the complete global definition with the identical key.
+- Rotation entries are preset strings or mappings with optional `preset`, `map`, `name`, and setting overrides.
+- Each rotation entry must resolve to one concrete map after matching presets and inline overrides; unresolved maps fail before generation with the slot number and preset reference.
+- Rule keys support an exact name or one trailing `~` for a prefix match, including an empty suffix. `?`, middle/multiple `~`, and `*` are rejected. Quote a lone `'~'` so YAML does not treat it as null.
+- Map rules match the final map's leaf identifier; preset rules match concrete profile references. Both use case-insensitive names, matching the plugin. Rotation entries do not expand wildcards.
+- The last matching preset that sets `map` supplies the map, unless the inline entry overrides it. Map rules then match that final map.
+- Precedence, low to high: global always-on → server always-on → matching map rules → matching presets → inline entry. The plugin merges each group broadest prefix first, exact name last. Specificity takes precedence over scope; a global exact rule beats a server-wide wildcard.
+- INI merges category/section/key case-insensitively; later arrays replace earlier arrays.
+- Actor metadata combines in order without duplicates; no layer can remove an always-on actor. The native-hierarchy plugin treats per-slot `mod-actors` as metadata, not spawn instructions; only always-on actors are passed as launch arguments.
+- Mod and plugin packages combine across always-on settings and used rotation slots; conflicting versions are rejected before installation.
+- Unused presets and unmatched rules do not install packages; DLLs are staged before launch, not hot-loaded on travel.
+- Missing names derive from the preset key or the map's name: `foo-bar` → `Foo bar`, `ffa-courtyard` → `FFA Courtyard`.
+- Explicit names preserve capitalization; names must be nonblank, without surrounding whitespace or control characters.
+- Names must be unique per server rotation, case-insensitively; repeated presets are allowed with distinct inline names.
+- The first entry is the default start; `starting-map` selects the first matching map, case-insensitively.
+- Without explicit `starting-map`, reuse the existing profile's `Game.ini` `MapListIndex`; a missing index or Core's unset value `-1` uses the first entry.
+- Invalid or out-of-range saved indices require an explicit `starting-map` before launch.
+- Rotation INI uses StructuredINI's array replacement operations: `!MapList=ClearArray`, then `+MapList=...` for first occurrences and `.MapList=...` for duplicates.
+- Map names accept short identifiers or package paths without travel options.
+- Always-on settings without a rotation preserve the saved profile's rotation; wildcard map rules require an explicit `map-rotation`.
+- `MapList` and `MapListIndex` are launcher-owned; do not set them in layered INI.
+- Every map-dependent field needs an explicit always-on INI baseline for restoration on later maps.
+- Arrays changed per map need an always-on replacement baseline (an unprefixed YAML array or imported `!Key=ClearArray`). Conditional files contain only their own commands; the plugin applies them over the baseline through UE's native merge.
+- Standalone `Config/WindowsNoEditor/*.ini` files never contain array operators: serialization resolves commands and writes repeated plain keys, preserving order and duplicates; empty arrays omit the key. Native `maps/`, `profiles/`, and `indices/` files retain operators. StructuredINI serialization requires an explicit `isConfigRoot` boolean.
+- Layered settings reject raw command-line INI overrides; imported INI files retain their literal values.
+- Requires the companion plugin's native configuration hierarchy support (`map-config-hierarchy`); no `map_profiles` build feature is needed.
+- The plugin merges private copies of loaded native INI through Unreal's dynamic-layer API and reimports config class defaults before destination GameMode creation. Persistent objects and startup-only systems may still need explicit game support or restart.
+- The launcher preserves native layers under `<saveddir>/unchained/map-config/<hash>/ini-overrides/`: `map-settings` becomes `maps/<rule>/`, preset INI becomes `profiles/<rule>/`, and inline rotation INI becomes `indices/<zero-based-slot>/`. Always-on INI stays in the saved profile baseline. No conditional file contains copies of lower layers.
+- Rule/reference folder names must be portable ASCII letters, digits, `_`, `-`, or `.`, at most 128 characters, without reserved device names or trailing dots. Rule folders may additionally have a trailing `~`.
+- The plugin requires unique profile references. The first use retains its preset name; later uses receive a suffix such as `.slot-1` and a copy of only the exact preset's INI. Prefix-wildcard files remain shared; generated aliases cannot add wildcard matches. If no safe alias exists, use distinct preset references.
+- Slots without a preset use `inline-<slot>` references. Profile wildcard rules, including `profiles/~/`, also match those references; wildcard preset `map` metadata does not override an explicit inline map.
+- Generated `<saveddir>/unchained/map-config/<hash>/unchained.yaml` sits beside `ini-overrides/` at the passed `--unchained-profile-location` root. It selects preset layers by slot and keeps concrete maps as display metadata; the native game rotation still controls travel:
+
+  ```yaml
+  match-rotation:
+    - profile: courtyard
+      name: Courtyard FFA
+      map: FFA_Courtyard
+      mod-actors: [/Game/Mods/AgMods/Common.Common_C, /Game/Mods/AgMods/Example.Example_C]
+    - profile: courtyard.slot-1
+      name: Courtyard reprise
+      map: FFA_Courtyard
+      mod-actors: [/Game/Mods/AgMods/Common.Common_C, /Game/Mods/AgMods/Example.Example_C]
+    - profile: inline-2
+      name: FFA Wardenglade
+      map: FFA_Wardenglade
+      mod-actors: [/Game/Mods/AgMods/Common.Common_C]
+  ```
+
+- Native index folders are named `indices/`, not `map-indices/`; the generated root is translated for Proton.
+- At startup or unmatched manual travel, the current plugin can select only map layers when no accepted rotation slot is available. Do not assume profile/index settings have applied without checking live values.
+- Content changes select a new generation; old generations remain and must not be edited.
+- Do not supply a manual `unchained-profile-location` argument with generated profiles.
+
+#### Migration
+
+- Move server `mod-setup.mods` to `mods`, `mod-setup.dlls` to `plugins`, and `mod-setup.registries` to `registries`.
+- Put shared selections under `global-settings`; leave server-specific additions under each server.
+- Move root `map-profiles` to `global-settings.match-presets`, rename `map-name` to `map`, and use `preset` for dictionary references.
+- Move a singular `server` block under `servers` with an explicit key. Unmixed legacy settings inside named entries remain supported; mixing legacy `mod-setup`/`map-profiles` with layered settings is rejected.
+- Client and registry-query schemas are unchanged; queries still read root `mod-setup.registries`, not server `global-settings`.
 
 ### INI overrides
 
-Nest `ini` under `server` or a named `servers` entry. Its shape is
+Every settings block accepts `ini`. Inline mappings use the shape
 `file category -> section -> field -> value`:
 
 ```yaml
-server:
-  ini:
-    Game:
-      /Script/TBL.TBLGameMode:
-        BotBackfillEnabled: true
-        ClassLimits:
-          - Class: Poleman
-            ClassLimitPercent: 10
-          - Class: Archer
-            ClassLimitPercent: 0
-        SomeUnknownOption:
-          type: String
-          value: example
-        SomeOtherUnknownOption:
-          type: raw
-          value: SomeStructuredThing(foo, bar, 10, baz, false)
+servers:
+  server:
+    ini:
+      Game:
+        /Script/TBL.TBLGameMode:
+          BotBackfillEnabled: true
+          ClassLimits:
+            - Class: Poleman
+              ClassLimitPercent: 10
+            - Class: Archer
+              ClassLimitPercent: 0
+          SomeUnknownOption: example
+          MapValue: 0
+          Labels: [one, two]
 ```
 
 - Known fields infer their type from Core's INI models. They also accept
   `{value: ...}` or `{type: Boolean, value: true}`. An explicit known-field type
   must match its definition, unless it is `raw`.
-- Unknown fields require both `type` and `value`; a bare value fails with instructions.
+- Unknown fields infer strings, booleans, integers, and finite numbers from YAML: `MapValue: 0` is equivalent to `MapValue: {type: Int, value: 0}`. Explicit wrappers remain supported, including `{value: ...}`.
+- Lists infer an array type. Numeric lists can mix integer and fractional values; `[]` clears without needing an element type. Other mixed lists require an explicit conversion type. Nulls and nested INI arrays are rejected; unknown record mappings require an explicit record type.
+- Quote numeric/boolean-looking strings to preserve them as strings, e.g. `'001'` and `'true'`. Use an explicit type for unknown enums or records, or to request a particular numeric representation.
 - Types are case-insensitive: `String`, `Boolean` (`Bool`), `Int32` (`Int`),
   `Single` (`Float`), `Double`, `Decimal`, `CharacterClass`, `ClassLimit`,
   `AutoBalance`, and `CallbackList`. Append `[]` for an array, for example
@@ -464,7 +551,7 @@ server:
   Other keys and sections are preserved. These changes persist after the server exits;
   omitting a field on a later launch does not undo it.
 - Use `map-rotation`, not an INI `MapList` override, to configure maps.
-- `raw` requires a string and bypasses type parsing and validation. Its exact value
+- Legacy, non-layered `raw` requires a string and bypasses type parsing and validation. Its exact value
   is escaped for transport in one `-ini:` argument, not written to the profile.
   It cannot override an array: Unreal's command-line INI overrides do not support arrays.
 - File categories have no path or `.ini` extension (`Game`, `Engine`, etc.).
@@ -472,15 +559,65 @@ server:
   startup-screen fields take precedence over the launcher's generated defaults.
   Forwarded `game-args` remain explicit user arguments; avoid conflicting INI overrides there.
 
+INI can also reference files, with paths relative to their containing YAML file:
+
+```yaml
+global-settings:
+  ini: ./ini-defaults # Reads immediate *.ini files in this directory.
+servers:
+  server:
+    ini:
+      Engine: ./overrides/Engine.ini
+      Game: !load ./game-settings.yaml # YAML mapping, not an INI file.
+```
+
+- Category mappings may mix file references and inline section mappings.
+- Imported files preserve repeated keys and comments; unchanged conditional layers retain imported bytes and Unreal array directives.
+- All INI parsing and serialization use StructuredINI. Unprefixed YAML arrays begin with `!Key=ClearArray` to replace inherited values, then use `+Key=` for first occurrences and `.Key=` for duplicates. Empty arrays emit only the clear operation. Imported array operations, including `-Key=` removals, remain unchanged.
+- Files receiving overrides are merged into generated INI, not linked back to the source.
+- Conditional-layer files may link immutable cached snapshots; writable root INIs are atomically replaced with independent copies.
+- Serialized INIs have no leading blank lines and exactly one blank line between sections.
+- Source files are never rewritten; changing a referenced file selects a new generation on the next configuration load.
+
+**Explicit array operations**
+
+Quote prefixed INI field names to apply operations instead of replacing an array:
+
+```yaml
+global-settings:
+  ini:
+    Engine:
+      Demo:
+        Names: {type: 'String[]', value: [A, B]}
+servers:
+  server:
+    ini:
+      Engine:
+        Demo:
+          '-Names': {type: 'String[]', value: [A]}
+          '+Names': {type: 'String[]', value: [C]}
+          '.Names': {type: 'String[]', value: [C]}
+```
+
+- The result is `[B, C, C]`: `+` adds uniquely, `.` allows duplicates, and each `-` removes one exact matching occurrence. A missing removal target is harmless.
+- Operations apply in YAML declaration order and configuration-layer order. Use lists for multiple values under the same operator; do not repeat YAML mapping keys.
+- `'!Names': {type: 'String[]', value: []}` explicitly clears the array. A nonempty clear list is rejected.
+- Unprefixed arrays still replace the full list. Explicit `+`, `-`, and `.` do not insert an implicit clear; without a configured baseline, they operate on Unreal's inherited values.
+- Known array fields infer their type after stripping the operator, e.g. `'-ClassLimits': [{Class: Archer, ClassLimitPercent: 0.25}]`. Unknown primitive arrays infer from YAML too: `'-Names': [A]` and `'+Counts': [1, 2]`. Explicit array types remain available for structured values or conversions.
+- Handwritten INI uses the same operators (`-Names=A`, `+Names=C`, `.Names=C`); imported delta-only fields combine with earlier configuration layers rather than replacing them.
+- Generation replaces the commands for each configured field in the output file. Existing output INI is not an additional input layer; reference a handwritten INI file explicitly when its values should participate in merging. This prevents operations accumulating on relaunch.
+- Operators apply only to INI arrays, not `mod-actors`, mods, or plugins. Raw command-line overrides cannot use array operators.
+
 Discord configuration is nested under the server:
 
 ```yaml
-server:
-  discord:
-    bot-token: 'your-bot-token'
-    general-channel-id: '123456789012345678'
-    # Optional: admin-channel-id, dashboard-channel-id, event-log-channel-id,
-    #           admin-role-id, mention-admins (default true).
+servers:
+  server:
+    discord:
+      bot-token: 'your-bot-token'
+      general-channel-id: '123456789012345678'
+      # Optional: admin-channel-id, dashboard-channel-id, event-log-channel-id,
+      #           admin-role-id, mention-admins (default true).
 ```
 
 Discord requires a token and at least one channel. Keep tokens/passwords private
@@ -491,7 +628,7 @@ before preparing or launching the game. Lists accept any number of entries.
 
 ### Multiple servers
 
-Use a `servers` dictionary instead of the single `server` block:
+Use the required `servers` dictionary for one or more named servers:
 
 ```yaml
 chiv2-path: 'C:\Games\Chivalry 2'
@@ -514,11 +651,10 @@ servers:
 ```
 
 Run `UnchainedLauncher.CLI.exe server --config-path servers.yaml`.
-See [the multi-server example](examples/servers.yaml). The existing `server` schema
-and individual CLI launch arguments still launch one server.
+See [the multi-server example](examples/servers.yaml). A dictionary with one entry launches one server; ordinary CLI launch arguments also still launch one server.
 
 - Keys are tab IDs: unique, case-insensitive letters, digits, underscores, and hyphens.
-- Each entry accepts the same fields as `server`, including its own `mod-setup`,
+- Each entry accepts server settings, including its own `mod-setup`,
   `ini`, actors, arguments, password, and Discord settings. Installation, platform,
   plugin-update policy, and common arguments remain shared at the root.
   Registries and pak/DLL selections are independent; verified bytes share the cache.
@@ -558,8 +694,8 @@ and individual CLI launch arguments still launch one server.
   exit code and last metrics. Once all exit, the CLI returns the first nonzero exit
   code in dictionary order, or zero if all succeeded. Q/Ctrl+C stops the entire group.
 
-Do not mix `server` and `servers` in one document. The client command and registry
-queries ignore the inactive `servers` block.
+The singular `server` key is not supported for YAML server launches. The client command
+and registry queries still ignore inactive server settings without validating their schema.
 
 The `client` command also accepts individual common arguments, for example:
 

@@ -1,5 +1,6 @@
 using LanguageExt;
 using LanguageExt.Common;
+using log4net;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using UnchainedLauncher.Core.Utilities;
@@ -44,7 +45,7 @@ public sealed class PakCache(string root) {
             // Creating a hard link is already atomic and does not replace an existing name.
             // Renaming a staging link can fail on Windows while a peer has the pak open.
             if (AssetCacheFiles.TryCreateHardLink(destination, cached)) {
-                progress.IfSome(p => p.Report(100));
+                ReportCompletion(progress);
                 return Unit.Default;
             }
             var staging = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
@@ -54,9 +55,18 @@ public sealed class PakCache(string root) {
                 File.Move(staging, destination);
             }
             finally { if (File.Exists(staging)) File.Delete(staging); }
-            progress.IfSome(p => p.Report(100));
+            ReportCompletion(progress);
             return Unit.Default;
         }).ToEither();
+
+    private static void ReportCompletion(Option<IProgress<double>> progress) {
+        // Publication has succeeded. An observer failure must not turn it into a
+        // failed install and cause the caller to discard payload ownership.
+        try { progress.IfSome(p => p.Report(100)); }
+        catch (Exception ex) {
+            LogManager.GetLogger(typeof(PakCache)).Warn("Pak installed, but completion progress notification failed.", ex);
+        }
+    }
 
     private static void Validate(string path, string expected) {
         using var stream = File.OpenRead(path);

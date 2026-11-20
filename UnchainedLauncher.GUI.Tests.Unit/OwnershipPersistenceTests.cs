@@ -419,6 +419,54 @@ public sealed class OwnershipPersistenceTests : IDisposable {
         Assert.False(File.Exists(Path.Combine(custom, ".unchained", "inventory.json")));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CachedCompletionObserverFailureRetainsPublishedOwnershipAcrossRestartAndDeselect(bool cacheHit) {
+        var bytes = new byte[] { 1, 2, 3 };
+        var cache = Path.Combine(_root, "cache");
+        var destination = Path.Combine(Paks, "Mod_0_P.pak");
+        var paks = new PakDir(Paks, [], cachePath: cache);
+        var manager = new ModManager(_registry, paks, []);
+        new ModManagerPersistence(manager, Config).Save();
+        var progress = new AccumulatedMemoryProgress(synchronizationContext: new InlineSynchronizationContext());
+        var notifications = 0;
+        progress.Progresses.CollectionChanged += (_, e) => {
+            if (e.NewItems == null) return;
+            foreach (MemoryProgress item in e.NewItems)
+                item.PropertyChanged += (_, _) => {
+                    if (!File.Exists(destination)) return;
+                    notifications++;
+                    throw new IOException("Completion observer failed after publication");
+                };
+        };
+        // Zero-size discovery suppresses download progress, exercising the real
+        // cache's post-publication notification rather than a writer failure.
+        var request = new ModInstallRequest(Coordinates(),
+            path => new FileWriter(path, new MemoryStream(bytes), 0),
+            Convert.ToHexString(System.Security.Cryptography.SHA512.HashData(bytes)));
+        if (cacheHit) {
+            var warm = Path.Combine(_root, "warm.pak");
+            Assert.True((await new PakCache(cache).Install(request, warm, Prelude.None)).IsRight);
+            File.Delete(warm);
+            request = request with { Writer = _ => throw new InvalidOperationException("Cache hit must not download") };
+        }
+        await foreach (var result in paks.InstallModSet([request], progress))
+            Assert.True(result.IsRight);
+        Assert.True(notifications > 0);
+        Assert.Equal(bytes, File.ReadAllBytes(destination));
+        var owned = Assert.Single(paks.ManagedPaks);
+        Assert.Equal(owned, Assert.Single(((PakDir)Reload().PakDir).ManagedPaks));
+        var restarted = LegacyOwnershipMigration.LoadProfile(Config, _registry,
+            new PakDir(Paks, [], cachePath: cache), []).Manager;
+        Assert.Equal(owned, Assert.Single(((PakDir)restarted.PakDir).ManagedPaks));
+        await foreach (var result in restarted.PakDir.InstallModSet([], Prelude.None))
+            Assert.True(result.IsRight);
+        Assert.False(File.Exists(destination));
+        Assert.Empty(((PakDir)Reload().PakDir).ManagedPaks);
+        Assert.Equal(bytes, File.ReadAllBytes(Path.Combine(cache, request.Hash!.ToLowerInvariant(), "mod.pak")));
+    }
+
     [Fact]
     public async Task BatchPartialFailureAndEarlyDisposalPreserveWriteAheadOwnership() {
         var manager = Manager();
@@ -560,6 +608,10 @@ public sealed class OwnershipPersistenceTests : IDisposable {
         new ModManagerPersistence(manager, Config).Save();
         Assert.Equal(manager.EnabledModReleaseCoordinates, Reload().EnabledModReleaseCoordinates);
         Assert.Equal(((PakDir)manager.PakDir).ManagedPaks, ((PakDir)Reload().PakDir).ManagedPaks);
+    }
+
+    private sealed class InlineSynchronizationContext : SynchronizationContext {
+        public override void Post(SendOrPostCallback callback, object? state) => callback(state);
     }
 
     private string ConfigDirectory() {

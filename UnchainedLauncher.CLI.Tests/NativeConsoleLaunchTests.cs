@@ -1,4 +1,5 @@
 using LanguageExt;
+using Microsoft.Win32.SafeHandles;
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
@@ -8,15 +9,30 @@ using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using UnchainedLauncher.Core.Utilities;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace UnchainedLauncher.CLI.Tests;
 
 public sealed class NativeConsoleLaunchTests : IDisposable {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "native-console-" + Guid.NewGuid().ToString("N"));
+    private int? _probeId;
+    private string _stopState = "not stopped";
+    private readonly ITestOutputHelper _log;
     private static string Probe => Path.Combine(AppContext.BaseDirectory, "argument-probe",
         OperatingSystem.IsWindows() ? "ArgumentProbe.exe" : "ArgumentProbe");
-    public NativeConsoleLaunchTests() => Directory.CreateDirectory(Path.Combine(_root, FilePaths.BinDir));
-    public void Dispose() => Directory.Delete(_root, recursive: true);
+    public NativeConsoleLaunchTests(ITestOutputHelper log) {
+        _log = log;
+        Directory.CreateDirectory(Path.Combine(_root, FilePaths.BinDir));
+    }
+    public void Dispose() {
+        try { Directory.Delete(_root, recursive: true); }
+        catch (IOException error) {
+            throw new IOException($"Fixture deletion failed. Probe PID={_probeId}; {_stopState}; " +
+                $"testhost PID={Environment.ProcessId}, cwd={Environment.CurrentDirectory}; " +
+                $"root holders: {DirectoryHolders(_root)}; " +
+                $"Win64 holders: {DirectoryHolders(Path.Combine(_root, FilePaths.BinDir))}", error);
+        }
+    }
 
     [Fact]
     public async Task CancelledPreparationClosesStdioWithoutWaitingForAChild() {
@@ -81,8 +97,10 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
         var options = new LaunchOptions([], Option<string>.None,
             "--std-probe " + ArgumentEscaper.Escape(output), false, false, Option<string>.None, Option<ServerLaunchOptions>.None);
         var preparer = Chivalry2LaunchPreparer.Create<LaunchOptions>(value => Prelude.Some(value));
+        var injector = new ProbeInjector(output);
         using var game = await NativeGameLauncher.LaunchAsync(Probe, _root, options, preparer,
-            new ProbeInjector(output), forwardConsole: true);
+            injector, forwardConsole: true);
+        _probeId = game.Id;
         try {
             List<string> lines = [];
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
@@ -92,8 +110,27 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
                 await Task.Delay(10);
             }
             Assert.DoesNotContain("[plugin console connected]", lines);
+            Assert.True(injector.Called);
+            using var ready = JsonDocument.Parse(await File.ReadAllTextAsync(output, timeout.Token));
+            Assert.Equal(game.Id, ready.RootElement.GetProperty("ProcessId").GetInt32());
+            Assert.Equal(Path.GetFullPath(Path.Combine(_root, FilePaths.BinDir)),
+                ready.RootElement.GetProperty("WorkingDirectory").GetString());
+            Assert.True(ready.RootElement.GetProperty("StandardInputEof").GetBoolean());
+            Assert.False(game.HasExited);
         }
-        finally { if (!game.HasExited) await game.StopAsync(); }
+        finally {
+            _stopState = $"before stop: Win64 holders={DirectoryHolders(Path.Combine(_root, FilePaths.BinDir))}";
+            _log.WriteLine($"Probe PID={_probeId}; {_stopState}");
+            if (!game.HasExited) await game.StopAsync().WaitAsync(TimeSpan.FromSeconds(5));
+            _stopState += $"; StopAsync completed; HasExited={game.HasExited}; ExitCode={game.ExitCode}; " +
+                $"after stop: Win64 holders={DirectoryHolders(Path.Combine(_root, FilePaths.BinDir))}";
+            _log.WriteLine(_stopState);
+        }
+        Assert.True(game.HasExited);
+        var console = game.ConsoleOutput!;
+        game.Dispose();
+        Assert.Null(game.CleanupOutput);
+        Assert.Throws<ObjectDisposedException>(() => { _ = console.CaptureAsync(Stream.Null); });
     }
 
     [Fact]
@@ -132,6 +169,47 @@ public sealed class NativeConsoleLaunchTests : IDisposable {
             return true;
         }
     }
+
+    // Includes current-directory handles and this diagnostic query's own testhost handle.
+    private static string DirectoryHolders(string path) {
+        if (!OperatingSystem.IsWindows()) return "Windows only";
+        using var directory = CreateFileW(path, 0x80, 7, IntPtr.Zero, 3, 0x02000000, IntPtr.Zero);
+        if (directory.IsInvalid) return $"open failed: Win32 {Marshal.GetLastWin32Error()}";
+        var buffer = Marshal.AllocHGlobal(65536);
+        try {
+            var status = NtQueryInformationFile(directory, out _, buffer, 65536, 47);
+            if (status != 0) return $"query failed: NTSTATUS 0x{status:X8}";
+            var count = Marshal.ReadInt32(buffer);
+            if (count < 0 || count > (65536 - IntPtr.Size) / IntPtr.Size) return $"invalid count {count}";
+            List<string> holders = [];
+            for (var i = 0; i < count; i++) {
+                var pid = checked((int)Marshal.ReadIntPtr(buffer, IntPtr.Size * (i + 1)));
+                try {
+                    using var process = Process.GetProcessById(pid);
+                    holders.Add($"{pid}:{process.ProcessName}:exited={process.HasExited}");
+                }
+                catch (Exception error) when (error is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception) {
+                    holders.Add($"{pid}:{error.GetType().Name}");
+                }
+            }
+            return holders.Count == 0 ? "none" : string.Join(", ", holders);
+        }
+        finally { Marshal.FreeHGlobal(buffer); }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct IoStatusBlock {
+        public IntPtr Status;
+        public UIntPtr Information;
+    }
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true, ExactSpelling = true)]
+    private static extern SafeFileHandle CreateFileW(string path, uint access, uint share, IntPtr security,
+        uint creation, uint flags, IntPtr template);
+
+    [DllImport("ntdll.dll")]
+    private static extern int NtQueryInformationFile(SafeFileHandle file, out IoStatusBlock ioStatus,
+        IntPtr information, uint length, int informationClass);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]

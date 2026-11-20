@@ -4,9 +4,14 @@ using System.Text.Json;
 if (args[0] == "--std-probe") {
     Console.OutputEncoding = new UTF8Encoding(false);
     if (Console.ReadLine() != null) throw new InvalidDataException("Capture must not inherit the launcher's keyboard input.");
+    // Publish readiness before either marker: the parent may terminate us as soon as it sees both.
+    File.WriteAllText(args[1], JsonSerializer.Serialize(new {
+        ProcessId = Environment.ProcessId,
+        WorkingDirectory = Environment.CurrentDirectory,
+        StandardInputEof = true
+    }));
     Console.WriteLine("stdout marker 世界");
     Console.Error.WriteLine("stderr marker");
-    File.WriteAllText(args[1], "started");
     await Task.Delay(TimeSpan.FromMinutes(1));
     return;
 }

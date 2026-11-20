@@ -15,19 +15,25 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         private readonly ILog _logger = LogManager.GetLogger(nameof(SigPreparer));
 
         private readonly IUserDialogueSpawner _userDialogueSpawner;
+        private readonly bool _deleteOrphanedSigs;
 
         public static IChivalry2LaunchPreparer<Unit> Create(IPakDir pakDir, IUserDialogueSpawner userDialogueSpawner) =>
             new SigPreparer(pakDir, userDialogueSpawner);
 
-        private SigPreparer(IPakDir pakDir, IUserDialogueSpawner userDialogueSpawner) {
+        // Profile ownership cleanup removes managed signatures; unknown signatures must survive.
+        public static IChivalry2LaunchPreparer<Unit> CreateForProfile(IPakDir pakDir, IUserDialogueSpawner userDialogueSpawner) =>
+            new SigPreparer(pakDir, userDialogueSpawner, false);
+
+        private SigPreparer(IPakDir pakDir, IUserDialogueSpawner userDialogueSpawner, bool deleteOrphanedSigs = true) {
             PakDir = pakDir;
             _userDialogueSpawner = userDialogueSpawner;
+            _deleteOrphanedSigs = deleteOrphanedSigs;
         }
 
         public async Task<Option<Unit>> PrepareLaunch(Unit input) {
             _logger.Info("Ensuring sigs are set up for all pak files.");
             var signed = await PakDir.SignAll();
-            var result = signed.IsRight ? await PakDir.DeleteOrphanedSigs() : signed;
+            var result = signed.IsRight && _deleteOrphanedSigs ? await PakDir.DeleteOrphanedSigs() : signed;
             return result.Match(
                     _ => Some(input),
                     errors => {

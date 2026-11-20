@@ -14,6 +14,7 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
         public abstract EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation);
 
         public abstract Task<GetAllModsResult> GetAllMods();
+        public virtual Task<long?> GetPakSize(Release release, CancellationToken cancellationToken = default) => Task.FromResult<long?>(null);
 
         /// <summary>
         /// Gets the mod metadata in a string format.

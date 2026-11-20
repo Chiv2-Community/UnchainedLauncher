@@ -77,7 +77,7 @@ public sealed class OwnershipPersistenceTests : IDisposable {
         Assert.Equal(1, results);
         var owned = Assert.Single(((PakDir)manager.PakDir).ManagedPaks);
         Assert.Equal(coordinates, owned.Coordinates);
-        Assert.Equal("q__-__" + module + ".pak", owned.PakFileName);
+        Assert.Equal(module + "_0_P.pak", owned.PakFileName);
         Assert.Equal(0, owned.Priority);
         var codec = new ModManagerCodec(registry);
         Assert.Equal(owned, Assert.Single(((PakDir)codec.Deserialize(File.ReadAllText(Config)).Result!.PakDir).ManagedPaks));

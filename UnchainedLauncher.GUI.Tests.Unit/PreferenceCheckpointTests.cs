@@ -29,7 +29,14 @@ public sealed class PreferenceCheckpointTests {
         Assert.Contains("LegacyOwnershipMigration.Load", source);
         Assert.Contains("checkpoint.AndThen(new SavedPaksPreparer", source);
         Assert.Contains("prepareSavedPaks.AndThen(noSigLaunchPreparer", source);
-        Assert.Contains("prepareSavedPaks.AndThen(pluginInstaller", source);
+        Assert.Contains("prepareSavedPaks.AndThen(modInstaller", source);
+        Assert.Contains("new ProfileModsLaunchPreparer(", source);
+        Assert.Contains("precedingDllPreparer: pluginInstaller", source);
+        var initialize = source[source.IndexOf("private ModManager InitializeModManager", StringComparison.Ordinal)..];
+        Assert.True(initialize.IndexOf("LegacyOwnershipMigration.Load", StringComparison.Ordinal)
+            < initialize.IndexOf("assets.Rebind(loaded", StringComparison.Ordinal));
+        Assert.True(initialize.IndexOf("assets.Rebind(loaded", StringComparison.Ordinal)
+            < initialize.IndexOf("new ModManagerPersistence(manager", StringComparison.Ordinal));
     }
 
     [Theory]

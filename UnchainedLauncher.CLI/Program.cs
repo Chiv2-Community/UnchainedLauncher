@@ -14,7 +14,11 @@ public static class Program {
             return 2;
         }
         if (command.Help) { Console.Write(command.HelpText); return 0; }
-        var launches = command is CliLaunchOptions single ? new[] { single } : Array.Empty<CliLaunchOptions>();
+        var launches = command switch {
+            ServerGroupOptions group => group.Servers.Select(entry => (CliLaunchOptions)entry.Options).ToArray(),
+            CliLaunchOptions single => [single],
+            _ => Array.Empty<CliLaunchOptions>()
+        };
         if (launches.Any(launch => launch.Shared.Dlls.Count != 0)) {
             Console.Error.WriteLine("Resolving explicitly selected DLL releases from dll_db; native code will execute in the game.");
             Console.Error.WriteLine("Tracking: https://github.com/Chiv2-Community/UnchainedLauncher/issues/149");
@@ -32,6 +36,7 @@ public static class Program {
                     : await ModQuery.RunAsync(query, registry, Console.Out, Console.Error, stop.Token);
             }
             foreach (var launch in launches) await ProtonRuntime.ConfigureAsync(launch, stop.Token);
+            if (command is ServerGroupOptions group) return await ServerGroupRunner.RunAsync(group, stop);
             var options = (CliLaunchOptions)command;
             using var instanceLease = options.InstancePaths.AcquireLease();
             using var process = await ServerLauncher.LaunchAsync(options, stop.Token);

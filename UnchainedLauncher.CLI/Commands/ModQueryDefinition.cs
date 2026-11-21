@@ -1,6 +1,6 @@
+using System.CommandLine;
 using UnchainedLauncher.CLI.Configuration;
 using UnchainedLauncher.CLI.Registries;
-using System.CommandLine;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 
 namespace UnchainedLauncher.CLI.Commands;

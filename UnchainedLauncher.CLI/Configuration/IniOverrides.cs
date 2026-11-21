@@ -4,10 +4,11 @@ using System.Collections;
 using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using UnchainedLauncher.CLI.Launching;
 using UnchainedLauncher.Core.INIModels;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 
-namespace UnchainedLauncher.CLI;
+namespace UnchainedLauncher.CLI.Configuration;
 
 internal sealed class IniOverrides {
     private sealed record Entry(string File, string Section, string Key, string[] Values, bool Array, bool Raw);

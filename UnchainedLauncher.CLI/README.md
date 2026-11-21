@@ -634,14 +634,13 @@ Request pak releases using their repository identity and **exact release tag**:
 --mod organization/another-mod:v2.0.0
 ```
 
-Display names are not IDs. Core resolves dependencies and includes Unchained-Mods
-automatically. Its current dependency policy selects latest stable releases rather
-than enforcing dependency version ranges; the CLI rejects missing releases,
-missing stable dependencies, and conflicting resolved versions rather than
-launching an incomplete set. Registry failures stop launch.
-If a pinned older release has different dependencies from the latest release,
-Core may resolve the wrong dependency inventory; the CLI detects missing required
-dependencies and refuses that launch rather than silently omitting them.
+Display names are not IDs. Core builds one validated, dependency-first pak plan
+and includes the latest stable Unchained-Mods automatically. Exact requested tags
+stay pinned; transitive stable releases must satisfy all declared version ranges.
+The plan follows each selected release's actual dependencies, including older
+pins. Missing or incompatible dependencies, conflicting pins, cycles and registry
+failures stop preparation before pak mutation. DLL selection and explicit recovery
+can change the roots; the plan is revalidated before installation and injection.
 
 Installing a pak does **not** automatically activate all of its server actors.
 As in the GUI, choose the actors you want to activate, using their blueprint class
@@ -654,7 +653,7 @@ paths from release metadata:
 Core persists CLI profile ownership and cached metadata in
 `unchained/cli_mod_manager.json`. It converts older inventory evidence at startup;
 there is no separate live inventory. Pending installs are not confirmed ownership.
-Ambiguous files require the Keep/Remove/Cancel recovery above.
+Pending ambiguous publications require the Keep/Remove/Cancel recovery above.
 The CLI never overwrites GUI configuration or imports cached enabled-mod selections.
 GUI ownership remains installation-backed, including installation paks and plugins.
 CLI pak and DLL selections remain request-specific and profile-isolated.
@@ -801,11 +800,14 @@ at the root:
 
 - `Commands`: command binding and query definitions.
 - `Configuration`: typed launch requests and configuration models.
+  YAML parsing, map rotation and typed INI overrides also live here.
 - `Registries`: registry specifications and query execution.
 - `Launching`: launch orchestration, lifecycle, arguments and plugin logging.
+  Group supervision and INI profile publication also live here.
   `Launching/Proton` owns Linux runtime discovery and helper hosting.
 - `Monitoring`: process and server samples/history.
 - `Terminal`: dialogue, console capture, dashboard and input.
+  Group tab navigation and terminal mouse support belong to this YAML layer.
 
 Core owns pak plans, durable ownership, caches and DLL validation/injection.
 `Launching/PluginLogging.cs` writes the game's log4rs `pluginlogging.yaml`

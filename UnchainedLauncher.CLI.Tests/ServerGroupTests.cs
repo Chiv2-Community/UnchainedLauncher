@@ -1,8 +1,8 @@
+using System.Diagnostics;
 using UnchainedLauncher.CLI.Commands;
 using UnchainedLauncher.CLI.Configuration;
 using UnchainedLauncher.CLI.Launching;
 using UnchainedLauncher.CLI.Terminal;
-using System.Diagnostics;
 using UnchainedLauncher.Core.Services.Server.A2S;
 using Xunit;
 

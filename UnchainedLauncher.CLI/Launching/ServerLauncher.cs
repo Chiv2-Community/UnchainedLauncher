@@ -1,4 +1,3 @@
-using UnchainedLauncher.CLI.Registries;
 using StructuredINI;
 using System.Net;
 using UnchainedLauncher.CLI.Configuration;

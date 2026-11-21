@@ -1,7 +1,7 @@
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 
-namespace UnchainedLauncher.CLI;
+namespace UnchainedLauncher.CLI.Configuration;
 
 internal sealed class IgnoredYamlNodeConverter : IYamlTypeConverter {
     // Opt in only via YamlConverter on the opposite command's property, never by type.

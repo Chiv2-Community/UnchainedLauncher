@@ -1,9 +1,9 @@
-using UnchainedLauncher.CLI.Commands;
-using UnchainedLauncher.CLI.Configuration;
-using UnchainedLauncher.CLI.Launching;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using UnchainedLauncher.CLI.Commands;
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Launching;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using Xunit;

@@ -1,11 +1,10 @@
-using UnchainedLauncher.CLI.Commands;
-using UnchainedLauncher.CLI.Configuration;
 using System.ComponentModel.DataAnnotations;
+using UnchainedLauncher.CLI.Commands;
 using YamlDotNet.Core;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
-namespace UnchainedLauncher.CLI;
+namespace UnchainedLauncher.CLI.Configuration;
 
 public static class YamlConfiguration {
     public static CliCommandOptions Load(string path, bool client) {

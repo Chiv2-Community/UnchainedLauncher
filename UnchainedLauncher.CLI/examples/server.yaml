@@ -1,9 +1,21 @@
 # Paths are relative to this file, unless absolute. Change this installation path.
 chiv2-path: 'C:\Games\Chivalry 2'
 platform: Steam # Steam or EGS; required
-map-profiles:
-  courtyard:
-    map-name: FFA_Courtyard
+global-settings:
+  registries: [] # Official GitHub registry is included automatically.
+  mods:
+    - Chiv2-Community/Unchained-Mods:v0.1.0
+    - Chiv2-Community/Chiv2Turbo:v0.0.4
+  plugins:
+    # Replace this pin with a build supporting the native map-config-hierarchy format.
+    # No map_profiles Cargo feature is needed; per-slot mod-actors are display metadata.
+    - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
+  mod-actors:
+    - /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C
+  match-presets:
+    courtyard:
+      name: Courtyard FFA # Optional; otherwise the key becomes "Courtyard".
+      map: FFA_Courtyard
 
 # Run with: UnchainedLauncher.CLI.exe server --config-path server.yaml
 # Paks live in %LOCALAPPDATA%/Chivalry 2/Saved_MyServer/Paks/.
@@ -16,51 +28,47 @@ allow-unstable-plugin: false
 no-tui: false
 game-args: [] # Common game/auth arguments; one YAML string per argument.
 
-server:
-  map-rotation:
-    - courtyard
-    - map-name: FFA_Wardenglade
-  saved-dir-suffix: MyServer
-  mod-setup:
-    registries: [] # Official GitHub registry is included automatically.
-    mods:
-      - Chiv2-Community/Unchained-Mods:v0.1.0
-      - Chiv2-Community/Chiv2Turbo:v0.0.4
-    dlls:
-      - Chiv2-Community/UnchainedPlugin:v1.0.0-RC3
-  ini:
-    Game:
-      /Script/TBL.TBLGameMode:
-        BotBackfillEnabled: true
-        ClassLimits:
-          - Class: Poleman
-            ClassLimitPercent: 10
-          - Class: Archer
-            ClassLimitPercent: 0
-  name: My Unchained Server
-  description: Example server
-  password: ''
-  starting-map: FFA_Courtyard
-  game-port: 7777
-  ping-port: 3075
-  query-port: 7071
-  rcon-port: 9001
-  headless: true # Rendering requires headless: false AND desync-patch: false.
-  register: false
-  # local-ip: 192.168.1.10 # Optional override; local IPv4 is auto-detected.
-  mod-actors:
-    - /Game/Mods/AgMods/Chiv2Turbo/Chiv2Turbo.Chiv2Turbo_C
-  desync-patch: true # Default true; explicitly set false to disable.
-  use-backend-banlist: true # Default true; explicitly set false to disable.
-  censor-mode: none # none, standard, sex, zealous
-  game-args: [] # Additional server-only arguments, appended after common game-args.
-  # ini patches only specified fields in the saved profile; other fields are preserved.
-  # Optional Discord integration: token and at least one channel are required.
-  # discord:
-  #   bot-token: 'replace-with-your-bot-token'
-  #   admin-channel-id: '123456789012345678'
-  #   general-channel-id: '234567890123456789'
-  #   dashboard-channel-id: '345678901234567890'
-  #   event-log-channel-id: '456789012345678901'
-  #   admin-role-id: '567890123456789012'
-  #   mention-admins: true
+servers:
+  server:
+    map-rotation:
+      - courtyard
+      - map: FFA_Wardenglade
+    saved-dir-suffix: MyServer
+    ini:
+      # Default for the optional courtyard override above:
+      # Engine:
+      #   /Game/Mods/AgMods/Example.Example_C:
+      #     RoundLimit: {type: Int, value: 10}
+      Game:
+        /Script/TBL.TBLGameMode:
+          BotBackfillEnabled: true
+          ClassLimits:
+            - Class: Poleman
+              ClassLimitPercent: 10
+            - Class: Archer
+              ClassLimitPercent: 0
+    name: My Unchained Server
+    description: Example server
+    password: ''
+    starting-map: FFA_Courtyard
+    game-port: 7777
+    ping-port: 3075
+    query-port: 7071
+    rcon-port: 9001
+    headless: true # Rendering requires headless: false AND desync-patch: false.
+    register: false
+    # local-ip: 192.168.1.10 # Optional override; local IPv4 is auto-detected.
+    desync-patch: true # Default true; explicitly set false to disable.
+    use-backend-banlist: true # Default true; explicitly set false to disable.
+    censor-mode: none # none, standard, sex, zealous
+    game-args: [] # Additional server-only arguments, appended after common game-args.
+    # ini patches only specified fields in the saved profile; other fields are preserved.
+    # Optional Discord integration: token and at least one channel are required.
+    # discord:
+    #   bot-token: 'replace-with-your-bot-token'
+    #   admin-channel-id: '123456789012345678'
+    #   general-channel-id: '234567890123456789'
+    #   dashboard-channel-id: '345678901234567890'
+    #   event-log-channel-id: '456789012345678901'
+    #   admin-role-id: '567890123456789012'
+    #   mention-admins: true

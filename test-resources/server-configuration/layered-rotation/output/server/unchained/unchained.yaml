@@ -1,0 +1,32 @@
+match-rotation:
+- profile: duel
+  name: Duel
+  map: FFA_Courtyard
+  mod-actors:
+  - /Game/Mods/AgMods/Common.Common_C
+  - /Game/Mods/AgMods/AnyMap.AnyMap_C
+  - /Game/Mods/AgMods/Ffa.Ffa_C
+  - /Game/Mods/AgMods/Duel.Duel_C
+- profile: duel.slot-1
+  name: Late shift
+  map: TDM_Wardenglade
+  mod-actors:
+  - /Game/Mods/AgMods/Common.Common_C
+  - /Game/Mods/AgMods/AnyMap.AnyMap_C
+  - /Game/Mods/AgMods/Duel.Duel_C
+  - /Game/Mods/AgMods/Inline.Inline_C
+- profile: inline-2
+  name: FFA Bazaar
+  map: FFA_Bazaar
+  mod-actors:
+  - /Game/Mods/AgMods/Common.Common_C
+  - /Game/Mods/AgMods/AnyMap.AnyMap_C
+  - /Game/Mods/AgMods/Ffa.Ffa_C
+- profile: duel.slot-3
+  name: Duel reprise
+  map: FFA_Courtyard
+  mod-actors:
+  - /Game/Mods/AgMods/Common.Common_C
+  - /Game/Mods/AgMods/AnyMap.AnyMap_C
+  - /Game/Mods/AgMods/Ffa.Ffa_C
+  - /Game/Mods/AgMods/Duel.Duel_C

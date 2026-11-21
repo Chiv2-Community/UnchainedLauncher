@@ -1,0 +1,4 @@
+chiv2-path: './game installation'
+platform: Steam
+servers:
+  server: {game-port: 0}

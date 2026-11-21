@@ -81,7 +81,7 @@ public record Chivalry2INI(
         var gamePath = Path.Combine(iniDir, "Game.ini");
         var gameUserSettingsPath = Path.Combine(iniDir, "GameUserSettings.ini");
 
-        return StructuredINIWriter.Save(enginePath, Engine) && StructuredINIWriter.Save(gamePath, Game) && StructuredINIWriter.Save(gameUserSettingsPath, GameUserSettings);
+        return StructuredINIWriter.Save(enginePath, Engine, isConfigRoot: true) && StructuredINIWriter.Save(gamePath, Game, isConfigRoot: true) && StructuredINIWriter.Save(gameUserSettingsPath, GameUserSettings, isConfigRoot: true);
     }
 
 

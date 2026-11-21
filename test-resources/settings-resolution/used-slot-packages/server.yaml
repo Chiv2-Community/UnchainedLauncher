@@ -1,0 +1,16 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  mods: [org/base:v1]
+  plugins: [org/plugin:v1]
+  match-presets:
+    foo: {map: FFA_Courtyard, mods: [org/foo:v1], mod-actors: [foo]}
+    unused: {map: FFA_Bazaar, mods: [org/unused:v1]}
+servers:
+  server:
+    mods: [org/base:v1, org/server:v2]
+    map-settings:
+      'TDM_~': {mods: [org/tdm:v1], plugins: [org/tdm-plugin:v1]}
+    map-rotation:
+      - foo
+      - {map: TDM_Wardenglade, mods: [org/inline:v1]}

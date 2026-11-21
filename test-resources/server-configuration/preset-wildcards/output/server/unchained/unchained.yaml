@@ -1,0 +1,26 @@
+match-rotation:
+- profile: duel-night
+  name: Duel night
+  map: TDM_Wardenglade
+  mod-actors:
+  - always
+  - tdm
+  - duel
+  - local
+  - night
+- profile: duel-day
+  name: Duel day
+  map: FFA_Courtyard
+  mod-actors:
+  - always
+  - ffa
+  - duel
+- profile: duel-night.slot-2
+  name: Night reprise
+  map: FFA_Bazaar
+  mod-actors:
+  - always
+  - ffa
+  - duel
+  - local
+  - night

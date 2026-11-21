@@ -1,0 +1,5 @@
+chiv2-path: .
+platform: Steam
+servers:
+  server:
+    no-spawn-console: true

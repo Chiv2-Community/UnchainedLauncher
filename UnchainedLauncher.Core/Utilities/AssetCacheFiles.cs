@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 
 namespace UnchainedLauncher.Core.Utilities;
 
-internal static class AssetCacheFiles {
+public static class AssetCacheFiles {
     internal static async Task<FileStream> LockAsync(string path, CancellationToken cancellationToken) {
         var deadline = DateTime.UtcNow.AddMinutes(30);
         while (true) {
@@ -13,7 +13,7 @@ internal static class AssetCacheFiles {
     }
 
     // Direct publication is atomic and never replaces an occupied destination.
-    internal static bool TryCreateHardLink(string destination, string source) => OperatingSystem.IsWindows()
+    public static bool TryCreateHardLink(string destination, string source) => OperatingSystem.IsWindows()
         ? CreateHardLinkW(destination, source, IntPtr.Zero)
         : OperatingSystem.IsLinux() && Link(source, destination) == 0;
 

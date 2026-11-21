@@ -1,0 +1,5 @@
+chiv2-path: './game installation'
+platform: Steam
+client: {nested: {field: one, field: two}}
+client: {}
+servers: {server: {}}

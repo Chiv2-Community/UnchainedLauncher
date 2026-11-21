@@ -1,0 +1,2 @@
+servers:
+  server: !<tag:example.com,2026:execute> command

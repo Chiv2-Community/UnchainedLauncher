@@ -1,0 +1,5 @@
+chiv2-path: ./game
+platform: Steam
+no-tui: true
+saved-dir-suffix: Host
+servers: {one: {}}

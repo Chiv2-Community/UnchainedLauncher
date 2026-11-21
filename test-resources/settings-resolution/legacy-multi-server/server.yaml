@@ -1,0 +1,17 @@
+chiv2-path: .
+platform: Steam
+servers:
+  first:
+    map-rotation:
+      - courtyard
+      - {map-name: FFA_Wardenglade}
+      - {map-name: FFA_Courtyard, name: Courtyard reprise}
+    starting-map: ffa_wardenglade
+  second:
+    game-port: 7778
+    ping-port: 3076
+    query-port: 7072
+    rcon-port: 9002
+    map-rotation: [courtyard, {map-name: FFA_Bazaar}]
+map-profiles:
+  courtyard: {map-name: FFA_Courtyard}

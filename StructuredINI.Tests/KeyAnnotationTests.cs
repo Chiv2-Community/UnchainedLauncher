@@ -10,7 +10,7 @@
         public void TestSerialization_RenamedKeys() {
             var parser = new StructuredINIParser();
             var instance = new RenamedProps(42, "hello");
-            var ini = parser.Serialize(instance);
+            var ini = parser.Serialize(instance, isConfigRoot: false);
 
             Assert.Contains("RealName=42", ini);
             Assert.Contains("AnotherName=hello", ini);

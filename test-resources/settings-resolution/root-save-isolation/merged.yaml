@@ -1,0 +1,15 @@
+chiv2-path: .
+platform: Steam
+global-settings:
+  ini:
+    Engine: ./Merged.ini
+    GameUserSettings: ./Merged.ini
+servers:
+  server:
+    ini:
+      Engine:
+        Mod:
+          Value: 1
+      GameUserSettings:
+        Mod:
+          Value: 1

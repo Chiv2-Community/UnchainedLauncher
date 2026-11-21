@@ -1,3 +1,4 @@
+using UnchainedLauncher.CLI.Terminal;
 using UnchainedLauncher.Core.Services;
 using Xunit;
 

@@ -1,3 +1,6 @@
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Launching;
+using UnchainedLauncher.CLI.Launching.Proton;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Utilities;
 using Xunit;
@@ -77,7 +80,7 @@ public sealed class PluginLoggingTests : IDisposable {
             [ "$1" = runinprefix ] && [ "$2" = winepath ] && [ "$3" = -w ] || exit 1
             [ -f "$4" ] || exit 2
             printf '%s\n' 'C:\users\steamuser\AppData\Local\Chivalry 2\Saved_testprofile\unchained\logging.yaml'
-            """ + "\n");
+            """.ReplaceLineEndings("\n") + "\n");
         File.SetUnixFileMode(runner, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         var request = Request();
         request.Shared.Proton = new ProtonRuntime(runner, _directory, null, "unused");

@@ -1,5 +1,8 @@
 using StructuredINI;
 using System.Net;
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Launching.Proton;
+using UnchainedLauncher.CLI.Terminal;
 using UnchainedLauncher.Core.INIModels.Game;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Dlls;
@@ -10,7 +13,7 @@ using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
 using UnchainedLauncher.Core.Services.Server.A2S;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.CLI;
+namespace UnchainedLauncher.CLI.Launching;
 
 public static class ServerLauncher {
     public static async Task<LaunchedGame> LaunchAsync(CliLaunchOptions request, CancellationToken cancellationToken) {

@@ -1,11 +1,13 @@
 using System.Diagnostics;
 using System.Text.Json;
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Terminal;
 using UnchainedLauncher.Core.Services.Dlls;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.CLI;
+namespace UnchainedLauncher.CLI.Launching.Proton;
 
 internal static class ProtonGameLauncher {
     internal static async Task<LaunchedGame> LaunchAsync(CliLaunchOptions options, LaunchOptions launch,

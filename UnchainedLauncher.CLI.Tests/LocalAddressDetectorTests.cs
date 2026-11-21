@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Launching;
 using Xunit;
 
 namespace UnchainedLauncher.CLI.Tests;

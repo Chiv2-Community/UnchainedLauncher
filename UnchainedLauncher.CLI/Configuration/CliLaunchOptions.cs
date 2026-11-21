@@ -1,6 +1,10 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
+using UnchainedLauncher.CLI.Commands;
+using UnchainedLauncher.CLI.Launching;
+using UnchainedLauncher.CLI.Launching.Proton;
+using UnchainedLauncher.CLI.Registries;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
@@ -8,7 +12,7 @@ using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Utilities;
 using static LanguageExt.Prelude;
 
-namespace UnchainedLauncher.CLI;
+namespace UnchainedLauncher.CLI.Configuration;
 
 /// <summary>Settings used by both client and server launches.</summary>
 public sealed class SharedLaunchOptions {

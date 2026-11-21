@@ -1,6 +1,6 @@
 using UnchainedLauncher.Core.Services.Mods;
 
-namespace UnchainedLauncher.CLI;
+namespace UnchainedLauncher.CLI.Launching;
 
 public sealed record ServerInstancePaths(ProfileAssetPaths Assets) {
     public string Root => Assets.Root;

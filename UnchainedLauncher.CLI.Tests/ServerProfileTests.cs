@@ -1,3 +1,5 @@
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Launching;
 using Xunit;
 
 namespace UnchainedLauncher.CLI.Tests;

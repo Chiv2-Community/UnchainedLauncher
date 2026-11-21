@@ -1,3 +1,5 @@
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Registries;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using Xunit;

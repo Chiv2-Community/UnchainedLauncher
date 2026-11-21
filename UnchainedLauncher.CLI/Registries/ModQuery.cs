@@ -1,8 +1,9 @@
 using System.Globalization;
+using UnchainedLauncher.CLI.Commands;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 
-namespace UnchainedLauncher.CLI;
+namespace UnchainedLauncher.CLI.Registries;
 
 public static class ModQuery {
     public static async Task<int> RunAsync(ModQueryOptions options, IModRegistry registry, TextWriter output, TextWriter error, CancellationToken cancellationToken) {

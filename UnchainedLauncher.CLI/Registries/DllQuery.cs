@@ -1,9 +1,10 @@
 using Semver;
 using System.Globalization;
+using UnchainedLauncher.CLI.Commands;
 using UnchainedLauncher.Core.Services.Mods.Registry;
-using static UnchainedLauncher.CLI.ModQuery;
+using static UnchainedLauncher.CLI.Registries.ModQuery;
 
-namespace UnchainedLauncher.CLI;
+namespace UnchainedLauncher.CLI.Registries;
 
 public static class DllQuery {
     public static async Task<int> RunAsync(ModQueryOptions options, AggregateModRegistry registry, TextWriter output, TextWriter error, CancellationToken token) {

@@ -1,3 +1,4 @@
+using UnchainedLauncher.CLI.Configuration;
 using UnchainedLauncher.Core.JsonModels;
 using Xunit;
 

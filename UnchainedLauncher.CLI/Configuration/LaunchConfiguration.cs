@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 
-namespace UnchainedLauncher.CLI;
+namespace UnchainedLauncher.CLI.Configuration;
 
 public abstract class LaunchConfiguration {
     [Required]

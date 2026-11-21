@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using UnchainedLauncher.CLI.Launching.Proton;
 using UnchainedLauncher.Core.JsonModels;
 using Xunit;
 

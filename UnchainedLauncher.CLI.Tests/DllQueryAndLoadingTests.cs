@@ -1,4 +1,7 @@
 using System.CommandLine;
+using UnchainedLauncher.CLI.Commands;
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Registries;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes;
 using Xunit;

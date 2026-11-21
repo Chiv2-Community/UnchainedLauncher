@@ -1,7 +1,7 @@
 using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Utilities;
 
-namespace UnchainedLauncher.CLI;
+namespace UnchainedLauncher.CLI.Terminal;
 
 // Normal updates retain their existing policy; file recovery requires consent.
 public sealed class ConsoleDialogue : IUserDialogueSpawner {

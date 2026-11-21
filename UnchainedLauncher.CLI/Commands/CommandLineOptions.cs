@@ -1,9 +1,11 @@
 using System.CommandLine;
 using System.CommandLine.Help;
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Registries;
 using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.Services.Processes;
 
-namespace UnchainedLauncher.CLI;
+namespace UnchainedLauncher.CLI.Commands;
 
 internal static class CommandLineOptions {
     public static CliCommandOptions Parse(string[] args) => Parse(args, static (root, tokens, configuration) => root.Parse(tokens, configuration));

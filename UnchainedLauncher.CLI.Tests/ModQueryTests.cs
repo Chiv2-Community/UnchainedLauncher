@@ -1,3 +1,5 @@
+using UnchainedLauncher.CLI.Commands;
+using UnchainedLauncher.CLI.Registries;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;

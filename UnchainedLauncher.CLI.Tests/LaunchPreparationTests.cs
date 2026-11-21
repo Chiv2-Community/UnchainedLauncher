@@ -1,5 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Launching;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Dlls;
 using UnchainedLauncher.Core.Services.Mods;

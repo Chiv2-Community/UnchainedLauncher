@@ -136,8 +136,10 @@ value-less launcher flag, never through forwarded game arguments.
 
 ### Pak recovery
 
-Ambiguous or unmanaged pak files prompt for **Keep / Remove / Cancel** before
-launch. The dialogue lists filenames relative to the command-selected profile's
+Pending ambiguous pak publications from an interrupted ownership checkpoint
+prompt for **Keep / Remove / Cancel** before launch. Ordinary unmanaged profile
+files remain preserved; the CLI does not offer generic unmanaged-file adoption.
+The dialogue lists pending filenames relative to the command-selected profile's
 Paks directory, with known release details.
 
 - **Keep** retains unrecognized files and authorizes adoption of recognized
@@ -151,6 +153,23 @@ Recovery requires interactive stdin, stdout and stderr. Redirected or unattended
 launches cancel rather than accept piped answers. Rerun the same launch command
 in a terminal, with the same `--saved-dir-suffix` if supplied, and choose explicitly.
 Normal update and bad-hash refresh policies are unchanged.
+
+## Source organization
+
+Directories match namespaces under `UnchainedLauncher.CLI`; only `Program` stays
+at the root:
+
+- `Commands`: command binding and query definitions.
+- `Configuration`: typed launch requests and configuration models.
+- `Registries`: registry specifications and query execution.
+- `Launching`: launch orchestration, lifecycle, arguments and plugin logging.
+  `Launching/Proton` owns Linux runtime discovery and helper hosting.
+- `Monitoring`: process and server samples/history.
+- `Terminal`: dialogue, console capture, dashboard and input.
+
+Core owns pak plans, durable ownership, caches and DLL validation/injection.
+`Launching/PluginLogging.cs` writes the game's log4rs `pluginlogging.yaml`
+protocol; it is not a launch-YAML parser.
 
 ## Tests and limits
 

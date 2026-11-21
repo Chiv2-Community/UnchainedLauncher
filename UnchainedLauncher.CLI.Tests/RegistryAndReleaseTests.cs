@@ -1,6 +1,10 @@
 using LanguageExt;
 using LanguageExt.Common;
 using System.Diagnostics;
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Launching;
+using UnchainedLauncher.CLI.Registries;
+using UnchainedLauncher.CLI.Terminal;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;

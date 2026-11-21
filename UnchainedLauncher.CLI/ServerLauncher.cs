@@ -2,6 +2,7 @@ using StructuredINI;
 using System.Net;
 using UnchainedLauncher.Core.INIModels.Game;
 using UnchainedLauncher.Core.JsonModels;
+using UnchainedLauncher.Core.Services.Dlls;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;

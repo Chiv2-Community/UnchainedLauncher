@@ -1,16 +1,13 @@
 using LanguageExt;
 using Semver;
-using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
-using UnchainedLauncher.Core.Services.Dlls;
+using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Services.Processes;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers;
-using DllRelease = UnchainedLauncher.Core.JsonModels.DllRelease;
-using ManagedDllManager = UnchainedLauncher.Core.Services.Dlls.DllManager;
 
-namespace UnchainedLauncher.Core.Services.Mods;
+namespace UnchainedLauncher.Core.Services.Dlls;
 
 /// <summary>Resolves a CLI request, then uses the shared DLL manager for storage and injection.</summary>
 public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, IProcessInjector {
@@ -23,7 +20,7 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
     private readonly IReadOnlyList<ReleaseCoordinates> _requested;
     private readonly CancellationToken _cancellationToken;
     private readonly HttpClient _client;
-    private ManagedDllManager? _manager;
+    private DllManager? _manager;
     private bool _prepared;
     private bool _server;
 
@@ -40,11 +37,11 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
         _client = client ?? Client;
     }
 
-    public static bool Satisfies(DllRelease release, string requirement) => release.Version is { } version && SatisfiesVersion(version, requirement);
+    public static bool Satisfies(DllRelease release, string requirement) => PluginInfo.MatchesVersion(release.Version, requirement);
 
     public static bool SatisfiesVersion(SemVersion version, string requirement) => PluginInfo.MatchesVersion(version.ToString(), requirement);
 
-    public static IReadOnlyList<DllRelease> Resolve(IReadOnlyList<DllPackage> packages,
+    public static IReadOnlyList<DllRelease> Resolve(IReadOnlyList<DllCatalogEntry> packages,
         IEnumerable<ReleaseCoordinates> requested, bool server, bool allowUnstable) {
         var selected = new Dictionary<string, DllRelease>(StringComparer.OrdinalIgnoreCase);
         var roots = requested.ToList();
@@ -73,27 +70,27 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
                 failure = $"Cyclic DLL dependency: {id}";
                 return false;
             }
-            var package = packages.FirstOrDefault(p => (p.LatestReleaseInfo.Identifier.Org + "/" + p.LatestReleaseInfo.Identifier.ModuleName).Equals(id, StringComparison.OrdinalIgnoreCase));
+            var package = packages.FirstOrDefault(p => p.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
             if (package == null) {
                 failure = $"DLL package not found: {id}";
                 return false;
             }
-            bool Accept(DllRelease r) => exact ? requirement == "latest" || r.Tag == requirement : Satisfies(r, requirement);
+            bool Accept(DllRelease r) => exact ? requirement == "latest" || (r.Tag ?? r.Version) == requirement : Satisfies(r, requirement);
             if (selected.TryGetValue(id, out var previous)) {
                 if (Accept(previous)) return Search(pending.Skip(1).ToArray(), out failure);
                 failure = $"Conflicting DLL requirements: {id}";
                 return false;
             }
             var pinned = pins.TryGetValue(id, out var tag);
-            var candidates = package.Releases.Where(Accept).Where(release => !pinned || release.Tag == tag)
-                .Where(release => release.Info.Target == "shared" || release.Info.Target == (server ? "server" : "client"));
-            if (!pinned) candidates = candidates.Where(r => allowUnstable || r.Version?.IsRelease == true);
+            var candidates = package.Releases.Where(Accept).Where(release => !pinned || (release.Tag ?? release.Version) == tag)
+                .Where(release => release.Info == null || release.Info.Target == "shared" || release.Info.Target == (server ? "server" : "client"));
+            if (!pinned) candidates = candidates.Where(r => allowUnstable || SemVersion.Parse(r.Version, SemVersionStyles.Strict).IsRelease);
             failure = $"DLL release not found for launch target: {id}:{requirement}";
-            foreach (var release in candidates.OrderByDescending(r => r.Version).ThenByDescending(r => r.ReleaseDate)) {
+            foreach (var release in candidates.OrderByDescending(r => SemVersion.Parse(r.Version, SemVersionStyles.Strict)).ThenByDescending(r => r.ReleaseDate)) {
                 selected.Add(id, release);
                 // Keep later roots in the same search so their constraints can reselect earlier dependencies.
                 List<(string Id, string Requirement, bool Exact, string[] Path)> next = [];
-                foreach (var dependency in release.Info.PluginDependencies) {
+                foreach (var dependency in release.Info?.RequiredPlugins ?? []) {
                     var dep = ModIdentifier.FromDependency(dependency);
                     next.Add((dep.Org + "/" + dep.ModuleName, dependency.Version, false, [.. path, id]));
                 }
@@ -107,7 +104,7 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
         void Emit(string id) {
             if (!emitted.Add(id)) return;
             var release = selected[id];
-            foreach (var dependency in release.Info.PluginDependencies) {
+            foreach (var dependency in release.Info?.RequiredPlugins ?? []) {
                 var dep = ModIdentifier.FromDependency(dependency);
                 Emit(dep.Org + "/" + dep.ModuleName);
             }
@@ -123,13 +120,13 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
         if (catalog.Errors.Count != 0) throw new InvalidOperationException("DLL registry loading failed: " + string.Join("; ", catalog.Errors));
         _server = options.ServerLaunchOptions.IsSome;
         var releases = Resolve(catalog.Packages, _requested.Concat(options.EnabledDlls), _server, options.AllowUnstablePluginReleases);
-        if (releases.Any(r => r.Info.ModDependencies.Count != 0)) {
+        if (releases.Any(r => r.Info?.RequiredMods.Count > 0)) {
             var fetched = await _mods.UpdateModsList();
             if (fetched.HasErrors) throw new InvalidOperationException("Pak registry loading failed while resolving DLL dependencies.");
         }
         var selectedPaks = _mods.GetEnabledAndDependencyReleases().ToArray();
         var paksToEnable = new List<Release>();
-        foreach (var requirements in releases.SelectMany(r => r.Info.ModDependencies)
+        foreach (var requirements in releases.SelectMany(r => r.Info?.RequiredMods ?? [])
                      .GroupBy(d => d.RepoUrl, StringComparer.OrdinalIgnoreCase)) {
             var id = ModIdentifier.FromDependency(requirements.First());
             bool Accept(Release release) => release.Version is { } version &&
@@ -154,12 +151,12 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
         var resolvedPaks = _mods.GetEnabledAndDependencyReleases().ToArray();
         if (resolvedPaks.GroupBy(r => r.Info.RepoUrl, StringComparer.OrdinalIgnoreCase).Any(g => g.Select(r => r.Tag).Distinct().Count() > 1))
             throw new InvalidOperationException("Resolved pak dependencies contain conflicting versions.");
-        foreach (var release in releases) SafeFileName(release.DllFileName);
-        if (releases.Select(release => release.DllFileName).Distinct(StringComparer.OrdinalIgnoreCase).Count() != releases.Count)
+        foreach (var release in releases) SafeFileName(release.EffectiveFileName);
+        if (releases.Select(release => release.EffectiveFileName).Distinct(StringComparer.OrdinalIgnoreCase).Count() != releases.Count)
             throw new InvalidOperationException("DLL filename collision.");
-        _manager = ManagedDllManager.CreateForLaunch(_directory,
-            catalog.Packages.SelectMany(package => package.Releases).Select(release => release.ToManagedRelease()).ToArray(),
-            releases.Select(release => release.ToManagedRelease()).ToArray(), _client,
+        _manager = DllManager.CreateForLaunch(_directory,
+            catalog.Packages.SelectMany(package => package.Releases).ToArray(),
+            releases, _client,
             () => _mods.GetEnabledAndDependencyReleases().ToArray(), _cacheDirectory);
         try { await _manager.PrepareAsync(_server, options.CheckForDependencyUpdates, _cancellationToken); }
         catch (InvalidDataException ex) { throw new InvalidOperationException(ex.Message, ex); }
@@ -168,9 +165,9 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
         try { paths = files.Select(file => file.Path).ToArray(); }
         finally { foreach (var file in files) file.Dispose(); }
         var inventory = System.Text.Json.JsonSerializer.Serialize(releases.Select((release, i) => new {
-            Repository = release.Info.RepoUrl,
-            release.Tag,
-            release.Hash,
+            Repository = "https://github.com/" + release.Id,
+            Tag = release.Tag ?? release.Version,
+            Hash = release.Sha256,
             release.Size,
             Path = paths[i]
         }));
@@ -191,12 +188,6 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
             || name.IndexOfAny(['<', '>', '"', '|', '?', '*']) >= 0 || name.Any(char.IsControl)
             || !name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Invalid DLL filename.");
         return name;
-    }
-
-    public static Task<bool> MatchesFileAsync(string path, DllRelease release) {
-        using var file = File.OpenRead(path);
-        try { ManagedDllManager.ValidateBytes(file, release.ToManagedRelease()); return Task.FromResult(true); }
-        catch (InvalidDataException) { return Task.FromResult(false); }
     }
 
     public bool Inject(System.Diagnostics.Process process) => Inject(process, _server);

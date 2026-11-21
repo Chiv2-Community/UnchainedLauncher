@@ -1,7 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
-using UnchainedLauncher.Core.JsonModels;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
+using UnchainedLauncher.Core.Services.Dlls;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
@@ -251,19 +251,16 @@ public sealed class LaunchPreparationTests : IDisposable {
     private static void AddPlugin(LocalModRegistry local, string dependency, string version,
         string identifier = "Chiv2-Community/UnchainedPlugin") {
         var parts = identifier.Split('/');
-        var dll = new DllRelease("v1.0.0", Convert.ToHexString(SHA256.HashData([1, 2, 3])).ToLowerInvariant(),
+        var dll = new PluginRelease("v1.0.0", Convert.ToHexString(SHA256.HashData([1, 2, 3])).ToLowerInvariant(),
             parts[1] + ".dll", "https://example.test/" + parts[1] + ".dll", 3,
             new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero),
-            new DllInfo {
+            new PluginInfo("core", "test", ["test"]) {
                 RepoUrl = "https://github.com/" + identifier,
-                Name = "core",
-                Description = "test",
-                Authors = ["test"],
                 ModDependencies = [new Dependency("https://github.com/" + dependency, version)]
             }, null);
         var packages = Path.Combine(local.RegistryPath, "dll_db", "packages", parts[0]);
         Directory.CreateDirectory(packages);
-        File.WriteAllText(Path.Combine(packages, parts[1] + ".json"), JsonHelpers.Serialize(new DllPackage(dll.Info, [dll])));
+        File.WriteAllText(Path.Combine(packages, parts[1] + ".json"), JsonHelpers.Serialize(new PluginPackage(dll.Info!, [dll])));
     }
 
     private sealed class DownloadHandler : HttpMessageHandler {

@@ -1,3 +1,4 @@
+using Semver;
 using System.Globalization;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using static UnchainedLauncher.CLI.ModQuery;
@@ -12,36 +13,40 @@ public static class DllQuery {
         if (options.Operation == ModQueryOperation.List) {
             await output.WriteLineAsync("DLL ID\tNAME\tLATEST VERSION");
             foreach (var package in catalog.Packages)
-                await output.WriteLineAsync($"{Id(package.LatestReleaseInfo.Identifier)}\t{Line(package.LatestReleaseInfo.Name)}\t{Line(package.LatestRelease?.Tag ?? "none")}");
+                await output.WriteLineAsync($"{Id(package.Identifier)}\t{Line(package.LatestReleaseInfo?.Name ?? package.Releases[0].Name)}\t{Line(package.LatestRelease?.Tag ?? package.LatestRelease?.Version ?? "none")}");
             return catalog.Errors.Count == 0 ? 0 : 1;
         }
-        var found = catalog.Packages.FirstOrDefault(package => options.Mod!.Matches(package.LatestReleaseInfo.Identifier));
+        var found = catalog.Packages.FirstOrDefault(package => options.Mod!.Matches(package.Identifier));
         if (found is null) {
             await error.WriteLineAsync($"DLL not found or registry unavailable: {Id(options.Mod!)}");
             return 1;
         }
         if (options.Operation == ModQueryOperation.Versions) {
             await output.WriteLineAsync("VERSION\tRELEASE DATE\tTARGET");
-            foreach (var release in found.Releases.OrderByDescending(release => release.Version).ThenByDescending(release => release.ReleaseDate))
-                await output.WriteLineAsync($"{Line(release.Tag)}\t{release.ReleaseDate.ToString("O", CultureInfo.InvariantCulture)}\t{Line(release.Info.Target)}");
+            foreach (var release in found.Releases.OrderByDescending(release => SemVersion.Parse(release.Version, SemVersionStyles.Strict)).ThenByDescending(release => release.ReleaseDate))
+                await output.WriteLineAsync($"{Line(release.Tag ?? release.Version)}\t{Date(release.ReleaseDate)}\t{Line(release.Info?.Target ?? "shared")}");
         }
         else {
-            var selected = options.Version is null ? found.LatestRelease : found.Releases.Find(release => release.Tag == options.Version);
+            var selected = options.Version is null ? found.LatestRelease : found.Releases.FirstOrDefault(release => (release.Tag ?? release.Version) == options.Version);
             if (selected is null) {
                 await error.WriteLineAsync($"DLL release not found: {Id(options.Mod!)}:{options.Version ?? "latest"}");
                 return 1;
             }
-            await output.WriteLineAsync($"DLL ID: {Id(options.Mod!)}\nName: {Line(selected.Info.Name)}\nVersion: {Line(selected.Tag)}\nDescription: {Line(selected.Info.Description)}\nTarget: {Line(selected.Info.Target)}");
-            await output.WriteLineAsync($"Authors: {string.Join(", ", selected.Info.Authors.Select(Line))}\nRepository: {Line(selected.Info.RepoUrl)}\nRelease date: {selected.ReleaseDate.ToString("O", CultureInfo.InvariantCulture)}");
-            await output.WriteLineAsync($"DLL file: {Line(selected.DllFileName)}\nHash (SHA-256): {Line(selected.Hash)}\nSize: {selected.Size.ToString(CultureInfo.InvariantCulture)} bytes\nDownload URL: {Line(selected.DownloadUrl)}");
-            await output.WriteLineAsync($"Plugin dependencies ({selected.Info.PluginDependencies.Count}):");
-            foreach (var dependency in selected.Info.PluginDependencies)
+            await output.WriteLineAsync($"DLL ID: {Id(options.Mod!)}\nName: {Line(selected.Info?.Name ?? selected.Name)}\nVersion: {Line(selected.Tag ?? selected.Version)}\nDescription: {Line(selected.Info?.Description ?? "Metadata unavailable for this historical release.")}\nTarget: {Line(selected.Info?.Target ?? "shared")}");
+            await output.WriteLineAsync($"Authors: {string.Join(", ", (selected.Info?.Authors ?? []).Select(Line))}\nRepository: {Line("https://github.com/" + selected.Id)}\nRelease date: {Date(selected.ReleaseDate)}");
+            await output.WriteLineAsync($"DLL file: {Line(selected.EffectiveFileName)}\nHash (SHA-256): {Line(selected.Sha256)}\nSize: {selected.Size.ToString(CultureInfo.InvariantCulture)} bytes\nDownload URL: {Line(selected.DownloadUrl)}");
+            var plugins = selected.Info?.RequiredPlugins ?? [];
+            var mods = selected.Info?.RequiredMods ?? [];
+            await output.WriteLineAsync($"Plugin dependencies ({plugins.Count}):");
+            foreach (var dependency in plugins)
                 await output.WriteLineAsync($"  {Id(ModIdentifier.FromDependency(dependency))}: {Line(dependency.Version)}");
-            await output.WriteLineAsync($"Mod dependencies ({selected.Info.ModDependencies.Count}):");
-            foreach (var dependency in selected.Info.ModDependencies)
+            await output.WriteLineAsync($"Mod dependencies ({mods.Count}):");
+            foreach (var dependency in mods)
                 await output.WriteLineAsync($"  {Id(ModIdentifier.FromDependency(dependency))}: {Line(dependency.Version)}");
             await output.WriteLineAsync($"Release notes: {Line(selected.ReleaseNotesMarkdown ?? "none")}");
         }
         return catalog.Errors.Count == 0 ? 0 : 1;
     }
+
+    private static string Date(DateTimeOffset? date) => (date ?? DateTimeOffset.MinValue).ToString("O", CultureInfo.InvariantCulture);
 }

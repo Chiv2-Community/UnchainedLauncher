@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.Core.Services.Dlls {
@@ -263,6 +264,10 @@ namespace UnchainedLauncher.Core.Services.Dlls {
                 File.Move(temp, path, true);
             }
             finally { if (File.Exists(temp)) File.Delete(temp); }
+        }
+
+        public void ValidatePakPlan(PakLaunchPlan plan, bool server = false) {
+            lock (_gate) DependencyValidator.Validate(plan.Releases, EnabledForTarget(server));
         }
 
         private DllRelease[] SelectedReleases(bool server = false) {

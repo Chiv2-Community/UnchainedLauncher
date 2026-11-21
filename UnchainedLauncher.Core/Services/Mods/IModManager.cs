@@ -230,6 +230,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 );
         }
 
+        /// <summary>
+        /// Best-effort UI projection; tolerates incomplete metadata and ignores version constraints.
+        /// Launch preparation must use PakLaunchPlan instead.
+        /// </summary>
         public static IEnumerable<Release> GetEnabledAndDependencyReleases(this IModManager modManager, bool includeDependencies = true,
             IEnumerable<Release>? roots = null) {
             var enabledModsWithDependencies =

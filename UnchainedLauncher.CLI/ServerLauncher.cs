@@ -56,7 +56,14 @@ public static class ServerLauncher {
         ModManager manager, DllLaunchSession pluginUpdater,
         CancellationToken cancellationToken = default) {
         var dialogue = new ConsoleDialogue();
-        var modInstaller = new Chivalry2ModsInstaller(manager, dialogue);
+        var modInstaller = new Chivalry2ModsInstaller(manager, dialogue, preparePlan: (roots, _) => {
+            ValidateRequestedReleases(manager, request.Shared.Mods);
+            foreach (var coordinate in request.Shared.Mods) {
+                if (!roots.Any(coordinate.Matches))
+                    throw new InvalidOperationException($"Requested mod pin changed during preparation: {coordinate}");
+            }
+            return pluginUpdater.GetPakPlan(roots);
+        });
         var signing = SigPreparer.CreateForProfile(manager.PakDir, dialogue);
         // Call preparers sequentially so each receives the previous result.
         // The mutating manager checkpoints ownership, including partial installation.
@@ -65,8 +72,6 @@ public static class ServerLauncher {
             var updated = await pluginUpdater.PrepareLaunch(launch);
             cancellationToken.ThrowIfCancellationRequested();
             if (updated.IsNone) return LanguageExt.Option<LaunchOptions>.None;
-            // DLL preparation can enable older pak releases with different dependencies.
-            ValidateReleases(manager, request.Shared.Mods);
             updated = await modInstaller.PrepareLaunch(updated.IfNone(launch));
             cancellationToken.ThrowIfCancellationRequested();
             if (updated.IsNone || (await signing.PrepareLaunch(LanguageExt.Unit.Default)).IsNone)
@@ -122,33 +127,17 @@ public static class ServerLauncher {
     }
 
     public static void ValidateReleases(IModManager manager, IEnumerable<ReleaseCoordinates> requested) {
+        ValidateRequestedReleases(manager, requested);
+        PakLaunchPlan.Create(manager);
+    }
+
+    private static void ValidateRequestedReleases(IModManager manager, IEnumerable<ReleaseCoordinates> requested) {
         foreach (var coordinate in requested) {
             if (manager.GetRelease(coordinate).IsNone)
                 throw new ArgumentException($"Requested mod release was not found: {coordinate.Org}/{coordinate.ModuleName}:{coordinate.Version}");
         }
         if (manager.GetLatestRelease(CommonMods.UnchainedMods).IsNone)
             throw new InvalidOperationException("The registry must provide a stable Chiv2-Community/Unchained-Mods release.");
-        var releases = manager.GetEnabledAndDependencyReleases().ToArray();
-        if (releases.GroupBy(r => (r.Info.Organization, r.Info.RepoName)).Any(g => g.Select(r => r.Tag).Distinct().Count() > 1))
-            throw new ArgumentException("Dependency resolution selected conflicting versions of a mod. Core currently selects the latest stable dependencies, including Unchained-Mods.");
-        foreach (var release in releases) {
-            foreach (var dependency in release.Info.EffectiveModDependencies) {
-                if (manager.GetLatestRelease(ModIdentifier.FromDependency(dependency)).IsNone)
-                    throw new InvalidOperationException($"Missing stable dependency: {dependency.Organization}/{dependency.RepoName}");
-                if (!releases.Any(r => r.Info.Organization == dependency.Organization && r.Info.RepoName == dependency.RepoName))
-                    throw new InvalidOperationException($"Core did not resolve dependency {dependency.Organization}/{dependency.RepoName} for the requested release. Its current resolver uses latest-release dependency metadata.");
-            }
-        }
-        var selected = releases.Select(ReleaseCoordinates.FromRelease).ToHashSet();
-        var sorted = manager.SortByDependencies(releases).ToArray();
-        if (!selected.SetEquals(sorted.Select(ReleaseCoordinates.FromRelease)))
-            throw new InvalidOperationException("Mod dependencies contain a cycle; refusing to install an incomplete pak set.");
-        var preceding = new HashSet<ModIdentifier>();
-        foreach (var release in sorted) {
-            if (release.Info.EffectiveModDependencies.Any(dependency => !preceding.Contains(ModIdentifier.FromDependency(dependency))))
-                throw new InvalidOperationException("Selected mod dependencies contain a cycle or violate the resolved pak order; refusing to install.");
-            preceding.Add(ModIdentifier.FromRelease(release));
-        }
     }
 
     public static IA2S CreateQuery(ServerOptions options) {

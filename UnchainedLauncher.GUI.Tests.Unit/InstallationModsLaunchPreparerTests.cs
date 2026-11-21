@@ -72,6 +72,9 @@ public sealed class InstallationModsLaunchPreparerTests : IDisposable {
     public async Task AsyncDllPreparationKeepsInstallationManagerAndDoesNotUseCliProfiles(string? suffix, string outcome) {
         var manager = Startup();
         await manager.UpdateModsList();
+        var initialPlan = PakLaunchPlan.Create(manager);
+        PakLaunchPlan? installedPlan = null;
+        PakLaunchPlan? dllPlan = null;
         var assets = new ProfileAssetPaths(suffix ?? "unchained", _root);
         using var profileLease = assets.AcquireLease();
         var plugins = Path.GetFullPath(Path.Combine(_root, FilePaths.PluginDir));
@@ -82,7 +85,7 @@ public sealed class InstallationModsLaunchPreparerTests : IDisposable {
         File.WriteAllBytes(cache, [1, 2, 3]);
         using var http = new HttpClient();
         var dll = UnchainedLauncher.Core.Services.Dlls.DllManager.CreateForLaunch(
-            plugins, [release], [release], http, () => [], assets.DllCache);
+            plugins, [release], [release], http, () => (dllPlan = PakLaunchPlan.Create(manager)).Releases, assets.DllCache);
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         Exception error = outcome == "throw-cancel" ? new OperationCanceledException("original cancellation")
@@ -96,7 +99,12 @@ public sealed class InstallationModsLaunchPreparerTests : IDisposable {
             return await new DllLaunchPreparer(dll, _dialogue.Object).PrepareLaunch(options);
         });
         var settings = Mock.Of<IUnmanagedPakSettings>(s => s.AlwaysKeepUnmanagedPaks && s.AutomaticallyDownloadPakDependencies);
-        IChivalry2LaunchPreparer<LaunchOptions> installer = new Chivalry2ModsInstaller(manager, _dialogue.Object, settings);
+        IChivalry2LaunchPreparer<LaunchOptions> installer = new Chivalry2ModsInstaller(manager, _dialogue.Object, settings,
+            (roots, options) => {
+                installedPlan = PakLaunchPlan.Create(manager, roots: roots);
+                dll.ValidatePakPlan(installedPlan, options.ServerLaunchOptions.IsSome);
+                return installedPlan;
+            });
         var pending = plugin.AndThen(installer.Sub(SigPreparer.CreateForProfile(manager.PakDir, _dialogue.Object)))
             .PrepareLaunch(Options(suffix));
         try {
@@ -109,6 +117,9 @@ public sealed class InstallationModsLaunchPreparerTests : IDisposable {
                 Assert.Same(error, await Assert.ThrowsAnyAsync<Exception>(() => pending));
             else Assert.Equal(outcome == "success", (await pending).IsSome);
             if (outcome == "success") {
+                Assert.NotSame(initialPlan, installedPlan);
+                Assert.Same(dllPlan, installedPlan);
+                Assert.Same(installedPlan, PakLaunchPlan.Create(manager));
                 Assert.Equal(ReleaseCoordinates.FromRelease(_other), Assert.Single(Owned(manager)).Coordinates);
                 AssertDurable(manager);
                 var injection = dll.OpenForInjection();
@@ -120,6 +131,7 @@ public sealed class InstallationModsLaunchPreparerTests : IDisposable {
                 finally { foreach (var file in injection) file.Dispose(); }
             }
             else {
+                Assert.Null(installedPlan);
                 Assert.Empty(Owned(manager));
                 Assert.False(Directory.Exists(plugins));
             }

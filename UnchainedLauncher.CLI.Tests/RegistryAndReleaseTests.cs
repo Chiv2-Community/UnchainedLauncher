@@ -122,7 +122,10 @@ public class RegistryAndReleaseTests : IDisposable {
         older.Releases.Add(Mod("org", "mod", "v2.0.0").Releases.Single());
         var coordinate = new ReleaseCoordinates("org", "mod", "v1.0.0");
         var manager = Manager([coordinate], Common(), older, Mod("org", "old-dependency", "v1.0.0"));
-        Assert.Throws<InvalidOperationException>(() => ServerLauncher.ValidateReleases(manager, [coordinate]));
+        ServerLauncher.ValidateReleases(manager, [coordinate]);
+        var plan = PakLaunchPlan.Create(manager);
+        Assert.Equal(["Unchained-Mods", "old-dependency", "mod"], plan.Releases.Select(release => release.Info.RepoName));
+        Assert.Equal("v1.0.0", plan.Releases.Last().Tag);
     }
 
     [Theory]
@@ -149,7 +152,16 @@ public class RegistryAndReleaseTests : IDisposable {
         }
         Assert.Equal(sorted, manager.SortByDependencies(manager.GetEnabledAndDependencyReleases()).ToArray());
         File.WriteAllText(Path.Combine(_directory, "unknown.pak"), "untouched");
-        if (graph == "valid") ServerLauncher.ValidateReleases(manager, requested);
+        if (graph is "valid" or "out-of-order") {
+            ServerLauncher.ValidateReleases(manager, requested);
+            var plan = PakLaunchPlan.Create(manager);
+            var preceding = new System.Collections.Generic.HashSet<ModIdentifier>();
+            foreach (var release in plan.Releases) {
+                Assert.All(release.Info.EffectiveModDependencies, dependency => Assert.Contains(ModIdentifier.FromDependency(dependency), preceding));
+                preceding.Add(ModIdentifier.FromRelease(release));
+            }
+            Assert.Equal(3, plan.Releases.Count);
+        }
         else Assert.Throws<InvalidOperationException>(() => ServerLauncher.ValidateReleases(manager, requested));
         Assert.Equal("untouched", File.ReadAllText(Path.Combine(_directory, "unknown.pak")));
         Assert.Single(Directory.GetFiles(_directory));

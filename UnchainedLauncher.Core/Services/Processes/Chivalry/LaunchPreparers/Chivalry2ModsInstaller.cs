@@ -13,12 +13,15 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
         private readonly ILog _logger = LogManager.GetLogger(typeof(Chivalry2ModsInstaller));
         private readonly IUserDialogueSpawner _userDialogueSpawner;
         private readonly IUnmanagedPakSettings? _settings;
+        private readonly Func<IReadOnlyList<Release>, LaunchOptions, PakLaunchPlan>? _preparePlan;
         private IModManager _modManager { get; }
 
-        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner, IUnmanagedPakSettings? settings = null) {
+        public Chivalry2ModsInstaller(IModManager modManager, IUserDialogueSpawner dialogueSpawner, IUnmanagedPakSettings? settings = null,
+            Func<IReadOnlyList<Release>, LaunchOptions, PakLaunchPlan>? preparePlan = null) {
             _modManager = modManager;
             _userDialogueSpawner = dialogueSpawner;
             _settings = settings;
+            _preparePlan = preparePlan;
         }
 
         public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
@@ -42,8 +45,8 @@ namespace UnchainedLauncher.Core.Services.Processes.Chivalry.LaunchPreparers {
             var adopted = new List<Release>();
             if (!await _modManager.PakDir.RecoverReleases(_modManager.GetEnabledModReleases().ToList(),
                 _modManager.Mods.SelectMany(mod => mod.Releases), _userDialogueSpawner, adopted, _settings?.AlwaysKeepUnmanagedPaks == true,
-                roots => releasesToInstall = _modManager.SortByDependencies(
-                    _modManager.GetEnabledAndDependencyReleases(includeDependencies, roots)).ToList())) return None;
+                roots => releasesToInstall = (_preparePlan?.Invoke(roots, options)
+                    ?? PakLaunchPlan.Create(_modManager, includeDependencies, roots)).Releases)) return None;
             foreach (var release in adopted) _modManager.EnableModRelease(ReleaseCoordinates.FromRelease(release));
             _logger.LogListInfo("Installing the following releases:", releasesToInstall.Select(ReleaseCoordinates.FromRelease).ToList());
 

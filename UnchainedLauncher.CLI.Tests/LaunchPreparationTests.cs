@@ -74,7 +74,7 @@ public sealed class LaunchPreparationTests : IDisposable {
         await local.AddRelease(Pak("Chiv2-Community/Unchained-Mods", "v1.0.0"), source);
         await local.AddRelease(Pak("org/required", "v1.0.0", hasTransitiveDependency
             ? [new Dependency("https://github.com/org/transitive", "*")] : []), source);
-        // Core traverses latest-release metadata, which omits the older release's dependency.
+        // The older selected release must supply its own edges, not latest-release metadata.
         await local.AddRelease(Pak("org/required", "v2.0.0"), source);
         if (dependencyPublished) await local.AddRelease(Pak("org/transitive", "v1.0.0"), source);
 
@@ -100,9 +100,9 @@ public sealed class LaunchPreparationTests : IDisposable {
             cacheDirectory: Path.Combine(_directory, "dll-cache"));
         var cachePath = request.InstancePaths.ModMetadata;
         var preparer = ServerLauncher.CreateLaunchPreparer(request, manager, session);
-        if (hasTransitiveDependency) {
+        if (hasTransitiveDependency && !dependencyPublished) {
             var error = await Assert.ThrowsAsync<InvalidOperationException>(() => preparer.PrepareLaunch(request.ToLaunchOptions()));
-            Assert.Contains(dependencyPublished ? "Core did not resolve dependency org/transitive" : "Missing stable dependency: org/transitive", error.Message);
+            Assert.Contains("Missing stable dependency: org/transitive", error.Message);
             Assert.Empty(Directory.GetFiles(request.InstancePaths.Paks, "*.pak"));
             Assert.Empty(((PakDir)new ModManagerCodec(registry).Deserialize(File.ReadAllText(cachePath)).Result!.PakDir).ManagedPaks);
         }
@@ -110,10 +110,18 @@ public sealed class LaunchPreparationTests : IDisposable {
             Assert.True((await preparer.PrepareLaunch(request.ToLaunchOptions())).IsSome);
             Assert.True(File.Exists(cachePath));
             var paks = Directory.GetFiles(request.InstancePaths.Paks, "*.pak");
-            Assert.Equal(2, paks.Length);
+            Assert.Equal(hasTransitiveDependency ? 3 : 2, paks.Length);
+            var plan = session.GetPakPlan();
+            Assert.Same(plan, session.GetPakPlan());
+            Assert.Equal(hasTransitiveDependency ? new[] { "Unchained-Mods", "transitive", "required" }
+                : new[] { "Unchained-Mods", "required" }, plan.Releases.Select(release => release.Info.RepoName));
             Assert.All(paks, pak => Assert.Equal("signature", File.ReadAllText(Path.ChangeExtension(pak, ".sig"))));
+            // The injection boundary must not freeze the pre-install snapshot after metadata changes.
+            plan.Releases.Last().Info.Dependencies!.Add(new Dependency("https://github.com/org/changed-before-resume", "*"));
+            Assert.Contains("Missing stable dependency", Assert.Throws<InvalidOperationException>(() => session.GetProtonDlls()).Message);
+            Assert.Equal(paks, Directory.GetFiles(request.InstancePaths.Paks, "*.pak"));
         }
-        Assert.True(File.Exists(Path.Combine(plugins, "dll_manager.json")));
+        Assert.Equal(!hasTransitiveDependency || dependencyPublished, File.Exists(Path.Combine(plugins, "dll_manager.json")));
         Assert.Contains(manager.EnabledModReleaseCoordinates, coordinate =>
             coordinate.Org == "org" && coordinate.ModuleName == "required" && coordinate.Version == "v1.0.0");
     }

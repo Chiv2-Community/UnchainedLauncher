@@ -23,6 +23,14 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
     private DllManager? _manager;
     private bool _prepared;
     private bool _server;
+    private IReadOnlyList<DllRelease>? _selectedDlls;
+
+    public PakLaunchPlan GetPakPlan(IReadOnlyList<Release>? roots = null) {
+        _cancellationToken.ThrowIfCancellationRequested();
+        var plan = PakLaunchPlan.Create(_mods, roots: roots, cancellationToken: _cancellationToken);
+        if (_selectedDlls != null) DependencyValidator.Validate(plan.Releases, _selectedDlls);
+        return plan;
+    }
 
     public DllLaunchSession(AggregateModRegistry registry, IModManager mods, string directory,
         IEnumerable<ReleaseCoordinates>? requested = null, bool unsafeLoadAllDlls = false,
@@ -115,6 +123,7 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
     public async Task<Option<LaunchOptions>> PrepareLaunch(LaunchOptions options) {
         _prepared = false;
         _manager = null;
+        _selectedDlls = null;
         _cancellationToken.ThrowIfCancellationRequested();
         var catalog = await DllCatalog.ReadAsync(_registry, _cancellationToken);
         if (catalog.Errors.Count != 0) throw new InvalidOperationException("DLL registry loading failed: " + string.Join("; ", catalog.Errors));
@@ -124,7 +133,7 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
             var fetched = await _mods.UpdateModsList();
             if (fetched.HasErrors) throw new InvalidOperationException("Pak registry loading failed while resolving DLL dependencies.");
         }
-        var selectedPaks = _mods.GetEnabledAndDependencyReleases().ToArray();
+        var selectedPaks = GetPakPlan().Releases;
         var paksToEnable = new List<Release>();
         foreach (var requirements in releases.SelectMany(r => r.Info?.RequiredMods ?? [])
                      .GroupBy(d => d.RepoUrl, StringComparer.OrdinalIgnoreCase)) {
@@ -148,16 +157,15 @@ public sealed class DllLaunchSession : IChivalry2LaunchPreparer<LaunchOptions>, 
             if (!_mods.EnableModRelease(ReleaseCoordinates.FromRelease(release)))
                 throw new InvalidOperationException("Could not enable DLL pak dependency.");
         }
-        var resolvedPaks = _mods.GetEnabledAndDependencyReleases().ToArray();
-        if (resolvedPaks.GroupBy(r => r.Info.RepoUrl, StringComparer.OrdinalIgnoreCase).Any(g => g.Select(r => r.Tag).Distinct().Count() > 1))
-            throw new InvalidOperationException("Resolved pak dependencies contain conflicting versions.");
+        _selectedDlls = releases;
+        GetPakPlan();
         foreach (var release in releases) SafeFileName(release.EffectiveFileName);
         if (releases.Select(release => release.EffectiveFileName).Distinct(StringComparer.OrdinalIgnoreCase).Count() != releases.Count)
             throw new InvalidOperationException("DLL filename collision.");
         _manager = DllManager.CreateForLaunch(_directory,
             catalog.Packages.SelectMany(package => package.Releases).ToArray(),
             releases, _client,
-            () => _mods.GetEnabledAndDependencyReleases().ToArray(), _cacheDirectory);
+            () => PakLaunchPlan.Create(_mods, cancellationToken: _cancellationToken).Releases, _cacheDirectory);
         try { await _manager.PrepareAsync(_server, options.CheckForDependencyUpdates, _cancellationToken); }
         catch (InvalidDataException ex) { throw new InvalidOperationException(ex.Message, ex); }
         var files = _manager.OpenForInjection(_server);

@@ -177,7 +177,7 @@ namespace UnchainedLauncher.GUI {
             var assets = new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix);
             var dllManager = new DllManager(
                 FilePaths.PluginDir,
-                FilePaths.DllManagerConfigPath, new HttpClient(), () => modManager.GetEnabledAndDependencyReleases(settingsViewModel.AutomaticallyDownloadPakDependencies).ToArray(),
+                FilePaths.DllManagerConfigPath, new HttpClient(), () => PakLaunchPlan.Create(modManager, settingsViewModel.AutomaticallyDownloadPakDependencies).Releases,
                 () => modRegistry.ModRegistries.OfType<GithubModRegistry>()
                     .Select(registry => registry.DllDatabaseUrl).ToArray(), assets.DllCache);
 
@@ -207,7 +207,12 @@ namespace UnchainedLauncher.GUI {
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
-            IChivalry2LaunchPreparer<LaunchOptions> pakInstaller = new Chivalry2ModsInstaller(modManager, userDialogueSpawner, settingsViewModel);
+            IChivalry2LaunchPreparer<LaunchOptions> pakInstaller = new Chivalry2ModsInstaller(modManager, userDialogueSpawner, settingsViewModel,
+                (roots, options) => {
+                    var plan = PakLaunchPlan.Create(modManager, settingsViewModel.AutomaticallyDownloadPakDependencies, roots);
+                    dllManager.ValidatePakPlan(plan, options.ServerLaunchOptions.IsSome);
+                    return plan;
+                });
             var modInstaller = pluginInstaller.AndThen(
                 pakInstaller.Sub(SigPreparer.CreateForProfile(modManager.PakDir, userDialogueSpawner)));
 

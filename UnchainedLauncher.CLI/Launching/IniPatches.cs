@@ -14,7 +14,8 @@ internal static class IniPatches {
                 if (!writer.WriteOut(temporary, isConfigRoot)) throw new IOException("Could not apply server INI profile; refusing to launch.");
                 if (isConfigRoot || !File.Exists(destination) || !File.ReadAllBytes(destination).SequenceEqual(File.ReadAllBytes(temporary)))
                     File.Move(temporary, destination, overwrite: true);
-            } finally {
+            }
+            finally {
                 if (File.Exists(temporary)) File.Delete(temporary);
             }
         }

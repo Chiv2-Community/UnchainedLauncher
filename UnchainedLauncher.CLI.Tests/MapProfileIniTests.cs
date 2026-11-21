@@ -1,3 +1,7 @@
+using UnchainedLauncher.CLI.Commands;
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Launching;
+using UnchainedLauncher.CLI.Launching.Proton;
 using UnchainedLauncher.Core.Services.Mods;
 using Xunit;
 using YamlDotNet.RepresentationModel;

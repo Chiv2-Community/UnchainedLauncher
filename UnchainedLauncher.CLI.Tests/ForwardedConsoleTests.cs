@@ -1,7 +1,7 @@
+using System.Text;
 using UnchainedLauncher.CLI.Configuration;
 using UnchainedLauncher.CLI.Monitoring;
 using UnchainedLauncher.CLI.Terminal;
-using System.Text;
 using Xunit;
 
 namespace UnchainedLauncher.CLI.Tests;

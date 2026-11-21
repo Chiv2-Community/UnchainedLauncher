@@ -41,14 +41,16 @@ public sealed class RootConfigTests {
                 Assert.All(entries, entry => Assert.DoesNotContain(entry.Key[0], "!+.-"));
                 Assert.DoesNotContain(entries, entry => entry.Name == "Empty");
                 Assert.Contains("Untouched=old", text);
-            } else {
+            }
+            else {
                 Assert.Contains("!Names=ClearArray", text);
                 Assert.Contains("-Names=A", text);
                 Assert.Contains("!Empty=ClearArray", text);
             }
             Assert.True(writer.WriteOut(path, isConfigRoot));
             Assert.Equal(text, File.ReadAllText(path));
-        } finally { File.Delete(path); }
+        }
+        finally { File.Delete(path); }
     }
 
     [Theory]
@@ -71,7 +73,8 @@ public sealed class RootConfigTests {
             Assert.Equal(expected, File.ReadAllBytes(path));
             Assert.True(writer.WriteOut(path, isConfigRoot: true));
             Assert.Equal(expected, File.ReadAllBytes(path));
-        } finally { File.Delete(path); }
+        }
+        finally { File.Delete(path); }
     }
 
     [Theory]
@@ -95,6 +98,7 @@ public sealed class RootConfigTests {
             Assert.Equal(expected, File.ReadAllText(path));
             if (isConfigRoot)
                 Assert.Equal(expected.Replace("X=2", "X=1"), StructuredINIWriter.SerializeDocument(original, isConfigRoot: true));
-        } finally { File.Delete(path); }
+        }
+        finally { File.Delete(path); }
     }
 }

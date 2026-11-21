@@ -1,7 +1,7 @@
+using System.Diagnostics;
 using UnchainedLauncher.CLI.Configuration;
 using UnchainedLauncher.CLI.Launching;
 using UnchainedLauncher.CLI.Launching.Proton;
-using System.Diagnostics;
 using UnchainedLauncher.Core.Utilities;
 using Xunit;
 

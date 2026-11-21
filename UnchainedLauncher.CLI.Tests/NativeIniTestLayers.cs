@@ -1,3 +1,4 @@
+using UnchainedLauncher.CLI.Configuration;
 using YamlDotNet.RepresentationModel;
 
 namespace UnchainedLauncher.CLI.Tests;

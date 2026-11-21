@@ -1,7 +1,6 @@
 using System.Globalization;
 using UnchainedLauncher.CLI.Commands;
 using UnchainedLauncher.CLI.Configuration;
-using UnchainedLauncher.CLI.Launching;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
 using Xunit;
 

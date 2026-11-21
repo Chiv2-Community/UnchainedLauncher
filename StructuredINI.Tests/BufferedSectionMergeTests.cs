@@ -1,4 +1,3 @@
-
 namespace StructuredINI.Tests;
 
 public sealed class BufferedSectionMergeTests {

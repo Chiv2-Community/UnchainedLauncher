@@ -1,3 +1,6 @@
+using UnchainedLauncher.CLI.Commands;
+using UnchainedLauncher.CLI.Configuration;
+using UnchainedLauncher.CLI.Launching;
 using UnchainedLauncher.Core.Services.Mods;
 using Xunit;
 

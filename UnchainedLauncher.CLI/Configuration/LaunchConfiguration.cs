@@ -55,7 +55,8 @@ public sealed class ServerConfiguration : LaunchConfiguration {
                 throw new ValidationException("Use global-settings/match-presets and mods/plugins/registries instead of map-profiles or mod-setup with layered settings.");
             settings.Resolved = SettingsResolution.Resolve(GlobalSettings, settings);
             settings.Rotation = settings.Resolved.Rotation;
-        } else settings.Rotation = MapRotation.Resolve(settings.MapRotation, MapProfiles, settings.ExplicitStartingMap);
+        }
+        else settings.Rotation = MapRotation.Resolve(settings.MapRotation, MapProfiles, settings.ExplicitStartingMap);
     }
 }
 

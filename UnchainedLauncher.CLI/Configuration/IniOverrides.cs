@@ -1,15 +1,15 @@
-using UnchainedLauncher.CLI.Launching;
 using StructuredINI;
 using StructuredINI.Codecs;
 using System.Collections;
 using System.Globalization;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using System.Security.Cryptography;
 using System.Text;
-using UnchainedLauncher.Core.Utilities;
+using System.Text.RegularExpressions;
+using UnchainedLauncher.CLI.Launching;
 using UnchainedLauncher.Core.INIModels;
 using UnchainedLauncher.Core.Services.Processes.Chivalry;
+using UnchainedLauncher.Core.Utilities;
 
 namespace UnchainedLauncher.CLI.Configuration;
 
@@ -304,7 +304,8 @@ internal sealed class IniOverrides {
                 catch (IOException) when (File.Exists(cached)) {
                     if (!File.ReadAllBytes(cached).SequenceEqual(imported.Bytes)) throw new IOException("INI cache content mismatch.");
                 }
-            } finally {
+            }
+            finally {
                 if (File.Exists(staged)) File.Delete(staged);
             }
             var temporary = Path.Combine(directory, "." + Guid.NewGuid().ToString("N") + ".tmp");
@@ -312,7 +313,8 @@ internal sealed class IniOverrides {
                 // Root configs can be saved in place; only immutable conditional layers may share the snapshot.
                 if (isConfigRoot || !(createLink ?? AssetCacheFiles.TryCreateHardLink)(temporary, cached)) File.WriteAllBytes(temporary, imported.Bytes);
                 File.Move(temporary, destination, overwrite: true);
-            } finally {
+            }
+            finally {
                 if (File.Exists(temporary)) File.Delete(temporary);
             }
         }
@@ -342,7 +344,8 @@ internal sealed class IniOverrides {
             bytes = File.ReadAllBytes(path);
             using var reader = new StreamReader(new MemoryStream(bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
             text = reader.ReadToEnd();
-        } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
             throw new ArgumentException($"Cannot read INI file: {path}");
         }
         IReadOnlyList<StructuredINIParser.Entry> lines;

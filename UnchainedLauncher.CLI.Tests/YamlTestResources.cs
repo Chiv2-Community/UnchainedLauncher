@@ -1,3 +1,5 @@
+using UnchainedLauncher.CLI.Commands;
+using UnchainedLauncher.CLI.Configuration;
 namespace UnchainedLauncher.CLI.Tests;
 
 internal static class YamlTestResources {

@@ -936,10 +936,12 @@ at the root:
 
 - `Commands`: command binding and query definitions.
 - `Configuration`: typed launch requests and configuration models.
-  YAML parsing, map rotation and typed INI overrides also live here.
+  YAML parsing/includes, settings resolution, map rotation and typed INI
+  sources/overrides also live here.
 - `Registries`: registry specifications and query execution.
 - `Launching`: launch orchestration, lifecycle, arguments and plugin logging.
-  Group supervision and INI profile publication also live here.
+  Group supervision, INI profile publication and `MapProfileIni` generation
+  also live here.
   `Launching/Proton` owns Linux runtime discovery and helper hosting.
 - `Monitoring`: process and server samples/history.
 - `Terminal`: dialogue, console capture, dashboard and input.

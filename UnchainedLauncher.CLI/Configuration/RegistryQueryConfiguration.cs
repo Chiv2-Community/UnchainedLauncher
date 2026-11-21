@@ -6,6 +6,7 @@ namespace UnchainedLauncher.CLI.Configuration;
 // specifications, not a valid installation, credentials, or launch settings.
 public sealed class RegistryQueryConfiguration {
     public RegistryQueryModSetup? ModSetup { get; set; }
+    [YamlConverter(typeof(IgnoredYamlNodeConverter))] public object? Proton { get; set; }
     [YamlConverter(typeof(IgnoredYamlNodeConverter))] public object? Chiv2Path { get; set; }
     [YamlConverter(typeof(IgnoredYamlNodeConverter))] public object? Platform { get; set; }
     [YamlConverter(typeof(IgnoredYamlNodeConverter))] public object? SavedDirSuffix { get; set; }

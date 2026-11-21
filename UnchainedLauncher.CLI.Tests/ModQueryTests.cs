@@ -61,6 +61,51 @@ public sealed class ModQueryTests : IDisposable {
         Assert.Throws<ArgumentException>(() => Parse("list", "--config-path", path));
     }
 
+    [Theory]
+    [InlineData("mod-query", "{}")]
+    [InlineData("dll-query", "{}")]
+    [InlineData("mod-query", "{path: /no-launch-needed, compat-data-path: /no-prefix-needed}")]
+    [InlineData("dll-query", "{path: /no-launch-needed, compat-data-path: /no-prefix-needed}")]
+    [InlineData("mod-query", "not-a-runtime-configuration")]
+    [InlineData("dll-query", "not-a-runtime-configuration")]
+    [InlineData("mod-query", "{path: [invalid], unknown-setting: {secret: ignored}}")]
+    [InlineData("dll-query", "{path: [invalid], unknown-setting: {secret: ignored}}")]
+    public async Task QueriesIgnoreProtonWithoutChangingFiles(string command, string proton) {
+        var local = Path.Combine(_directory, "local");
+        Directory.CreateDirectory(local);
+        var path = Path.Combine(_directory, "query.yaml");
+        var yaml = $"mod-setup:\n  registries: ['local:local']\nproton: {proton}\n";
+        File.WriteAllText(path, yaml);
+        var entries = Directory.GetFileSystemEntries(_directory, "*", SearchOption.AllDirectories).Order().ToArray();
+
+        var query = Assert.IsType<ModQueryOptions>(CommandLineOptions.Parse([command, "get", "org/mod", "--version", "v1.0.0", "--config-path", path]));
+        Assert.Equal(command == "dll-query" ? RegistryPackageKind.Dll : RegistryPackageKind.Mod, query.Kind);
+        Assert.Equal("org", query.Mod!.Org);
+        Assert.Equal("v1.0.0", query.Version);
+        Assert.Equal(local, Assert.Single(query.RegistryOptions.Registries).Location);
+        var registry = new AggregateModRegistry(new LocalModRegistry(local));
+        var result = query.Kind == RegistryPackageKind.Dll
+            ? await DllQuery.RunAsync(query, registry, new StringWriter(), new StringWriter(), CancellationToken.None)
+            : await ModQuery.RunAsync(query, registry, new StringWriter(), new StringWriter(), CancellationToken.None);
+        Assert.Equal(1, result);
+        Assert.Equal(entries, Directory.GetFileSystemEntries(_directory, "*", SearchOption.AllDirectories).Order());
+        Assert.Equal(yaml, File.ReadAllText(path));
+    }
+
+    [Theory]
+    [InlineData("mod-query", "unknown-root: secret-value")]
+    [InlineData("dll-query", "unknown-root: secret-value")]
+    [InlineData("mod-query", "proton: {}\nproton: {path: secret-value}")]
+    [InlineData("dll-query", "proton: {}\nproton: {path: secret-value}")]
+    [InlineData("mod-query", "proton: [secret-value")]
+    [InlineData("dll-query", "proton: [secret-value")]
+    public void QueryProjectionRetainsStrictSecretSafeErrors(string command, string invalid) {
+        var path = Path.Combine(_directory, "query.yaml");
+        File.WriteAllText(path, "mod-setup: {registries: []}\n" + invalid);
+        var error = Assert.Throws<ArgumentException>(() => CommandLineOptions.Parse([command, "list", "--config-path", path]));
+        Assert.DoesNotContain("secret-value", error.Message);
+    }
+
     [Fact]
     public void CoreRegistryConfigurationAndQueryOptionsWorkBeforeSubcommands() {
         Directory.CreateDirectory(Path.Combine(_directory, "local"));

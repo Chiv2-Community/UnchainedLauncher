@@ -7,13 +7,12 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="../UnchainedLauncher.CLI/examples/*.yaml" Link="examples/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Remove="ArgumentProbe\**\*.cs" />
     <None Remove="ArgumentProbe\**" />
     <ProjectReference Include="ArgumentProbe\ArgumentProbe.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\UnchainedLauncher.CLI\UnchainedLauncher.CLI.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
-    <!-- Parse the game's log4rs protocol fixture, not launch configuration. -->
-    <PackageReference Include="YamlDotNet" Version="18.1.0" PrivateAssets="All" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

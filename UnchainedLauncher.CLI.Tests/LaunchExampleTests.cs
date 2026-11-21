@@ -1,3 +1,4 @@
+using UnchainedLauncher.CLI.Commands;
 using UnchainedLauncher.CLI.Configuration;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using Xunit;
@@ -22,6 +23,21 @@ public class LaunchExampleTests {
             Assert.Equal("FFA_Courtyard", server.ToServerLaunchOptions().Map);
             Assert.Equal([Actor], server.ToServerLaunchOptions().ServerMods);
         }
+    }
+
+    [Theory]
+    [InlineData("server.yaml")]
+    [InlineData("servers.yaml")]
+    public void YamlLaunchExamplesSelectPakDllAndActorDependencies(string file) {
+        var command = CommandLineOptions.Parse(["server", "--config-path", Path.Combine(AppContext.BaseDirectory, "examples", file)]);
+        var servers = command is ServerGroupOptions group ? group.Servers.Select(entry => entry.Options)
+            : [Assert.IsType<ServerOptions>(command)];
+        Assert.Equal(file == "servers.yaml" ? 2 : 1, servers.Count());
+        Assert.All(servers, server => {
+            AssertDependencies(server.Shared);
+            Assert.Equal("FFA_Courtyard", server.ToServerLaunchOptions().Map);
+            Assert.Equal([Actor], server.ToServerLaunchOptions().ServerMods);
+        });
     }
 
     private static void AssertDependencies(SharedLaunchOptions options) {

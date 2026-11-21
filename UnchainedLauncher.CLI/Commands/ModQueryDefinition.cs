@@ -50,10 +50,17 @@ internal sealed class ModQueryDefinition {
 
     public bool Contains(Command command) => command == Command || command == _list || command == _get || command == _versions;
 
-    public ModQueryOptions ToOptions(ParseResult parsed) {
+    public ModQueryOptions ToOptions(ParseResult parsed, Option<string?> config) {
         if (parsed.CommandResult.Command == Command) throw new ArgumentException($"Use {Command.Name} list, get <organization/id>, or versions <organization/id>.");
         var directory = Directory.GetCurrentDirectory();
         IEnumerable<string>? specifications = parsed.GetValue(_registries);
+        if (parsed.GetResult(config) is { } selector) {
+            if (selector.IdentifierTokenCount != 1 || selector.Tokens.Count != 1 || string.IsNullOrWhiteSpace(selector.Tokens[0].Value))
+                throw new ArgumentException("Specify exactly one non-empty --config-path.");
+            var path = Path.GetFullPath(parsed.GetValue(config)!);
+            specifications = YamlConfiguration.LoadDocument<RegistryQueryConfiguration>(path).ModSetup?.Registries;
+            directory = Path.GetDirectoryName(path)!;
+        }
         var operation = parsed.CommandResult.Command == _list ? ModQueryOperation.List
             : parsed.CommandResult.Command == _get ? ModQueryOperation.Get : ModQueryOperation.Versions;
         var id = operation == ModQueryOperation.List ? null : parsed.GetValue(operation == ModQueryOperation.Get ? _getId : _versionsId);

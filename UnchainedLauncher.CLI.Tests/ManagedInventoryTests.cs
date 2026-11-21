@@ -232,10 +232,10 @@ public class ManagedInventoryTests : IDisposable {
     }
 
     public static IEnumerable<object[]> InvalidInventories() {
-        yield return ["{", "Cannot read shared pak inventory."];
-        yield return ["null", "Cannot read shared pak inventory."];
+        yield return ["{"];
+        yield return ["null"];
         foreach (var json in new[] { "{}", "{\"ManagedPaks\":null}", "{\"ManagedPaks\":[null]}" })
-            yield return [json, "Invalid managed pak inventory."];
+            yield return [json];
         var valid = new ManagedPak(new ReleaseCoordinates("org", "mod", "v1.0.0"), "owned.pak", 0);
         foreach (var field in new[] { "Coordinates", "PakFileName", "Org", "ModuleName", "Version" }) {
             foreach (var missing in new[] { false, true }) {
@@ -243,16 +243,16 @@ public class ManagedInventoryTests : IDisposable {
                 var parent = field is "Org" or "ModuleName" or "Version" ? entry["Coordinates"]! : entry;
                 if (missing) parent.AsObject().Remove(field);
                 else parent[field] = null;
-                yield return [$"{{\"ManagedPaks\":[{entry}]}}", "Invalid managed pak inventory."];
+                yield return [$"{{\"ManagedPaks\":[{entry}]}}"];
             }
         }
         var invalid = valid with { PakFileName = "../outside.pak" };
-        yield return [JsonHelpers.Serialize(new PakDirMetadata("unused", [invalid])), "Invalid managed pak filename in inventory."];
+        yield return [JsonHelpers.Serialize(new PakDirMetadata("unused", [invalid]))];
     }
 
     [Theory]
     [MemberData(nameof(InvalidInventories))]
-    public async Task InvalidInventoryCancelsBeforeInstallationWithoutChangingFiles(string inventoryJson, string diagnostic) {
+    public async Task InvalidInventoryCancelsBeforeInstallationWithoutChangingFiles(string inventoryJson) {
         await InInstallation(async (registry, common, extra, launch) => {
             var owned = new ManagedPak(ReleaseCoordinates.FromRelease(common), "owned.pak", 0);
             var paks = Path.GetFullPath(FilePaths.PakDir);

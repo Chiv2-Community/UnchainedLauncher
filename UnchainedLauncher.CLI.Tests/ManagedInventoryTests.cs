@@ -252,7 +252,7 @@ public class ManagedInventoryTests : IDisposable {
 
     [Theory]
     [MemberData(nameof(InvalidInventories))]
-    public async Task InvalidInventoryCancelsBeforeInstallationWithoutChangingFiles(string inventoryJson, string diagnostic) {
+    public async Task InvalidInventoryCancelsBeforeInstallationWithoutChangingFiles(string inventoryJson) {
         await InInstallation(async (registry, common, extra, launch) => {
             var owned = new ManagedPak(ReleaseCoordinates.FromRelease(common), "owned.pak", 0);
             var paks = Path.GetFullPath(FilePaths.PakDir);

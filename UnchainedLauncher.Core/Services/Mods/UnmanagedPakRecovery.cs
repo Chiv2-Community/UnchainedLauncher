@@ -12,13 +12,15 @@ internal static class UnmanagedPakRecovery {
     internal static async Task<bool> Recover(PakDir paks, IEnumerable<Release> known,
         IUserDialogueSpawner dialogue, ICollection<Release> adopted, bool alwaysKeepUnmanagedPaks, PakReadCache cache,
         Action<IReadOnlyList<Release>> preparePlan,
-        Action<Action, IReadOnlyList<ManagedPak>>? stageChanges = null) {
+        Action<Action, IReadOnlyList<ManagedPak>>? stageChanges = null, bool pendingOnly = false) {
         var kept = new KeptUnmanagedPaks(paks.DirPath);
         kept.Load();
         var releases = known.OrderByDescending(release => release.Version)
             .ThenByDescending(release => release.ReleaseDate).ToList();
         var managed = paks.ManagedPaks.ToList();
         var managedNames = managed.Select(pak => pak.PakFileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var pendingNames = paks.PendingPublications.Select(pak => pak.PakFileName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        bool IsPending(Candidate file) => pendingNames.Contains(Path.GetFileName(file.Path));
         var files = new List<Candidate>();
         foreach (var path in Directory.EnumerateFiles(paks.DirPath, "*.pak")) {
             if (Path.GetFileName(path).Equals("pakchunk0-WindowsNoEditor.pak", StringComparison.OrdinalIgnoreCase)) continue;
@@ -27,22 +29,30 @@ internal static class UnmanagedPakRecovery {
 
         var duplicates = new List<(Candidate Duplicate, Candidate Retained)>();
         var unmanaged = new List<Candidate>();
-        foreach (var group in files.GroupBy(file => file.Hash)) {
+        // An intent cannot authorize duplicate cleanup, even for identical release bytes.
+        unmanaged.AddRange(files.Where(file => !file.Managed && IsPending(file)).Select(file => file with {
+            Release = releases.Where(release => file.Hash.Equals(release.ReleaseHash, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(release => paks.PendingPublications.Any(pending =>
+                    pending.PakFileName.Equals(Path.GetFileName(file.Path), StringComparison.OrdinalIgnoreCase)
+                    && pending.Coordinates == ReleaseCoordinates.FromRelease(release))).FirstOrDefault()
+        }));
+        foreach (var group in files.Where(file => !IsPending(file)).GroupBy(file => file.Hash)) {
             var ordered = group.OrderByDescending(file => file.Managed).ThenBy(file => file.Path.Length)
                 .ThenBy(file => file.Path, StringComparer.OrdinalIgnoreCase).ToList();
             var retained = ordered[0];
-            foreach (var duplicate in ordered.Skip(1).Where(file => !file.Managed)) {
+            foreach (var duplicate in ordered.Skip(1).Where(file => !file.Managed && !pendingOnly)) {
                 Logger.Info($"Detected duplicate pak: {duplicate.Path}; retained: {retained.Path}; SHA-512: {duplicate.Hash}");
                 duplicates.Add((duplicate, retained));
             }
-            if (!retained.Managed) unmanaged.Add(retained with {
+            if (!retained.Managed && !pendingOnly) unmanaged.Add(retained with {
                 Release = releases.FirstOrDefault(release => retained.Hash.Equals(release.ReleaseHash, StringComparison.OrdinalIgnoreCase))
             });
         }
 
-        var unconfirmed = unmanaged.Where(file => file.Release != null || !kept.Contains(Path.GetFileName(file.Path), file.Hash)).ToList();
+        var unconfirmed = unmanaged.Where(file => IsPending(file) || file.Release != null || !kept.Contains(Path.GetFileName(file.Path), file.Hash)).ToList();
+        var automaticKeep = alwaysKeepUnmanagedPaks && !unconfirmed.Any(IsPending);
         var updates = new List<DependencyUpdate>();
-        if (!alwaysKeepUnmanagedPaks) {
+        if (!automaticKeep) {
             var uncached = unconfirmed.Where(file => file.Release == null
                 && !cache.TryGetVersion(file.Path, file.Hash, out _)).Select(file => file.Path).ToHashSet();
             var scanCount = uncached.Count;
@@ -70,7 +80,7 @@ internal static class UnmanagedPakRecovery {
                 closeProgress?.Invoke();
             }
         }
-        var choice = alwaysKeepUnmanagedPaks || unconfirmed.Count == 0 ? UserDialogueChoice.Yes : dialogue.DisplayUpdateMessage(
+        var choice = automaticKeep || unconfirmed.Count == 0 ? UserDialogueChoice.Yes : dialogue.DisplayUpdateMessage(
             "Unmanaged Mods detected", "Unmanaged Mods detected. Keep them or remove them?", "Keep", "Remove", "Cancel",
             updates);
         if (choice != UserDialogueChoice.Yes && choice != UserDialogueChoice.No) return false;
@@ -92,6 +102,15 @@ internal static class UnmanagedPakRecovery {
         void Apply() {
             // Recheck after all confirmations, before deleting files or changing ownership.
             foreach (var file in files) cache.Validate(file.Path, file.Hash);
+            foreach (var file in unmanaged.Where(IsPending)) {
+                foreach (var other in files.Where(other => other.Path != file.Path && other.Hash == file.Hash)) {
+                    var signature = Path.ChangeExtension(file.Path, ".sig");
+                    var otherSignature = Path.ChangeExtension(other.Path, ".sig");
+                    if (File.Exists(signature) != File.Exists(otherSignature)
+                        || File.Exists(signature) && !File.ReadAllBytes(signature).SequenceEqual(File.ReadAllBytes(otherSignature)))
+                        throw new IOException($"Conflicting duplicate signature; files were preserved: {signature}");
+                }
+            }
             foreach (var (duplicate, retained) in duplicates) {
                 var signature = Path.ChangeExtension(duplicate.Path, ".sig");
                 var retainedSignature = Path.ChangeExtension(retained.Path, ".sig");
@@ -107,7 +126,12 @@ internal static class UnmanagedPakRecovery {
             }
             foreach (var pak in adoptedPaks) paks.TrackPak(pak);
             kept.Save(unmanaged.Where(file => file.Release == null && (choice == UserDialogueChoice.Yes || !unconfirmed.Contains(file)))
+                .Concat(pendingOnly ? files.Where(file => !IsPending(file) && kept.Contains(Path.GetFileName(file.Path), file.Hash)) : [])
                 .ToDictionary(file => Path.GetFileName(file.Path), file => file.Hash, StringComparer.OrdinalIgnoreCase));
+            if (paks.PendingPublications.Count > 0) {
+                paks.PendingPublications.Clear();
+                paks.Persistence?.Save();
+            }
         }
         if (stageChanges == null) Apply();
         else stageChanges(Apply, adoptedPaks);

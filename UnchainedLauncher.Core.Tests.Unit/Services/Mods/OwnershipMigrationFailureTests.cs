@@ -74,7 +74,7 @@ public sealed class OwnershipMigrationFailureTests : IDisposable {
     }
 
     [Fact]
-    public async Task FailedFinalCheckpointCancelsLaunchAndPreservesWriteAheadOwnership() {
+    public async Task FailedFinalCheckpointCancelsLaunchAndPreservesPublicationIntent() {
         File.Delete(Path.Combine(Paks, _owned.PakFileName));
         var release = new Release("v1", "hash", "owned.pak", DateTime.UtcNow,
             new("https://github.com/Org/Mod", "Mod", "", null, null, [], [], []), new([], [], [], [], []), "");
@@ -100,7 +100,8 @@ public sealed class OwnershipMigrationFailureTests : IDisposable {
             Assert.Single(((PakDirectory)manager.PakDir).ManagedPaks);
             Assert.NotEqual(before, File.ReadAllBytes(Config));
             var durable = new ModManagerCodec(registry.Object).Deserialize(File.ReadAllText(Config)).Result!;
-            Assert.Equal(((PakDirectory)manager.PakDir).ManagedPaks, ((PakDirectory)durable.PakDir).ManagedPaks);
+            Assert.Empty(((PakDirectory)durable.PakDir).ManagedPaks);
+            Assert.Contains("PendingPublications", File.ReadAllText(Config));
             dialogue.Verify(d => d.DisplayMessage(It.Is<string>(s => s.Contains("ownership") && s.Contains("cancelled"))), Times.Once);
         }
         finally { held?.Dispose(); }

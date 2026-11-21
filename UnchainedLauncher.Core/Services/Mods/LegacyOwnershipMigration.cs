@@ -65,9 +65,13 @@ public static class LegacyOwnershipMigration {
         if (profile != null && metadata?["DefaultSigPath"]?.GetValue<string>() is { } template
             && (profile.DefaultSigPath == null || !SavedPakMigration.SameDirectory(template, profile.DefaultSigPath)))
             throw new InvalidDataException("Profile config belongs to another installation. Files were preserved.");
-        // A rename reservation can temporarily name both files for one release.
-        if (metadata?["ManagedPaks"] is JsonNode snapshot)
-            Validate(configured, snapshot.Deserialize<ManagedPak[]>() ?? throw new InvalidDataException("Null ownership snapshot."), allowDuplicateCoordinates: true);
+        // Confirmed duplicates retain ownership until cleanup succeeds. Intents
+        // may share coordinates, but never an already confirmed filename.
+        if (metadata?["ManagedPaks"] is JsonNode snapshot) {
+            var records = snapshot.Deserialize<ManagedPak[]>() ?? throw new InvalidDataException("Null ownership snapshot.");
+            var pending = metadata["PendingPublications"]?.Deserialize<ManagedPak[]>() ?? [];
+            Validate(configured, records.Concat(pending).ToArray(), allowDuplicateCoordinates: true);
+        }
         var cached = new PakDirMetadata(configured, []);
         var sources = profile == null ? SavedPakMigration.SourceDirectories(installation, cached: cached).ToArray() : [];
         var cleanupSources = SavedPakMigration.CleanupSources(BackupRoot(configPath)).ToArray();
@@ -145,6 +149,7 @@ public static class LegacyOwnershipMigration {
             paksDirectory.ReplaceOwnership(destinationPaks);
         if (profile != null) {
             profile.ReplaceOwnership(paksDirectory.ManagedPaks);
+            profile.PendingPublications.AddRange(paksDirectory.PendingPublications);
             manager = new ModManager(registry, profile, selected ?? [], manager.Mods) { NeedsMetadataRefresh = manager.NeedsMetadataRefresh };
             paksDirectory = profile;
         }

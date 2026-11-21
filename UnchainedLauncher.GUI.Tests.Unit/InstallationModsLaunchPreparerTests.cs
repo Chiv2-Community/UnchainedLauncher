@@ -230,8 +230,7 @@ public sealed class InstallationModsLaunchPreparerTests : IDisposable {
             Assert.Single(Directory.GetFiles(Paks, "*.pak"));
         }
         else {
-            // A bounded publication failure after installation retains write-ahead
-            // ownership even when the final checkpoint cannot be published.
+            // A failed final checkpoint retains intent, not confirmed ownership.
             var original = Config + ".before";
             var request = new ModInstallRequest(ReleaseCoordinates.FromRelease(_other),
                 path => {
@@ -245,7 +244,8 @@ public sealed class InstallationModsLaunchPreparerTests : IDisposable {
             });
             Assert.True(failure is IOException or UnauthorizedAccessException, failure?.ToString() ?? "No failure");
             Assert.Single(Owned(manager));
-            Assert.Equal(Owned(manager), Owned(new ModManagerCodec(_registry).Deserialize(File.ReadAllText(original)).Result!));
+            Assert.Empty(Owned(new ModManagerCodec(_registry).Deserialize(File.ReadAllText(original)).Result!));
+            Assert.Contains("PendingPublications", File.ReadAllText(original));
             // Restore the last successful disk publication, as a repaired mount would.
             Directory.Delete(Config);
             File.Move(original, Config);
@@ -255,6 +255,11 @@ public sealed class InstallationModsLaunchPreparerTests : IDisposable {
             File.WriteAllBytes(Config, before);
         }
         manager = Startup();
+        if (failAfterPayload) {
+            Assert.False(await Prepare(manager, null)); // AlwaysKeep is not recovery authorization.
+            _dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel",
+                It.IsAny<IEnumerable<DependencyUpdate>>())).Returns(UserDialogueChoice.Yes);
+        }
         Assert.True(await Prepare(manager, null));
         Assert.Single(Owned(manager));
         Assert.Equal(2, Directory.GetFiles(Paks, "*.pak").Length);

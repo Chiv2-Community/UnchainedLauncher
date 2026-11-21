@@ -477,7 +477,8 @@ public sealed class OwnershipPersistenceTests : IDisposable {
         await using (var results = paks.InstallModSet([Install("First"), Install("Never")], Option<AccumulatedMemoryProgress>.None).GetAsyncEnumerator()) {
             Assert.True(await results.MoveNextAsync());
             Assert.True(results.Current.IsRight);
-            Assert.Equal(Coordinates("First"), Assert.Single(((PakDir)Reload().PakDir).ManagedPaks).Coordinates);
+            Assert.Empty(((PakDir)Reload().PakDir).ManagedPaks);
+            Assert.Contains("PendingPublications", File.ReadAllText(Config));
         }
         Assert.Equal(1, notifications);
         Assert.Equal(Coordinates("First"), Assert.Single(((PakDir)Reload().PakDir).ManagedPaks).Coordinates);
@@ -518,11 +519,20 @@ public sealed class OwnershipPersistenceTests : IDisposable {
         Assert.True(failure is IOException or UnauthorizedAccessException, failure?.ToString() ?? "No failure");
         Assert.Equal(2, paks.ManagedPaks.Count());
         var durable = new ModManagerCodec(_registry).Deserialize(File.ReadAllText(evidence)).Result!;
-        Assert.Equal(paks.ManagedPaks, ((PakDir)durable.PakDir).ManagedPaks);
+        Assert.Equal(afterMove ? 1 : 2, ((PakDir)durable.PakDir).ManagedPaks.Count());
         Directory.Delete(Config);
         File.Move(evidence, Config);
         var restarted = Startup();
-        Assert.Equal(paks.ManagedPaks, ((PakDir)restarted.PakDir).ManagedPaks);
+        Assert.Equal(afterMove ? 1 : 2, ((PakDir)restarted.PakDir).ManagedPaks.Count());
+        if (afterMove) {
+            var dialogue = new Mock<IUserDialogueSpawner>();
+            dialogue.Setup(d => d.DisplayUpdateMessage(It.IsAny<string>(), It.IsAny<string>(), "Keep", "Remove", "Cancel",
+                It.IsAny<IEnumerable<DependencyUpdate>>())).Returns(UserDialogueChoice.Yes);
+            var releases = new[] { Release("First"), Release("Second") }.Select(release => release with {
+                ReleaseHash = Convert.ToHexString(System.Security.Cryptography.SHA512.HashData(new byte[] { 1, 2, 3 }))
+            }).ToList();
+            Assert.True(await restarted.PakDir.RecoverReleases([], releases, dialogue.Object));
+        }
         await foreach (var result in restarted.PakDir.InstallModSet([Install("Second"), Install("First")], Option<AccumulatedMemoryProgress>.None))
             Assert.True(result.IsRight);
         Assert.Equal(new[] { Coordinates("Second"), Coordinates("First") },

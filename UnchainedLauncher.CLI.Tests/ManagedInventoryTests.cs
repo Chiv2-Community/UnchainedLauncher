@@ -139,7 +139,14 @@ public class ManagedInventoryTests : IDisposable {
             Directory.Delete(OwnerConfig);
             File.Move(evidence, OwnerConfig);
             var restored = Manager(registry, [selected]);
-            Assert.Equal(afterPayload ? 1 : 0, ((PakDir)restored.PakDir).ManagedPaks.Count());
+            Assert.Empty(((PakDir)restored.PakDir).ManagedPaks);
+            if (afterPayload) {
+                var beforeRecovery = File.ReadAllBytes(OwnerConfig);
+                Assert.True((await new Chivalry2ModsInstaller(restored, new ConsoleDialogue()).PrepareLaunch(launch)).IsNone);
+                Assert.Equal(beforeRecovery, File.ReadAllBytes(OwnerConfig));
+                Assert.True(await restored.PakDir.RecoverReleases([extra], [extra], new KeepRecoveryDialogue()));
+                Assert.Equal(new[] { selected }, restored.EnabledModReleaseCoordinates);
+            }
             await Prepare(restored, launch);
             var owned = ((PakDir)restored.PakDir).ManagedPaks.ToArray();
             Assert.Equal(2, owned.Length); // requested mod and mandatory common framework
@@ -282,6 +289,14 @@ public class ManagedInventoryTests : IDisposable {
             AssertOnlyCommonAndUnknown(manager, common);
             foreach (var (path, bytes) in before) Assert.Equal(bytes, File.ReadAllBytes(path));
         });
+    }
+
+    private sealed class KeepRecoveryDialogue : IUserDialogueSpawner {
+        public void DisplayMessage(string message) { }
+        public UserDialogueChoice DisplayYesNoMessage(string message, string caption) => UserDialogueChoice.Yes;
+        public UserDialogueChoice? DisplayUpdateMessage(string titleText, string messageText, string yesButtonText,
+            string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates) => UserDialogueChoice.Yes;
+        public Action DisplayProgress(MemoryProgress progress) => () => { };
     }
 
     private sealed class RejectingDialogue : IUserDialogueSpawner {

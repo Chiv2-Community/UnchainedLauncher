@@ -15,6 +15,10 @@ public sealed class ConsoleDialogue : IUserDialogueSpawner {
 
     public UserDialogueChoice? DisplayUpdateMessage(string titleText, string messageText,
         string yesButtonText, string noButtonText, string? cancelButtonText, IEnumerable<DependencyUpdate> updates) {
+        if (yesButtonText == "Keep" && noButtonText == "Remove") {
+            DisplayMessage("Uncertain pak ownership requires Keep/Remove/Cancel recovery. Files were preserved; non-interactive preparation cannot authorize recovery.");
+            return UserDialogueChoice.Cancel;
+        }
         foreach (var update in updates) Console.Error.WriteLine($"Updating {update.Name} to {update.LatestVersion}.");
         return UserDialogueChoice.Yes;
     }

@@ -16,6 +16,11 @@ internal static class PakReleaseRecovery {
             using var cache = new PakReadCache(paks.DirPath);
             known = known.ToList();
             void PreparePlan(IReadOnlyList<Release> detected) {
+                // A recovery choice authorizes file ownership, not additional CLI requests.
+                if (paks.CachePath != null) {
+                    requested = resolvePlan?.Invoke(requested) ?? requested;
+                    return;
+                }
                 var roots = requested.Select(release => detected.FirstOrDefault(found => ModIdentifier.FromRelease(found) == ModIdentifier.FromRelease(release)) ?? release)
                     .Concat(detected.Where(found => !requested.Any(release => ModIdentifier.FromRelease(found) == ModIdentifier.FromRelease(release)))).ToList();
                 requested = resolvePlan?.Invoke(roots) ?? roots;
@@ -24,9 +29,10 @@ internal static class PakReleaseRecovery {
             Action applyUnmanaged = () => { };
             IReadOnlyList<ManagedPak> adoptedPaks = [];
             // Profile configs own their files; unowned files remain user assets.
-            if (paks.CachePath != null) PreparePlan([]);
-            else if (!await UnmanagedPakRecovery.Recover(paks, known.Concat(requested), dialogue, adopted,
-                alwaysKeepUnmanagedPaks, cache, PreparePlan, (apply, proposed) => { applyUnmanaged = apply; adoptedPaks = proposed; })) return false;
+            if (paks.CachePath != null && paks.PendingPublications.Count == 0) PreparePlan([]);
+            else if (!await UnmanagedPakRecovery.Recover(paks, known.Concat(requested), dialogue, paks.CachePath == null ? adopted : new List<Release>(),
+                alwaysKeepUnmanagedPaks, cache, PreparePlan, (apply, proposed) => { applyUnmanaged = apply; adoptedPaks = proposed; },
+                pendingOnly: paks.CachePath != null)) return false;
             if (requested.Count == 0) {
                 applyUnmanaged();
                 return true;

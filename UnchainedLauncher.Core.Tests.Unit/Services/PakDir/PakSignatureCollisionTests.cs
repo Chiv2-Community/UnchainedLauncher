@@ -45,16 +45,16 @@ public sealed class PakSignatureCollisionTests : IDisposable {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public async Task DownloadsSkipBaseAndSuffixSignaturesAndReuseManagedPak(bool basePak, bool uppercase) {
-        var stem = uppercase ? "Q__-__DEPENDENCY" : "q__-__Dependency";
-        if (basePak) Occupy(stem + ".pak");
-        Occupy(stem + ".sig");
-        Occupy(stem + " (1).sig");
+        var stem = uppercase ? "DEPENDENCY" : "Dependency";
+        if (basePak) Occupy(stem + "_0_P.pak");
+        Occupy(stem + "_0_P.sig");
+        Occupy(stem + " (1)_0_P.sig");
         var directory = new ManagedPakDirectory(_directory, []);
 
         await Install(directory, _dependency);
 
         var installed = Assert.Single(directory.ManagedPaks);
-        Assert.Equal("q__-__Dependency (2).pak", installed.PakFileName);
+        Assert.Equal("Dependency (2)_0_P.pak", installed.PakFileName);
         var path = Path.Combine(_directory, installed.PakFileName);
         Assert.Equal("Dependency", File.ReadAllText(path));
         Assert.Equal("installation signature", File.ReadAllText(Path.ChangeExtension(path, ".sig")));
@@ -78,24 +78,24 @@ public sealed class PakSignatureCollisionTests : IDisposable {
         var originalPath = Path.Combine(_directory, original.PakFileName);
         var contents = File.ReadAllBytes(originalPath);
         var signature = File.ReadAllBytes(Path.ChangeExtension(originalPath, ".sig"));
-        if (basePak) Occupy("qz__-__Dependency.pak");
-        Occupy("qz__-__Dependency.sig");
-        Occupy("qz__-__Dependency (1).sig");
+        if (basePak) Occupy("Dependency_1_P.pak");
+        Occupy("Dependency_1_P.sig");
+        Occupy("Dependency (1)_1_P.sig");
 
-        await Install(directory, _dependency, _dependent);
+        await Install(directory, _dependent, _dependency);
 
         var relocated = directory.ManagedPaks.Single(pak => pak.Coordinates == _dependency);
-        Assert.Equal("qz__-__Dependency (2).pak", relocated.PakFileName);
+        Assert.Equal("Dependency (2)_1_P.pak", relocated.PakFileName);
         var relocatedPath = Path.Combine(_directory, relocated.PakFileName);
         Assert.Equal(contents, File.ReadAllBytes(relocatedPath));
         Assert.Equal(signature, File.ReadAllBytes(Path.ChangeExtension(relocatedPath, ".sig")));
         Assert.False(File.Exists(originalPath));
         Assert.False(File.Exists(Path.ChangeExtension(originalPath, ".sig")));
         Assert.Equal(new[] { _dependent, _dependency }, directory.ManagedPaks
-            .OrderBy(pak => pak.PakFileName, StringComparer.OrdinalIgnoreCase).Select(pak => pak.Coordinates));
+            .OrderBy(pak => pak.Priority).Select(pak => pak.Coordinates));
 
         directory = Reload(directory);
-        await Install(directory, _dependency, _dependent);
+        await Install(directory, _dependent, _dependency);
         Assert.Equal(relocated, directory.ManagedPaks.Single(pak => pak.Coordinates == _dependency));
         Assert.Equal(2, _downloads);
         AssertUnrelatedUnchanged();

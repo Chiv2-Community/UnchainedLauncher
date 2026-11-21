@@ -22,6 +22,123 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
         private DllManager Manager() => new(PluginPath, StatePath, _http);
 
         [Fact]
+        public async Task ProfilesShareCachedDllIdentityAndDownloadOnce() {
+            Index(Release());
+            var cacheRoot = Path.Combine(_dir, "shared-cache");
+            var first = new DllManager(Path.Combine(_dir, "first", "Plugins"), null, _http, cacheDirectory: cacheRoot);
+            var second = new DllManager(Path.Combine(_dir, "second", "Plugins"), null, _http, cacheDirectory: cacheRoot);
+            await first.RefreshAsync();
+            await second.RefreshAsync();
+            first.SetEnabled(Release(), true);
+            second.SetEnabled(Release(), true);
+            var downloads = 0;
+            _handler.OnBinaryRequest = () => Interlocked.Increment(ref downloads);
+            await Task.WhenAll(Task.Run(() => first.PrepareAsync()), Task.Run(() => second.PrepareAsync()));
+            Assert.Equal(1, downloads);
+            var cache = Assert.Single(Directory.GetFiles(cacheRoot, "*.dll", SearchOption.AllDirectories));
+            var firstPath = Assert.Single(Directory.GetFiles(Path.Combine(_dir, "first"), "*.dll", SearchOption.AllDirectories));
+            var secondPath = Assert.Single(Directory.GetFiles(Path.Combine(_dir, "second"), "*.dll", SearchOption.AllDirectories));
+            AssertSameFile(cache, firstPath);
+            AssertSameFile(cache, secondPath);
+            File.Delete(firstPath);
+            Assert.Equal(_binary, File.ReadAllBytes(secondPath));
+            Assert.Equal(_binary, File.ReadAllBytes(cache));
+        }
+
+        [Fact]
+        public async Task ProfileCanLinkWhilePeerHoldsDllOpenWithoutDeleteSharing() {
+            Index(Release());
+            var first = Manager();
+            await first.RefreshAsync();
+            await first.PrepareAsync();
+            var path = Assert.Single(Directory.GetFiles(PluginPath, "*.dll", SearchOption.AllDirectories));
+            using var held = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var secondRoot = Path.Combine(_dir, "second", "Plugins");
+            var second = new DllManager(secondRoot, null, _http, cacheDirectory: Path.Combine(_dir, ".cache", "dlls"));
+            await second.RefreshAsync();
+            second.SetEnabled(Release(), true);
+            await second.PrepareAsync(allowDownloads: false);
+            var secondPath = Assert.Single(Directory.GetFiles(secondRoot, "*.dll", SearchOption.AllDirectories));
+            AssertSameFile(path, secondPath);
+            Assert.Equal(_binary, File.ReadAllBytes(secondPath));
+        }
+
+        private static void AssertSameFile(string first, string second) {
+            if (OperatingSystem.IsWindows()) {
+                static string Identity(string path) {
+                    using var file = File.OpenRead(path);
+                    Assert.True(GetFileInformationByHandle(file.SafeFileHandle, out var info));
+                    return $"{info.Volume}:{info.IndexHigh}:{info.IndexLow}";
+                }
+                Assert.Equal(Identity(first), Identity(second));
+            }
+            else if (OperatingSystem.IsLinux()) {
+                static string Identity(string path) {
+                    var start = new System.Diagnostics.ProcessStartInfo("stat") { RedirectStandardOutput = true };
+                    start.ArgumentList.Add("--format=%d:%i");
+                    start.ArgumentList.Add("--");
+                    start.ArgumentList.Add(path);
+                    using var process = System.Diagnostics.Process.Start(start)!;
+                    var identity = process.StandardOutput.ReadToEnd();
+                    process.WaitForExit();
+                    Assert.Equal(0, process.ExitCode);
+                    return identity;
+                }
+                Assert.Equal(Identity(first), Identity(second));
+            }
+        }
+
+        [Fact]
+        public async Task CrossVolumeDllRestorationCopiesValidatedCacheWithoutDownloading() {
+            var otherVolume = OperatingSystem.IsWindows() ? @"Z:\dev\shm" : "/dev/shm";
+            if (!Directory.Exists(otherVolume)) return;
+            var plugins = Path.Combine(otherVolume, "dll-copy-test-" + Guid.NewGuid().ToString("N"));
+            try {
+                Index(Release());
+                var first = Manager();
+                await first.RefreshAsync();
+                await first.PrepareAsync();
+                var cacheRoot = Path.Combine(_dir, ".cache", "dlls");
+                var cache = Assert.Single(Directory.GetFiles(cacheRoot, "*.dll", SearchOption.AllDirectories));
+                var second = new DllManager(plugins, null, _http, cacheDirectory: cacheRoot);
+                await second.RefreshAsync();
+                second.SetEnabled(Release(), true);
+                await second.PrepareAsync(allowDownloads: false);
+                var installed = Assert.Single(Directory.GetFiles(plugins, "*.dll", SearchOption.AllDirectories));
+                // Deliberately corrupt the test cache to prove the fallback is an independent copy.
+                File.WriteAllText(cache, "tampered test cache");
+                Assert.Equal(_binary, File.ReadAllBytes(installed));
+                Assert.Empty(Directory.GetFiles(plugins, "*.tmp", SearchOption.AllDirectories));
+            }
+            finally { if (Directory.Exists(plugins)) Directory.Delete(plugins, true); }
+        }
+
+        [Fact]
+        public async Task WaitingForDllCacheLeaseCanBeCancelledWithoutDownloading() {
+            Index(Release());
+            var manager = Manager();
+            await manager.RefreshAsync();
+            var directory = Path.Combine(_dir, ".cache", "dlls", Release().Sha256);
+            Directory.CreateDirectory(directory);
+            using var held = new FileStream(Path.Combine(directory, ".lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            using var stop = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+            _handler.OnBinaryRequest = () => throw new InvalidOperationException("Cancelled cache waiter must not download.");
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => manager.PrepareAsync(cancellationToken: stop.Token)
+                .WaitAsync(TimeSpan.FromSeconds(5)));
+            Assert.False(Directory.Exists(PluginPath));
+        }
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct FileInformation {
+            public uint Attributes, CreationLow, CreationHigh, AccessLow, AccessHigh, WriteLow, WriteHigh,
+                Volume, SizeHigh, SizeLow, Links, IndexHigh, IndexLow;
+        }
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true)]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool GetFileInformationByHandle(Microsoft.Win32.SafeHandles.SafeFileHandle file, out FileInformation information);
+
+        [Fact]
         public async Task RemovedReleaseCanBeDisabledButNeverReenabled() {
             Index(Release());
             var manager = Manager();
@@ -870,13 +987,13 @@ namespace UnchainedLauncher.Core.Tests.Unit.Services.Dlls {
                 reached = true;
                 Assert.Equal(installed, path);
                 Assert.False(File.Exists(path));
-                // The production absence check and validated staging copy have
-                // completed. A separate writer wins the destination before rename.
+                // The production absence check and cache validation have completed.
+                // A separate writer wins the destination before link/copy publication.
                 Task.Run(() => File.WriteAllText(path, "unknown user version")).GetAwaiter().GetResult();
             };
             var prepare = typeof(DllManager).GetMethod("PrepareAsync",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
-            await Assert.ThrowsAsync<IOException>(() => (Task)prepare.Invoke(manager, [false, false, publishing])!);
+            await Assert.ThrowsAsync<IOException>(() => (Task)prepare.Invoke(manager, [false, false, publishing, CancellationToken.None])!);
             Assert.True(reached);
             Assert.Equal("unknown user version", File.ReadAllText(installed));
             Assert.Equal(_binary, File.ReadAllBytes(cache));

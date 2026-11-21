@@ -2,16 +2,18 @@ using System.Collections;
 using System.Collections.ObjectModel;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Markup;
 using System.Xml.Linq;
 using UnchainedLauncher.GUI.Behaviors;
 using UnchainedLauncher.GUI.Converters;
 using UnchainedLauncher.GUI.ViewModels;
-using Xunit;
+using Xunit.Abstractions;
 
 namespace UnchainedLauncher.GUI.Tests.Unit;
 
@@ -20,6 +22,10 @@ public class WpfInputCollection { }
 
 [Collection("WPF input")]
 public class SearchableComboBoxTests {
+    private readonly ITestOutputHelper output;
+
+    public SearchableComboBoxTests(ITestOutputHelper output) => this.output = output;
+
     [Theory]
     [InlineData(Key.Home)]
     [InlineData(Key.End)]
@@ -93,20 +99,100 @@ public class SearchableComboBoxTests {
         Assert.True(host.Combo.IsDropDownOpen);
     });
 
-    [Fact]
-    public void NativeInputPreservesSelectionCaretEditingAndTabTraversal() => RunSta(() => {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void NativeInputPreservesSelectionCaretEditingAndTabTraversal(bool suppressPositioningMove, bool occludeWindow) => RunSta(() => {
         using var host = new Host(new[] { "Steam", "Epic Games Store", "Xbox Game Pass" });
+        using var desktop = new NativeInputScope(host.Window);
         var model = BindMiddleSelection(host);
         host.Window.Left = 100;
         host.Window.Top = 100;
         host.Window.Activate();
         Pump();
+        desktop.MinimizeTerminals(output);
+        if (occludeWindow) {
+            desktop.ShowObstruction();
+            var coveredPoint = host.Combo.PointToScreen(new Point(host.Combo.ActualWidth / 2, host.Combo.ActualHeight / 2));
+            Assert.True(SetCursorPos((int)coveredPoint.X, (int)coveredPoint.Y));
+            Pump();
+            Assert.Equal(desktop.ObstructionHandle, WindowFromPoint(new NativePoint { X = (int)coveredPoint.X, Y = (int)coveredPoint.Y }));
+            Assert.Equal(desktop.ObstructionHandle, GetForegroundWindow());
+            output.WriteLine($"Controlled obstruction: {DescribeWindow(GetForegroundWindow())}");
+            desktop.MinimizeObstruction(output);
+            Assert.NotEqual(desktop.ObstructionHandle,
+                WindowFromPoint(new NativePoint { X = (int)coveredPoint.X, Y = (int)coveredPoint.Y }));
+        }
+        // Reassert native Z-order even if WPF already considers this window topmost.
+        host.Window.Topmost = true;
+        var hwnd = new WindowInteropHelper(host.Window).Handle;
+        Assert.True(SetWindowPos(hwnd, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010),
+            $"Cannot raise native input host; Win32 error={Marshal.GetLastWin32Error()}.");
+        Pump();
+        var activationPoint = host.Before.PointToScreen(new Point(host.Before.ActualWidth / 2, host.Before.ActualHeight / 2));
+        Assert.True(SetCursorPos((int)activationPoint.X, (int)activationPoint.Y));
+        Pump();
+        Assert.True(GetCursorPos(out var activationCursor));
+        output.WriteLine($"Activation hit: {DescribeWindow(WindowFromPoint(activationCursor))}; foreground: {DescribeWindow(GetForegroundWindow())}");
+        Assert.Equal(hwnd, WindowFromPoint(activationCursor));
+        mouse_event(0x0002, 0, 0, 0, UIntPtr.Zero);
+        mouse_event(0x0004, 0, 0, 0, UIntPtr.Zero);
+        Pump();
+        Assert.Equal(hwnd, GetForegroundWindow());
         Assert.True(host.Window.IsActive);
         host.Combo.Focus();
         Pump();
+        var positioning = true;
+        NativePoint? observedMove = null;
+        var nativeWheelEvents = 0;
+        HwndSource.FromHwnd(hwnd).AddHook((IntPtr window, int message, IntPtr wParam, IntPtr lParam, ref bool handled) => {
+            if (message is 0x0200 or 0x020a)
+                output.WriteLine($"Native 0x{message:x}: wParam=0x{wParam:x}, lParam=0x{lParam:x}");
+            if (message == 0x020a) nativeWheelEvents++;
+            if (!positioning && message == 0x0200)
+                observedMove = new NativePoint { X = (short)lParam.ToInt64(), Y = (short)(lParam.ToInt64() >> 16) };
+            // Exercise setup without relying on SetCursorPos's mouse-move notification.
+            if (positioning && suppressPositioningMove && message == 0x0200) handled = true;
+            return IntPtr.Zero;
+        });
         var point = host.Combo.PointToScreen(new Point(host.Combo.ActualWidth / 2, host.Combo.ActualHeight / 2));
         Assert.True(SetCursorPos((int)point.X, (int)point.Y));
         Pump();
+        positioning = false;
+        // WPF routes wheel input through its mouse target, not its keyboard focus.
+        // Absolute input bypasses pointer-speed rounding; observe delivery before returning to center.
+        var displaced = host.Combo.PointToScreen(new Point(host.Combo.ActualWidth / 2 + 8, host.Combo.ActualHeight / 2));
+        var displacedCursor = new NativePoint { X = (int)displaced.X, Y = (int)displaced.Y };
+        var displacedClient = displacedCursor;
+        Assert.True(ScreenToClient(hwnd, ref displacedClient));
+        Assert.NotEqual((int)point.X, displacedCursor.X);
+        Assert.Equal(hwnd, WindowFromPoint(displacedCursor));
+        MoveAbsolute(displacedCursor);
+        PumpUntil(() => observedMove is { } move && move.X == displacedClient.X && move.Y == displacedClient.Y &&
+            host.Combo.IsMouseOver);
+        Assert.True(GetCursorPos(out var movedCursor));
+        output.WriteLine($"Displaced target={displacedCursor.X},{displacedCursor.Y}, cursor={movedCursor.X},{movedCursor.Y}, " +
+            $"nativeMove={observedMove?.X},{observedMove?.Y}, expectedClient={displacedClient.X},{displacedClient.Y}, mouseOver={Mouse.DirectlyOver}");
+        Assert.Equal(displacedCursor.X, movedCursor.X);
+        Assert.Equal(displacedCursor.Y, movedCursor.Y);
+        Assert.Equal(hwnd, WindowFromPoint(movedCursor));
+        Assert.True(observedMove is { } delivered && delivered.X == displacedClient.X && delivered.Y == displacedClient.Y,
+            "The injected absolute mouse move must reach the host.");
+        Assert.True(host.Combo.IsMouseOver, "Native movement must establish the WPF wheel target.");
+        Assert.True(SetCursorPos((int)point.X, (int)point.Y));
+        Pump();
+        Assert.True(GetCursorPos(out var cursor));
+        output.WriteLine($"Wheel target={point}, cursor={cursor.X},{cursor.Y}, hit=0x{WindowFromPoint(cursor):x}, " +
+            $"host=0x{hwnd:x}, foreground=0x{GetForegroundWindow():x}, focus=0x{GetFocus():x}, " +
+            $"WPF focus={Keyboard.FocusedElement}, mouseOver={Mouse.DirectlyOver}, dpi={GetDpiForWindow(hwnd)}");
+        output.WriteLine($"Wheel hit: {DescribeWindow(WindowFromPoint(cursor))}; foreground: {DescribeWindow(GetForegroundWindow())}");
+        Assert.Equal((int)point.X, cursor.X);
+        Assert.Equal((int)point.Y, cursor.Y);
+        Assert.Equal(hwnd, WindowFromPoint(cursor));
+        Assert.Equal(hwnd, GetForegroundWindow());
+        Assert.Equal(hwnd, GetFocus());
+        Assert.True(host.Combo.IsMouseOver, "Native movement must establish the WPF wheel target.");
         var wheelEvents = 0;
         host.Combo.AddHandler(Mouse.PreviewMouseWheelEvent, new MouseWheelEventHandler((_, _) => wheelEvents++), true);
         foreach (var delta in new[] { 120, -120 }) {
@@ -116,6 +202,7 @@ public class SearchableComboBoxTests {
             Assert.Equal("Epic Games Store", model.Selection);
             Assert.False(host.Combo.IsDropDownOpen);
         }
+        Assert.Equal(2, nativeWheelEvents);
         Assert.Equal(2, wheelEvents);
         foreach (var key in new byte[] { 0x24, 0x23, 0x25, 0x27, 0x26, 0x28, 0x21, 0x22 }) {
             host.Combo.IsDropDownOpen = false;
@@ -192,12 +279,15 @@ public class SearchableComboBoxTests {
         Pump();
         NativeKey(0x0d);
         Assert.Equal("Xbox Game Pass", model.Selection);
+        desktop.RestoreWindows();
+        if (occludeWindow) Assert.False(IsIconic(desktop.ObstructionHandle));
     });
 
     private static SelectionModel BindMiddleSelection(Host host) {
         var model = new SelectionModel { Selection = "Epic Games Store" };
         host.Combo.SetBinding(ComboBox.SelectedItemProperty, new Binding(nameof(SelectionModel.Selection)) {
-            Source = model, Mode = BindingMode.TwoWay
+            Source = model,
+            Mode = BindingMode.TwoWay
         });
         return model;
     }
@@ -211,6 +301,237 @@ public class SearchableComboBoxTests {
     [DllImport("user32.dll")]
     private static extern void mouse_event(uint flags, uint x, uint y, uint data, UIntPtr extra);
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MouseInput {
+        public int X;
+        public int Y;
+        public uint Data;
+        public uint Flags;
+        public uint Time;
+        public UIntPtr Extra;
+    }
+
+    // MOUSEINPUT is the largest INPUT union member on both x86 and x64.
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeInput {
+        public uint Type;
+        public MouseInput Mouse;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint SendInput(uint count, NativeInput[] inputs, int size);
+
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int index);
+
+    [DllImport("user32.dll")]
+    private static extern bool ScreenToClient(IntPtr window, ref NativePoint point);
+
+    private static void MoveAbsolute(NativePoint point) {
+        var left = GetSystemMetrics(76); // SM_XVIRTUALSCREEN
+        var top = GetSystemMetrics(77); // SM_YVIRTUALSCREEN
+        var width = GetSystemMetrics(78); // SM_CXVIRTUALSCREEN
+        var height = GetSystemMetrics(79); // SM_CYVIRTUALSCREEN
+        Assert.InRange(width, 1, 65536);
+        Assert.InRange(height, 1, 65536);
+        Assert.InRange(point.X - left, 0, width - 1);
+        Assert.InRange(point.Y - top, 0, height - 1);
+        var input = new NativeInput {
+            Mouse = new MouseInput {
+                X = NormalizeAbsolute(point.X - left, width),
+                Y = NormalizeAbsolute(point.Y - top, height),
+                Flags = 0x0001 | 0x2000 | 0x4000 | 0x8000 // MOVE | MOVE_NOCOALESCE | VIRTUALDESK | ABSOLUTE
+            }
+        };
+        var sent = SendInput(1, new[] { input }, Marshal.SizeOf<NativeInput>());
+        Assert.True(sent == 1, $"SendInput sent {sent}/1 mouse moves; Win32 error={Marshal.GetLastWin32Error()}.");
+    }
+
+    private static int NormalizeAbsolute(int pixel, int size) {
+        // Choose the midpoint of the integer coordinates that map back to this pixel.
+        var first = (pixel * 65536L + size - 1) / size;
+        var last = ((pixel + 1) * 65536L + size - 1) / size - 1;
+        return (int)((first + last) / 2);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr WindowFromPoint(NativePoint point);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr window);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetWindowText(IntPtr window, StringBuilder text, int count);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(IntPtr window, StringBuilder text, int count);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetFocus();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr window);
+
+    private delegate bool EnumWindowCallback(IntPtr window, IntPtr parameter);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool EnumWindows(EnumWindowCallback callback, IntPtr parameter);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr window);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsIconic(IntPtr window);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool GetWindowRect(IntPtr window, out NativeRect bounds);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool ShowWindowAsync(IntPtr window, int command);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WindowPlacement {
+        public uint Length;
+        public uint Flags;
+        public uint ShowCommand;
+        public NativePoint MinPosition;
+        public NativePoint MaxPosition;
+        public NativeRect NormalPosition;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool GetWindowPlacement(IntPtr window, ref WindowPlacement placement);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetWindowPlacement(IntPtr window, ref WindowPlacement placement);
+
+    private static string DescribeWindow(IntPtr window) {
+        var title = new StringBuilder(256);
+        var className = new StringBuilder(256);
+        GetWindowText(window, title, title.Capacity);
+        GetClassName(window, className, className.Capacity);
+        var thread = GetWindowThreadProcessId(window, out var process);
+        return $"HWND=0x{window:x}, pid={process}, tid={thread}, class={className}, title={title}";
+    }
+
+    private sealed class NativeInputScope : IDisposable {
+        private readonly Window window;
+        private readonly bool topmost;
+        private readonly IntPtr foreground = GetForegroundWindow();
+        private readonly NativePoint cursor;
+        private readonly List<(IntPtr Handle, WindowPlacement Placement)> minimized = new();
+        private Window? obstruction;
+
+        public IntPtr ObstructionHandle => new WindowInteropHelper(obstruction!).Handle;
+
+        public NativeInputScope(Window window) {
+            this.window = window;
+            topmost = window.Topmost;
+            Assert.True(GetCursorPos(out cursor));
+        }
+
+        public void ShowObstruction() {
+            obstruction = new Window {
+                Title = "Native input ownership regression",
+                Left = window.Left,
+                Top = window.Top,
+                Width = window.Width,
+                Height = window.Height,
+                ShowInTaskbar = false,
+                Topmost = true
+            };
+            obstruction.Show();
+            obstruction.Activate();
+            Pump();
+        }
+
+        public void MinimizeTerminals(ITestOutputHelper output) {
+            var terminals = new List<IntPtr>();
+            Assert.True(GetWindowRect(new WindowInteropHelper(window).Handle, out var hostBounds));
+            Assert.True(EnumWindows((handle, _) => {
+                var className = new StringBuilder(256);
+                GetClassName(handle, className, className.Capacity);
+                if (IsWindowVisible(handle) && !IsIconic(handle) &&
+                    className.ToString() == "CASCADIA_HOSTING_WINDOW_CLASS" &&
+                    GetWindowRect(handle, out var bounds) &&
+                    bounds.Left < hostBounds.Right && bounds.Right > hostBounds.Left &&
+                    bounds.Top < hostBounds.Bottom && bounds.Bottom > hostBounds.Top)
+                    terminals.Add(handle);
+                return true;
+            }, IntPtr.Zero));
+            // HostedComputeAgent's Windows Terminal can cover even a topmost WPF host.
+            // Minimize only overlapping terminals, preserving placement for this test's cleanup.
+            foreach (var terminal in terminals) Minimize(terminal, output);
+        }
+
+        public void MinimizeObstruction(ITestOutputHelper output) => Minimize(ObstructionHandle, output);
+
+        private void Minimize(IntPtr handle, ITestOutputHelper output) {
+            var placement = new WindowPlacement { Length = (uint)Marshal.SizeOf<WindowPlacement>() };
+            Assert.True(GetWindowPlacement(handle, ref placement));
+            minimized.Add((handle, placement));
+            output.WriteLine($"Minimizing native input obstruction: {DescribeWindow(handle)}; show={placement.ShowCommand}");
+            Assert.True(ShowWindowAsync(handle, 6)); // SW_MINIMIZE; do not close the runner's terminal.
+            PumpUntil(() => IsIconic(handle));
+            Assert.True(IsIconic(handle), $"Desktop isolation failed: {DescribeWindow(handle)}");
+        }
+
+        public void RestoreWindows() {
+            var failures = new List<string>();
+            for (var i = minimized.Count - 1; i >= 0; i--) {
+                var (handle, placement) = minimized[i];
+                placement.Flags |= 4; // WPF_ASYNCWINDOWPLACEMENT: the terminal has another input queue.
+                var accepted = SetWindowPlacement(handle, ref placement);
+                bool Restored() {
+                    var actual = new WindowPlacement { Length = (uint)Marshal.SizeOf<WindowPlacement>() };
+                    return GetWindowPlacement(handle, ref actual) && !IsIconic(handle) &&
+                        actual.ShowCommand == placement.ShowCommand &&
+                        actual.NormalPosition.Equals(placement.NormalPosition);
+                }
+                if (accepted) PumpUntil(Restored);
+                if (accepted && Restored()) minimized.RemoveAt(i);
+                else failures.Add(DescribeWindow(handle));
+            }
+            Assert.True(failures.Count == 0, $"Desktop restoration failed: {string.Join("; ", failures)}");
+        }
+
+        public void Dispose() {
+            try { RestoreWindows(); }
+            finally {
+                window.Topmost = topmost;
+                obstruction?.Close();
+                SetCursorPos(cursor.X, cursor.Y);
+                if (foreground != IntPtr.Zero) SetForegroundWindow(foreground);
+            }
+        }
+    }
+
     private static void NativeKey(byte key) {
         keybd_event(key, 0, 0, UIntPtr.Zero);
         keybd_event(key, 0, 2, UIntPtr.Zero);
@@ -221,6 +542,20 @@ public class SearchableComboBoxTests {
         var frame = new System.Windows.Threading.DispatcherFrame();
         var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
         timer.Tick += (_, _) => { timer.Stop(); frame.Continue = false; };
+        timer.Start();
+        System.Windows.Threading.Dispatcher.PushFrame(frame);
+    }
+
+    private static void PumpUntil(Func<bool> delivered) {
+        var frame = new System.Windows.Threading.DispatcherFrame();
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(10) };
+        timer.Tick += (_, _) => {
+            if (delivered() || elapsed.Elapsed >= TimeSpan.FromSeconds(1)) {
+                timer.Stop();
+                frame.Continue = false;
+            }
+        };
         timer.Start();
         System.Windows.Threading.Dispatcher.PushFrame(frame);
     }
@@ -240,7 +575,8 @@ public class SearchableComboBoxTests {
         using var host = new Host(items);
         var model = new SelectionModel { Selection = "Steam" };
         host.Combo.SetBinding(ComboBox.SelectedItemProperty, new Binding(nameof(SelectionModel.Selection)) {
-            Source = model, Mode = BindingMode.TwoWay
+            Source = model,
+            Mode = BindingMode.TwoWay
         });
         var other = new ComboBox { ItemsSource = items, SelectedItem = "Steam" };
         host.Combo.IsDropDownOpen = true;
@@ -372,7 +708,11 @@ public class SearchableComboBoxTests {
             Combo = new ComboBox { ItemsSource = items, Resources = resources, Style = (Style)resources[typeof(ComboBox)], Width = 250 };
             Window = new Window {
                 Content = new StackPanel { Children = { Before, Combo, After } },
-                Width = 300, Height = 180, Left = -10000, ShowInTaskbar = false, ShowActivated = false
+                Width = 300,
+                Height = 180,
+                Left = -10000,
+                ShowInTaskbar = false,
+                ShowActivated = false
             };
             Window.Show();
             Window.UpdateLayout();

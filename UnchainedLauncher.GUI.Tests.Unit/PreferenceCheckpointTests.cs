@@ -29,7 +29,15 @@ public sealed class PreferenceCheckpointTests {
         Assert.Contains("LegacyOwnershipMigration.Load", source);
         Assert.Contains("checkpoint.AndThen(new SavedPaksPreparer", source);
         Assert.Contains("prepareSavedPaks.AndThen(noSigLaunchPreparer", source);
-        Assert.Contains("prepareSavedPaks.AndThen(pluginInstaller", source);
+        Assert.Contains("prepareSavedPaks.AndThen(modInstaller", source);
+        Assert.Contains("modInstaller = pluginInstaller.AndThen(", source);
+        Assert.Contains("new Chivalry2ModsInstaller(modManager", source);
+        Assert.Contains("new DllInjector(dllManager, FilePaths.PluginDir", source);
+        var initialize = source[source.IndexOf("private ModManager InitializeModManager", StringComparison.Ordinal)..];
+        Assert.Contains("var (manager, persistence) = LegacyOwnershipMigration.Load", initialize);
+        Assert.Contains("RegisterPreferenceSave(persistence.Save)", initialize);
+        Assert.DoesNotContain(".Rebind(", initialize);
+        Assert.DoesNotContain("new ModManagerPersistence", initialize);
     }
 
     [Theory]

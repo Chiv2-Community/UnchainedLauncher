@@ -38,6 +38,8 @@ namespace UnchainedLauncher.GUI {
     /// </summary>
     public partial class App : Application {
         private static readonly ILog _log = LogManager.GetLogger(typeof(App));
+        private bool _unsafeLoadAllDlls;
+        private string[] _launchArguments = [];
         // Retain until process termination, including all late shutdown saves. Never dispose on exit.
         private static InstallationInstanceGuard? _installationGuard;
         private readonly List<Action> _preferenceSaves = new();
@@ -60,6 +62,7 @@ namespace UnchainedLauncher.GUI {
 
             try {
                 base.OnStartup(e);
+                (_unsafeLoadAllDlls, _launchArguments) = UnsafeDllLoading.ParseGuiArguments(e.Args);
 
                 AppDomain.CurrentDomain.UnhandledException +=
                     (sender, args) => {
@@ -171,11 +174,12 @@ namespace UnchainedLauncher.GUI {
             RegisterSaveToFileOnExit(modRegistry, ModRegistryCodec.Instance, FilePaths.RegistryConfigPath);
             var registryWindowViewModel = new RegistryWindowVM(modRegistry, registryWindowService);
             var settingsViewModel = InitializeSettingsViewModel(installationFinder, installer, launcherReleaseLocator, registryWindowViewModel, registryWindowService, modManager, userDialogueSpawner);
+            var assets = new ProfileAssetPaths(ProfileAssetPaths.SharedSuffix);
             var dllManager = new DllManager(
-                Path.Combine(Directory.GetCurrentDirectory(), FilePaths.PluginDir),
-                FilePaths.DllManagerConfigPath, new HttpClient(), () => modManager.GetEnabledAndDependencyReleases(settingsViewModel.AutomaticallyDownloadPakDependencies).ToArray(),
+                FilePaths.PluginDir,
+                FilePaths.DllManagerConfigPath, new HttpClient(), () => PakLaunchPlan.Create(modManager, settingsViewModel.AutomaticallyDownloadPakDependencies).Releases,
                 () => modRegistry.ModRegistries.OfType<GithubModRegistry>()
-                    .Select(registry => registry.DllDatabaseUrl).ToArray());
+                    .Select(registry => registry.DllDatabaseUrl).ToArray(), assets.DllCache);
 
             var dllManagerViewModel = new DllManagerVM(dllManager, settingsViewModel, userDialogueSpawner);
             await dllManagerViewModel.RefreshCommand.ExecuteAsync(null);
@@ -197,16 +201,20 @@ namespace UnchainedLauncher.GUI {
                 new ProcessLauncher(Path.Combine(Directory.GetCurrentDirectory(), FilePaths.GameBinPath));
 #endif
 
-            var noSigLaunchPreparer = NoSigPreparer.Create(modManager.PakDir, userDialogueSpawner);
-            var sigLaunchPreparer = SigPreparer.Create(modManager.PakDir, userDialogueSpawner);
+            var noSigLaunchPreparer = NoSigPreparer.CreateForInstallation(Directory.GetCurrentDirectory(), userDialogueSpawner);
             IChivalry2LaunchPreparer<LaunchOptions> checkpoint = new SavePreferencesPreparer(SavePreferences, userDialogueSpawner);
             var prepareSavedPaks = checkpoint.AndThen(new SavedPaksPreparer(modManager.PakDir, userDialogueSpawner));
 
             IChivalry2LaunchPreparer<LaunchOptions> pluginInstaller = new DllLaunchPreparer(dllManager, userDialogueSpawner);
 
-            IChivalry2LaunchPreparer<LaunchOptions> modInstaller = new Chivalry2ModsInstaller(
-                modManager, userDialogueSpawner, settingsViewModel
-            );
+            IChivalry2LaunchPreparer<LaunchOptions> pakInstaller = new Chivalry2ModsInstaller(modManager, userDialogueSpawner, settingsViewModel,
+                (roots, options) => {
+                    var plan = PakLaunchPlan.Create(modManager, settingsViewModel.AutomaticallyDownloadPakDependencies, roots);
+                    dllManager.ValidatePakPlan(plan, options.ServerLaunchOptions.IsSome);
+                    return plan;
+                });
+            var modInstaller = pluginInstaller.AndThen(
+                pakInstaller.Sub(SigPreparer.CreateForProfile(modManager.PakDir, userDialogueSpawner)));
 
             var vanillaLauncher = new Chivalry2Launcher(
                 prepareSavedPaks.AndThen(noSigLaunchPreparer.IgnoreOptions<LaunchOptions>()),
@@ -215,16 +223,14 @@ namespace UnchainedLauncher.GUI {
             );
 
             var unchainedLauncher = new UnchainedChivalry2Launcher(
-                prepareSavedPaks.AndThen(pluginInstaller)
-                    .AndThen(modInstaller)
-                    .Sub(sigLaunchPreparer),
+                prepareSavedPaks.AndThen(modInstaller),
                 unchainedProcessLauncher,
                 Directory.GetCurrentDirectory(),
 #if DEBUG_FAKECHIVALRYLAUNCH
                 // don't shove dlls into processes that don't need them and cause crashes
                 new NullInjector(true)
 #else
-                new DllInjector(dllManager)
+                new DllInjector(dllManager, FilePaths.PluginDir, _unsafeLoadAllDlls)
 #endif
             );
 
@@ -295,8 +301,7 @@ namespace UnchainedLauncher.GUI {
             RegistryWindowVM registryWindowViewModel, RegistryWindowService registryWindowService, ModManager modManager,
             MessageBoxSpawner userDialogueSpawner) {
             var cliArgs = string.Join(" ",
-                Environment.GetCommandLineArgs()
-                    .Skip(1)
+                _launchArguments
                     .ToList()
                     .Select(ArgumentEscaper.Escape)
             );

@@ -65,16 +65,21 @@ namespace UnchainedLauncher.Core.Services.Mods {
 
         private static PakDir CreatePakDir(PakDirMetadata? metadata, string? installationDirectory) {
             if (installationDirectory == null)
-                return new PakDir(metadata?.DirPath ?? FilePaths.PakDir, metadata?.ManagedPaks ?? []);
+                return RestorePending(new PakDir(metadata?.DirPath ?? FilePaths.PakDir, metadata?.ManagedPaks ?? [], metadata?.DefaultSigPath, metadata?.CachePath), metadata);
             var legacySaved = metadata != null && SavedPakMigration.SourceDirectories(installationDirectory, cached: metadata)
                 .Any(source => SavedPakMigration.SameDirectory(source, metadata.DirPath));
             // Explicit custom directories remain custom. Never import another installation's snapshot.
             if (metadata != null && !legacySaved && !SavedPakMigration.SameDirectory(metadata.DirPath, installationDirectory))
-                return new PakDir(metadata.DirPath, metadata.ManagedPaks);
-            return new PakDir(installationDirectory, legacySaved ? [] : metadata?.ManagedPaks ?? []) {
+                return RestorePending(new PakDir(metadata.DirPath, metadata.ManagedPaks, metadata.DefaultSigPath, metadata.CachePath), metadata);
+            return RestorePending(new PakDir(installationDirectory, legacySaved ? [] : metadata?.ManagedPaks ?? [], metadata?.DefaultSigPath, metadata?.CachePath) {
                 LegacySavedMetadata = legacySaved ? metadata : null,
                 MigrateInstallationSavedPaks = true
-            };
+            }, legacySaved ? null : metadata);
+        }
+
+        private static PakDir RestorePending(PakDir paks, PakDirMetadata? metadata) {
+            paks.PendingPublications.AddRange(metadata?.PendingPublications ?? []);
+            return paks;
         }
 
         public static PakDir CreateInstallationPakDir() => CreatePakDir(null, Path.GetFullPath(FilePaths.PakDir));
@@ -85,7 +90,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
                     m.EnabledModReleaseCoordinates,
                     m.Mods,
                     m.PakDir switch {
-                        PakDir pd => pd.LegacySavedMetadata ?? new PakDirMetadata(pd.DirPath, pd.ManagedPaks),
+                        PakDir pd => pd.LegacySavedMetadata ?? new PakDirMetadata(pd.DirPath, pd.ManagedPaks, pd.DefaultSigPath, pd.CachePath,
+                            pd.PendingPublications.Count == 0 ? null : pd.PendingPublications),
                         _ => null
                     }
                 ),
@@ -105,7 +111,13 @@ namespace UnchainedLauncher.Core.Services.Mods {
         PakDirMetadata? PakDir
     ) : ModManagerMetadata(ModManagerMetadataKind.StandardModManager);
 
-    public record PakDirMetadata(string DirPath, IEnumerable<ManagedPak> ManagedPaks);
+    public record PakDirMetadata(string DirPath, IEnumerable<ManagedPak> ManagedPaks,
+        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        string? DefaultSigPath = null,
+        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        string? CachePath = null,
+        [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        IEnumerable<ManagedPak>? PendingPublications = null);
 
     internal static class ModManagerMetadataKind {
         public const string StandardModManager = "StandardModManager";

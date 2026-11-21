@@ -88,6 +88,17 @@ namespace UnchainedLauncher.Core.Services.Mods.Registry {
                 .Bind(maybeRelease =>
                     maybeRelease.ToEitherAsync(() => RegistryMetadataException.NotFound(coords, None)));
 
+        public async Task<long?> GetPakSize(Release release, CancellationToken cancellationToken = default) {
+            foreach (var registry in ModRegistries) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var matches = await registry.GetModRelease(ReleaseCoordinates.FromRelease(release)).Match(
+                    candidate => candidate.ReleaseHash == release.ReleaseHash && candidate.PakFileName == release.PakFileName,
+                    _ => false).WaitAsync(cancellationToken);
+                if (matches) return await registry.GetPakSize(release, cancellationToken);
+            }
+            return null;
+        }
+
         public EitherAsync<ModPakStreamAcquisitionFailure, FileWriter> DownloadPak(ReleaseCoordinates coordinates, string outputLocation) {
             return InternalDownloadPak(coordinates, ModRegistries, None).ToAsync();
 

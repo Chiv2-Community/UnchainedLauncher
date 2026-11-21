@@ -57,11 +57,34 @@ namespace UnchainedLauncher.Core.Services.Processes {
 
         const uint PageReadwrite = 4;
 
-        private readonly DllManager _dllManager;
-
-        public DllInjector(DllManager dllManager) {
+        private readonly DllManager? _dllManager;
+        private readonly string? _dllDirectory;
+        private readonly bool _unsafeLoadAllDlls;
+        public DllInjector(DllManager dllManager, string? dllDirectory = null, bool unsafeLoadAllDlls = false) {
             _dllManager = dllManager;
+            _dllDirectory = dllDirectory;
+            _unsafeLoadAllDlls = unsafeLoadAllDlls;
+            if (unsafeLoadAllDlls && dllDirectory == null) throw new ArgumentException("Unsafe injection requires a plugin directory.", nameof(dllDirectory));
         }
+
+        public DllInjector(string dllDirectory, bool unsafeLoadAllDlls = false) {
+            _dllDirectory = dllDirectory;
+            _unsafeLoadAllDlls = unsafeLoadAllDlls;
+        }
+
+        public IEnumerable<string> GetDllPaths(bool server = false) {
+            if (_unsafeLoadAllDlls) return UnsafePaths();
+            if (_dllManager == null) return [];
+            var files = _dllManager.OpenForInjection(server);
+            try { return files.Select(file => file.Path).ToArray(); }
+            finally { foreach (var file in files) file.Dispose(); }
+        }
+
+        private string[] UnsafePaths() => _dllDirectory != null && Directory.Exists(_dllDirectory)
+            ? Directory.EnumerateFiles(_dllDirectory, "*", SearchOption.AllDirectories)
+                .Where(path => Path.GetExtension(path).Equals(".dll", StringComparison.OrdinalIgnoreCase))
+                .Select(Path.GetFullPath).OrderBy(path => path, StringComparer.Ordinal).ToArray()
+            : [];
 
         public bool Inject(Process p) => Inject(p, server: false);
 
@@ -70,8 +93,10 @@ namespace UnchainedLauncher.Core.Services.Processes {
             var procHandle = IntPtr.Zero;
             var allocMemAddress = IntPtr.Zero;
             try {
-                files = _dllManager.OpenForInjection(server);
+                if (_dllManager == null && !_unsafeLoadAllDlls) return false;
+                if (_dllManager != null) files = _dllManager.OpenForInjection(server);
                 var paths = files.Select(file => file.Path).ToArray();
+                if (_unsafeLoadAllDlls) paths = paths.Concat(UnsafePaths()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
                 if (paths.Length == 0) {
                     _logger.Info("No dlls present for injection");

@@ -80,9 +80,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             var originalExists = File.Exists(originalPath);
             var message = new List<string>() {
                 "Are you sure? This will disable all mods, reset all settings to their defaults, and uninstall the launcher. This will delete the following:",
-                "* All files in .mod_cache",
-                "* All files in TBL\\Binaries\\Win64\\Plugins",
-                "* All non-vanilla paks in TBL\\Content\\Paks.",
+                CleanupDisclosure(),
                 "",
                 originalExists
                     ? "IMPORTANT: Wait at least 1 second and then launch normally."
@@ -95,7 +93,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             if (choice == UserDialogueChoice.No) return;
 
             await CleanUpInstallation_actions();
-            const string replaceCommand = $@" 
+            const string replaceCommand = $@"
                 while (Test-Path '{originalPath}' -PathType Leaf) {{
                     try {{
                         Move-Item -Path '{originalPath}' -Destination '{launcherPath}' -Force;
@@ -106,7 +104,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
                     }}
                 }};";
 
-            const string deleteCommand = $@" 
+            const string deleteCommand = $@"
                 while (Test-Path '{launcherPath}' -PathType Leaf) {{
                     try {{
                         Remove-Item -Path '{launcherPath}' -Force;
@@ -147,6 +145,12 @@ namespace UnchainedLauncher.GUI.ViewModels {
             ExitProgram(0);
         }
 
+        private string CleanupDisclosure() =>
+            "* All files in .mod_cache\n" +
+            $"* All files in {FilePaths.PluginDir}\n" +
+            $"* All non-vanilla files in {PakDir.DirPath}\n" +
+            "Shared caches and CLI profile assets are retained.";
+
         private async Task CleanUpInstallation_actions() {
             FileHelpers.DeleteDirectory(FilePaths.ModCachePath);
             FileHelpers.DeleteDirectory(FilePaths.PluginDir);
@@ -158,9 +162,7 @@ namespace UnchainedLauncher.GUI.ViewModels {
             Logger.Info("CleanUpInstallation button clicked.");
             var message = new List<string>() {
                 "Are you sure? This will disable all mods and reset all settings to their defaults. This will delete the following:",
-                "* All files in .mod_cache",
-                "* All files in TBL\\Binaries\\Win64\\Plugins",
-                "* All non-vanilla paks in TBL\\Content\\Paks.",
+                CleanupDisclosure(),
                 "",
                 "After deleting, the launcher will restart itself."
             }.Aggregate((accumulator, next) => accumulator + "\n" + next);

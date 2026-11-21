@@ -2,6 +2,7 @@ using LanguageExt;
 using LanguageExt.Common;
 using Moq;
 using UnchainedLauncher.Core.JsonModels.ModMetadata;
+using UnchainedLauncher.Core.Services;
 using UnchainedLauncher.Core.Services.Mods;
 using UnchainedLauncher.Core.Services.Mods.Registry;
 using UnchainedLauncher.Core.Utilities;
@@ -51,8 +52,41 @@ public sealed class PakMutationSafetyTests : IDisposable {
     }
 
     [Fact]
+    public async Task FailedOwnershipCheckpointCancelsLaunchAndAllowsRetry() {
+        var release = new Release("1", "hash", "source.pak", DateTime.UtcNow,
+            new("https://github.com/test/A", "A", "", null, null, [], [], []),
+            new([], [], [], [], []), "");
+        var registry = new Mock<IModRegistry>();
+        var paks = new LauncherPakDir(Paks, []);
+        var manager = new ModManager(registry.Object, paks, [_a], [new Mod(release.Info, [release])]);
+        var persistence = new ModManagerPersistence(manager, Config);
+        persistence.Save();
+        registry.Setup(r => r.DownloadPak(_a, It.IsAny<string>()))
+            .Returns((ReleaseCoordinates _, string path) => {
+                File.Delete(Config);
+                Directory.CreateDirectory(Config);
+                return Prelude.RightAsync<ModPakStreamAcquisitionFailure, FileWriter>(
+                    new FileWriter(path, new MemoryStream([1, 2, 3]), 3));
+            });
+        var closed = false;
+        var dialogue = new Mock<IUserDialogueSpawner>();
+        dialogue.Setup(d => d.DisplayProgress(It.IsAny<MemoryProgress>())).Returns(() => closed = true);
+        var installer = new Core.Services.Processes.Chivalry.LaunchPreparers.Chivalry2ModsInstaller(manager, dialogue.Object);
+        var result = await installer.PrepareLaunch(new Core.Services.Processes.Chivalry.LaunchOptions(
+            [], "", "", false, false, Prelude.None, Prelude.None));
+        Assert.True(result.IsNone);
+        Assert.True(closed);
+        Assert.Single(paks.ManagedPaks);
+        dialogue.Verify(d => d.DisplayMessage(It.Is<string>(message =>
+            message.Contains("ownership") && message.Contains("cancelled"))), Times.Once);
+        Directory.Delete(Config);
+        persistence.Save();
+        Assert.Single(Reload().ManagedPaks);
+    }
+
+    [Fact]
     public async Task DeniedReservationLeavesOwnershipUnchangedAndAllowsRetryAndReset() {
-        var destination = Path.Combine(Paks, "q__-__A.pak.partial");
+        var destination = Path.Combine(Paks, "A_0_P.pak.partial");
         Directory.CreateDirectory(destination);
         var paks = New();
         var results = await paks.InstallModSet([new(_a, Write)], Prelude.None).ToListAsync();
@@ -85,7 +119,7 @@ public sealed class PakMutationSafetyTests : IDisposable {
         Assert.Empty(Directory.GetFiles(Paks, "*.partial"));
         Assert.Empty(Reload().ManagedPaks);
         await Install(paks, _a);
-        Assert.Equal("q__-__A.pak", Assert.Single(Reload().ManagedPaks).PakFileName);
+        Assert.Equal("A_0_P.pak", Assert.Single(Reload().ManagedPaks).PakFileName);
         Assert.True((await paks.Reset()).IsRight);
         Assert.Empty(Reload().ManagedPaks);
     }
@@ -94,13 +128,13 @@ public sealed class PakMutationSafetyTests : IDisposable {
     public async Task SignatureCollisionSkipsUnknownSignatureAndPreservesIt() {
         var paks = New();
         await Install(paks, _a);
-        var unknownSignature = Path.Combine(Paks, "qz__-__A.sig");
+        var unknownSignature = Path.Combine(Paks, "A_1_P.sig");
         File.WriteAllText(unknownSignature, "user signature");
-        var results = await paks.InstallModSet([new(_a, Write), new(_b, Write)], Prelude.None).ToListAsync();
+        var results = await paks.InstallModSet([new(_b, Write), new(_a, Write)], Prelude.None).ToListAsync();
         Assert.All(results, result => Assert.True(result.IsRight));
         Assert.Equal("user signature", File.ReadAllText(unknownSignature));
         Assert.All(Reload().ManagedPaks, pak => Assert.True(File.Exists(Path.Combine(Paks, pak.PakFileName))));
-        Assert.Equal("qz__-__A (1).pak", Reload().ManagedPaks.Single(pak => pak.Coordinates == _a).PakFileName);
+        Assert.Equal("A (1)_1_P.pak", Reload().ManagedPaks.Single(pak => pak.Coordinates == _a).PakFileName);
     }
 
     [Fact]
@@ -108,12 +142,12 @@ public sealed class PakMutationSafetyTests : IDisposable {
         var paks = New();
         await Install(paks, _a);
         // Directories are not signature files and cannot be reserved by the allocator.
-        var blocked = Path.Combine(Paks, "qz__-__A.sig");
+        var blocked = Path.Combine(Paks, "A_1_P.sig");
         Directory.CreateDirectory(blocked);
-        var results = await paks.InstallModSet([new(_a, Write), new(_b, Write)], Prelude.None).ToListAsync();
+        var results = await paks.InstallModSet([new(_b, Write), new(_a, Write)], Prelude.None).ToListAsync();
         Assert.Contains(results, result => result.IsLeft);
         Assert.True(Directory.Exists(blocked));
-        Assert.Equal("q__-__A.pak", Reload().ManagedPaks.Single(pak => pak.Coordinates == _a).PakFileName);
+        Assert.Equal("A_0_P.pak", Reload().ManagedPaks.Single(pak => pak.Coordinates == _a).PakFileName);
         Assert.All(Reload().ManagedPaks, pak => Assert.True(File.Exists(Path.Combine(Paks, pak.PakFileName))));
     }
 
@@ -197,7 +231,7 @@ public sealed class PakMutationSafetyTests : IDisposable {
         var paks = New();
         var results = await paks.InstallModSet([new(_a, path => {
             if (outcome == "publish-throw")
-                Directory.CreateDirectory(Path.Combine(Paks, "q__-__A.pak"));
+                Directory.CreateDirectory(Path.Combine(Paks, "A_0_P.pak"));
             return new FileWriter(path, stream, 3);
         })], Prelude.None).ToListAsync();
         Assert.Equal(outcome == "success", Assert.Single(results).IsRight);

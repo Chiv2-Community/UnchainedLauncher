@@ -230,6 +230,10 @@ namespace UnchainedLauncher.Core.Services.Mods {
                 );
         }
 
+        /// <summary>
+        /// Best-effort UI projection; tolerates incomplete metadata and ignores version constraints.
+        /// Launch preparation must use PakLaunchPlan instead.
+        /// </summary>
         public static IEnumerable<Release> GetEnabledAndDependencyReleases(this IModManager modManager, bool includeDependencies = true,
             IEnumerable<Release>? roots = null) {
             var enabledModsWithDependencies =
@@ -334,7 +338,8 @@ namespace UnchainedLauncher.Core.Services.Mods {
                         coords,
                         outputPath => modManager.ModRegistry
                             .DownloadPak(coords, outputPath)
-                            .MapLeft(e => Error.New(e))
+                            .MapLeft(e => Error.New(e)),
+                        release.ReleaseHash
                     );
                 });
 

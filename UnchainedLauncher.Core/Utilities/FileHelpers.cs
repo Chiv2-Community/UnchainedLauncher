@@ -79,13 +79,14 @@ namespace UnchainedLauncher.Core.Utilities {
             }).ToEither()
               .MapLeft(error => new HashFailure(filePath, error));
         }
-
-
     }
 
     public record HashFailure(string FilePath, Error Error) : Expected($"Failed to hash file at {FilePath}. Reason: {Error.Message}", Error.Code, Some(Error));
 
 
+    /// <summary>
+    /// Writes a borrowed input stream. The acquiring caller must dispose the stream.
+    /// </summary>
     public class FileWriter {
         private static readonly ILog logger = LogManager.GetLogger(nameof(FileWriter));
 

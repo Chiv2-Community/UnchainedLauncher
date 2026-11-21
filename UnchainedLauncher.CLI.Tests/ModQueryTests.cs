@@ -60,6 +60,8 @@ public sealed class ModQueryTests : IDisposable {
     [InlineData("dll-query", "not-a-runtime-configuration")]
     [InlineData("mod-query", "{path: [invalid], unknown-setting: {secret: ignored}}")]
     [InlineData("dll-query", "{path: [invalid], unknown-setting: {secret: ignored}}")]
+    [InlineData("mod-query", "!load missing.yaml")]
+    [InlineData("dll-query", "!load missing.yaml")]
     public async Task QueriesIgnoreProtonWithoutChangingFiles(string command, string proton) {
         var local = Path.Combine(_directory, "local");
         Directory.CreateDirectory(local);

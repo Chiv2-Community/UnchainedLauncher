@@ -134,6 +134,24 @@ are validated before injection; native code still executes in the game.
 The hidden unsafe DLL-loading permission must be explicitly passed as a
 value-less launcher flag, never through forwarded game arguments.
 
+### Pak recovery
+
+Ambiguous or unmanaged pak files prompt for **Keep / Remove / Cancel** before
+launch. The dialogue lists filenames relative to the command-selected profile's
+Paks directory, with known release details.
+
+- **Keep** retains unrecognized files and authorizes adoption of recognized
+  releases as managed files. Those files can subsequently be replaced or removed
+  to match the command's requested mods; Keep does not add `--mod` selections.
+- **Remove** authorizes deleting the listed paks and their matching `.sig` files.
+- **Cancel** or end of input stops preparation without authorizing recovery.
+  Invalid input prompts again; there is no default.
+
+Recovery requires interactive stdin, stdout and stderr. Redirected or unattended
+launches cancel rather than accept piped answers. Rerun the same launch command
+in a terminal, with the same `--saved-dir-suffix` if supplied, and choose explicitly.
+Normal update and bad-hash refresh policies are unchanged.
+
 ## Tests and limits
 
 ```text
